@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_ast::ast;
+use qsc_ast::ast::{self, Idents, TypeParameter as AstTypeParameter};
 use qsc_frontend::resolve;
 use qsc_hir::{
     hir::{self, PackageId},
-    ty::{self, GenericParam},
+    ty::{self, TypeParameter as HirTypeParameter},
 };
 use regex_lite::Regex;
 use std::{
@@ -218,7 +218,45 @@ impl<'a> Display for AstCallableDecl<'a> {
                 .decl
                 .generics
                 .iter()
-                .map(|p| p.name.clone())
+                .map(
+                    |AstTypeParameter {
+                         ty, constraints, ..
+                     }| {
+                        format!(
+                            "{}{}",
+                            ty.name,
+                            if constraints.0.is_empty() {
+                                Default::default()
+                            } else {
+                                format!(
+                                    ": {}",
+                                    constraints
+                                        .0
+                                        .iter()
+                                        .map(|bound| {
+                                            let constraint_parameters = bound
+                                                .parameters
+                                                .iter()
+                                                .map(|x| format!("{}", AstTy { ty: &x.ty }))
+                                                .collect::<Vec<_>>()
+                                                .join(", ");
+                                            format!(
+                                                "{}{}",
+                                                bound.name.name,
+                                                if constraint_parameters.is_empty() {
+                                                    Default::default()
+                                                } else {
+                                                    format!("[{constraint_parameters}]")
+                                                }
+                                            )
+                                        })
+                                        .collect::<Vec<_>>()
+                                        .join(" + ")
+                                )
+                            }
+                        )
+                    },
+                )
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(f, "<{type_params}>")?;
@@ -516,8 +554,8 @@ impl<'a> Display for AstTy<'a> {
             }
             ast::TyKind::Hole => write!(f, "_"),
             ast::TyKind::Paren(ty) => write!(f, "{}", AstTy { ty }),
-            ast::TyKind::Path(path) => write!(f, "{}", AstPath { path }),
-            ast::TyKind::Param(id) => write!(f, "{}", id.name),
+            ast::TyKind::Path(path) => write!(f, "{}", AstPathKind { path }),
+            ast::TyKind::Param(AstTypeParameter { ty, .. }) => write!(f, "{}", ty.name),
             ast::TyKind::Tuple(tys) => fmt_tuple(f, tys, |ty| AstTy { ty }),
             ast::TyKind::Err => write!(f, "?"),
         }
@@ -540,15 +578,16 @@ impl<'a> Display for FunctorExpr<'a> {
     }
 }
 
-struct AstPath<'a> {
-    path: &'a ast::Path,
+struct AstPathKind<'a> {
+    path: &'a ast::PathKind,
 }
 
-impl<'a> Display for AstPath<'a> {
+impl<'a> Display for AstPathKind<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.path.segments.as_ref() {
-            Some(parts) => write!(f, "{parts}.{}", self.path.name.name),
-            None => write!(f, "{}", self.path.name.name),
+        if let ast::PathKind::Ok(path) = self.path {
+            write!(f, "{}", path.full_name())
+        } else {
+            write!(f, "?")
         }
     }
 }
@@ -614,12 +653,20 @@ where
     write!(formatter, "}}")
 }
 
-fn display_type_params(generics: &[GenericParam]) -> String {
+fn display_type_params(generics: &[HirTypeParameter]) -> String {
     let type_params = generics
         .iter()
         .filter_map(|generic| match generic {
-            GenericParam::Ty(name) => Some(name.name.clone()),
-            GenericParam::Functor(_) => None,
+            HirTypeParameter::Ty { name, bounds } => Some(format!(
+                "{}{}",
+                name,
+                if bounds.is_empty() {
+                    Default::default()
+                } else {
+                    format!(": {bounds}")
+                }
+            )),
+            HirTypeParameter::Functor(_) => None,
         })
         .collect::<Vec<_>>()
         .join(", ");

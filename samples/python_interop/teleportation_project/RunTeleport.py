@@ -7,4 +7,4 @@ import qsharp
 # this example assumes your Python program is in the same folder as the qsharp.json file
 qsharp.init(project_root=".")
 
-print(qsharp.eval("RunTeleport.RunTeleportationExample()"))
+print(qsharp.eval("RunTeleport.Main()"))

@@ -20,8 +20,8 @@ use qsc::{
         CircuitEntryPoint,
     },
     target::Profile,
-    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
-    TargetCapabilityFlags,
+    LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
+    SparseSim, TargetCapabilityFlags,
 };
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
@@ -263,8 +263,11 @@ where
 
         let json_latex = serde_json::to_string(&get_state_latex(&state, qubit_count))
             .expect("serialization should succeed");
-        write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
-            .expect("writing to string should succeed");
+        write!(
+            dump_json,
+            r#" "stateLatex": {json_latex}, "qubitCount": {qubit_count} }} "#
+        )
+        .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
     }
@@ -314,6 +317,8 @@ where
         Ok(())
     }
 }
+
+#[allow(clippy::too_many_arguments)]
 fn run_internal_with_features<F>(
     sources: SourceMap,
     event_cb: F,
@@ -322,6 +327,7 @@ fn run_internal_with_features<F>(
     capabilities: TargetCapabilityFlags,
     store: PackageStore,
     dependencies: &Dependencies,
+    pauliNoise: &PauliNoise,
 ) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
@@ -355,7 +361,8 @@ where
     };
 
     for _ in 0..shots {
-        let result = interpreter.eval_entry_with_sim(&mut SparseSim::new(), &mut out);
+        let result =
+            interpreter.eval_entry_with_sim(&mut SparseSim::new_with_noise(pauliNoise), &mut out);
         let mut success = true;
         let msg: serde_json::Value = match result {
             Ok(value) => serde_json::Value::String(value.to_string()),
@@ -380,6 +387,17 @@ pub fn run(
     event_cb: &js_sys::Function,
     shots: u32,
 ) -> Result<bool, JsValue> {
+    runWithPauliNoise(program, expr, event_cb, shots, &JsValue::null())
+}
+
+#[wasm_bindgen]
+pub fn runWithPauliNoise(
+    program: ProgramConfig,
+    expr: &str,
+    event_cb: &js_sys::Function,
+    shots: u32,
+    pauliNoise: &JsValue,
+) -> Result<bool, JsValue> {
     let (source_map, capabilities, language_features, store, deps) =
         into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
             // Wrap in `interpret::Error` and `JsError` to match the error type
@@ -397,6 +415,32 @@ pub fn run(
         // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
     };
+
+    // See if the pauliNoise JsValue is an array
+    let noise = if pauliNoise.is_array() {
+        let pauliArray = js_sys::Array::from(pauliNoise);
+        if pauliArray.length() != 3 {
+            return Err(JsError::new("Pauli noise must have 3 probabilities").into());
+        }
+        PauliNoise::from_probabilities(
+            pauliArray
+                .get(0)
+                .as_f64()
+                .expect("Probabilities should be floats"),
+            pauliArray
+                .get(1)
+                .as_f64()
+                .expect("Probabilities should be floats"),
+            pauliArray
+                .get(2)
+                .as_f64()
+                .expect("Probabilities should be floats"),
+        )
+        .expect("Unable to create Pauli noise from the array provided")
+    } else {
+        PauliNoise::default()
+    };
+
     match run_internal_with_features(
         source_map,
         event_cb,
@@ -405,6 +449,7 @@ pub fn run(
         capabilities,
         store,
         &deps[..],
+        &noise,
     ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),

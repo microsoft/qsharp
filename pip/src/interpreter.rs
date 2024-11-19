@@ -24,7 +24,7 @@ use qsc::{
     interpret::{
         self,
         output::{Error, Receiver},
-        CircuitEntryPoint, Value,
+        CircuitEntryPoint, PauliNoise, Value,
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
@@ -333,15 +333,25 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
+        noise: Option<(f64, f64, f64)>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run(&mut receiver, entry_expr) {
+
+        let noise = match noise {
+            None => None,
+            Some((px, py, pz)) => match PauliNoise::from_probabilities(px, py, pz) {
+                Ok(noise_struct) => Some(noise_struct),
+                Err(error_message) => return Err(PyException::new_err(error_message)),
+            },
+        };
+
+        match self.interpreter.run(&mut receiver, entry_expr, noise) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -635,8 +645,8 @@ impl StateDumpData {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[pyclass(eq, eq_int, ord)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,

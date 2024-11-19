@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{ident, opt, pat, path, seq};
+use super::{ident, opt, pat, seq};
 use crate::{
+    completion::WordKinds,
+    expr::expr,
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
     scan::ParserContext,
@@ -10,7 +12,12 @@ use crate::{
     Error, ErrorKind,
 };
 use expect_test::expect;
+use qsc_ast::ast::PathKind;
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+
+fn path(s: &mut ParserContext) -> Result<PathKind, Error> {
+    super::recovering_path(s, WordKinds::empty())
+}
 
 #[test]
 fn ident_basic() {
@@ -117,17 +124,49 @@ fn path_trailing_dot() {
         path,
         "Foo.Bar.",
         &expect![[r#"
-            Error(
-                Rule(
-                    "identifier",
-                    Eof,
-                    Span {
-                        lo: 8,
-                        hi: 8,
-                    },
+            Err IncompletePath [0-8]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar"
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Eof,
+                        Span {
+                            lo: 8,
+                            hi: 8,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
+    );
+}
+
+#[test]
+fn path_followed_by_keyword() {
+    check(
+        path,
+        "Foo.Bar.in",
+        &expect![[r#"
+            Err IncompletePath [0-10]:
+                Ident _id_ [0-3] "Foo"
+                Ident _id_ [4-7] "Bar"
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Keyword(
+                            In,
+                        ),
+                        Span {
+                            lo: 8,
+                            hi: 10,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -248,17 +287,22 @@ fn pat_missing_ty() {
         pat,
         "foo :",
         &expect![[r#"
-            Error(
-                Rule(
-                    "type",
-                    Eof,
-                    Span {
-                        lo: 5,
-                        hi: 5,
-                    },
+            Pat _id_ [0-5]: Bind:
+                Ident _id_ [0-3] "foo"
+                Type _id_ [5-5]: Err
+
+            [
+                Error(
+                    Rule(
+                        "type",
+                        Eof,
+                        Span {
+                            lo: 5,
+                            hi: 5,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
 
@@ -285,16 +329,8 @@ fn opt_fail_consume() {
         |s| opt(s, path),
         "Foo.#",
         &expect![[r#"
-            Error(
-                Rule(
-                    "identifier",
-                    Eof,
-                    Span {
-                        lo: 5,
-                        hi: 5,
-                    },
-                ),
-            )
+            Err IncompletePath [0-5]:
+                Ident _id_ [0-3] "Foo"
 
             [
                 Error(
@@ -306,6 +342,16 @@ fn opt_fail_consume() {
                                 hi: 5,
                             },
                         ),
+                    ),
+                ),
+                Error(
+                    Rule(
+                        "identifier",
+                        Eof,
+                        Span {
+                            lo: 5,
+                            hi: 5,
+                        },
                     ),
                 ),
             ]"#]],
@@ -360,12 +406,14 @@ fn seq_fail_no_consume() {
 #[test]
 fn seq_fail_consume() {
     check_seq(
-        |s| seq(s, path),
-        "foo, bar.",
-        &expect![[r#"
+        |s| seq(s, expr),
+        "foo, bar(",
+        &expect![[r"
             Error(
-                Rule(
-                    "identifier",
+                Token(
+                    Close(
+                        Paren,
+                    ),
                     Eof,
                     Span {
                         lo: 9,
@@ -373,6 +421,6 @@ fn seq_fail_consume() {
                     },
                 ),
             )
-        "#]],
+        "]],
     );
 }

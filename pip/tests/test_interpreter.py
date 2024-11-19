@@ -489,3 +489,11 @@ def test_unsupported_operation_circuit() -> None:
         )
         != -1
     )
+
+
+def test_results_are_comparable() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    r = e.interpret("[One, Zero]")
+    assert r == [Result.One, Result.Zero]
+    r.sort()
+    assert r == [Result.Zero, Result.One]

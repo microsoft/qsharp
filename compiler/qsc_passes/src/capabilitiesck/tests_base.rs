@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::tests_common::{
     check, check_for_exe, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
+    CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR, CUSTOM_RESET,
+    CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR, DYNAMIC_ARRAY_BINARY_OP,
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
@@ -549,6 +549,74 @@ fn measurement_within_dynamic_scope_yields_errors() {
 }
 
 #[test]
+fn custom_measurement_yields_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT,
+        &expect![[r#"
+            [
+                CallToCustomMeasurement(
+                    Span {
+                        lo: 99,
+                        hi: 105,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_measurement_with_simulatable_intrinsic_yields_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        &expect![[r#"
+            [
+                CallToCustomMeasurement(
+                    Span {
+                        lo: 99,
+                        hi: 105,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_yields_errors() {
+    check_profile(
+        CUSTOM_RESET,
+        &expect![[r#"
+            [
+                CallToCustomReset(
+                    Span {
+                        lo: 145,
+                        hi: 151,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn custom_reset_with_simulatable_intrinsic_yields_errors() {
+    check_profile(
+        CUSTOM_RESET_WITH_SIMULATABLE_INTRINSIC_ATTR,
+        &expect![[r#"
+            [
+                CallToCustomReset(
+                    Span {
+                        lo: 145,
+                        hi: 151,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn use_of_dynamic_index_yields_errors() {
     check_profile(
         USE_DYNAMIC_INDEX,
@@ -891,6 +959,23 @@ fn use_of_static_sized_array_in_tuple_error() {
                     Span {
                         lo: 63,
                         hi: 66,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn binary_op_with_dynamic_array_error() {
+    check_profile(
+        DYNAMIC_ARRAY_BINARY_OP,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 66,
+                        hi: 97,
                     },
                 ),
             ]

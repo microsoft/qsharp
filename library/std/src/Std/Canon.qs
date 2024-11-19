@@ -234,13 +234,13 @@ operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
     adjoint self;
 }
 
-    /// Given a pair, returns its first element.
+/// Given a pair, returns its first element.
 function Fst<'T, 'U>(pair : ('T, 'U)) : 'T {
     let (fst, _) = pair;
     return fst;
 }
 
-    /// Given a pair, returns its second element.
+/// Given a pair, returns its second element.
 function Snd<'T, 'U>(pair : ('T, 'U)) : 'U {
     let (_, snd) = pair;
     return snd;

@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::capabilitiesck::tests_common::USE_DYNAMIC_RANGE;
 
 use super::tests_common::{
     check, check_for_exe, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, CUSTOM_MEASUREMENT,
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
@@ -396,6 +394,16 @@ fn call_to_unresolved_allowed() {
 fn measurement_within_dynamic_scope_yields_no_errors() {
     check_profile(
         MEASUREMENT_WITHIN_DYNAMIC_SCOPE,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn custom_measurement_yields_no_errors() {
+    check_profile(
+        CUSTOM_MEASUREMENT,
         &expect![[r#"
             []
         "#]],

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::{
     backend::{Backend, SparseSim},
     debug::Frame,
@@ -88,7 +86,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         &mut GenericReceiver::new(&mut out),
     ) {
         Ok(value) => expect.assert_eq(&value.to_string()),
-        Err(err) => expect.assert_debug_eq(&err),
+        Err((err, _)) => expect.assert_debug_eq(&err),
     }
 }
 
@@ -339,10 +337,10 @@ fn block_mutable_nested_scopes_shadowing_expr() {
 fn block_qubit_use_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -351,11 +349,11 @@ fn block_qubit_use_expr() {
 fn block_qubit_use_use_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit();
             use q1 = Qubit();
-            q1
-        }"},
+            $"{q1}"
+        }"#},
         &expect!["Qubit1"],
     );
 }
@@ -364,13 +362,13 @@ fn block_qubit_use_use_expr() {
 fn block_qubit_use_reuse_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             {
                 use q = Qubit();
             }
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -379,12 +377,12 @@ fn block_qubit_use_reuse_expr() {
 fn block_qubit_use_scope_reuse_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit() {
             }
             use q = Qubit();
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["Qubit0"],
     );
 }
@@ -393,10 +391,10 @@ fn block_qubit_use_scope_reuse_expr() {
 fn block_qubit_use_array_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = Qubit[3];
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["[Qubit0, Qubit1, Qubit2]"],
     );
 }
@@ -410,42 +408,17 @@ fn block_qubit_use_array_invalid_count_expr() {
             q
         }"},
         &expect![[r#"
-            (
-                UserFail(
-                    "Cannot allocate qubit array with a negative length",
-                    PackageSpan {
-                        package: PackageId(
-                            0,
-                        ),
-                        span: Span {
-                            lo: 2050,
-                            hi: 2107,
-                        },
+            UserFail(
+                "Cannot allocate qubit array with a negative length",
+                PackageSpan {
+                    package: PackageId(
+                        0,
+                    ),
+                    span: Span {
+                        lo: 2050,
+                        hi: 2107,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 2050,
-                            hi: 2107,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                0,
-                            ),
-                            item: LocalItemId(
-                                6,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: false,
-                            controlled: 0,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );
@@ -455,10 +428,10 @@ fn block_qubit_use_array_invalid_count_expr() {
 fn block_qubit_use_tuple_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = (Qubit[3], Qubit(), Qubit());
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["([Qubit0, Qubit1, Qubit2], Qubit3, Qubit4)"],
     );
 }
@@ -467,10 +440,10 @@ fn block_qubit_use_tuple_expr() {
 fn block_qubit_use_nested_tuple_expr() {
     check_expr(
         "",
-        indoc! {"{
+        indoc! {r#"{
             use q = (Qubit[3], (Qubit(), Qubit()));
-            q
-        }"},
+            $"{q}"
+        }"#},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
     );
 }
@@ -554,20 +527,17 @@ fn binop_andl_no_shortcut() {
         "",
         r#"true and (fail "Should Fail")"#,
         &expect![[r#"
-            (
-                UserFail(
-                    "Should Fail",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 10,
-                            hi: 28,
-                        },
+            UserFail(
+                "Should Fail",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 28,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -584,19 +554,16 @@ fn binop_div_bigint_zero() {
         "",
         "12L / 0L",
         &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 8,
-                        },
+            DivZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 6,
+                        hi: 8,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -622,19 +589,16 @@ fn binop_div_int_zero() {
         "",
         "12 / 0",
         &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 5,
-                            hi: 6,
-                        },
+            DivZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 5,
+                        hi: 6,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -791,20 +755,17 @@ fn binop_exp_bigint_negative_exp() {
         "",
         "2L^-3",
         &expect![[r#"
-            (
-                InvalidNegativeInt(
-                    -3,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 5,
-                        },
+            InvalidNegativeInt(
+                -3,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 3,
+                        hi: 5,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -816,20 +777,17 @@ fn binop_exp_bigint_too_large() {
         "",
         "2L^9_223_372_036_854_775_807",
         &expect![[r#"
-            (
-                IntTooLarge(
-                    9223372036854775807,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 28,
-                        },
+            IntTooLarge(
+                9223372036854775807,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 3,
+                        hi: 28,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -866,20 +824,17 @@ fn binop_exp_int_negative_exp() {
         "",
         "2^-3",
         &expect![[r#"
-            (
-                InvalidNegativeInt(
-                    -3,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 2,
-                            hi: 4,
-                        },
+            InvalidNegativeInt(
+                -3,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 2,
+                        hi: 4,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -891,20 +846,17 @@ fn binop_exp_int_too_large() {
         "",
         "100^50",
         &expect![[r#"
-            (
-                IntTooLarge(
-                    50,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 6,
-                        },
+            IntTooLarge(
+                50,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 4,
+                        hi: 6,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1071,19 +1023,16 @@ fn binop_mod_bigint_zero() {
         "",
         "12L % 0L",
         &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 8,
-                        },
+            DivZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 6,
+                        hi: 8,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1105,19 +1054,16 @@ fn binop_mod_int_zero() {
         "",
         "12 % 0",
         &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 5,
-                            hi: 6,
-                        },
+            DivZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 5,
+                        hi: 6,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1134,19 +1080,16 @@ fn binop_mod_double_zero() {
         "",
         "1.2 % 0.0",
         &expect![[r#"
-            (
-                DivZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 9,
-                        },
+            DivZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 6,
+                        hi: 9,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1347,20 +1290,17 @@ fn binop_shl_int_overflow() {
         "",
         "1 <<< 64",
         &expect![[r#"
-            (
-                IntTooLarge(
-                    64,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 8,
-                        },
+            IntTooLarge(
+                64,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 6,
+                        hi: 8,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1398,20 +1338,17 @@ fn binop_shr_int_overflow() {
         "",
         "1 >>> 64",
         &expect![[r#"
-            (
-                IntTooLarge(
-                    64,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 8,
-                        },
+            IntTooLarge(
+                64,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 6,
+                        hi: 8,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1523,20 +1460,17 @@ fn fail_expr() {
         "",
         r#"fail "This is a failure""#,
         &expect![[r#"
-            (
-                UserFail(
-                    "This is a failure",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 24,
-                        },
+            UserFail(
+                "This is a failure",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 24,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1548,20 +1482,17 @@ fn fail_shortcut_expr() {
         "",
         r#"{ fail "Got Here!"; fail "Shouldn't get here..."; }"#,
         &expect![[r#"
-            (
-                UserFail(
-                    "Got Here!",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 2,
-                            hi: 18,
-                        },
+            UserFail(
+                "Got Here!",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 2,
+                        hi: 18,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1708,19 +1639,16 @@ fn array_slice_step_zero_expr() {
         "",
         "[1, 2, 3, 4, 5][...0...]",
         &expect![[r#"
-            (
-                RangeStepZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 16,
-                            hi: 23,
-                        },
+            RangeStepZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 16,
+                        hi: 23,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1732,20 +1660,17 @@ fn array_slice_out_of_range_expr() {
         "",
         "[1, 2, 3, 4, 5][0..7]",
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    5,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 16,
-                            hi: 20,
-                        },
+            IndexOutOfRange(
+                5,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 16,
+                        hi: 20,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1757,20 +1682,17 @@ fn array_index_negative_expr() {
         "",
         "[1, 2, 3][-2]",
         &expect![[r#"
-            (
-                InvalidIndex(
-                    -2,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 10,
-                            hi: 12,
-                        },
+            InvalidIndex(
+                -2,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 12,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -1782,20 +1704,17 @@ fn array_index_out_of_range_expr() {
         "",
         "[1, 2, 3][4]",
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    4,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 10,
-                            hi: 11,
-                        },
+            IndexOutOfRange(
+                4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 10,
+                        hi: 11,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2054,20 +1973,17 @@ fn update_invalid_index_range_expr() {
         "",
         "[1, 2, 3] w/ 7 <- 4",
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    7,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 13,
-                            hi: 14,
-                        },
+            IndexOutOfRange(
+                7,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 13,
+                        hi: 14,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2079,20 +1995,17 @@ fn update_invalid_index_negative_expr() {
         "",
         "[1, 2, 3] w/ -1 <- 4",
         &expect![[r#"
-            (
-                InvalidNegativeInt(
-                    -1,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 13,
-                            hi: 15,
-                        },
+            InvalidNegativeInt(
+                -1,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 13,
+                        hi: 15,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2287,20 +2200,17 @@ fn update_array_with_range_out_of_range_err() {
         "",
         "[0, 1, 2, 3] w/ 1..5 <- [10, 11, 12, 13]",
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    4,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 16,
-                            hi: 20,
-                        },
+            IndexOutOfRange(
+                4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 16,
+                        hi: 20,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2312,20 +2222,17 @@ fn update_array_with_range_negative_index_err() {
         "",
         "[0, 1, 2, 3] w/ -1..0 <- [10, 11, 12, 13]",
         &expect![[r#"
-            (
-                InvalidIndex(
-                    -1,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 16,
-                            hi: 21,
-                        },
+            InvalidIndex(
+                -1,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 16,
+                        hi: 21,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2337,19 +2244,16 @@ fn update_array_with_range_zero_step_err() {
         "",
         "[0, 1, 2, 3] w/ ...0... <- [10, 11, 12, 13]",
         &expect![[r#"
-            (
-                RangeStepZero(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 16,
-                            hi: 23,
-                        },
+            RangeStepZero(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 16,
+                        hi: 23,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2433,20 +2337,17 @@ fn assignupdate_out_of_range_err() {
             x
         }"},
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    4,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 43,
-                            hi: 44,
-                        },
+            IndexOutOfRange(
+                4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 43,
+                        hi: 44,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2462,20 +2363,17 @@ fn assignupdate_expr_negative_index_err() {
             x
         }"},
         &expect![[r#"
-            (
-                InvalidNegativeInt(
-                    -1,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 43,
-                            hi: 45,
-                        },
+            InvalidNegativeInt(
+                -1,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 43,
+                        hi: 45,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2652,20 +2550,17 @@ fn assignupdate_expr_using_range_out_of_range_err() {
             x
         }"},
         &expect![[r#"
-            (
-                IndexOutOfRange(
-                    4,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 46,
-                            hi: 50,
-                        },
+            IndexOutOfRange(
+                4,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 46,
+                        hi: 50,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -2681,20 +2576,17 @@ fn assignupdate_expr_using_range_negative_index_err() {
             x
         }"},
         &expect![[r#"
-            (
-                InvalidNegativeInt(
-                    -1,
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 46,
-                            hi: 51,
-                        },
+            InvalidNegativeInt(
+                -1,
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 46,
+                        hi: 51,
                     },
-                ),
-                [],
+                },
             )
         "#]],
     );
@@ -3060,42 +2952,17 @@ fn call_adjoint_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            (
-                UserFail(
-                    "Adjoint Implementation",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 185,
-                            hi: 214,
-                        },
+            UserFail(
+                "Adjoint Implementation",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 185,
+                        hi: 214,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 185,
-                            hi: 214,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                2,
-                            ),
-                            item: LocalItemId(
-                                1,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: true,
-                            controlled: 0,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );
@@ -3124,42 +2991,17 @@ fn call_adjoint_adjoint_expr() {
         "#},
         "Adjoint Adjoint Test.Foo()",
         &expect![[r#"
-            (
-                UserFail(
-                    "Body Implementation",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 119,
-                            hi: 145,
-                        },
+            UserFail(
+                "Body Implementation",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 119,
+                        hi: 145,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 119,
-                            hi: 145,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                2,
-                            ),
-                            item: LocalItemId(
-                                1,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: false,
-                            controlled: 0,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );
@@ -3183,42 +3025,17 @@ fn call_adjoint_self_expr() {
         "#},
         "Adjoint Test.Foo()",
         &expect![[r#"
-            (
-                UserFail(
-                    "Body Implementation",
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 111,
-                            hi: 137,
-                        },
+            UserFail(
+                "Body Implementation",
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 111,
+                        hi: 137,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 111,
-                            hi: 137,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                2,
-                            ),
-                            item: LocalItemId(
-                                1,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: true,
-                            controlled: 0,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );
@@ -3701,41 +3518,16 @@ fn controlled_operation_with_duplicate_controls_fails() {
             Controlled I([ctl, ctl], q);
         }",
         &expect![[r#"
-            (
-                QubitUniqueness(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 86,
-                            hi: 101,
-                        },
+            QubitUniqueness(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 86,
+                        hi: 101,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 74,
-                            hi: 101,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                1,
-                            ),
-                            item: LocalItemId(
-                                134,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: false,
-                            controlled: 1,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );
@@ -3751,41 +3543,16 @@ fn controlled_operation_with_target_in_controls_fails() {
             Controlled I([ctl, q], q);
         }",
         &expect![[r#"
-            (
-                QubitUniqueness(
-                    PackageSpan {
-                        package: PackageId(
-                            2,
-                        ),
-                        span: Span {
-                            lo: 86,
-                            hi: 99,
-                        },
+            QubitUniqueness(
+                PackageSpan {
+                    package: PackageId(
+                        2,
+                    ),
+                    span: Span {
+                        lo: 86,
+                        hi: 99,
                     },
-                ),
-                [
-                    Frame {
-                        span: Span {
-                            lo: 74,
-                            hi: 99,
-                        },
-                        id: StoreItemId {
-                            package: PackageId(
-                                1,
-                            ),
-                            item: LocalItemId(
-                                134,
-                            ),
-                        },
-                        caller: PackageId(
-                            2,
-                        ),
-                        functor: FunctorApp {
-                            adjoint: false,
-                            controlled: 1,
-                        },
-                    },
-                ],
+                },
             )
         "#]],
     );

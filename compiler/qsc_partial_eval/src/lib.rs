@@ -25,7 +25,7 @@ use qsc_eval::{
     resolve_closure,
     val::{
         self, index_array, slice_array, update_functor_app, update_index_range,
-        update_index_single, Qubit, Value, Var, VarTy,
+        update_index_single, Value, Var, VarTy,
     },
     Error as EvalError, PackageSpan, State, StepAction, StepResult, Variable,
 };
@@ -258,6 +258,7 @@ impl<'a> PartialEvaluator<'a> {
         &self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
+        call_type: CallableType,
     ) -> Callable {
         let callable_package = self.package_store.get(store_item_id.package);
         let name = callable_decl.name.name.to_string();
@@ -275,7 +276,7 @@ impl<'a> PartialEvaluator<'a> {
         let call_type = if name.eq("__quantum__qis__reset__body") {
             CallableType::Reset
         } else {
-            CallableType::Regular
+            call_type
         };
         Callable {
             name,
@@ -487,6 +488,28 @@ impl<'a> PartialEvaluator<'a> {
         let Value::Result(rhs_result) = rhs_value else {
             panic!("expected result value from RHS expression");
         };
+
+        // Even though to get to this path, an expression would have to be categorized as hybrid by RCA, it is
+        // possible that the expression is in fact purely classical.
+        // This can happen in cases where a data structure such an array, tuple or UDT contains a mix of static and
+        // dynamic values. In such instances, RCA identifies all the contents of the data structure as dynamic even if
+        // some values are static.
+        // Here we handle this case and if both operands are purely classical we evaluate them.
+        if let (val::Result::Val(lhs_result_value), val::Result::Val(rhs_result_value)) =
+            (lhs_result, rhs_result)
+        {
+            let bool_value = match bin_op {
+                BinOp::Eq => lhs_result_value == rhs_result_value,
+                BinOp::Neq => lhs_result_value != rhs_result_value,
+                _ => {
+                    return Err(Error::Unexpected(
+                        format!("invalid binary operator for Result operands: {bin_op:?})"),
+                        bin_op_expr_span,
+                    ))
+                }
+            };
+            return Ok(EvalControlFlow::Continue(Value::Bool(bool_value)));
+        }
 
         // Get the operands to use when generating the binary operation instruction.
         let lhs_operand = self.eval_result_as_bool_operand(lhs_result);
@@ -1286,15 +1309,45 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
         args_span: PackageSpan,        // For diagnostic purposes only.
-        callee_expr_span: PackageSpan, // For diagnostic puprposes only.
+        callee_expr_span: PackageSpan, // For diagnostic purposes only.
     ) -> Result<Value, Error> {
+        // Check if any qubits passed as arguments have been released.
+        let qubits = args_value.qubits();
+        let qubits_len = qubits.len();
+        if qubits_len > 0 {
+            let qubits = qubits
+                .iter()
+                .filter_map(|q| q.try_deref().map(|q| q.0))
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits_len {
+                return if callable_decl.name.name.as_ref() == "__quantum__rt__qubit_release" {
+                    Err(EvalError::QubitDoubleRelease(args_span).into())
+                } else {
+                    Err(EvalError::QubitUsedAfterRelease(args_span).into())
+                };
+            }
+        }
+
+        if callable_decl.attrs.contains(&fir::Attr::Measurement) {
+            return Ok(self.measure_qubits(callable_decl, args_value));
+        }
+        if callable_decl.attrs.contains(&fir::Attr::Reset) {
+            return self.eval_expr_call_to_intrinsic_qis(
+                store_item_id,
+                callable_decl,
+                args_value,
+                callee_expr_span,
+                CallableType::Reset,
+            );
+        }
+
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
             "PermuteLabels" => qubit_relabel(args_value, args_span, |q0, q1| {
-                self.resource_manager.swap_qubit_ids(Qubit(q0), Qubit(q1));
+                self.resource_manager.swap_qubit_ids(q0, q1);
             })
             .map_err(std::convert::Into::into),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
@@ -1308,6 +1361,7 @@ impl<'a> PartialEvaluator<'a> {
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal"
+            | "ApplyIdleNoise"
             | "GlobalPhase" => Ok(Value::unit()),
             // The following intrinsic functions and operations should never make it past conditional compilation and
             // the capabilities check pass.
@@ -1325,6 +1379,7 @@ impl<'a> PartialEvaluator<'a> {
                 callable_decl,
                 args_value,
                 callee_expr_span,
+                CallableType::Regular,
             ),
         }
     }
@@ -1335,6 +1390,7 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
         callee_expr_span: PackageSpan,
+        call_type: CallableType,
     ) -> Result<Value, Error> {
         // Intrinsic callables that make it to this point are expected to be unitary.
         if callable_decl.output != Ty::UNIT {
@@ -1348,7 +1404,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Check if the callable is already in the program, and if not add it.
-        let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
+        let callable = self.create_intrinsic_callable(store_item_id, callable_decl, call_type);
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
@@ -1885,8 +1941,7 @@ impl<'a> PartialEvaluator<'a> {
             BinOp::Div => {
                 // Validate that the RHS is not a zero.
                 if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
-                    let error =
-                        Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
+                    let error = EvalError::DivZero(bin_op_expr_span).into();
                     return Err(error);
                 }
                 let bin_op_variable_id = self.resource_manager.next_var();
@@ -1914,10 +1969,7 @@ impl<'a> PartialEvaluator<'a> {
                     return Err(error);
                 };
                 if exponent < 0 {
-                    let error = Error::EvaluationFailed(
-                        "exponent must be non-negative".to_string(),
-                        bin_op_expr_span,
-                    );
+                    let error = EvalError::InvalidNegativeInt(exponent, bin_op_expr_span).into();
                     return Err(error);
                 }
 
@@ -2238,6 +2290,78 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
+    fn measure_qubits(&mut self, callable_decl: &CallableDecl, args_value: Value) -> Value {
+        let mut input_type = Vec::new();
+        let mut operands = Vec::new();
+        let mut results_values = Vec::new();
+
+        match args_value {
+            Value::Qubit(qubit) => {
+                input_type.push(qsc_rir::rir::Ty::Qubit);
+                operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit)));
+            }
+            Value::Tuple(values) => {
+                for value in &*values {
+                    let Value::Qubit(qubit) = value else {
+                        panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
+                    };
+                    input_type.push(qsc_rir::rir::Ty::Qubit);
+                    operands.push(self.map_eval_value_to_rir_operand(&Value::Qubit(qubit.clone())));
+                }
+            }
+            _ => {
+                panic!("by this point a qsc_pass should have checked that all arguments are Qubits")
+            }
+        }
+
+        match &callable_decl.output {
+            qsc_fir::ty::Ty::Prim(qsc_fir::ty::Prim::Result) => {
+                input_type.push(qsc_rir::rir::Ty::Result);
+                let result_value = Value::Result(self.resource_manager.next_result_register());
+                let result_operand = self.map_eval_value_to_rir_operand(&result_value);
+                operands.push(result_operand);
+                results_values.push(result_value);
+            }
+            qsc_fir::ty::Ty::Tuple(outputs) => {
+                for output in outputs {
+                    if matches!(output, qsc_fir::ty::Ty::Prim(qsc_fir::ty::Prim::Result)) {
+                        input_type.push(qsc_rir::rir::Ty::Result);
+                        let result_value =
+                            Value::Result(self.resource_manager.next_result_register());
+                        let result_operand = self.map_eval_value_to_rir_operand(&result_value);
+                        operands.push(result_operand);
+                        results_values.push(result_value);
+                    } else {
+                        panic!("by this point a qsc_pass should have checked that all outputs are Results")
+                    }
+                }
+            }
+            _ => {
+                panic!("by this point a qsc_pass should have checked that all outputs are Results")
+            }
+        }
+
+        let measurement_callable = Callable {
+            name: callable_decl.name.name.to_string(),
+            input_type,
+            output_type: None,
+            body: None,
+            call_type: CallableType::Measurement,
+        };
+
+        // Check if the callable has already been added to the program and if not do so now.
+        let measure_callable_id = self.get_or_insert_callable(measurement_callable);
+        let instruction = Instruction::Call(measure_callable_id, operands, None);
+        let current_block = self.get_current_rir_block_mut();
+        current_block.0.push(instruction);
+
+        match results_values.len() {
+            0 => panic!("unexpected unitary measurement"),
+            1 => results_values[0].clone(),
+            2.. => Value::Tuple(results_values.into()),
+        }
+    }
+
     fn measure_qubit(&mut self, measure_callable: Callable, args_value: Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let qubit = args_value.unwrap_qubit();
@@ -2259,7 +2383,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn release_qubit(&mut self, args_value: Value) -> Value {
         let qubit = args_value.unwrap_qubit();
-        self.resource_manager.release_qubit(qubit);
+        self.resource_manager.release_qubit(&qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
@@ -2778,7 +2902,7 @@ impl<'a> PartialEvaluator<'a> {
             Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
             Value::Qubit(q) => Operand::Literal(Literal::Qubit(
                 self.resource_manager
-                    .map_qubit(*q)
+                    .map_qubit(q)
                     .try_into()
                     .expect("could not convert qubit ID to u32"),
             )),
@@ -2861,30 +2985,21 @@ fn eval_bin_op_with_integer_literals(
 ) -> Result<Value, Error> {
     fn eval_integer_div(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         match (lhs_int, rhs_int) {
-            (_, 0) => Err(Error::EvaluationFailed(
-                "division by zero".to_string(),
-                span,
-            )),
+            (_, 0) => Err(EvalError::DivZero(span).into()),
             (lhs, rhs) => Ok(Value::Int(lhs / rhs)),
         }
     }
 
     fn eval_integer_mod(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         match (lhs_int, rhs_int) {
-            (_, 0) => Err(Error::EvaluationFailed(
-                "division by zero".to_string(),
-                span,
-            )),
+            (_, 0) => Err(EvalError::DivZero(span).into()),
             (lhs, rhs) => Ok(Value::Int(lhs % rhs)),
         }
     }
 
     fn eval_integer_exp(lhs_int: i64, rhs_int: i64, span: PackageSpan) -> Result<Value, Error> {
         let Ok(rhs_int_as_u32) = u32::try_from(rhs_int) else {
-            return Err(Error::EvaluationFailed(
-                "invalid exponent".to_string(),
-                span,
-            ));
+            return Err(EvalError::IntTooLarge(rhs_int, span).into());
         };
 
         Ok(Value::Int(lhs_int.pow(rhs_int_as_u32)))

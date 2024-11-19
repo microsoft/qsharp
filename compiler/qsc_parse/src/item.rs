@@ -7,29 +7,34 @@
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 use super::{
     expr::expr,
     keyword::Keyword,
     prim::{ident, many, opt, pat, seq, token},
     scan::ParserContext,
     stmt,
-    ty::{self, ty},
+    ty::{self, recovering_ty, ty},
     Error, Result,
 };
 
-use crate::lex::ClosedBinOp;
 use crate::{
-    lex::{Delim, TokenKind},
-    prim::{barrier, path, recovering, recovering_token, shorten},
+    completion::WordKinds,
+    lex::{ClosedBinOp, Delim, TokenKind},
+    prim::{
+        barrier, parse_or_else, path, recovering, recovering_path, recovering_semi,
+        recovering_token, shorten,
+    },
     stmt::check_semis,
     ty::array_or_arrow,
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, Ident, Idents,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, FieldDef, FunctorExpr, Ident, Idents,
     ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path,
-    Spec, SpecBody, SpecDecl, SpecGen, StmtKind, StructDecl, TopLevelNode, Ty, TyDef, TyDefKind,
-    TyKind,
+    PathKind, Spec, SpecBody, SpecDecl, SpecGen, Stmt, StmtKind, StructDecl, TopLevelNode, Ty,
+    TyDef, TyDefKind, TyKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -85,6 +90,8 @@ fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
         TokenKind::Keyword(Keyword::Struct),
         TokenKind::Keyword(Keyword::Operation),
         TokenKind::Keyword(Keyword::Function),
+        TokenKind::Keyword(Keyword::Import),
+        TokenKind::Keyword(Keyword::Export),
     ];
 
     const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
@@ -112,7 +119,23 @@ pub(super) fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<Namespace>> 
 }
 
 pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<TopLevelNode>> {
-    let nodes = many(s, parse_top_level_node)?;
+    const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
+    let nodes = {
+        many(s, |s| {
+            recovering(
+                s,
+                |span| {
+                    TopLevelNode::Stmt(Box::new(Stmt {
+                        id: NodeId::default(),
+                        span,
+                        kind: Box::new(StmtKind::Err),
+                    }))
+                },
+                RECOVERY_TOKENS,
+                parse_top_level_node,
+            )
+        })
+    }?;
     recovering_token(s, TokenKind::Eof);
     Ok(nodes)
 }
@@ -139,25 +162,42 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
     }
 }
 
-pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
-    if s.peek().kind == TokenKind::Eof {
-        return Ok(Namespace {
-            id: NodeId::default(),
-            span: s.span(0),
-            doc: "".into(),
-            name: source_name_to_namespace_name(source_name, s.span(0))?,
-            items: Vec::new().into_boxed_slice(),
-        });
+pub fn parse_namespaces_or_implicit(
+    s: &mut ParserContext<'_>,
+    source_name: Option<&str>,
+) -> Result<Vec<Namespace>> {
+    let doc = parse_doc(s);
+    let doc = Rc::from(doc.unwrap_or_default());
+    s.expect(WordKinds::Namespace);
+    #[allow(clippy::unnecessary_unwrap)]
+    if source_name.is_some() && s.peek().kind != TokenKind::Keyword(Keyword::Namespace) {
+        let mut ns = parse_implicit_namespace(
+            source_name.expect("invariant checked above via `.is_some()`"),
+            s,
+        )
+        .map(|x| vec![x])?;
+        if let Some(ref mut ns) = ns.get_mut(0) {
+            if let Some(x) = ns.items.get_mut(0) {
+                x.span.lo = 0;
+                x.doc = doc;
+            };
+        }
+        Ok(ns)
+    } else {
+        let mut ns = parse_namespaces(s)?;
+        if let Some(x) = ns.get_mut(0) {
+            x.span.lo = 0;
+            x.doc = doc;
+        };
+        Ok(ns)
     }
+}
+
+pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
     recovering_token(s, TokenKind::Eof);
-    if items.is_empty() || s.peek().kind != TokenKind::Eof {
-        return Err(Error::new(ErrorKind::ExpectedItem(
-            s.peek().kind,
-            s.span(lo),
-        )));
-    }
+
     let span = s.span(lo);
     let namespace_name = source_name_to_namespace_name(source_name, span)?;
 
@@ -173,7 +213,7 @@ pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Res
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
 /// Invalid or disallowed characters are cleaned up in a best effort manner.
-fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
+fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Box<[Ident]>> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
     for component in path.components() {
@@ -193,7 +233,7 @@ fn source_name_to_namespace_name(raw: &str, span: Span) -> Result<Idents> {
                 let mut ident = validate_namespace_name(span, name)?;
                 ident.span = span;
 
-                namespace.push(ident);
+                namespace.push(*ident);
             }
             _ => {
                 return Err(Error::new(ErrorKind::InvalidFileName(
@@ -217,7 +257,7 @@ fn clean_namespace_name(name: &str) -> String {
 }
 
 /// Validates that a string could be a valid namespace name component
-fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
+fn validate_namespace_name(error_span: Span, name: &str) -> Result<Box<Ident>> {
     let name = clean_namespace_name(name);
     let mut s = ParserContext::new(&name, LanguageFeatures::default());
     // if it could be a valid identifier, then it is a valid namespace name
@@ -231,14 +271,19 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
             name.to_string(),
         )));
     }
-    Ok(*ident)
+    Ok(ident)
 }
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
-    let name = path(s)?;
+
+    let mut name = vec![*ident(s)?];
+    while token(s, TokenKind::Dot).is_ok() {
+        name.push(*ident(s)?);
+    }
+
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = parse_namespace_block_contents(s)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
@@ -246,7 +291,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
         id: NodeId::default(),
         span: s.span(lo),
         doc: doc.into(),
-        name: (*name).into(),
+        name: name.into_boxed_slice(),
         items: items.into_boxed_slice(),
     })
 }
@@ -290,6 +335,7 @@ pub(crate) fn parse_doc(s: &mut ParserContext) -> Option<String> {
 fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
+    s.expect(WordKinds::Attr);
     let name = ident(s)?;
     let arg = expr(s)?;
     Ok(Box::new(Attr {
@@ -304,12 +350,12 @@ fn parse_visibility(s: &mut ParserContext) -> Result<()> {
     token(s, TokenKind::Keyword(Keyword::Internal))?;
     Ok(())
 }
+
 fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
-    let mut name = vec![*(ident(s)?)];
-    while let Ok(_dot) = token(s, TokenKind::Dot) {
-        name.push(*(ident(s)?));
-    }
+
+    let path = recovering_path(s, WordKinds::PathNamespace)?;
+
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(ident(s)?)
     } else {
@@ -322,8 +368,8 @@ fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
         return Err(Error::new(ErrorKind::DotIdentAlias(s.peek().span)));
     }
 
-    token(s, TokenKind::Semi)?;
-    Ok(Box::new(ItemKind::Open(name.into(), alias)))
+    recovering_semi(s);
+    Ok(Box::new(ItemKind::Open(path, alias)))
 }
 
 fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
@@ -340,7 +386,7 @@ fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
             kind: Box::new(TyDefKind::Field(None, Box::new(ty))),
         });
     }
-    token(s, TokenKind::Semi)?;
+    recovering_semi(s);
     Ok(Box::new(ItemKind::Ty(name, def)))
 }
 
@@ -417,13 +463,14 @@ fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
 }
 
 fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
-    let TyKind::Path(path) = *ty.kind else {
+    let TyKind::Path(PathKind::Ok(path)) = *ty.kind else {
         return Err(Error::new(ErrorKind::Convert(
             "identifier",
             "type",
             ty.span,
         )));
     };
+
     if let Path {
         segments: None,
         name,
@@ -468,16 +515,35 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
 
     let input = pat(s)?;
     check_input_parens(&input)?;
-    token(s, TokenKind::Colon)?;
+
+    let (output, functors) = parse_or_else(
+        s,
+        |span| {
+            (
+                Box::new(Ty {
+                    id: NodeId::default(),
+                    span,
+                    kind: Box::new(TyKind::Err),
+                }),
+                None,
+            )
+        },
+        parse_callable_output_and_functors,
+    )?;
+
     throw_away_doc(s);
-    let output = ty(s)?;
-    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
-        Some(Box::new(ty::functor_expr(s)?))
-    } else {
-        None
-    };
-    throw_away_doc(s);
-    let body = parse_callable_body(s)?;
+
+    let body = parse_or_else(
+        s,
+        |span| {
+            CallableBody::Block(Box::new(Block {
+                id: NodeId::default(),
+                span,
+                stmts: Box::default(),
+            }))
+        },
+        parse_callable_body,
+    )?;
 
     Ok(Box::new(CallableDecl {
         id: NodeId::default(),
@@ -486,10 +552,25 @@ fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
         name,
         generics: generics.into_boxed_slice(),
         input,
-        output: Box::new(output),
+        output,
         functors,
         body: Box::new(body),
     }))
+}
+
+/// The output and functors part of the callable signature, e.g. `: Unit is Adj`
+fn parse_callable_output_and_functors(
+    s: &mut ParserContext,
+) -> Result<(Box<Ty>, Option<Box<FunctorExpr>>)> {
+    token(s, TokenKind::Colon)?;
+    throw_away_doc(s);
+    let output = recovering_ty(s)?;
+    let functors = if token(s, TokenKind::Keyword(Keyword::Is)).is_ok() {
+        Some(Box::new(ty::functor_expr(s)?))
+    } else {
+        None
+    };
+    Ok((output.into(), functors))
 }
 
 fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
@@ -590,6 +671,7 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
+    s.expect(WordKinds::Import | WordKinds::Export);
     let is_export = match s.peek().kind {
         TokenKind::Keyword(Keyword::Export) => true,
         TokenKind::Keyword(Keyword::Import) => false,
@@ -603,7 +685,7 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     };
     s.advance();
     let (items, _) = seq(s, parse_import_or_export_item)?;
-    token(s, TokenKind::Semi)?;
+    recovering_semi(s);
     Ok(ImportOrExportDecl::new(
         s.span(lo),
         items.into_boxed_slice(),
@@ -611,16 +693,44 @@ fn parse_import_or_export(s: &mut ParserContext) -> Result<ImportOrExportDecl> {
     ))
 }
 
-fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
-    let mut is_glob = false;
-    let mut parts = vec![*ident(s)?];
-    while token(s, TokenKind::Dot).is_ok() {
-        if token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok() {
-            is_glob = true;
-            break;
+/// A path with an optional glob indicator at the end, e.g. `Foo.Bar.*`
+fn path_import(s: &mut ParserContext) -> Result<(PathKind, bool)> {
+    match path(s, WordKinds::PathImport) {
+        Ok(path) => Ok((PathKind::Ok(path), false)),
+        Err((error, Some(incomplete_path))) => {
+            if !incomplete_path.keyword
+                && token(s, TokenKind::ClosedBinOp(ClosedBinOp::Star)).is_ok()
+            {
+                let (name, namespace) = incomplete_path
+                    .segments
+                    .split_last()
+                    .expect("path should have at least one part");
+
+                Ok((
+                    PathKind::Ok(Box::new(Path {
+                        id: NodeId::default(),
+                        span: incomplete_path.segments.full_span(),
+                        segments: if namespace.is_empty() {
+                            None
+                        } else {
+                            Some(namespace.into())
+                        },
+                        name: Box::new(name.clone()),
+                    })),
+                    true,
+                ))
+            } else {
+                s.push_error(error);
+                Ok((PathKind::Err(Some(incomplete_path)), false))
+            }
         }
-        parts.push(*ident(s)?);
+        Err((error, None)) => Err(error),
     }
+}
+
+fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportItem> {
+    let lo = s.peek().span.lo;
+    let (path, is_glob) = path_import(s)?;
 
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
         Some(*(ident(s)?))
@@ -629,7 +739,8 @@ fn parse_import_or_export_item(s: &mut ParserContext) -> Result<ImportOrExportIt
     };
 
     Ok(ImportOrExportItem {
-        path: parts.into(),
+        span: s.span(lo),
+        path,
         alias,
         is_glob,
     })

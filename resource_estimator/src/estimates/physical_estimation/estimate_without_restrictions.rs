@@ -1,6 +1,9 @@
 use std::{borrow::Cow, ops::Deref};
 
-use crate::estimates::{Error, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead};
+use crate::estimates::{
+    Error, ErrorBudget, ErrorBudgetStrategy, ErrorCorrection, Factory, FactoryBuilder,
+    LogicalPatch, Overhead,
+};
 
 use super::{
     FactoryForCycles, FactoryPart, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
@@ -21,14 +24,48 @@ impl<
         Self { estimator }
     }
 
-    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E, B::Factory>, Error> {
-        let mut num_cycles = self.compute_num_cycles()?;
+    pub fn estimate(
+        &self,
+        error_budget: &ErrorBudget,
+    ) -> Result<PhysicalResourceEstimationResult<E, B::Factory>, Error> {
+        let mut num_cycles = self.compute_num_cycles(error_budget)?;
+
+        // NOTE: for now we reset the error_budget_strategy if also
+        // max_factories is set, because it may lead to an inconsistent
+        // configuration.
+        let adjusted_strategy = if self.max_factories.is_some() {
+            ErrorBudgetStrategy::Static
+        } else {
+            self.error_budget_strategy
+        };
 
         loop {
-            let required_logical_error_rate = self.required_logical_error_rate(num_cycles);
+            let mut error_budget = error_budget.clone();
+
+            self.layout_overhead()
+                .prune_error_budget(&mut error_budget, self.error_budget_strategy());
+
+            let required_logical_error_rate =
+                self.required_logical_error_rate(error_budget.logical(), num_cycles);
             let code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
-            let max_allowed_num_cycles_for_code_parameter =
-                self.logical_cycles_for_code_parameter(&code_parameter)?;
+
+            let max_allowed_num_cycles_for_code_parameter = match adjusted_strategy {
+                ErrorBudgetStrategy::Static => {
+                    self.logical_cycles_for_code_parameter(error_budget.logical(), &code_parameter)?
+                }
+                ErrorBudgetStrategy::PruneLogicalAndRotations => {
+                    let new_logical = self
+                        .ftp
+                        .logical_error_rate(&self.qubit, &code_parameter)
+                        .map_err(Error::LogicalErrorRateComputationFailed)?
+                        * (self.volume(num_cycles) as f64);
+                    let diff = error_budget.logical() - new_logical;
+                    error_budget.set_logical(new_logical);
+                    let new_magic_states = error_budget.magic_states() + diff;
+                    error_budget.set_magic_states(new_magic_states);
+                    num_cycles
+                }
+            };
 
             let logical_patch =
                 LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
@@ -40,6 +77,7 @@ impl<
                     &logical_patch,
                     num_cycles,
                     max_allowed_num_cycles_for_code_parameter,
+                    &error_budget,
                     index,
                 )? {
                     FactoryPartsResult::NoMagicStates => {
@@ -62,6 +100,7 @@ impl<
                 return Ok(PhysicalResourceEstimationResult::new(
                     self,
                     logical_patch,
+                    &error_budget,
                     num_cycles,
                     factory_parts,
                     required_logical_error_rate,
@@ -77,17 +116,16 @@ impl<
         logical_patch: &LogicalPatch<E>,
         min_cycles: u64,
         max_cycles: u64,
+        error_budget: &ErrorBudget,
         index: usize,
     ) -> Result<FactoryPartsResult<B::Factory>, Error> {
-        let num_magic_states = self
-            .layout_overhead
-            .num_magic_states(&self.error_budget, index);
+        let num_magic_states = self.layout_overhead.num_magic_states(error_budget, index);
 
         if num_magic_states == 0 {
             return Ok(FactoryPartsResult::NoMagicStates);
         }
 
-        let required_logical_magic_state_error_rate = (self.error_budget.magic_states()
+        let required_logical_magic_state_error_rate = (error_budget.magic_states()
             / self.factory_builder.num_magic_state_types() as f64)
             / (num_magic_states as f64);
 
@@ -111,10 +149,21 @@ impl<
         if let Some(FactoryForCycles {
             factory,
             num_cycles: num_cycles_required,
-        }) = self.find_factory(index, &factories, logical_patch, min_cycles, max_cycles)
-        {
-            let num_factories =
-                self.num_factories(logical_patch, index, &factory, num_cycles_required);
+        }) = self.find_factory(
+            index,
+            &factories,
+            logical_patch,
+            error_budget,
+            min_cycles,
+            max_cycles,
+        ) {
+            let num_factories = self.num_factories(
+                logical_patch,
+                index,
+                &factory,
+                error_budget,
+                num_cycles_required,
+            );
             Ok(FactoryPartsResult::Success {
                 factory_part: FactoryPart::new(
                     factory.into_owned(),
@@ -134,6 +183,7 @@ impl<
         magic_state_index: usize,
         factories: &[Cow<'b, B::Factory>],
         logical_patch: &LogicalPatch<E>,
+        error_budget: &ErrorBudget,
         min_cycles: u64,
         max_cycles: u64,
     ) -> Option<FactoryForCycles<'b, B::Factory>> {
@@ -147,6 +197,7 @@ impl<
                     && self.is_max_factories_constraint_satisfied(
                         logical_patch,
                         factory,
+                        error_budget,
                         min_cycles,
                     )
             })
@@ -161,6 +212,7 @@ impl<
             magic_state_index,
             factories,
             logical_patch,
+            error_budget,
             max_cycles,
         ) {
             return Some(factory);
@@ -174,6 +226,7 @@ impl<
         magic_state_index: usize,
         factories: &[Cow<'b, B::Factory>],
         logical_patch: &LogicalPatch<E>,
+        error_budget: &ErrorBudget,
         max_cycles: u64,
     ) -> Option<FactoryForCycles<'b, B::Factory>> {
         self.max_factories.map_or_else(
@@ -196,7 +249,7 @@ impl<
                         let magic_states_per_run = max_factories * factory.num_output_states();
                         let required_runs = self
                             .layout_overhead
-                            .num_magic_states(&self.error_budget, magic_state_index)
+                            .num_magic_states(error_budget, magic_state_index)
                             .div_ceil(magic_states_per_run);
                         let required_duration = required_runs * factory.duration();
                         let num = required_duration.div_ceil(logical_patch.logical_cycle_time());
@@ -215,10 +268,11 @@ impl<
         &self,
         logical_patch: &LogicalPatch<E>,
         factory: &B::Factory,
+        error_budget: &ErrorBudget,
         num_cycles: u64,
     ) -> bool {
         self.max_factories.map_or(true, |max_factories| {
-            max_factories >= self.num_factories(logical_patch, 0, factory, num_cycles)
+            max_factories >= self.num_factories(logical_patch, 0, factory, error_budget, num_cycles)
         })
     }
 }

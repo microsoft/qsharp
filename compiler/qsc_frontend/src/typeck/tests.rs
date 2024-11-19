@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
+mod bounded_polymorphism;
 
 use crate::{
     compile::{self, Offsetter},
@@ -12,7 +12,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
-    ast::{Block, Expr, Ident, NodeId, Package, Pat, Path, QubitInit, TopLevelNode},
+    ast::{Block, Expr, Idents, NodeId, Package, Pat, Path, PathKind, QubitInit, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
@@ -38,12 +38,22 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
         visit::walk_expr(self, expr);
     }
 
+    fn visit_path_kind(&mut self, path_kind: &'a PathKind) {
+        visit::walk_path_kind(self, path_kind);
+        if let PathKind::Err(Some(incomplete_path)) = path_kind {
+            for part in incomplete_path.segments.iter() {
+                let ty = self.tys.get(part.id);
+                self.nodes.push((part.id, part.span, ty));
+            }
+        }
+    }
+
     fn visit_path(&mut self, path: &'a Path) {
         visit::walk_path(self, path);
-        let parts: Vec<Ident> = path.into();
+        let mut parts = path.iter().peekable();
         if self
             .tys
-            .get(parts.first().expect("should contain at least one part").id)
+            .get(parts.peek().expect("should contain at least one part").id)
             .is_some()
         {
             for part in parts {
@@ -67,7 +77,15 @@ impl<'a> Visitor<'a> for TyCollector<'a> {
 }
 
 fn check(input: &str, entry_expr: &str, expect: &Expect) {
-    let (package, tys, errors) = compile(input, entry_expr);
+    check_with_error_option(input, entry_expr, expect, false);
+}
+
+fn check_allow_parse_errors(input: &str, entry_expr: &str, expect: &Expect) {
+    check_with_error_option(input, entry_expr, expect, true);
+}
+
+fn check_with_error_option(input: &str, entry_expr: &str, expect: &Expect, allow_errors: bool) {
+    let (package, tys, errors) = compile(input, entry_expr, allow_errors);
     let mut collector = TyCollector {
         tys: &tys.terms,
         nodes: Vec::new(),
@@ -94,8 +112,12 @@ fn check(input: &str, entry_expr: &str, expect: &Expect) {
     expect.assert_eq(&actual);
 }
 
-fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile::Error>) {
-    let mut package = parse(input, entry_expr);
+fn compile(
+    input: &str,
+    entry_expr: &str,
+    allow_errors: bool,
+) -> (Package, super::Table, Vec<compile::Error>) {
+    let mut package = parse(input, entry_expr, allow_errors);
     AstAssigner::new().visit_package(&mut package);
     let mut assigner = HirAssigner::new();
 
@@ -103,7 +125,6 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, Vec::new());
     resolver.bind_and_resolve_imports_and_exports(&package);
-
     resolver.with(&mut assigner).visit_package(&package);
     let (names, _, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
@@ -118,13 +139,15 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
         .chain(ty_errors.into_iter().map(Into::into))
         .map(compile::Error)
         .collect();
-
     (package, tys, errors)
 }
 
-fn parse(input: &str, entry_expr: &str) -> Package {
+fn parse(input: &str, entry_expr: &str, allow_errors: bool) -> Package {
     let (namespaces, errors) = qsc_parse::namespaces(input, None, LanguageFeatures::default());
-    assert!(errors.is_empty(), "parsing input failed: {errors:#?}");
+    assert!(
+        allow_errors || errors.is_empty(),
+        "parsing input failed: {errors:#?}"
+    );
 
     let entry = if entry_expr.is_empty() {
         None
@@ -1418,11 +1441,11 @@ fn unop_neg_bool() {
     check(
         "",
         "-false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "-false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 
@@ -1431,11 +1454,11 @@ fn unop_pos_bool() {
     check(
         "",
         "+false",
-        &expect![[r#"
+        &expect![[r##"
             #1 0-6 "+false" : Bool
             #2 1-6 "false" : Bool
-            Error(Type(Error(MissingClassNum("Bool", Span { lo: 1, hi: 6 }))))
-        "#]],
+            Error(Type(Error(MissingClassSigned("Bool", Span { lo: 1, hi: 6 }))))
+        "##]],
     );
 }
 
@@ -3083,11 +3106,11 @@ fn local_open() {
         &expect![[r#"
             #6 26-28 "()" : Unit
             #8 34-52 "{ open B; Bar(); }" : Unit
-            #13 44-49 "Bar()" : Unit
-            #14 44-47 "Bar" : (Unit -> Unit)
-            #17 47-49 "()" : Unit
-            #23 81-83 "()" : Unit
-            #25 89-91 "{}" : Unit
+            #14 44-49 "Bar()" : Unit
+            #15 44-47 "Bar" : (Unit -> Unit)
+            #18 47-49 "()" : Unit
+            #24 81-83 "()" : Unit
+            #26 89-91 "{}" : Unit
         "#]],
     );
 }
@@ -4180,12 +4203,13 @@ fn undeclared_generic_param() {
     check(
         r#"namespace c{operation y(g: 'U): Unit {} }"#,
         "",
-        &expect![[r#"
+        &expect![[r##"
             #6 23-30 "(g: 'U)" : ?
             #7 24-29 "g: 'U" : ?
             #14 37-39 "{}" : Unit
             Error(Resolve(NotFound("'U", Span { lo: 27, hi: 29 })))
-        "#]],
+            Error(Type(Error(MissingTy { span: Span { lo: 27, hi: 29 } })))
+        "##]],
     );
 }
 
@@ -4412,6 +4436,262 @@ fn within_block_should_be_unit_error() {
             #5 19-24 "{ 0 }" : Int
             #7 21-22 "0" : Int
             Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 7, hi: 12 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn path_field_access() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-118 "{\n        let b = new B { C = 5 };\n        b.C;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-111 "b.C" : Int
+            #31 108-109 "b" : UDT<"B": Item 1>
+            #32 110-111 "C" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn field_access_chained() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    let d = new D { E = new B { C = 5 } };
+                    d.E.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-157 "{\n        let d = new D { E = new B { C = 5 } };\n        d.E.C;\n    }" : Unit
+            #28 102-103 "d" : UDT<"D": Item 2>
+            #30 106-135 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #35 118-133 "new B { C = 5 }" : UDT<"B": Item 1>
+            #40 130-131 "5" : Int
+            #42 145-150 "d.E.C" : Int
+            #44 145-146 "d" : UDT<"D": Item 2>
+            #45 147-148 "E" : UDT<"B": Item 1>
+            #46 149-150 "C" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_field_access() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-101 "{\n        (new B { C = 5 }).C;\n    }" : Unit
+            #20 75-94 "(new B { C = 5 }).C" : Int
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_incomplete_field_access() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-100 "{\n        (new B { C = 5 }).;\n    }" : Unit
+            #20 75-93 "(new B { C = 5 })." : ?
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn expr_incomplete_field_access_no_semi() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    (new B { C = 5 }).
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-99 "{\n        (new B { C = 5 }).\n    }" : ?
+            #20 75-98 "(new B { C = 5 }).\n    " : ?
+            #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
+            #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 88-89 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn path_incomplete_field_access() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-117 "{\n        let b = new B { C = 5 };\n        b.;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-110 "b." : ?
+            #30 108-109 "b" : UDT<"B": Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn incomplete_field_access_chained() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    let d = new D { E = new B { C = 5 } };
+                    d.E.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-156 "{\n        let d = new D { E = new B { C = 5 } };\n        d.E.;\n    }" : Unit
+            #28 102-103 "d" : UDT<"D": Item 2>
+            #30 106-135 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #35 118-133 "new B { C = 5 }" : UDT<"B": Item 1>
+            #40 130-131 "5" : Int
+            #42 145-149 "d.E." : ?
+            #43 145-146 "d" : UDT<"D": Item 2>
+            #44 147-148 "E" : UDT<"B": Item 1>
+        "##]],
+    );
+}
+
+#[test]
+fn expr_field_access_chained() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    (new D { E = new B { C = 5 } }).E.C;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-140 "{\n        (new D { E = new B { C = 5 } }).E.C;\n    }" : Unit
+            #28 98-133 "(new D { E = new B { C = 5 } }).E.C" : Int
+            #29 98-131 "(new D { E = new B { C = 5 } }).E" : UDT<"B": Item 1>
+            #30 98-129 "(new D { E = new B { C = 5 } })" : UDT<"D": Item 2>
+            #31 99-128 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #36 111-126 "new B { C = 5 }" : UDT<"B": Item 1>
+            #41 123-124 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn incomplete_expr_field_access_chained() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                struct D { E : B }
+                function Foo() : Unit {
+                    (new D { E = new B { C = 5 } }).E.;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #22 78-80 "()" : Unit
+            #26 88-139 "{\n        (new D { E = new B { C = 5 } }).E.;\n    }" : Unit
+            #28 98-132 "(new D { E = new B { C = 5 } }).E." : ?
+            #29 98-131 "(new D { E = new B { C = 5 } }).E" : UDT<"B": Item 1>
+            #30 98-129 "(new D { E = new B { C = 5 } })" : UDT<"D": Item 2>
+            #31 99-128 "new D { E = new B { C = 5 } }" : UDT<"D": Item 2>
+            #36 111-126 "new B { C = 5 }" : UDT<"B": Item 1>
+            #41 123-124 "5" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn field_access_not_ident() {
+    check_allow_parse_errors(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = new B { C = 5 };
+                    b.
+                    123;
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #14 55-57 "()" : Unit
+            #18 65-129 "{\n        let b = new B { C = 5 };\n        b.\n        123;\n    }" : Unit
+            #20 79-80 "b" : UDT<"B": Item 1>
+            #22 83-98 "new B { C = 5 }" : UDT<"B": Item 1>
+            #27 95-96 "5" : Int
+            #29 108-119 "b.\n        " : ?
+            #30 108-109 "b" : UDT<"B": Item 1>
+            #32 119-122 "123" : Int
         "##]],
     );
 }

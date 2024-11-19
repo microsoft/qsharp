@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::{
     qasm_to_program,
     tests::{fail_on_compilation_errors, gen_qsharp, parse},
@@ -141,7 +139,7 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
           ret void
         }
 
-        declare void @__quantum__qis__reset__body(%Qubit*)
+        declare void @__quantum__qis__reset__body(%Qubit*) #1
 
         declare void @__quantum__qis__h__body(%Qubit*)
 

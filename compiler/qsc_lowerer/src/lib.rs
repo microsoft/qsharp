@@ -257,7 +257,7 @@ impl Lowerer {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-        let generics = lower_generics(&decl.generics);
+        let generics = self.lower_type_parameters(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
         let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
@@ -282,6 +282,7 @@ impl Lowerer {
             };
             CallableImpl::Spec(specialized_implementation)
         };
+        let attrs = lower_attrs(&decl.attrs);
 
         self.assigner.reset_local();
         self.locals.clear();
@@ -299,6 +300,7 @@ impl Lowerer {
             output,
             functors,
             implementation,
+            attrs,
         }
     }
 
@@ -857,7 +859,7 @@ impl Lowerer {
             qsc_hir::ty::Ty::Infer(id) => {
                 qsc_fir::ty::Ty::Infer(qsc_fir::ty::InferTyId::from(usize::from(*id)))
             }
-            qsc_hir::ty::Ty::Param(_, id) => {
+            qsc_hir::ty::Ty::Param { id, .. } => {
                 qsc_fir::ty::Ty::Param(qsc_fir::ty::ParamId::from(usize::from(*id)))
             }
             qsc_hir::ty::Ty::Prim(prim) => qsc_fir::ty::Ty::Prim(lower_ty_prim(*prim)),
@@ -876,10 +878,62 @@ impl Lowerer {
             name_span: field.name_span,
         }
     }
-}
 
-fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::GenericParam> {
-    generics.iter().map(lower_generic_param).collect()
+    fn lower_type_parameters(
+        &mut self,
+        generics: &[qsc_hir::ty::TypeParameter],
+    ) -> Vec<qsc_fir::ty::TypeParameter> {
+        generics
+            .iter()
+            .map(|x| self.lower_generic_param(x))
+            .collect()
+    }
+
+    fn lower_generic_param(
+        &mut self,
+        g: &qsc_hir::ty::TypeParameter,
+    ) -> qsc_fir::ty::TypeParameter {
+        match g {
+            qsc_hir::ty::TypeParameter::Ty { name, bounds } => qsc_fir::ty::TypeParameter::Ty {
+                name: name.clone(),
+                bounds: self.lower_class_constraints(bounds),
+            },
+            qsc_hir::ty::TypeParameter::Functor(value) => {
+                qsc_fir::ty::TypeParameter::Functor(lower_functor_set_value(*value))
+            }
+        }
+    }
+
+    fn lower_class_constraints(
+        &mut self,
+        bounds: &qsc_hir::ty::ClassConstraints,
+    ) -> qsc_fir::ty::ClassConstraints {
+        qsc_fir::ty::ClassConstraints(bounds.0.iter().map(|x| self.lower_ty_bound(x)).collect())
+    }
+
+    fn lower_ty_bound(&mut self, b: &qsc_hir::ty::ClassConstraint) -> qsc_fir::ty::ClassConstraint {
+        use qsc_fir::ty::ClassConstraint as FirClass;
+        use qsc_hir::ty::ClassConstraint as HirClass;
+        match b {
+            HirClass::Eq => FirClass::Eq,
+            HirClass::Exp { power } => FirClass::Exp {
+                power: self.lower_ty(power),
+            },
+            HirClass::Add => FirClass::Add,
+            HirClass::NonNativeClass(name) => FirClass::NonNativeClass(name.clone()),
+            HirClass::Iterable { item } => FirClass::Iterable {
+                item: self.lower_ty(item),
+            },
+            HirClass::Integral => FirClass::Integral,
+            HirClass::Show => FirClass::Show,
+            HirClass::Mul => FirClass::Mul,
+            HirClass::Div => FirClass::Div,
+            HirClass::Sub => FirClass::Sub,
+            HirClass::Mod => FirClass::Mod,
+            HirClass::Signed => FirClass::Signed,
+            HirClass::Ord => FirClass::Ord,
+        }
+    }
 }
 
 fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
@@ -887,6 +941,8 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
         .iter()
         .filter_map(|attr| match attr {
             hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::Measurement => Some(fir::Attr::Measurement),
+            hir::Attr::Reset => Some(fir::Attr::Reset),
             hir::Attr::SimulatableIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
         })
         .collect()
@@ -894,15 +950,6 @@ fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
 
 fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::FunctorSetValue {
     lower_functor_set_value(functors)
-}
-
-fn lower_generic_param(g: &qsc_hir::ty::GenericParam) -> qsc_fir::ty::GenericParam {
-    match g {
-        qsc_hir::ty::GenericParam::Ty(_) => qsc_fir::ty::GenericParam::Ty,
-        qsc_hir::ty::GenericParam::Functor(value) => {
-            qsc_fir::ty::GenericParam::Functor(lower_functor_set_value(*value))
-        }
-    }
 }
 
 fn lower_field(field: &hir::Field) -> fir::Field {

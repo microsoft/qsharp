@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{parse, parse_block};
 use crate::tests::check;
 use expect_test::expect;
@@ -716,7 +714,10 @@ fn recover_in_block() {
         "{ let x = 1 +; x }",
         &expect![[r#"
             Block _id_ [0-18]:
-                Stmt _id_ [2-14]: Err
+                Stmt _id_ [2-14]: Local (Immutable):
+                    Pat _id_ [6-7]: Bind:
+                        Ident _id_ [6-7] "x"
+                    Expr _id_ [10-13]: Err
                 Stmt _id_ [15-16]: Expr: Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "x")
 
             [
@@ -783,7 +784,10 @@ fn recover_statements_before_and_after() {
                     Expr _id_ [22-27]: BinOp (Add):
                         Expr _id_ [22-23]: Lit: Int(2)
                         Expr _id_ [26-27]: Lit: Int(2)
-                Stmt _id_ [41-81]: Err
+                Stmt _id_ [41-81]: Local (Immutable):
+                    Pat _id_ [45-46]: Bind:
+                        Ident _id_ [45-46] "y"
+                    Expr _id_ [49-80]: Err
                 Stmt _id_ [94-95]: Expr: Expr _id_ [94-95]: Path: Path _id_ [94-95] (Ident _id_ [94-95] "z")
 
             [

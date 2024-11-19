@@ -174,8 +174,9 @@ impl Backend for Builder {
         self.remapper.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.remapper.qubit_release(q);
+        true
     }
 
     fn qubit_swap_id(&mut self, q0: usize, q1: usize) {
@@ -187,8 +188,8 @@ impl Backend for Builder {
     }
 
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        // Because `qubit_is_zero` is called on every qubit release, this must return
-        // true to avoid a panic.
+        // We don't simulate quantum execution here. So we don't know if the qubit
+        // is zero or not. Returning true avoids potential panics.
         true
     }
 
@@ -302,7 +303,7 @@ impl Builder {
                 self.push_list::<'(', ')'>(vals, qubits, classical_args);
             }
             Value::Qubit(q) => {
-                qubits.push(self.map(q.0));
+                qubits.push(self.map(q.deref().0));
             }
             v => {
                 let _ = write!(classical_args, "{v}");

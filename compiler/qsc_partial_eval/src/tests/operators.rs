@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{
     assert_block_instructions, assert_blocks, assert_callable, assert_error,
     get_partial_evaluation_error, get_rir_program,
@@ -2093,7 +2091,7 @@ fn integer_exponentiation_with_lhs_classical_integer_and_rhs_classical_negative_
     assert_error(
         &error,
         &expect![[
-            r#"EvaluationFailed("exponent must be non-negative", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 148 } })"#
+            r#"EvaluationFailed("negative integers cannot be used here: -1", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 148 } })"#
         ]],
     );
 }

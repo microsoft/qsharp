@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 mod given_interpreter {
     use crate::interpret::{InterpretResult, Interpreter};
     use expect_test::Expect;
@@ -25,7 +23,10 @@ mod given_interpreter {
     fn run(interpreter: &mut Interpreter, expr: &str) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
-        (interpreter.run(&mut receiver, Some(expr)), receiver.dump())
+        (
+            interpreter.run(&mut receiver, Some(expr), None),
+            receiver.dump(),
+        )
     }
 
     fn entry(interpreter: &mut Interpreter) -> (InterpretResult, String) {
@@ -266,7 +267,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
         }
 
         #[test]
@@ -276,7 +277,7 @@ mod given_interpreter {
                 &mut interpreter,
                 "open Microsoft.Quantum.Diagnostics; DumpMachine()",
             );
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
         }
 
         #[test]
@@ -331,7 +332,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
             let (result, output) = line(&mut interpreter, "use (q0, qs) = (Qubit(), Qubit[3]);");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
@@ -1346,7 +1347,9 @@ mod given_interpreter {
         use expect_test::expect;
         use indoc::indoc;
 
-        use qsc_ast::ast::{Expr, ExprKind, NodeId, Package, Path, Stmt, StmtKind, TopLevelNode};
+        use qsc_ast::ast::{
+            Expr, ExprKind, NodeId, Package, Path, PathKind, Stmt, StmtKind, TopLevelNode,
+        };
         use qsc_data_structures::span::Span;
         use qsc_frontend::compile::SourceMap;
         use qsc_passes::PackageType;
@@ -1865,7 +1868,7 @@ mod given_interpreter {
             let path_expr = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                kind: Box::new(ExprKind::Path(Box::new(path))),
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(path)))),
             };
             let expr = Expr {
                 id: NodeId::default(),

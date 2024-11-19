@@ -4,7 +4,7 @@
 //! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
-use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
+use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, Scheme, Ty, TypeParameter, Udt};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -214,7 +214,7 @@ impl ItemStatus {
 
 /// A resolution. This connects a usage of a name with the declaration of that name by uniquely
 /// identifying the node that declared it.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Res {
     /// An invalid resolution.
     Err,
@@ -376,7 +376,7 @@ pub struct CallableDecl {
     /// The name of the callable.
     pub name: Ident,
     /// The generic parameters to the callable.
-    pub generics: Vec<GenericParam>,
+    pub generics: Vec<TypeParameter>,
     /// The input to the callable.
     pub input: Pat,
     /// The return type of the callable.
@@ -391,6 +391,8 @@ pub struct CallableDecl {
     pub ctl: Option<SpecDecl>,
     /// The controlled adjoint specialization.
     pub ctl_adj: Option<SpecDecl>,
+    /// The attributes of the callable, (e.g.: Measurement or Reset).
+    pub attrs: Vec<Attr>,
 }
 
 impl CallableDecl {
@@ -1351,6 +1353,12 @@ pub enum Attr {
     /// Indicates that an item should be treated as an intrinsic callable for QIR code generation
     /// and any implementation should be ignored.
     SimulatableIntrinsic,
+    /// Indicates that a callable is a measurement. This means that the operation will be marked as
+    /// "irreversible" in the generated QIR, and output Result types will be moved to the arguments.
+    Measurement,
+    /// Indicates that a callable is a reset. This means that the operation will be marked as
+    /// "irreversible" in the generated QIR.
+    Reset,
 }
 
 impl FromStr for Attr {
@@ -1362,6 +1370,8 @@ impl FromStr for Attr {
             "EntryPoint" => Ok(Self::EntryPoint),
             "Unimplemented" => Ok(Self::Unimplemented),
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
+            "Measurement" => Ok(Self::Measurement),
+            "Reset" => Ok(Self::Reset),
             _ => Err(()),
         }
     }
@@ -1429,7 +1439,7 @@ pub enum Visibility {
 }
 
 /// A callable kind.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum CallableKind {
     /// A function.
     Function,

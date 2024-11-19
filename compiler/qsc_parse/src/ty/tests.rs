@@ -97,11 +97,7 @@ fn ty_unit() {
 
 #[test]
 fn ty_param() {
-    check(
-        ty,
-        "'T",
-        &expect![[r#"Type _id_ [0-2]: Type Param: Ident _id_ [0-2] "'T""#]],
-    );
+    check(ty, "'T", &expect!["Type _id_ [0-2]: Type Param: 'T"]);
 }
 
 #[test]
@@ -370,5 +366,57 @@ fn op_ty_is_prec() {
                 param: Type _id_ [0-5]: Path: Path _id_ [0-5] (Ident _id_ [0-5] "Qubit")
                 return: Type _id_ [9-13]: Path: Path _id_ [9-13] (Ident _id_ [9-13] "Unit")
                 functors: Functor Expr _id_ [17-32]: BinOp Union: (Functor Expr _id_ [17-20]: Adj) (Functor Expr _id_ [23-32]: BinOp Intersect: (Functor Expr _id_ [23-26]: Adj) (Functor Expr _id_ [29-32]: Ctl))"#]],
+    );
+}
+
+#[test]
+fn ty_incomplete() {
+    check(
+        ty,
+        "Foo. ",
+        &expect![[r#"
+            Type _id_ [0-5]: Path: Err IncompletePath [0-5]:
+                Ident _id_ [0-3] "Foo"
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Eof,
+                        Span {
+                            lo: 5,
+                            hi: 5,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn ty_incomplete_in_tuple() {
+    check(
+        ty,
+        "(Foo, Bar. )",
+        &expect![[r#"
+            Type _id_ [0-12]: Tuple:
+                Type _id_ [1-4]: Path: Path _id_ [1-4] (Ident _id_ [1-4] "Foo")
+                Type _id_ [6-11]: Path: Err IncompletePath [6-11]:
+                    Ident _id_ [6-9] "Bar"
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Close(
+                            Paren,
+                        ),
+                        Span {
+                            lo: 11,
+                            hi: 12,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

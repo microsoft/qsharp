@@ -3,3 +3,4 @@
 
 pub mod display;
 pub mod generate_docs;
+mod table_of_contents;

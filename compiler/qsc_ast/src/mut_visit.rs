@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
-    FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl, TopLevelNode,
-    Ty, TyDef, TyDefKind, TyKind,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
+    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
+    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 use qsc_data_structures::span::Span;
 
@@ -82,11 +82,15 @@ pub trait MutVisitor: Sized {
         walk_path(self, path);
     }
 
+    fn visit_path_kind(&mut self, path: &mut PathKind) {
+        walk_path_kind(self, path);
+    }
+
     fn visit_ident(&mut self, ident: &mut Ident) {
         walk_ident(self, ident);
     }
 
-    fn visit_idents(&mut self, ident: &mut crate::ast::Idents) {
+    fn visit_idents(&mut self, ident: &mut [Ident]) {
         walk_idents(self, ident);
     }
 
@@ -116,7 +120,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Err => {}
         ItemKind::Open(ns, alias) => {
-            vis.visit_idents(ns);
+            vis.visit_path_kind(ns);
             alias.iter_mut().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {
@@ -127,7 +131,8 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::ImportOrExport(export) => {
             vis.visit_span(&mut export.span);
             for item in &mut *export.items {
-                vis.visit_path(&mut item.path);
+                vis.visit_span(&mut item.span);
+                vis.visit_path_kind(&mut item.path);
                 if let Some(ref mut alias) = item.alias {
                     vis.visit_ident(alias);
                 }
@@ -159,7 +164,17 @@ pub fn walk_ty_def(vis: &mut impl MutVisitor, def: &mut TyDef) {
 pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
     vis.visit_span(&mut decl.span);
     vis.visit_ident(&mut decl.name);
-    decl.generics.iter_mut().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter_mut().for_each(|p| {
+        vis.visit_ident(&mut p.ty);
+        p.constraints.0.iter_mut().for_each(|b| {
+            vis.visit_ident(&mut b.name);
+            b.parameters
+                .iter_mut()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
+                    vis.visit_ty(ty);
+                });
+        });
+    });
     vis.visit_pat(&mut decl.input);
     vis.visit_ty(&mut decl.output);
     decl.functors
@@ -221,8 +236,22 @@ pub fn walk_ty(vis: &mut impl MutVisitor, ty: &mut Ty) {
         }
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Param(name) => vis.visit_ident(name),
-        TyKind::Path(path) => vis.visit_path(path),
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
+            for bound in &mut bounds.0 {
+                vis.visit_ident(&mut bound.name);
+                bound.parameters.iter_mut().for_each(
+                    |crate::ast::ConstraintParameter { ref mut ty, .. }| {
+                        vis.visit_ty(ty);
+                    },
+                );
+            }
+            vis.visit_ident(ty);
+        }
+        TyKind::Path(path) => vis.visit_path_kind(path),
         TyKind::Tuple(tys) => tys.iter_mut().for_each(|t| vis.visit_ty(t)),
     }
 }
@@ -283,7 +312,9 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         ExprKind::Fail(msg) => vis.visit_expr(msg),
         ExprKind::Field(record, name) => {
             vis.visit_expr(record);
-            vis.visit_ident(name);
+            if let FieldAccess::Ok(name) = name {
+                vis.visit_ident(name);
+            }
         }
         ExprKind::For(pat, iter, block) => {
             vis.visit_pat(pat);
@@ -314,7 +345,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         ExprKind::Paren(expr) | ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
         }
-        ExprKind::Path(path) => vis.visit_path(path),
+        ExprKind::Path(path) => vis.visit_path_kind(path),
         ExprKind::Range(start, step, end) => {
             start.iter_mut().for_each(|s| vis.visit_expr(s));
             step.iter_mut().for_each(|s| vis.visit_expr(s));
@@ -326,7 +357,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             fixup.iter_mut().for_each(|f| vis.visit_block(f));
         }
         ExprKind::Struct(name, copy, fields) => {
-            vis.visit_path(name);
+            vis.visit_path_kind(name);
             copy.iter_mut().for_each(|c| vis.visit_expr(c));
             fields.iter_mut().for_each(|f| vis.visit_field_assign(f));
         }
@@ -384,12 +415,26 @@ pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
     vis.visit_ident(&mut path.name);
 }
 
+pub fn walk_path_kind(vis: &mut impl MutVisitor, path: &mut PathKind) {
+    match path {
+        PathKind::Ok(path) => vis.visit_path(path),
+        PathKind::Err(Some(incomplete_path)) => {
+            vis.visit_span(&mut incomplete_path.span);
+
+            for ref mut ident in &mut incomplete_path.segments {
+                vis.visit_ident(ident);
+            }
+        }
+        PathKind::Err(None) => {}
+    }
+}
+
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
 
-pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
-    for ref mut ident in &mut *ident.0 {
+pub fn walk_idents(vis: &mut impl MutVisitor, idents: &mut [Ident]) {
+    for ref mut ident in idents {
         vis.visit_ident(ident);
     }
 }

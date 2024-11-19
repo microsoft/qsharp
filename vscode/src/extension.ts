@@ -267,7 +267,9 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerCompletionItemProvider(
       qsharpLanguageId,
       createCompletionItemProvider(languageService),
-      "@", // for attribute completion
+      // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
+      "@",
+      ".",
     ),
   );
 

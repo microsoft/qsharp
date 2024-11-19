@@ -11,7 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.80"
+  RUST_TOOLCHAIN_VERSION: "1.82"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -52,7 +52,7 @@ jobs:
       - name: Build and Test
         run: python ./build.py --no-check --no-test --wasm --npm --play
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./playground/public
 
@@ -67,4 +67,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4

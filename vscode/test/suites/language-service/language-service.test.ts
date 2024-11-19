@@ -72,12 +72,30 @@ suite("Q# Language Service Tests", function suite() {
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       testQs,
-      new vscode.Position(0, 0),
+      new vscode.Position(1, 0),
     )) as vscode.CompletionList;
 
     assert.include(
       actualCompletionList.items.map((i) => i.label),
       "operation",
+    );
+
+    assert.include(
+      actualCompletionList.items.map((i) => i.label),
+      "Shor sample",
+    );
+  });
+
+  test("Completions - don't include samples when syntactically inappropriate", async () => {
+    const actualCompletionList = (await vscode.commands.executeCommand(
+      "vscode.executeCompletionItemProvider",
+      testQs,
+      new vscode.Position(12, 0), // put the cursor after the namespace declaration
+    )) as vscode.CompletionList;
+
+    assert.notInclude(
+      actualCompletionList.items.map((i) => i.label),
+      "Shor sample",
     );
   });
 

@@ -17,6 +17,7 @@ interface DumpMsg {
   type: "DumpMachine";
   state: Dump;
   stateLatex: string | null;
+  qubitCount: number;
 }
 
 interface MatrixMsg {

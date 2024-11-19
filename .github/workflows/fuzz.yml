@@ -182,7 +182,7 @@ jobs:
 
       - name: "If Fuzzing Failed: Upload Failure Artifacts"
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: |
             ${{ env.OWNER_RDPATH }}/${{ env.STDERR_LOG_FNAME }}

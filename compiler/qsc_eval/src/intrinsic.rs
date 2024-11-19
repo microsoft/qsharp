@@ -10,7 +10,7 @@ use crate::{
     backend::Backend,
     error::PackageSpan,
     output::Receiver,
-    val::{self, Qubit, Value},
+    val::{self, Value},
     Error, Rc,
 };
 use num_bigint::BigInt;
@@ -62,10 +62,14 @@ pub(crate) fn call(
         }
         "DumpRegister" => {
             let qubits = arg.unwrap_array();
+            let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .map(|q| q.clone().unwrap_qubit().0)
+                .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
                 .collect::<Vec<_>>();
+            if qubits.len() != qubits_len {
+                return Err(Error::QubitUsedAfterRelease(arg_span));
+            }
             if qubits.len() != qubits.iter().collect::<FxHashSet<_>>().len() {
                 return Err(Error::QubitUniqueness(arg_span));
             }
@@ -79,10 +83,14 @@ pub(crate) fn call(
         }
         "DumpMatrix" => {
             let qubits = arg.unwrap_array();
+            let qubits_len = qubits.len();
             let qubits = qubits
                 .iter()
-                .map(|q| q.clone().unwrap_qubit().0)
+                .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
                 .collect::<Vec<_>>();
+            if qubits.len() != qubits_len {
+                return Err(Error::QubitUsedAfterRelease(arg_span));
+            }
             if qubits.len() != qubits.iter().collect::<FxHashSet<_>>().len() {
                 return Err(Error::QubitUniqueness(arg_span));
             }
@@ -100,7 +108,14 @@ pub(crate) fn call(
             Ok(()) => Ok(Value::unit()),
             Err(_) => Err(Error::OutputFail(name_span)),
         },
-        "CheckZero" => Ok(Value::Bool(sim.qubit_is_zero(arg.unwrap_qubit().0))),
+        "CheckZero" => Ok(Value::Bool(
+            sim.qubit_is_zero(
+                arg.unwrap_qubit()
+                    .try_deref()
+                    .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                    .0,
+            ),
+        )),
         "ArcCos" => Ok(Value::Double(arg.unwrap_double().acos())),
         "ArcSin" => Ok(Value::Double(arg.unwrap_double().asin())),
         "ArcTan" => Ok(Value::Double(arg.unwrap_double().atan())),
@@ -142,16 +157,6 @@ pub(crate) fn call(
         }
         #[allow(clippy::cast_possible_truncation)]
         "Truncate" => Ok(Value::Int(arg.unwrap_double() as i64)),
-        "__quantum__rt__qubit_allocate" => Ok(Value::Qubit(Qubit(sim.qubit_allocate()))),
-        "__quantum__rt__qubit_release" => {
-            let qubit = arg.unwrap_qubit().0;
-            if sim.qubit_is_zero(qubit) {
-                sim.qubit_release(qubit);
-                Ok(Value::unit())
-            } else {
-                Err(Error::ReleasedQubitNotZero(qubit, arg_span))
-            }
-        }
         "__quantum__qis__ccx__body" => {
             three_qubit_gate(|ctl0, ctl1, q| sim.ccx(ctl0, ctl1, q), arg, arg_span)
         }
@@ -176,21 +181,43 @@ pub(crate) fn call(
         "__quantum__qis__rzz__body" => {
             two_qubit_rotation(|theta, q0, q1| sim.rzz(theta, q0, q1), arg, arg_span)
         }
-        "__quantum__qis__h__body" => Ok(one_qubit_gate(|q| sim.h(q), arg)),
-        "__quantum__qis__s__body" => Ok(one_qubit_gate(|q| sim.s(q), arg)),
-        "__quantum__qis__s__adj" => Ok(one_qubit_gate(|q| sim.sadj(q), arg)),
-        "__quantum__qis__t__body" => Ok(one_qubit_gate(|q| sim.t(q), arg)),
-        "__quantum__qis__t__adj" => Ok(one_qubit_gate(|q| sim.tadj(q), arg)),
-        "__quantum__qis__x__body" => Ok(one_qubit_gate(|q| sim.x(q), arg)),
-        "__quantum__qis__y__body" => Ok(one_qubit_gate(|q| sim.y(q), arg)),
-        "__quantum__qis__z__body" => Ok(one_qubit_gate(|q| sim.z(q), arg)),
+        "__quantum__qis__h__body" => one_qubit_gate(|q| sim.h(q), arg, arg_span),
+        "__quantum__qis__s__body" => one_qubit_gate(|q| sim.s(q), arg, arg_span),
+        "__quantum__qis__s__adj" => one_qubit_gate(|q| sim.sadj(q), arg, arg_span),
+        "__quantum__qis__t__body" => one_qubit_gate(|q| sim.t(q), arg, arg_span),
+        "__quantum__qis__t__adj" => one_qubit_gate(|q| sim.tadj(q), arg, arg_span),
+        "__quantum__qis__x__body" => one_qubit_gate(|q| sim.x(q), arg, arg_span),
+        "__quantum__qis__y__body" => one_qubit_gate(|q| sim.y(q), arg, arg_span),
+        "__quantum__qis__z__body" => one_qubit_gate(|q| sim.z(q), arg, arg_span),
         "__quantum__qis__swap__body" => two_qubit_gate(|q0, q1| sim.swap(q0, q1), arg, arg_span),
-        "__quantum__qis__reset__body" => Ok(one_qubit_gate(|q| sim.reset(q), arg)),
-        "__quantum__qis__m__body" => Ok(Value::Result(sim.m(arg.unwrap_qubit().0).into())),
-        "__quantum__qis__mresetz__body" => {
-            Ok(Value::Result(sim.mresetz(arg.unwrap_qubit().0).into()))
-        }
+        "__quantum__qis__reset__body" => one_qubit_gate(|q| sim.reset(q), arg, arg_span),
+        "__quantum__qis__m__body" => Ok(Value::Result(
+            sim.m(arg
+                .unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0)
+                .into(),
+        )),
+        "__quantum__qis__mresetz__body" => Ok(Value::Result(
+            sim.mresetz(
+                arg.unwrap_qubit()
+                    .try_deref()
+                    .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                    .0,
+            )
+            .into(),
+        )),
         _ => {
+            let qubits = arg.qubits();
+            let qubits_len = qubits.len();
+            let qubits = qubits
+                .iter()
+                .filter_map(|q| q.try_deref().map(|q| q.0))
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits_len {
+                return Err(Error::QubitUsedAfterRelease(arg_span));
+            }
             if let Some(result) = sim.custom_intrinsic(name, arg) {
                 match result {
                     Ok(value) => Ok(value),
@@ -203,9 +230,18 @@ pub(crate) fn call(
     }
 }
 
-fn one_qubit_gate(mut gate: impl FnMut(usize), arg: Value) -> Value {
-    gate(arg.unwrap_qubit().0);
-    Value::unit()
+fn one_qubit_gate(
+    mut gate: impl FnMut(usize),
+    arg: Value,
+    arg_span: PackageSpan,
+) -> Result<Value, Error> {
+    gate(
+        arg.unwrap_qubit()
+            .try_deref()
+            .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+            .0,
+    );
+    Ok(Value::unit())
 }
 
 fn two_qubit_gate(
@@ -217,7 +253,16 @@ fn two_qubit_gate(
     if x == y {
         Err(Error::QubitUniqueness(arg_span))
     } else {
-        gate(x.unwrap_qubit().0, y.unwrap_qubit().0);
+        gate(
+            x.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+            y.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+        );
         Ok(Value::unit())
     }
 }
@@ -232,7 +277,13 @@ fn one_qubit_rotation(
     if angle.is_nan() || angle.is_infinite() {
         Err(Error::InvalidRotationAngle(angle, arg_span))
     } else {
-        gate(angle, y.unwrap_qubit().0);
+        gate(
+            angle,
+            y.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+        );
         Ok(Value::unit())
     }
 }
@@ -246,7 +297,20 @@ fn three_qubit_gate(
     if x == y || y == z || x == z {
         Err(Error::QubitUniqueness(arg_span))
     } else {
-        gate(x.unwrap_qubit().0, y.unwrap_qubit().0, z.unwrap_qubit().0);
+        gate(
+            x.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+            y.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+            z.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+        );
         Ok(Value::unit())
     }
 }
@@ -263,7 +327,17 @@ fn two_qubit_rotation(
     } else if angle.is_nan() || angle.is_infinite() {
         Err(Error::InvalidRotationAngle(angle, arg_span))
     } else {
-        gate(angle, y.unwrap_qubit().0, z.unwrap_qubit().0);
+        gate(
+            angle,
+            y.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+            z.unwrap_qubit()
+                .try_deref()
+                .ok_or(Error::QubitUsedAfterRelease(arg_span))?
+                .0,
+        );
         Ok(Value::unit())
     }
 }
@@ -277,16 +351,24 @@ pub fn qubit_relabel(
     mut swap: impl FnMut(usize, usize),
 ) -> Result<Value, Error> {
     let [left, right] = unwrap_tuple(arg);
+    let left = left.unwrap_array();
+    let left_len = left.len();
     let left = left
-        .unwrap_array()
         .iter()
-        .map(|q| q.clone().unwrap_qubit().0)
+        .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
         .collect::<Vec<_>>();
+    if left.len() != left_len {
+        return Err(Error::QubitUsedAfterRelease(arg_span));
+    }
+    let right = right.unwrap_array();
+    let right_len = right.len();
     let right = right
-        .unwrap_array()
         .iter()
-        .map(|q| q.clone().unwrap_qubit().0)
+        .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
         .collect::<Vec<_>>();
+    if right.len() != right_len {
+        return Err(Error::QubitUsedAfterRelease(arg_span));
+    }
     let left_set = left.iter().collect::<FxHashSet<_>>();
     let right_set = right.iter().collect::<FxHashSet<_>>();
     if left.len() != left_set.len() || right.len() != right_set.len() {

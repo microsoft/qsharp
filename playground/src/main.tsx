@@ -248,12 +248,6 @@ async function loaded() {
 function registerMonacoLanguageServiceProviders(
   languageService: ILanguageService,
 ) {
-  monaco.languages.setLanguageConfiguration("qsharp", {
-    // This pattern is duplicated in /vscode/language-configuration.json . Please keep them in sync.
-    wordPattern: new RegExp(
-      "(-?\\d*\\.\\d\\w*)|(@\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\.\\'\\\"\\,\\<\\>\\/\\?\\s]+)",
-    ),
-  });
   monaco.languages.registerCompletionItemProvider("qsharp", {
     // @ts-expect-error - Monaco's types expect range to be defined,
     // but it's actually optional and the default behavior is better
@@ -290,6 +284,12 @@ function registerMonacoLanguageServiceProviders(
             case "property":
               kind = monaco.languages.CompletionItemKind.Property;
               break;
+            case "field":
+              kind = monaco.languages.CompletionItemKind.Field;
+              break;
+            case "class":
+              kind = monaco.languages.CompletionItemKind.Class;
+              break;
           }
           return {
             label: i.label,
@@ -310,7 +310,8 @@ function registerMonacoLanguageServiceProviders(
         }),
       };
     },
-    triggerCharacters: ["@"], // for attribute completions
+    // Trigger characters should be kept in sync with the ones in `vscode/src/extension.ts`
+    triggerCharacters: ["@", "."],
   });
 
   monaco.languages.registerHoverProvider("qsharp", {

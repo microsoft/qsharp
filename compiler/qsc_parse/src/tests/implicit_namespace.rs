@@ -28,20 +28,18 @@ fn explicit_namespace_overrides_implicit() {
                         hi: 21,
                     },
                     doc: "",
-                    name: Idents(
-                        [
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 10,
-                                    hi: 18,
-                                },
-                                name: "Explicit",
+                    name: [
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 10,
+                                hi: 18,
                             },
-                        ],
-                    ),
+                            name: "Explicit",
+                        },
+                    ],
                     items: [],
                 },
             ],
@@ -72,40 +70,38 @@ fn fixup_bad_namespace_name_with_dash() {
                         hi: 26,
                     },
                     doc: "",
-                    name: Idents(
-                        [
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 26,
-                                },
-                                name: "code",
+                    name: [
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 26,
                             },
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 26,
-                                },
-                                name: "src",
+                            name: "code",
+                        },
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 26,
                             },
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 0,
-                                    hi: 26,
-                                },
-                                name: "Foo_Bar",
+                            name: "src",
+                        },
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 0,
+                                hi: 26,
                             },
-                        ],
-                    ),
+                            name: "Foo_Bar",
+                        },
+                    ],
                     items: [
                         Item {
                             id: NodeId(
@@ -159,16 +155,8 @@ fn fixup_bad_namespace_name_with_dash() {
                                             hi: 23,
                                         },
                                         kind: Path(
-                                            Path {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 19,
-                                                    hi: 23,
-                                                },
-                                                segments: None,
-                                                name: Ident {
+                                            Ok(
+                                                Path {
                                                     id: NodeId(
                                                         4294967295,
                                                     ),
@@ -176,9 +164,19 @@ fn fixup_bad_namespace_name_with_dash() {
                                                         lo: 19,
                                                         hi: 23,
                                                     },
-                                                    name: "Unit",
+                                                    segments: None,
+                                                    name: Ident {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 19,
+                                                            hi: 23,
+                                                        },
+                                                        name: "Unit",
+                                                    },
                                                 },
-                                            },
+                                            ),
                                         ),
                                     },
                                     functors: None,
@@ -257,40 +255,38 @@ oper",
                         hi: 32,
                     },
                     doc: "",
-                    name: Idents(
-                        [
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 1,
-                                    hi: 32,
-                                },
-                                name: "code",
+                    name: [
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 32,
                             },
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 1,
-                                    hi: 32,
-                                },
-                                name: "src",
+                            name: "code",
+                        },
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 32,
                             },
-                            Ident {
-                                id: NodeId(
-                                    4294967295,
-                                ),
-                                span: Span {
-                                    lo: 1,
-                                    hi: 32,
-                                },
-                                name: "Foo",
+                            name: "src",
+                        },
+                        Ident {
+                            id: NodeId(
+                                4294967295,
+                            ),
+                            span: Span {
+                                lo: 1,
+                                hi: 32,
                             },
-                        ],
-                    ),
+                            name: "Foo",
+                        },
+                    ],
                     items: [
                         Item {
                             id: NodeId(
@@ -344,16 +340,8 @@ oper",
                                             hi: 24,
                                         },
                                         kind: Path(
-                                            Path {
-                                                id: NodeId(
-                                                    4294967295,
-                                                ),
-                                                span: Span {
-                                                    lo: 20,
-                                                    hi: 24,
-                                                },
-                                                segments: None,
-                                                name: Ident {
+                                            Ok(
+                                                Path {
                                                     id: NodeId(
                                                         4294967295,
                                                     ),
@@ -361,9 +349,19 @@ oper",
                                                         lo: 20,
                                                         hi: 24,
                                                     },
-                                                    name: "Unit",
+                                                    segments: None,
+                                                    name: Ident {
+                                                        id: NodeId(
+                                                            4294967295,
+                                                        ),
+                                                        span: Span {
+                                                            lo: 20,
+                                                            hi: 24,
+                                                        },
+                                                        name: "Unit",
+                                                    },
                                                 },
-                                            },
+                                            ),
                                         ),
                                     },
                                     functors: None,

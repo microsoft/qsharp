@@ -3,7 +3,7 @@
     "module": "CommonJS",
     "target": "ES2020",
     "noEmit": true,
-    "lib": ["DOM", "ES2020"],
+    "lib": ["DOM", "ES2021"],
     "rootDir": ".",
     "strict": true /* enable all strict type-checking options */,
     "jsx": "react-jsx",

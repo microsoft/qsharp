@@ -157,11 +157,7 @@ impl SourceMap {
     pub(crate) fn relative_sources(&self) -> impl Iterator<Item = Source> + '_ {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
-            let relative_name = if let Some(common_prefix) = &self.common_prefix {
-                name.strip_prefix(common_prefix.as_ref()).unwrap_or(name)
-            } else {
-                name
-            };
+            let relative_name = self.relative_name(name);
 
             Source {
                 name: relative_name.into(),
@@ -169,6 +165,15 @@ impl SourceMap {
                 offset: source.offset,
             }
         })
+    }
+
+    #[must_use]
+    pub fn relative_name<'a>(&'a self, name: &'a str) -> &'a str {
+        if let Some(common_prefix) = &self.common_prefix {
+            name.strip_prefix(common_prefix.as_ref()).unwrap_or(name)
+        } else {
+            name
+        }
     }
 }
 

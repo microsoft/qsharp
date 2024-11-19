@@ -2,7 +2,7 @@
 // Diagnostics
 //
 // # Description
-// The `Microsoft.Quantum.Diagnostics` namespace provides functionality for inspecting and
+// The `Std.Diagnostics` namespace provides functionality for inspecting and
 // diagnosing program state. This is useful when debugging or diagnosing behavior.
 // Q# provides a number of features designed to enable testing and debugging Q# programs,
 // primarily in the form of assertions and messaging classical state to the user.

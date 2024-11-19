@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 use expect_test::{expect, Expect};
 use indoc::{formatdoc, indoc};
@@ -920,6 +918,31 @@ fn call_to_dump_register_does_not_generate_instructions() {
         Block:
             Call id(1), args( Integer(0), Pointer, )
             Return"#]],
+    );
+}
+
+#[test]
+fn use_of_noise_does_not_generate_instructions() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            import Std.Diagnostics.*;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                ConfigurePauliNoise(0.2, 0.2, 0.2);
+                ApplyIdleNoise(q);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 

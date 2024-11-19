@@ -10,6 +10,7 @@ use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
+use qsc::ast::PathKind;
 use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
@@ -346,7 +347,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
     }
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
-        if let ast::TyKind::Path(ty_path) = &*ty.kind {
+        if let ast::TyKind::Path(PathKind::Ok(ty_path)) = &*ty.kind {
             let res = self.compilation.get_res(ty_path.id);
             if let Some(resolve::Res::Item(item_id, _)) = res {
                 if self.eq(item_id) {
@@ -399,7 +400,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
 
     fn visit_expr(&mut self, expr: &ast::Expr) {
         match &*expr.kind {
-            ast::ExprKind::Field(qualifier, field_name) => {
+            ast::ExprKind::Field(qualifier, ast::FieldAccess::Ok(field_name)) => {
                 self.visit_expr(qualifier);
                 if field_name.name == self.field_name {
                     if let Some(Ty::Udt(_, Res::Item(id))) = self.compilation.get_ty(qualifier.id) {
@@ -409,7 +410,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
                     }
                 }
             }
-            ast::ExprKind::Struct(struct_name, copy, fields) => {
+            ast::ExprKind::Struct(PathKind::Ok(struct_name), copy, fields) => {
                 self.visit_path(struct_name);
                 if let Some(copy) = copy {
                     self.visit_expr(copy);
@@ -510,10 +511,10 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         if self.include_declaration {
             decl.generics.iter().for_each(|p| {
-                let res = self.compilation.get_res(p.id);
-                if let Some(resolve::Res::Param(param_id)) = res {
-                    if *param_id == self.param_id {
-                        self.locations.push(p.span);
+                let res = self.compilation.get_res(p.ty.id);
+                if let Some(resolve::Res::Param { id, .. }) = res {
+                    if *id == self.param_id {
+                        self.locations.push(p.ty.span);
                     }
                 }
             });
@@ -523,9 +524,9 @@ impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
 
     fn visit_ty(&mut self, ty: &ast::Ty) {
         if let ast::TyKind::Param(param) = &*ty.kind {
-            let res = self.compilation.get_res(param.id);
-            if let Some(resolve::Res::Param(param_id)) = res {
-                if *param_id == self.param_id {
+            let res = self.compilation.get_res(param.ty.id);
+            if let Some(resolve::Res::Param { id, .. }) = res {
+                if *id == self.param_id {
                     self.locations.push(param.span);
                 }
             }

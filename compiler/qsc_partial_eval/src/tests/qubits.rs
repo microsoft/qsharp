@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
-use super::{assert_block_instructions, assert_callable, get_rir_program};
+use super::{
+    assert_block_instructions, assert_callable, assert_error, get_partial_evaluation_error,
+    get_rir_program,
+};
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
@@ -311,4 +312,51 @@ fn qubit_array_allocation_and_access() {
     );
     assert_eq!(program.num_qubits, 3);
     assert_eq!(program.num_results, 0);
+}
+
+#[test]
+fn qubit_escaping_scope_triggers_runtime_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            operation Op(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                let q = {
+                    use q = Qubit();
+                    q
+                };
+                Op(q);
+            }
+        }
+        "#,
+    });
+    assert_error(
+        &error,
+        &expect![[
+            r#"EvaluationFailed("qubit used after release", PackageSpan { package: PackageId(2), span: Span { lo: 204, hi: 205 } })"#
+        ]],
+    );
+}
+
+#[test]
+fn qubit_double_release_triggers_runtime_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+                QIR.Runtime.__quantum__rt__qubit_release(q);
+                QIR.Runtime.__quantum__rt__qubit_release(q);
+            }
+        }
+        "#,
+    });
+    assert_error(
+        &error,
+        &expect![[
+            r#"EvaluationFailed("qubit double release", PackageSpan { package: PackageId(2), span: Span { lo: 229, hi: 230 } })"#
+        ]],
+    );
 }

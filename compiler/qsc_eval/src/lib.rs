@@ -21,6 +21,7 @@ pub mod backend;
 pub mod debug;
 mod error;
 pub mod intrinsic;
+pub mod noise;
 pub mod output;
 pub mod state;
 pub mod val;
@@ -53,7 +54,7 @@ use std::{
     rc::Rc,
 };
 use thiserror::Error;
-use val::update_functor_app;
+use val::{update_functor_app, Qubit};
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -116,6 +117,15 @@ pub enum Error {
     #[error("qubits in invocation are not unique")]
     #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] PackageSpan),
+
+    #[error("qubit used after release")]
+    #[diagnostic(help("qubits should not be used after being released, which typically occurs when a qubit is used after it has gone out of scope"))]
+    #[diagnostic(code("Qsc.Eval.QubitUsedAfterRelease"))]
+    QubitUsedAfterRelease(#[label] PackageSpan),
+
+    #[error("qubit double release")]
+    #[diagnostic(code("Qsc.Eval.QubitDoubleRelease"))]
+    QubitDoubleRelease(#[label("qubit has already been released")] PackageSpan),
 
     #[error("qubits already counted")]
     #[diagnostic(help("counting for qubits must be stopped before it can be started again"))]
@@ -189,6 +199,8 @@ impl Error {
             | Error::InvalidNegativeInt(_, span)
             | Error::OutputFail(span)
             | Error::QubitUniqueness(span)
+            | Error::QubitUsedAfterRelease(span)
+            | Error::QubitDoubleRelease(span)
             | Error::QubitsAlreadyCounted(span)
             | Error::QubitsNotCounted(span)
             | Error::QubitsNotSeparable(span)
@@ -351,24 +363,33 @@ impl Range {
     }
 }
 
-pub struct Env(Vec<Scope>);
+pub struct Env {
+    scopes: Vec<Scope>,
+    qubits: FxHashSet<Rc<Qubit>>,
+}
 
 impl Default for Env {
     #[must_use]
     fn default() -> Self {
         // Always create a global scope for top-level statements.
-        Self(vec![Scope::default()])
+        Self {
+            scopes: vec![Scope::default()],
+            qubits: FxHashSet::default(),
+        }
     }
 }
 
 impl Env {
     #[must_use]
     pub fn get(&self, id: LocalVarId) -> Option<&Variable> {
-        self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|scope| scope.bindings.get(id))
     }
 
     fn get_mut(&mut self, id: LocalVarId) -> Option<&mut Variable> {
-        self.0
+        self.scopes
             .iter_mut()
             .rev()
             .find_map(|scope| scope.bindings.get_mut(id))
@@ -379,14 +400,14 @@ impl Env {
             frame_id,
             ..Default::default()
         };
-        self.0.push(scope);
+        self.scopes.push(scope);
     }
 
     pub fn leave_scope(&mut self) {
         // Only pop the scope if there is more than one scope in the stack,
         // because the global/top-level scope cannot be exited.
-        if self.0.len() > 1 {
-            self.0
+        if self.scopes.len() > 1 {
+            self.scopes
                 .pop()
                 .expect("scope should have more than one entry.");
         }
@@ -394,7 +415,7 @@ impl Env {
 
     pub fn leave_current_frame(&mut self) {
         let current_frame_id = self
-            .0
+            .scopes
             .last()
             .expect("should be at least one scope")
             .frame_id;
@@ -402,11 +423,12 @@ impl Env {
             // Do not remove the global scope.
             return;
         }
-        self.0.retain(|scope| scope.frame_id != current_frame_id);
+        self.scopes
+            .retain(|scope| scope.frame_id != current_frame_id);
     }
 
     pub fn bind_variable_in_top_frame(&mut self, local_var_id: LocalVarId, var: Variable) {
-        let Some(scope) = self.0.last_mut() else {
+        let Some(scope) = self.scopes.last_mut() else {
             panic!("no frames in scope");
         };
 
@@ -415,7 +437,7 @@ impl Env {
 
     #[must_use]
     pub fn get_variables_in_top_frame(&self) -> Vec<VariableInfo> {
-        if let Some(scope) = self.0.last() {
+        if let Some(scope) = self.scopes.last() {
             self.get_variables_in_frame(scope.frame_id)
         } else {
             vec![]
@@ -425,7 +447,7 @@ impl Env {
     #[must_use]
     pub fn get_variables_in_frame(&self, frame_id: usize) -> Vec<VariableInfo> {
         let candidate_scopes: Vec<_> = self
-            .0
+            .scopes
             .iter()
             .filter(|scope| scope.frame_id == frame_id)
             .map(|scope| scope.bindings.iter())
@@ -450,7 +472,7 @@ impl Env {
     #[allow(clippy::len_without_is_empty)]
     #[must_use]
     pub fn len(&self) -> usize {
-        self.0.len()
+        self.scopes.len()
     }
 
     pub fn update_variable_in_top_frame(&mut self, local_var_id: LocalVarId, value: Value) {
@@ -458,6 +480,14 @@ impl Env {
             .get_mut(local_var_id)
             .expect("local variable is not present");
         variable.value = value;
+    }
+
+    pub fn track_qubit(&mut self, qubit: Rc<Qubit>) {
+        self.qubits.insert(qubit);
+    }
+
+    pub fn release_qubit(&mut self, qubit: &Rc<Qubit>) {
+        self.qubits.remove(qubit);
     }
 }
 
@@ -1009,39 +1039,17 @@ impl State {
                 self.leave_frame();
                 Ok(())
             }
-            CallableImpl::Intrinsic => {
-                self.push_frame(Vec::new().into(), callee_id, functor);
-
-                self.increment_call_count(callee_id, functor);
-
-                let name = &callee.name.name;
-                let val = intrinsic::call(
-                    name,
-                    callee_span,
-                    arg,
-                    arg_span,
-                    sim,
-                    &mut self.rng.borrow_mut(),
-                    out,
-                )?;
-                if val == Value::unit() && callee.output != Ty::UNIT {
-                    return Err(Error::UnsupportedIntrinsicType(
-                        callee.name.name.to_string(),
-                        callee_span,
-                    ));
-                }
-
-                // If qubit counting is enabled, update the qubit counter when the intrinsic for allocation is called.
-                if let (Some(counter), "__quantum__rt__qubit_allocate", Value::Qubit(q)) =
-                    (&mut self.qubit_counter, name.as_ref(), &val)
-                {
-                    counter.allocated(q.0);
-                }
-
-                self.set_val_register(val);
-                self.leave_frame();
-                Ok(())
-            }
+            CallableImpl::Intrinsic => self.eval_intrinsic(
+                env,
+                callee_id,
+                functor,
+                callee,
+                sim,
+                callee_span,
+                arg,
+                arg_span,
+                out,
+            ),
             CallableImpl::Spec(specialized_implementation) => {
                 let spec_decl = match spec {
                     Spec::Body => Some(&specialized_implementation.body),
@@ -1085,6 +1093,67 @@ impl State {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn eval_intrinsic(
+        &mut self,
+        env: &mut Env,
+        callee_id: StoreItemId,
+        functor: FunctorApp,
+        callee: &fir::CallableDecl,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        callee_span: PackageSpan,
+        arg: Value,
+        arg_span: PackageSpan,
+        out: &mut impl Receiver,
+    ) -> Result<(), Error> {
+        self.push_frame(Vec::new().into(), callee_id, functor);
+        self.increment_call_count(callee_id, functor);
+        let name = &callee.name.name;
+        let val = match name.as_ref() {
+            "__quantum__rt__qubit_allocate" => {
+                let q = Rc::new(Qubit(sim.qubit_allocate()));
+                env.track_qubit(Rc::clone(&q));
+                if let Some(counter) = &mut self.qubit_counter {
+                    counter.allocated(q.0);
+                }
+                Value::Qubit(q.into())
+            }
+            "__quantum__rt__qubit_release" => {
+                let qubit = arg
+                    .unwrap_qubit()
+                    .try_deref()
+                    .ok_or(Error::QubitDoubleRelease(arg_span))?;
+                env.release_qubit(&qubit);
+                if sim.qubit_release(qubit.0) {
+                    Value::unit()
+                } else {
+                    return Err(Error::ReleasedQubitNotZero(qubit.0, arg_span));
+                }
+            }
+            _ => {
+                let val = intrinsic::call(
+                    name,
+                    callee_span,
+                    arg,
+                    arg_span,
+                    sim,
+                    &mut self.rng.borrow_mut(),
+                    out,
+                )?;
+                if val == Value::unit() && callee.output != Ty::UNIT {
+                    return Err(Error::UnsupportedIntrinsicType(
+                        callee.name.name.to_string(),
+                        callee_span,
+                    ));
+                }
+                val
+            }
+        };
+        self.set_val_register(val);
+        self.leave_frame();
+        Ok(())
+    }
+
     fn eval_field(&mut self, field: Field) {
         let record = self.take_val_register();
         let val = match (record, field) {
@@ -1102,7 +1171,9 @@ impl State {
             (record, Field::Path(path)) => {
                 follow_field_path(record, &path.indices).expect("field path should be valid")
             }
-            _ => panic!("invalid field access"),
+            (ref value, ref field) => {
+                panic!("invalid field access. value: {value:?}, field: {field:?}")
+            }
         };
         self.set_val_register(val);
     }
@@ -1329,7 +1400,7 @@ impl State {
         let pat = globals.get_pat((self.package, pat).into());
         match &pat.kind {
             PatKind::Bind(variable) => {
-                let scope = env.0.last_mut().expect("binding should have a scope");
+                let scope = env.scopes.last_mut().expect("binding should have a scope");
                 scope.bindings.insert(
                     variable.id,
                     Variable {
@@ -1551,13 +1622,17 @@ impl State {
 pub fn are_ctls_unique(ctls: &[Value], tup: &Value) -> bool {
     let mut qubits = FxHashSet::default();
     for ctl in ctls.iter().flat_map(Value::qubits) {
-        if !qubits.insert(ctl) {
-            return false;
+        if let Some(ctl) = ctl.try_deref() {
+            if !qubits.insert(ctl) {
+                return false;
+            }
         }
     }
     for qubit in tup.qubits() {
-        if qubits.contains(&qubit) {
-            return false;
+        if let Some(qubit) = qubit.try_deref() {
+            if qubits.contains(&qubit) {
+                return false;
+            }
         }
     }
     true

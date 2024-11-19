@@ -277,10 +277,10 @@ impl<'a> Formatter<'a> {
                 effect_trim_comment(left, &mut edits, self.code);
                 effect_correct_indentation(left, whitespace, right, &mut edits, self.indent_level);
             }
-            (_, Comment) if matches!(left_delim_state, Delimiter::Open) => {
+            (_, Comment | Syntax(DocComment)) if matches!(left_delim_state, Delimiter::Open) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, self.indent_level);
             }
-            (_, Comment) => {
+            (_, Comment | Syntax(DocComment)) => {
                 if are_newlines_in_spaces {
                     effect_correct_indentation(
                         left,
@@ -562,7 +562,7 @@ impl<'a> Formatter<'a> {
         left_kind: &ConcreteTokenKind,
         right_kind: &ConcreteTokenKind,
     ) {
-        use qsc_frontend::keyword::Keyword;
+        use qsc_frontend::{keyword::Keyword, lex::cooked::ClosedBinOp};
         use ConcreteTokenKind::*;
         use TokenKind::*;
 
@@ -599,7 +599,7 @@ impl<'a> Formatter<'a> {
             {
                 self.type_param_state = TypeParameterListState::InTypeParamList;
             }
-            Syntax(AposIdent | Comma | Gt)
+            Syntax(AposIdent | Comma | Gt | ClosedBinOp(ClosedBinOp::Plus) | Ident | Colon)
                 if matches!(
                     self.type_param_state,
                     TypeParameterListState::InTypeParamList

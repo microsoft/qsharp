@@ -5,7 +5,10 @@ mod estimate_frontier;
 mod estimate_without_restrictions;
 mod result;
 
-use super::{Error, ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, LogicalPatch, Overhead};
+use super::{
+    Error, ErrorBudget, ErrorBudgetStrategy, ErrorCorrection, Factory, FactoryBuilder,
+    LogicalPatch, Overhead,
+};
 use std::{borrow::Cow, rc::Rc};
 
 use estimate_frontier::EstimateFrontier;
@@ -18,12 +21,12 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
     qubit: Rc<E::Qubit>,
     factory_builder: Builder,
     layout_overhead: Rc<L>,
-    error_budget: ErrorBudget,
     // optional constraint parameters
     logical_depth_factor: Option<f64>,
     max_factories: Option<u64>,
     max_duration: Option<u64>,
     max_physical_qubits: Option<u64>,
+    error_budget_strategy: ErrorBudgetStrategy,
 }
 
 impl<
@@ -37,18 +40,17 @@ impl<
         qubit: Rc<E::Qubit>,
         factory_builder: Builder,
         layout_overhead: Rc<L>,
-        error_budget: ErrorBudget,
     ) -> Self {
         Self {
             ftp,
             qubit,
             factory_builder,
             layout_overhead,
-            error_budget,
             logical_depth_factor: None,
             max_factories: None,
             max_duration: None,
             max_physical_qubits: None,
+            error_budget_strategy: ErrorBudgetStrategy::default(),
         }
     }
 
@@ -58,10 +60,6 @@ impl<
 
     pub fn layout_overhead(&self) -> &L {
         &self.layout_overhead
-    }
-
-    pub fn error_budget(&self) -> &ErrorBudget {
-        &self.error_budget
     }
 
     pub fn set_logical_depth_factor(&mut self, logical_depth_factor: f64) {
@@ -77,6 +75,14 @@ impl<
         self.max_physical_qubits = Some(max_physical_qubits);
     }
 
+    pub fn error_budget_strategy(&self) -> ErrorBudgetStrategy {
+        self.error_budget_strategy
+    }
+
+    pub fn set_error_budget_strategy(&mut self, error_budget_strategy: ErrorBudgetStrategy) {
+        self.error_budget_strategy = error_budget_strategy;
+    }
+
     pub fn factory_builder(&self) -> &Builder {
         &self.factory_builder
     }
@@ -85,42 +91,52 @@ impl<
         &mut self.factory_builder
     }
 
-    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
+    pub fn estimate(
+        &self,
+        error_budget: &ErrorBudget,
+    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         match (self.max_duration, self.max_physical_qubits) {
-            (None, None) => self.estimate_without_restrictions(),
+            (None, None) => self.estimate_without_restrictions(error_budget),
             (None, Some(max_physical_qubits)) => {
-                self.estimate_with_max_num_qubits(max_physical_qubits)
+                self.estimate_with_max_num_qubits(error_budget, max_physical_qubits)
             }
-            (Some(max_duration), None) => self.estimate_with_max_duration(max_duration),
+            (Some(max_duration), None) => {
+                self.estimate_with_max_duration(error_budget, max_duration)
+            }
             _ => Err(Error::BothDurationAndPhysicalQubitsProvided),
         }
     }
 
     pub fn build_frontier(
         &self,
+        error_budget: &ErrorBudget,
     ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory>>, Error> {
-        EstimateFrontier::new(self)?.estimate()
+        EstimateFrontier::new(self, error_budget)?.estimate()
     }
 
     pub fn estimate_without_restrictions(
         &self,
+        error_budget: &ErrorBudget,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
-        EstimateWithoutRestrictions::new(self).estimate()
+        EstimateWithoutRestrictions::new(self).estimate(error_budget)
     }
 
     fn compute_initial_optimization_values(
         &self,
+        error_budget: &ErrorBudget,
     ) -> Result<InitialOptimizationValues<E::Parameter>, Error> {
-        let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
+        let num_cycles_required_by_layout_overhead = self.compute_num_cycles(error_budget)?;
 
         // The required magic state error rate is computed by dividing the total
         // error budget for magic states by the number of magic states required
         // for the algorithm.
-        let required_logical_magic_state_error_rate = self.error_budget.magic_states()
-            / (self.layout_overhead.num_magic_states(&self.error_budget, 0) as f64);
+        let required_logical_magic_state_error_rate = error_budget.magic_states()
+            / (self.layout_overhead.num_magic_states(error_budget, 0) as f64);
 
-        let required_logical_error_rate =
-            self.required_logical_error_rate(num_cycles_required_by_layout_overhead);
+        let required_logical_error_rate = self.required_logical_error_rate(
+            error_budget.logical(),
+            num_cycles_required_by_layout_overhead,
+        );
 
         let min_code_parameter = self.compute_code_parameter(required_logical_error_rate)?;
 
@@ -135,6 +151,7 @@ impl<
     #[allow(clippy::too_many_lines)]
     pub fn estimate_with_max_duration(
         &self,
+        error_budget: &ErrorBudget,
         max_duration_in_nanoseconds: u64,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         if self.factory_builder.num_magic_state_types() != 1 {
@@ -146,9 +163,9 @@ impl<
             num_cycles_required_by_layout_overhead,
             required_logical_error_rate,
             required_logical_magic_state_error_rate,
-        } = self.compute_initial_optimization_values()?;
+        } = self.compute_initial_optimization_values(error_budget)?;
 
-        let num_magic_states = self.layout_overhead.num_magic_states(&self.error_budget, 0);
+        let num_magic_states = self.layout_overhead.num_magic_states(error_budget, 0);
         if num_magic_states == 0 {
             let logical_patch =
                 LogicalPatch::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
@@ -159,6 +176,7 @@ impl<
                 return Ok(PhysicalResourceEstimationResult::without_factories(
                     self,
                     logical_patch,
+                    error_budget,
                     num_cycles_required_by_layout_overhead,
                     required_logical_error_rate,
                 ));
@@ -191,7 +209,7 @@ impl<
             }
 
             let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_code_parameter(&code_parameter)?;
+                self.logical_cycles_for_code_parameter(error_budget.logical(), &code_parameter)?;
 
             if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
@@ -230,8 +248,13 @@ impl<
                 &logical_patch,
                 max_num_cycles_allowed,
             ) {
-                let num_factories =
-                    self.num_factories(&logical_patch, 0, &factory, max_num_cycles_allowed);
+                let num_factories = self.num_factories(
+                    &logical_patch,
+                    0,
+                    &factory,
+                    error_budget,
+                    max_num_cycles_allowed,
+                );
 
                 let num_cycles_required_for_magic_states = self
                     .compute_num_cycles_required_for_magic_states(
@@ -239,6 +262,7 @@ impl<
                         num_factories,
                         &factory,
                         &logical_patch,
+                        error_budget,
                     );
 
                 // This num_cycles could be larger than num_cycles_required_by_layout_overhead
@@ -256,6 +280,7 @@ impl<
                 let result = PhysicalResourceEstimationResult::new(
                     self,
                     LogicalPatch::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
+                    error_budget,
                     num_cycles,
                     vec![Some(FactoryPart::new(
                         factory.into_owned(),
@@ -281,6 +306,7 @@ impl<
     #[allow(clippy::too_many_lines)]
     pub fn estimate_with_max_num_qubits(
         &self,
+        error_budget: &ErrorBudget,
         max_num_qubits: u64,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory>, Error> {
         if self.factory_builder.num_magic_state_types() != 1 {
@@ -292,9 +318,9 @@ impl<
             num_cycles_required_by_layout_overhead,
             required_logical_error_rate,
             required_logical_magic_state_error_rate,
-        } = self.compute_initial_optimization_values()?;
+        } = self.compute_initial_optimization_values(error_budget)?;
 
-        let num_magic_states = self.layout_overhead.num_magic_states(&self.error_budget, 0);
+        let num_magic_states = self.layout_overhead.num_magic_states(error_budget, 0);
         if num_magic_states == 0 {
             let logical_patch =
                 LogicalPatch::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
@@ -302,6 +328,7 @@ impl<
                 return Ok(PhysicalResourceEstimationResult::without_factories(
                     self,
                     logical_patch,
+                    error_budget,
                     num_cycles_required_by_layout_overhead,
                     required_logical_error_rate,
                 ));
@@ -335,7 +362,7 @@ impl<
                 max_num_qubits - physical_qubits_for_algorithm;
 
             let max_num_cycles_allowed_by_error_rate =
-                self.logical_cycles_for_code_parameter(&code_parameter)?;
+                self.logical_cycles_for_code_parameter(error_budget.logical(), &code_parameter)?;
 
             if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
@@ -384,6 +411,7 @@ impl<
                         num_factories,
                         &factory,
                         &logical_patch,
+                        error_budget,
                     );
 
                 let num_cycles = num_cycles_required_for_magic_states
@@ -402,6 +430,7 @@ impl<
                 let result = PhysicalResourceEstimationResult::new(
                     self,
                     logical_patch,
+                    error_budget,
                     num_cycles,
                     vec![Some(FactoryPart::new(
                         factory.into_owned(),
@@ -433,12 +462,13 @@ impl<
         num_factories: u64,
         factory: &Builder::Factory,
         logical_patch: &LogicalPatch<E>,
+        error_budget: &ErrorBudget,
     ) -> u64 {
         let magic_states_per_run = num_factories * factory.num_output_states();
 
         let required_runs = self
             .layout_overhead
-            .num_magic_states(&self.error_budget, magic_state_index)
+            .num_magic_states(error_budget, magic_state_index)
             .div_ceil(magic_states_per_run);
 
         let required_duration = required_runs * factory.duration();
@@ -497,16 +527,18 @@ impl<
         num_logical_patches * patch.physical_qubits()
     }
 
+    fn volume(&self, num_cycles: u64) -> u64 {
+        self.layout_overhead.logical_qubits() * num_cycles
+    }
+
     /// Computes required logical error rate for a logical operation one one
     /// qubit
     ///
     /// The logical volume is the number of logical qubits times the number of
     /// cycles.  We obtain the required logical error rate by dividing the error
     /// budget for logical operations by the volume.
-    fn required_logical_error_rate(&self, num_cycles: u64) -> f64 {
-        let volume = self.layout_overhead.logical_qubits() * num_cycles;
-
-        self.error_budget.logical() / volume as f64
+    fn required_logical_error_rate(&self, logical_error_budget: f64, num_cycles: u64) -> f64 {
+        logical_error_budget / self.volume(num_cycles) as f64
     }
 
     /// Computes the code parameter for the required logical error rate
@@ -519,6 +551,7 @@ impl<
     /// Computes the number of possible cycles given a chosen code parameter
     fn logical_cycles_for_code_parameter(
         &self,
+        logical_error_budget: f64,
         code_parameter: &E::Parameter,
     ) -> Result<u64, Error> {
         // Compute the achievable error rate for the code parameter
@@ -527,15 +560,16 @@ impl<
             .logical_error_rate(&self.qubit, code_parameter)
             .map_err(Error::LogicalErrorRateComputationFailed)?;
 
-        Ok((self.error_budget.logical()
-            / (self.layout_overhead.logical_qubits() as f64 * error_rate))
-            .floor() as u64)
+        Ok(
+            (logical_error_budget / (self.layout_overhead.logical_qubits() as f64 * error_rate))
+                .floor() as u64,
+        )
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
-    fn compute_num_cycles(&self) -> Result<u64, Error> {
+    fn compute_num_cycles(&self, error_budget: &ErrorBudget) -> Result<u64, Error> {
         // Start loop with C = C_min
-        let mut num_cycles = self.layout_overhead.logical_depth(&self.error_budget);
+        let mut num_cycles = self.layout_overhead.logical_depth(error_budget);
 
         // Perform logical depth scaling if given by constraint
         if let Some(logical_depth_scaling) = self.logical_depth_factor {
@@ -545,11 +579,8 @@ impl<
 
         // We cannot perform resource estimation when there are neither magic states nor cycles
         if num_cycles == 0
-            && (0..self.factory_builder.num_magic_state_types()).all(|index| {
-                self.layout_overhead
-                    .num_magic_states(&self.error_budget, index)
-                    == 0
-            })
+            && (0..self.factory_builder.num_magic_state_types())
+                .all(|index| self.layout_overhead.num_magic_states(error_budget, index) == 0)
         {
             return Err(Error::AlgorithmHasNoResources);
         }
@@ -565,6 +596,7 @@ impl<
         logical_patch: &LogicalPatch<E>,
         magic_state_index: usize,
         factory: &Builder::Factory,
+        error_budget: &ErrorBudget,
         num_cycles: u64,
     ) -> u64 {
         // first, try with the exact calculation; if that does not work, use
@@ -574,12 +606,12 @@ impl<
             let num_states_per_run =
                 (total_duration / factory.duration()) * factory.num_output_states();
             self.layout_overhead
-                .num_magic_states(&self.error_budget, magic_state_index)
+                .num_magic_states(error_budget, magic_state_index)
                 .div_ceil(num_states_per_run)
         } else {
             let magic_states_per_cycles =
                 self.layout_overhead
-                    .num_magic_states(&self.error_budget, magic_state_index) as f64
+                    .num_magic_states(error_budget, magic_state_index) as f64
                     / (factory.num_output_states() * num_cycles) as f64;
 
             let factory_duration_fraction =

@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
-    FunctorExprKind, Ident, Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
-    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAccess, FieldAssign, FieldDef,
+    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path,
+    PathKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
+    StructDecl, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, TypeParameter,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -81,9 +81,13 @@ pub trait Visitor<'a>: Sized {
         walk_path(self, path);
     }
 
+    fn visit_path_kind(&mut self, path: &'a PathKind) {
+        walk_path_kind(self, path);
+    }
+
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_idents(&mut self, idents: &'a Idents) {
+    fn visit_idents(&mut self, idents: &'a [Ident]) {
         walk_idents(self, idents);
     }
 }
@@ -107,7 +111,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
-            vis.visit_idents(ns);
+            vis.visit_path_kind(ns);
             alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {
@@ -117,7 +121,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
         ItemKind::ImportOrExport(decl) => {
             for item in &decl.items {
-                vis.visit_path(&item.path);
+                vis.visit_path_kind(&item.path);
                 if let Some(ref alias) = item.alias {
                     vis.visit_ident(alias);
                 }
@@ -145,7 +149,17 @@ pub fn walk_ty_def<'a>(vis: &mut impl Visitor<'a>, def: &'a TyDef) {
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
-    decl.generics.iter().for_each(|p| vis.visit_ident(p));
+    decl.generics.iter().for_each(|p| {
+        vis.visit_ident(&p.ty);
+        p.constraints.0.iter().for_each(|b| {
+            vis.visit_ident(&b.name);
+            b.parameters
+                .iter()
+                .for_each(|crate::ast::ConstraintParameter { ty, .. }| {
+                    vis.visit_ty(ty);
+                });
+        });
+    });
     vis.visit_pat(&decl.input);
     vis.visit_ty(&decl.output);
     decl.functors.iter().for_each(|f| vis.visit_functor_expr(f));
@@ -196,8 +210,23 @@ pub fn walk_ty<'a>(vis: &mut impl Visitor<'a>, ty: &'a Ty) {
         }
         TyKind::Hole | TyKind::Err => {}
         TyKind::Paren(ty) => vis.visit_ty(ty),
-        TyKind::Path(path) => vis.visit_path(path),
-        TyKind::Param(name) => vis.visit_ident(name),
+        TyKind::Path(path) => vis.visit_path_kind(path),
+        TyKind::Param(TypeParameter {
+            ty,
+            constraints: bounds,
+            ..
+        }) => {
+            for bound in &bounds.0 {
+                vis.visit_ident(&bound.name);
+
+                bound.parameters.iter().for_each(
+                    |crate::ast::ConstraintParameter { ty, .. }| {
+                        vis.visit_ty(ty);
+                    },
+                );
+            }
+            vis.visit_ident(ty);
+        }
         TyKind::Tuple(tys) => tys.iter().for_each(|t| vis.visit_ty(t)),
     }
 }
@@ -253,7 +282,9 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         ExprKind::Fail(msg) => vis.visit_expr(msg),
         ExprKind::Field(record, name) => {
             vis.visit_expr(record);
-            vis.visit_ident(name);
+            if let FieldAccess::Ok(name) = name {
+                vis.visit_ident(name);
+            }
         }
         ExprKind::For(pat, iter, block) => {
             vis.visit_pat(pat);
@@ -284,7 +315,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         ExprKind::Paren(expr) | ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
             vis.visit_expr(expr);
         }
-        ExprKind::Path(path) => vis.visit_path(path),
+        ExprKind::Path(path) => vis.visit_path_kind(path),
         ExprKind::Range(start, step, end) => {
             start.iter().for_each(|s| vis.visit_expr(s));
             step.iter().for_each(|s| vis.visit_expr(s));
@@ -296,7 +327,7 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
         ExprKind::Struct(name, copy, fields) => {
-            vis.visit_path(name);
+            vis.visit_path_kind(name);
             copy.iter().for_each(|c| vis.visit_expr(c));
             fields.iter().for_each(|f| vis.visit_field_assign(f));
         }
@@ -348,6 +379,16 @@ pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
     vis.visit_ident(&path.name);
 }
 
-pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+pub fn walk_path_kind<'a>(vis: &mut impl Visitor<'a>, path: &'a PathKind) {
+    match path {
+        PathKind::Ok(path) => vis.visit_path(path),
+        PathKind::Err(Some(incomplete_path)) => {
+            vis.visit_idents(&incomplete_path.segments);
+        }
+        PathKind::Err(None) => {}
+    }
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a [Ident]) {
     idents.iter().for_each(|i| vis.visit_ident(i));
 }

@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Defines type system rules for Q#. The checker calls these rules on the AST.
+//! These rules use the inferrer to know what types to apply constraints to.
+
 use super::{
     convert,
     infer::{ArgTy, Class, Inferrer, TySource},
@@ -8,8 +11,9 @@ use super::{
 };
 use crate::resolve::{self, Names, Res};
 use qsc_ast::ast::{
-    self, BinOp, Block, Expr, ExprKind, Functor, Ident, Lit, NodeId, Pat, PatKind, Path, QubitInit,
-    QubitInitKind, Spec, Stmt, StmtKind, StringComponent, TernOp, TyKind, UnOp,
+    self, BinOp, Block, Expr, ExprKind, FieldAccess, Functor, Ident, Idents, Lit, NodeId, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, Spec, Stmt, StmtKind, StringComponent,
+    TernOp, TyKind, TypeParameter, UnOp,
 };
 use qsc_data_structures::span::Span;
 use qsc_hir::{
@@ -35,12 +39,16 @@ impl<T> Partial<T> {
     }
 }
 
+/// Contexts are currently only generated for exprs, stmts, and specs,
+/// They provide a context within which types are solved for.
+#[derive(Debug)]
 struct Context<'a> {
     names: &'a Names,
     globals: &'a FxHashMap<ItemId, Scheme>,
     table: &'a mut Table,
     return_ty: Option<Ty>,
     typed_holes: Vec<(NodeId, Span)>,
+    /// New nodes that will be introduced into the parent `Context` after this context terminates
     new: Vec<NodeId>,
     inferrer: &'a mut Inferrer,
 }
@@ -105,7 +113,7 @@ impl<'a> Context<'a> {
             })),
             TyKind::Hole => self.inferrer.fresh_ty(TySource::not_divergent(ty.span)),
             TyKind::Paren(inner) => self.infer_ty(inner),
-            TyKind::Path(path) => match self.names.get(path.id) {
+            TyKind::Path(PathKind::Ok(path)) => match self.names.get(path.id) {
                 Some(&Res::Item(item, _)) => Ty::Udt(path.name.name.clone(), hir::Res::Item(item)),
                 Some(&Res::PrimTy(prim)) => Ty::Prim(prim),
                 Some(Res::UnitTy) => Ty::Tuple(Vec::new()),
@@ -118,15 +126,31 @@ impl<'a> Context<'a> {
                 // we resolve exports to their original definition.
                 Some(
                     resolve::Res::Local(_)
-                    | resolve::Res::Param(_)
+                    | resolve::Res::Param { .. }
                     | resolve::Res::ExportedItem(_, _),
                 ) => unreachable!(
                     "A path should never resolve \
                     to a local or a parameter, as there is syntactic differentiation."
                 ),
             },
-            TyKind::Param(name) => match self.names.get(name.id) {
-                Some(Res::Param(id)) => Ty::Param(name.name.clone(), *id),
+            TyKind::Param(TypeParameter {
+                ty, constraints: _, ..
+            }) => match self.names.get(ty.id) {
+                Some(Res::Param { id, bounds }) => {
+                    let (bounds, errs) = convert::class_constraints_from_ast(
+                        self.names,
+                        bounds,
+                        &mut Default::default(),
+                    );
+                    for err in errs {
+                        self.inferrer.report_error(err);
+                    }
+                    Ty::Param {
+                        name: ty.name.clone(),
+                        id: *id,
+                        bounds,
+                    }
+                }
                 None => Ty::Err,
                 Some(_) => unreachable!(
                     "A parameter should never resolve to a non-parameter type, as there \
@@ -136,7 +160,7 @@ impl<'a> Context<'a> {
             TyKind::Tuple(items) => {
                 Ty::Tuple(items.iter().map(|item| self.infer_ty(item)).collect())
             }
-            TyKind::Err => Ty::Err,
+            TyKind::Err | TyKind::Path(PathKind::Err { .. }) => Ty::Err,
         }
     }
 
@@ -268,16 +292,20 @@ impl<'a> Context<'a> {
             }
             ExprKind::Field(record, name) => {
                 let record = self.infer_expr(record);
-                let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
-                self.inferrer.class(
-                    expr.span,
-                    Class::HasField {
-                        record: record.ty,
-                        name: name.name.to_string(),
-                        item: item_ty.clone(),
-                    },
-                );
-                self.diverge_if(record.diverges, converge(item_ty))
+                if let FieldAccess::Ok(name) = name {
+                    let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
+                    self.inferrer.class(
+                        expr.span,
+                        Class::HasField {
+                            record: record.ty,
+                            name: name.name.to_string(),
+                            item: item_ty.clone(),
+                        },
+                    );
+                    self.diverge_if(record.diverges, converge(item_ty))
+                } else {
+                    converge(Ty::Err)
+                }
             }
             ExprKind::For(item, container, body) => {
                 let item_ty = self.infer_pat(item);
@@ -394,7 +422,7 @@ impl<'a> Context<'a> {
                 Lit::String(_) => converge(Ty::Prim(Prim::String)),
             },
             ExprKind::Paren(expr) => self.infer_expr(expr),
-            ExprKind::Path(path) => self.infer_path(expr, path),
+            ExprKind::Path(path) => self.infer_path_kind(expr, path),
             ExprKind::Range(start, step, end) => {
                 let mut diverges = false;
                 for expr in start.iter().chain(step).chain(end) {
@@ -444,7 +472,7 @@ impl<'a> Context<'a> {
                 }
                 self.diverge()
             }
-            ExprKind::Struct(name, copy, fields) => {
+            ExprKind::Struct(PathKind::Ok(name), copy, fields) => {
                 let container = convert::ty_from_path(self.names, name);
 
                 self.inferrer
@@ -532,7 +560,7 @@ impl<'a> Context<'a> {
                 self.typed_holes.push((expr.id, expr.span));
                 converge(self.inferrer.fresh_ty(TySource::not_divergent(expr.span)))
             }
-            ExprKind::Err => converge(Ty::Err),
+            ExprKind::Err | ast::ExprKind::Struct(ast::PathKind::Err(_), ..) => converge(Ty::Err),
         };
 
         self.record(expr.id, ty.ty.clone());
@@ -542,7 +570,7 @@ impl<'a> Context<'a> {
     fn infer_path_parts(
         &mut self,
         init_record: Partial<Ty>,
-        rest: &[Ident],
+        rest: &[&Ident],
         lo: u32,
     ) -> Partial<Ty> {
         let mut record = init_record;
@@ -568,24 +596,23 @@ impl<'a> Context<'a> {
         record
     }
 
-    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
-        match resolve::path_as_field_accessor(self.names, path) {
-            // If the path is a field accessor, we infer the type of first segment
-            // as an expr, and the rest as subsequent fields.
-            Some((first_id, parts)) => {
-                let record = converge(
-                    self.table
-                        .terms
-                        .get(first_id)
-                        .expect("local should have type")
-                        .clone(),
-                );
-                let (first, rest) = parts
-                    .split_first()
-                    .expect("path should have at least one part");
-                self.record(first.id, record.ty.clone());
-                self.infer_path_parts(record, rest, expr.span.lo)
+    fn infer_path_kind(&mut self, expr: &Expr, path: &PathKind) -> Partial<Ty> {
+        match path {
+            PathKind::Ok(path) => self.infer_path(expr, path),
+            PathKind::Err(incomplete_path) => {
+                if let Some(incomplete_path) = incomplete_path {
+                    // If this is a field access, infer the fields,
+                    // but leave the whole expression as `Err`.
+                    let _ = self.infer_path_as_field_access(&incomplete_path.segments, expr);
+                }
+                converge(Ty::Err)
             }
+        }
+    }
+
+    fn infer_path(&mut self, expr: &Expr, path: &Path) -> Partial<Ty> {
+        match self.infer_path_as_field_access(path, expr) {
+            Some(record) => record,
             // Otherwise we infer the path as a namespace path.
             None => match self.names.get(path.id) {
                 None => converge(Ty::Err),
@@ -611,10 +638,35 @@ impl<'a> Context<'a> {
                     self.table.generics.insert(expr.id, args);
                     converge(Ty::Arrow(Box::new(ty)))
                 }
-                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param(_)) => {
+                Some(Res::PrimTy(_) | Res::UnitTy | Res::Param { .. }) => {
                     panic!("expression should not resolve to type reference")
                 }
             },
+        }
+    }
+
+    fn infer_path_as_field_access(
+        &mut self,
+        path: &impl Idents,
+        expr: &Expr,
+    ) -> Option<Partial<Ty>> {
+        // If the path is a field accessor, we infer the type of first segment
+        // as an expr, and the rest as subsequent fields.
+        if let Some((first_id, parts)) = resolve::path_as_field_accessor(self.names, path) {
+            let record = converge(
+                self.table
+                    .terms
+                    .get(first_id)
+                    .expect("local should have type")
+                    .clone(),
+            );
+            let (first, rest) = parts
+                .split_first()
+                .expect("path should have at least one part");
+            self.record(first.id, record.ty.clone());
+            Some(self.infer_path_parts(record, rest, expr.span.lo))
+        } else {
+            None
         }
     }
 
@@ -673,7 +725,7 @@ impl<'a> Context<'a> {
                 converge(with_ctls)
             }
             UnOp::Neg | UnOp::Pos => {
-                self.inferrer.class(span, Class::Num(operand.ty.clone()));
+                self.inferrer.class(span, Class::Signed(operand.ty.clone()));
                 operand
             }
             UnOp::NotB => {
@@ -728,7 +780,7 @@ impl<'a> Context<'a> {
             }
             BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty));
+                self.inferrer.class(lhs_span, Class::Ord(lhs.ty));
                 converge(Ty::Prim(Prim::Bool))
             }
             BinOp::AndB | BinOp::OrB | BinOp::XorB => {
@@ -737,9 +789,24 @@ impl<'a> Context<'a> {
                     .class(lhs_span, Class::Integral(lhs.ty.clone()));
                 lhs
             }
-            BinOp::Div | BinOp::Mod | BinOp::Mul | BinOp::Sub => {
+            BinOp::Div => {
                 self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
-                self.inferrer.class(lhs_span, Class::Num(lhs.ty.clone()));
+                self.inferrer.class(lhs_span, Class::Div(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mul => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mul(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Sub => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Sub(lhs.ty.clone()));
+                lhs
+            }
+            BinOp::Mod => {
+                self.inferrer.eq(rhs_span, lhs.ty.clone(), rhs.ty);
+                self.inferrer.class(lhs_span, Class::Mod(lhs.ty.clone()));
                 lhs
             }
             BinOp::Exp => {

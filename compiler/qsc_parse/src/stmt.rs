@@ -13,12 +13,14 @@ use super::{
     Error, Result,
 };
 use crate::{
+    completion::WordKinds,
     lex::{Delim, TokenKind},
-    prim::{barrier, recovering, recovering_semi, recovering_token},
+    prim::{barrier, recovering, recovering_parse_or_else, recovering_semi, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
+    Block, Expr, ExprKind, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt,
+    StmtKind,
 };
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
@@ -90,8 +92,34 @@ fn parse_local(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     };
 
     let lhs = pat(s)?;
-    token(s, TokenKind::Eq)?;
-    let rhs = expr(s)?;
+    let rhs = match token(s, TokenKind::Eq) {
+        Ok(()) =>
+        // `Expr` parser with aggressive error recovery.
+        // If failed at first token, bail immediately and return default.
+        // If failed and the parser has advanced, recover by scanning until we find a `;` or `}`,
+        // without consuming it.
+        {
+            barrier(s, &[TokenKind::Semi, TokenKind::Close(Delim::Brace)], |s| {
+                Ok(recovering_parse_or_else(
+                    s,
+                    |span| {
+                        Box::new(Expr {
+                            id: NodeId::default(),
+                            span,
+                            kind: Box::new(ExprKind::Err),
+                        })
+                    },
+                    &[],
+                    expr,
+                ))
+            })?
+        }
+        Err(e) => {
+            s.push_error(e);
+            Box::default()
+        }
+    };
+
     recovering_semi(s);
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
@@ -127,6 +155,7 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
 
 fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
+    s.expect(WordKinds::Qubit);
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
             return Err(Error::new(ErrorKind::Convert(

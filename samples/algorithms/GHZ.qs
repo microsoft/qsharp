@@ -15,32 +15,29 @@
 ///
 /// This Q# program prepares the GHZ state in a register of 3 qubits, then
 /// returns the result of measuring those qubits.
-namespace Sample {
-    import Std.Diagnostics.*;
+import Std.Diagnostics.*;
 
-    @EntryPoint()
-    operation Main() : Result[] {
-        use qs = Qubit[3];
+operation Main() : Result[] {
+    use qs = Qubit[3];
 
-        // Prepare a GHZ state using the allocated register.
-        PrepareGHZState(qs);
+    // Prepare a GHZ state using the allocated register.
+    PrepareGHZState(qs);
 
-        // Show the GHZ state.
-        DumpMachine();
+    // Show the GHZ state.
+    DumpMachine();
 
-        // Measure and reset qubits before releasing them.
-        MResetEachZ(qs)
-    }
+    // Measure and reset qubits before releasing them.
+    MResetEachZ(qs)
+}
 
-    /// # Summary
-    /// Prepares state (|000〉 + |111〉) / √2 (GHZ state) across a register
-    /// of three qubits `qs`.
-    /// All qubits are assumed to be in |0〉 state on input.
-    operation PrepareGHZState(qs : Qubit[]) : Unit {
-        Fact(Length(qs) == 3, "`qs` length shuold be 3.");
+/// # Summary
+/// Prepares state (|000〉 + |111〉) / √2 (GHZ state) across a register
+/// of three qubits `qs`.
+/// All qubits are assumed to be in |0〉 state on input.
+operation PrepareGHZState(qs : Qubit[]) : Unit {
+    Fact(Length(qs) == 3, "`qs` length shuold be 3.");
 
-        H(qs[0]);
-        CNOT(qs[0], qs[1]);
-        CNOT(qs[0], qs[2]);
-    }
+    H(qs[0]);
+    CNOT(qs[0], qs[1]);
+    CNOT(qs[0], qs[2]);
 }

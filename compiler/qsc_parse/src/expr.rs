@@ -8,20 +8,24 @@
 mod tests;
 
 use crate::{
+    completion::WordKinds,
     keyword::Keyword,
     lex::{
         ClosedBinOp, Delim, InterpolatedEnding, InterpolatedStart, Radix, StringToken, Token,
         TokenKind,
     },
-    prim::{ident, opt, pat, path, recovering_token, seq, shorten, single_ident_path, token},
+    prim::{
+        ident, opt, parse_or_else, pat, recovering_parse_or_else, recovering_path, seq, shorten,
+        token,
+    },
     scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
 use num_bigint::BigInt;
 use num_traits::Num;
 use qsc_ast::ast::{
-    self, BinOp, CallableKind, Expr, ExprKind, FieldAssign, Functor, Lit, NodeId, Pat, PatKind,
-    Path, Pauli, StringComponent, TernOp, UnOp,
+    self, BinOp, CallableKind, Expr, ExprKind, FieldAccess, FieldAssign, Functor, Lit, NodeId, Pat,
+    PatKind, PathKind, Pauli, StringComponent, TernOp, UnOp,
 };
 use qsc_data_structures::span::Span;
 use std::{result, str::FromStr};
@@ -98,6 +102,8 @@ pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
 
 fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
+
+    s.expect(WordKinds::AdjointUpper | WordKinds::ControlledUpper | WordKinds::Not);
     let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
@@ -116,6 +122,7 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
         OpContext::Stmt => 0,
     };
 
+    s.expect(WordKinds::And | WordKinds::Or);
     while let Some(op) = mixfix_op(op_name(s)) {
         if op.precedence < min_precedence {
             break;
@@ -214,14 +221,14 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         let inner = stmt::parse_block(s)?;
         Ok(Box::new(ExprKind::Conjugate(outer, inner)))
     } else if token(s, TokenKind::Keyword(Keyword::New)).is_ok() {
-        parse_struct(s)
+        recovering_struct(s)
     } else if let Some(a) = opt(s, expr_array)? {
         Ok(a)
     } else if let Some(b) = opt(s, stmt::parse_block)? {
         Ok(Box::new(ExprKind::Block(b)))
     } else if let Some(l) = lit(s)? {
         Ok(Box::new(ExprKind::Lit(Box::new(l))))
-    } else if let Some(p) = opt(s, single_ident_path)? {
+    } else if let Some(p) = opt(s, |s| recovering_path(s, WordKinds::PathExpr))? {
         Ok(Box::new(ExprKind::Path(p)))
     } else {
         Err(Error::new(ErrorKind::Rule(
@@ -238,8 +245,27 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     }))
 }
 
-fn parse_struct(s: &mut ParserContext) -> Result<Box<ExprKind>> {
-    let name = path(s)?;
+/// A struct expression excluding the `new` keyword,
+/// e.g. `A { a = b, c = d }`
+fn recovering_struct(s: &mut ParserContext) -> Result<Box<ExprKind>> {
+    let name = recovering_path(s, WordKinds::PathStruct)?;
+
+    let (copy, fields) = recovering_parse_or_else(
+        s,
+        |_| (None, Box::new([])),
+        &[TokenKind::Close(Delim::Brace)],
+        struct_fields,
+    );
+
+    Ok(Box::new(ExprKind::Struct(name, copy, fields)))
+}
+
+/// A sequence of field assignments and an optional base expression,
+/// e.g. `{ ...a, b = c, d = e }`
+#[allow(clippy::type_complexity)]
+fn struct_fields(
+    s: &mut ParserContext<'_>,
+) -> Result<(Option<Box<Expr>>, Box<[Box<FieldAssign>]>)> {
     token(s, TokenKind::Open(Delim::Brace))?;
     let copy: Option<Box<Expr>> = opt(s, |s| {
         token(s, TokenKind::DotDotDot)?;
@@ -249,17 +275,13 @@ fn parse_struct(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     if copy.is_none() || copy.is_some() && token(s, TokenKind::Comma).is_ok() {
         (fields, _) = seq(s, parse_field_assign)?;
     }
-    recovering_token(s, TokenKind::Close(Delim::Brace));
-
-    Ok(Box::new(ExprKind::Struct(
-        name,
-        copy,
-        fields.into_boxed_slice(),
-    )))
+    token(s, TokenKind::Close(Delim::Brace))?;
+    Ok((copy, fields.into_boxed_slice()))
 }
 
 fn parse_field_assign(s: &mut ParserContext) -> Result<Box<FieldAssign>> {
     let lo = s.peek().span.lo;
+    s.expect(WordKinds::Field);
     let field = ident(s)?;
     token(s, TokenKind::Eq)?;
     let value = expr(s)?;
@@ -333,6 +355,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
         return Ok(Box::new(ExprKind::Array(vec![first].into_boxed_slice())));
     }
 
+    s.expect(WordKinds::Size);
     let second = expr(s)?;
     if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
         let size = expr(s)?;
@@ -347,7 +370,7 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 }
 
 fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(path) if path.segments.is_none() && path.name.name.as_ref() == name)
+    matches!(kind, ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() && path.name.name.as_ref() == name)
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -412,6 +435,18 @@ fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
 
 fn lit(s: &mut ParserContext) -> Result<Option<Lit>> {
     let lexeme = s.read();
+
+    s.expect(
+        WordKinds::True
+            | WordKinds::False
+            | WordKinds::Zero
+            | WordKinds::One
+            | WordKinds::PauliX
+            | WordKinds::PauliY
+            | WordKinds::PauliZ
+            | WordKinds::PauliI,
+    );
+
     let token = s.peek();
     match lit_token(lexeme, token) {
         Ok(Some(lit)) => {
@@ -645,12 +680,8 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Postfix(UnOp::Unwrap),
             precedence: 15,
         }),
-        OpName::Token(TokenKind::ColonColon) => Some(MixfixOp {
-            kind: OpKind::Rich(field_op),
-            precedence: 15,
-        }),
-        OpName::Token(TokenKind::Dot) => Some(MixfixOp {
-            kind: OpKind::Rich(path_field_op),
+        OpName::Token(TokenKind::ColonColon | TokenKind::Dot) => Some(MixfixOp {
+            kind: OpKind::Rich(recovering_field_op),
             precedence: 15,
         }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
@@ -685,35 +716,11 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
     Ok(Box::new(ExprKind::Lambda(kind, input, output)))
 }
 
-fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-    Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
-}
-
-fn path_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
-    if let ExprKind::Path(leading_path) = *lhs.kind {
-        let rest = path(s)?;
-        let name = rest.name;
-        let span = Span {
-            lo: lhs.span.lo,
-            hi: rest.span.hi,
-        };
-        let parts = {
-            let mut v = vec![*leading_path.name];
-            if let Some(parts) = rest.segments {
-                v.append(&mut parts.into());
-            }
-            v.into()
-        };
-        let path = Path {
-            id: NodeId::default(),
-            span,
-            segments: Some(parts),
-            name,
-        };
-        Ok(Box::new(ExprKind::Path(Box::new(path))))
-    } else {
-        Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
-    }
+#[allow(clippy::unnecessary_wraps)]
+fn recovering_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+    s.expect(WordKinds::Field);
+    let field_access = parse_or_else(s, |_| FieldAccess::Err, |s| Ok(FieldAccess::Ok(ident(s)?)))?;
+    Ok(Box::new(ExprKind::Field(lhs, field_access)))
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
@@ -762,7 +769,9 @@ fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
 
 fn expr_as_pat(expr: Expr) -> Result<Box<Pat>> {
     let kind = Box::new(match *expr.kind {
-        ExprKind::Path(path) if path.segments.is_none() => Ok(PatKind::Bind(path.name, None)),
+        ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() => {
+            Ok(PatKind::Bind(path.name, None))
+        }
         ExprKind::Hole => Ok(PatKind::Discard(None)),
         ExprKind::Range(None, None, None) => Ok(PatKind::Elided),
         ExprKind::Paren(expr) => Ok(PatKind::Paren(expr_as_pat(*expr)?)),

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::{expect, Expect};
 
 /// Each file in the samples/language folder is compiled and run as two tests and should
@@ -216,11 +214,11 @@ pub const LOGICALOPERATORS_EXPECT: Expect = expect!["()"];
 pub const LOGICALOPERATORS_EXPECT_DEBUG: Expect = expect!["()"];
 pub const NAMESPACES_EXPECT: Expect = expect![[r#"
     STATE:
-    |0⟩: 1.0000+0.0000𝑖
+    No qubits allocated
     []"#]];
 pub const NAMESPACES_EXPECT_DEBUG: Expect = expect![[r#"
     STATE:
-    |0⟩: 1.0000+0.0000𝑖
+    No qubits allocated
     []"#]];
 pub const OPERATIONS_EXPECT: Expect = expect![[r#"
     Measurement result: Zero
@@ -346,3 +344,19 @@ pub const WHILELOOPS_EXPECT: Expect = expect!["()"];
 pub const WHILELOOPS_EXPECT_DEBUG: Expect = expect!["()"];
 pub const WITHINAPPLY_EXPECT: Expect = expect!["()"];
 pub const WITHINAPPLY_EXPECT_DEBUG: Expect = expect!["()"];
+pub const CLASSCONSTRAINTS_EXPECT: Expect = expect![[r#"
+    true
+    false
+    false
+    false
+    false
+    true
+    ()"#]];
+pub const CLASSCONSTRAINTS_EXPECT_DEBUG: Expect = expect![[r#"
+    true
+    false
+    false
+    false
+    false
+    true
+    ()"#]];

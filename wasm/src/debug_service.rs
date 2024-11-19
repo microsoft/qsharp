@@ -38,14 +38,18 @@ impl DebugService {
 
     pub fn capture_quantum_state(&mut self) -> IQuantumStateList {
         let state = self.debugger_mut().capture_quantum_state();
-        let entries = state
-            .0
-            .iter()
-            .map(|(id, value)| QuantumState {
-                name: qsc::format_state_id(id, state.1),
-                value: fmt_complex(value),
-            })
-            .collect::<Vec<_>>();
+        let entries = if state.1 > 0 {
+            state
+                .0
+                .iter()
+                .map(|(id, value)| QuantumState {
+                    name: qsc::format_state_id(id, state.1),
+                    value: fmt_complex(value),
+                })
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
 
         QuantumStateList { entries }.into()
     }

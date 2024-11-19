@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::ast::{FieldAccess, Idents, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
@@ -167,7 +168,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if namespace.span.contains(self.offset) {
-            self.context.current_namespace = namespace.name.name();
+            self.context.current_namespace = namespace.name.full_name();
             walk_namespace(self, namespace);
         }
     }
@@ -189,10 +190,10 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
                         // walk callable decl
                         decl.generics.iter().for_each(|p| {
                             if p.span.touches(self.offset) {
-                                if let Some(resolve::Res::Param(param_id)) =
-                                    self.compilation.get_res(p.id)
+                                if let Some(resolve::Res::Param { id, .. }) =
+                                    self.compilation.get_res(p.ty.id)
                                 {
-                                    self.inner.at_type_param_def(&self.context, p, *param_id);
+                                    self.inner.at_type_param_def(&self.context, &p.ty, *id);
                                 }
                             }
                         });
@@ -307,11 +308,16 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_ty(&mut self, ty: &'package ast::Ty) {
         if ty.span.touches(self.offset) {
             if let ast::TyKind::Param(param) = &*ty.kind {
-                if let Some(resolve::Res::Param(param_id)) = self.compilation.get_res(param.id) {
+                if let Some(resolve::Res::Param { id, .. }) = self.compilation.get_res(param.ty.id)
+                {
                     if let Some(curr) = self.context.current_callable {
-                        if let Some(def_name) = curr.generics.get(usize::from(*param_id)) {
-                            self.inner
-                                .at_type_param_ref(&self.context, param, *param_id, def_name);
+                        if let Some(def_name) = curr.generics.get(usize::from(*id)) {
+                            self.inner.at_type_param_ref(
+                                &self.context,
+                                &param.ty,
+                                *id,
+                                &def_name.ty,
+                            );
                         }
                     }
                 }
@@ -341,14 +347,16 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_expr(&mut self, expr: &'package ast::Expr) {
         if expr.span.touches(self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field_ref) if field_ref.span.touches(self.offset) => {
+                ast::ExprKind::Field(udt, FieldAccess::Ok(field_ref))
+                    if field_ref.span.touches(self.offset) =>
+                {
                     if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
                         if let Some((item_id, field_def)) = self.get_field_def(res, field_ref) {
                             self.inner.at_field_ref(field_ref, &item_id, field_def);
                         }
                     }
                 }
-                ast::ExprKind::Struct(ty_name, copy, fields) => {
+                ast::ExprKind::Struct(PathKind::Ok(ty_name), copy, fields) => {
                     if ty_name.span.touches(self.offset) {
                         self.visit_path(ty_name);
                         return;

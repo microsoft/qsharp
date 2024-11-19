@@ -502,8 +502,9 @@ impl Backend for LogicalCounter {
         }
     }
 
-    fn qubit_release(&mut self, q: usize) {
+    fn qubit_release(&mut self, q: usize) -> bool {
         self.free_list.push(q);
+        true
     }
 
     fn qubit_swap_id(&mut self, _q0: usize, _q1: usize) {
@@ -521,7 +522,6 @@ impl Backend for LogicalCounter {
 
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
-            "GlobalPhase" => Some(Ok(Value::unit())),
             "BeginEstimateCaching" => {
                 let values = arg.unwrap_tuple();
                 let [cache_name, cache_variant] = array::from_fn(|i| values[i].clone());
@@ -557,13 +557,14 @@ impl Backend for LogicalCounter {
                 let qubits = qubits
                     .unwrap_array()
                     .iter()
-                    .map(|v| v.clone().unwrap_qubit().0)
+                    .map(|v| v.clone().unwrap_qubit().deref().0)
                     .collect::<Vec<_>>();
                 Some(
                     self.add_estimate(&estimates, layout, &qubits)
                         .map(|()| Value::unit()),
                 )
             }
+            "GlobalPhase" | "ConfigurePauliNoise" | "ApplyIdleNoise" => Some(Ok(Value::unit())),
             _ => None,
         }
     }

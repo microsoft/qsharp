@@ -13,9 +13,9 @@
 //
 // For example, `[0, size = 10]` creates an array of zeroes containing ten items.
 // The length of an array can be queried with the function `Length`. It is defined
-// in the automatically opened namespace `Microsoft.Quantum.Core` and returns an `Int` value.
+// in the automatically opened namespace `Std.Core` and returns an `Int` value.
 // Suitable initialization routines for arrays of `Qubit`s can be found in the
-// `Microsoft.Quantum.Arrays` namespace.
+// `Std.Arrays` namespace.
 
 function Main() : Int[] {
 

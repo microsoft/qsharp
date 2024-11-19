@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::compile::{self, compile, PackageStore, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -2211,6 +2209,56 @@ fn invalid_spec_pat() {
 }
 
 #[test]
+fn test_measurement_attr_on_function_issues_error() {
+    check_errors(
+        indoc! {r#"
+            namespace Test {
+                @Measurement()
+                function Foo(q: Qubit) : Result {
+                    body intrinsic;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrOnFunction(
+                    "Measurement",
+                    Span {
+                        lo: 49,
+                        hi: 52,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_reset_attr_on_function_issues_error() {
+    check_errors(
+        indoc! {r#"
+            namespace Test {
+                @Reset()
+                function Foo(q: Qubit) : Unit {
+                    body intrinsic;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrOnFunction(
+                    "Reset",
+                    Span {
+                        lo: 43,
+                        hi: 46,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn item_docs() {
     check_hir(
         "/// This is a namespace.
@@ -2281,7 +2329,7 @@ fn nested_params() {
                     Callable 0 [17-55] (function):
                         name: Ident 1 [26-29] "Foo"
                         generics:
-                            0: type [30-32] "'T"
+                            0: type 'T
                             1: functor (empty set)
                         input: Pat 2 [34-45] [Type (Param<"'T": 0> => Unit is Param<1>)]: Bind: Ident 3 [34-35] "f"
                         output: Unit
@@ -2372,8 +2420,8 @@ fn duplicate_commas_in_generics() {
                     Callable 0 [21-57] (function):
                         name: Ident 1 [30-33] "Foo"
                         generics:
-                            0: type [34-36] "'T"
-                            1: type [37-37] ""
+                            0: type 'T
+                            1: type 
                         input: Pat 2 [40-46] [Type Param<"'T": 0>]: Bind: Ident 3 [40-41] "x"
                         output: Unit
                         functors: empty set

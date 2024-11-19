@@ -7,19 +7,24 @@ mod tests;
 use crate::{
     closure::{self, Lambda, PartialApp},
     resolve::{self, Names},
-    typeck::{self, convert},
+    typeck::{
+        self,
+        convert::{self, synthesize_functor_params},
+    },
 };
 use miette::Diagnostic;
-use qsc_ast::ast::{self, Ident};
+use qsc_ast::ast::{self, FieldAccess, Ident, Idents, PathKind};
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId, Visibility},
     mut_visit::MutVisitor,
-    ty::{Arrow, FunctorSetValue, GenericArg, Ty},
+    ty::{Arrow, FunctorSetValue, GenericArg, ParamId, Ty, TypeParameter},
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
+
+use self::convert::TyConversionError;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
@@ -30,6 +35,10 @@ pub(super) enum Error {
     #[error("invalid attribute arguments: expected {0}")]
     #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
     InvalidAttrArgs(String, #[label] Span),
+    #[error("invalid use of the {0} attribute on a function")]
+    #[diagnostic(help("try declaring the callable as an operation"))]
+    #[diagnostic(code("Qsc.LowerAst.InvalidAttrOnFunction"))]
+    InvalidAttrOnFunction(String, #[label] Span),
     #[error("missing callable body")]
     #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
@@ -42,6 +51,61 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
+    #[error("missing type in item signature")]
+    #[diagnostic(help("a type must be provided for this item"))]
+    #[diagnostic(code("Qsc.LowerAst.MissingTy"))]
+    MissingTy {
+        #[label]
+        span: Span,
+    },
+    #[error("unrecognized class constraint {name}")]
+    #[help(
+        "supported classes are Eq, Add, Sub, Mul, Div, Mod, Signed, Ord, Exp, Integral, and Show"
+    )]
+    #[diagnostic(code("Qsc.LowerAst.UnrecognizedClass"))]
+    UnrecognizedClass {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("class constraint is recursive via {name}")]
+    #[help("if a type refers to itself via its constraints, it is self-referential and cannot ever be resolved")]
+    #[diagnostic(code("Qsc.LowerAst.RecursiveClassConstraint"))]
+    RecursiveClassConstraint {
+        #[label]
+        span: Span,
+        name: String,
+    },
+    #[error("expected {expected} parameters for constraint, found {found}")]
+    #[diagnostic(code("Qsc.TypeCk.IncorrectNumberOfConstraintParameters"))]
+    IncorrectNumberOfConstraintParameters {
+        expected: usize,
+        found: usize,
+        #[label]
+        span: Span,
+    },
+}
+
+impl From<TyConversionError> for Error {
+    fn from(err: TyConversionError) -> Self {
+        use TyConversionError::*;
+        match err {
+            MissingTy { span } => Error::MissingTy { span },
+            UnrecognizedClass { span, name } => Error::UnrecognizedClass { span, name },
+            RecursiveClassConstraint { span, name } => {
+                Error::RecursiveClassConstraint { span, name }
+            }
+            IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            } => Error::IncorrectNumberOfConstraintParameters {
+                expected,
+                found,
+                span,
+            },
+        }
+    }
 }
 
 pub(super) struct Lowerer {
@@ -135,9 +199,10 @@ impl With<'_> {
         let exports: Vec<(_, Option<ast::Ident>)> = namespace
             .exports()
             .filter_map(|item| {
-                self.names
-                    .get(item.path.id)
-                    .map(|x| (x, item.alias.clone()))
+                let PathKind::Ok(path) = &item.path else {
+                    return None;
+                };
+                self.names.get(path.id).map(|x| (x, item.alias.clone()))
             })
             .collect::<Vec<_>>();
 
@@ -173,6 +238,7 @@ impl With<'_> {
         self.lowerer.parent = None;
     }
 
+    #[allow(clippy::too_many_lines)]
     fn lower_item(
         &mut self,
         item: &ast::Item,
@@ -193,70 +259,77 @@ impl With<'_> {
             _otherwise => None,
         };
 
-        let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+        let (id, kind) =
+            match &*item.kind {
+                ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
 
-            ast::ItemKind::ImportOrExport(item) => {
-                if item.is_import() {
+                ast::ItemKind::ImportOrExport(item) => {
+                    if item.is_import() {
+                        return None;
+                    }
+                    for item in &item.items {
+                        let Some(item_name) = item.name() else {
+                            continue;
+                        };
+                        let Some((id, alias)) = resolve_id(item_name.id) else {
+                            continue;
+                        };
+                        let is_reexport = id.package.is_some() || alias.is_some();
+                        // if the package is Some, then this is a re-export and we
+                        // need to preserve the reference to the original `ItemId`
+                        if is_reexport {
+                            let mut name = self.lower_ident(item_name);
+                            name.id = self.assigner.next_node();
+                            let kind = hir::ItemKind::Export(name, id);
+                            self.lowerer.items.push(hir::Item {
+                                id: self.assigner.next_item(),
+                                span: item.span,
+                                parent: self.lowerer.parent,
+                                doc: "".into(),
+                                // attrs on exports not supported
+                                attrs: Vec::new(),
+                                visibility: Visibility::Public,
+                                kind,
+                            });
+                        }
+                    }
                     return None;
                 }
-                for item in &item.items {
-                    let Some((id, alias)) = resolve_id(item.name().id) else {
-                        continue;
-                    };
-                    let is_reexport = id.package.is_some() || alias.is_some();
-                    // if the package is Some, then this is a re-export and we
-                    // need to preserve the reference to the original `ItemId`
-                    if is_reexport {
-                        let mut name = self.lower_ident(item.name());
-                        name.id = self.assigner.next_node();
-                        let kind = hir::ItemKind::Export(name, id);
-                        self.lowerer.items.push(hir::Item {
-                            id: self.assigner.next_item(),
-                            span: item.span(),
-                            parent: self.lowerer.parent,
-                            doc: "".into(),
-                            // attrs on exports not supported
-                            attrs: Vec::new(),
-                            visibility: Visibility::Public,
-                            kind,
-                        });
-                    }
+                ast::ItemKind::Callable(callable) => {
+                    let (id, _) = resolve_id(callable.name.id)?;
+                    let grandparent = self.lowerer.parent;
+                    self.lowerer.parent = Some(id.item);
+                    let (callable, errs) = self.lower_callable_decl(callable, &attrs);
+                    self.lowerer.errors.extend(errs.into_iter().map(|err| {
+                        Into::<Error>::into(Into::<convert::TyConversionError>::into(err))
+                    }));
+                    self.lowerer.parent = grandparent;
+                    (id, hir::ItemKind::Callable(callable))
                 }
-                return None;
-            }
-            ast::ItemKind::Callable(callable) => {
-                let (id, _) = resolve_id(callable.name.id)?;
-                let grandparent = self.lowerer.parent;
-                self.lowerer.parent = Some(id.item);
-                let callable = self.lower_callable_decl(callable);
-                self.lowerer.parent = grandparent;
-                (id, hir::ItemKind::Callable(callable))
-            }
-            ast::ItemKind::Ty(name, _) => {
-                let (id, _) = resolve_id(name.id)?;
-                let udt = self
-                    .tys
-                    .udts
-                    .get(&id)
-                    .expect("type item should have lowered UDT");
+                ast::ItemKind::Ty(name, _) => {
+                    let (id, _) = resolve_id(name.id)?;
+                    let udt = self
+                        .tys
+                        .udts
+                        .get(&id)
+                        .expect("type item should have lowered UDT");
 
-                (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
-            }
-            ast::ItemKind::Struct(decl) => {
-                let (id, _) = resolve_id(decl.name.id)?;
-                let strct = self
-                    .tys
-                    .udts
-                    .get(&id)
-                    .expect("type item should have lowered struct");
+                    (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
+                }
+                ast::ItemKind::Struct(decl) => {
+                    let (id, _) = resolve_id(decl.name.id)?;
+                    let strct = self
+                        .tys
+                        .udts
+                        .get(&id)
+                        .expect("type item should have lowered struct");
 
-                (
-                    id,
-                    hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
-                )
-            }
-        };
+                    (
+                        id,
+                        hir::ItemKind::Ty(self.lower_ident(&decl.name), strct.clone()),
+                    )
+                }
+            };
 
         let export_info = exported_ids.iter().find(|(hir_id, _)| hir_id == &id);
         let visibility = match export_info {
@@ -319,13 +392,13 @@ impl With<'_> {
                 match &*attr.arg.kind {
                     // @Config(Capability)
                     ast::ExprKind::Paren(inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()) => {}
 
                     // @Config(not Capability)
                     ast::ExprKind::Paren(inner)
                         if matches!(inner.kind.as_ref(), ast::ExprKind::UnOp(ast::UnOp::NotL, inner)
-                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
+                        if matches!(inner.kind.as_ref(), ast::ExprKind::Path(PathKind::Ok(path))
                     if TargetCapabilityFlags::from_str(path.as_ref().name.name.as_ref()).is_ok())) =>
                         {}
 
@@ -350,6 +423,24 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Measurement) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::Measurement),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
+            Ok(hir::Attr::Reset) => match &*attr.arg.kind {
+                ast::ExprKind::Tuple(args) if args.is_empty() => Some(hir::Attr::Reset),
+                _ => {
+                    self.lowerer
+                        .errors
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    None
+                }
+            },
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),
@@ -360,13 +451,55 @@ impl With<'_> {
         }
     }
 
-    pub(super) fn lower_callable_decl(&mut self, decl: &ast::CallableDecl) -> hir::CallableDecl {
+    /// Generates generic parameters for the functors, if there were generics on the original callable.
+    /// Basically just creates new generic params for the purpose of being used in functor callable
+    /// decls.
+    pub(crate) fn synthesize_callable_generics(
+        &mut self,
+        generics: &[ast::TypeParameter],
+        input: &mut hir::Pat,
+    ) -> (Vec<qsc_hir::ty::TypeParameter>, Vec<TyConversionError>) {
+        let (mut params, errs) = convert::type_parameters_for_ast_callable(self.names, generics);
+        let mut functor_params =
+            Self::synthesize_functor_params_in_pat(&mut params.len().into(), input);
+        params.append(&mut functor_params);
+        (params, errs)
+    }
+
+    fn synthesize_functor_params_in_pat(
+        next_param: &mut ParamId,
+        pat: &mut hir::Pat,
+    ) -> Vec<TypeParameter> {
+        match &mut pat.kind {
+            hir::PatKind::Discard | hir::PatKind::Err | hir::PatKind::Bind(_) => {
+                synthesize_functor_params(next_param, &mut pat.ty)
+            }
+            hir::PatKind::Tuple(items) => {
+                let mut params = Vec::new();
+                for item in &mut *items {
+                    params.append(&mut Self::synthesize_functor_params_in_pat(
+                        next_param, item,
+                    ));
+                }
+                if !params.is_empty() {
+                    pat.ty = Ty::Tuple(items.iter().map(|i| i.ty.clone()).collect());
+                }
+                params
+            }
+        }
+    }
+
+    pub(super) fn lower_callable_decl(
+        &mut self,
+        decl: &ast::CallableDecl,
+        attrs: &[qsc_hir::hir::Attr],
+    ) -> (hir::CallableDecl, Vec<TyConversionError>) {
         let id = self.lower_id(decl.id);
-        let kind = lower_callable_kind(decl.kind);
+        let kind = self.lower_callable_kind(decl.kind, attrs, decl.name.span);
         let name = self.lower_ident(&decl.name);
         let mut input = self.lower_pat(&decl.input);
-        let output = convert::ty_from_ast(self.names, &decl.output).0;
-        let generics = convert::synthesize_callable_generics(&decl.generics, &mut input);
+        let output = convert::ty_from_ast(self.names, &decl.output, &mut Default::default()).0;
+        let (generics, errs) = self.synthesize_callable_generics(&decl.generics, &mut input);
         let functors = convert::ast_callable_functors(decl);
 
         let (body, adj, ctl, ctl_adj) = match decl.body.as_ref() {
@@ -394,19 +527,51 @@ impl With<'_> {
             }
         };
 
-        hir::CallableDecl {
-            id,
-            span: decl.span,
-            kind,
-            name,
-            generics,
-            input,
-            output,
-            functors,
-            body,
-            adj,
-            ctl,
-            ctl_adj,
+        (
+            hir::CallableDecl {
+                id,
+                span: decl.span,
+                kind,
+                name,
+                generics,
+                input,
+                output,
+                functors,
+                body,
+                adj,
+                ctl,
+                ctl_adj,
+                attrs: attrs.to_vec(),
+            },
+            errs,
+        )
+    }
+
+    fn check_invalid_attrs_on_function(&mut self, attrs: &[hir::Attr], span: Span) {
+        const INVALID_ATTRS: [hir::Attr; 2] = [hir::Attr::Measurement, hir::Attr::Reset];
+
+        for invalid_attr in &INVALID_ATTRS {
+            if attrs.contains(invalid_attr) {
+                self.lowerer.errors.push(Error::InvalidAttrOnFunction(
+                    format!("{invalid_attr:?}"),
+                    span,
+                ));
+            }
+        }
+    }
+
+    fn lower_callable_kind(
+        &mut self,
+        kind: ast::CallableKind,
+        attrs: &[hir::Attr],
+        span: Span,
+    ) -> hir::CallableKind {
+        match kind {
+            ast::CallableKind::Function => {
+                self.check_invalid_attrs_on_function(attrs, span);
+                hir::CallableKind::Function
+            }
+            ast::CallableKind::Operation => hir::CallableKind::Operation,
         }
     }
 
@@ -570,9 +735,8 @@ impl With<'_> {
             ast::ExprKind::Conjugate(within, apply) => {
                 hir::ExprKind::Conjugate(self.lower_block(within), self.lower_block(apply))
             }
-            ast::ExprKind::Err => hir::ExprKind::Err,
             ast::ExprKind::Fail(message) => hir::ExprKind::Fail(Box::new(self.lower_expr(message))),
-            ast::ExprKind::Field(container, name) => {
+            ast::ExprKind::Field(container, FieldAccess::Ok(name)) => {
                 let container = self.lower_expr(container);
                 let field = self.lower_field(&container.ty, &name.name);
                 hir::ExprKind::Field(Box::new(container), field)
@@ -606,7 +770,7 @@ impl With<'_> {
                     FunctorSetValue::Empty
                 };
                 let lambda = Lambda {
-                    kind: lower_callable_kind(*kind),
+                    kind: self.lower_callable_kind(*kind, &[], expr.span),
                     functors,
                     input: self.lower_pat(input),
                     body: self.lower_expr(body),
@@ -615,7 +779,7 @@ impl With<'_> {
             }
             ast::ExprKind::Lit(lit) => lower_lit(lit),
             ast::ExprKind::Paren(_) => unreachable!("parentheses should be removed earlier"),
-            ast::ExprKind::Path(path) => {
+            ast::ExprKind::Path(PathKind::Ok(path)) => {
                 let args = self
                     .tys
                     .generics
@@ -634,8 +798,8 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
-            ast::ExprKind::Struct(name, copy, fields) => hir::ExprKind::Struct(
-                self.node_id_to_res(name.id),
+            ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => hir::ExprKind::Struct(
+                self.node_id_to_res(path.id),
                 copy.as_ref().map(|c| Box::new(self.lower_expr(c))),
                 fields
                     .iter()
@@ -676,6 +840,10 @@ impl With<'_> {
             ast::ExprKind::While(cond, body) => {
                 hir::ExprKind::While(Box::new(self.lower_expr(cond)), self.lower_block(body))
             }
+            ast::ExprKind::Err
+            | &ast::ExprKind::Path(ast::PathKind::Err(_))
+            | ast::ExprKind::Struct(ast::PathKind::Err(_), ..)
+            | ast::ExprKind::Field(_, FieldAccess::Err) => hir::ExprKind::Err,
         };
 
         hir::Expr {
@@ -847,7 +1015,7 @@ impl With<'_> {
             // Exported items are just pass-throughs to the items they reference, and should be
             // treated as Res to that original item.
             Some(&resolve::Res::ExportedItem(item_id, _)) => hir::Res::Item(item_id),
-            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param(_))
+            Some(resolve::Res::PrimTy(_) | resolve::Res::UnitTy | resolve::Res::Param { .. })
             | None => hir::Res::Err,
         }
     }
@@ -866,7 +1034,7 @@ impl With<'_> {
     fn path_parts_to_fields(
         &mut self,
         init_kind: hir::ExprKind,
-        parts: &[Ident],
+        parts: &[&Ident],
         lo: u32,
     ) -> hir::ExprKind {
         let (first, rest) = parts
@@ -909,15 +1077,8 @@ impl With<'_> {
         })
     }
 
-    fn lower_idents(&mut self, name: &ast::Idents) -> hir::Idents {
+    fn lower_idents(&mut self, name: &impl Idents) -> hir::Idents {
         name.iter().map(|i| self.lower_ident(i)).collect()
-    }
-}
-
-fn lower_callable_kind(kind: ast::CallableKind) -> hir::CallableKind {
-    match kind {
-        ast::CallableKind::Function => hir::CallableKind::Function,
-        ast::CallableKind::Operation => hir::CallableKind::Operation,
     }
 }
 
