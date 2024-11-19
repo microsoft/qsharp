@@ -25,7 +25,7 @@ import Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
 /// - [4](https://arxiv.org/abs/1908.01609) "The role of multiplicative
 ///   complexity in compiling low T-count oracle circuits", Giulia Meuli,
 ///   Mathias Soeken, Earl Campbell, Martin Roetteler, Giovanni De Micheli.
-operation HammingWeightPhasing(angle: Double, qs : Qubit[]) : Unit {
+operation HammingWeightPhasing(angle : Double, qs : Qubit[]) : Unit {
     WithHammingWeight(qs, (sum) => {
         for (i, sumQubit) in Enumerated(sum) {
             Rz(IntAsDouble(2^i) * angle, sumQubit);
