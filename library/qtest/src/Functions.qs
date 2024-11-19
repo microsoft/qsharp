@@ -59,7 +59,7 @@ function RunAllTestCases<'T : Eq + Show>(test_cases : (String, () -> 'T, 'T)[]) 
 ///
 /// # Example
 /// ```qsharp
-/// TestMatrix("Add One", x -> x + 1 [(2, 3), (3, 4)], CheckAllTestCases);
+/// TestMatrix("Add One", x -> x + 1, [(2, 3), (3, 4)], CheckAllTestCases);
 /// ```
 
 function TestMatrix<'T, 'O : Show + Eq, 'U>(test_suite_name : String, func : 'T -> 'O, test_cases : ('T, 'O)[], mode : ((String, () -> 'O, 'O)[]) -> 'U) : 'U {
