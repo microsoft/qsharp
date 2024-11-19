@@ -19,7 +19,7 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
         Z(control);
     }
     if [a, c] == [One, One] {
-        X(ancilla);
+        X(target);
     }
 }
 
