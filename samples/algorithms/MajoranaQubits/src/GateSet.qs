@@ -37,7 +37,7 @@ operation PreparePlus(q : Qubit) : Unit {
 /// Prepare a Bell Pair.
 /// Source: [1] Figure 18a.
 operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
-    // Collapse the qubits to the |0> or |1> states.
+    // Collapse the qubits onto the Pauli-Z basis.
     M(q1);
     M(q2);
 
