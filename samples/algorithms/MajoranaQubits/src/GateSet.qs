@@ -41,7 +41,7 @@ operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
     M(q1);
     M(q2);
 
-    // If their parity is different, flip one of them.
+    // If they are not aligned in the Pauli-X basis, phase flip one of them.
     if Mxx(q1, q2) == One {
         Z(q2);
     }
