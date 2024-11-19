@@ -15,7 +15,8 @@ namespace Kata.Verification {
 
             if not ComplexPolarEqual(expected, actual) {
                 Message("Incorrect");
-                Message($"For x = {ComplexPolarAsString(xp)}, y = {ComplexPolarAsString(yp)} " + $"expected return {ComplexPolarAsString(expected)}, actual return {ComplexPolarAsString(actual)}.");
+                Message($"For x = {ComplexPolarAsString(xp)}, y = {ComplexPolarAsString(yp)} " + 
+                    $"expected return {ComplexPolarAsString(expected)}, actual return {ComplexPolarAsString(actual)}.");
                 return false;
             }
         }

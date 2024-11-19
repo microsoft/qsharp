@@ -4,7 +4,12 @@ namespace Kata {
 
     @EntryPoint()
     operation DeutschAlgorithmDemo() : Unit {
-        for (oracle, name) in [(PhaseOracle_Zero, "f(x) = 0"), (PhaseOracle_One, "f(x) = 1"), (PhaseOracle_X, "f(x) = x"), (PhaseOracle_OneMinusX, "f(x) = 1-x")] {
+        for (oracle, name) in [
+            (PhaseOracle_Zero, "f(x) = 0"),
+            (PhaseOracle_One, "f(x) = 1"),
+            (PhaseOracle_X, "f(x) = x"),
+            (PhaseOracle_OneMinusX, "f(x) = 1-x")
+        ] {
             let isConstant = DeutschAlgorithm(oracle);
             Message($"{name} identified as {isConstant ? "constant" | "variable"}");
         }
