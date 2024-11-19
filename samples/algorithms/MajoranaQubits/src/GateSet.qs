@@ -10,7 +10,7 @@
 operation CNOT(control : Qubit, target : Qubit) : Unit {
     // Prepare an ancilla qubit in the |+> state.
     use ancilla = Qubit();
-    H(ancilla);
+    PreparePlus(ancilla);
 
     let a = Mzz(control, ancilla);
     let b = Mxx(ancilla, target);
@@ -23,6 +23,14 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 
     if a != c {
         X(target);
+    }
+}
+
+
+/// Prepare a qubit in the |+> state.
+operation PreparePlus(q : Qubit) : Unit {
+    if Mx(q) == One {
+        Z(q);
     }
 }
 
@@ -45,6 +53,11 @@ operation BellMeasurement(q1 : Qubit, q2 : Qubit) : (Result, Result) {
     let z = Mzz(q1, q2);
     let x = Mxx(q1, q2);
     (x, z)
+}
+
+/// User friendly wrapper around the Mx hardware gate.
+operation Mx(q : Qubit) : Result {
+    HardwareIntrinsics.__quantum__qis__mx__body(q)
 }
 
 /// User friendly wrapper around the Mxx hardware gate.
