@@ -40,7 +40,7 @@ function FunctionTestMatrixTests() : Unit {
 function BasicTests() : Unit {
     let sample_tests = [
         ("Should return 42", TestCaseOne, 43),
-        ("Should add one", () -> AddOne(5), 6),
+        ("Should add one", () -> AddOne(5), 42),
         ("Should add one", () -> AddOne(5), 6)
     ];
 
@@ -62,7 +62,7 @@ function BasicTests() : Unit {
     );
 
     Fact(not run_all_result[0].did_pass, "test one passed when it should have failed");
-    Fact(run_all_result[1].did_pass, "test two failed when it should have passed");
+    Fact(not run_all_result[1].did_pass, "test two passed when it should have failed");
     Fact(run_all_result[2].did_pass, "test three failed when it should have passed");
 
 }
