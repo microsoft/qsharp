@@ -6,6 +6,25 @@ import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
 import Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
 
+/// # Summary
+/// Applies a Z-rotation (`Rz`) with given angle to each qubit in qs.
+///
+/// # Description
+/// This implementation is based on Hamming-weight phasing to reduce the number
+/// of rotation gates.  The technique was first presented in [1], and further
+/// improved in [2] based on results in [3, 4].
+///
+/// # Reference
+/// - [1](https://arxiv.org/abs/1709.06648) "Halving the cost of quantum
+///   addition", Craig Gidney.
+/// - [2](https://arxiv.org/abs/2012.09238) "Early fault-tolerant simulations of
+///   the Hubbard model", Earl T. Campbell.
+/// - [3](https://cpsc.yale.edu/sites/default/files/files/tr1260.pdf) "The exact
+///   multiplicative complexity of the Hamming weight function", Joan Boyar and
+///   René Peralta.
+/// - [4](https://arxiv.org/abs/1908.01609) "The role of multiplicative
+///   complexity in compiling low T-count oracle circuits", Giulia Meuli,
+///   Mathias Soeken, Earl Campbell, Martin Roetteler, Giovanni De Micheli.
 operation HammingWeightPhasing(angle: Double, qs : Qubit[]) : Unit {
     WithHammingWeight(qs, (sum) => {
         for (i, sumQubit) in Enumerated(sum) {
@@ -67,6 +86,8 @@ internal operation WithSum(carry : Qubit, xs : Qubit[], ys : Qubit[], action : Q
             if i < Length(xs) {
                 Carry(carryIn[i], xs[i], ys[i], carryOut[i]);
             } else {
+                // there is no corresponding bit in xs; this is a version of
+                // Carry in which x == 0.
                 CNOT(carryIn[i], ys[i]);
                 AND(carryIn[i], ys[i], carryOut[i]);
                 CNOT(carryIn[i], carryOut[i]);
