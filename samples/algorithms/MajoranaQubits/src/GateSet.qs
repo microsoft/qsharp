@@ -15,10 +15,11 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
     let a = Mzz(control, ancilla);
     let b = Mxx(ancilla, target);
     let c = Mx(ancilla);
+    let c = Mz(ancilla);
     if b == One {
         Z(control);
     }
-    if [a, c] == [One, One] {
+    if a != c {
         X(target);
     }
 }
