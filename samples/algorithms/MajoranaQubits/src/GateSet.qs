@@ -8,10 +8,13 @@
 /// Apply a CNOT gate to the given qubits.
 /// Source: [1] Figure 3.
 operation CNOT(control : Qubit, target : Qubit) : Unit {
+    // Prepare an ancilla qubit in the |+> state.
     use ancilla = Qubit();
-    let a = Mzz(control, target);
-    let b = Mxx(target, ancilla);
-    let c = Mx(target);
+    H(ancilla);
+
+    let a = Mzz(control, ancilla);
+    let b = Mxx(ancilla, target);
+    let c = Mx(ancilla);
     if b == One {
         Z(control);
     }
@@ -23,11 +26,11 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 /// Prepare a Bell Pair.
 /// Source: [1] Figure 18a.
 operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
-    // Bring the qubits to their ground state.
+    // Collapse the qubits to the X basis.
     Mz(q1);
     Mz(q2);
 
-    // Bell Pair preparation
+    // If their parity is different, flip the second qubit.
     if Mxx(q1, q2) == One {
         Z(q2);
     }
