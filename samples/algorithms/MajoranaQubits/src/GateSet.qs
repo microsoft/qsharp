@@ -37,11 +37,11 @@ operation PreparePlus(q : Qubit) : Unit {
 /// Prepare a Bell Pair.
 /// Source: [1] Figure 18a.
 operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
-    // Collapse the qubits to the X basis.
+    // Collapse the qubits to the |0> or |1> states.
     M(q1);
     M(q2);
 
-    // If their parity is different, flip the second qubit.
+    // If their parity is different, flip one of them.
     if Mxx(q1, q2) == One {
         Z(q2);
     }
