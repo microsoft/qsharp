@@ -49,6 +49,11 @@ operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
 
 /// Measure a Bell Pair.
 /// Source: [1] Figure 18b.
+/// Below is a map showing how the Bell states map to the Result pairs:
+///   |𝚽⁺⟩ -> (Zero, Zero)
+///   |𝚿⁺⟩ -> (Zero, One)
+///   |𝚽⁻⟩ -> (One, Zero)
+///   |𝚿⁻⟩ -> (One, One)
 operation BellMeasurement(q1 : Qubit, q2 : Qubit) : (Result, Result) {
     let z = Mzz(q1, q2);
     let x = Mxx(q1, q2);
