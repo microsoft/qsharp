@@ -18,7 +18,8 @@ namespace Kata.Verification {
             for i in 0..N - 1 {
                 if res[i] != bits[i] {
                     Message($"Qubit qs[{i}] measured in incorrect basis.");
-                    Message($"When measuring state {StateToString(bases[i], bits[i])} in the {BasisToString(bases[i])} basis, " + $"expected result is {bits[i]}, got {res[i]}.");
+                    Message($"When measuring state {StateToString(bases[i], bits[i])} in the {BasisToString(bases[i])} basis, " +
+                            $"expected result is {bits[i]}, got {res[i]}.");
                     return false;
                 }
             }

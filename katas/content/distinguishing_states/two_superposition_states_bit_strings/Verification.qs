@@ -13,7 +13,14 @@ namespace Kata.Verification {
 
         let stateNames = [IntArrayAsStateName(nQubits, bits1), IntArrayAsStateName(nQubits, bits2)];
 
-        let isCorrect = DistinguishStates_MultiQubit(nQubits, 2, StatePrep_SuperpositionMeasurement(_, bits1, bits2, _, _), Kata.SuperpositionMeasurement(_, bits1, bits2), false, stateNames);
+        let isCorrect = DistinguishStates_MultiQubit(
+            nQubits,
+            2,
+            StatePrep_SuperpositionMeasurement(_, bits1, bits2, _, _),
+            Kata.SuperpositionMeasurement(_, bits1, bits2),
+            false,
+            stateNames
+        );
 
         if not isCorrect {
             Message($"Incorrect for: [{stateNames[0]}, {stateNames[1]}]")

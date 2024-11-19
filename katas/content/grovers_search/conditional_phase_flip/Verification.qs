@@ -15,7 +15,8 @@ namespace Kata.Verification {
         for N in 2..4 {
             if not CheckOperationsAreEqualStrict(N, Kata.ConditionalPhaseFlip, ConditionalPhaseFlip) {
                 Message("Incorrect.");
-                Message("Hint: examine how your solution transforms the given state and compare it with the expected " + $"transformation for the {N}-bit inputs");
+                Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
+                    $"transformation for the {N}-bit inputs");
                 ShowQuantumStateComparison(N, PrepDemoState, Kata.ConditionalPhaseFlip, ConditionalPhaseFlip);
                 return false;
             }
