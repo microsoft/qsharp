@@ -22,7 +22,9 @@ namespace Kata.Verification {
             1.0 / Sqrt(2.0) * Cos(0.5 * 2.0)
         );
 
-        let isCorrect = (AbsD(x1 - x1_exp) <= 0.001) and (AbsD(x2 - x2_exp) <= 0.001);
+        let isCorrect =
+            (AbsD(x1 - x1_exp) <= 0.001) and
+            (AbsD(x2 - x2_exp) <= 0.001);
 
         ResetAll(qs);
 
