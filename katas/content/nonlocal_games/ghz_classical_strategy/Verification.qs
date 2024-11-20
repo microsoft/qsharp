@@ -11,7 +11,12 @@ namespace Kata.Verification {
     // All possible starting bits (r, s and t) that the referee can give
     // to Alice, Bob and Charlie.
     function RefereeBits() : Bool[][] {
-        return [[false, false, false], [true, true, false], [false, true, true], [true, false, true]];
+        return [
+            [false, false, false],
+            [true, true, false],
+            [false, true, true],
+            [true, false, true]
+        ];
     }
 
     operation PlayClassicalGHZ_Reference(strategies : (Bool => Bool)[], inputs : Bool[]) : Bool[] {

@@ -3,6 +3,9 @@ namespace Kata {
 
     function EigenvaluesS() : Complex[] {
         // Replace the return value with correct answer.
-        return [Complex(0.0, 0.0), Complex(0.0, 0.0)];
+        return [
+            Complex(0.0, 0.0),
+            Complex(0.0, 0.0)
+        ];
     }
 }

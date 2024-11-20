@@ -20,7 +20,8 @@ namespace Kata.Verification {
         }
 
         // One eigenvector has to have equal components, the other one - opposite ones
-        if AbsD(actual[0][0] - actual[0][1]) < 1e-9 and AbsD(actual[1][0] + actual[1][1]) < 1e-9 or AbsD(actual[0][0] + actual[0][1]) < 1e-9 and AbsD(actual[1][0] - actual[1][1]) < 1e-9 {
+        if AbsD(actual[0][0] - actual[0][1]) < 1e-9 and AbsD(actual[1][0] + actual[1][1]) < 1e-9 or
+            AbsD(actual[0][0] + actual[0][1]) < 1e-9 and AbsD(actual[1][0] - actual[1][1]) < 1e-9 {
             Message("Correct!");
             return true;
         }

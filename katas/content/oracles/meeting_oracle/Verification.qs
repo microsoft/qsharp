@@ -38,7 +38,9 @@ namespace Kata.Verification {
 
         if not isCorrect {
             Message("Incorrect.");
-            Message("Hint: check that you're flipping the state of the target qubit for the correct inputs, " + "that you're uncomputing any changes you did to the input qubits correctly, " + "and that you're returning any temporarily allocated qubits to the zero state.");
+            Message("Hint: check that you're flipping the state of the target qubit for the correct inputs, " +
+                "that you're uncomputing any changes you did to the input qubits correctly, " +
+                "and that you're returning any temporarily allocated qubits to the zero state.");
             return false;
         }
         Message("Correct!");

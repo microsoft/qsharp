@@ -9,6 +9,10 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        CheckOperationsEquivalenceOnZeroStateWithFeedback(Kata.PrepareWithReal, PrepareWithReal_Reference, 2)
+        CheckOperationsEquivalenceOnZeroStateWithFeedback(
+            Kata.PrepareWithReal,
+            PrepareWithReal_Reference,
+            2
+        )
     }
 }

@@ -17,7 +17,8 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine how your solution transforms the given state and compare it with the expected " + "transformation");
+            Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
+                "transformation");
             ShowQuantumStateComparison(4, qs => PrepDemoState(qs[...2]), sol, ref);
         }
         isCorrect

@@ -26,7 +26,8 @@ namespace Kata.Verification {
 
                 if not isCorrect {
                     Message("Incorrect.");
-                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " + $"transformation for the {N}-bit oracle for k = {k}");
+                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
+                        $"transformation for the {N}-bit oracle for k = {k}");
                     ShowQuantumStateComparison(N, PrepDemoState, sol, ref);
                     return false;
                 }
