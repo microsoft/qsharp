@@ -157,7 +157,14 @@ namespace Kata.Verification {
         reconstructAndMeasureMessageOp : ((Qubit, (Bool, Bool), Pauli) => Result)
     ) : Bool {
 
-        let messages = [(PauliX, Zero, "|+⟩"), (PauliX, One, "|-⟩"), (PauliY, Zero, "|i⟩"), (PauliY, One, "|-i⟩"), (PauliZ, Zero, "|0⟩"), (PauliZ, One, "|1⟩")];
+        let messages = [
+            (PauliX, Zero, "|+⟩"),
+            (PauliX, One, "|-⟩"),
+            (PauliY, Zero, "|i⟩"),
+            (PauliY, One, "|-i⟩"),
+            (PauliZ, Zero, "|0⟩"),
+            (PauliZ, One, "|1⟩")
+        ];
         let numRepetitions = 100;
         use (qAlice, qBob) = (Qubit(), Qubit());
         for (basis, sentState, stateName) in messages {

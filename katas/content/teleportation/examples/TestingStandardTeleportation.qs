@@ -5,7 +5,14 @@ namespace Kata {
     operation TestTeleportation() : Unit {
 
         // To define the different states, let us make use of PauliX, PauliY and PauliZ basis
-        let messages = [(PauliX, Zero, "|+⟩"), (PauliX, One, "|-⟩"), (PauliY, Zero, "|i⟩"), (PauliY, One, "|-i⟩"), (PauliZ, Zero, "|0⟩"), (PauliZ, One, "|1⟩")];
+        let messages = [
+            (PauliX, Zero, "|+⟩"),
+            (PauliX, One, "|-⟩"),
+            (PauliY, Zero, "|i⟩"),
+            (PauliY, One, "|-i⟩"),
+            (PauliZ, Zero, "|0⟩"),
+            (PauliZ, One, "|1⟩")
+        ];
 
         // To effectively test the solution, experiment needs to be repeated multiple times
         let numRepetitions = 100;
