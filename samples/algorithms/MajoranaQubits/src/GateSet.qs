@@ -8,7 +8,7 @@
 /// Apply a CNOT gate to the given qubits.
 /// Source: [1] Figure 3.
 operation CNOT(control : Qubit, target : Qubit) : Unit {
-    // Prepare an ancilla qubit in the |+> state.
+    // Prepare an ancilla qubit in the |+⟩ state.
     use ancilla = Qubit();
     PreparePlus(ancilla);
 
@@ -27,7 +27,7 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 }
 
 
-/// Prepare a qubit in the |+> state.
+/// Prepare a qubit in the |+⟩ state.
 operation PreparePlus(q : Qubit) : Unit {
     if Mx(q) == One {
         Z(q);
