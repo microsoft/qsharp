@@ -94,7 +94,11 @@ namespace Kata {
         within {
             for i in 0..edgesNumber - 1 {
                 let (v0, v1) = edges[i];
-                Oracle_ColorEquality(x[2 * v0..2 * v0 + 1], x[2 * v1..2 * v1 + 1], conflicts[i]);
+                Oracle_ColorEquality(
+                    x[2 * v0 .. 2 * v0 + 1],
+                    x[2 * v1 .. 2 * v1 + 1],
+                    conflicts[i]
+                );
             }
         } apply {
             ApplyControlledOnInt(0, X, conflicts, y);

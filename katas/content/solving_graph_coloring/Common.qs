@@ -12,7 +12,14 @@ namespace Kata.Verification {
     //  - regular-ish graph with 5 vertices (3-colorable, as shown at https://en.wikipedia.org/wiki/File:3-coloringEx.svg without one vertex)
     //  - 6-vertex graph from https://en.wikipedia.org/wiki/File:3-coloringEx.svg
     function ExampleGraphs() : (Int, (Int, Int)[])[] {
-        return [(3, []), (4, [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]), (5, [(4, 0), (2, 1), (3, 1), (3, 2)]), (5, [(0, 1), (1, 2), (1, 3), (3, 2), (4, 2), (3, 4)]), (5, [(0, 1), (0, 2), (0, 4), (1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]), (6, [(0, 1), (0, 2), (0, 4), (0, 5), (1, 2), (1, 3), (1, 5), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)])];
+        return [
+            (3, []),
+            (4, [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]),
+            (5, [(4, 0), (2, 1), (3, 1), (3, 2)]),
+            (5, [(0, 1), (1, 2), (1, 3), (3, 2), (4, 2), (3, 4)]),
+            (5, [(0, 1), (0, 2), (0, 4), (1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]),
+            (6, [(0, 1), (0, 2), (0, 4), (0, 5), (1, 2), (1, 3), (1, 5), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)])
+        ];
         // Graphs with 6+ vertices can take several minutes to be processed;
         // in the interest of keeping test runtime reasonable we're limiting most of the testing to graphs with 5 vertices or fewer.
     }

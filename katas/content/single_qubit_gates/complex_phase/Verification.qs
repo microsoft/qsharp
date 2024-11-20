@@ -17,7 +17,8 @@ namespace Kata.Verification {
                 let precision = 3;
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}.");
-                Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " + "is expected to have.");
+                Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
+                    "is expected to have.");
                 ShowQuantumStateComparison(1, qs => Ry(ArcTan2(0.8, 0.6) * 2.0, qs[0]), solution, reference);
                 return false;
             }

@@ -17,7 +17,9 @@ namespace Kata.Verification {
 
         Reset(q);
 
-        let isCorrect = (AbsD(a - a_exp) <= 0.001) and (AbsD(b - b_exp) <= 0.001);
+        let isCorrect =
+            (AbsD(a - a_exp) <= 0.001) and
+            (AbsD(b - b_exp) <= 0.001);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {

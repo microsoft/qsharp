@@ -22,7 +22,8 @@ namespace Kata.Verification {
                 let precision = 3;
                 Message("Incorrect.");
                 Message($"The solution was incorrect for the test case alpha = {DoubleAsStringWithPrecision(alpha, precision)}, beta = {DoubleAsStringWithPrecision(beta, precision)}, theta = {DoubleAsStringWithPrecision(theta, precision)}.");
-                Message("Hint: examine the state prepared by your solution and compare it with the state it " + "is expected to prepare.");
+                Message("Hint: examine the state prepared by your solution and compare it with the state it " +
+                    "is expected to prepare.");
                 ShowQuantumStateComparison(1, qs => (), solution, reference);
                 return false;
             }

@@ -29,7 +29,12 @@ namespace Kata {
             // for the first path through, when the bit string has zero length,
             // the Controlled version of the rotation will perform a regular rotation
             let theta = ArcCos(Sqrt(IntAsDouble(Length(zeroLeads)) / IntAsDouble(rows)));
-            ApplyControlledOnBitString(currentBitString, Ry, qs[0..currentIndex - 1], (2.0 * theta, qs[currentIndex]));
+            ApplyControlledOnBitString(
+                currentBitString,
+                Ry,
+                qs[0..currentIndex - 1],
+                (2.0 * theta, qs[currentIndex])
+            );
 
             // call state preparation recursively based on the bit strings so far
             FourBitstringSuperposition_Recursive(currentBitString + [false], qs, zeroLeads);

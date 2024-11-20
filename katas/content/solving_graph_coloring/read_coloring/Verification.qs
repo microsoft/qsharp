@@ -38,7 +38,8 @@ namespace Kata.Verification {
                     }
                     for (expected, actual) in Zipped(expectedColors, result) {
                         if expected != actual {
-                            Message($"Unexpected colors for V = {V}, nBits = {nBits}, " + $"state = {BoolArrayAsKetState(binaryState)} : expected {expectedColors}, got {result}");
+                            Message($"Unexpected colors for V = {V}, nBits = {nBits}, " +
+                                $"state = {BoolArrayAsKetState(binaryState)} : expected {expectedColors}, got {result}");
                             return false;
                         }
                     }

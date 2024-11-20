@@ -13,7 +13,11 @@ namespace Kata {
         use sameColorChecks = Qubit[nNeighbors];
         within {
             for ((a, b), checkQubit) in Zipped(neighborEdges, sameColorChecks) {
-                Oracle_ColorEquality(x[a * 2..a * 2 + 1], x[b * 2..b * 2 + 1], checkQubit);
+                Oracle_ColorEquality(
+                    x[a * 2 .. a * 2 + 1],
+                    x[b * 2 .. b * 2 + 1],
+                    checkQubit
+                );
             }
         } apply {
             X(y);
