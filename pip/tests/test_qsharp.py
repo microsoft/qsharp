@@ -35,6 +35,35 @@ def test_stdout_multiple_lines() -> None:
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
 
 
+def test_captured_stdout() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = qsharp.eval(
+            '{Message("Hello, world!"); Message("Goodbye!")}', save_events=True
+        )
+    assert f.getvalue() == ""
+    assert len(result["messages"]) == 2
+    assert result["messages"][0] == "Hello, world!"
+    assert result["messages"][1] == "Goodbye!"
+
+
+def test_captured_matrix() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = qsharp.eval(
+            "Std.Diagnostics.DumpOperation(1, qs => H(qs[0]))",
+            save_events=True,
+        )
+    assert f.getvalue() == ""
+    assert len(result["matrices"]) == 1
+    assert (
+        str(result["matrices"][0])
+        == "MATRIX:\n 0.7071+0.0000𝑖 0.7071+0.0000𝑖\n 0.7071+0.0000𝑖 −0.7071+0.0000𝑖"
+    )
+
+
 def test_quantum_seed() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_quantum_seed(42)
@@ -257,6 +286,7 @@ def test_dump_operation() -> None:
             else:
                 assert res[i][j] == complex(0.0, 0.0)
 
+
 def test_run_with_noise_produces_noisy_results() -> None:
     qsharp.init()
     qsharp.set_quantum_seed(0)
@@ -272,6 +302,7 @@ def test_run_with_noise_produces_noisy_results() -> None:
         noise=qsharp.BitFlipNoise(0.1),
     )
     assert result[0] > 5
+
 
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
@@ -324,7 +355,7 @@ def test_run_with_result_callback(capsys) -> None:
     results = qsharp.run("Foo()", 3, on_result=on_result, save_events=True)
     assert (
         str(results)
-        == "[{'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}]"
+        == "[{'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}]"
     )
     stdout = capsys.readouterr().out
     assert stdout == ""
