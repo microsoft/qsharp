@@ -463,10 +463,9 @@ fn generate_exported_file_content(
     // Note: we are assuming the package kind does not change
     let true_metadata = get_metadata(package_kind, true_ns.clone(), true_item, display)?;
     let true_fqn = true_metadata.fully_qualified_name();
-    let name = true_metadata.name;
 
     let summary = format!(
-        "This is an exported item. The actual definition is found here: [{name}](xref:Qdk.{true_fqn})"
+        "This is an exported item. The actual definition is found here: [{true_fqn}](xref:Qdk.{true_fqn})"
     );
 
     metadata.summary = summary.clone();

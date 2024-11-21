@@ -24,7 +24,7 @@ open QIR.Intrinsic;
 /// The result of measuring in the `Z ⊗ Z ⊗ ••• ⊗ Z` basis.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureEachZ
+/// - [Std.Measurement.MeasureEachZ](xref:Qdk.Std.Measurement.MeasureEachZ)
 operation MeasureAllZ(register : Qubit[]) : Result {
     Measure(Repeated(PauliZ, Length(register)), register)
 }
@@ -54,8 +54,8 @@ operation MeasureAllZ(register : Qubit[]) : Result {
 ///   and returns one result. The operation does not reset the qubits.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureAllZ
-/// - Microsoft.Quantum.Measurement.MResetEachZ
+/// - [Std.Measurement.MeasureAllZ](xref:Qdk.Std.Measurement.MeasureAllZ)
+/// - [Std.Measurement.MResetEachZ](xref:Qdk.Std.Measurement.MResetEachZ)
 operation MeasureEachZ(register : Qubit[]) : Result[] {
     mutable results = [];
     for qubit in register {
@@ -76,7 +76,7 @@ operation MeasureEachZ(register : Qubit[]) : Result[] {
 /// An array of measurement results.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureEachZ
+/// - [Std.Measurement.MeasureEachZ](xref:Qdk.Std.Measurement.MeasureEachZ)
 operation MResetEachZ(register : Qubit[]) : Result[] {
     mutable results = [];
     for qubit in register {
