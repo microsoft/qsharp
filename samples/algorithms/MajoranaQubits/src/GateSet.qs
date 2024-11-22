@@ -14,7 +14,7 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 
     let a = Mzz(control, ancilla);
     let b = Mxx(ancilla, target);
-    let c = M(ancilla);
+    let c = Mz(ancilla);
     Reset(ancilla);
 
     if b == One {
@@ -38,8 +38,8 @@ operation PreparePlus(q : Qubit) : Unit {
 /// Source: [1] Figure 18a.
 operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
     // Collapse the qubits onto the Pauli-Z basis.
-    M(q1);
-    M(q2);
+    Mz(q1);
+    Mz(q2);
 
     // If they are not aligned in the Pauli-X basis, phase flip one of them.
     if Mxx(q1, q2) == One {
@@ -62,6 +62,11 @@ operation BellMeasurement(q1 : Qubit, q2 : Qubit) : (Result, Result) {
 
 /// User friendly wrapper around the Mx hardware gate.
 operation Mx(q : Qubit) : Result {
+    HardwareIntrinsics.__quantum__qis__mx__body(q)
+}
+
+/// User friendly wrapper around the Mz hardware gate.
+operation Mz(q : Qubit) : Result {
     HardwareIntrinsics.__quantum__qis__mx__body(q)
 }
 

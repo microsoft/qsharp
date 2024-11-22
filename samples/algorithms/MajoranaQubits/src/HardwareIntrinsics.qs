@@ -10,6 +10,12 @@ operation __quantum__qis__mx__body(q : Qubit) : Result {
 
 @Measurement()
 @SimulatableIntrinsic()
+operation __quantum__qis__mz__body(q : Qubit) : Result {
+    M(q)
+}
+
+@Measurement()
+@SimulatableIntrinsic()
 operation __quantum__qis__mxx__body(q1 : Qubit, q2 : Qubit) : Result {
     Std.Intrinsic.Measure([PauliX, PauliX], [q1, q2])
 }
