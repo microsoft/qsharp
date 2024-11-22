@@ -34,6 +34,13 @@ operation PrepareX(q : Qubit) : Unit {
     }
 }
 
+/// Prepare a qubit in the |0⟩ state.
+operation PrepareZ(q : Qubit) : Unit {
+    if Mz(q) == One {
+        X(q);
+    }
+}
+
 /// Prepare a Bell Pair.
 /// Source: [1] Figure 18a.
 operation BellPair(q1 : Qubit, q2 : Qubit) : Unit {
