@@ -68,7 +68,7 @@ operation Mx(q : Qubit) : Result {
 
 /// User friendly wrapper around the Mz hardware gate.
 operation Mz(q : Qubit) : Result {
-    HardwareIntrinsics.__quantum__qis__mx__body(q)
+    HardwareIntrinsics.__quantum__qis__mz__body(q)
 }
 
 /// User friendly wrapper around the Mxx hardware gate.
