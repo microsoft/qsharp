@@ -10,7 +10,7 @@
 operation CNOT(control : Qubit, target : Qubit) : Unit {
     // Prepare an ancilla qubit in the |+⟩ state.
     use ancilla = Qubit();
-    PreparePlus(ancilla);
+    PrepareX(ancilla);
 
     let a = Mzz(control, ancilla);
     let b = Mxx(ancilla, target);
@@ -28,7 +28,8 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 
 
 /// Prepare a qubit in the |+⟩ state.
-operation PreparePlus(q : Qubit) : Unit {
+/// `q` must be in the |0⟩ state.
+operation PrepareX(q : Qubit) : Unit {
     if Mx(q) == One {
         Z(q);
     }
