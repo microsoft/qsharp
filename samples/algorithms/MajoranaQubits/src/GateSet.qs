@@ -28,7 +28,6 @@ operation CNOT(control : Qubit, target : Qubit) : Unit {
 
 
 /// Prepare a qubit in the |+⟩ state.
-/// `q` must be in the |0⟩ state.
 operation PrepareX(q : Qubit) : Unit {
     if Mx(q) == One {
         Z(q);
