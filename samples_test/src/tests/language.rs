@@ -144,6 +144,8 @@ pub const COPYANDUPDATEOPERATOR_EXPECT_DEBUG: Expect = expect![[r#"
     Updated array: [10, 11, 100, 13]
     Updated array: [10, 100, 12, 200]
     ()"#]];
+pub const CUSTOMMEASUREMENTS_EXPECT: Expect = expect!["Zero"];
+pub const CUSTOMMEASUREMENTS_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const DATATYPES_EXPECT: Expect = expect![[r#"
     Binary BigInt: 42
     Octal BigInt: 42
