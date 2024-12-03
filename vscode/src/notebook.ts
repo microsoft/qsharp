@@ -11,6 +11,7 @@ import { notebookTemplate } from "./notebookTemplate.js";
 const qsharpCellMagic = "%%qsharp";
 const jupyterNotebookType = "jupyter-notebook";
 const qsharpConfigMimeType = "application/x.qsharp-config";
+let defaultLanguageId: string | undefined;
 
 /**
  * Sets up handlers to detect Q# code cells in Jupyter notebooks and set the language to Q#.
@@ -52,8 +53,6 @@ export function registerQSharpNotebookHandlers() {
       }
     }),
   );
-
-  let defaultLanguageId: string | undefined;
 
   function updateQSharpCellLanguages(cells: vscode.NotebookCell[]) {
     for (const cell of cells) {

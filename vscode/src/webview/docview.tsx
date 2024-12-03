@@ -168,6 +168,22 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
+    // Update the xref links to navigate to the correct member
+    document.querySelectorAll('a[href^="xref:"]').forEach((a) => {
+      const anchor = a as HTMLAnchorElement;
+      const xref = "xref:";
+      let link = anchor.href.slice(xref.length);
+      link = link.replaceAll(".", "/");
+      // Just for Qdk links, we want to strip out the leading "Qdk."
+      if (link.startsWith("Qdk/")) {
+        link = link.slice(4);
+      }
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        setPath(link);
+      });
+    });
+
     // If the member is navigated to, scroll to it after rendering
     const member = currPath.split("/")[2];
     scrollToElement(member);
@@ -184,7 +200,7 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
       ? []
       : getSearchResults(searchText, props.fragmentsToRender);
 
-  // Used to bold the text links when overing
+  // Used to bold the text links when hovering
   function overLi(e: MouseEvent) {
     (e.target as HTMLElement).style.fontWeight = "600";
     (e.target as HTMLElement).style.textDecoration = "underline";

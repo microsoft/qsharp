@@ -3,9 +3,8 @@
 
 import Std.Arrays.Tail, Std.Arrays.Most, Std.Arrays.Enumerated;
 import Utils.AndLadder;
-import Std.Arithmetic.RippleCarryTTKIncByLE;
+import Std.Arithmetic.RippleCarryTTKIncByLE, Std.Arithmetic.ApplyIfGreaterLE;
 import Std.Diagnostics.Fact;
-import Std.Arithmetic.ApplyIfGreaterLE;
 
 /// # Summary
 /// Square signed integer `xs` and store
