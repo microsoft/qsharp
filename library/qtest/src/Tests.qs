@@ -16,13 +16,22 @@ operation OperationTestMatrixTests() : Unit {
         (qs => { X(qs[0]); X(qs[1]); }, 0b0011)
     ];
 
-    let res : Util.TestCaseResult[] = Operations.TestMatrix(
+    let res1 : Util.TestCaseResult[] = Operations.TestMatrix(
         "QubitTestMatrix",
         qs => MeasureInteger(qs),
         4,
         test_cases,
         Operations.RunAllTestCases
     );
+
+    let res2 : Util.TestCaseResult[] = Operations.RunTestMatrix(
+        "QubitTestMatrix",
+        qs => MeasureInteger(qs),
+        4,
+        test_cases,
+    );
+
+    Fact(All(x -> x.did_pass, res1) and All(x -> x.did_pass, res2), "RunTestMatrix and TestMatrix did not return the same results");
 }
 
 function FunctionTestMatrixTests() : Unit {

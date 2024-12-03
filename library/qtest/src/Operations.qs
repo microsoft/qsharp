@@ -98,11 +98,34 @@ operation MappedOperation<'T, 'U>(mapper : ('T => 'U), array : 'T[]) : 'U[] {
 ///    );
 /// ```
 
-operation TestMatrix<'O : Show + Eq, 'U>(test_suite_name : String, func : Qubit[] => 'O, num_qubits : Int, test_cases : (Qubit[] => Unit, 'O)[], mode : ((String, Int, Qubit[] => Unit, Qubit[] => 'O, 'O)[]) => 'U) : 'U {
+operation TestMatrix<'O : Show + Eq, 'U>(
+    test_suite_name : String,
+    func : Qubit[] => 'O,
+    num_qubits : Int,
+    test_cases : (Qubit[] => Unit, 'O)[],
+    mode : ((String, Int, Qubit[] => Unit, Qubit[] => 'O, 'O)[]) => 'U
+) : 'U {
     let test_cases_qs = Mapped((ix, (qubit_prep_function, expected)) -> (test_suite_name + $" {ix + 1}", num_qubits, qubit_prep_function, func, expected), Enumerated(test_cases));
     mode(test_cases_qs)
 }
 
+operation CheckTestMatrix<'O : Show + Eq>(
+    test_suite_name : String,
+    func : Qubit[] => 'O,
+    num_qubits : Int,
+    test_cases : (Qubit[] => Unit, 'O)[]
+) : Bool {
+    TestMatrix(test_suite_name, func, num_qubits, test_cases, CheckAllTestCases)
+}
+
+operation RunTestMatrix<'O : Show + Eq>(
+    test_suite_name : String,
+    func : Qubit[] => 'O,
+    num_qubits : Int,
+    test_cases : (Qubit[] => Unit, 'O)[]
+) : TestCaseResult[] {
+    TestMatrix(test_suite_name, func, num_qubits, test_cases, RunAllTestCases)
+}
 
 /// Internal (non-exported) helper function. Runs a test case and produces a `TestCaseResult`
 operation TestCase<'T : Eq + Show>(name : String, qubits : Qubit[], test_case : (Qubit[]) => 'T, expected : 'T) : TestCaseResult {
@@ -114,4 +137,4 @@ operation TestCase<'T : Eq + Show>(name : String, qubits : Qubit[], test_case : 
     }
 }
 
-export CheckAllTestCases, RunAllTestCases; 
+export CheckAllTestCases, RunAllTestCases, TestMatrix, CheckTestMatrix, RunTestMatrix; 

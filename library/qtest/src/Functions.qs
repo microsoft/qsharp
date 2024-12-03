@@ -62,9 +62,30 @@ function RunAllTestCases<'T : Eq + Show>(test_cases : (String, () -> 'T, 'T)[]) 
 /// TestMatrix("Add One", x -> x + 1, [(2, 3), (3, 4)], CheckAllTestCases);
 /// ```
 
-function TestMatrix<'T, 'O : Show + Eq, 'U>(test_suite_name : String, func : 'T -> 'O, test_cases : ('T, 'O)[], mode : ((String, () -> 'O, 'O)[]) -> 'U) : 'U {
+function TestMatrix<'T, 'O : Show + Eq, 'U>(
+    test_suite_name : String,
+    func : 'T -> 'O,
+    test_cases : ('T, 'O)[],
+    mode : ((String, () -> 'O, 'O)[]) -> 'U
+) : 'U {
     let test_cases_qs = Mapped((ix, (input, expected)) -> (test_suite_name + $" {ix + 1}", () -> func(input), expected), Enumerated(test_cases));
     mode(test_cases_qs)
+}
+
+function RunTestMatrix<'T : Show, 'O : Show + Eq>(
+    test_suite_name : String,
+    func : 'T -> 'O,
+    test_cases : ('T, 'O)[]
+) : TestCaseResult[] {
+    TestMatrix(test_suite_name, func, test_cases, RunAllTestCases)
+}
+
+function CheckTestMatrix<'T : Show, 'O : Show + Eq>(
+    test_suite_name : String,
+    func : 'T -> 'O,
+    test_cases : ('T, 'O)[]
+) : Bool {
+    TestMatrix(test_suite_name, func, test_cases, CheckAllTestCases)
 }
 
 /// Internal (non-exported) helper function. Runs a test case and produces a `TestCaseResult`
@@ -77,4 +98,4 @@ function TestCase<'T : Eq + Show>(name : String, test_case : () -> 'T, expected 
     }
 }
 
-export CheckAllTestCases, RunAllTestCases, TestMatrix; 
+export CheckAllTestCases, RunAllTestCases, TestMatrix, RunTestMatrix, CheckTestMatrix; 
