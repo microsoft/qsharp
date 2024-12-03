@@ -4,10 +4,8 @@ struct NamedQubit {
     qubit: Qubit
 }
 
-operation CreateNamedQubit(name: String) : NamedQubit {
-    use q = Qubit();
-     new NamedQubit { name = name, qubit = q }
-
+function CreateNamedQubit(name: String, qubit: Qubit) : NamedQubit {
+    new NamedQubit { name = name, qubit = qubit }
 }
 
 
