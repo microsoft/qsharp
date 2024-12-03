@@ -4,7 +4,7 @@
 import Std.Arrays.Enumerated, Std.Arrays.Most, Std.Arrays.Partitioned, Std.Arrays.Tail;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
-import Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
+import Std.Math.BitSizeI, Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
 
 /// # Summary
 /// Applies a Z-rotation (`Rz`) with given angle to each qubit in qs.
@@ -12,7 +12,9 @@ import Std.Math.Floor, Std.Math.Lg, Std.Math.MaxI, Std.Math.MinI;
 /// # Description
 /// This implementation is based on Hamming-weight phasing to reduce the number
 /// of rotation gates.  The technique was first presented in [1], and further
-/// improved in [2] based on results in [3, 4].
+/// improved in [2] based on results in [3, 4].  Note, that the reduction of
+/// rotation gates comes at a cost of additional qubits and additional quantum
+/// operations to compute the Hamming-weight.
 ///
 /// # Reference
 /// - [1](https://arxiv.org/abs/1709.06648) "Halving the cost of quantum
@@ -50,9 +52,10 @@ internal operation WithHammingWeight(qs : Qubit[], action : Qubit[] => Unit) : U
     } elif n == 3 {
         WithSum(qs[0], qs[1..1], qs[2..2], action);
     } else {
-        let power = Floor(Lg(IntAsDouble(n - 1)));
-        let (leftLen, rightLen) = (n - 2^power, 2^power - 1);
-        // handle corner case if n is power of 2
+        let splitSize = 2^(BitSizeI(n - 1) - 1);
+        let (leftLen, rightLen) = (n - splitSize, splitSize - 1);
+        // handle corner case if n is power of 2; in that case the first
+        // partition is longer than the second one, and we want to avoid that.
         let split = Partitioned([MinI(leftLen, rightLen), MaxI(leftLen, rightLen)], qs);
         Fact(Length(split) == 3 and Length(split[2]) == 1, $"Unexpected split for n = {n}");
 

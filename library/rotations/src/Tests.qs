@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import Std.Diagnostics.CheckOperationsAreEqual, Std.Diagnostics.Fact;
-import Std.Math.HammingWeightI;
+import Std.Math.HammingWeightI, Std.Math.PI;
 
 import HammingWeightPhasing.HammingWeightPhasing, HammingWeightPhasing.WithHammingWeight;
 
@@ -42,7 +42,9 @@ operation TestHammingWeight() : Unit {
 }
 
 operation TestPhasing() : Unit {
-    for numQubits in 1..6 {
-        Fact(CheckOperationsAreEqual(numQubits, qs => HammingWeightPhasing(2.0, qs), qs => ApplyToEachA(Rz(2.0, _), qs)), "Operations are not equal");
+    for theta in [1.0, 2.0, 0.0, -0.5, 5.0 * PI()] {
+        for numQubits in 1..6 {
+            Fact(CheckOperationsAreEqual(numQubits, qs => HammingWeightPhasing(theta, qs), qs => ApplyToEachA(Rz(theta, _), qs)), "Operations are not equal");
+        }
     }
 }
