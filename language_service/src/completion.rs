@@ -245,7 +245,8 @@ fn collect_names(
                     | Div
                     | Signed
                     | Ord
-                    | Show => (),
+                    | Show 
+                    | Callable { .. } => (),
                 }
 
                 groups.push(vec![
@@ -264,6 +265,11 @@ fn collect_names(
                     Completion::new("Sub".to_string(), CompletionItemKind::Class),
                     Completion::new("Mul".to_string(), CompletionItemKind::Class),
                     Completion::new("Div".to_string(), CompletionItemKind::Class),
+                    Completion::with_detail(
+                        "Callable".to_string(),
+                        CompletionItemKind::Class,
+                        Some("Callable['Input, 'Output]".into()),
+                    ),
                 ]);
             }
         };

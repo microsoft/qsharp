@@ -972,12 +972,35 @@ fn check_adj(ty: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
 }
 
 fn check_call(callee: Ty, input: &ArgTy, output: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>) {
-    let Ty::Arrow(arrow) = callee else {
-        return (
-            Vec::new(),
-            vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
-        );
-    };
+    let arrow = match callee {
+        Ty::Arrow(arrow) => arrow,
+        Ty::Param { ref bounds, .. } => {
+            let Some(ClassConstraint::Callable {  input: declared_input_from_params, output: declared_output_from_params, .. }) = bounds.0.iter().find(|bound| {
+                matches!(bound, ClassConstraint::Callable { .. })
+            }) else { todo!("return err") };
+
+            // just check that the input and output match
+            let mut constraints = Vec::with_capacity(2);
+            constraints.push(Constraint::Eq {
+                expected: declared_input_from_params.clone(),
+                actual: input.to_ty(),
+                span,
+            });
+            constraints.push(Constraint::Eq {
+                expected: declared_output_from_params.clone(),
+                actual: output,
+                span,
+            });
+            return (constraints, vec![]);
+
+        }
+        _ => {
+            return (
+                Vec::new(),
+                vec![Error(ErrorKind::MissingClassCall(callee.display(), span))],
+            )
+        }
+    } ;
 
     // generate constraints for the arg ty that correspond to any class constraints specified in
     // the parameters
@@ -1457,5 +1480,13 @@ fn into_constraint(ty: Ty, bound: &ClassConstraint, span: Span) -> Constraint {
         ClassConstraint::Sub => Constraint::Class(Class::Sub(ty), span),
         ClassConstraint::Signed => Constraint::Class(Class::Signed(ty), span),
         ClassConstraint::Mod => Constraint::Class(Class::Mod(ty), span),
+        ClassConstraint::Callable { input, output } => Constraint::Class(
+            Class::Call {
+                callee: ty.clone(),
+                input: ArgTy::Given(input.clone()),
+                output: output.clone(),
+            },
+            span,
+        ),
     }
 }

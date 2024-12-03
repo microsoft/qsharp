@@ -932,6 +932,10 @@ impl Lowerer {
             HirClass::Mod => FirClass::Mod,
             HirClass::Signed => FirClass::Signed,
             HirClass::Ord => FirClass::Ord,
+            HirClass::Callable { input, output } => FirClass::Callable {
+                input: self.lower_ty(input),
+                output: self.lower_ty(output),
+            },
         }
     }
 }

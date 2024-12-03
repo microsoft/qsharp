@@ -235,6 +235,8 @@ pub enum ClassConstraint {
     Integral,
     /// Whether or not 'T can be displayed as a string (converted to a string).
     Show,
+    /// Whether 'T is callable with specific arguments and for specific outputs.
+    Callable { input: Ty, output: Ty },
     /// A class that is not built-in to the compiler.
     NonNativeClass(Rc<str>),
 }
@@ -255,6 +257,7 @@ impl std::fmt::Display for ClassConstraint {
             ClassConstraint::Mod => write!(f, "Mod"),
             ClassConstraint::Ord => write!(f, "Ord"),
             ClassConstraint::Signed => write!(f, "Signed"),
+            ClassConstraint::Callable { input, output } => write!(f, "Callable<{input} -> {output}>"),
         }
     }
 }

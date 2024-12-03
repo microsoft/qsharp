@@ -421,6 +421,13 @@ pub(crate) fn class_constraints_from_ast(
             "Div" => Ok(qsc_hir::ty::ClassConstraint::Div),
             "Signed" => Ok(qsc_hir::ty::ClassConstraint::Signed),
             "Show" => Ok(qsc_hir::ty::ClassConstraint::Show),
+            "Callable" => {
+                let (input, input_errors) = ty_from_ast(names, &ast_bound.parameters[0].ty, stack);
+                errors.extend(input_errors.into_iter());
+                let (output, output_errors) = ty_from_ast(names, &ast_bound.parameters[1].ty, stack);
+                errors.extend(output_errors.into_iter());
+                Ok(qsc_hir::ty::ClassConstraint::Callable { input, output })
+            } 
             otherwise => Err(TyConversionError::UnrecognizedClass {
                 span: ast_bound.span(),
                 name: otherwise.to_string(),
