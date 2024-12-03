@@ -19,9 +19,9 @@ import Std.Arrays.Mapped, Std.Arrays.All;
 ///
 /// # Example
 /// ```qsharp
-/// CheckAllTestCases([("Should return 42", () => 42, 42)]);
+/// CheckAllTestCases([("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 4), 1)]);
 /// ```
-operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : Bool {
+operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, Qubit[] => (), Qubit[] => 'T, 'T)[]) : Bool {
     let test_results = RunAllTestCases(test_cases);
 
     OutputMessage(test_results);
@@ -42,7 +42,7 @@ operation CheckAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[])
 ///
 /// # Example
 /// ```qsharp
-/// RunAllTestCases([("Should return 42", () => 42, 42)]);
+/// RunAllTestCases([("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 4), 1)]);
 /// ```
 operation RunAllTestCases<'T : Eq + Show>(test_cases : (String, Int, (Qubit[]) => (), (Qubit[]) => 'T, 'T)[]) : TestCaseResult[] {
     let num_tests = Length(test_cases);
