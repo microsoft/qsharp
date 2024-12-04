@@ -17,7 +17,6 @@ import {
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotConversation } from "./copilot.js";
-import { get } from "http";
 
 export type CopilotStreamCallback = (
   msgPayload: object,
@@ -207,7 +206,8 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
   },
 ];
 
-const job_limit = 10;
+const jobLimit = 10;
+const jobLimitDays = 7;
 
 export const GetJobs = async (
   conversation: CopilotConversation,
@@ -216,10 +216,22 @@ export const GetJobs = async (
   if (workspace) {
     const jobs = workspace.jobs;
 
-    const limited_jobs =
-      jobs.length > job_limit ? jobs.slice(0, job_limit) : jobs;
+    let limitedJobs = jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs;
 
-    return limited_jobs;
+    for (const job of limitedJobs) {
+      // Clear out potentially noisy fields
+      // TODO: make this an inclusive rather than exclusive list of props
+      job.errorData = undefined;
+      job.outputDataUri = undefined;
+    }
+
+    const start = new Date();
+    start.setTime;
+    start.setDate(start.getDate() - jobLimitDays);
+
+    limitedJobs = limitedJobs.filter((j) => new Date(j.creationTime) > start);
+
+    return limitedJobs;
   } else {
     return [];
   }
