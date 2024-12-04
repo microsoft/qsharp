@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::interpret::Debugger;
 use crate::line_column::Encoding;
 use qsc_data_structures::language_features::LanguageFeatures;

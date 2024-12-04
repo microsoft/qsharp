@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use super::expr;
 use crate::tests::check;
 use expect_test::expect;
@@ -348,19 +346,24 @@ fn lit_int_hexadecimal_dot() {
         expr,
         "0x123.45",
         &expect![[r#"
-        Error(
-            Rule(
-                "identifier",
-                Int(
-                    Decimal,
+            Expr _id_ [0-6]: Field:
+                Expr _id_ [0-5]: Lit: Int(291)
+                Err
+
+            [
+                Error(
+                    Rule(
+                        "identifier",
+                        Int(
+                            Decimal,
+                        ),
+                        Span {
+                            lo: 6,
+                            hi: 8,
+                        },
+                    ),
                 ),
-                Span {
-                    lo: 6,
-                    hi: 8,
-                },
-            ),
-        )
-    "#]],
+            ]"#]],
     );
 }
 

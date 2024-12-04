@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use expect_test::{expect, Expect};
 
 /// Each file in the samples/algorithms folder is compiled and run as two tests and should

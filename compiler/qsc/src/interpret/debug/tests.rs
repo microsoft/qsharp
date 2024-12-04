@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use indoc::indoc;
 use miette::Result;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};

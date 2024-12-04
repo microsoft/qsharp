@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use crate::compilation::Compilation;
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::ast::{FieldAccess, Idents, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
@@ -167,7 +168,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if namespace.span.contains(self.offset) {
-            self.context.current_namespace = namespace.name.name();
+            self.context.current_namespace = namespace.name.full_name();
             walk_namespace(self, namespace);
         }
     }
@@ -341,14 +342,16 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_expr(&mut self, expr: &'package ast::Expr) {
         if expr.span.touches(self.offset) {
             match &*expr.kind {
-                ast::ExprKind::Field(udt, field_ref) if field_ref.span.touches(self.offset) => {
+                ast::ExprKind::Field(udt, FieldAccess::Ok(field_ref))
+                    if field_ref.span.touches(self.offset) =>
+                {
                     if let Some(hir::ty::Ty::Udt(_, res)) = &self.compilation.get_ty(udt.id) {
                         if let Some((item_id, field_def)) = self.get_field_def(res, field_ref) {
                             self.inner.at_field_ref(field_ref, &item_id, field_def);
                         }
                     }
                 }
-                ast::ExprKind::Struct(ty_name, copy, fields) => {
+                ast::ExprKind::Struct(PathKind::Ok(ty_name), copy, fields) => {
                     if ty_name.span.touches(self.offset) {
                         self.visit_path(ty_name);
                         return;

@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes)]
-
 use crate::{
     qasm_to_program,
     tests::{fail_on_compilation_errors, gen_qsharp, parse},

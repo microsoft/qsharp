@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::needless_raw_string_hashes)]
 
 use std::sync::Arc;
 

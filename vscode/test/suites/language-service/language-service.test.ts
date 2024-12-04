@@ -72,7 +72,7 @@ suite("Q# Language Service Tests", function suite() {
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       testQs,
-      new vscode.Position(0, 0),
+      new vscode.Position(1, 0),
     )) as vscode.CompletionList;
 
     assert.include(

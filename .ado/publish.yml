@@ -19,7 +19,7 @@ schedules:
 
 variables:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.80"
+  RUST_TOOLCHAIN_VERSION: "1.82"
 
 resources:
   repositories:
@@ -201,6 +201,12 @@ extends:
             condition: succeeded()
         steps:
         # common init steps
+        - task: RustInstaller@1
+          inputs:
+            rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+            cratesIoFeedOverride: $(cratesIoFeedOverride)
+            toolchainFeed: $(toolchainFeed)
+          displayName: Install Rust toolchain
 
         - task: UsePythonVersion@0
           inputs:

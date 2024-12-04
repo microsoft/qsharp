@@ -73,6 +73,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         case "property":
           kind = vscode.CompletionItemKind.Property;
           break;
+        case "field":
+          kind = vscode.CompletionItemKind.Field;
+          break;
       }
       const item = new CompletionItem(c.label, kind);
       item.sortText = c.sortText;
@@ -82,6 +85,8 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       });
       return item;
     });
-    return results.concat(this.samples);
+
+    // Include the samples list for empty documents
+    return document.lineCount > 0 ? results : results.concat(this.samples);
   }
 }

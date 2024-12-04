@@ -6,13 +6,15 @@ mod tests;
 
 use super::{
     keyword::Keyword,
-    prim::{apos_ident, opt, path, seq, token},
+    prim::{apos_ident, opt, seq, token},
     scan::ParserContext,
     Error, Parser, Result,
 };
 use crate::{
+    completion::WordKinds,
     item::throw_away_doc,
     lex::{ClosedBinOp, Delim, TokenKind},
+    prim::recovering_path,
     ErrorKind,
 };
 use qsc_ast::ast::{
@@ -20,6 +22,7 @@ use qsc_ast::ast::{
 };
 
 pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
+    s.expect(WordKinds::PathTy);
     let lo = s.peek().span.lo;
     let lhs = base(s)?;
     array_or_arrow(s, lhs, lo)
@@ -89,7 +92,7 @@ fn base(s: &mut ParserContext) -> Result<Ty> {
         Ok(TyKind::Hole)
     } else if let Some(name) = opt(s, param)? {
         Ok(TyKind::Param(name))
-    } else if let Some(path) = opt(s, path)? {
+    } else if let Some(path) = opt(s, |s| recovering_path(s, WordKinds::PathTy))? {
         Ok(TyKind::Path(path))
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (tys, final_sep) = seq(s, ty)?;
