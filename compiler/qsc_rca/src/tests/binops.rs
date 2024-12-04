@@ -94,7 +94,7 @@ fn check_rca_for_nested_bin_ops_with_classic_operands() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         Sin(PI() / 2.0) ^ 2.0 + Cos(PI() / 2.0) ^ 2.0"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();

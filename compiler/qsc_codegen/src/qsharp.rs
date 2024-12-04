@@ -8,7 +8,7 @@ mod spec_decls;
 mod tests;
 
 #[cfg(test)]
-mod test_utils;
+pub mod test_utils;
 
 use std::io::Write;
 use std::vec;
@@ -52,6 +52,20 @@ pub fn write_store_string(store: &PackageStore) -> Vec<String> {
 pub fn write_package_string(package: &Package) -> String {
     let mut output = Vec::new();
     write(&mut output, &[package]);
+    let s = match std::str::from_utf8(&output) {
+        Ok(v) => v.to_owned(),
+        Err(e) => format!("Invalid UTF-8 sequence: {e}"),
+    };
+
+    output.clear();
+    format_str(&s)
+}
+
+#[must_use]
+pub fn write_stmt_string(stmt: &ast::Stmt) -> String {
+    let mut output = Vec::new();
+    let mut gen = QSharpGen::new(&mut output);
+    gen.visit_stmt(stmt);
     let s = match std::str::from_utf8(&output) {
         Ok(v) => v.to_owned(),
         Err(e) => format!("Invalid UTF-8 sequence: {e}"),
@@ -148,19 +162,26 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                     ImportOrExportItem {
                         ref path,
                         ref is_glob,
-                        ..
+                        ref alias,
                     },
                 ) in decl.items.iter().enumerate()
                 {
                     let is_last = ix == decl.items.len() - 1;
                     self.visit_path(path);
+
                     if *is_glob {
                         self.write(".*");
                     }
+
+                    if let Some(ref alias) = alias {
+                        self.write(&format!(" as {}", alias.name));
+                    }
+
                     if !is_last {
                         self.write(", ");
                     };
                 }
+
                 self.write(";");
             }
         }

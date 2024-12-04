@@ -7,8 +7,8 @@
 ///
 /// This Q# program implements the four different Bell states.
 namespace Sample {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
+    import Std.Diagnostics.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation BellStates() : (Result, Result)[] {

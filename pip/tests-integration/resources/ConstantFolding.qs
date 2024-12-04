@@ -1,8 +1,8 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Canon.*;
+    import Std.Measurement.*;
 
     // Verifies constant folding, unrolling, optimizing out of invalid array access, array concatenation.
     // Expected output: [1, 1, 1, 1]

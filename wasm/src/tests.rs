@@ -52,7 +52,7 @@ fn test_compile() {
 
     let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
 
-    let result = qsc::codegen::get_qir(
+    let result = qsc::codegen::qir::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
         TargetCapabilityFlags::empty(),
@@ -112,7 +112,7 @@ fn fail_ry() {
 #[test]
 fn test_message() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi");
@@ -129,10 +129,46 @@ fn test_message() {
     );
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_matrix() {
+    let code = r"namespace Test {
+        import Microsoft.Quantum.Diagnostics.DumpOperation;
+        operation Main() : Unit {
+            DumpOperation(2, Bell);
+        }
+
+        operation Bell(q: Qubit[]) : Unit is Adj {
+            H(q[0]);
+            CX(q[0], q[1]);
+        }
+    }";
+    let expr = "Test.Main()";
+    let count = std::cell::Cell::new(0);
+    let result = run_internal(
+        SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
+        |msg| {
+            if msg.contains("Matrix") {
+                count.set(count.get() + 1);
+                // Check the start and end of the matrix LaTeX is formatted as expected
+                assert!(msg.contains(
+                    r"$ \\begin{bmatrix} \\frac{1}{\\sqrt{2}} & 0 & \\frac{1}{\\sqrt{2}} & 0 \\\\"
+                ));
+                assert!(msg.contains(
+                    r"\\frac{1}{\\sqrt{2}} & 0 & -\\frac{1}{\\sqrt{2}} & 0 \\\\ \\end{bmatrix} $"
+                ));
+            }
+        },
+        1,
+    );
+    assert!(result.is_ok());
+    assert!(count.get() == 1);
+}
+
 #[test]
 fn message_with_escape_sequences() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("\ta\n\t");
@@ -153,7 +189,7 @@ fn message_with_escape_sequences() {
 #[test]
 fn message_with_backslashes() {
     let code = r#"namespace Sample {
-        open Microsoft.Quantum.Diagnostics;
+        import Std.Diagnostics.*;
 
         operation main() : Unit {
             Message("hi \\World");
@@ -397,7 +433,7 @@ fn test_compile_error_related_spans() {
             namespace Other { operation DumpMachine() : Unit { } }
             namespace Test {
                 open Other;
-                open Microsoft.Quantum.Diagnostics;
+                import Std.Diagnostics.*;
                 @EntryPoint()
                 operation Main() : Unit {
                     DumpMachine()
@@ -411,7 +447,7 @@ fn test_compile_error_related_spans() {
         1,
     )
     .expect_err("code should fail to compile");
-    expect![[r#"{"result":{"code":"Qsc.Resolve.Ambiguous","message":"name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`","range":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}},"related":[{"location":{"source":"test.qs","span":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}}},"message":"ambiguous name"},{"location":{"source":"test.qs","span":{"end":{"character":14,"line":2},"start":{"character":9,"line":2}}},"message":"found in this namespace"},{"location":{"source":"test.qs","span":{"end":{"character":38,"line":3},"start":{"character":9,"line":3}}},"message":"and also in this namespace"}],"severity":"error"},"success":false,"type":"Result"}"#]]
+    expect![[r#"{"result":{"code":"Qsc.Resolve.Ambiguous","message":"name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`","range":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}},"related":[{"location":{"source":"test.qs","span":{"end":{"character":19,"line":6},"start":{"character":8,"line":6}}},"message":"ambiguous name"},{"location":{"source":"test.qs","span":{"end":{"character":14,"line":2},"start":{"character":9,"line":2}}},"message":"found in this namespace"},{"location":{"source":"test.qs","span":{"end":{"character":26,"line":3},"start":{"character":11,"line":3}}},"message":"and also in this namespace"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 

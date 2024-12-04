@@ -9,12 +9,12 @@
 /// [arXiv:1905.09749](https://arxiv.org/abs/1905.09749). This makes it ideal
 /// for use with the Azure Quantum Resource Estimator.
 namespace Microsoft.Quantum.Applications.Cryptography {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.ResourceEstimation;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.Unstable.TableLookup;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.ResourceEstimation.*;
+    import Std.Arrays.*;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Microsoft.Quantum.Unstable.TableLookup.*;
 
     // !!! IMPORTANT !!!
     // When computing resource estimtes from the VS Code plugin directly on this

@@ -3,4 +3,3 @@
 
 pub mod qir;
 pub mod qsharp;
-pub mod remapper;

@@ -146,7 +146,7 @@ fn ignore_unstable_callable() {
     check(
         r#"
         namespace Test {
-            open Microsoft.Quantum.Unstable;
+            import Microsoft.Quantum.Unstable.*;
             operation Foo() : Unit {
                 ↘
             }
@@ -1398,6 +1398,62 @@ fn dont_import_if_already_glob_imported() {
                             "operation Bar() : Unit",
                         ),
                         additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+// expect an auto-import for `Foo.Bar`, separate from the preexisting glob import `Foo.Bar.*`
+#[test]
+fn glob_import_item_with_same_name() {
+    check(
+        r#"
+        namespace Foo {
+            operation Bar() : Unit {
+            }
+        }
+
+        namespace Foo.Bar {
+        }
+
+        namespace Baz {
+            import Foo.Bar.*;
+            operation Main(): Unit {
+                ↘
+            }
+        }"#,
+        &["Bar"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Function,
+                        sort_text: Some(
+                            "0600Bar",
+                        ),
+                        detail: Some(
+                            "operation Bar() : Unit",
+                        ),
+                        additional_text_edits: Some(
+                            [
+                                TextEdit {
+                                    new_text: "import Foo.Bar;\n            ",
+                                    range: Range {
+                                        start: Position {
+                                            line: 10,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 10,
+                                            column: 12,
+                                        },
+                                    },
+                                },
+                            ],
+                        ),
                     },
                 ),
             ]

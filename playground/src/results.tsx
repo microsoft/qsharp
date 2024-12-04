@@ -4,7 +4,7 @@
 import { QscEventTarget, ShotResult, VSDiagnostic } from "qsharp-lang";
 import { useEffect, useState } from "preact/hooks";
 
-import { Histogram } from "qsharp-lang/ux";
+import { Histogram, Markdown } from "qsharp-lang/ux";
 import { StateTable } from "./state.js";
 import { ActiveTab } from "./main.js";
 
@@ -240,13 +240,15 @@ export function ResultsTab(props: {
             {resultState.currResult?.events.map((evt) => {
               return evt.type === "Message" ? (
                 <div class="message-output">&gt; {evt.message}</div>
-              ) : (
+              ) : evt.type === "DumpMachine" ? (
                 <div>
                   <StateTable
                     dump={evt.state}
                     latexDump={evt.stateLatex}
                   ></StateTable>
                 </div>
+              ) : (
+                <Markdown markdown={evt.matrixLatex} />
               );
             })}
           </div>

@@ -110,14 +110,9 @@ export function Editor(props: {
   >([]);
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
-  function markErrors(version?: number) {
+  function markErrors() {
     const model = editor.current?.getModel();
     if (!model) return;
-
-    if (version != null && version !== model.getVersionId()) {
-      // Diagnostics event received for an outdated model
-      return;
-    }
 
     const errs = [
       ...errMarks.current.checkDiags,
@@ -304,7 +299,7 @@ export function Editor(props: {
     function onDiagnostics(evt: LanguageServiceEvent) {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
-      markErrors(evt.detail.version);
+      markErrors();
       setHasCheckErrors(
         diagnostics.filter((d) => d.severity === "error").length > 0,
       );
@@ -364,15 +359,15 @@ export function Editor(props: {
     try {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
-      // Get current URL without query parameters to use as the base URL
-      const newUrl = `${
-        window.location.href.split("?")[0]
-      }?code=${escapedCode}&profile=${profile}`;
+      // Update or add the current URL parameters 'code' and 'profile'
+      const newURL = new URL(window.location.href);
+      newURL.searchParams.set("code", escapedCode);
+      newURL.searchParams.set("profile", profile);
 
       // Copy link to clipboard and update url without reloading the page
-      navigator.clipboard.writeText(newUrl);
+      navigator.clipboard.writeText(newURL.toString());
 
-      window.history.pushState({}, "", newUrl);
+      window.history.pushState({}, "", newURL.toString());
       messageText = "Link was copied to the clipboard";
     } finally {
       const popup = document.getElementById("popup") as HTMLDivElement;
@@ -448,14 +443,16 @@ export function Editor(props: {
       </div>
       <div class="code-editor" ref={editorDiv}></div>
       <div class="button-row">
-        <>
-          <span>Profile</span>
-          <select value={profile} onChange={profileChanged}>
-            <option value="unrestricted">Unrestricted</option>
-            <option value="adaptive_ri">Adaptive RI</option>
-            <option value="base">Base</option>
-          </select>
-        </>
+        {props.kataSection ? null : (
+          <>
+            <span>Profile</span>
+            <select value={profile} onChange={profileChanged}>
+              <option value="unrestricted">Unrestricted</option>
+              <option value="adaptive_ri">Adaptive RI</option>
+              <option value="base">Base</option>
+            </select>
+          </>
+        )}
         {props.showExpr ? (
           <>
             <span>Start</span>

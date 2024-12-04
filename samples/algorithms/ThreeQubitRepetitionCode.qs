@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Samples {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Math.*;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation ThreeQubitRepetitionCode() : (Bool, Int) {

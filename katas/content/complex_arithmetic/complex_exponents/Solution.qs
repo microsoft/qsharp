@@ -1,8 +1,7 @@
-namespace Kata { 
+namespace Kata {
     open Microsoft.Quantum.Math;
 
-    function ComplexExponent (x : Complex) : Complex {
-        let (a, b) = x!;
-        return Complex(E()^a * Cos(b), E()^a * Sin(b));
+    function ComplexExponent(x : Complex) : Complex {
+        Complex(E()^x.Real * Cos(x.Imag), E()^x.Real * Sin(x.Imag))
     }
 }

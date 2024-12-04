@@ -5,8 +5,8 @@ use std::collections::hash_map::Entry;
 
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64};
-use num_traits::{One, Zero};
-use rustc_hash::FxHashMap;
+use num_traits::Zero;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Given a state and a set of qubits, split the state into two parts: the qubits to dump and the remaining qubits.
 /// This function will return an error if the state is not separable using the provided qubit identifiers.
@@ -22,26 +22,13 @@ pub fn split_state(
     }
 
     let mut dump_state = FxHashMap::default();
-    let mut other_state = FxHashMap::default();
 
     // Compute the mask for the qubits to dump and the mask for the other qubits.
     let (dump_mask, other_mask) = compute_mask(qubit_count, qubits);
 
     // Try to split out the state for the given qubits from the whole state, detecting any entanglement
     // and returning an error if the qubits are not separable.
-    let dump_norm = collect_split_state(
-        state,
-        &dump_mask,
-        &other_mask,
-        &mut dump_state,
-        &mut other_state,
-    )?;
-
-    // If the product of the collected states is not equal to the total number of input states, then that
-    // implies some states are zero amplitude that would have to be non-zero for the state to be separable.
-    if state.len() != dump_state.len() * other_state.len() {
-        return Err(());
-    }
+    let dump_norm = collect_split_state(state, &dump_mask, &other_mask, &mut dump_state)?;
 
     let dump_norm = 1.0 / dump_norm.sqrt();
     let mut dump_state = dump_state
@@ -79,7 +66,6 @@ fn collect_split_state(
     dump_mask: &BigUint,
     other_mask: &BigUint,
     dump_state: &mut FxHashMap<BigUint, Complex64>,
-    other_state: &mut FxHashMap<BigUint, Complex64>,
 ) -> Result<f64, ()> {
     // To ensure consistent ordering, we iterate over the vector directly (returned from the simulator in a deterministic order),
     // and not the map used for arbitrary lookup.
@@ -88,12 +74,11 @@ fn collect_split_state(
     let (base_label, base_val) = state_iter.next().expect("state should never be empty");
     let dump_base_label = base_label & dump_mask;
     let other_base_label = base_label & other_mask;
-    let mut dump_norm = 1.0_f64;
+    let mut dump_norm = base_val.norm().powi(2);
+    let mut other_state = FxHashSet::default();
 
-    // Start with an amplitude of 1 in the first expected split states. This becomes the basis
-    // of the split later, but will get normalized as part of collecting the remaining states.
-    dump_state.insert(dump_base_label.clone(), Complex64::one());
-    other_state.insert(other_base_label.clone(), Complex64::one());
+    dump_state.insert(dump_base_label.clone(), *base_val);
+    other_state.insert(other_base_label.clone());
 
     for (curr_label, curr_val) in state_iter {
         let dump_label = curr_label & dump_mask;
@@ -117,22 +102,22 @@ fn collect_split_state(
         }
 
         if let Entry::Vacant(entry) = dump_state.entry(dump_label) {
-            // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
-            // state, and vice-versa below.
-            let amplitude = curr_val / other_val;
+            let amplitude = *curr_val;
             let norm = amplitude.norm().powi(2);
             if !norm.is_nearly_zero() {
                 entry.insert(amplitude);
                 dump_norm += norm;
             }
         }
-        if let Entry::Vacant(entry) = other_state.entry(other_label) {
-            let amplitude = curr_val / dump_val;
-            let norm = amplitude.norm().powi(2);
-            if !norm.is_nearly_zero() {
-                entry.insert(amplitude);
-            }
+        if !(curr_val / dump_val).norm().powi(2).is_nearly_zero() {
+            other_state.insert(other_label);
         }
+    }
+
+    // If the product of the collected states is not equal to the total number of input states, then that
+    // implies some states are zero amplitude that would have to be non-zero for the state to be separable.
+    if state.len() != dump_state.len() * other_state.len() {
+        return Err(());
     }
     Ok(dump_norm)
 }
@@ -184,4 +169,29 @@ where
     fn is_nearly_zero(&self) -> bool {
         self.re.is_nearly_zero() && self.im.is_nearly_zero()
     }
+}
+
+pub(crate) fn state_to_matrix(
+    state: Vec<(BigUint, Complex64)>,
+    qubit_count: usize,
+) -> Vec<Vec<Complex64>> {
+    let state: FxHashMap<BigUint, Complex<f64>> = state.into_iter().collect();
+    let mut matrix = Vec::new();
+    let num_entries: usize = 1 << qubit_count;
+    #[allow(clippy::cast_precision_loss)]
+    let factor = (num_entries as f64).sqrt();
+    for i in 0..num_entries {
+        let mut row = Vec::new();
+        for j in 0..num_entries {
+            let key = BigUint::from(i * num_entries + j);
+            let val = match state.get(&key) {
+                Some(val) => val * factor,
+                None => Complex::zero(),
+            };
+            row.push(val);
+        }
+        matrix.push(row);
+    }
+
+    matrix
 }

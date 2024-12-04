@@ -295,22 +295,22 @@ fn call_generic_identity() {
 fn call_generic_length() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length([true, false, true])",
-        &expect![[r#"
-            #9 58-69 "(xs : 'T[])" : ?
-            #10 59-68 "xs : 'T[]" : ?
-            #19 98-125 "Length([true, false, true])" : Int
-            #20 98-104 "Length" : (Bool[] -> Int)
-            #23 104-125 "([true, false, true])" : Bool[]
-            #24 105-124 "[true, false, true]" : Bool[]
-            #25 106-110 "true" : Bool
-            #26 112-117 "false" : Bool
-            #27 119-123 "true" : Bool
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-111 "Length([true, false, true])" : Int
+            #19 84-90 "Length" : (Bool[] -> Int)
+            #22 90-111 "([true, false, true])" : Bool[]
+            #23 91-110 "[true, false, true]" : Bool[]
+            #24 92-96 "true" : Bool
+            #25 98-103 "false" : Bool
+            #26 105-109 "true" : Bool
+        "##]],
     );
 }
 
@@ -419,24 +419,24 @@ fn int_as_double_error() {
 fn length_type_error() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Core {
+            namespace Std.Core {
                 function Length<'T>(xs : 'T[]) : Int { body intrinsic; }
             }
         "},
         "Length((1, 2, 3))",
-        &expect![[r#"
-            #9 58-69 "(xs : 'T[])" : ?
-            #10 59-68 "xs : 'T[]" : ?
-            #19 98-115 "Length((1, 2, 3))" : Int
-            #20 98-104 "Length" : (?0[] -> Int)
-            #23 104-115 "((1, 2, 3))" : (Int, Int, Int)
-            #24 105-114 "(1, 2, 3)" : (Int, Int, Int)
-            #25 106-107 "1" : Int
-            #26 109-110 "2" : Int
-            #27 112-113 "3" : Int
-            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
-            Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
-        "#]],
+        &expect![[r##"
+            #8 44-55 "(xs : 'T[])" : ?
+            #9 45-54 "xs : 'T[]" : ?
+            #18 84-101 "Length((1, 2, 3))" : Int
+            #19 84-90 "Length" : (?0[] -> Int)
+            #22 90-101 "((1, 2, 3))" : (Int, Int, Int)
+            #23 91-100 "(1, 2, 3)" : (Int, Int, Int)
+            #24 92-93 "1" : Int
+            #25 95-96 "2" : Int
+            #26 98-99 "3" : Int
+            Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 84, hi: 101 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 84, hi: 90 }))))
+        "##]],
     );
 }
 
@@ -444,7 +444,7 @@ fn length_type_error() {
 fn single_arg_for_tuple() {
     check(
         indoc! {"
-            namespace Microsoft.Quantum.Intrinsic {
+            namespace Std.Intrinsic {
                 operation Ry(theta : Double, qubit : Qubit) : () is Adj + Ctl {}
             }
         "},
@@ -452,21 +452,21 @@ fn single_arg_for_tuple() {
             use q = Qubit();
             Ry(q);
         }"},
-        &expect![[r#"
-            #8 56-87 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
-            #9 57-71 "theta : Double" : Double
-            #14 73-86 "qubit : Qubit" : Qubit
-            #23 106-108 "{}" : Unit
-            #24 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #25 111-146 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
-            #27 121-122 "q" : Qubit
-            #29 125-132 "Qubit()" : Qubit
-            #31 138-143 "Ry(q)" : Unit
-            #32 138-140 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
-            #35 140-143 "(q)" : Qubit
-            #36 141-142 "q" : Qubit
-            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 138, hi: 143 }))))
-        "#]],
+        &expect![[r##"
+            #7 42-73 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
+            #8 43-57 "theta : Double" : Double
+            #13 59-72 "qubit : Qubit" : Qubit
+            #22 92-94 "{}" : Unit
+            #23 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #24 97-132 "{\n    use q = Qubit();\n    Ry(q);\n}" : Unit
+            #26 107-108 "q" : Qubit
+            #28 111-118 "Qubit()" : Qubit
+            #30 124-129 "Ry(q)" : Unit
+            #31 124-126 "Ry" : ((Double, Qubit) => Unit is Adj + Ctl)
+            #34 126-129 "(q)" : Qubit
+            #35 127-128 "q" : Qubit
+            Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 124, hi: 129 }))))
+        "##]],
     );
 }
 

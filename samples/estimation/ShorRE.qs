@@ -7,15 +7,15 @@
 /// we omit the classical pre- and post-processing. This makes it ideal for
 /// use with the Azure Quantum Resource Estimator.
 namespace Shors {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Unstable.Arithmetic;
-    open Microsoft.Quantum.ResourceEstimation;
+    import Std.Arrays.*;
+    import Std.Canon.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Intrinsic.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
+    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Std.ResourceEstimation.*;
 
     @EntryPoint()
     operation RunProgram() : Unit {

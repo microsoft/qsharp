@@ -7,11 +7,11 @@
 ///
 /// This Q# program implements the Bernstein-Vazirani algorithm.
 namespace Sample {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
 
     @EntryPoint()
     operation Main() : Int[] {
@@ -157,7 +157,7 @@ namespace Sample {
     /// Returns black-box operations (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
-    operation EncodeIntegerAsParityOperation(bitStringAsInt : Int) : (Qubit[], Qubit) => Unit {
+    function EncodeIntegerAsParityOperation(bitStringAsInt : Int) : (Qubit[], Qubit) => Unit {
         return ApplyParityOperation(bitStringAsInt, _, _);
     }
 }

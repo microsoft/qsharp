@@ -8,7 +8,7 @@ The 4 basis states on $N = 2$ qubits can be split in two columns, where the left
   <tr><td> <b>1</b>0 </td><td> <b>1</b>1 </td></tr>
 </table>
  
-If we do the same basis state split for $N = 3$ qubits, the pattern becomes more obvious.
+If you do the same basis state split for $N = 3$ qubits, the pattern becomes more obvious.
 
 <table>
   <tr><th>even</th><th>odd</th></tr>
@@ -39,7 +39,7 @@ A quick sanity check for $N = 4$ qubits re-confirms the pattern.
  
 Again, the three leftmost qubits go through all possible basis states in both columns, and the rightmost qubit stays in the same state in each column. 
 
-The solution is to put all qubits except the rightmost one into an equal superposition (similar to what we did in the 'Superposition of all basis vectors' task) and to set the rightmost qubit to $\ket{0}$ or $\ket{1}$ depending on the `isEven` flag, using the X operator to convert $\ket{0}$ to $\ket{1}$ if `isEven = false`.
+The solution is to put all qubits except the rightmost one into an equal superposition (similar to what you did in the 'Superposition of all basis vectors' task) and to set the rightmost qubit to $\ket{0}$ or $\ket{1}$ depending on the `isEven` flag, using the $X$ operator to convert $\ket{0}$ to $\ket{1}$ if `isEven = false`.
  
 
 @[solution]({

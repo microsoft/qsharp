@@ -9,13 +9,31 @@ from ._native import (
     Output,
     Circuit,
 )
-from warnings import warn
-from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    TypedDict,
+    Union,
+    List,
+    overload,
+)
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
 
 _interpreter = None
+
+# Check if we are running in a Jupyter notebook to use the IPython display function
+_in_jupyter = False
+try:
+    from IPython.display import display
+
+    if get_ipython().__class__.__name__ == "ZMQInteractiveShell":  # type: ignore
+        _in_jupyter = True  # Jupyter notebook or qtconsole
+except:
+    pass
 
 
 # Reporting execution time during IPython cells requires that IPython
@@ -169,6 +187,13 @@ def eval(source: str) -> Any:
     ipython_helper()
 
     def callback(output: Output) -> None:
+        if _in_jupyter:
+            try:
+                display(output)
+                return
+            except:
+                # If IPython is not available, fall back to printing the output
+                pass
         print(output, flush=True)
 
     return get_interpreter().interpret(source, callback)
@@ -212,6 +237,13 @@ def run(
     results: List[ShotResult] = []
 
     def print_output(output: Output) -> None:
+        if _in_jupyter:
+            try:
+                display(output)
+                return
+            except:
+                # If IPython is not available, fall back to printing the output
+                pass
         print(output, flush=True)
 
     def on_save_events(output: Output) -> None:
@@ -305,7 +337,8 @@ def circuit(
 
 
 def estimate(
-    entry_expr, params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+    entry_expr: str,
+    params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
 ) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
@@ -313,22 +346,31 @@ def estimate(
     :param entry_expr: The entry expression.
     :param params: The parameters to configure physical estimation.
 
-    :returns resources: The estimated resources.
+    :returns `EstimatorResult`: The estimated resources.
     """
+
     ipython_helper()
 
-    if params is None:
-        params = [{}]
-    elif isinstance(params, EstimatorParams):
-        if params.has_items:
-            params = params.as_dict()["items"]
-        else:
-            params = [params.as_dict()]
-    elif isinstance(params, dict):
-        params = [params]
-    return EstimatorResult(
-        json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
-    )
+    def _coerce_estimator_params(
+        params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+    ) -> List[Dict[str, Any]]:
+        if params is None:
+            params = [{}]
+        elif isinstance(params, EstimatorParams):
+            if params.has_items:
+                params = params.as_dict()["items"]
+            else:
+                params = [params.as_dict()]
+        elif isinstance(params, dict):
+            params = [params]
+        return params
+
+    params = _coerce_estimator_params(params)
+    param_str = json.dumps(params)
+
+    res_str = get_interpreter().estimate(entry_expr, param_str)
+    res = json.loads(res_str)
+    return EstimatorResult(res)
 
 
 def set_quantum_seed(seed: Optional[int]) -> None:
@@ -387,11 +429,8 @@ class StateDump:
     def __str__(self) -> str:
         return self.__data.__str__()
 
-    def _repr_html_(self) -> str:
-        return self.__data._repr_html_()
-
-    def _repr_latex_(self) -> Optional[str]:
-        return self.__data._repr_latex_()
+    def _repr_markdown_(self) -> str:
+        return self.__data._repr_markdown_()
 
     def check_eq(
         self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10

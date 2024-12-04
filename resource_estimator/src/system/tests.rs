@@ -3,9 +3,12 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::estimates::{
-    ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, FactoryPart, Overhead,
-    PhysicalResourceEstimation, PhysicalResourceEstimationResult,
+use crate::{
+    estimates::{
+        ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, FactoryPart, Overhead,
+        PhysicalResourceEstimation, PhysicalResourceEstimationResult,
+    },
+    system::modeling::{floquet_code, surface_code_gate_based},
 };
 
 use super::{
@@ -134,7 +137,7 @@ impl Overhead for TestLayoutOverhead {
 
 #[test]
 pub fn test_no_tstates() {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
 
     let partitioning = ErrorBudget::new(1e-3, 0.0, 0.0);
@@ -153,7 +156,7 @@ pub fn test_no_tstates() {
 
 #[test]
 pub fn single_tstate() -> Result<()> {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
 
     let partitioning = ErrorBudget::new(0.5e-4, 0.5e-4, 0.0);
@@ -174,7 +177,7 @@ pub fn single_tstate() -> Result<()> {
 
 #[test]
 pub fn perfect_tstate() -> Result<()> {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::GateBased(GateBasedPhysicalQubit {
         t_gate_error_rate: 0.5e-4,
         ..GateBasedPhysicalQubit::default()
@@ -206,9 +209,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
-) {
+fn validate_result_invariants(result: &PhysicalResourceEstimationResult<Protocol, TFactory>) {
     let part = get_factory(result);
 
     assert_eq!(
@@ -228,7 +229,7 @@ fn validate_result_invariants<L: Overhead>(
 #[allow(clippy::too_many_lines)]
 #[test]
 pub fn test_hubbard_e2e() -> Result<()> {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
     let estimation = PhysicalResourceEstimation::new(
@@ -271,7 +272,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
 
     validate_result_invariants(&result);
 
-    let same_ftp = Protocol::default();
+    let same_ftp = surface_code_gate_based();
     let output_t_error_rate = part.required_output_error_rate();
     let builder = create_factory_builder();
     let tfactories = builder
@@ -280,7 +281,9 @@ pub fn test_hubbard_e2e() -> Result<()> {
             &qubit,
             0,
             output_t_error_rate,
-            &same_ftp.max_code_distance(),
+            same_ftp
+                .max_code_distance()
+                .expect("code has max code distance"),
         )
         .expect("can compute factories");
 
@@ -323,7 +326,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
 #[allow(clippy::too_many_lines)]
 #[test]
 pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
     let estimation = PhysicalResourceEstimation::new(
@@ -365,7 +368,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
     validate_result_invariants(&result);
 
     let output_t_error_rate = part.required_output_error_rate();
-    let same_ftp = Protocol::floquet_code();
+    let same_ftp = floquet_code();
     let builder = create_factory_builder();
     let tfactories = builder
         .find_factories(
@@ -373,7 +376,9 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
             &qubit,
             0,
             output_t_error_rate,
-            &same_ftp.max_code_distance(),
+            same_ftp
+                .max_code_distance()
+                .expect("code has max code distance"),
         )
         .expect("can compute factories");
 
@@ -415,7 +420,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
 
 #[test]
 pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
     let estimation = PhysicalResourceEstimation::new(
@@ -443,7 +448,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
 
 #[test]
 pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
     let estimation = PhysicalResourceEstimation::new(
@@ -471,7 +476,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
 
 fn prepare_chemistry_estimation_with_expected_majorana(
 ) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
     let value = r#"{
@@ -640,7 +645,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
 
 fn prepare_factorization_estimation_with_optimistic_majorana(
 ) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
     let value = r#"{
@@ -773,7 +778,7 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Resu
 
 fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
 ) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
-    let ftp = Protocol::surface_code_gate_based();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
 
     let value = r#"{
@@ -895,7 +900,7 @@ fn build_frontier_test() {
 fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
 ) -> PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> {
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
 
     let value = r#"{
         "numQubits": 5,
@@ -958,7 +963,7 @@ fn build_frontier_bit_flip_code_test() {
 fn code_distance_tests() {
     let params = JobParams::default();
 
-    let ftp = Protocol::surface_code_gate_based();
+    let ftp = surface_code_gate_based();
 
     for logical_qubits in (50..=1000).step_by(50) {
         for num_cycles in (50_000..=500_000).step_by(50_000) {
@@ -973,7 +978,9 @@ fn code_distance_tests() {
                     .compute_code_parameter(&qubit, required_logical_qubit_error_rate)
                     .expect("code distance can be computed");
 
-                assert!(code_distance <= ftp.max_code_distance());
+                assert!(
+                    code_distance <= *ftp.max_code_distance().expect("code has max code distance")
+                );
             }
         }
     }
@@ -1047,7 +1054,7 @@ fn strip_numbers(value: &Value) -> Value {
 // In this system, there is only one magic state type, T states, and therefore
 // one factory part in the result with information on the factory.
 fn get_factory(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory>,
 ) -> &FactoryPart<TFactory> {
     result.factory_parts()[0]
         .as_ref()

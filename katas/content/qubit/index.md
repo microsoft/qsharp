@@ -163,7 +163,7 @@ Freshly allocated qubits start out in state $\ket{0}$, and have to be returned t
 
 ## Visualizing Quantum State
 
-Before we continue, let's learn some techniques to visualize the quantum state of our qubits.
+Before continuing, let's learn some techniques to visualize the quantum state of the qubits.
 
 ### Display the Quantum State of a Single-Qubit Program
 

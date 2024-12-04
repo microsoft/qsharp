@@ -615,12 +615,12 @@ fn check_cfc_l() {
 #[test]
 fn check_real_mod() {
     test_expression(
-        "{ open Microsoft.Quantum.Math;
+        "{ import Std.Math.*;
         RealMod(5.5 * PI(), 2.0 * PI(), 0.0) }",
         &Value::Double(1.5 * PI),
     );
     test_expression(
-        "{ open Microsoft.Quantum.Math;
+        "{ import Std.Math.*;
             RealMod(0.5 * PI(), 2.0 * PI(), -PI()/2.0) }",
         &Value::Double(0.5 * PI),
     );
@@ -866,13 +866,13 @@ fn check_p_normalized() {
 fn check_abs_squared_complex() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsSquaredComplex(Complex(1.0,1.0))}",
         &Value::Double(2.0),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsSquaredComplex(Complex(-3.0,4.0))}",
         &Value::Double(25.0),
     );
@@ -882,13 +882,13 @@ fn check_abs_squared_complex() {
 fn check_abs_complex() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsComplex(Complex(1.0,1.0))}",
         &Value::Double(2.0_f64.sqrt()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsComplex(Complex(-3.0,4.0))}",
         &Value::Double(5.0),
     );
@@ -898,13 +898,13 @@ fn check_abs_complex() {
 fn check_arg_complex() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         ArgComplex(Complex(100.0,0.0))}",
         &Value::Double(0.0),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         ArgComplex(Complex(1.0,1.0))}",
         &Value::Double(PI / 4.0),
     );
@@ -914,13 +914,13 @@ fn check_arg_complex() {
 fn check_abs_squared_complex_polar() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsSquaredComplexPolar(ComplexPolar(1.0,2.0))}",
         &Value::Double(1.0),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsSquaredComplexPolar(ComplexPolar(5.0,-1.0))}",
         &Value::Double(25.0),
     );
@@ -930,13 +930,13 @@ fn check_abs_squared_complex_polar() {
 fn check_abs_complex_polar() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsComplexPolar(ComplexPolar(1.0,2.0))}",
         &Value::Double(1.0),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         AbsComplexPolar(ComplexPolar(5.0,-1.0))}",
         &Value::Double(5.0),
     );
@@ -946,13 +946,13 @@ fn check_abs_complex_polar() {
 fn check_arg_complex_polar() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         ArgComplexPolar(ComplexPolar(1.0,2.0))}",
         &Value::Double(2.0),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         ArgComplexPolar(ComplexPolar(5.0,-1.0))}",
         &Value::Double(-1.0),
     );
@@ -962,13 +962,13 @@ fn check_arg_complex_polar() {
 fn check_negation_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         NegationC(Complex(1.0,2.0))}",
         &Value::Tuple(vec![Value::Double(-1.0), Value::Double(-2.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         NegationC(Complex(5.0,-1.0))}",
         &Value::Tuple(vec![Value::Double(-5.0), Value::Double(1.0)].into()),
     );
@@ -978,13 +978,13 @@ fn check_negation_c() {
 fn check_negation_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         NegationCP(ComplexPolar(1.0,0.0))}",
         &Value::Tuple(vec![Value::Double(1.0), Value::Double(PI)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         NegationCP(ComplexPolar(5.0,-PI()/2.0))}",
         &Value::Tuple(vec![Value::Double(5.0), Value::Double(PI / 2.0)].into()),
     );
@@ -994,13 +994,13 @@ fn check_negation_cp() {
 fn check_plus_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PlusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
         &Value::Tuple(vec![Value::Double(1.0), Value::Double(1.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PlusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
         &Value::Tuple(vec![Value::Double(0.0), Value::Double(20.0)].into()),
     );
@@ -1010,13 +1010,13 @@ fn check_plus_c() {
 fn check_plus_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PlusCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
         &Value::Tuple(vec![Value::Double(2.0_f64.sqrt()), Value::Double(PI / 4.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PlusCP(ComplexPolar(10.0,PI()/4.0), ComplexPolar(10.0,3.0*PI()/4.0))}",
         &Value::Tuple(vec![Value::Double(200.0_f64.sqrt()), Value::Double(PI / 2.0)].into()),
     );
@@ -1026,13 +1026,13 @@ fn check_plus_cp() {
 fn check_minus_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         MinusC(Complex(1.0,0.0), Complex(0.0,1.0))}",
         &Value::Tuple(vec![Value::Double(1.0), Value::Double(-1.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         MinusC(Complex(10.0,10.0), Complex(-10.0,10.0))}",
         &Value::Tuple(vec![Value::Double(20.0), Value::Double(0.0)].into()),
     );
@@ -1042,7 +1042,7 @@ fn check_minus_c() {
 fn check_minus_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         MinusCP(ComplexPolar(4.0,0.0), ComplexPolar(1.0,-PI()))}",
         &Value::Tuple(vec![Value::Double(5.0), Value::Double(0.0)].into()),
     );
@@ -1052,19 +1052,19 @@ fn check_minus_cp() {
 fn check_times_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         TimesC(Complex(2.0,0.0), Complex(3.0,0.0))}",
         &Value::Tuple(vec![Value::Double(6.0), Value::Double(0.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         TimesC(Complex(3.0,0.0), Complex(0.0,1.0))}",
         &Value::Tuple(vec![Value::Double(0.0), Value::Double(3.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         TimesC(Complex(1.0,2.0), Complex(3.0,4.0))}",
         &Value::Tuple(vec![Value::Double(-5.0), Value::Double(10.0)].into()),
     );
@@ -1074,13 +1074,13 @@ fn check_times_c() {
 fn check_times_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         TimesCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
         &Value::Tuple(vec![Value::Double(1.0), Value::Double(PI / 2.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         TimesCP(ComplexPolar(1.0,PI()/4.0), ComplexPolar(2.0,3.0*PI()/4.0))}",
         &Value::Tuple(vec![Value::Double(2.0), Value::Double(PI)].into()),
     );
@@ -1090,13 +1090,13 @@ fn check_times_cp() {
 fn check_pow_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PowC(Complex(2.0,0.0), Complex(3.0,0.0))}",
         &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PowC(Complex(0.0,1.0), Complex(0.0,1.0))}",
         &Value::Tuple(vec![Value::Double(E.powf(-PI / 2.0)), Value::Double(0.0)].into()),
     );
@@ -1106,7 +1106,7 @@ fn check_pow_c() {
 fn check_pow_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         PowCP(ComplexPolar(2.0,0.0), ComplexPolar(3.0,0.0))}",
         &Value::Tuple(vec![Value::Double(8.0), Value::Double(0.0)].into()),
     );
@@ -1116,19 +1116,19 @@ fn check_pow_cp() {
 fn check_divide_by_c() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         DividedByC(Complex(1.0,0.0), Complex(2.0,0.0))}",
         &Value::Tuple(vec![Value::Double(0.5), Value::Double(0.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         DividedByC(Complex(3.0,0.0), Complex(0.0,1.0))}",
         &Value::Tuple(vec![Value::Double(0.0), Value::Double(-3.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         DividedByC(Complex(1.0,2.0), Complex(3.0,4.0))}",
         &Value::Tuple(vec![Value::Double(0.44), Value::Double(0.08)].into()),
     );
@@ -1138,13 +1138,13 @@ fn check_divide_by_c() {
 fn check_devide_by_cp() {
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         DividedByCP(ComplexPolar(1.0,0.0), ComplexPolar(1.0,PI()/2.0))}",
         &Value::Tuple(vec![Value::Double(1.0), Value::Double(-PI / 2.0)].into()),
     );
     test_expression(
         "{
-        open Microsoft.Quantum.Math;
+        import Std.Math.*;
         DividedByCP(ComplexPolar(1.0,PI()/4.0), ComplexPolar(2.0,3.0*PI()/4.0))}",
         &Value::Tuple(vec![Value::Double(0.5), Value::Double(-PI / 2.0)].into()),
     );

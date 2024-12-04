@@ -21,6 +21,15 @@ impl ErrorBudget {
         }
     }
 
+    #[must_use]
+    pub fn from_uniform(total_error: f64) -> Self {
+        Self {
+            logical: total_error / 3.0,
+            magic_states: total_error / 3.0,
+            rotations: total_error / 3.0,
+        }
+    }
+
     /// Get the error budget's plogical.
     #[must_use]
     pub fn logical(&self) -> f64 {

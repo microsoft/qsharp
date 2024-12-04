@@ -73,6 +73,36 @@ fn one_gate() {
 }
 
 #[test]
+fn measure_same_qubit_twice() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q = Qubit();
+                    H(q);
+                    let r1 = M(q);
+                    let r2 = M(q);
+                    [r1, r2]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![["
+        q_0    ── H ──── M ──── M ──
+                         ╘══════╪═══
+                                ╘═══
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn toffoli() {
     let mut interpreter = interpreter(
         r"
@@ -158,7 +188,7 @@ fn m_base_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -187,7 +217,7 @@ fn m_unrestricted_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -215,7 +245,7 @@ fn mresetz_unrestricted_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -243,7 +273,7 @@ fn mresetz_base_profile() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q = Qubit();
@@ -271,7 +301,7 @@ fn unrestricted_profile_result_comparison() {
     let mut interpreter = interpreter(
         r"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
+                import Std.Measurement.*;
                 @EntryPoint()
                 operation Main() : Result[] {
                     use q1 = Qubit();
@@ -439,7 +469,7 @@ fn custom_intrinsic_mixed_args() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
-        open Microsoft.Quantum.ResourceEstimation;
+        import Std.ResourceEstimation.*;
 
         @EntryPoint()
         operation Main() : Unit {
@@ -555,7 +585,7 @@ fn operation_with_qubit_arrays() {
             @EntryPoint()
             operation Main() : Result[] { [] }
 
-            open Microsoft.Quantum.Measurement;
+            import Std.Measurement.*;
             operation Test(q1: Qubit[], q2: Qubit[][], q3: Qubit[][][], q: Qubit) : Result[] {
                 for q in q1 {
                     H(q);
@@ -925,7 +955,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();
@@ -974,7 +1004,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();
@@ -1012,7 +1042,7 @@ mod debugger_stepping {
         let circs = generate_circuit_steps(
             r"
                 namespace Test {
-                    open Microsoft.Quantum.Measurement;
+                    import Std.Measurement.*;
                     @EntryPoint()
                     operation Main() : Result[] {
                         use q = Qubit();

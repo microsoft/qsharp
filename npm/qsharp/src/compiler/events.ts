@@ -9,6 +9,7 @@ import { IServiceEventTarget } from "../workers/common.js";
 export type QscEventData =
   | { type: "Message"; detail: string }
   | { type: "DumpMachine"; detail: { state: Dump; stateLatex: string | null } }
+  | { type: "Matrix"; detail: { matrix: number[][][]; matrixLatex: string } }
   | { type: "Result"; detail: Result };
 
 export type QscEvents = Event & QscEventData;
@@ -81,6 +82,7 @@ export class QscEventTarget implements IQscEventTarget {
         this.onDumpMachine(ev.detail),
       );
       this.addEventListener("Result", (ev) => this.onResult(ev.detail));
+      this.addEventListener("Matrix", (ev) => this.onMatrix(ev.detail));
     }
   }
 
@@ -89,6 +91,19 @@ export class QscEventTarget implements IQscEventTarget {
 
     const shotIdx = this.results.length - 1;
     this.results[shotIdx].events.push({ type: "Message", message: msg });
+
+    this.queueUiRefresh();
+  }
+
+  private onMatrix(detail: { matrix: number[][][]; matrixLatex: string }) {
+    this.ensureActiveShot();
+
+    const shotIdx = this.results.length - 1;
+    this.results[shotIdx].events.push({
+      type: "Matrix",
+      matrix: detail.matrix,
+      matrixLatex: detail.matrixLatex,
+    });
 
     this.queueUiRefresh();
   }

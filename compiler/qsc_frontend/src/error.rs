@@ -155,5 +155,5 @@ impl<E: Diagnostic + Sync + Send> SourceCode for WithSource<E> {
 }
 
 fn with_offset(span: &SourceSpan, f: impl FnOnce(usize) -> usize) -> SourceSpan {
-    SourceSpan::new(f(span.offset()).into(), span.len().into())
+    SourceSpan::new(f(span.offset()).into(), span.len())
 }

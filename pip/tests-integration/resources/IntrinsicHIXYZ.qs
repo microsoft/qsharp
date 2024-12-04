@@ -1,7 +1,7 @@
 namespace Test {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Measurement;
+    import Std.Intrinsic.*;
+    import Std.Measurement.*;
 
     // Verifies the I, H, X, Y, and Z quantum gates from Q#'s Microsoft.Quantum.Intrinsic namespace.
     // Expected simulation output: (1, 1, 1, 1, 1, 1).

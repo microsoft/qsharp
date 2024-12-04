@@ -4,15 +4,18 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::{
-    get_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
-    write_latex_for_decimal_number, write_latex_for_polar_form, write_latex_for_real_number,
-    write_latex_for_term, AlgebraicNumber, CartesianForm, ComplexNumber, DecimalNumber, PolarForm,
-    RationalNumber, RealNumber, Term,
+    get_matrix_latex, get_state_latex, write_latex_for_algebraic_number,
+    write_latex_for_cartesian_form, write_latex_for_complex_number, write_latex_for_decimal_number,
+    write_latex_for_polar_form, write_latex_for_real_number, write_latex_for_term, AlgebraicNumber,
+    CartesianForm, ComplexNumber, DecimalNumber, PolarForm, RationalNumber, RealNumber, Term,
 };
 use crate::state::{is_fractional_part_significant, is_significant};
 use expect_test::{expect, Expect};
 use num_complex::Complex64;
-use std::{f64::consts::PI, time::Instant};
+use std::{
+    f64::consts::{FRAC_1_SQRT_2, PI},
+    time::Instant,
+};
 
 #[test]
 fn check_is_significant() {
@@ -511,7 +514,7 @@ fn check_get_latex_for_real() {
 fn assert_latex_for_cartesian(expected: &Expect, re: f64, im: f64, render_plus: bool) {
     let number = CartesianForm::recognize(re, im);
     let mut latex = String::with_capacity(50);
-    write_latex_for_cartesian_form(&mut latex, &number, render_plus);
+    write_latex_for_cartesian_form(&mut latex, &number, render_plus, false);
     expected.assert_eq(&latex);
 }
 
@@ -638,22 +641,86 @@ fn check_get_latex_for_term() {
     );
 }
 
+fn assert_latex_for_complex_number(expected: &Expect, re: f64, im: f64) {
+    let n: ComplexNumber = ComplexNumber::recognize(re, im);
+    let mut latex = String::with_capacity(50);
+    write_latex_for_complex_number(&mut latex, &n);
+    expected.assert_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_complex_number() {
+    // Future work:
+    // While rendering is correct, a better way may be the following:
+    // -(1-i) -> -1+i remove brackets for standalone number
+    // 1/2 i -> i/2
+    // √2/2 -> 1/√2
+    assert_latex_for_complex_number(&expect!([r"0"]), 0.0, 0.0);
+
+    assert_latex_for_complex_number(&expect!([r"1"]), 1.0, 0.0);
+    assert_latex_for_complex_number(&expect!([r"-1"]), -1.0, 0.0);
+    assert_latex_for_complex_number(&expect!([r"i"]), 0.0, 1.0);
+    assert_latex_for_complex_number(&expect!([r"-i"]), 0.0, -1.0);
+
+    assert_latex_for_complex_number(&expect!([r"\frac{1}{2}"]), 0.5, 0.0);
+    assert_latex_for_complex_number(&expect!([r"-\frac{1}{2}"]), -0.5, 0.0);
+    assert_latex_for_complex_number(&expect!([r"\frac{1}{2}i"]), 0.0, 0.5);
+    assert_latex_for_complex_number(&expect!([r"-\frac{1}{2}i"]), 0.0, -0.5);
+
+    assert_latex_for_complex_number(
+        &expect!([r#"\left( \frac{1}{2}+\frac{1}{2}i \right)"#]),
+        0.5,
+        0.5,
+    );
+    assert_latex_for_complex_number(
+        &expect!([r#"-\left( \frac{1}{2}-\frac{1}{2}i \right)"#]),
+        -0.5,
+        0.5,
+    );
+    assert_latex_for_complex_number(
+        &expect!([r#"\left( \frac{1}{2}-\frac{1}{2}i \right)"#]),
+        0.5,
+        -0.5,
+    );
+    assert_latex_for_complex_number(
+        &expect!([r#"-\left( \frac{1}{2}+\frac{1}{2}i \right)"#]),
+        -0.5,
+        -0.5,
+    );
+
+    assert_latex_for_complex_number(&expect!([r#"\frac{\sqrt{2}}{2}"#]), FRAC_1_SQRT_2, 0.0);
+    assert_latex_for_complex_number(&expect!([r#"-\frac{\sqrt{2}}{2}"#]), -FRAC_1_SQRT_2, 0.0);
+    assert_latex_for_complex_number(&expect!([r#"\frac{\sqrt{2}}{2}i"#]), 0.0, FRAC_1_SQRT_2);
+    assert_latex_for_complex_number(&expect!([r#"-\frac{\sqrt{2}}{2}i"#]), 0.0, -FRAC_1_SQRT_2);
+
+    assert_latex_for_complex_number(
+        &expect!([r"\frac{1}{2} e^{ i \pi / 3}"]),
+        1.0 / 2.0 * (PI / 3.0).cos(),
+        1.0 / 2.0 * (PI / 3.0).sin(),
+    );
+    assert_latex_for_complex_number(
+        &expect!([r#"\left( \frac{1}{2}+\frac{1}{2}i \right)"#]),
+        1.0 / 2.0,
+        1.0 / 2.0,
+    );
+}
+
 #[test]
 fn check_get_latex() {
     expect!([r"$|\psi\rangle = \left( \frac{1}{2}+\frac{1}{2}i \right)|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = -|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(-1.0, 0.0))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(-1.0, 0.0))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = -i|00\rangle$"]).assert_eq(
-        &get_latex(&vec![(0_u8.into(), Complex64::new(0.0, -1.0))], 2)
+        &get_state_latex(&vec![(0_u8.into(), Complex64::new(0.0, -1.0))], 2)
             .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle =  e^{-2 i \pi / 3}|00\rangle$"]).assert_eq(
-        &get_latex(
+        &get_state_latex(
             &vec![(
                 0_u8.into(),
                 Complex64::new((-2.0 * PI / 3.0).cos(), (-2.0 * PI / 3.0).sin()),
@@ -663,13 +730,59 @@ fn check_get_latex() {
         .expect("expected valid latex"),
     );
     expect!([r"$|\psi\rangle = \left( 1+\frac{\sqrt{2}}{2}i \right)|00\rangle+\left( 1+\frac{\sqrt{2}}{2}i \right)|10\rangle$"])
-    .assert_eq(&get_latex(
+    .assert_eq(&get_state_latex(
         &vec![
             (0_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
             (2_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
         ],
         2,
     ).expect("expected valid latex"));
+}
+
+#[test]
+fn check_get_matrix_latex() {
+    expect!([r#"$ \begin{bmatrix} 0 & 1 \\ i & \left( 1+i \right) \\ \end{bmatrix} $"#]).assert_eq(
+        &get_matrix_latex(&vec![
+            vec![Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)],
+            vec![Complex64::new(0.0, 1.0), Complex64::new(1.0, 1.0)],
+        ]),
+    );
+    expect!([r#"$ \begin{bmatrix} -\left( 1-i \right) & -1 \\ -i & -\left( 1+i \right) \\ \end{bmatrix} $"#]).assert_eq(
+        &get_matrix_latex(&vec![
+            vec![Complex64::new(-1.0, 1.0), Complex64::new(-1.0, 0.0)],
+            vec![Complex64::new(0.0, -1.0), Complex64::new(-1.0, -1.0)],
+        ]),
+    );
+    expect!([r#"$ \begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{i}{\sqrt{2}} \\ -\frac{1}{\sqrt{2}} & -\frac{i}{\sqrt{2}} \\ \end{bmatrix} $"#]).assert_eq(&get_matrix_latex(&vec![
+        vec![
+            Complex64::new(FRAC_1_SQRT_2, 0.0),
+            Complex64::new(0.0, FRAC_1_SQRT_2),
+        ],
+        vec![
+            Complex64::new(-FRAC_1_SQRT_2, 0.0),
+            Complex64::new(0.0, -FRAC_1_SQRT_2),
+        ],
+    ]));
+    expect!([r#"$ \begin{bmatrix} \frac{1}{2} & \frac{i}{2} \\ -\frac{1}{2} & -\frac{i}{2} \\ \end{bmatrix} $"#]).assert_eq(&get_matrix_latex(&vec![
+        vec![
+            Complex64::new(0.5, 0.0),
+            Complex64::new(0.0, 0.5),
+        ],
+        vec![
+            Complex64::new(-0.5, 0.0),
+            Complex64::new(0.0, -0.5),
+        ],
+    ]));
+    expect!([r#"$ \begin{bmatrix} \frac{1}{2} + \frac{i}{2} & -\frac{1}{2} - \frac{i}{2} \\ -\frac{1}{2} + \frac{i}{2} & \frac{1}{2} - \frac{i}{2} \\ \end{bmatrix} $"#]).assert_eq(&get_matrix_latex(&vec![
+        vec![
+            Complex64::new(0.5, 0.5),
+            Complex64::new(-0.5, -0.5),
+        ],
+        vec![
+            Complex64::new(-0.5, 0.5),
+            Complex64::new(0.5, -0.5),
+        ],
+    ]));
 }
 
 #[test]
@@ -689,7 +802,7 @@ fn check_get_latex_perf() {
     ];
 
     expect!([r"$|\psi\rangle = \frac{1}{2}|00\rangle+\frac{1}{2} e^{ i \pi / 4}|01\rangle+\frac{1}{2}i|10\rangle+\frac{1}{2} e^{3 i \pi / 4}|11\rangle$"])
-    .assert_eq(&get_latex(
+    .assert_eq(&get_state_latex(
         &state,
         2,
     ).expect("expected valid latex"));
@@ -698,7 +811,7 @@ fn check_get_latex_perf() {
     let start = Instant::now();
     let mut l: usize = 0;
     for _ in 0..1_000 {
-        let s = get_latex(&state, 2);
+        let s = get_state_latex(&state, 2);
         l += s.map_or(0, |s| s.len());
     }
     println!(

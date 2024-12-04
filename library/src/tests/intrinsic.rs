@@ -27,7 +27,7 @@ fn test_mch_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -66,7 +66,7 @@ fn test_mch_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -109,7 +109,7 @@ fn test_unrestricted_mch_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -160,7 +160,7 @@ fn test_base_mch_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -213,7 +213,7 @@ fn test_unrestricted_mch_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -280,7 +280,7 @@ fn test_base_mch_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled H(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -348,8 +348,8 @@ fn test_mcrz_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -385,8 +385,8 @@ fn test_unrestricted_mcrz_2_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..1], (Microsoft.Quantum.Math.PI() / 7.0, qs[2]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..1], (Std.Math.PI() / 7.0, qs[2]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -426,8 +426,8 @@ fn test_base_mcrz_2_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..1], (Microsoft.Quantum.Math.PI() / 7.0, qs[2]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..1], (Std.Math.PI() / 7.0, qs[2]));
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -469,8 +469,8 @@ fn test_unrestricted_mcrz_3_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..2], (Microsoft.Quantum.Math.PI() / 7.0, qs[3]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..2], (Std.Math.PI() / 7.0, qs[3]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -518,8 +518,8 @@ fn test_base_mcrz_3_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rz(qs[0..2], (Microsoft.Quantum.Math.PI() / 7.0, qs[3]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rz(qs[0..2], (Std.Math.PI() / 7.0, qs[3]));
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -569,8 +569,8 @@ fn test_mcrx_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Rx(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Rx(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -608,8 +608,8 @@ fn test_mcry_1_control() {
                 H(aux[i]);
                 CNOT(aux[i], qs[i]);
             }
-            Controlled Ry(qs[0..0], (Microsoft.Quantum.Math.PI() / 7.0, qs[1]));
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Controlled Ry(qs[0..0], (Std.Math.PI() / 7.0, qs[1]));
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -648,7 +648,7 @@ fn test_mcs_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -685,7 +685,7 @@ fn test_mcs_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -726,7 +726,7 @@ fn test_unrestricted_mcs_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -775,7 +775,7 @@ fn test_base_mcs_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -826,7 +826,7 @@ fn test_unrestricted_mcs_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -891,7 +891,7 @@ fn test_base_mcs_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -958,7 +958,7 @@ fn test_mcsadj_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -995,7 +995,7 @@ fn test_mcsadj_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1036,7 +1036,7 @@ fn test_unrestricted_mcsadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1085,7 +1085,7 @@ fn test_base_mcsadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1136,7 +1136,7 @@ fn test_unrestricted_mcsadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1201,7 +1201,7 @@ fn test_base_mcsadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint S(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1268,7 +1268,7 @@ fn test_mct_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1305,7 +1305,7 @@ fn test_mct_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1346,7 +1346,7 @@ fn test_unrestricted_mct_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1395,7 +1395,7 @@ fn test_base_mct_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1446,7 +1446,7 @@ fn test_unrestricted_mct_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1511,7 +1511,7 @@ fn test_base_mct_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1578,7 +1578,7 @@ fn test_mctadj_1_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..0], qs[1]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1615,7 +1615,7 @@ fn test_mctadj_2_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..1], qs[2]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1656,7 +1656,7 @@ fn test_unrestricted_mctadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1705,7 +1705,7 @@ fn test_base_mctadj_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1756,7 +1756,7 @@ fn test_unrestricted_mctadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1821,7 +1821,7 @@ fn test_base_mctadj_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Adjoint T(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1888,7 +1888,7 @@ fn test_unrestricted_mcx_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -1937,7 +1937,7 @@ fn test_base_mcx_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -1988,7 +1988,7 @@ fn test_unrestricted_mcx_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2053,7 +2053,7 @@ fn test_base_mcx_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled X(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2120,7 +2120,7 @@ fn test_unrestricted_mcy_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2169,7 +2169,7 @@ fn test_base_mcy_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2220,7 +2220,7 @@ fn test_unrestricted_mcy_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2285,7 +2285,7 @@ fn test_base_mcy_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Y(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2352,7 +2352,7 @@ fn test_unrestricted_mcz_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2401,7 +2401,7 @@ fn test_base_mcz_3_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..2], qs[3]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2452,7 +2452,7 @@ fn test_unrestricted_mcz_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
         }"},
         "",
         Profile::Unrestricted,
@@ -2517,7 +2517,7 @@ fn test_base_mcz_4_control() {
                 CNOT(aux[i], qs[i]);
             }
             Controlled Z(qs[0..3], qs[4]);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Std.Diagnostics.DumpMachine();
             let result : Result[] = [];
             result
         }"},
@@ -2577,8 +2577,8 @@ fn global_phase_correct_for_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use q = Qubit();
             H(q);
             R1(PI() / 2.0, q);
@@ -2603,8 +2603,8 @@ fn global_phase_correct_for_adjoint_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use q = Qubit();
             H(q);
             Adjoint R1(PI() / 2.0, q);
@@ -2629,8 +2629,8 @@ fn global_phase_correct_for_singly_controlled_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[1];
             use q = Qubit();
             for c in ctls {
@@ -2663,8 +2663,8 @@ fn global_phase_correct_for_singly_controlled_adjoint_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[1];
             use q = Qubit();
             for c in ctls {
@@ -2697,8 +2697,8 @@ fn global_phase_correct_for_doubly_controlled_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[2];
             use q = Qubit();
             for c in ctls {
@@ -2731,8 +2731,8 @@ fn global_phase_correct_for_doubly_controlled_adjoint_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[2];
             use q = Qubit();
             for c in ctls {
@@ -2765,8 +2765,8 @@ fn global_phase_correct_for_triply_controlled_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[3];
             use q = Qubit();
             for c in ctls {
@@ -2799,8 +2799,8 @@ fn global_phase_correct_for_triply_controlled_adjoint_r1() {
     let dump = test_expression(
         indoc! {"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             use ctls = Qubit[3];
             use q = Qubit();
             for c in ctls {
@@ -2833,8 +2833,8 @@ fn test_exp() {
     let dump = test_expression(
         indoc! {r#"
         {
-            open Microsoft.Quantum.Math;
-            open Microsoft.Quantum.Diagnostics;
+            open Std.Math;
+            open Std.Diagnostics;
             for p in [PauliX, PauliY, PauliZ, PauliI] {
                 for i in 1 .. 4 {
                     Message($"Exp with {p} on {i} qubits:");

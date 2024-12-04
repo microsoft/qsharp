@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Unstable.Arithmetic {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     /// # Summary
     /// Implements the outer operation for RippleCarryTTKIncByLE to conjugate

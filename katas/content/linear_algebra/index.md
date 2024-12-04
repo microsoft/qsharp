@@ -419,7 +419,7 @@ $$\langle V , W \rangle = \sum_{k=0}^{n-1}\overline{V_k}W_k$$
 
 If you're familiar with the **dot product**, you'll notice that it's equivalent to inner product for real-numbered vectors.
 
-> We use our definition for these tutorials because it matches the notation used in quantum computing. You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that is used here. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
+> You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that is used here. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
 
 An immediate application for the inner product is computing the **vector norm**. The norm of vector $V$ is defined as $||V|| = \sqrt{\langle V , V \rangle}$. This condenses the vector down to a single non-negative real value. If the vector represents coordinates in space, the norm happens to be the length of the vector. A vector is called **normalized** if its norm is equal to $1$.
 

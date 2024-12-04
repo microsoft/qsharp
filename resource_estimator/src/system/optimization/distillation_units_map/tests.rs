@@ -12,8 +12,8 @@ use super::super::super::{
         TFactoryProtocolSpecificDistillationUnitSpecification,
     },
     modeling::{
-        PhysicalQubit, Protocol, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
-        TFactoryDistillationUnitType,
+        floquet_code, surface_code_gate_based, PhysicalQubit, Protocol, TFactoryDistillationUnit,
+        TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
     },
 };
 
@@ -181,7 +181,7 @@ fn create_default_t_factory_protocol_specific_distillation_unit_specification(
 fn units_for_distance_test_position_0_distance_1() {
     create_and_test(
         PhysicalQubit::qubit_maj_ns_e4(),
-        &Protocol::floquet_code(),
+        &floquet_code(),
         0,
         1,
         "physical",
@@ -193,7 +193,7 @@ fn units_for_distance_test_position_0_distance_1() {
 fn units_for_distance_test_position_0_distance_3() {
     create_and_test(
         PhysicalQubit::default(),
-        &Protocol::default(),
+        &surface_code_gate_based(),
         0,
         3,
         "logical",
@@ -205,7 +205,7 @@ fn units_for_distance_test_position_0_distance_3() {
 fn units_for_distance_test_position_1_distance_1() {
     create_and_test(
         PhysicalQubit::default(),
-        &Protocol::default(),
+        &surface_code_gate_based(),
         1,
         1,
         "logical",
@@ -217,7 +217,7 @@ fn units_for_distance_test_position_1_distance_1() {
 fn units_for_distance_test_position_1_distance_5() {
     create_and_test(
         PhysicalQubit::default(),
-        &Protocol::default(),
+        &surface_code_gate_based(),
         1,
         5,
         "logical",
@@ -270,7 +270,7 @@ fn create_templates_list_0_2_1() -> Vec<TFactoryDistillationUnitTemplate> {
 #[test]
 fn test_map_creation_no_purely_physical_templates_filtered_out_by_is_valid_condition() {
     let templates = create_templates_list_2_2_2();
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let map = create_default_map(PhysicalQubit::default(), &ftp, &templates);
     assert!(map.num_physical_distillation_units == 0);
     assert!(map.num_logical_distillation_units == 2);
@@ -286,8 +286,8 @@ fn test_map_creation_no_purely_physical_templates_filtered_out_by_is_valid_condi
 
 #[test]
 fn test_map_creation_with_purely_physical_templates() {
-    let templates = create_templates_list_2_2_2();
-    let ftp = Protocol::floquet_code();
+    let templates: Vec<TFactoryDistillationUnitTemplate> = create_templates_list_2_2_2();
+    let ftp = floquet_code();
     let map = create_default_map(PhysicalQubit::qubit_maj_ns_e4(), &ftp, &templates);
     assert!(map.num_physical_distillation_units == 2);
     assert!(map.num_logical_distillation_units == 2);
@@ -306,7 +306,7 @@ fn test_map_creation_with_purely_physical_templates() {
 #[test]
 fn test_map_creation_with_purely_physical_and_no_combined_templates() {
     let templates = create_templates_list_0_2_1();
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let map = create_default_map(PhysicalQubit::qubit_maj_ns_e4(), &ftp, &templates);
     assert!(map.num_physical_distillation_units == 1);
     assert!(map.num_logical_distillation_units == 2);
@@ -321,7 +321,7 @@ fn test_first_round_overrides_applied() {
     let mut templates = create_templates_list_2_2_2();
     templates.push(create_distillation_unit_template_with_override());
     templates.push(create_distillation_unit_template_without_override());
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let map = create_default_map(PhysicalQubit::qubit_maj_ns_e4(), &ftp, &templates);
 
     assert!(map.num_physical_distillation_units == 2);
@@ -380,7 +380,7 @@ fn test_first_round_overrides_applied() {
 #[test]
 fn iterate_for_all_distillation_units_test() {
     let templates = create_templates_list_2_2_2();
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let map = create_default_map(PhysicalQubit::qubit_maj_ns_e4(), &ftp, &templates);
 
     let mut hashmap = FxHashSet::default();
@@ -410,7 +410,7 @@ fn iterate_for_all_distillation_units_test() {
 #[test]
 fn iterate_for_all_distillation_units_0_2_1_test() {
     let templates = create_templates_list_0_2_1();
-    let ftp = Protocol::floquet_code();
+    let ftp = floquet_code();
     let map = create_default_map(PhysicalQubit::qubit_maj_ns_e4(), &ftp, &templates);
     let mut hashmap = FxHashSet::default();
     let mut callback = |indexes: &[usize]| {

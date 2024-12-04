@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Core {
+namespace Std.Core {
     /// # Summary
     /// Returns the number of elements in the input array `a`.
     ///

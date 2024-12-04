@@ -1,0 +1,30 @@
+{
+  "author": "Microsoft",
+  "license": "MIT",
+  "dependencies": {
+    "Signed": {
+      "path": "/Users/alexanderhansen/code/qsharp/library/signed"
+    },
+    "Unstable": {
+      "github": {
+        "owner": "Microsoft",
+        "repo": "qsharp",
+        "ref": "adcefe8",
+        "path": "library/unstable"
+      }
+    }
+  },
+  "files": [
+    "src/Comparison.qs",
+    "src/Convert.qs",
+    "src/Facts.qs",
+    "src/Init.qs",
+    "src/Main.qs",
+    "src/Measurement.qs",
+    "src/Operations.qs",
+    "src/Polynomial.qs",
+    "src/Reciprocal.qs",
+    "src/Tests.qs",
+    "src/Types.qs"
+  ]
+}

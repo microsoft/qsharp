@@ -14,8 +14,9 @@ noisy_simulator = { path = "../noisy_simulator" }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc = { path = "../compiler/qsc" }
+qsc_qasm3 = { path = "../compiler/qsc_qasm3", features = ["fs"]}
 resource_estimator = { path = "../resource_estimator" }
-miette = { workspace = true, features = ["fancy"] }
+miette = { workspace = true, features = ["fancy-no-syscall"] }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 

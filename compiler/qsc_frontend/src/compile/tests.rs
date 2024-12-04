@@ -772,7 +772,7 @@ fn std_dependency() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
 
                     operation Main() : Unit {
                         use q = Qubit();
@@ -804,7 +804,7 @@ fn std_dependency_base_profile() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
 
                     operation Main() : Unit {
                         use q = Qubit();
@@ -1191,7 +1191,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here
@@ -1226,8 +1226,8 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                                 Brace,
                             ),
                             Span {
-                                lo: 119,
-                                hi: 120,
+                                lo: 109,
+                                hi: 110,
                             },
                         ),
                     ),
@@ -1247,7 +1247,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
             "test".into(),
             indoc! {"
                 namespace Foo {
-                    open Microsoft.Quantum.Intrinsic;
+                    import Std.Intrinsic.*;
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here

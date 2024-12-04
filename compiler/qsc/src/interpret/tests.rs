@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod given_interpreter {
-    use crate::interpret::{Error, InterpretResult, Interpreter};
+    use crate::interpret::{InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -22,18 +22,13 @@ mod given_interpreter {
         )
     }
 
-    fn run(
-        interpreter: &mut Interpreter,
-        expr: &str,
-    ) -> (Result<InterpretResult, Vec<Error>>, String) {
+    fn run(interpreter: &mut Interpreter, expr: &str) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.run(&mut receiver, Some(expr)), receiver.dump())
     }
 
-    fn entry(
-        interpreter: &mut Interpreter,
-    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+    fn entry(interpreter: &mut Interpreter) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.eval_entry(&mut receiver), receiver.dump())
@@ -43,7 +38,7 @@ mod given_interpreter {
         interpreter: &mut Interpreter,
         fragments: &str,
         package: crate::ast::Package,
-    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+    ) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         let result = interpreter.eval_ast_fragments(&mut receiver, fragments, package);
@@ -268,7 +263,7 @@ mod given_interpreter {
         #[test]
         fn open_namespace() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
@@ -333,7 +328,7 @@ mod given_interpreter {
         #[test]
         fn global_qubits() {
             let mut interpreter = get_interpreter();
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
             is_unit_with_output(&result, &output, "STATE:\n|0⟩: 1+0i");
@@ -458,7 +453,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "open Other;");
             is_only_value(&result, &output, &Value::unit());
-            let (result, output) = line(&mut interpreter, "open Microsoft.Quantum.Diagnostics;");
+            let (result, output) = line(&mut interpreter, "import Std.Diagnostics.*;");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine();");
             is_only_error(
@@ -468,7 +463,7 @@ mod given_interpreter {
                     name error: `DumpMachine` could refer to the item in `Other` or `Microsoft.Quantum.Diagnostics`
                       ambiguous name [line_3] [DumpMachine]
                       found in this namespace [line_1] [Other]
-                      and also in this namespace [line_2] [Microsoft.Quantum.Diagnostics]
+                      and also in this namespace [line_2] [Std.Diagnostics]
                     type error: insufficient type information to infer type
                        [line_3] [DumpMachine()]
                 "#]],
@@ -484,7 +479,7 @@ mod given_interpreter {
                 &output,
                 &expect![[r#"
                     runtime error: qubits in invocation are not unique
-                       [qsharp-library-source:intrinsic.qs] [(control, target)]
+                       [qsharp-library-source:Std/Intrinsic.qs] [(control, target)]
                 "#]],
             );
         }
@@ -754,7 +749,7 @@ mod given_interpreter {
                 &mut interpreter,
                 indoc! {r#"
                 namespace Test {
-                    open Microsoft.Quantum.Math;
+                    import Std.Math.*;
                     open QIR.Intrinsic;
                     @EntryPoint()
                     operation Main() : Result {
@@ -1165,11 +1160,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (results, output) = run(&mut interpreter, "{use qs = Qubit[2]; Foo(qs)}");
-                is_unit_with_output(
-                    &results.expect("compilation should succeed"),
-                    &output,
-                    "STATE:\n|00⟩: 1+0i",
-                );
+                is_unit_with_output(&results, &output, "STATE:\n|00⟩: 1+0i");
             }
         }
 
@@ -1195,11 +1186,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = run(&mut interpreter, "{ Foo(); Bar() }");
-            is_only_value(
-                &result.expect("compilation should succeed"),
-                &output,
-                &Value::Int(2),
-            );
+            is_only_value(&result, &output, &Value::Int(2));
         }
 
         #[test]
@@ -1213,7 +1200,7 @@ mod given_interpreter {
             for _ in 0..1 {
                 let (result, output) = run(&mut interpreter, "Foo()");
                 is_only_error(
-                    &result.expect("compilation should succeed"),
+                    &result,
                     &output,
                     &expect![[r#"
                         runtime error: program failed: failed
@@ -1233,11 +1220,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (result, output) = run(&mut interpreter, "Foo()");
-                is_unit_with_output(
-                    &result.expect("compilation should succeed"),
-                    &output,
-                    "hello!",
-                );
+                is_unit_with_output(&result, &output, "hello!");
             }
         }
 
@@ -1288,7 +1271,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::Error>>,
+        result: &InterpretResult,
         output: &str,
         expected_output: &str,
     ) {
@@ -1569,7 +1552,7 @@ mod given_interpreter {
         fn debugger_execution_with_call_to_library_succeeds() {
             let source = indoc! { r#"
             namespace Test {
-                open Microsoft.Quantum.Math;
+                import Std.Math.*;
                 @EntryPoint()
                 operation Main() : Int {
                     Binom(31, 7)
@@ -1596,7 +1579,7 @@ mod given_interpreter {
         fn debugger_execution_with_early_return_succeeds() {
             let source = indoc! { r#"
             namespace Test {
-                open Microsoft.Quantum.Arrays;
+                import Std.Arrays.*;
 
                 operation Max20(i : Int) : Int {
                     if (i > 20) {
@@ -1745,7 +1728,7 @@ mod given_interpreter {
                 None,
             )];
 
-            let (unit, errors) = crate::compile::compile(
+            let (mut unit, errors) = crate::compile::compile(
                 &store,
                 &dependencies,
                 sources,
@@ -1753,15 +1736,21 @@ mod given_interpreter {
                 capabilities,
                 language_features,
             );
+            unit.expose();
             for e in &errors {
                 eprintln!("{e:?}");
             }
             assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
             let package_id = store.insert(unit);
 
-            let mut interpreter =
-                Interpreter::from(store, package_id, capabilities, language_features)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::from(
+                store,
+                package_id,
+                capabilities,
+                language_features,
+                &dependencies,
+            )
+            .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_value(
                 &result,

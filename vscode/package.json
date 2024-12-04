@@ -73,7 +73,7 @@
           {
             "id": "qsharp-vscode.welcome.starters",
             "title": "Starting points",
-            "description": "Expore Q# safely by opening files in the [Q# playground](command:qsharp-vscode.openPlayground), or work in Python by [creating a Jupyter Notebook](command:qsharp-vscode.createNotebook) from a template",
+            "description": "Explore Q# safely by opening files in the [Q# playground](command:qsharp-vscode.openPlayground), or work in Python by [creating a Jupyter Notebook](command:qsharp-vscode.createNotebook) from a template",
             "media": {
               "image": "resources/notebook.png",
               "altText": "Jupyter Notebooks"

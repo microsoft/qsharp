@@ -8,6 +8,7 @@ use super::*;
 use std::rc::Rc;
 
 use crate::estimates::LogicalPatch;
+use crate::system::modeling::surface_code_gate_based;
 
 use super::super::super::modeling::{PhysicalQubit, Protocol};
 use super::super::super::{constants::FLOAT_COMPARISON_EPSILON, Result};
@@ -87,7 +88,7 @@ fn single_physical_qubit() {
 fn create_logical_qubit_with_distance(
     code_distance: u64,
 ) -> core::result::Result<LogicalPatch<Protocol>, crate::estimates::Error> {
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::default());
 
     LogicalPatch::new(&ftp, code_distance, qubit)
@@ -266,7 +267,7 @@ fn expression_by_formula2() {
 #[test]
 fn test_default_t_factory() {
     let physical_qubit = PhysicalQubit::default();
-    let ftp = Protocol::default();
+    let ftp = surface_code_gate_based();
     let logical_qubit = LogicalPatch::new(&ftp, 15, Rc::new(physical_qubit))
         .expect("logical qubit contruction should succeed");
     let tfactory = default_t_factory(&logical_qubit);

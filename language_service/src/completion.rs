@@ -121,9 +121,9 @@ pub(crate) fn get_completions(
     };
 
     let mut prelude_ns_ids: Vec<ImportItem> = PRELUDE
-        .into_iter()
+        .iter()
         .map(|ns| ImportItem {
-            path: ns.into_iter().map(Rc::from).collect(),
+            path: ns.iter().map(|x| Rc::from(*x)).collect(),
             alias: None,
             is_glob: true,
         })
@@ -739,6 +739,9 @@ fn callable_decl_to_completion_item(
     // An exact import is an import that matches the namespace
     // and item name exactly
     let preexisting_exact_import = imports.iter().any(|import_item| {
+        if import_item.is_glob {
+            return false;
+        }
         let import_item_namespace = &import_item.path[..import_item.path.len() - 1];
         let import_item_name = import_item.path.last().map(|x| &**x);
         *import_item_namespace == namespace_as_strs[..] && import_item_name == Some(name)
