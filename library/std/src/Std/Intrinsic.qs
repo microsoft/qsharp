@@ -1152,6 +1152,24 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
 ///
 /// # Remarks
 /// The matrix is checked at runtime to ensure it's shape is square and that the matrix dimensions are `2 ^ Length(qubits)`.
+///
+/// # Example
+/// This performs a two qubit CNOT using the unitary matrix representation:
+/// ```qsharp
+/// import Std.Math.Complex;
+/// use qs = Qubit[2];
+/// let one = new Complex { Real = 1.0, Imag = 0.0 };
+/// let zero = new Complex { Real = 0.0, Imag = 0.0 };
+/// ApplyUnitary(
+///     [
+///         [one, zero, zero, zero],
+///         [zero, one, zero, zero],
+///         [zero, zero, zero, one],
+///         [zero, zero, one, zero]
+///     ],
+///     qs
+/// );
+/// ```
 @Config(Unrestricted)
 operation ApplyUnitary(matrix : Complex[][], qubits : Qubit[]) : Unit {
     let num_rows = Length(matrix);
