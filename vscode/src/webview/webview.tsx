@@ -376,12 +376,15 @@ function App({ state }: { state: State }) {
             <Response request={qa.request} response={qa.response} />
           ))}
           <br />
-          <textarea
-            style="width: 90vw; min-height: 32px; max-height: 128px;"
-            type="text"
-            placeholder="Ask your question here"
-            id="copilotQuestion"
-          />
+          {state.inProgress ? null : (
+            <input
+              style="width: 90vw; min-height: 32px; max-height: 128px;"
+              type="text"
+              placeholder="Ask your question here"
+              id="copilotQuestion"
+              onKeyUp={(e) => e.key === "Enter" && copilotRequest()}
+            />
+          )}
           <br />
           <button
             style="margin-top: 8px; margin-bottom: 12px; padding: 4px;"
