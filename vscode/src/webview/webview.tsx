@@ -305,7 +305,6 @@ function onRowDeleted(rowId: string) {
   render(<App state={state} />, document.body);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function copilotRequest() {
   const questionText = document.querySelector(
     "#copilotQuestion",

@@ -226,7 +226,6 @@ export const GetJobs = async (
     }
 
     const start = new Date();
-    start.setTime;
     start.setDate(start.getDate() - jobLimitDays);
 
     limitedJobs = limitedJobs.filter((j) => new Date(j.creationTime) > start);
