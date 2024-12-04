@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     function F_PatternMatching(args : Bool[], a : Int[], r : Bool[]) : Bool {
-        for i in 0 .. Length(a) - 1 {
+        for i in 0..Length(a) - 1 {
             if args[a[i]] != r[i] {
                 return false;
             }
@@ -21,11 +21,11 @@ namespace Kata.Verification {
         ] {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_PatternMatching(_, _, a, r), F_PatternMatching(_, a, r)) {
                 Message($"Test failed for n = {n}, a = {a}, r = {r}");
-                return false;    
+                return false;
             }
         }
 
         Message("Correct!");
-        true 
-    }  
+        true
+    }
 }

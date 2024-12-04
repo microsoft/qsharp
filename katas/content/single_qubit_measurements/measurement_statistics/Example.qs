@@ -1,13 +1,13 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation MeasumentStatisticsDemo() : Unit {
         mutable countZero = 0;
         let numRuns = 100;
         use q = Qubit();
-        for i in 1 .. numRuns {
+        for i in 1..numRuns {
             // Prepare the qubit in the superposition state |𝜓❭ = 0.6 |0❭ + 0.8 |1❭
             Ry(2.0 * ArcTan2(0.8, 0.6), q);
 

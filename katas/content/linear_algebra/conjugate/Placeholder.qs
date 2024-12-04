@@ -1,9 +1,11 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function Conjugate() : Complex[][] {
         // Replace the return value with correct answer.
-        return [[Complex(0., 0.), Complex(0., 0.)],
-                [Complex(0., 0.), Complex(0., 0.)]];
+        return [
+            [Complex(0., 0.), Complex(0., 0.)],
+            [Complex(0., 0.), Complex(0., 0.)]
+        ];
     }
 }

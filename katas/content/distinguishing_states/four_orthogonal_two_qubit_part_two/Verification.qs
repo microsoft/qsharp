@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // 0 - ( |00⟩ - |01⟩ - |10⟩ - |11⟩) / 2
     // 1 - (-|00⟩ + |01⟩ - |10⟩ - |11⟩) / 2
@@ -27,7 +27,8 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         let isCorrect = DistinguishStates_MultiQubit(
-            2, 4,
+            2,
+            4,
             StatePrep_TwoQubitStateTwo,
             Kata.TwoQubitStateTwo,
             false,

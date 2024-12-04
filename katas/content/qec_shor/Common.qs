@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     operation CheckErrorDetection(
         n : Int,
@@ -9,8 +9,8 @@ namespace Kata.Verification {
         error : (Qubit => Unit is Adj),
         detect : (Qubit[] => Int)
     ) : Bool {
-        for err_ind in -1 .. n - 1 {
-            for _ in 1 .. 10 {
+        for err_ind in -1..n - 1 {
+            for _ in 1..10 {
                 use qs = Qubit[n];
                 let theta = DrawRandomDouble(0.0, 1.0);
                 within {

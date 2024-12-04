@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import KatasUtils.*;
+    import Std.Arrays.*;
 
     function F_Majority(args : Bool[]) : Bool {
         let N = Length(args);

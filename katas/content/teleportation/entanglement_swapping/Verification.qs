@@ -1,20 +1,20 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
 
     operation TeleportEntanglementSwappingTestLoop(
         entanglementSwapping : ((Qubit, Qubit) => Int, (Qubit, Int) => Unit)
     ) : Bool {
-        
-        for i in 1 .. 15 {
+
+        for i in 1..15 {
             use (qAlice1, qAlice2) = (Qubit(), Qubit());
             EntangleWrapper_Reference([qAlice1, qAlice2]);
-            
+
             use (qBob1, qBob2) = (Qubit(), Qubit());
             EntangleWrapper_Reference([qBob1, qBob2]);
-            
+
             let (teleportOp, adjustOp) = entanglementSwapping;
-            // Apply the operations returned by the solution: 
+            // Apply the operations returned by the solution:
             // first Charlie's side, then Bob's side.
             let result = teleportOp(qAlice1, qBob1);
             adjustOp(qBob2, result);
@@ -23,7 +23,7 @@ namespace Kata.Verification {
             // if the state of Alice's and Bob's qubits was |Φ⁺⟩,
             // their state should become |00⟩ now.
             Adjoint EntangleWrapper_Reference([qAlice2, qBob2]);
-            
+
             // Assert that Alice's and Bob's qubits end up in |0⟩ state.
             if not CheckAllZero([qAlice2, qBob2]) {
                 Message($"Incorrect.");
@@ -34,7 +34,7 @@ namespace Kata.Verification {
                 ResetAll([qAlice1, qAlice2, qBob1, qBob2]);
                 return false;
             }
-            
+
             Message($"Correct.");
             ResetAll([qAlice1, qAlice2, qBob1, qBob2]);
             return true;

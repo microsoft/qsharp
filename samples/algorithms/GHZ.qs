@@ -1,5 +1,5 @@
 /// # Sample
-/// GHZ
+/// Greenberger–Horne–Zeilinger
 ///
 /// # Description
 /// The Greenberger–Horne–Zeilinger state, or GHZ state, is a state with 3

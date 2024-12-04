@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     function F_Parity(x : Bool[]) : Bool {
         mutable parity = false;
@@ -13,7 +13,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 1 .. 5 {
+        for n in 1..5 {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_Parity, F_Parity) {
                 return false;
             }

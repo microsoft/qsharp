@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Convert;
+    import Std.Math.*;
+    import Std.Random.*;
+    import Std.Convert.*;
 
     operation DrawRandomComplex() : Complex {
         // Generates a random complex number.

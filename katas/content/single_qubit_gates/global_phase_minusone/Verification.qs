@@ -1,10 +1,10 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import KatasUtils.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
 
-    operation GlobalPhaseChange (q : Qubit) : Unit is Adj + Ctl {
+    operation GlobalPhaseChange(q : Qubit) : Unit is Adj + Ctl {
         Z(q);
         X(q);
         Z(q);

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation PrepareMinus(q : Qubit) : Unit is Adj + Ctl {
         X(q);

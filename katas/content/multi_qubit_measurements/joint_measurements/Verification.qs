@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // Two qubit parity Measurement
     operation StatePrep_ParityMeasurement(qs : Qubit[], state : Int, alpha : Double) : Unit is Adj {
@@ -21,7 +21,8 @@ namespace Kata.Verification {
             StatePrep_ParityMeasurement,
             Kata.ParityMeasurement,
             true,
-            ["α|00⟩ + β|11⟩", "α|01⟩ + β|10⟩"]);
+            ["α|00⟩ + β|11⟩", "α|01⟩ + β|10⟩"]
+        );
 
         if (isCorrect) {
             Message("Correct!");

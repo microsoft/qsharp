@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     operation BinaryFractionClassical(q : Qubit, j : Bool[]) : Unit is Adj + Ctl {
         let n = Length(j);

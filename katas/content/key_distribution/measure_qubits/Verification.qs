@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 2 .. 10 {
+        for N in 2..10 {
             let (bases, bits) = (RandomArray(N), RandomArray(N));
             use qs = Qubit[N];
             PrepareQubits_Reference(qs, bases, bits);
@@ -15,7 +15,7 @@ namespace Kata.Verification {
                 return false;
             }
 
-            for i in 0 .. N - 1 {
+            for i in 0..N - 1 {
                 if res[i] != bits[i] {
                     Message($"Qubit qs[{i}] measured in incorrect basis.");
                     Message($"When measuring state {StateToString(bases[i], bits[i])} in the {BasisToString(bases[i])} basis, " +

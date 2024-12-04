@@ -187,7 +187,7 @@ async function runExerciseSolutionCheck(exercise, solution) {
 async function getAllKataExamples(kata) {
   let examples = [];
 
-  // Get all the examples conatined in solution explanations.
+  // Get all the examples contained in solution explanations.
   const exerciseExamples = kata.sections
     .filter((section) => section.type === "exercise")
     .map((exercise) =>

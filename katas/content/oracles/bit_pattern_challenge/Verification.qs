@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
     operation ArbitraryBitPattern_Oracle_Challenge_Reference(x : Qubit[], pattern : Bool[]) : Unit is Adj + Ctl {
         within {
@@ -17,8 +17,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1 .. 3 {
-            for k in 0 .. 2^N -1 {
+        for N in 1..3 {
+            for k in 0..2^N -1 {
                 let pattern = IntAsBoolArray(k, N);
 
                 let sol = Kata.ArbitraryBitPattern_Oracle_Challenge(_, pattern);

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import Std.Random.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {

@@ -1,10 +1,10 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation ReflectionAboutState(
         qs : Qubit[],
-        statePrep : Qubit[] => Unit is Adj + Ctl)
-    : Unit is Adj + Ctl {
+        statePrep : Qubit[] => Unit is Adj + Ctl
+    ) : Unit is Adj + Ctl {
         // Implement your solution here...
 
     }
@@ -14,7 +14,7 @@ namespace Kata {
         within {
             ApplyToEachA(X, qs);
         } apply {
-            Controlled Z(qs[1 ...], qs[0]);
+            Controlled Z(qs[1...], qs[0]);
         }
         R(PauliI, 2.0 * PI(), qs[0]);
     }

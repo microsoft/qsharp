@@ -1,28 +1,28 @@
 namespace Quantum.Kata.CHSHGame {
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Random.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
-    function WinCondition (x : Bool, y : Bool, a : Bool, b : Bool) : Bool {
+    function WinCondition(x : Bool, y : Bool, a : Bool, b : Bool) : Bool {
         return (x and y) == (a != b);
     }
 
-    function AliceClassical (x : Bool) : Bool {
+    function AliceClassical(x : Bool) : Bool {
         return false;
     }
 
-    function BobClassical (y : Bool) : Bool {
+    function BobClassical(y : Bool) : Bool {
         return false;
     }
 
-    operation AliceQuantum (bit : Bool, qubit : Qubit) : Bool {
+    operation AliceQuantum(bit : Bool, qubit : Qubit) : Bool {
         if bit {
             return MResetX(qubit) == One;
         }
         return MResetZ(qubit) == One;
     }
 
-    operation BobQuantum (bit : Bool, qubit : Qubit) : Bool {
+    operation BobQuantum(bit : Bool, qubit : Qubit) : Bool {
         let angle = 2.0 * PI() / 8.0;
         Ry(not bit ? -angle | angle, qubit);
         return M(qubit) == One;
@@ -34,7 +34,7 @@ namespace Quantum.Kata.CHSHGame {
         mutable classicalWins = 0;
         mutable quantumWins = 0;
         let iterations = 1000;
-        for _ in 1 .. iterations {
+        for _ in 1..iterations {
             H(aliceQubit);
             CNOT(aliceQubit, bobQubit);
             let (x, y) = (DrawRandomBool(0.5), DrawRandomBool(0.5));
@@ -46,7 +46,7 @@ namespace Quantum.Kata.CHSHGame {
             }
             ResetAll([aliceQubit, bobQubit]);
         }
-        Message($"Percentage of classical wins is {100.0*IntAsDouble(classicalWins)/IntAsDouble(iterations)}%");
-        Message($"Percentage of quantum wins is {100.0*IntAsDouble(quantumWins)/IntAsDouble(iterations)}%");
+        Message($"Percentage of classical wins is {100.0 * IntAsDouble(classicalWins) / IntAsDouble(iterations)}%");
+        Message($"Percentage of quantum wins is {100.0 * IntAsDouble(quantumWins) / IntAsDouble(iterations)}%");
     }
 }

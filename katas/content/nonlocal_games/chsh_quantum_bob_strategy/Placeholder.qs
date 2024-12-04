@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
-    operation BobQuantum (bit : Bool, qubit : Qubit) : Bool {
+    operation BobQuantum(bit : Bool, qubit : Qubit) : Bool {
         // Implement your solution here...
 
         return false;

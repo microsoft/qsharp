@@ -1,8 +1,8 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
-    operation MultiQubitSystemsDemo () : Unit {
+    operation MultiQubitSystemsDemo() : Unit {
         // This allocates an array of 2 qubits, each of them in state |0⟩.
         // The overall state of the system is |00⟩.
         use qs = Qubit[2];

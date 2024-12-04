@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import KatasUtils.*;
 
     // Distinguish states |A❭ and |B❭
     // |A⟩ =   cos(alpha) * |0⟩ - i sin(alpha) * |1⟩,
@@ -19,13 +19,14 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 0 .. 10 {
+        for i in 0..10 {
             let alpha = (PI() * IntAsDouble(i)) / 10.0;
             let isCorrect = DistinguishTwoStates_SingleQubit(
                 StatePrep_IsQubitA(alpha, _, _),
                 Kata.IsQubitA(alpha, _),
                 [$"|B⟩ = -i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩", $"|A⟩ = cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩"],
-                false);
+                false
+            );
             if not isCorrect {
                 Message("Incorrect.");
                 return false;

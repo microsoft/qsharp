@@ -5,7 +5,7 @@ Fortunately, there is another operation you can use to change the state $\ket{0}
 $$X = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
 This gate transforms $\ket{0} \longmapsto \ket{1}$ and $\ket{1} \longmapsto \ket{0}$.
-$X$ is another one of the built-in gates in Q# from the `Microsoft.Quantum.Intrinsic` namespace.
+$X$ is another one of the built-in gates in Q# from the `Std.Intrinsic` namespace.
 
 Thus, your solution should apply the $X$ gate to your qubit, followed by the Hadamard gate.
 

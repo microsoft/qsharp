@@ -1,16 +1,16 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import KatasUtils.*;
+    import Std.Math.*;
 
-    operation PrepareArbitraryState (alpha : Double, beta : Double, theta : Double, q : Qubit) : Unit is Adj+Ctl {
+    operation PrepareArbitraryState(alpha : Double, beta : Double, theta : Double, q : Qubit) : Unit is Adj + Ctl {
         let phi = ArcTan2(beta, alpha);
         Ry(2.0 * phi, q);
         R1(theta, q);
     }
 
     operation CheckSolution() : Bool {
-         for i in 0 .. 10 {
+        for i in 0..10 {
             let i = IntAsDouble(i);
             let alpha = Cos(i);
             let beta = Sin(i);

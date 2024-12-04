@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     function ComputeRepetitions(angle : Double, offset : Int, accuracy : Double) : Int {
         mutable pifactor = 0;
@@ -15,13 +15,13 @@ namespace Kata {
         return 0;
     }
 
-    operation DistinguishRzFromRy (theta : Double, unitary : (Qubit => Unit is Adj+Ctl)) : Int {
+    operation DistinguishRzFromRy(theta : Double, unitary : (Qubit => Unit is Adj + Ctl)) : Int {
         use q = Qubit();
         let times = ComputeRepetitions(theta, 1, 0.1);
         mutable attempt = 1;
         mutable measuredOne = false;
         repeat {
-            for _ in 1 .. times {
+            for _ in 1..times {
                 unitary(q);
             }
             // for Rz, we'll never venture away from |0⟩ state, so as soon as we got |1⟩ we know it's not Rz
@@ -29,7 +29,7 @@ namespace Kata {
                 set measuredOne = true;
             }
             // if we try several times and still only get |0⟩s, chances are that it is Rz
-        } until (attempt == 4 or measuredOne) 
+        } until (attempt == 4 or measuredOne)
         fixup {
             set attempt += 1;
         }

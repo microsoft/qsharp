@@ -14,4 +14,4 @@ Adding complex numbers is just like adding polynomials. Add components of the sa
 A video explanation of adding complex numbers can be found [here](https://www.youtube.com/watch?v=SfbjqVyQljk).
 </details>
 
-> Q# function `PlusC` from `Microsoft.Quantum.Math` namespace adds two complex numbers. For educational purposes, try to do this task by hand.
+> Q# function `PlusC` from `Std.Math` namespace adds two complex numbers. For educational purposes, try to do this task by hand.

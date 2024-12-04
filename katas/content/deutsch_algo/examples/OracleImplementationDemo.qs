@@ -1,22 +1,22 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
-    operation PhaseOracle_Zero (x : Qubit) : Unit {
+    operation PhaseOracle_Zero(x : Qubit) : Unit {
         // Do nothing...
     }
 
-    operation PhaseOracle_One (x : Qubit) : Unit {
+    operation PhaseOracle_One(x : Qubit) : Unit {
         // Apply a global phase of -1
         R(PauliI, 2.0 * PI(), x);
     }
 
-    operation PhaseOracle_X (x : Qubit) : Unit {
+    operation PhaseOracle_X(x : Qubit) : Unit {
         Z(x);
     }
 
     @EntryPoint()
-    operation OracleImplementationDemo () : Unit {
+    operation OracleImplementationDemo() : Unit {
         use q = Qubit();
         Ry(2.0 * ArcCos(0.6), q);
         Message("The qubit state before oracle application is 0.6|0⟩ + 0.8|0⟩:");

@@ -17,4 +17,4 @@ A video explanation of multiplying complex numbers can be found [here](https://w
 
 </details>
 
-> Q# function `TimesC` from `Microsoft.Quantum.Math` namespace multiplies two complex numbers. For educational purposes, try to do this task by hand.
+> Q# function `TimesC` from `Std.Math` namespace multiplies two complex numbers. For educational purposes, try to do this task by hand.
