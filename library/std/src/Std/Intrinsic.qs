@@ -1141,6 +1141,40 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 /// # Summary
+/// Applies the given unitary matrix to the given qubits. The matrix must be square, with dimensions dictated by the number of qubits.
+/// This operation is simulator-only and is not supported on hardware.
+///
+/// # Input
+/// ## matrix
+/// The unitary matrix to apply.
+/// ## qubits
+/// The qubits to which the unitary matrix should be applied.
+///
+/// # Remarks
+/// The matrix is checked at runtime to ensure it's shape is square and that the matrix dimensions are `2 ^ Length(qubits)`.
+@Config(Unrestricted)
+operation ApplyUnitary(matrix : Complex[][], qubits : Qubit[]) : Unit {
+    let num_rows = Length(matrix);
+    for col in matrix {
+        if Length(col) != num_rows {
+            fail "matrix passed to ApplyUnitary must be square.";
+        }
+    }
+
+    let num_qubits = Length(qubits);
+    if num_rows != 1 <<< num_qubits {
+        fail "matrix passed to ApplyUnitary must have dimensions 2^Length(qubits).";
+    }
+
+    Apply(matrix, qubits);
+}
+
+@Config(Unrestricted)
+operation Apply(matrix : Complex[][], qubits : Qubit[]) : Unit {
+    body intrinsic;
+}
+
+/// # Summary
 /// Logs a message.
 ///
 /// # Input
@@ -1155,4 +1189,4 @@ function Message(msg : String) : Unit {
     body intrinsic;
 }
 
-export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
+export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, ApplyUnitary, Message;

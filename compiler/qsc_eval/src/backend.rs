@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::noise::PauliNoise;
 use crate::val::Value;
+use crate::{noise::PauliNoise, val::unwrap_tuple};
+use ndarray::Array2;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
@@ -417,6 +418,36 @@ impl Backend for SparseSim {
             "ApplyIdleNoise" => {
                 let q = arg.unwrap_qubit().deref().0;
                 self.apply_noise(q);
+                Some(Ok(Value::unit()))
+            }
+            "Apply" => {
+                let [matrix, qubits] = unwrap_tuple(arg);
+                let qubits = qubits.unwrap_array();
+                let qubits = qubits
+                    .iter()
+                    .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
+                    .collect::<Vec<_>>();
+                let matrix: Vec<Vec<Complex<f64>>> = matrix
+                    .unwrap_array()
+                    .iter()
+                    .map(|row| {
+                        row.clone()
+                            .unwrap_array()
+                            .iter()
+                            .map(|elem| {
+                                let [re, im] = unwrap_tuple(elem.clone());
+                                Complex::<f64>::new(re.unwrap_double(), im.unwrap_double())
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                let matrix =
+                    Array2::from_shape_fn((1 << qubits.len(), 1 << qubits.len()), |(i, j)| {
+                        matrix[i][j]
+                    });
+
+                self.sim.apply(&matrix, &qubits, None);
+
                 Some(Ok(Value::unit()))
             }
             _ => None,

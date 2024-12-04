@@ -16,7 +16,7 @@ mod table_lookup;
 
 use indoc::indoc;
 use qsc::{
-    interpret::{GenericReceiver, Interpreter, Result, Value},
+    interpret::{self, GenericReceiver, Interpreter, Result, Value},
     target::Profile,
     Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
@@ -28,6 +28,15 @@ use qsc::{
 /// account so that results of calculations can also be compared.
 pub fn test_expression(expr: &str, expected: &Value) -> String {
     test_expression_with_lib(expr, "", expected)
+}
+
+pub fn test_expression_fails(expr: &str) -> String {
+    test_expression_fails_with_lib_and_profile_and_sim(
+        expr,
+        "",
+        Profile::Unrestricted,
+        &mut SparseSim::default(),
+    )
 }
 
 pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) -> String {
@@ -91,6 +100,45 @@ pub fn test_expression_with_lib_and_profile_and_sim(
     }
 
     String::from_utf8(stdout).expect("stdout should be valid utf8")
+}
+
+pub fn test_expression_fails_with_lib_and_profile_and_sim(
+    expr: &str,
+    lib: &str,
+    profile: Profile,
+    sim: &mut impl Backend<ResultType = impl Into<Result>>,
+) -> String {
+    let mut stdout = vec![];
+    let mut out = GenericReceiver::new(&mut stdout);
+
+    let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
+
+    let (std_id, store) = qsc::compile::package_store_with_stdlib(profile.into());
+
+    let mut interpreter = Interpreter::new(
+        sources,
+        PackageType::Exe,
+        profile.into(),
+        LanguageFeatures::default(),
+        store,
+        &[(std_id, None)],
+    )
+    .expect("test should compile");
+
+    let result = interpreter
+        .eval_entry_with_sim(sim, &mut out)
+        .expect_err("test should run successfully");
+
+    assert!(
+        result.len() == 1,
+        "Expected a single error, got {:?}",
+        result.len()
+    );
+    let interpret::Error::Eval(err) = &result[0] else {
+        panic!("Expected an Eval error, got {:?}", result[0]);
+    };
+
+    err.error().error().to_string()
 }
 
 /// # Panics
