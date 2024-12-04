@@ -94,7 +94,7 @@ export class CopilotConversation {
     await this.converseWithCopilot();
   }
 
-  getMsaChatSession = async (): Promise<string> => {
+  async getMsaChatSession(): Promise<string> {
     if (!this._msaChatSession) {
       log.info("new token");
       this._msaChatSession = await getAuthSession(
@@ -106,14 +106,14 @@ export class CopilotConversation {
       }
     }
     return this._msaChatSession.accessToken;
-  };
+  }
 
-  onMessage = (ev: EventSourceMessage) => {
+  async onMessage(ev: EventSourceMessage) {
     const messageReceived: QuantumChatResponse = JSON.parse(ev.data);
-    this.handleResponse(messageReceived);
-  };
+    await this.handleResponse(messageReceived);
+  }
 
-  handleResponse = (response: QuantumChatResponse) => {
+  async handleResponse(response: QuantumChatResponse) {
     if (response.Delta) {
       // ToDo: For now, just log the delta
       // this.streamCallback({ response: response.Delta }, "copilotResponse");
@@ -129,15 +129,15 @@ export class CopilotConversation {
       }
       if (response.ToolCalls) {
         log.info("Tools Call message: ", response);
-        this.handleToolCalls(response);
+        await this.handleToolCalls(response);
       }
     } else {
       // ToDo: This might be an error
       log.info("Other response: ", response);
     }
-  };
+  }
 
-  handleToolCalls = async (response: QuantumChatResponse) => {
+  async handleToolCalls(response: QuantumChatResponse) {
     if (response.ToolCalls) {
       for (const toolCall of response.ToolCalls) {
         const content = await this.handleSingleToolCall(toolCall);
@@ -152,14 +152,14 @@ export class CopilotConversation {
 
       await this.converseWithCopilot();
     }
-  };
+  }
 
-  handleSingleToolCall = async (toolCall: ToolCall) => {
+  async handleSingleToolCall(toolCall: ToolCall) {
     const args = JSON.parse(toolCall.arguments);
     return ToolCallSwitch(toolCall.name, args, this);
-  };
+  }
 
-  converseWithCopilot = async () => {
+  async converseWithCopilot() {
     const token = await this.getMsaChatSession();
     const payload: QuantumChatRequest = {
       conversationId: this.conversationId,
@@ -181,7 +181,7 @@ export class CopilotConversation {
 
     // log.info("About to call ChatAPI with payload: ", options);
     try {
-      const onMessage = this.onMessage;
+      const onMessage = this.onMessage.bind(this);
       await fetchEventSource(chatUrl, {
         ...options,
         onMessage,
@@ -189,12 +189,12 @@ export class CopilotConversation {
 
       log.info("ChatAPI fetch completed");
       this.streamCallback({}, "copilotResponseDone");
-      return Promise.resolve({});
+      return {};
     } catch (error) {
       log.error("ChatAPI fetch failed with error: ", error);
       throw error;
     }
-  };
+  }
 }
 
 export class CopilotWebviewViewProvider implements WebviewViewProvider {
