@@ -1,151 +1,173 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::ErrorCorrection;
+use std::cmp::Ordering;
 
-pub trait CodeWithThresholdAndDistanceEvaluator {
+mod code_with_threshold_and_distance;
+pub use code_with_threshold_and_distance::{
+    CodeWithThresholdAndDistance, CodeWithThresholdAndDistanceEvaluator,
+};
+
+/// Trait to model quantum error correction.
+///
+/// This trait models one quantum error correction code that encodes k logical
+/// qubits using n physical qubits.  The physical qubits are of type
+/// `Self::Qubit`.  Each code is parameterized by assignments to parameters of
+/// type `Self::Parameter`.  Implementors of this trait need to specify values
+/// for k, n, the logical cycle time, and the logical error rate, given an
+/// assignment to the code parameter.
+///
+/// In order to define the space of possible code parameters, implementers of
+/// this trait need to provide a range of code parameters as well as a
+/// comparison function that orders all possible code parameter assignments.
+pub trait ErrorCorrection {
+    /// The underlying physical qubit type for the code
     type Qubit;
+    /// The type for the code parameter
+    ///
+    /// This could be a numeric type in case the code parameter is the code
+    /// distance, or a tuple type, if the code is parameterized over multiple
+    /// values.
+    type Parameter;
 
-    fn physical_error_rate(&self, qubit: &Self::Qubit) -> f64;
-    fn physical_qubits(&self, code_distance: u64) -> Result<u64, String>;
-    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64, String>;
-}
+    /// The total number of physical qubits required by the code
+    fn physical_qubits(&self, code_parameter: &Self::Parameter) -> Result<u64, String>;
 
-pub struct CodeWithThresholdAndDistance<Evaluator> {
-    evaluator: Evaluator,
-    crossing_prefactor: f64,
-    error_correction_threshold: f64,
-    max_code_distance: Option<u64>,
-}
+    /// The number of logical qubits provided by the code
+    fn logical_qubits(&self, code_parameter: &Self::Parameter) -> Result<u64, String>;
 
-impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
-    pub fn new(
-        evaluator: Evaluator,
-        crossing_prefactor: f64,
-        error_correction_threshold: f64,
-    ) -> Self {
-        Self {
-            evaluator,
-            crossing_prefactor,
-            error_correction_threshold,
-            max_code_distance: None,
-        }
-    }
+    /// The logical cycle time in nano seconds
+    fn logical_cycle_time(
+        &self,
+        qubit: &Self::Qubit,
+        code_parameter: &Self::Parameter,
+    ) -> Result<u64, String>;
 
-    pub fn with_max_code_distance(
-        evaluator: Evaluator,
-        crossing_prefactor: f64,
-        error_correction_threshold: f64,
-        max_code_distance: u64,
-    ) -> Self {
-        Self {
-            evaluator,
-            crossing_prefactor,
-            error_correction_threshold,
-            max_code_distance: Some(max_code_distance),
-        }
-    }
+    /// The logical error rate
+    fn logical_error_rate(
+        &self,
+        qubit: &Self::Qubit,
+        code_parameter: &Self::Parameter,
+    ) -> Result<f64, String>;
 
-    pub fn crossing_prefactor(&self) -> f64 {
-        self.crossing_prefactor
-    }
-
-    pub fn set_crossing_prefactor(&mut self, crossing_prefactor: f64) {
-        self.crossing_prefactor = crossing_prefactor;
-    }
-
-    pub fn error_correction_threshold(&self) -> f64 {
-        self.error_correction_threshold
-    }
-
-    pub fn set_error_correction_threshold(&mut self, error_correction_threshold: f64) {
-        self.error_correction_threshold = error_correction_threshold;
-    }
-
-    pub fn max_code_distance(&self) -> Option<&u64> {
-        self.max_code_distance.as_ref()
-    }
-
-    pub fn set_max_code_distance(&mut self, max_code_distance: u64) {
-        self.max_code_distance = Some(max_code_distance);
-    }
-
-    pub fn evaluator(&self) -> &Evaluator {
-        &self.evaluator
-    }
-
-    pub fn evaluator_mut(&mut self) -> &mut Evaluator {
-        &mut self.evaluator
-    }
-}
-
-impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> ErrorCorrection
-    for CodeWithThresholdAndDistance<Evaluator>
-{
-    type Qubit = Evaluator::Qubit;
-    type Parameter = u64;
-
-    fn physical_qubits(&self, code_distance: &u64) -> Result<u64, String> {
-        self.evaluator.physical_qubits(*code_distance)
-    }
-
-    fn logical_qubits(&self, _code_distance: &u64) -> Result<u64, String> {
-        Ok(1)
-    }
-
-    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: &u64) -> Result<u64, String> {
-        self.evaluator.logical_cycle_time(qubit, *code_distance)
-    }
-
-    fn logical_error_rate(&self, qubit: &Self::Qubit, code_distance: &u64) -> Result<f64, String> {
-        let physical_error_rate = self.evaluator.physical_error_rate(qubit);
-
-        if physical_error_rate > self.error_correction_threshold {
-            Err(format!(
-                "invalid value for 'physical_error_rate', expected value between 0 and {}",
-                self.error_correction_threshold
-            ))
-        } else {
-            Ok(self.crossing_prefactor
-                * ((physical_error_rate / self.error_correction_threshold)
-                    .powi((*code_distance as i32 + 1) / 2)))
-        }
-    }
-
-    // Compute code distance d (Equation (E2) in paper)
+    /// Computes a code parameter assignment for a provided required logical
+    /// error rate
+    ///
+    /// The default implementation iterates through all code parameters using
+    /// the `Self::code_parameter_range` method and returns the first parameter
+    /// for which the logical error rate is less or equal the required logical
+    /// error rate.
+    ///
+    /// This method assumes that the code parameters that are returned from
+    /// `Self::code_parameter_range` are ordered by the logical error rate per
+    /// qubit, starting from the largest one.
     fn compute_code_parameter(
         &self,
         qubit: &Self::Qubit,
-        required_logical_qubit_error_rate: f64,
-    ) -> Result<u64, String> {
-        let physical_error_rate = self.evaluator.physical_error_rate(qubit);
-        let numerator = 2.0 * (self.crossing_prefactor / required_logical_qubit_error_rate).ln();
-        let denominator = (self.error_correction_threshold / physical_error_rate).ln();
-
-        let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
-
-        if let Some(max_distance) = self.max_code_distance {
-            if max_distance < code_distance {
-                return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
+        for parameter in self.code_parameter_range(None) {
+            if let (Ok(probability), Ok(logical_qubits)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+            ) {
+                if probability / (logical_qubits as f64) <= required_logical_error_rate {
+                    return Ok(parameter);
+                }
             }
         }
 
-        Ok(code_distance)
+        Err(format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
     }
 
+    /// Computes the code parameter assignment that requires the fewest number
+    /// of physical qubits
+    ///
+    /// Compared to the default implementation `Self::compute_code_parameter`,
+    /// this method evaluates _all_ possible parameters, filters those which
+    /// fulfill the required logical error rate, and then chooses the one among
+    /// them, which requires the smallest number of physical qubits.
+    fn compute_code_parameter_for_smallest_size(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
+        let mut best: Option<(Self::Parameter, f64)> = None;
+
+        for parameter in self.code_parameter_range(None) {
+            if let (Ok(probability), Ok(logical_qubits), Ok(physical_qubits)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+                self.physical_qubits(&parameter),
+            ) {
+                let physical_qubits_per_logical_qubits =
+                    physical_qubits as f64 / logical_qubits as f64;
+                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                    && best
+                        .as_ref()
+                        .map_or(true, |&(_, pq)| physical_qubits_per_logical_qubits < pq)
+                {
+                    best = Some((parameter, physical_qubits_per_logical_qubits));
+                }
+            }
+        }
+
+        best.map(|(p, _)| p)
+            .ok_or_else(|| format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
+    }
+
+    /// Computes the code parameter assignment that provides the fastest logical
+    /// cycle time
+    ///
+    /// Compared to the default implementation `Self::compute_code_parameter`,
+    /// this method evaluates _all_ possible parameters, filters those which
+    /// fulfill the required logical error rate, and then chooses the one among
+    /// them, which provides the fastest logical cycle time.
+    fn compute_code_parameter_for_smallest_runtime(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
+        let mut best: Option<(Self::Parameter, u64)> = None;
+
+        for parameter in self.code_parameter_range(None) {
+            if let (Ok(probability), Ok(logical_qubits), Ok(logical_cycle_time)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+                self.logical_cycle_time(qubit, &parameter),
+            ) {
+                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                    && best.as_ref().map_or(true, |&(_, t)| logical_cycle_time < t)
+                {
+                    best = Some((parameter, logical_cycle_time));
+                }
+            }
+        }
+
+        best.map(|(p, _)| p)
+            .ok_or_else(|| format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
+    }
+
+    /// Returns an iterator of all possible code parameters
+    ///
+    /// Implementors of this method should sort the code parameters such that
+    /// the least costly parameters appear first.  Least costly may be defined
+    /// in terms of physical qubits, the logical cycle time, or a combination of
+    /// both.
     fn code_parameter_range(
         &self,
         lower_bound: Option<&Self::Parameter>,
-    ) -> impl Iterator<Item = Self::Parameter> {
-        (lower_bound.copied().unwrap_or(1)..=self.max_code_distance.unwrap_or(u64::MAX)).step_by(2)
-    }
+    ) -> impl Iterator<Item = Self::Parameter>;
 
+    /// Compares to code parameters
+    ///
+    /// A code parameter is less than another code parameter, if it requires
+    /// less cost in the implementation.  The cost may be defined in terms of
+    /// physical qubits, the logical cycle time, or a combination of both.
     fn code_parameter_cmp(
         &self,
-        _qubit: &Self::Qubit,
+        qubit: &Self::Qubit,
         p1: &Self::Parameter,
         p2: &Self::Parameter,
-    ) -> std::cmp::Ordering {
-        p1.cmp(p2)
-    }
+    ) -> Ordering;
 }

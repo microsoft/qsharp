@@ -247,7 +247,7 @@ fn get_indent(compilation: &Compilation, package_offset: u32) -> String {
         .try_into()
         .expect("offset can't be converted to uszie");
     let before_offset = &source.contents[..source_offset];
-    let mut indent = match before_offset.rfind(|c| c == '{' || c == '\n') {
+    let mut indent = match before_offset.rfind(['{', '\n']) {
         Some(begin) => {
             let indent = &before_offset[begin..];
             indent.strip_prefix('{').unwrap_or(indent)
