@@ -62,6 +62,7 @@ type DocumentationState = {
 
 type CopilotState = {
   viewType: "copilot";
+  tidbits: string[];
   qas: QA[];
   inProgress: boolean;
 };
@@ -219,11 +220,13 @@ function onMessage(event: any) {
     case "copilot":
       state = {
         viewType: "copilot",
+        tidbits: [],
         qas: [{ request: "", response: "AMA!" }],
         inProgress: false,
       };
       break;
-    case "copilotResponse":
+    case "copilotResponseDelta":
+      // After a copilot response from the service, but before any tool calls are executed.
       {
         if (state.viewType !== "copilot") {
           console.error("Received copilot response in wrong state", state);
@@ -233,6 +236,23 @@ function onMessage(event: any) {
         let cleanedResponse = message.response;
         cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
         cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+
+        state.tidbits.push(cleanedResponse);
+      }
+      break;
+    case "copilotResponse":
+      // After a copilot response from the service, but before any tool calls are executed.
+      {
+        if (state.viewType !== "copilot") {
+          console.error("Received copilot response in wrong state", state);
+          return;
+        }
+        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+        let cleanedResponse = message.response;
+        cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+        cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+
+        state.tidbits = [];
 
         state.qas.push({
           request: message.request ?? "",
@@ -265,11 +285,12 @@ function onMessage(event: any) {
       }
       break;
     case "copilotResponseDone":
+      // After all the events in a single response stream have been received
       if (state.viewType !== "copilot") {
         console.error("Received copilot response done in wrong state", state);
         return;
       } else {
-        state.qas.push({ request: "", response: "\n\n---\n\n" });
+        // state.qas.push({ request: "", response: "\n\n---\n\n" });
         state.inProgress = false;
       }
       // Highlight any code blocks
@@ -365,8 +386,10 @@ function App({ state }: { state: State }) {
       return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
     case "copilot": {
       const hrRef = useRef<HTMLHRElement>(null);
+      const inputRef = useRef<HTMLInputElement>(null);
       useEffect(() => {
-        hrRef.current?.scrollIntoView(false);
+        // hrRef.current?.scrollIntoView(false);
+        inputRef.current?.focus();
       });
       return (
         <div style="max-width: 800px; font-size: 10pt; line-height: 1.5;">
@@ -374,6 +397,12 @@ function App({ state }: { state: State }) {
           {(state as CopilotState).qas.map((qa) => (
             <Response request={qa.request} response={qa.response} />
           ))}
+          {
+            <Response
+              request={""}
+              response={(state as CopilotState).tidbits.join("")}
+            />
+          }
           <br />
           {state.inProgress ? null : (
             <input
@@ -382,6 +411,7 @@ function App({ state }: { state: State }) {
               placeholder="Ask your question here"
               id="copilotQuestion"
               onKeyUp={(e) => e.key === "Enter" && copilotRequest()}
+              ref={inputRef}
             />
           )}
           <br />

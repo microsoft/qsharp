@@ -13,14 +13,18 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
 } from "vscode";
-import { CopilotStreamCallback, ToolCallSwitch } from "./copilotTools";
+import { CopilotStreamCallback, executeTool } from "./copilotTools";
 import { WorkspaceConnection } from "../azure/treeView";
 
 // const chatUrl = "https://canary.api.quantum.microsoft.com/api/chat/streaming";
 const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming"; // new API
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
-type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
+type QuantumChatMessage =
+  | UserMessage
+  | AssistantMessage
+  | SystemMessage
+  | ToolMessage;
 
 type UserMessage = {
   role: "user";
@@ -31,6 +35,11 @@ type AssistantMessage = {
   role: "assistant";
   content: string;
   ToolCalls?: ToolCall[];
+};
+
+type SystemMessage = {
+  role: "system";
+  content: string;
 };
 
 type ToolMessage = {
@@ -60,8 +69,11 @@ const systemMessage: AssistantMessage = {
   role: "assistant",
   content:
     "You are a helpful customer support assistant. Use the supplied tools to assist the user. " +
-    'Do not provide information about jobs whose status is "Not Found", unless the user specifically asks for the job by it\'s id. ' +
-    "Do not provide container URI links from jobs to the user. ",
+    // 'Do not provide information about jobs whose status is "Not Found", unless the user specifically asks for the job by its id. ' +
+    "Do not provide container URI links from jobs to the user. " +
+    "When submitting a Q# program, the Q# code is automatically retrieved from the currently visible Q# editor by the SubmitToTarget tool. " +
+    "When submitting to a target, if the user doesn't explicitly specify the number of shots or the target, ask the user for these values. " +
+    "When checking the status of a job, if the job is not specified, use the job ID from the last submitted job.",
 };
 
 type QuantumChatRequest = {
@@ -91,7 +103,10 @@ export class CopilotConversation {
       content: question,
     });
 
-    await this.converseWithCopilot();
+    const { content, toolCalls } = await this.converseWithCopilot();
+    await this.handleFullResponse(content, toolCalls);
+
+    this.streamCallback({}, "copilotResponseDone");
   }
 
   async getMsaChatSession(): Promise<string> {
@@ -108,58 +123,92 @@ export class CopilotConversation {
     return this._msaChatSession.accessToken;
   }
 
-  async onMessage(ev: EventSourceMessage) {
-    const messageReceived: QuantumChatResponse = JSON.parse(ev.data);
-    await this.handleResponse(messageReceived);
+  async onChatApiEvent(
+    ev: EventSourceMessage,
+    delta: (delta: string) => void,
+    resolve: (content?: string, toolCalls?: ToolCall[]) => Promise<void>,
+  ) {
+    const response = JSON.parse(ev.data) as QuantumChatResponse;
+    await this.handleChatResponseMessage(response, delta, resolve);
   }
 
-  async handleResponse(response: QuantumChatResponse) {
+  async handleChatResponseMessage(
+    response: QuantumChatResponse,
+    delta: (delta: string) => void,
+    resolve: (content?: string, toolCalls?: ToolCall[]) => Promise<void>,
+  ) {
+    //   log.debug(
+    //     `ChatAPI response message:\n${JSON.stringify(response, undefined, 2)}`,
+    //   );
     if (response.Delta) {
-      // ToDo: For now, just log the delta
-      // this.streamCallback({ response: response.Delta }, "copilotResponse");
-      // log.info("Delta: ", response.Delta);
+      delta(response.Delta);
     } else if (response.Content || response.ToolCalls) {
-      this.messages.push({
-        role: "assistant",
-        content: response.Content || "",
-        ToolCalls: response.ToolCalls,
-      });
-      if (response.Content) {
-        this.streamCallback({ response: response.Content }, "copilotResponse");
-      }
-      if (response.ToolCalls) {
-        log.info("Tools Call message: ", response);
-        await this.handleToolCalls(response);
-      }
+      await resolve(response.Content, response.ToolCalls);
+      log.debug(
+        `ChatAPI full response:\n${JSON.stringify(response, undefined, 2)}`,
+      );
     } else {
       // ToDo: This might be an error
       log.info("Other response: ", response);
     }
   }
 
-  async handleToolCalls(response: QuantumChatResponse) {
-    if (response.ToolCalls) {
-      for (const toolCall of response.ToolCalls) {
-        const content = await this.handleSingleToolCall(toolCall);
-        // Create a message containing the result of the function call
-        const function_call_result_message: ToolMessage = {
-          role: "tool",
-          content: JSON.stringify(content),
-          toolCallId: toolCall.id,
-        };
-        this.messages.push(function_call_result_message);
-      }
+  handleDelta(delta: string) {
+    // ToDo: For now, just log the delta
+    this.streamCallback({ response: delta }, "copilotResponseDelta");
+  }
 
-      await this.converseWithCopilot();
+  /**
+   * @returns {Promise<boolean>} Returns true if there was a tool call made
+   *  should submit another request if there was a tool call
+   */
+  async handleFullResponse(
+    content?: string,
+    toolCalls?: ToolCall[],
+  ): Promise<void> {
+    this.messages.push({
+      role: "assistant",
+      content: content || "",
+      ToolCalls: toolCalls,
+    });
+    if (content) {
+      this.streamCallback({ response: content }, "copilotResponse");
+    }
+    if (toolCalls) {
+      await this.handleToolCalls(toolCalls);
+
+      {
+        const { content, toolCalls } = await this.converseWithCopilot();
+        await this.handleFullResponse(content, toolCalls);
+      }
     }
   }
 
-  async handleSingleToolCall(toolCall: ToolCall) {
-    const args = JSON.parse(toolCall.arguments);
-    return ToolCallSwitch(toolCall.name, args, this);
+  async handleToolCalls(toolCalls: ToolCall[]) {
+    for (const toolCall of toolCalls) {
+      this.streamCallback(
+        { response: `Executing: ${toolCall.name}` },
+        "copilotResponse",
+      );
+      const content = await executeTool(
+        toolCall.name,
+        JSON.parse(toolCall.arguments),
+        this,
+      );
+      // Create a message containing the result of the function call
+      const function_call_result_message: ToolMessage = {
+        role: "tool",
+        content: JSON.stringify(content),
+        toolCallId: toolCall.id,
+      };
+      this.messages.push(function_call_result_message);
+    }
   }
 
-  async converseWithCopilot() {
+  async converseWithCopilot(): Promise<{
+    content?: string;
+    toolCalls?: ToolCall[];
+  }> {
     const token = await this.getMsaChatSession();
     const payload: QuantumChatRequest = {
       conversationId: this.conversationId,
@@ -170,26 +219,54 @@ export class CopilotConversation {
       identifier: "VsCode",
     };
 
+    log.debug(
+      `making request, payload:\n${JSON.stringify(payload, undefined, 2)}`,
+    );
+
+    const body = JSON.stringify(payload);
+
     const options = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(payload),
+      body: body,
     };
 
-    // log.info("About to call ChatAPI with payload: ", options);
     try {
-      const onMessage = this.onMessage.bind(this);
+      let contentInResponse: string | undefined = undefined;
+      let toolCallsInResponse: ToolCall[] | undefined = undefined;
+
       await fetchEventSource(chatUrl, {
         ...options,
-        onMessage,
+        onMessage: (ev) => {
+          if (!JSON.parse(ev.data).Delta) {
+            // deltas are too noisy
+            log.info(
+              `chat api message: ${JSON.stringify(JSON.parse(ev.data), undefined, 2)}`,
+            );
+          }
+          this.onChatApiEvent(
+            ev,
+            this.handleDelta.bind(this),
+            async (content, toolCalls) => {
+              if (content) {
+                contentInResponse = content;
+              }
+              if (toolCalls) {
+                toolCallsInResponse =
+                  toolCallsInResponse === undefined ? [] : toolCallsInResponse;
+                toolCallsInResponse.push(...toolCalls);
+              }
+            },
+          );
+        },
       });
 
       log.info("ChatAPI fetch completed");
-      this.streamCallback({}, "copilotResponseDone");
-      return {};
+      // this.streamCallback({}, "copilotResponseDone");
+      return { content: contentInResponse, toolCalls: toolCallsInResponse };
     } catch (error) {
       log.error("ChatAPI fetch failed with error: ", error);
       throw error;

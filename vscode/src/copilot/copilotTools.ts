@@ -17,10 +17,12 @@ import {
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotConversation } from "./copilot.js";
+import { startRefreshCycle } from "../azure/treeRefresher.js";
 
 export type CopilotStreamCallback = (
   msgPayload: object,
   msgCommand:
+    | "copilotResponseDelta"
     | "copilotResponse"
     | "copilotResponseDone"
     | "copilotResponseHistogram",
@@ -207,39 +209,30 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
 ];
 
 const jobLimit = 10;
-const jobLimitDays = 7;
+const jobLimitDays = 14;
 
-export const GetJobs = async (
+export async function getJobs(
   conversation: CopilotConversation,
-): Promise<Job[]> => {
+): Promise<Job[]> {
   const workspace = await getConversationWorkspace(conversation);
   if (workspace) {
     const jobs = workspace.jobs;
 
-    let limitedJobs = jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs;
-
-    for (const job of limitedJobs) {
-      // Clear out potentially noisy fields
-      // TODO: make this an inclusive rather than exclusive list of props
-      job.errorData = undefined;
-      job.outputDataUri = undefined;
-    }
-
     const start = new Date();
+    start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - jobLimitDays);
 
-    limitedJobs = limitedJobs.filter((j) => new Date(j.creationTime) > start);
-
+    const limitedJobs = (
+      jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs
+    ).filter((j) => new Date(j.creationTime) > start);
     return limitedJobs;
   } else {
     return [];
   }
-};
+}
 
 // Gets the first workspace in the tree, if there is one
-const getInitialWorkspace = async (): Promise<
-  WorkspaceConnection | undefined
-> => {
+async function getInitialWorkspace(): Promise<WorkspaceConnection | undefined> {
   const tree = WorkspaceTreeProvider.instance;
   const workspaces = tree.getWorkspaceIds();
   const workspace = workspaces[0] || undefined;
@@ -248,12 +241,12 @@ const getInitialWorkspace = async (): Promise<
   } else {
     return undefined;
   }
-};
+}
 
 // Gets the workspace for the conversation, or the first workspace if none is active
-const getConversationWorkspace = async (
+async function getConversationWorkspace(
   conversation: CopilotConversation,
-): Promise<WorkspaceConnection | undefined> => {
+): Promise<WorkspaceConnection | undefined> {
   if (conversation.active_workspace) {
     return conversation.active_workspace;
   } else {
@@ -261,7 +254,18 @@ const getConversationWorkspace = async (
     conversation.active_workspace = init_workspace;
     return init_workspace;
   }
-};
+}
+
+function startRefreshingWorkspace(
+  workspaceConnection: WorkspaceConnection,
+  newJobId?: string,
+) {
+  startRefreshCycle(
+    WorkspaceTreeProvider.instance,
+    workspaceConnection,
+    newJobId,
+  );
+}
 
 export const GetWorkspaces = async (): Promise<string[]> => {
   const tree = WorkspaceTreeProvider.instance;
@@ -292,19 +296,19 @@ export const SetActiveWorkspace = async (
   }
 };
 
-const GetJob = async (
+async function getJob(
   jobId: string,
   conversation: CopilotConversation,
-): Promise<Job | undefined> => {
-  const jobs = await GetJobs(conversation);
+): Promise<Job | undefined> {
+  const jobs = await getJobs(conversation);
   return jobs.find((job) => job.id === jobId);
-};
+}
 
-const tryRenderResults = (
+function tryRenderResults(
   file: string,
   shots: number,
   streamCallback: CopilotStreamCallback,
-): boolean => {
+): boolean {
   try {
     // Parse the JSON file
     const parsedArray = JSON.parse(file).Histogram as Array<any>;
@@ -333,13 +337,13 @@ const tryRenderResults = (
     log.error("Error rendering results as histogram: ", e);
     return false;
   }
-};
+}
 
-export const DownloadJobResults = async (
+export async function downloadJobResults(
   jobId: string,
   conversation: CopilotConversation,
-): Promise<string> => {
-  const job = await GetJob(jobId, conversation);
+): Promise<string> {
+  const job = await getJob(jobId, conversation);
 
   if (!job) {
     log.error("Failed to find the job.");
@@ -398,7 +402,7 @@ export const DownloadJobResults = async (
     });
     return "Failed to download the results file.";
   }
-};
+}
 
 export const GetProviders = async (
   conversation: CopilotConversation,
@@ -420,12 +424,12 @@ export const GetTarget = async (
   }
 };
 
-export const SubmitToTarget = async (
+export async function submitToTarget(
   jobName: string,
   targetId: string,
   numberOfShots: number,
   conversation: CopilotConversation,
-): Promise<string> => {
+): Promise<string> {
   const target = await GetTarget(targetId, conversation);
   if (!target || target.currentAvailability !== "Available")
     return "Target not available.";
@@ -470,6 +474,7 @@ export const SubmitToTarget = async (
       jobName,
       numberOfShots,
     );
+    startRefreshingWorkspace(workspace, jobId);
     return "Job submitted successfully with ID: " + jobId;
   } catch (e: any) {
     log.error("Failed to submit job. ", e);
@@ -481,24 +486,25 @@ export const SubmitToTarget = async (
     });
     return "Failed to submit the job. " + error;
   }
-};
+}
 
-export const ToolCallSwitch = async (
+export async function executeTool(
   tool_name: string,
   args: any,
   copilotConversation: CopilotConversation,
-): Promise<any> => {
+): Promise<any> {
   const content: any = {};
 
   log.info("Tool call name: ", tool_name);
   log.info("Tool call args: ", args);
   if (tool_name === "GetJob") {
     const job_id = args.job_id;
-    const job = await GetJob(job_id, copilotConversation);
+    const job = await getJob(job_id, copilotConversation);
     content.job = job;
   } else if (tool_name === "GetJobs") {
-    const recent_jobs = await GetJobs(copilotConversation);
-    content.recent_jobs = recent_jobs;
+    const recent_jobs = await getJobs(copilotConversation);
+
+    content.recent_jobs = cloneToMinimizedJobs(recent_jobs);
   } else if (tool_name === "GetWorkspaces") {
     const workspace_ids = await GetWorkspaces();
     content.workspace_ids = workspace_ids;
@@ -511,7 +517,7 @@ export const ToolCallSwitch = async (
     content.result = result;
   } else if (tool_name === "DownloadJobResults") {
     const job_id = args.job_id;
-    const download_result = await DownloadJobResults(
+    const download_result = await downloadJobResults(
       job_id,
       copilotConversation,
     );
@@ -527,7 +533,7 @@ export const ToolCallSwitch = async (
     const job_name = args.job_name;
     const target_id = args.target_id;
     const number_of_shots = args.number_of_shots;
-    const submit_result = await SubmitToTarget(
+    const submit_result = await submitToTarget(
       job_name,
       target_id,
       number_of_shots,
@@ -537,4 +543,44 @@ export const ToolCallSwitch = async (
   }
 
   return content;
+}
+
+type MinimizedJob = {
+  id: string;
+  name: string;
+  target: string;
+  status:
+    | "Waiting"
+    | "Executing"
+    | "Succeeded"
+    | "Failed"
+    | "Finishing"
+    | "Cancelled";
+  outputDataUri?: string;
+  count: number;
+  shots: number;
+  creationTime: string;
+  beginExecutionTime?: string;
+  endExecutionTime?: string;
+  cancellationTime?: string;
+  costEstimate?: any;
+  errorData?: { code: string; message: string };
 };
+
+function cloneToMinimizedJobs(recent_jobs: Job[]): MinimizedJob[] {
+  return recent_jobs.map((job) => {
+    return {
+      id: job.id,
+      name: job.name,
+      target: job.target,
+      status: job.status,
+      count: job.count,
+      shots: job.shots,
+      creationTime: job.creationTime,
+      beginExecutionTime: job.beginExecutionTime,
+      endExecutionTime: job.endExecutionTime,
+      cancellationTime: job.cancellationTime,
+      costEstimate: job.costEstimate,
+    };
+  });
+}

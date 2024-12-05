@@ -445,8 +445,14 @@ function responseJobToJob(job: ResponseTypes.Job): Job {
     target: job.target,
     status: job.status,
     outputDataUri: job.outputDataUri,
-    count: job.inputParams.count,
-    shots: job.inputParams.shots,
+    count:
+      typeof job.inputParams.count === "string"
+        ? parseInt(job.inputParams.count)
+        : job.inputParams.count,
+    shots:
+      typeof job.inputParams.shots === "string"
+        ? parseInt(job.inputParams.shots)
+        : job.inputParams.shots,
     creationTime: job.creationTime,
     beginExecutionTime: job.beginExecutionTime,
     endExecutionTime: job.endExecutionTime,
