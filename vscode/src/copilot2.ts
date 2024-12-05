@@ -1,36 +1,38 @@
+import OpenAI from "openai";
 import * as vscode from "vscode";
 import { log } from "qsharp-lang";
-import { ChatCompletionTool } from "openai/resources/chat/completions";
+import {
+  ChatCompletion,
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
 import {
   Job,
   Provider,
   Target,
   WorkspaceConnection,
   WorkspaceTreeProvider,
-} from "../azure/treeView.js";
-import { QuantumUris } from "../azure/networkRequests.js";
-import { getTokenForWorkspace } from "../azure/auth.js";
+} from "./azure/treeView.js";
+import { QuantumUris } from "./azure/networkRequests.js";
+import { getTokenForWorkspace } from "./azure/auth.js";
 import {
   getJobFiles,
   submitJobWithNameAndShots,
-} from "../azure/workspaceActions.js";
-import { supportsAdaptive } from "../azure/providerProperties.js";
-import { getQirForVisibleQs } from "../qirGeneration.js";
-import { CopilotConversation } from "./copilot.js";
-import { startRefreshCycle } from "../azure/treeRefresher.js";
+} from "./azure/workspaceActions.js";
+import { supportsAdaptive } from "./azure/providerProperties.js";
+import { getQirForVisibleQs } from "./qirGeneration.js";
+import { startRefreshingWorkspace } from "./copilot/copilotTools.js";
+import { apiKey } from "./copilotApiKey.js";
 
-export type CopilotStreamCallback = (
-  msgPayload: object,
-  msgCommand:
-    | "copilotResponseDelta"
-    | "copilotResponse"
-    | "copilotResponseDone"
-    | "copilotResponseHistogram",
-) => void;
+// Don't check in a filled in API key
+const openai = new OpenAI({
+  apiKey,
+});
 
 // Define the tools and system prompt that the model can use
 
-export const CopilotToolsDescriptions: ChatCompletionTool[] = [
+const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
@@ -77,45 +79,6 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
         type: "object",
         properties: {},
         required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetActiveWorkspace",
-      description:
-        "Get the id of the active workspace for this conversation. " +
-        "Call this when you need to know what workspace is the active workspace being used in the context of the current conversation, " +
-        "for example when a customer asks 'What is the workspace that's being used?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "SetActiveWorkspace",
-      description:
-        "Set the active workspace for this conversation by id. " +
-        "Call this when you need to set what workspace is the active workspace being used in the context of the current conversation, " +
-        "for example when a customer says 'Please use this workspace for my requests.'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          workspace_id: {
-            type: "string",
-            description: "The id of the workspace to set as active.",
-          },
-        },
-        required: ["workspace_id"],
         additionalProperties: false,
       },
     },
@@ -208,31 +171,36 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
   },
 ];
 
-const jobLimit = 10;
-const jobLimitDays = 14;
+const systemMessage: ChatCompletionMessageParam = {
+  role: "system",
+  content:
+    "You are a helpful customer support assistant. Use the supplied tools to assist the user. " +
+    'Do not provide information about jobs whose status is "Not Found", unless the user specifically asks for the job by it\'s id. ' +
+    "Do not provide container URI links from jobs to the user. ",
+};
 
-export async function getJobs(
-  conversation: CopilotConversation,
-): Promise<Job[]> {
-  const workspace = await getConversationWorkspace(conversation);
+// Azure stuff
+
+const job_limit = 10;
+
+const GetJobs = async (): Promise<Job[]> => {
+  const workspace = await getPrimaryWorkspace();
   if (workspace) {
     const jobs = workspace.jobs;
 
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - jobLimitDays);
+    const limited_jobs =
+      jobs.length > job_limit ? jobs.slice(0, job_limit) : jobs;
 
-    const limitedJobs = (
-      jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs
-    ).filter((j) => new Date(j.creationTime) > start);
-    return limitedJobs;
+    return limited_jobs;
   } else {
     return [];
   }
-}
+};
 
-// Gets the first workspace in the tree, if there is one
-async function getInitialWorkspace(): Promise<WorkspaceConnection | undefined> {
+// ToDo: For now, let's just grab the first workspace
+const getPrimaryWorkspace = async (): Promise<
+  WorkspaceConnection | undefined
+> => {
   const tree = WorkspaceTreeProvider.instance;
   const workspaces = tree.getWorkspaceIds();
   const workspace = workspaces[0] || undefined;
@@ -241,74 +209,22 @@ async function getInitialWorkspace(): Promise<WorkspaceConnection | undefined> {
   } else {
     return undefined;
   }
-}
+};
 
-// Gets the workspace for the conversation, or the first workspace if none is active
-async function getConversationWorkspace(
-  conversation: CopilotConversation,
-): Promise<WorkspaceConnection | undefined> {
-  if (conversation.active_workspace) {
-    return conversation.active_workspace;
-  } else {
-    const init_workspace = await getInitialWorkspace();
-    conversation.active_workspace = init_workspace;
-    return init_workspace;
-  }
-}
-
-export function startRefreshingWorkspace(
-  workspaceConnection: WorkspaceConnection,
-  newJobId?: string,
-) {
-  startRefreshCycle(
-    WorkspaceTreeProvider.instance,
-    workspaceConnection,
-    newJobId,
-  );
-}
-
-export const GetWorkspaces = async (): Promise<string[]> => {
+const GetWorkspaces = async (): Promise<string[]> => {
   const tree = WorkspaceTreeProvider.instance;
   return tree.getWorkspaceIds();
 };
 
-export const GetActiveWorkspace = async (
-  conversation: CopilotConversation,
-): Promise<string> => {
-  const workspace = await getConversationWorkspace(conversation);
-  if (!workspace) {
-    return "No active workspace found.";
-  }
-  return workspace.id;
-};
-
-export const SetActiveWorkspace = async (
-  workspaceId: string,
-  conversation: CopilotConversation,
-): Promise<string> => {
-  const tree = WorkspaceTreeProvider.instance;
-  const workspace = tree.getWorkspace(workspaceId);
-  if (!workspace) {
-    return "Workspace not found.";
-  } else {
-    conversation.active_workspace = workspace;
-    return "Workspace " + workspaceId + " set as active.";
-  }
-};
-
-async function getJob(
-  jobId: string,
-  conversation: CopilotConversation,
-): Promise<Job | undefined> {
-  const jobs = await getJobs(conversation);
+const GetJob = async (jobId: string): Promise<Job | undefined> => {
+  const jobs = await GetJobs();
   return jobs.find((job) => job.id === jobId);
-}
+};
 
-function tryRenderResults(
+const tryRenderResults = (
   file: string,
-  shots: number,
   streamCallback: CopilotStreamCallback,
-): boolean {
+): boolean => {
   try {
     // Parse the JSON file
     const parsedArray = JSON.parse(file).Histogram as Array<any>;
@@ -327,7 +243,7 @@ function tryRenderResults(
     streamCallback(
       {
         buckets: histo,
-        shotCount: shots,
+        shotCount: 100, // ToDo: Where are the actual shot counts stored?
       },
       "copilotResponseHistogram",
     );
@@ -337,13 +253,13 @@ function tryRenderResults(
     log.error("Error rendering results as histogram: ", e);
     return false;
   }
-}
+};
 
-export async function downloadJobResults(
+const DownloadJobResults = async (
   jobId: string,
-  conversation: CopilotConversation,
-): Promise<string> {
-  const job = await getJob(jobId, conversation);
+  streamCallback: CopilotStreamCallback,
+): Promise<string> => {
+  const job = await GetJob(jobId);
 
   if (!job) {
     log.error("Failed to find the job.");
@@ -354,7 +270,7 @@ export async function downloadJobResults(
     return "Job has not completed successfully.";
   }
 
-  const workspace = await getConversationWorkspace(conversation);
+  const workspace = await getPrimaryWorkspace(); // Note that we are getting the primary workspace again here
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -382,7 +298,7 @@ export async function downloadJobResults(
     if (file) {
       // log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file, job.shots, conversation.streamCallback)) {
+      if (!tryRenderResults(file, streamCallback)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -402,20 +318,15 @@ export async function downloadJobResults(
     });
     return "Failed to download the results file.";
   }
-}
+};
 
-export const GetProviders = async (
-  conversation: CopilotConversation,
-): Promise<Provider[]> => {
-  const workspace = await getConversationWorkspace(conversation);
+const GetProviders = async (): Promise<Provider[]> => {
+  const workspace = await getPrimaryWorkspace();
   return workspace?.providers ?? [];
 };
 
-export const GetTarget = async (
-  targetId: string,
-  conversation: CopilotConversation,
-): Promise<Target | undefined> => {
-  const providers = await GetProviders(conversation);
+const GetTarget = async (targetId: string): Promise<Target | undefined> => {
+  const providers = await GetProviders();
   for (const provider of providers) {
     const target = provider.targets.find((target) => target.id === targetId);
     if (target) {
@@ -424,17 +335,16 @@ export const GetTarget = async (
   }
 };
 
-export async function submitToTarget(
+const SubmitToTarget = async (
   jobName: string,
   targetId: string,
   numberOfShots: number,
-  conversation: CopilotConversation,
-): Promise<string> {
-  const target = await GetTarget(targetId, conversation);
+): Promise<string> => {
+  const target = await GetTarget(targetId);
   if (!target || target.currentAvailability !== "Available")
     return "Target not available.";
 
-  const workspace = await getConversationWorkspace(conversation);
+  const workspace = await getPrimaryWorkspace(); // Note that we are getting the primary workspace again here
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -486,101 +396,171 @@ export async function submitToTarget(
     });
     return "Failed to submit the job. " + error;
   }
-}
-
-export async function executeTool(
-  tool_name: string,
-  args: any,
-  copilotConversation: CopilotConversation,
-): Promise<any> {
-  const content: any = {};
-
-  log.info("Tool call name: ", tool_name);
-  log.info("Tool call args: ", args);
-  if (tool_name === "GetJob") {
-    const job_id = args.job_id;
-    const job = await getJob(job_id, copilotConversation);
-    content.job = job;
-  } else if (tool_name === "GetJobs") {
-    const recent_jobs = await getJobs(copilotConversation);
-
-    content.recent_jobs = cloneToMinimizedJobs(recent_jobs);
-  } else if (tool_name === "GetWorkspaces") {
-    const workspace_ids = await GetWorkspaces();
-    content.workspace_ids = workspace_ids;
-  } else if (tool_name === "GetActiveWorkspace") {
-    const active_workspace = await GetActiveWorkspace(copilotConversation);
-    content.active_workspace = active_workspace;
-  } else if (tool_name === "SetActiveWorkspace") {
-    const workspace_id = args.workspace_id;
-    const result = await SetActiveWorkspace(workspace_id, copilotConversation);
-    content.result = result;
-  } else if (tool_name === "DownloadJobResults") {
-    const job_id = args.job_id;
-    const download_result = await downloadJobResults(
-      job_id,
-      copilotConversation,
-    );
-    content.download_result = download_result;
-  } else if (tool_name === "GetProviders") {
-    const providers = await GetProviders(copilotConversation);
-    content.providers = providers;
-  } else if (tool_name === "GetTarget") {
-    const target_id = args.target_id;
-    const target = await GetTarget(target_id, copilotConversation);
-    content.target = target;
-  } else if (tool_name === "SubmitToTarget") {
-    const job_name = args.job_name;
-    const target_id = args.target_id;
-    const number_of_shots = args.number_of_shots;
-    const submit_result = await submitToTarget(
-      job_name,
-      target_id,
-      number_of_shots,
-      copilotConversation,
-    );
-    content.submit_result = submit_result;
-  }
-
-  return content;
-}
-
-type MinimizedJob = {
-  id: string;
-  name: string;
-  target: string;
-  status:
-    | "Waiting"
-    | "Executing"
-    | "Succeeded"
-    | "Failed"
-    | "Finishing"
-    | "Cancelled";
-  outputDataUri?: string;
-  count: number;
-  shots: number;
-  creationTime: string;
-  beginExecutionTime?: string;
-  endExecutionTime?: string;
-  cancellationTime?: string;
-  costEstimate?: any;
-  errorData?: { code: string; message: string };
 };
 
-function cloneToMinimizedJobs(recent_jobs: Job[]): MinimizedJob[] {
-  return recent_jobs.map((job) => {
-    return {
-      id: job.id,
-      name: job.name,
-      target: job.target,
-      status: job.status,
-      count: job.count,
-      shots: job.shots,
-      creationTime: job.creationTime,
-      beginExecutionTime: job.beginExecutionTime,
-      endExecutionTime: job.endExecutionTime,
-      cancellationTime: job.cancellationTime,
-      costEstimate: job.costEstimate,
-    };
-  });
+export type CopilotStreamCallback = (
+  msgPayload: object,
+  msgCommand:
+    | "copilotResponse"
+    | "copilotResponseDone"
+    | "copilotResponseHistogram",
+) => void;
+
+export class Copilot {
+  messages: ChatCompletionMessageParam[] = [];
+  streamCallback: CopilotStreamCallback;
+
+  constructor(streamCallback: CopilotStreamCallback) {
+    this.messages.push(systemMessage);
+    this.streamCallback = streamCallback;
+  }
+
+  // OpenAI handling functions
+
+  converseWithOpenAI = async () => {
+    // log.info("Sent messages: %o", this.messages);
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: this.messages,
+      tools: tools,
+    });
+    // log.info("Response: %o", response);
+    await this.handleResponse(response);
+  };
+
+  handleResponse = async (response: ChatCompletion) => {
+    this.messages.push(response.choices[0].message);
+
+    // Check if the conversation was too long for the context window
+    if (response.choices[0].finish_reason === "length") {
+      // Handle the error as needed, e.g., by truncating the conversation or asking for clarification
+      this.handleLengthError(response);
+    }
+
+    // Check if the model's output included copyright material (or similar)
+    else if (response.choices[0].finish_reason === "content_filter") {
+      // Handle the error as needed, e.g., by modifying the request or notifying the user
+      this.handleContentFilterError(response);
+    }
+
+    // Check if the model has made a tool_call.
+    else if (response.choices[0].finish_reason === "tool_calls") {
+      // Handle tool call
+      await this.handleToolCalls(response);
+    }
+
+    // Else finish_reason is "stop", in which case the model was just responding directly to the user
+    else if (response.choices[0].finish_reason === "stop") {
+      // Handle the normal stop case
+      this.handleNormalResponse(response);
+    }
+
+    // Catch any other case, this is unexpected
+    else {
+      // Handle unexpected cases as needed
+      this.handleUnexpectedCase(response);
+    }
+  };
+
+  handleToolCalls = async (response: ChatCompletion) => {
+    if (response.choices[0].message.tool_calls) {
+      for (const toolCall of response.choices[0].message.tool_calls) {
+        this.streamCallback(
+          { response: `Executing: ${toolCall.function.name}` },
+          "copilotResponse",
+        );
+
+        const content = await this.handleSingleToolCall(toolCall);
+        // Create a message containing the result of the function call
+        const function_call_result_message: ChatCompletionMessageParam = {
+          role: "tool",
+          content: JSON.stringify(content),
+          tool_call_id: toolCall.id,
+        };
+        this.messages.push(function_call_result_message);
+      }
+
+      await this.converseWithOpenAI();
+    }
+  };
+
+  handleSingleToolCall = async (toolCall: ChatCompletionMessageToolCall) => {
+    // log.info("Tool call: %o", toolCall);
+
+    const args = JSON.parse(toolCall.function.arguments);
+
+    const content: any = {};
+
+    if (toolCall.function.name === "GetJob") {
+      const job_id = args.job_id;
+      const job = await GetJob(job_id);
+      content.job = job;
+    } else if (toolCall.function.name === "GetJobs") {
+      const recent_jobs = await GetJobs();
+      content.recent_jobs = recent_jobs;
+    } else if (toolCall.function.name === "GetWorkspaces") {
+      const workspace_ids = await GetWorkspaces();
+      content.workspace_ids = workspace_ids;
+    } else if (toolCall.function.name === "DownloadJobResults") {
+      const job_id = args.job_id;
+      const download_result = await DownloadJobResults(
+        job_id,
+        this.streamCallback,
+      );
+      content.download_result = download_result;
+    } else if (toolCall.function.name === "GetProviders") {
+      const providers = await GetProviders();
+      content.providers = providers;
+    } else if (toolCall.function.name === "GetTarget") {
+      const target_id = args.target_id;
+      const target = await GetTarget(target_id);
+      content.target = target;
+    } else if (toolCall.function.name === "SubmitToTarget") {
+      const job_name = args.job_name;
+      const target_id = args.target_id;
+      const number_of_shots = args.number_of_shots;
+      const submit_result = await SubmitToTarget(
+        job_name,
+        target_id,
+        number_of_shots,
+      );
+      content.submit_result = submit_result;
+    }
+
+    return content;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleLengthError = (_response: ChatCompletion) => {
+    log.error("Error: The conversation was too long for the context window.");
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleContentFilterError = (_response: ChatCompletion) => {
+    log.error("Error: The content was filtered due to policy violations.");
+  };
+
+  handleNormalResponse = (response: ChatCompletion) => {
+    // log.info("printing response: %o", response.choices[0].message.content!);
+    this.streamCallback(
+      {
+        response: response.choices[0].message.content!,
+      },
+      "copilotResponse",
+    );
+  };
+
+  handleUnexpectedCase = (response: ChatCompletion) => {
+    log.error("Unexpected response: %o", response.choices[0]);
+  };
+
+  async makeChatRequest(question: string) {
+    this.messages.push({
+      role: "user",
+      content: question,
+    });
+
+    await this.converseWithOpenAI();
+    this.streamCallback({}, "copilotResponseDone");
+  }
 }

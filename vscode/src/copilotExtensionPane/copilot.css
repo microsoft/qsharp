@@ -1,5 +1,9 @@
 body {
   padding: 12px;
+  height: 100%;
+}
+html {
+  height: 100%;
 }
 textarea {
   height: 3em;

@@ -53,6 +53,7 @@ function InputBox(props: {
 
   useEffect(() => {
     hrRef.current?.scrollIntoView(false);
+    textRef.current?.focus();
   });
 
   function submit() {
@@ -93,17 +94,6 @@ function InputBox(props: {
 function Response(props: { request: string; response: string }) {
   const parts: Array<string | any> = [];
 
-  const histoMap = new Map<string, number>([
-    ["000", 5],
-    ["001", 1],
-    ["010", 20],
-    ["011", 18],
-    ["100", 1],
-    ["101", 0],
-    ["110", 3],
-    ["111", 1],
-  ]);
-
   const widget = props.response.indexOf("```widget\n");
   if (widget >= 0) {
     parts.push(props.response.slice(0, widget));
@@ -118,6 +108,9 @@ function Response(props: { request: string; response: string }) {
   } else {
     parts.push(props.response);
   }
+
+  const toolCallPrefix = "Executing: ";
+
   return (
     <div>
       {props.request ? (
@@ -128,49 +121,27 @@ function Response(props: { request: string; response: string }) {
       <div class="responseBox">
         {parts.map((part) => {
           if (part.startsWith("```widget\nHistogram")) {
+            const histo = JSON.parse(part.slice(20));
+            if (histo.buckets && typeof histo.shotCount === "number") {
+              const histoMap: Map<string, number> = new Map(histo.buckets);
+              return (
+                <Histogram
+                  data={histoMap}
+                  filter=""
+                  shotCount={histo.shotCount}
+                  onFilter={() => undefined}
+                  shotsHeader={false}
+                />
+              );
+            }
+          } else if (props.response.startsWith(toolCallPrefix)) {
+            const tool = props.response.slice(toolCallPrefix.length);
             return (
-              <Histogram
-                data={histoMap}
-                filter=""
-                shotCount={100}
-                onFilter={() => undefined}
-                shotsHeader={false}
-              />
+              <div style="font-weight: bold; text-align: right; font-size: smaller;">
+                {tool}
+              </div>
             );
-          } else if (part.startsWith("```widget\nResults")) {
-            return (
-              <ResultsTable
-                columnNames={["Name", "Date", "Run time", "Cost"]}
-                initialColumns={[0, 1, 2, 3]}
-                rows={[
-                  {
-                    color: "blue",
-                    cells: ["Carbon-1a", "2024-09-01", "00:01:60", "$25.00"],
-                  },
-                  {
-                    color: "blue",
-                    cells: ["Carbon-2b", "2024-09-01", "00:03:04", "$91.50"],
-                  },
-                  {
-                    color: "blue",
-                    cells: ["Carbon-3b", "2024-09-02", "00:05:54", "$120.10"],
-                  },
-                  {
-                    color: "blue",
-                    cells: ["Test-run", "2024-09-03", "00:00:04", "$00.10"],
-                  },
-                  {
-                    color: "blue",
-                    cells: ["qrng", "2024-09-04", "00:00:45", "$1.50"],
-                  },
-                ]}
-                onRowDeleted={() => undefined}
-                onRowSelected={() => undefined}
-                selectedRow={null}
-              />
-            );
-          }
-          {
+          } else {
             return <Markdown markdown={part}></Markdown>;
           }
         })}
@@ -191,44 +162,20 @@ type CopilotState = {
 };
 
 function App({ state }: { state: CopilotState }) {
-  // const [state, setState] = useState<QA[]>([]);
-
-  function onSubmit(text: string) {
-    // const newQA: QA = { request: text, response: "" };
-
-    // let gen: Generator<string>;
-    // if (text.includes("code")) {
-    //   gen = mock_stream(samples.code);
-    // } else if (text.includes("noise")) {
-    //   gen = mock_stream(samples.noise);
-    // } else if (text.includes("python")) {
-    //   gen = mock_stream(samples.azure);
-    // } else {
-    //   gen = mock_stream(samples.jobs);
-    // }
-
-    copilotRequest(text);
-
-    // function onChunk() {
-    //   const chunk = gen.next();
-    //   if (!chunk.done) {
-    //     newQA.response += chunk.value;
-
-    //     // Clone into new state
-    //     setState([...state, newQA]);
-    //     setTimeout(onChunk, 50);
-    //   } else {
-    //     //(window as any).hljs.highlightAll();
-    //   }
-    // }
-    // onChunk();
+  function reset(ev: any) {
+    vscodeApi.postMessage({
+      command: "resetCopilot",
+      request: ev.target.checked ? "AzureQuantum" : "OpenAI",
+    });
+    globalState = { tidbits: [], qas: [], inProgress: false };
+    render(<App state={globalState} />, document.body);
   }
 
-  ////////////////////// mineyalc
+  function onSubmit(text: string) {
+    copilotRequest(text);
+  }
+
   function copilotRequest(text: string) {
-    // const questionText = document.querySelector(
-    //   "#copilotQuestion",
-    // ) as HTMLInputElement;
     vscodeApi.postMessage({
       command: "copilotRequest",
       request: text,
@@ -238,25 +185,30 @@ function App({ state }: { state: CopilotState }) {
       response: "",
     });
     globalState.inProgress = true;
-    // questionText.value = "";
     render(<App state={state} />, document.body);
   }
 
-  ///////////////// end mineyalc
-
   return (
-    <div style="max-width: 800px; font-size: 0.9em;">
-      <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
-      {(state as CopilotState).qas.map((qa) => (
-        <Response request={qa.request} response={qa.response} />
-      ))}
-      {
-        <Response
-          request={""}
-          response={(state as CopilotState).tidbits.join("")}
-        />
-      }
-      <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
+    <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
+      <div style="flex: 1; ">
+        <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
+        {(state as CopilotState).qas.map((qa) => (
+          <Response request={qa.request} response={qa.response} />
+        ))}
+        {
+          <Response
+            request={""}
+            response={(state as CopilotState).tidbits.join("")}
+          />
+        }
+        <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
+      </div>
+      <div style="height: 30px; ">
+        <label for="serviceToggle" style="font-size: smaller;">
+          Azure Quantum
+        </label>
+        <input type="checkbox" id="serviceToggle" onChange={reset}></input>
+      </div>
     </div>
   );
 }
@@ -272,10 +224,6 @@ window.addEventListener("message", onMessage);
 
 function onMessage(event: any) {
   const message = event.data;
-  // if (!message?.command) {
-  //   console.error("Unknown message: ", message);
-  //   return;
-  // }
   switch (message.command) {
     case "copilotResponseDelta":
       // After a copilot response from the service, but before any tool calls are executed.
@@ -321,7 +269,6 @@ function onMessage(event: any) {
     case "copilotResponseDone":
       // After all the events in a single response stream have been received
       {
-        // state.qas.push({ request: "", response: "\n\n---\n\n" });
         globalState.inProgress = false;
       }
       // Highlight any code blocks

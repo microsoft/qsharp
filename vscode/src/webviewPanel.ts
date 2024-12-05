@@ -25,9 +25,11 @@ import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import {
-  CopilotConversation,
+  CopilotConversation as AzQuantumCopilot,
   CopilotWebviewViewProvider,
+  ICopilot,
 } from "./copilot/copilot";
+import { Copilot as OpenAiCopilot } from "./copilot2";
 import { CopilotStreamCallback } from "./copilot/copilotTools";
 
 const QSharpWebViewType = "qsharp-webview";
@@ -470,7 +472,7 @@ export class QSharpWebViewPanel {
   public static extensionUri: Uri;
   private _ready = false;
   private _queuedMessages: any[] = [];
-  private _copilot: CopilotConversation;
+  private _copilot: ICopilot;
   private _streamCallback: CopilotStreamCallback;
 
   constructor(
@@ -488,7 +490,7 @@ export class QSharpWebViewPanel {
       });
     };
 
-    this._copilot = new CopilotConversation(this._streamCallback);
+    this._copilot = new OpenAiCopilot(this._streamCallback);
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }

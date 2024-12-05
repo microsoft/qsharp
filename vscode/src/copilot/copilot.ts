@@ -15,6 +15,7 @@ import {
 } from "vscode";
 import { CopilotStreamCallback, executeTool } from "./copilotTools";
 import { WorkspaceConnection } from "../azure/treeView";
+import { Copilot as OpenAiCopilot } from "../copilot2";
 
 // const chatUrl = "https://canary.api.quantum.microsoft.com/api/chat/streaming";
 const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming"; // new API
@@ -274,6 +275,10 @@ export class CopilotConversation {
   }
 }
 
+export interface ICopilot {
+  makeChatRequest(question: string): Promise<void>;
+}
+
 export class CopilotWebviewViewProvider implements WebviewViewProvider {
   public static readonly viewType = "quantum-copilot";
 
@@ -290,9 +295,9 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       }
     };
 
-    this._copilot = new CopilotConversation(this._streamCallback);
+    this._copilot = new OpenAiCopilot(this._streamCallback);
   }
-  private _copilot: CopilotConversation;
+  private _copilot: ICopilot;
   private _streamCallback: CopilotStreamCallback;
 
   resolveWebviewView(
@@ -332,10 +337,13 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message.command == "copilotRequest") {
-        // Send the message to the copilot
-        // TODO: Move this view specific logic out of here
         this._copilot.makeChatRequest(message.request);
-        // makeChatRequest(message.request, this._streamCallback);
+      } else if (message.command == "resetCopilot") {
+        if (message.request === "AzureQuantum") {
+          this._copilot = new CopilotConversation(this._streamCallback);
+        } else if (message.request === "OpenAI") {
+          this._copilot = new OpenAiCopilot(this._streamCallback);
+        }
       }
     });
   }
