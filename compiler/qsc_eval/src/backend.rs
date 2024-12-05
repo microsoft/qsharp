@@ -429,8 +429,13 @@ impl Backend for SparseSim {
                     .collect::<Vec<_>>();
                 let matrix = unwrap_matrix_as_array2(matrix, &qubits);
 
+                // Confirm the matrix is unitary by checking if multiplying it by its adjoint gives the identity matrix (up to numerical precision).
                 let adj = matrix.t().map(Complex::<f64>::conj);
-                if matrix.dot(&adj) != Array2::eye(1 << qubits.len()) {
+                if (matrix.dot(&adj) - Array2::<Complex<f64>>::eye(1 << qubits.len()))
+                    .map(|x| x.norm())
+                    .sum()
+                    > 1e-9
+                {
                     return Some(Err("matrix is not unitary".to_string()));
                 }
 
