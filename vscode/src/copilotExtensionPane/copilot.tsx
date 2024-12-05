@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// <reference types="@types/vscode-webview"/>
+
 // Use esbuild to bundle and copy the CSS files to the output directory.
 import "modern-normalize/modern-normalize.css";
 import "highlight.js/styles/default.css";
@@ -21,6 +23,8 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import hlsjQsharp from "./hlsj-qsharp";
 import samples, { mock_stream } from "./copilot-samples";
 
+const vscodeApi = acquireVsCodeApi();
+
 hljs.registerLanguage("qsharp", hlsjQsharp);
 const md = markdownIt("commonmark", {
   highlight(str, lang) {
@@ -40,7 +44,10 @@ md.use(mk as any, {
 });
 setRenderer((input: string) => md.render(input));
 
-function InputBox(props: { onSubmit: (text: string) => void }) {
+function InputBox(props: {
+  onSubmit: (text: string) => void;
+  inProgress: boolean;
+}) {
   const textRef = useRef<HTMLTextAreaElement>(null);
   const hrRef = useRef<HTMLHRElement>(null);
 
@@ -62,7 +69,11 @@ function InputBox(props: { onSubmit: (text: string) => void }) {
           ref={textRef}
           autocorrect="off"
           spellcheck={false}
-          placeholder="How can I help you?"
+          placeholder={
+            props.inProgress ? "Please wait..." : "How can I help you?"
+          }
+          disabled={props.inProgress}
+          onKeyUp={(e) => e.key === "Enter" && submit()}
         ></textarea>
         <svg
           onClick={submit}
@@ -109,9 +120,11 @@ function Response(props: { request: string; response: string }) {
   }
   return (
     <div>
-      <div class="requestBox">
-        <Markdown markdown={props.request} />
-      </div>
+      {props.request ? (
+        <div class="requestBox">
+          <Markdown markdown={props.request} />
+        </div>
+      ) : null}
       <div class="responseBox">
         {parts.map((part) => {
           if (part.startsWith("```widget\nHistogram")) {
@@ -171,51 +184,156 @@ type QA = {
   response: string;
 };
 
-function App() {
-  const [state, setState] = useState<QA[]>([]);
+type CopilotState = {
+  tidbits: string[];
+  qas: QA[];
+  inProgress: boolean;
+};
+
+function App({ state }: { state: CopilotState }) {
+  // const [state, setState] = useState<QA[]>([]);
 
   function onSubmit(text: string) {
-    const newQA: QA = { request: text, response: "" };
+    // const newQA: QA = { request: text, response: "" };
 
-    let gen: Generator<string>;
-    if (text.includes("code")) {
-      gen = mock_stream(samples.code);
-    } else if (text.includes("noise")) {
-      gen = mock_stream(samples.noise);
-    } else if (text.includes("python")) {
-      gen = mock_stream(samples.azure);
-    } else {
-      gen = mock_stream(samples.jobs);
-    }
+    // let gen: Generator<string>;
+    // if (text.includes("code")) {
+    //   gen = mock_stream(samples.code);
+    // } else if (text.includes("noise")) {
+    //   gen = mock_stream(samples.noise);
+    // } else if (text.includes("python")) {
+    //   gen = mock_stream(samples.azure);
+    // } else {
+    //   gen = mock_stream(samples.jobs);
+    // }
 
-    function onChunk() {
-      const chunk = gen.next();
-      if (!chunk.done) {
-        newQA.response += chunk.value;
+    copilotRequest(text);
 
-        // Clone into new state
-        setState([...state, newQA]);
-        setTimeout(onChunk, 50);
-      } else {
-        //(window as any).hljs.highlightAll();
-      }
-    }
-    onChunk();
+    // function onChunk() {
+    //   const chunk = gen.next();
+    //   if (!chunk.done) {
+    //     newQA.response += chunk.value;
+
+    //     // Clone into new state
+    //     setState([...state, newQA]);
+    //     setTimeout(onChunk, 50);
+    //   } else {
+    //     //(window as any).hljs.highlightAll();
+    //   }
+    // }
+    // onChunk();
   }
+
+  ////////////////////// mineyalc
+  function copilotRequest(text: string) {
+    // const questionText = document.querySelector(
+    //   "#copilotQuestion",
+    // ) as HTMLInputElement;
+    vscodeApi.postMessage({
+      command: "copilotRequest",
+      request: text,
+    });
+    globalState.qas.push({
+      request: text,
+      response: "",
+    });
+    globalState.inProgress = true;
+    // questionText.value = "";
+    render(<App state={state} />, document.body);
+  }
+
+  ///////////////// end mineyalc
 
   return (
     <div style="max-width: 800px; font-size: 0.9em;">
       <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
-      {state.map((qa) => (
+      {(state as CopilotState).qas.map((qa) => (
         <Response request={qa.request} response={qa.response} />
       ))}
-      <InputBox onSubmit={onSubmit} />
+      {
+        <Response
+          request={""}
+          response={(state as CopilotState).tidbits.join("")}
+        />
+      }
+      <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
     </div>
   );
 }
 
+let globalState: CopilotState = { tidbits: [], qas: [], inProgress: false };
+
 function loaded() {
-  render(<App />, document.body);
+  render(<App state={globalState} />, document.body);
 }
 
 document.addEventListener("DOMContentLoaded", loaded);
+window.addEventListener("message", onMessage);
+
+function onMessage(event: any) {
+  const message = event.data;
+  // if (!message?.command) {
+  //   console.error("Unknown message: ", message);
+  //   return;
+  // }
+  switch (message.command) {
+    case "copilotResponseDelta":
+      // After a copilot response from the service, but before any tool calls are executed.
+      {
+        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+        let cleanedResponse = message.response;
+        cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+        cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+        globalState.tidbits.push(cleanedResponse);
+      }
+      break;
+    case "copilotResponse":
+      // After a copilot response from the service, but before any tool calls are executed.
+      {
+        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+        let cleanedResponse = message.response;
+        cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+        cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+        globalState.tidbits = [];
+        globalState.qas.push({
+          request: message.request ?? "",
+          response: cleanedResponse,
+        });
+      }
+      break;
+    case "copilotResponseHistogram":
+      {
+        if (!message.buckets || typeof message.shotCount !== "number") {
+          console.error("No buckets in message: ", message);
+          return;
+        }
+        const buckets = message.buckets as Array<[string, number]>;
+        const histogram = JSON.stringify({
+          buckets: buckets,
+          shotCount: message.shotCount,
+        });
+        globalState.qas.push({
+          request: "",
+          response: "```widget\nHistogram\n" + histogram,
+        });
+      }
+      break;
+    case "copilotResponseDone":
+      // After all the events in a single response stream have been received
+      {
+        // state.qas.push({ request: "", response: "\n\n---\n\n" });
+        globalState.inProgress = false;
+      }
+      // Highlight any code blocks
+      // Need to wait until Markdown is rendered. Hack for now with a timeout
+      setTimeout(() => {
+        (window as any).hljs.highlightAll();
+      }, 100);
+      break;
+    default:
+      console.error("Unknown command: ", message.command);
+      return;
+  }
+  // vscodeApi.setState(state);
+  render(<App state={globalState} />, document.body);
+}

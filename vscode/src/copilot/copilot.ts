@@ -279,7 +279,21 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
 
   private view?: WebviewView;
 
-  constructor(private readonly extensionUri: Uri) {}
+  constructor(private readonly extensionUri: Uri) {
+    this._streamCallback = (payload, command) => {
+      if (this.view) {
+        // log.info("message posted with command: ", command);
+        this.view.webview.postMessage({
+          command: command,
+          ...payload,
+        });
+      }
+    };
+
+    this._copilot = new CopilotConversation(this._streamCallback);
+  }
+  private _copilot: CopilotConversation;
+  private _streamCallback: CopilotStreamCallback;
 
   resolveWebviewView(
     webviewView: WebviewView,
@@ -315,5 +329,14 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
     <script src="${copilotJs}"></script>
     </body>
     </html>`;
+
+    webviewView.webview.onDidReceiveMessage((message) => {
+      if (message.command == "copilotRequest") {
+        // Send the message to the copilot
+        // TODO: Move this view specific logic out of here
+        this._copilot.makeChatRequest(message.request);
+        // makeChatRequest(message.request, this._streamCallback);
+      }
+    });
   }
 }
