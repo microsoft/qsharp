@@ -51,6 +51,27 @@ struct HoverGenerator<'a> {
 }
 
 impl<'a> Handler<'a> for HoverGenerator<'a> {
+    fn at_attr_ref(&mut self, name: &'a ast::Ident) {
+        let description = match name.name.as_ref() {
+                "Config" => "Provides pre-processing information about when an item should be included in compilation.
+
+Valid arguments are `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, and `QubitReset`.
+
+The `not` operator is also supported to negate the attribute, e.g. `not Adaptive`.",
+                "EntryPoint" => "Indicates that a callable is an entry point to a program.",
+                "Unimplemented" => "Indicates that an item is not yet implemented.",
+                "SimulatableIntrinsic" => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should be ignored.",
+                "Measurement" => "Indicates that a callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
+                "Reset" => "Indicates that a callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
+                _ => return, // No hover information for unsupported attributes.
+        };
+
+        self.hover = Some(Hover {
+            contents: format!("attribute ```{}```\n\n{}", name.name, description),
+            span: self.range(name.span),
+        });
+    }
+
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'a>,
