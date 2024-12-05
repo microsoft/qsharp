@@ -10,10 +10,12 @@ use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
 use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
+use qsc::hir::Attr;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
 use std::rc::Rc;
+use std::str::FromStr;
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -52,18 +54,9 @@ struct HoverGenerator<'a> {
 
 impl<'a> Handler<'a> for HoverGenerator<'a> {
     fn at_attr_ref(&mut self, name: &'a ast::Ident) {
-        let description = match name.name.as_ref() {
-                "Config" => "Provides pre-processing information about when an item should be included in compilation.
-
-Valid arguments are `Base`, `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, `QubitReset`, and `Unrestricted`.
-
-The `not` operator is also supported to negate the attribute, e.g. `not Adaptive`.",
-                "EntryPoint" => "Indicates that a callable is an entry point to a program.",
-                "Unimplemented" => "Indicates that an item is not yet implemented.",
-                "SimulatableIntrinsic" => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should be ignored.",
-                "Measurement" => "Indicates that a callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
-                "Reset" => "Indicates that a callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
-                _ => return, // No hover information for unsupported attributes.
+        let description = match Attr::from_str(&name.name) {
+            Ok(attr) => attr.description(),
+            Err(()) => return, // No hover information for unsupported attributes.
         };
 
         self.hover = Some(Hover {
