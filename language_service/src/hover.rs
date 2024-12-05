@@ -45,6 +45,7 @@ enum LocalKind {
     LambdaParam,
     Local,
 }
+
 struct HoverGenerator<'a> {
     position_encoding: Encoding,
     hover: Option<Hover>,
