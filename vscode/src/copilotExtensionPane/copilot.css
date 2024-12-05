@@ -61,3 +61,67 @@ textarea:focus {
 .inputDiv:has(textarea:focus) {
   border: 2px solid #0078d4;
 }
+
+/* Basic styling for the toggle */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 17px;
+}
+
+/* Hide the default checkbox */
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider (background and shape) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 17px;
+}
+
+/* The circle inside the toggle */
+.slider:before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  height: 13px;
+  width: 13px;
+  border-radius: 50%;
+  background-color: white;
+  transition: 0.4s;
+}
+
+/* When the checkbox is checked, move the slider */
+input:checked + .slider {
+  background-color: #eee;
+}
+
+/* When the checkbox is checked, move the circle to the right */
+input:checked + .slider:before {
+  transform: translateX(13px);
+}
+
+.toggle-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Add margin between labels and toggle switch */
+.label-left,
+.label-right {
+  font-size: smaller;
+  margin: 0 10px 2px 10px;
+}

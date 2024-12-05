@@ -159,15 +159,23 @@ type CopilotState = {
   tidbits: string[];
   qas: QA[];
   inProgress: boolean;
+  service: "AzureQuantum" | "OpenAI";
 };
 
 function App({ state }: { state: CopilotState }) {
   function reset(ev: any) {
+    const service = ev.target.checked ? "AzureQuantum" : "OpenAI";
+
     vscodeApi.postMessage({
       command: "resetCopilot",
-      request: ev.target.checked ? "AzureQuantum" : "OpenAI",
+      request: service,
     });
-    globalState = { tidbits: [], qas: [], inProgress: false };
+    globalState = {
+      tidbits: [],
+      qas: [],
+      inProgress: false,
+      service,
+    };
     render(<App state={globalState} />, document.body);
   }
 
@@ -203,17 +211,33 @@ function App({ state }: { state: CopilotState }) {
         }
         <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
       </div>
-      <div style="height: 30px; ">
-        <label for="serviceToggle" style="font-size: smaller;">
-          Azure Quantum
-        </label>
-        <input type="checkbox" id="serviceToggle" onChange={reset}></input>
+      <div style="height: 30px;">
+        <div class="toggle-container">
+          <span class="label-left">OpenAI</span>
+          <label for="serviceToggle">
+            <div class="toggle-switch">
+              <input
+                checked={state.service === "AzureQuantum"}
+                type="checkbox"
+                id="serviceToggle"
+                onChange={reset}
+              ></input>
+              <span class="slider"></span>
+            </div>
+          </label>
+          <span class="label-left">Azure Quantum</span>
+        </div>
       </div>
     </div>
   );
 }
 
-let globalState: CopilotState = { tidbits: [], qas: [], inProgress: false };
+let globalState: CopilotState = {
+  tidbits: [],
+  qas: [],
+  inProgress: false,
+  service: "AzureQuantum", // default
+};
 
 function loaded() {
   render(<App state={globalState} />, document.body);

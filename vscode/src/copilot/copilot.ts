@@ -295,7 +295,7 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       }
     };
 
-    this._copilot = new OpenAiCopilot(this._streamCallback);
+    this._copilot = new CopilotConversation(this._streamCallback);
   }
   private _copilot: ICopilot;
   private _streamCallback: CopilotStreamCallback;
