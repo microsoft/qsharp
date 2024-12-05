@@ -1141,7 +1141,7 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 /// # Summary
-/// Applies the given unitary matrix to the given qubits. The matrix must be square, with dimensions dictated by the number of qubits.
+/// Applies the given unitary matrix to the given qubits. The matrix is checked at runtime to ensure it's shape is square and that the matrix dimensions are `2 ^ Length(qubits)`.
 /// This operation is simulator-only and is not supported on hardware.
 ///
 /// # Input
@@ -1149,9 +1149,6 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
 /// The unitary matrix to apply.
 /// ## qubits
 /// The qubits to which the unitary matrix should be applied.
-///
-/// # Remarks
-/// The matrix is checked at runtime to ensure it's shape is square and that the matrix dimensions are `2 ^ Length(qubits)`.
 ///
 /// # Example
 /// This performs a two qubit CNOT using the unitary matrix representation:

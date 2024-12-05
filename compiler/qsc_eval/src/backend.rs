@@ -422,29 +422,12 @@ impl Backend for SparseSim {
             }
             "Apply" => {
                 let [matrix, qubits] = unwrap_tuple(arg);
-                let qubits = qubits.unwrap_array();
                 let qubits = qubits
+                    .unwrap_array()
                     .iter()
                     .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
                     .collect::<Vec<_>>();
-                let matrix: Vec<Vec<Complex<f64>>> = matrix
-                    .unwrap_array()
-                    .iter()
-                    .map(|row| {
-                        row.clone()
-                            .unwrap_array()
-                            .iter()
-                            .map(|elem| {
-                                let [re, im] = unwrap_tuple(elem.clone());
-                                Complex::<f64>::new(re.unwrap_double(), im.unwrap_double())
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .collect::<Vec<_>>();
-                let matrix =
-                    Array2::from_shape_fn((1 << qubits.len(), 1 << qubits.len()), |(i, j)| {
-                        matrix[i][j]
-                    });
+                let matrix = unwrap_matrix_as_array2(matrix, &qubits);
 
                 self.sim.apply(&matrix, &qubits, None);
 
@@ -467,6 +450,27 @@ impl Backend for SparseSim {
             self.sim.set_rng_seed(rand::thread_rng().next_u64());
         }
     }
+}
+
+fn unwrap_matrix_as_array2(matrix: Value, qubits: &[usize]) -> Array2<Complex<f64>> {
+    let matrix: Vec<Vec<Complex<f64>>> = matrix
+        .unwrap_array()
+        .iter()
+        .map(|row| {
+            row.clone()
+                .unwrap_array()
+                .iter()
+                .map(|elem| {
+                    let [re, im] = unwrap_tuple(elem.clone());
+                    Complex::<f64>::new(re.unwrap_double(), im.unwrap_double())
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    Array2::from_shape_fn((1 << qubits.len(), 1 << qubits.len()), |(i, j)| {
+        matrix[i][j]
+    })
 }
 
 /// Simple struct that chains two backends together so that the chained
