@@ -22,7 +22,10 @@ import {
 } from "./azure/workspaceActions.js";
 import { supportsAdaptive } from "./azure/providerProperties.js";
 import { getQirForVisibleQs } from "./qirGeneration.js";
-import { startRefreshingWorkspace } from "./copilot/copilotTools.js";
+import {
+  CopilotStreamCallback,
+  startRefreshingWorkspace,
+} from "./copilot/copilotTools.js";
 import { apiKey } from "./copilotApiKey.js";
 
 // Don't check in a filled in API key
@@ -398,14 +401,6 @@ const SubmitToTarget = async (
   }
 };
 
-export type CopilotStreamCallback = (
-  msgPayload: object,
-  msgCommand:
-    | "copilotResponse"
-    | "copilotResponseDone"
-    | "copilotResponseHistogram",
-) => void;
-
 export class Copilot {
   messages: ChatCompletionMessageParam[] = [];
   streamCallback: CopilotStreamCallback;
@@ -466,8 +461,8 @@ export class Copilot {
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         this.streamCallback(
-          { response: `Executing: ${toolCall.function.name}` },
-          "copilotResponse",
+          { toolName: toolCall.function.name },
+          "copilotToolCall",
         );
 
         const content = await this.handleSingleToolCall(toolCall);

@@ -24,6 +24,7 @@ export type CopilotStreamCallback = (
   msgCommand:
     | "copilotResponseDelta"
     | "copilotResponse"
+    | "copilotToolCall"
     | "copilotResponseDone"
     | "copilotResponseHistogram",
 ) => void;

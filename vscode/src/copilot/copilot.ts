@@ -187,10 +187,7 @@ export class CopilotConversation {
 
   async handleToolCalls(toolCalls: ToolCall[]) {
     for (const toolCall of toolCalls) {
-      this.streamCallback(
-        { response: `Executing: ${toolCall.name}` },
-        "copilotResponse",
-      );
+      this.streamCallback({ toolName: toolCall.name }, "copilotToolCall");
       const content = await executeTool(
         toolCall.name,
         JSON.parse(toolCall.arguments),

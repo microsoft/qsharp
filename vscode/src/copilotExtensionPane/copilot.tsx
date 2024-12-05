@@ -158,6 +158,7 @@ type QA = {
 type CopilotState = {
   tidbits: string[];
   qas: QA[];
+  toolInProgress: string | null;
   inProgress: boolean;
   service: "AzureQuantum" | "OpenAI";
 };
@@ -175,6 +176,7 @@ function App({ state }: { state: CopilotState }) {
       qas: [],
       inProgress: false,
       service,
+      toolInProgress: null,
     };
     render(<App state={globalState} />, document.body);
   }
@@ -209,11 +211,18 @@ function App({ state }: { state: CopilotState }) {
             response={(state as CopilotState).tidbits.join("")}
           />
         }
+        <div
+          id="toolStatus"
+          style="height: 30px; font-weight: bold; text-align: right; font-size: smaller;"
+        >
+          {state.inProgress ? "🕒" : ""}
+          {state.toolInProgress ? state.toolInProgress : ""}
+        </div>
         <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
       </div>
       <div style="height: 30px;">
         <div class="toggle-container">
-          <span class="label-left">OpenAI</span>
+          <span class="label-left">Proto</span>
           <label for="serviceToggle">
             <div class="toggle-switch">
               <input
@@ -225,7 +234,7 @@ function App({ state }: { state: CopilotState }) {
               <span class="slider"></span>
             </div>
           </label>
-          <span class="label-left">Azure Quantum</span>
+          <span class="label-left">Test</span>
         </div>
       </div>
     </div>
@@ -236,6 +245,7 @@ let globalState: CopilotState = {
   tidbits: [],
   qas: [],
   inProgress: false,
+  toolInProgress: null,
   service: "AzureQuantum", // default
 };
 
@@ -256,6 +266,7 @@ function onMessage(event: any) {
         let cleanedResponse = message.response;
         cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
         cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+        globalState.toolInProgress = null;
         globalState.tidbits.push(cleanedResponse);
       }
       break;
@@ -266,11 +277,21 @@ function onMessage(event: any) {
         let cleanedResponse = message.response;
         cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
         cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+        globalState.toolInProgress = null;
         globalState.tidbits = [];
         globalState.qas.push({
           request: message.request ?? "",
           response: cleanedResponse,
         });
+      }
+      break;
+    case "copilotToolCall":
+      {
+        globalState.toolInProgress = message.toolName;
+        // globalState.qas.push({
+        //   request: message.request ?? "",
+        //   response: "Executing: " + message.toolName,
+        // });
       }
       break;
     case "copilotResponseHistogram":
@@ -294,6 +315,7 @@ function onMessage(event: any) {
       // After all the events in a single response stream have been received
       {
         globalState.inProgress = false;
+        globalState.toolInProgress = null;
       }
       // Highlight any code blocks
       // Need to wait until Markdown is rendered. Hack for now with a timeout
