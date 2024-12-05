@@ -73,7 +73,7 @@ fn attr_with_arg() {
 
             Provides pre-processing information about when an item should be included in compilation.
 
-            Valid arguments are `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, and `QubitReset`.
+            Valid arguments are `Base`, `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, `QubitReset`, and `Unrestricted`.
 
             The `not` operator is also supported to negate the attribute, e.g. `not Adaptive`."#]],
     );
