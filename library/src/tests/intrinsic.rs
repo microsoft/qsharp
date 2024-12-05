@@ -3124,3 +3124,26 @@ fn test_apply_unitary_fails_when_matrix_wrong_size() {
     expect!["program failed: matrix passed to ApplyUnitary must have dimensions 2^Length(qubits)."]
         .assert_eq(&err);
 }
+
+#[test]
+fn test_apply_unitary_fails_when_matrix_not_unitary() {
+    let err = test_expression_fails(indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            let zero = new Complex { Real = 0.0, Imag = 0.0 };
+            ApplyUnitary(
+                [
+                    [zero, zero],
+                    [zero, zero]
+                ],
+                [q]
+            );
+            DumpMachine();
+            Reset(q);
+        }
+        "});
+
+    expect!["intrinsic callable `Apply` failed: matrix is not unitary"].assert_eq(&err);
+}

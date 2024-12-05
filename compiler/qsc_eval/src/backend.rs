@@ -429,6 +429,11 @@ impl Backend for SparseSim {
                     .collect::<Vec<_>>();
                 let matrix = unwrap_matrix_as_array2(matrix, &qubits);
 
+                let adj = matrix.t().map(Complex::<f64>::conj);
+                if matrix.dot(&adj) != Array2::eye(1 << qubits.len()) {
+                    return Some(Err("matrix is not unitary".to_string()));
+                }
+
                 self.sim.apply(&matrix, &qubits, None);
 
                 Some(Ok(Value::unit()))
