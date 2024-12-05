@@ -1371,11 +1371,11 @@ impl Attr {
 Valid arguments are `Base`, `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, `QubitReset`, and `Unrestricted`.
 
 The `not` operator is also supported to negate the attribute, e.g. `not Adaptive`.",
-            Attr::EntryPoint => "Indicates that a callable is an entry point to a program.",
+            Attr::EntryPoint => "Indicates that the callable is the entry point to a program.",
             Attr::Unimplemented => "Indicates that an item is not yet implemented.",
-            Attr::SimulatableIntrinsic => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should be ignored.",
-            Attr::Measurement => "Indicates that a callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
-            Attr::Reset => "Indicates that a callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
+            Attr::SimulatableIntrinsic => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should only be used during simulation.",
+            Attr::Measurement => "Indicates that an intrinsic callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
+            Attr::Reset => "Indicates that an intrinsic callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
         }
     }
 }
