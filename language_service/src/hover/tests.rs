@@ -55,7 +55,7 @@ fn attr() {
         &expect![[r#"
             attribute ```EntryPoint```
 
-            Indicates that a callable is an entry point to a program."#]],
+            Indicates that the callable is the entry point to a program."#]],
     );
 }
 
