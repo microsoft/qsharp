@@ -299,8 +299,8 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       webviewView.webview.asWebviewUri(
         Uri.joinPath(this.extensionUri, ...pathList),
       );
-    const copilotJs = getUri(["out", "copilot", "copilot.js"]);
-    const copilotCss = getUri(["out", "copilot", "copilot.css"]);
+    const copilotJs = getUri(["out", "copilotExtensionPane", "copilot.js"]);
+    const copilotCss = getUri(["out", "copilotExtensionPane", "copilot.css"]);
     const katexCss = getUri(["out", "katex", "katex.min.css"]);
     const githubCss = getUri(["out", "katex", "github-markdown-light.css"]);
 

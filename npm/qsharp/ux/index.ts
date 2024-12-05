@@ -14,6 +14,7 @@ export {
 } from "./data.js";
 export { Histogram } from "./histogram.js";
 export { ReTable } from "./reTable.js";
+export { ResultsTable } from "./resultsTable.js";
 export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
 export { EstimatesOverview } from "./estimatesOverview.js";
