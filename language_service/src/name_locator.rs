@@ -12,7 +12,6 @@ use qsc::ast::{FieldAccess, Idents, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
-#[allow(unused_variables)]
 pub(crate) trait Handler<'package> {
     fn at_attr_ref(&mut self, name: &'package ast::Ident);
 
