@@ -8,47 +8,24 @@ import Measurement.MeasureSignedInteger;
 /// This entrypoint runs tests for the signed integer library.
 operation Main() : Unit {
     UnsignedOpTests();
-    MeasureSignedIntTests();
+    Fact(Qtest.Operations.CheckAllTestCases(MeasureSignedIntTests()), "SignedInt tests failed");
     SignedOpTests();
 
 }
 
-operation MeasureSignedIntTests() : Unit {
-    use a = Qubit[4];
-
-    // 0b0001 == 1
-    X(a[0]);
-    let res = MeasureSignedInteger(a, 4);
-    Fact(res == 1, $"Expected 1, received {res}");
-
-    // 0b1111 == -1
-    X(a[0]);
-    X(a[1]);
-    X(a[2]);
-    X(a[3]);
-    let res = MeasureSignedInteger(a, 4);
-    Fact(res == -1, $"Expected -1, received {res}");
-
-    // 0b01000 == 8
-    use a = Qubit[5];
-    X(a[3]);
-    let res = MeasureSignedInteger(a, 5);
-    Fact(res == 8, $"Expected 8, received {res}");
-
-    // 0b11110 == -2
-    X(a[1]);
-    X(a[2]);
-    X(a[3]);
-    X(a[4]);
-    let res = MeasureSignedInteger(a, 5);
-    Fact(res == -2, $"Expected -2, received {res}");
-
-    // 0b11000 == -8
-    X(a[3]);
-    X(a[4]);
-    let res = MeasureSignedInteger(a, 5);
-    Fact(res == -8, $"Expected -8, received {res}");
-
+function MeasureSignedIntTests() : (String, Int, (Qubit[]) => (), (Qubit[]) => Int, Int)[] {
+    [
+        ("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 4), 1),
+        ("0b1111 == -1", 4, (qs) => { X(qs[0]); X(qs[1]); X(qs[2]); X(qs[3]); }, (qs) => MeasureSignedInteger(qs, 4), -1),
+        ("0b01000 == 8", 5, (qs) => X(qs[3]), (qs) => MeasureSignedInteger(qs, 5), 8),
+        ("0b11110 == -2", 5, (qs) => {
+            X(qs[1]);
+            X(qs[2]);
+            X(qs[3]);
+            X(qs[4]);
+        }, (qs) => MeasureSignedInteger(qs, 5), -2),
+        ("0b11000 == -8", 5, (qs) => { X(qs[3]); X(qs[4]); }, (qs) => MeasureSignedInteger(qs, 5), -8)
+    ]
 }
 
 operation SignedOpTests() : Unit {

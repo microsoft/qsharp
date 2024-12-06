@@ -13,7 +13,7 @@ import
     Std.Arrays.*,
     Std.ResourceEstimation.BeginEstimateCaching,
     Std.ResourceEstimation.EndEstimateCaching,
-    ArithmeticUtils.ApplyAndAssuming0Target;
+    Std.ArithmeticUtils.ApplyAndAssuming0Target;
 
 /// # Summary
 /// Performs table lookup using a SELECT network
@@ -167,7 +167,7 @@ operation WriteMemoryContents(
     ApplyPauliFromBitString(PauliX, true, value, target);
 }
 
-    /// # References
+/// # References
 /// - [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
 ///   "Windowed arithmetic"
 operation Unlookup(

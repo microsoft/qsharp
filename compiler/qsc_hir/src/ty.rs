@@ -24,7 +24,7 @@ fn set_indentation<'a, 'b>(
 }
 
 /// A type.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
@@ -33,7 +33,11 @@ pub enum Ty {
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
-    Param(Rc<str>, ParamId),
+    Param {
+        name: Rc<str>,
+        id: ParamId,
+        bounds: ClassConstraints,
+    },
     /// A primitive type.
     Prim(Prim),
     /// A tuple type.
@@ -45,6 +49,92 @@ pub enum Ty {
     Err,
 }
 
+/// Container type for a collection of class constraints, so we can define methods on it.
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+pub struct ClassConstraints(pub Box<[ClassConstraint]>);
+
+impl ClassConstraints {
+    #[must_use]
+    pub fn contains_iterable_bound(&self) -> bool {
+        self.0
+            .iter()
+            .any(|bound| matches!(bound, ClassConstraint::Iterable { .. }))
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl std::fmt::Display for ClassConstraints {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.0.is_empty() {
+            Ok(())
+        } else {
+            let bounds = self
+                .0
+                .iter()
+                .map(|bound| format!("{bound}"))
+                .collect::<Vec<_>>()
+                .join(" + ");
+            write!(f, "{bounds}")
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub enum ClassConstraint {
+    /// Whether or not 'T can be compared via Eq to values of the same domain.
+    Eq,
+    /// Whether or not 'T can be added to values of the same domain via the + operator.
+    Add,
+    Exp {
+        // `base` is inferred to be the self type
+        power: Ty,
+    },
+    /// If 'T is iterable, then it can be iterated over and the items inside are yielded (of type `item`).
+    Iterable { item: Ty },
+    /// Whether or not 'T can be divided by values of the same domain via the / operator.
+    Div,
+    /// Whether or not 'T can be subtracted from values of the same domain via the - operator.
+    Sub,
+    /// Whether or not 'T can be multiplied by values of the same domain via the * operator.
+    Mul,
+    /// Whether or not 'T can be taken modulo values of the same domain via the % operator.
+    Mod,
+    /// Whether or not 'T can be compared via Ord to values of the same domain.
+    Ord,
+    /// Whether or not 'T can be signed.
+    Signed,
+    /// Whether or not 'T is an integral type (can be used in bit shifting operators).
+    Integral,
+    /// Whether or not 'T can be displayed as a string (converted to a string).
+    Show,
+    /// A class that is not built-in to the compiler.
+    NonNativeClass(Rc<str>),
+}
+
+impl std::fmt::Display for ClassConstraint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ClassConstraint::Eq => write!(f, "Eq"),
+            ClassConstraint::NonNativeClass(name) => write!(f, "{name}"),
+            ClassConstraint::Add => write!(f, "Add"),
+            ClassConstraint::Exp { power } => write!(f, "Exp[{power}]"),
+            ClassConstraint::Iterable { item } => write!(f, "Iterable<{item}>"),
+            ClassConstraint::Integral => write!(f, "Integral"),
+            ClassConstraint::Show => write!(f, "Show"),
+            ClassConstraint::Div => write!(f, "Div"),
+            ClassConstraint::Sub => write!(f, "Sub"),
+            ClassConstraint::Mul => write!(f, "Mul"),
+            ClassConstraint::Mod => write!(f, "Mod"),
+            ClassConstraint::Ord => write!(f, "Ord"),
+            ClassConstraint::Signed => write!(f, "Signed"),
+        }
+    }
+}
+
 impl Ty {
     /// The unit type.
     pub const UNIT: Self = Self::Tuple(Vec::new());
@@ -52,7 +142,7 @@ impl Ty {
     #[must_use]
     pub fn with_package(&self, package: PackageId) -> Self {
         match self {
-            Ty::Infer(_) | Ty::Param(_, _) | Ty::Prim(_) | Ty::Err => self.clone(),
+            Ty::Infer(_) | Ty::Param { .. } | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
             Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
@@ -93,7 +183,7 @@ impl Ty {
                 )
             }
             Ty::Infer(_) | Ty::Err => "?".to_string(),
-            Ty::Param(name, _) | Ty::Udt(name, _) => name.to_string(),
+            Ty::Param { name, .. } | Ty::Udt(name, _) => name.to_string(),
             Ty::Prim(prim) => format!("{prim:?}"),
             Ty::Tuple(items) => {
                 if items.is_empty() {
@@ -116,8 +206,8 @@ impl Display for Ty {
             Ty::Array(item) => write!(f, "{item}[]"),
             Ty::Arrow(arrow) => Display::fmt(arrow, f),
             Ty::Infer(infer) => Display::fmt(infer, f),
-            Ty::Param(name, param_id) => {
-                write!(f, "Param<\"{name}\": {param_id}>")
+            Ty::Param { name, id, .. } => {
+                write!(f, "Param<\"{name}\": {id}>")
             }
             Ty::Prim(prim) => Debug::fmt(prim, f),
             Ty::Tuple(items) => {
@@ -150,14 +240,14 @@ impl Display for Ty {
 #[derive(Debug)]
 /// A type scheme.
 pub struct Scheme {
-    params: Vec<GenericParam>,
+    params: Vec<TypeParameter>,
     ty: Box<Arrow>,
 }
 
 impl Scheme {
     /// Creates a new type scheme.
     #[must_use]
-    pub fn new(params: Vec<GenericParam>, ty: Box<Arrow>) -> Self {
+    pub fn new(params: Vec<TypeParameter>, ty: Box<Arrow>) -> Self {
         Self { params, ty }
     }
 
@@ -176,7 +266,7 @@ impl Scheme {
 
     /// The generic parameters to the type.
     #[must_use]
-    pub fn params(&self) -> &[GenericParam] {
+    pub fn params(&self) -> &[TypeParameter] {
         &self.params
     }
 
@@ -208,6 +298,8 @@ pub enum InstantiationError {
     Arity,
     /// A generic argument does not match the kind of its corresponding generic parameter.
     Kind(ParamId),
+    /// An in invalid type bound was provided.
+    Bound(ParamId),
 }
 
 fn instantiate_ty<'a>(
@@ -218,9 +310,9 @@ fn instantiate_ty<'a>(
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
         Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
-        Ty::Param(_, param) => match arg(param) {
+        Ty::Param { id, .. } => match arg(id) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
-            Some(_) => Err(InstantiationError::Kind(*param)),
+            Some(_) => Err(InstantiationError::Kind(*id)),
             None => Ok(ty.clone()),
         },
         Ty::Tuple(items) => Ok(Ty::Tuple(
@@ -256,21 +348,34 @@ fn instantiate_arrow_ty<'a>(
     })
 }
 
-impl Display for GenericParam {
+impl Display for TypeParameter {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            GenericParam::Ty(name) => write!(f, "type {name}"),
-            GenericParam::Functor(min) => write!(f, "functor ({min})"),
+            TypeParameter::Ty { name, bounds, .. } => write!(
+                f,
+                "type {name}{}",
+                if bounds.0.is_empty() {
+                    String::new()
+                } else {
+                    format!(" bounds: {bounds}",)
+                }
+            ),
+            TypeParameter::Functor(min) => write!(f, "functor ({min})"),
         }
     }
 }
 
 /// The kind of a generic parameter.
 #[derive(Clone, Debug, PartialEq)]
-pub enum GenericParam {
+pub enum TypeParameter {
     /// A type parameter.
-    Ty(TypeParamName),
-    /// A functor parameter with a lower bound.
+    Ty {
+        name: Rc<str>,
+        bounds: ClassConstraints,
+    },
+    /// A functor parameter with a minimal set (lower bound) of functors.
+    /// if `'T is Adj` then `functor ('T)` is the minimal set of functors.
+    /// This can currently only occur on lambda expressions.
     Functor(FunctorSetValue),
 }
 
@@ -290,7 +395,7 @@ impl Display for TypeParamName {
 }
 
 /// A generic parameter ID.
-#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct ParamId(u32);
 
 impl ParamId {
@@ -342,7 +447,7 @@ impl Display for GenericArg {
 }
 
 /// An arrow type: `->` for a function or `=>` for an operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Arrow {
     /// Whether the callable is a function or an operation.
     pub kind: CallableKind,
@@ -382,7 +487,7 @@ impl Display for Arrow {
 }
 
 /// A primitive type.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum Prim {
     /// The big integer type.
     BigInt,
@@ -411,7 +516,7 @@ pub enum Prim {
 }
 
 /// A set of functors.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
@@ -447,7 +552,7 @@ impl Display for FunctorSet {
 }
 
 /// The value of a functor set.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum FunctorSetValue {
     /// The empty set.
     #[default]
@@ -746,7 +851,7 @@ impl Display for UdtField {
 }
 
 /// A placeholder type variable used during type inference.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct InferTyId(usize);
 
 impl InferTyId {

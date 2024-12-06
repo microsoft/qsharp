@@ -9,96 +9,93 @@
 /// communication.
 ///
 /// This Q# program implements quantum teleportation.
-namespace Sample {
-    import Std.Diagnostics.*;
-    import Std.Intrinsic.*;
-    import Std.Measurement.*;
+import Std.Diagnostics.*;
+import Std.Intrinsic.*;
+import Std.Measurement.*;
 
-    @EntryPoint()
-    operation Main() : Result[] {
-        // Use the `Teleport` operation to send different quantum states.
-        let stateInitializerBasisTuples = [
-            ("|0〉", I, PauliZ),
-            ("|1〉", X, PauliZ),
-            ("|+〉", SetToPlus, PauliX),
-            ("|-〉", SetToMinus, PauliX)
-        ];
+operation Main() : Result[] {
+    // Use the `Teleport` operation to send different quantum states.
+    let stateInitializerBasisTuples = [
+        ("|0〉", I, PauliZ),
+        ("|1〉", X, PauliZ),
+        ("|+〉", SetToPlus, PauliX),
+        ("|-〉", SetToMinus, PauliX)
+    ];
 
-        mutable results = [];
-        for (state, initializer, basis) in stateInitializerBasisTuples {
-            // Allocate the message and target qubits.
-            use (message, target) = (Qubit(), Qubit());
+    mutable results = [];
+    for (state, initializer, basis) in stateInitializerBasisTuples {
+        // Allocate the message and target qubits.
+        use (message, target) = (Qubit(), Qubit());
 
-            // Initialize the message and show its state using the `DumpMachine`
-            // function.
-            initializer(message);
-            Message($"Teleporting state {state}");
-            DumpRegister([message]);
+        // Initialize the message and show its state using the `DumpMachine`
+        // function.
+        initializer(message);
+        Message($"Teleporting state {state}");
+        DumpRegister([message]);
 
-            // Teleport the message and show the quantum state after
-            // teleportation.
-            Teleport(message, target);
-            Message($"Received state {state}");
-            DumpRegister([target]);
+        // Teleport the message and show the quantum state after
+        // teleportation.
+        Teleport(message, target);
+        Message($"Received state {state}");
+        DumpRegister([target]);
 
-            // Measure target in the corresponding basis and reset the qubits to
-            // continue teleporting more messages.
-            let result = Measure([basis], [target]);
-            set results += [result];
-            ResetAll([message, target]);
-        }
-
-        return results;
+        // Measure target in the corresponding basis and reset the qubits to
+        // continue teleporting more messages.
+        let result = Measure([basis], [target]);
+        set results += [result];
+        ResetAll([message, target]);
     }
 
-    /// # Summary
-    /// Sends the state of one qubit to a target qubit by using teleportation.
-    ///
-    /// Notice that after calling Teleport, the state of `message` is collapsed.
-    ///
-    /// # Input
-    /// ## message
-    /// A qubit whose state we wish to send.
-    /// ## target
-    /// A qubit initially in the |0〉 state that we want to send
-    /// the state of message to.
-    operation Teleport(message : Qubit, target : Qubit) : Unit {
-        // Allocate an auxiliary qubit.
-        use auxiliary = Qubit();
+    return results;
+}
 
-        // Create some entanglement that we can use to send our message.
-        H(auxiliary);
-        CNOT(auxiliary, target);
+/// # Summary
+/// Sends the state of one qubit to a target qubit by using teleportation.
+///
+/// Notice that after calling Teleport, the state of `message` is collapsed.
+///
+/// # Input
+/// ## message
+/// A qubit whose state we wish to send.
+/// ## target
+/// A qubit initially in the |0〉 state that we want to send
+/// the state of message to.
+operation Teleport(message : Qubit, target : Qubit) : Unit {
+    // Allocate an auxiliary qubit.
+    use auxiliary = Qubit();
 
-        // Encode the message into the entangled pair.
-        CNOT(message, auxiliary);
-        H(message);
+    // Create some entanglement that we can use to send our message.
+    H(auxiliary);
+    CNOT(auxiliary, target);
 
-        // Measure the qubits to extract the classical data we need to decode
-        // the message by applying the corrections on the target qubit
-        // accordingly.
-        if M(auxiliary) == One {
-            X(target);
-        }
+    // Encode the message into the entangled pair.
+    CNOT(message, auxiliary);
+    H(message);
 
-        if M(message) == One {
-            Z(target);
-        }
-
-        // Reset auxiliary qubit before releasing.
-        Reset(auxiliary);
+    // Measure the qubits to extract the classical data we need to decode
+    // the message by applying the corrections on the target qubit
+    // accordingly.
+    if M(auxiliary) == One {
+        X(target);
     }
 
-    /// # Summary
-    /// Sets a qubit in state |0⟩ to |+⟩.
-    operation SetToPlus(q : Qubit) : Unit is Adj + Ctl {
-        H(q);
+    if M(message) == One {
+        Z(target);
     }
 
-    /// # Summary
-    /// Sets a qubit in state |0⟩ to |−⟩.
-    operation SetToMinus(q : Qubit) : Unit is Adj + Ctl {
-        X(q);
-        H(q);
-    }
+    // Reset auxiliary qubit before releasing.
+    Reset(auxiliary);
+}
+
+/// # Summary
+/// Sets a qubit in state |0⟩ to |+⟩.
+operation SetToPlus(q : Qubit) : Unit is Adj + Ctl {
+    H(q);
+}
+
+/// # Summary
+/// Sets a qubit in state |0⟩ to |−⟩.
+operation SetToMinus(q : Qubit) : Unit is Adj + Ctl {
+    X(q);
+    H(q);
 }

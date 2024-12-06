@@ -224,6 +224,49 @@ fn collect_names(
 
                 groups.push(fields.fields());
             }
+            NameKind::PrimitiveClass => {
+                // we know the types of the primitive classes, so we can just return them
+                // hard coded here.
+                // If we ever support user-defined primitive classes, we'll need to change this.
+
+                // this is here to force us to update completions if a new primitive class
+                // constraint is supported
+                use qsc::hir::ty::ClassConstraint::*;
+                match Add {
+                    Add
+                    | Eq
+                    | Exp { .. }
+                    | Iterable { .. }
+                    | NonNativeClass(_)
+                    | Integral
+                    | Mod
+                    | Sub
+                    | Mul
+                    | Div
+                    | Signed
+                    | Ord
+                    | Show => (),
+                }
+
+                groups.push(vec![
+                    Completion::new("Add".to_string(), CompletionItemKind::Class),
+                    Completion::new("Eq".to_string(), CompletionItemKind::Class),
+                    Completion::with_detail(
+                        "Exp".to_string(),
+                        CompletionItemKind::Class,
+                        Some("Exp['Power]".into()),
+                    ),
+                    Completion::new("Num".to_string(), CompletionItemKind::Class),
+                    Completion::new("Integral".to_string(), CompletionItemKind::Class),
+                    Completion::new("Show".to_string(), CompletionItemKind::Class),
+                    Completion::new("Signed".to_string(), CompletionItemKind::Class),
+                    Completion::new("Ord".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mod".to_string(), CompletionItemKind::Class),
+                    Completion::new("Sub".to_string(), CompletionItemKind::Class),
+                    Completion::new("Mul".to_string(), CompletionItemKind::Class),
+                    Completion::new("Div".to_string(), CompletionItemKind::Class),
+                ]);
+            }
         };
     }
     groups

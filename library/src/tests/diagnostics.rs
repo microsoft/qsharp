@@ -424,3 +424,35 @@ fn check_dumpoperation_with_extra_qubits_relative_phase_not_reflected_in_matrix(
     "#]]
     .assert_eq(&output);
 }
+
+#[test]
+fn check_bit_flip_noise_values() {
+    test_expression(
+        "Std.Diagnostics.BitFlipNoise(0.3)",
+        &Value::Tuple([Value::Double(0.3), Value::Double(0.0), Value::Double(0.0)].into()),
+    );
+}
+
+#[test]
+fn check_phase_flip_noise_values() {
+    test_expression(
+        "Std.Diagnostics.PhaseFlipNoise(0.3)",
+        &Value::Tuple([Value::Double(0.0), Value::Double(0.0), Value::Double(0.3)].into()),
+    );
+}
+
+#[test]
+fn check_depolarizing_noise_values() {
+    test_expression(
+        "Std.Diagnostics.DepolarizingNoise(0.3)",
+        &Value::Tuple([Value::Double(0.1), Value::Double(0.1), Value::Double(0.1)].into()),
+    );
+}
+
+#[test]
+fn check_no_noise_values() {
+    test_expression(
+        "Std.Diagnostics.NoNoise()",
+        &Value::Tuple([Value::Double(0.0), Value::Double(0.0), Value::Double(0.0)].into()),
+    );
+}

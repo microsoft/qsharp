@@ -435,6 +435,7 @@ def ndarray2d_to_string(arr):
         str_arr.append(np.array2string(elem, separator=","))
     return f"[{','.join(str_arr)}]"
 
+
 # The script takes one required positional argument, URI of the FCIDUMP file
 parser = ArgumentParser(description="Double-factorized chemistry sample")
 # Use n2-10e-8o as the default sample.
@@ -476,13 +477,13 @@ str_two_body_eigenvectors = (
 )
 
 qsharp_string = (
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistry("
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryProblem("
+    "DoubleFactorizedChemistry.DoubleFactorizedChemistry("
+    "DoubleFactorizedChemistry.DoubleFactorizedChemistryProblem("
     f"{df.num_orbitals}, {df.one_body_norm}, {df.two_body_norm}, "
     f"{str_one_body_eigenvalues}, {str_one_body_eigenvectors}, "
     f"[1.0, size = {df.rank}], {str_two_body_eigenvalues}, "
     f"{str_two_body_eigenvectors}),"
-    "Microsoft.Quantum.Applications.Chemistry.DoubleFactorizedChemistryParameters(0.001,))"
+    "DoubleFactorizedChemistry.DoubleFactorizedChemistryParameters(0.001,))"
 )
 
 # Collect resource estimation parameters
@@ -494,9 +495,9 @@ if args.paramsfile is None:
             "qecScheme": {"name": "floquet_code"},
         },
         {
-            "qubitParams": { "name": "qubit_gate_us_e3" },
+            "qubitParams": {"name": "qubit_gate_us_e3"},
             "estimateType": "frontier",
-        }
+        },
     ]
 else:
     params = []
@@ -519,27 +520,35 @@ with open("resource_estimate.json", "w") as f:
     f.write(res.json)
 
 result_obj = json.loads(res.json)
-if isinstance(result_obj,dict):
-    result_obj = [ result_obj ]
+if isinstance(result_obj, dict):
+    result_obj = [result_obj]
 
 data = []
 for item in result_obj:
     data_item = []
-    
+
     # Run name
     data_item.append(item["jobParams"]["qubitParams"]["name"])
-    
+
     # T factory fraction and Runtime
     if "physicalCountsFormatted" in item:
-        data_item.append(item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
+        data_item.append(
+            item["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"]
+        )
         data_item.append(item["physicalCountsFormatted"]["runtime"])
     elif "frontierEntries" in item:
-        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["physicalQubitsForTfactoriesPercentage"])
-        data_item.append(item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"])
+        data_item.append(
+            item["frontierEntries"][0]["physicalCountsFormatted"][
+                "physicalQubitsForTfactoriesPercentage"
+            ]
+        )
+        data_item.append(
+            item["frontierEntries"][0]["physicalCountsFormatted"]["runtime"]
+        )
     else:
         data_item.append("-")
         data_item.append("-")
-    
+
     # Physical qubits and rQOPS
     if "physicalCounts" in item:
         data_item.append(item["physicalCounts"]["physicalQubits"])
@@ -550,18 +559,22 @@ for item in result_obj:
     else:
         data_item.append("-")
         data_item.append("-")
-        
+
     data.append(data_item)
-    
+
 # Define the table headers
 headers = ["Run name", "T factory fraction", "Runtime", "Physical qubits", "rQOPS"]
 
 # Determine the width of each column
 col_widths = [max(len(str(item)) for item in column) for column in zip(headers, *data)]
 
+
 # Function to format a row
 def format_row(row):
-    return " | ".join(f"{str(item).ljust(width)}" for item, width in zip(row, col_widths))
+    return " | ".join(
+        f"{str(item).ljust(width)}" for item, width in zip(row, col_widths)
+    )
+
 
 # Create the table
 header_row = format_row(headers)

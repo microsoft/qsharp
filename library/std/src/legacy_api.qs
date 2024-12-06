@@ -12,3 +12,7 @@ namespace Microsoft.Quantum.Core {
     import Std.Range.*;
     export RangeStart, RangeEnd, IsRangeEmpty, Length, Repeated, Int, Qubit, Bool, Unit;
 }
+
+namespace Microsoft.Quantum.Unstable {
+    export Std.Arithmetic, Std.StatePreparation, Std.TableLookup;
+}

@@ -10,22 +10,19 @@
 /// `One` or `Zero`.
 ///
 /// This Q# program exemplifies different types of measurements.
-namespace Sample {
-    import Std.Measurement.*;
+import Std.Measurement.*;
 
-    @EntryPoint()
-    operation Main() : (Result, Result[]) {
-        // The `M` operation performs a measurement of a single qubit in the
-        // computational basis, also known as the Pauli Z basis.
-        use q = Qubit();
-        let result = M(q);
-        Reset(q);
+operation Main() : (Result, Result[]) {
+    // The `M` operation performs a measurement of a single qubit in the
+    // computational basis, also known as the Pauli Z basis.
+    use q = Qubit();
+    let result = M(q);
+    Reset(q);
 
-        // The `MeasureEachZ` operation measures each qubit in an array in the
-        // computational basis and returns an array of `Result` values.
-        use qs = Qubit[2];
-        let results = MeasureEachZ(qs);
+    // The `MeasureEachZ` operation measures each qubit in an array in the
+    // computational basis and returns an array of `Result` values.
+    use qs = Qubit[2];
+    let results = MeasureEachZ(qs);
 
-        return (result, results);
-    }
+    return (result, results);
 }

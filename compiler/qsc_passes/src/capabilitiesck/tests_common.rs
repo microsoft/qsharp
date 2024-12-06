@@ -519,3 +519,10 @@ pub const USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE: &str = r#"
             (M(q), [1, 2, 3])
         }
     }"#;
+
+pub const DYNAMIC_ARRAY_BINARY_OP: &str = r#"
+    operation Main() : Unit {
+        use qs = Qubit[2];
+        MResetEachZ(qs) == [Zero, Zero];
+    }
+"#;

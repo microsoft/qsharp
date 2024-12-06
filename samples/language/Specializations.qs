@@ -42,7 +42,6 @@ operation SWAP(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
 }
 
 /// The main function cannot be Adj or Ctl.
-@EntryPoint()
 operation Main() : Unit {
 
     // We invoke specializations using functors at the call site.

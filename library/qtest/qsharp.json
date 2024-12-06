@@ -1,0 +1,11 @@
+{
+  "author": "Microsoft",
+  "license": "MIT",
+  "files": [
+    "src/Functions.qs",
+    "src/Main.qs",
+    "src/Operations.qs",
+    "src/Tests.qs",
+    "src/Util.qs"
+  ]
+}

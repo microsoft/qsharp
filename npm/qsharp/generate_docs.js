@@ -31,7 +31,7 @@ var today = new Date();
 var dd = String(today.getDate()).padStart(2, "0");
 var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
 var yyyy = today.getFullYear();
-var today_str = mm + "/" + dd + "/" + yyyy + " 12:00:00 AM";
+var today_str = mm + "/" + dd + "/" + yyyy;
 
 docs.forEach((doc) => {
   // If the filename contains a /, then we need to create the directory
@@ -39,7 +39,7 @@ docs.forEach((doc) => {
   let fullPath = "";
   switch (parts.length) {
     case 1:
-      if (doc.filename !== "toc.yml") {
+      if (doc.filename !== "toc.yml" && doc.filename !== "index.md") {
         throw new Error(`Invalid filename: ${doc.filename}`);
       } else {
         fullPath = join(docsDirPath, doc.filename);
@@ -57,10 +57,15 @@ docs.forEach((doc) => {
     default:
       throw new Error(`Invalid file path: ${doc.filename}`);
   }
-  var contents =
-    doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
-    "\n\n" +
-    doc.contents;
+  var contents = "";
+  if (doc.filename === "toc.yml") {
+    contents = doc.contents;
+  } else {
+    contents =
+      doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
+      "\n\n" +
+      doc.contents;
+  }
   writeFileSync(fullPath, contents);
 });
 
