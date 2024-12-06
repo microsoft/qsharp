@@ -446,6 +446,6 @@ def test_callables_with_unsupported_types_not_exposed_into_env() -> None:
 def test_lambdas_not_exposed_into_env() -> None:
     qsharp.init()
     qsharp.eval("a -> a + 1")
-    assert not hasattr(qsharp.env, "lambda")
+    assert not hasattr(qsharp.env, "<lambda>")
     qsharp.eval("q => I(q)")
-    assert not hasattr(qsharp.env, "lambda")
+    assert not hasattr(qsharp.env, "<lambda>")

@@ -1007,7 +1007,7 @@ fn create_py_callable(
     name: &str,
     item_id: StoreItemId,
 ) -> PyResult<()> {
-    if namespace.is_empty() && name == "lambda" {
+    if namespace.is_empty() && name == "<lambda>" {
         // We don't want to bind auto-generated lambda callables.
         return Ok(());
     }
