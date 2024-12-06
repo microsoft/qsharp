@@ -22,11 +22,9 @@ import {
 } from "./azure/workspaceActions.js";
 import { supportsAdaptive } from "./azure/providerProperties.js";
 import { getQirForVisibleQs } from "./qirGeneration.js";
-import {
-  CopilotStreamCallback,
-  startRefreshingWorkspace,
-} from "./copilot/copilotTools.js";
+import { startRefreshingWorkspace } from "./copilot/copilotTools.js";
 import { apiKey } from "./copilotApiKey.js";
+import { CopilotMessageHandler, ICopilot } from "./copilot/copilot.js";
 
 // Don't check in a filled in API key
 const openai = new OpenAI({
@@ -226,7 +224,7 @@ const GetJob = async (jobId: string): Promise<Job | undefined> => {
 
 const tryRenderResults = (
   file: string,
-  streamCallback: CopilotStreamCallback,
+  streamCallback: CopilotMessageHandler,
 ): boolean => {
   try {
     // Parse the JSON file
@@ -243,13 +241,13 @@ const tryRenderResults = (
       histo.push([parsedArray[i], parsedArray[i + 1]]);
     }
 
-    streamCallback(
-      {
+    streamCallback({
+      payload: {
         buckets: histo,
         shotCount: 100, // ToDo: Where are the actual shot counts stored?
       },
-      "copilotResponseHistogram",
-    );
+      kind: "copilotResponseHistogram",
+    });
 
     return true;
   } catch (e: any) {
@@ -260,7 +258,7 @@ const tryRenderResults = (
 
 const DownloadJobResults = async (
   jobId: string,
-  streamCallback: CopilotStreamCallback,
+  streamCallback: CopilotMessageHandler,
 ): Promise<string> => {
   const job = await GetJob(jobId);
 
@@ -401,18 +399,18 @@ const SubmitToTarget = async (
   }
 };
 
-export class Copilot {
+export class OpenAICopilot implements ICopilot {
   messages: ChatCompletionMessageParam[] = [];
-  streamCallback: CopilotStreamCallback;
+  streamCallback: CopilotMessageHandler;
 
-  constructor(streamCallback: CopilotStreamCallback) {
+  constructor(streamCallback: CopilotMessageHandler) {
     this.messages.push(systemMessage);
     this.streamCallback = streamCallback;
   }
 
   // OpenAI handling functions
 
-  converseWithOpenAI = async () => {
+  async converse(): Promise<void> {
     // log.info("Sent messages: %o", this.messages);
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -421,7 +419,7 @@ export class Copilot {
     });
     // log.info("Response: %o", response);
     await this.handleResponse(response);
-  };
+  }
 
   handleResponse = async (response: ChatCompletion) => {
     this.messages.push(response.choices[0].message);
@@ -460,10 +458,10 @@ export class Copilot {
   handleToolCalls = async (response: ChatCompletion) => {
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
-        this.streamCallback(
-          { toolName: toolCall.function.name },
-          "copilotToolCall",
-        );
+        this.streamCallback({
+          payload: { toolName: toolCall.function.name },
+          kind: "copilotToolCall",
+        });
 
         const content = await this.handleSingleToolCall(toolCall);
         // Create a message containing the result of the function call
@@ -475,7 +473,7 @@ export class Copilot {
         this.messages.push(function_call_result_message);
       }
 
-      await this.converseWithOpenAI();
+      await this.converse();
     }
   };
 
@@ -537,12 +535,12 @@ export class Copilot {
 
   handleNormalResponse = (response: ChatCompletion) => {
     // log.info("printing response: %o", response.choices[0].message.content!);
-    this.streamCallback(
-      {
+    this.streamCallback({
+      payload: {
         response: response.choices[0].message.content!,
       },
-      "copilotResponse",
-    );
+      kind: "copilotResponse",
+    });
   };
 
   handleUnexpectedCase = (response: ChatCompletion) => {
@@ -555,7 +553,7 @@ export class Copilot {
       content: question,
     });
 
-    await this.converseWithOpenAI();
-    this.streamCallback({}, "copilotResponseDone");
+    await this.converse();
+    this.streamCallback({ kind: "copilotResponseDone", payload: undefined });
   }
 }

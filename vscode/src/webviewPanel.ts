@@ -24,9 +24,9 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { CopilotWebviewViewProvider, ICopilot } from "./copilot/copilot";
-import { Copilot as OpenAiCopilot } from "./copilot2";
-import { CopilotStreamCallback } from "./copilot/copilotTools";
+import { CopilotWebviewViewProvider } from "./copilot/webviewViewProvider";
+import { CopilotMessageHandler, ICopilot } from "./copilot/copilot";
+import { OpenAICopilot as OpenAiCopilot } from "./copilot2";
 import { getPauliNoiseModel } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
@@ -475,7 +475,7 @@ export class QSharpWebViewPanel {
   private _ready = false;
   private _queuedMessages: any[] = [];
   private _copilot: ICopilot;
-  private _streamCallback: CopilotStreamCallback;
+  private _streamCallback: CopilotMessageHandler;
 
   constructor(
     private type: PanelType,
@@ -484,10 +484,10 @@ export class QSharpWebViewPanel {
     log.info("Creating webview panel of type", type);
     this.panel.onDidDispose(() => this.dispose());
 
-    this._streamCallback = (payload, command) => {
+    this._streamCallback = ({ payload, kind }) => {
       // log.info("message posted with command: ", command);
       this.panel.webview.postMessage({
-        command: command,
+        command: kind,
         ...payload,
       });
     };
@@ -558,11 +558,6 @@ export class QSharpWebViewPanel {
           this.panel.webview.postMessage(message),
         );
         this._queuedMessages = [];
-      } else if (message.command == "copilotRequest") {
-        // Send the message to the copilot
-        // TODO: Move this view specific logic out of here
-        this._copilot.makeChatRequest(message.request);
-        // makeChatRequest(message.request, this._streamCallback);
       }
     });
   }

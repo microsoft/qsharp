@@ -166,7 +166,7 @@ function App({ state }: { state: CopilotState }) {
   function reset(ev: any) {
     const service = ev.target.checked ? "AzureQuantum" : "OpenAI";
 
-    vscodeApi.postMessage({
+    sendMessageToExtension({
       command: "resetCopilot",
       request: service,
     });
@@ -328,4 +328,8 @@ function onMessage(event: any) {
   }
   // vscodeApi.setState(state);
   render(<App state={globalState} />, document.body);
+}
+
+function sendMessageToExtension(message: MessageToCopilot) {
+  vscodeApi.postMessage(message);
 }

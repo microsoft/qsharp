@@ -16,18 +16,9 @@ import {
 } from "../azure/workspaceActions.js";
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
-import { CopilotConversation } from "./copilot.js";
+import { AzureQuantumCopilot } from "./azqCopilot.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
-
-export type CopilotStreamCallback = (
-  msgPayload: object,
-  msgCommand:
-    | "copilotResponseDelta"
-    | "copilotResponse"
-    | "copilotToolCall"
-    | "copilotResponseDone"
-    | "copilotResponseHistogram",
-) => void;
+import { CopilotMessageHandler } from "./copilot.js";
 
 // Define the tools and system prompt that the model can use
 
@@ -213,7 +204,7 @@ const jobLimit = 10;
 const jobLimitDays = 14;
 
 export async function getJobs(
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<Job[]> {
   const workspace = await getConversationWorkspace(conversation);
   if (workspace) {
@@ -246,13 +237,13 @@ async function getInitialWorkspace(): Promise<WorkspaceConnection | undefined> {
 
 // Gets the workspace for the conversation, or the first workspace if none is active
 async function getConversationWorkspace(
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<WorkspaceConnection | undefined> {
-  if (conversation.active_workspace) {
-    return conversation.active_workspace;
+  if (conversation.activeWorkspace) {
+    return conversation.activeWorkspace;
   } else {
     const init_workspace = await getInitialWorkspace();
-    conversation.active_workspace = init_workspace;
+    conversation.activeWorkspace = init_workspace;
     return init_workspace;
   }
 }
@@ -274,7 +265,7 @@ export const GetWorkspaces = async (): Promise<string[]> => {
 };
 
 export const GetActiveWorkspace = async (
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<string> => {
   const workspace = await getConversationWorkspace(conversation);
   if (!workspace) {
@@ -285,21 +276,21 @@ export const GetActiveWorkspace = async (
 
 export const SetActiveWorkspace = async (
   workspaceId: string,
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<string> => {
   const tree = WorkspaceTreeProvider.instance;
   const workspace = tree.getWorkspace(workspaceId);
   if (!workspace) {
     return "Workspace not found.";
   } else {
-    conversation.active_workspace = workspace;
+    conversation.activeWorkspace = workspace;
     return "Workspace " + workspaceId + " set as active.";
   }
 };
 
 async function getJob(
   jobId: string,
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<Job | undefined> {
   const jobs = await getJobs(conversation);
   return jobs.find((job) => job.id === jobId);
@@ -308,7 +299,7 @@ async function getJob(
 function tryRenderResults(
   file: string,
   shots: number,
-  streamCallback: CopilotStreamCallback,
+  streamCallback: CopilotMessageHandler,
 ): boolean {
   try {
     // Parse the JSON file
@@ -325,13 +316,13 @@ function tryRenderResults(
       histo.push([parsedArray[i], parsedArray[i + 1]]);
     }
 
-    streamCallback(
-      {
+    streamCallback({
+      payload: {
         buckets: histo,
         shotCount: shots,
       },
-      "copilotResponseHistogram",
-    );
+      kind: "copilotResponseHistogram",
+    });
 
     return true;
   } catch (e: any) {
@@ -342,7 +333,7 @@ function tryRenderResults(
 
 export async function downloadJobResults(
   jobId: string,
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<string> {
   const job = await getJob(jobId, conversation);
 
@@ -383,7 +374,7 @@ export async function downloadJobResults(
     if (file) {
       // log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file, job.shots, conversation.streamCallback)) {
+      if (!tryRenderResults(file, job.shots, conversation.sendMessage)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -406,7 +397,7 @@ export async function downloadJobResults(
 }
 
 export const GetProviders = async (
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<Provider[]> => {
   const workspace = await getConversationWorkspace(conversation);
   return workspace?.providers ?? [];
@@ -414,7 +405,7 @@ export const GetProviders = async (
 
 export const GetTarget = async (
   targetId: string,
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<Target | undefined> => {
   const providers = await GetProviders(conversation);
   for (const provider of providers) {
@@ -429,7 +420,7 @@ export async function submitToTarget(
   jobName: string,
   targetId: string,
   numberOfShots: number,
-  conversation: CopilotConversation,
+  conversation: AzureQuantumCopilot,
 ): Promise<string> {
   const target = await GetTarget(targetId, conversation);
   if (!target || target.currentAvailability !== "Available")
@@ -492,7 +483,7 @@ export async function submitToTarget(
 export async function executeTool(
   tool_name: string,
   args: any,
-  copilotConversation: CopilotConversation,
+  copilotConversation: AzureQuantumCopilot,
 ): Promise<any> {
   const content: any = {};
 
