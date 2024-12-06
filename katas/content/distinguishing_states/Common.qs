@@ -1,9 +1,8 @@
-namespace Kata.Verification{
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
+namespace Kata.Verification {
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     operation StatePrep_BasisStateMeasurement(
         qs : Qubit[],
@@ -41,11 +40,11 @@ namespace Kata.Verification{
         }
     }
 
-    function StatePrep_FindFirstDiff (
+    function StatePrep_FindFirstDiff(
         bits1 : Bool[],
         bits2 : Bool[]
     ) : Int {
-        for i in 0 .. Length(bits1) - 1 {
+        for i in 0..Length(bits1) - 1 {
             if bits1[i] != bits2[i] {
                 return i;
             }
@@ -54,26 +53,26 @@ namespace Kata.Verification{
         return -1;
     }
 
-    operation StatePrep_SuperpositionMeasurement (
+    operation StatePrep_SuperpositionMeasurement(
         qs : Qubit[],
         bits1 : Bool[][],
         bits2 : Bool[][],
         state : Int,
-        dummyVar: Double
+        dummyVar : Double
     ) : Unit is Adj {
         let bits = state == 0 ? bits1 | bits2;
         StatePrep_BitstringSuperposition(qs, bits);
     }
 
     // A combination of tasks 14 and 15 from the Superposition kata
-    operation StatePrep_BitstringSuperposition (
+    operation StatePrep_BitstringSuperposition(
         qs : Qubit[],
         bits : Bool[][]
     ) : Unit is Adj + Ctl {
         let L = Length(bits);
         Fact(L == 1 or L == 2 or L == 4, "State preparation only supports arrays of 1, 2 or 4 bit strings.");
         if L == 1 {
-            for i in 0 .. Length(qs) - 1 {
+            for i in 0..Length(qs) - 1 {
                 if bits[0][i] {
                     X(qs[i]);
                 }
@@ -87,7 +86,7 @@ namespace Kata.Verification{
             H(qs[firstDiff]);
 
             // iterate through the bit strings again setting the final state of qubits
-            for i in 0 .. Length(qs) - 1 {
+            for i in 0..Length(qs) - 1 {
                 if bits[0][i] == bits[1][i] {
                     // if two bits are the same, apply X or nothing
                     if bits[0][i] {
@@ -112,8 +111,8 @@ namespace Kata.Verification{
             ApplyToEachCA(H, anc);
 
             // Set up the right pattern on the main qubits with control on ancillas
-            for i in 0 .. 3 {
-                for j in 0 .. N - 1 {
+            for i in 0..3 {
+                for j in 0..N - 1 {
                     if bits[i][j] {
                         ApplyControlledOnInt(i, X, anc, qs[j]);
                     }
@@ -121,7 +120,7 @@ namespace Kata.Verification{
             }
 
             // Uncompute the ancillas, using patterns on main qubits as control
-            for i in 0 .. 3 {
+            for i in 0..3 {
                 if i % 2 == 1 {
                     ApplyControlledOnBitString(bits[i], X, qs, anc[0]);
                 }

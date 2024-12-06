@@ -13,7 +13,7 @@ import Std.Diagnostics.*;
 import Std.Intrinsic.*;
 import Std.Math.*;
 import Std.Measurement.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
+import Std.Arithmetic.*;
 import Std.ResourceEstimation.*;
 
 operation Main() : Unit {

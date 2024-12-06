@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation StatePrep_ZeroZeroOrOneOne(qs : Qubit[], state : Int, dummyVar : Double) : Unit is Adj {
         if state == 1 {

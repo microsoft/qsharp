@@ -1,16 +1,18 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation TestTeleportation() : Unit {
 
         // To define the different states, let us make use of PauliX, PauliY and PauliZ basis
-        let messages = [(PauliX, Zero, "|+⟩"), 
-                        (PauliX, One, "|-⟩"), 
-                        (PauliY, Zero, "|i⟩"), 
-                        (PauliY, One, "|-i⟩"), 
-                        (PauliZ, Zero, "|0⟩"), 
-                        (PauliZ, One, "|1⟩")];
+        let messages = [
+            (PauliX, Zero, "|+⟩"),
+            (PauliX, One, "|-⟩"),
+            (PauliY, Zero, "|i⟩"),
+            (PauliY, One, "|-i⟩"),
+            (PauliZ, Zero, "|0⟩"),
+            (PauliZ, One, "|1⟩")
+        ];
 
         // To effectively test the solution, experiment needs to be repeated multiple times
         let numRepetitions = 100;
@@ -19,10 +21,10 @@ namespace Kata {
         for (basis, sentState, stateName) in messages {
 
             // Loop through multiple iterations for each state
-            for j in 1 .. numRepetitions {
+            for j in 1..numRepetitions {
                 // 1. Initialize qubits for Alice and Bob
                 // ..
-        
+
                 // 2. Prepare the entangled state between Alice and Bob
                 // ..
 
@@ -60,7 +62,7 @@ namespace Kata {
         Reset(qMessage);
         return classicalBits;
     }
-    
+
     operation ReconstructAndMeasureMessage(qBob : Qubit, (b1 : Bool, b2 : Bool), basis : Pauli) : Result {
         ReconstructMessage(qBob, (b1, b2));
         return Measure([basis], [qBob]);
@@ -71,7 +73,7 @@ namespace Kata {
         CNOT(qAlice, qBob);
     }
 
-    operation SendMessage(qAlice: Qubit, qMessage: Qubit) : (Bool, Bool) {
+    operation SendMessage(qAlice : Qubit, qMessage : Qubit) : (Bool, Bool) {
         CNOT(qMessage, qAlice);
         H(qMessage);
         return (M(qMessage) == One, M(qAlice) == One);

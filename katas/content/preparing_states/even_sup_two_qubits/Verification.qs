@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation AllBasisVectors_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation AllBasisVectors_TwoQubits_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         H(qs[1]);
     }
@@ -11,6 +11,7 @@ namespace Kata.Verification {
         CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.AllBasisVectors_TwoQubits,
             AllBasisVectors_TwoQubits_Reference,
-            2)
+            2
+        )
     }
 }

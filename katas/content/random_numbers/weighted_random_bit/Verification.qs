@@ -1,11 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import Std.Math.*;
+    import Std.Convert.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
         for x in [0.0, 0.25, 0.5, 0.75, 1.0] {
-            Message($"Testing generating zero with {x*100.0}% probability...");
+            Message($"Testing generating zero with {x * 100.0}% probability...");
             let randomnessVerifier = () => CheckXPercentZero(() => Kata.WeightedRandomBit(x), x);
             let isCorrect = IsSufficientlyRandom(randomnessVerifier);
             if not isCorrect {
@@ -23,7 +23,7 @@ namespace Kata.Verification {
     /// Random number generation operation to be tested.
     /// ## x
     /// Probability of generating zero
-    operation CheckXPercentZero (op : (Unit => Int), x : Double) : Int {
+    operation CheckXPercentZero(op : (Unit => Int), x : Double) : Int {
         mutable oneCount = 0;
         let nRuns = 1000;
         for N in 1..nRuns {

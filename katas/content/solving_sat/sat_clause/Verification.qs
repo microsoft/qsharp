@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import KatasUtils.*;
+    import Std.Random.*;
 
     function F_SATClause(args : Bool[], clause : (Int, Bool)[]) : Bool {
         for (index, positive) in clause {
@@ -15,10 +15,10 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 1 .. 6 {
+        for i in 1..6 {
             let nVar = DrawRandomInt(3, 7);
             let clause = Generate_SAT_Clause(nVar, i);
-            
+
             if not CheckOracleImplementsFunction(nVar, Kata.Oracle_SATClause(_, _, clause), F_SATClause(_, clause)) {
                 Message($"Test failed for SAT clause {SATClauseAsString(clause)}");
                 return false;

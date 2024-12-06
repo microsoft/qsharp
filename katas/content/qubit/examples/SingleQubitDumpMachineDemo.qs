@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     @EntryPoint()
     operation RunExample() : Unit {

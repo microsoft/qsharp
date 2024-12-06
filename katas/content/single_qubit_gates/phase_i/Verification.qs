@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
+    import KatasUtils.*;
+    import Std.Math.*;
+    import Std.Convert.*;
 
-    operation PhaseFlip (q : Qubit) : Unit is Adj + Ctl {
+    operation PhaseFlip(q : Qubit) : Unit is Adj + Ctl {
         S(q);
     }
 

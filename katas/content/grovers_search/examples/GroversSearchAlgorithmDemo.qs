@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation GroversSearchAlgorithmDemo() : Unit {
@@ -9,9 +9,9 @@ namespace Kata {
         let n = 3;
         let prefix = [false, true, false];
         let markingOracle = Oracle_StartsWith(_, _, prefix);
-        for iterations in 0 .. 9 {
+        for iterations in 0..9 {
             mutable success = 0;
-            for _ in 1 .. 100 {
+            for _ in 1..100 {
                 let res = GroversSearch(n, markingOracle, iterations);
                 if BoolArrayAsInt(prefix) == BoolArrayAsInt(res) {
                     set success += 1;
@@ -23,7 +23,7 @@ namespace Kata {
 
     operation GroversSearch(
         n : Int,
-        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl, 
+        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
         iterations : Int
     ) : Bool[] {
         use qs = Qubit[n];
@@ -38,7 +38,7 @@ namespace Kata {
         meanStatePrep(qs);
 
         // Do Grover's iterations.
-        for _ in 1 .. iterations {
+        for _ in 1..iterations {
             // Apply the phase oracle.
             phaseOracle(qs);
 
@@ -51,13 +51,13 @@ namespace Kata {
     }
 
     operation Oracle_StartsWith(x : Qubit[], y : Qubit, p : Bool[]) : Unit is Adj + Ctl {
-        ApplyControlledOnBitString(p, X, x[... Length(p) - 1], y);
+        ApplyControlledOnBitString(p, X, x[...Length(p) - 1], y);
     }
 
     operation ApplyMarkingOracleAsPhaseOracle(
         markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
-        qubits : Qubit[])
-    : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);
@@ -69,8 +69,8 @@ namespace Kata {
 
     operation ReflectionAboutState(
         qs : Qubit[],
-        statePrep : Qubit[] => Unit is Adj + Ctl)
-    : Unit is Adj + Ctl {
+        statePrep : Qubit[] => Unit is Adj + Ctl
+    ) : Unit is Adj + Ctl {
         within {
             Adjoint statePrep(qs);
         } apply {
@@ -82,7 +82,7 @@ namespace Kata {
         within {
             ApplyToEachA(X, qs);
         } apply {
-            Controlled Z(qs[1 ...], qs[0]);
+            Controlled Z(qs[1...], qs[0]);
         }
         R(PauliI, 2.0 * PI(), qs[0]);
     }

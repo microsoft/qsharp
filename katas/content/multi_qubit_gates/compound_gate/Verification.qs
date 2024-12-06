@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
-    operation CompoundGate (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation CompoundGate(qs : Qubit[]) : Unit is Adj + Ctl {
         S(qs[0]);
         I(qs[1]); // this line can be omitted, since it doesn't change the qubit state
         Y(qs[2]);

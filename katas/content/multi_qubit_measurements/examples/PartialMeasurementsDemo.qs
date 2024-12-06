@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation DemoPartialMeasurement() : Unit {
@@ -10,7 +10,7 @@ namespace Kata {
         let numRuns = 1000;
         mutable countArray = [0, 0];
         use qs = Qubit[2];
-        for i in 1 .. numRuns {
+        for i in 1..numRuns {
             // Prepare the Hardy state |𝜓❭ = (1/√12)(3|00⟩ + |01⟩ + |10⟩ + |11⟩)
             Ry(2. * ArcCos(Sqrt(5. / 6.)), qs[0]);
             ApplyControlledOnInt(0, Ry, [qs[0]], (2. * ArcCos(3. / Sqrt(10.)), qs[1]));
@@ -35,7 +35,7 @@ namespace Kata {
 
         // Obtain simulated probability of measurement for each outcome.
         mutable simulated_probabilities = [];
-        for i in 0 .. 1 {
+        for i in 0..1 {
             set simulated_probabilities += [IntAsDouble(countArray[i]) / IntAsDouble(numRuns)];
         }
 

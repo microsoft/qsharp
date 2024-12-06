@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation SquareWave(qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[1]);

@@ -1,12 +1,12 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Math.*;
 
-    operation FourBitstringSuperposition (qs : Qubit[], bits : Bool[][]) : Unit {
+    operation FourBitstringSuperposition(qs : Qubit[], bits : Bool[][]) : Unit {
         FourBitstringSuperposition_Recursive([], qs, bits);
     }
 
-    operation FourBitstringSuperposition_Recursive (currentBitString : Bool[], qs : Qubit[], bits : Bool[][]) : Unit {
+    operation FourBitstringSuperposition_Recursive(currentBitString : Bool[], qs : Qubit[], bits : Bool[][]) : Unit {
         // an array of bit strings whose columns we are considering begin with |0⟩
         mutable zeroLeads = [];
         // an array of bit strings whose columns we are considering begin with |1⟩
@@ -18,7 +18,7 @@ namespace Kata {
 
         if rows >= 1 and currentIndex < Length(qs) {
             // figure out what percentage of the bits should be |0⟩
-            for row in 0 .. rows - 1 {
+            for row in 0..rows - 1 {
                 if bits[row][currentIndex] {
                     set oneLeads = oneLeads + [bits[row]];
                 } else {
@@ -29,8 +29,12 @@ namespace Kata {
             // for the first path through, when the bit string has zero length,
             // the Controlled version of the rotation will perform a regular rotation
             let theta = ArcCos(Sqrt(IntAsDouble(Length(zeroLeads)) / IntAsDouble(rows)));
-            ApplyControlledOnBitString(currentBitString, Ry, qs[0 .. currentIndex - 1],
-                                                        (2.0 * theta, qs[currentIndex]));
+            ApplyControlledOnBitString(
+                currentBitString,
+                Ry,
+                qs[0..currentIndex - 1],
+                (2.0 * theta, qs[currentIndex])
+            );
 
             // call state preparation recursively based on the bit strings so far
             FourBitstringSuperposition_Recursive(currentBitString + [false], qs, zeroLeads);

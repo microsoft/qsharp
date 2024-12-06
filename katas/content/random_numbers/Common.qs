@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
+    import Std.Math.*;
 
     /// # Summary
     /// Helper operation that checks that the given RNG operation generates a uniform distribution.
@@ -22,12 +22,12 @@ namespace Kata.Verification {
     /// 0x2 if the average of the distribution is outside the expected range.
     /// 0x3 if the median of the distribution is outside the expected range.
     /// 0x4 if the minimum count requirements were not met.
-    operation CheckUniformDistribution (
+    operation CheckUniformDistribution(
         randomGenerator : (Unit => Int),
         min : Int,
         max : Int,
-        nRuns : Int) 
-    : Int {
+        nRuns : Int
+    ) : Int {
         let idealMean = 0.5 * IntAsDouble(max + min);
         let rangeDividedByTwo = 0.5 * IntAsDouble(max - min);
         // Variance = a*(a+1)/3, where a = (max-min)/2
@@ -41,7 +41,7 @@ namespace Kata.Verification {
         let lowRange = idealMean - 3.0 * standardDeviation;
         let highRange = idealMean + 3.0 * standardDeviation;
 
-        let idealCopiesGenerated = IntAsDouble(nRuns) / IntAsDouble(max-min+1);
+        let idealCopiesGenerated = IntAsDouble(nRuns) / IntAsDouble(max-min + 1);
         let minimumCopiesGenerated = (0.8 * idealCopiesGenerated > 40.0) ? 0.8 * idealCopiesGenerated | 0.0;
 
         mutable counts = [0, size = max + 1];
@@ -62,7 +62,7 @@ namespace Kata.Verification {
             return 0x2;
         }
 
-        let median = FindMedian (counts, max+1, nRuns);
+        let median = FindMedian(counts, max + 1, nRuns);
         if (median < Floor(lowRange) or median > Ceiling(highRange)) {
             Message($"Unexpected median of generated numbers. Expected between {Floor(lowRange)} and {Ceiling(highRange)}, got {median}.");
             return 0x3;
@@ -77,9 +77,9 @@ namespace Kata.Verification {
         return 0x0;
     }
 
-    operation FindMedian (counts : Int[], arrSize : Int, sampleSize : Int) : Int {
+    operation FindMedian(counts : Int[], arrSize : Int, sampleSize : Int) : Int {
         mutable totalCount = 0;
-        for i in 0 .. arrSize - 1 {
+        for i in 0..arrSize - 1 {
             set totalCount = totalCount + counts[i];
             if totalCount >= sampleSize / 2 {
                 return i;

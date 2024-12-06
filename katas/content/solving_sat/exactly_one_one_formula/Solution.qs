@@ -1,10 +1,10 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation Oracle_Exactly13SATFormula(x : Qubit[], y : Qubit, formula : (Int, Bool)[][]) : Unit is Adj + Ctl {
         use aux = Qubit[Length(formula)];
         within {
-            for i in 0 .. Length(formula) - 1 {
+            for i in 0..Length(formula) - 1 {
                 Oracle_Exactly13SATClause(x, aux[i], formula[i]);
             }
         } apply {
@@ -28,12 +28,12 @@ namespace Kata {
 
     // You might find these helper operations from earlier tasks useful.
     operation Oracle_Exactly1One(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
-        for i in 0 .. Length(x) - 1 {
-            ApplyControlledOnInt(2 ^ i, X, x, y);
+        for i in 0..Length(x) - 1 {
+            ApplyControlledOnInt(2^i, X, x, y);
         }
-    }        
+    }
 
     operation Oracle_And(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);
-    }        
+    }
 }

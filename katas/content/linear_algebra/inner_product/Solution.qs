@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function InnerProduct() : Complex {
         return Complex(-18., 72.);

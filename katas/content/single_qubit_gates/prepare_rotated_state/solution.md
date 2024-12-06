@@ -3,7 +3,7 @@ This is similar to the state you need. You just need to find an angle $\theta$ s
 Hence the required gate is $R_x(2\arctan\frac{\beta}{\alpha})$, which in matrix form is $\begin{bmatrix} \alpha & -i\beta \\ -i\beta & \alpha \end{bmatrix}$.
 This gate turns $\ket{0} = \begin{bmatrix} 1 \\ 0\end{bmatrix}$ into $\begin{bmatrix} \alpha & -i\beta \\ -i\beta & \alpha \end{bmatrix} \begin{bmatrix} 1 \\ 0\end{bmatrix} = \begin{bmatrix} \alpha \\ -i\beta \end{bmatrix} = \alpha\ket{0} -i\beta\ket{1}$.
 
-> Trigonometric functions are available in Q# via the `Microsoft.Quantum.Math` namespace. In this case, you'll need <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.math/arctan2" target="_blank">ArcTan2</a>.
+> Trigonometric functions are available in Q# via the `Std.Math` namespace. In this case, you'll need <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.math/arctan2" target="_blank">ArcTan2</a>.
 
 @[solution]({
     "id": "single_qubit_gates__prepare_rotated_state_solution",

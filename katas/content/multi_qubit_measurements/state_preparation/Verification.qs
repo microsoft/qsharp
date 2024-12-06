@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     // Reference solution that does not use measurements (to be adjointable)
     operation StatePrep_Rotations(qs : Qubit[]) : Unit is Adj {

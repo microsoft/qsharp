@@ -1,9 +1,9 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
 
     @EntryPoint()
-    operation OracleConverterDemo () : Unit {
+    operation OracleConverterDemo() : Unit {
         use register = Qubit[3];
         ApplyToEachA(H, register);
 
@@ -37,8 +37,8 @@ namespace Kata {
 
     operation ApplyMarkingOracleAsPhaseOracle(
         markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
-        qubits : Qubit[])
-    : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);

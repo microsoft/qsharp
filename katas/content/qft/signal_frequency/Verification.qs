@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
     operation PreparePeriodicState(qs : Qubit[], F : Int) : Unit is Adj + Ctl {
         let bitsBE = Reversed(IntAsBoolArray(F, Length(qs)));
@@ -12,9 +12,9 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 2 .. 4 {
+        for n in 2..4 {
             use qs = Qubit[n];
-            for F in 0 .. 2 ^ n - 1 {
+            for F in 0..2^n - 1 {
                 PreparePeriodicState(qs, F);
                 let fRes = Kata.SignalFrequency(qs);
                 ResetAll(qs);

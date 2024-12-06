@@ -1,12 +1,14 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation CheckSolution() : Bool {
-        for (oracle, expected, name) in [(I, true, "f(x) = 0"), 
-                                         (R(PauliI, 2.0 * PI(), _), true, "f(x) = 1"), 
-                                         (Z, false, "f(x) = x"), 
-                                         (PhaseOracle_OneMinusX, false, "f(x) = 1 - x")] {
+        for (oracle, expected, name) in [
+            (I, true, "f(x) = 0"),
+            (R(PauliI, 2.0 * PI(), _), true, "f(x) = 1"),
+            (Z, false, "f(x) = x"),
+            (PhaseOracle_OneMinusX, false, "f(x) = 1 - x")
+        ] {
 
             let actual = Kata.DeutschAlgorithm(oracle);
             if actual != expected {
@@ -22,7 +24,7 @@ namespace Kata.Verification {
         true
     }
 
-    function ConstantOrVariable (value : Bool) : String {
+    function ConstantOrVariable(value : Bool) : String {
         return value ? "constant" | "variable";
     }
 

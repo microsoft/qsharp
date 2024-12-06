@@ -110,7 +110,7 @@ operation SinglyControlledSelect(
 ) : Unit {
     let (N, n) = DimensionsForSelect(data, address);
 
-    if BeginEstimateCaching("Unstable.TableLookup.SinglyControlledSelect", N) {
+    if BeginEstimateCaching("Std.TableLookup.SinglyControlledSelect", N) {
         if N == 1 {
             // base case
             Controlled WriteMemoryContents([ctl], (Head(data), target));

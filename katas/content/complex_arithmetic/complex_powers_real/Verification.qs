@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     function ComplexExpReal_Reference(r : Double, x : Complex) : Complex {
         if AbsD(r) < 1e-9 {
@@ -22,7 +22,7 @@ namespace Kata.Verification {
             let actual = Kata.ComplexExpReal(r, x);
 
             if not ComplexEqual(expected, actual) {
-                let precision = 3;                
+                let precision = 3;
                 Message("Incorrect");
                 Message($"For x = {ComplexAsString(x)} and r = {DoubleAsStringWithPrecision(r, precision)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
                 return false;

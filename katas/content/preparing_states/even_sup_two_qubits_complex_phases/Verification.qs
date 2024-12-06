@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation AllBasisVectorsWithComplexPhases_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation AllBasisVectorsWithComplexPhases_TwoQubits_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         // Qubit 0 is taken into |+⟩ and then z-rotated into |-⟩.
         H(qs[0]);
         Z(qs[0]);
@@ -16,6 +16,7 @@ namespace Kata.Verification {
         CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.AllBasisVectorsWithComplexPhases_TwoQubits,
             AllBasisVectorsWithComplexPhases_TwoQubits_Reference,
-            2)
+            2
+        )
     }
 }

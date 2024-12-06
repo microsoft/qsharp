@@ -1,15 +1,15 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import KatasUtils.*;
+    import Std.Math.*;
 
-    operation PrepareRotatedState (alpha : Double, beta : Double, q : Qubit) : Unit is Adj+Ctl {
+    operation PrepareRotatedState(alpha : Double, beta : Double, q : Qubit) : Unit is Adj + Ctl {
         let phi = ArcTan2(beta, alpha);
         Rx(2.0 * phi, q);
     }
 
     operation CheckSolution() : Bool {
-        for i in 0 .. 10 {
+        for i in 0..10 {
             let i = IntAsDouble(i);
             let alpha = Cos(i);
             let beta = Sin(i);

@@ -1,10 +1,10 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let testGraphs = ExampleGraphs()[0 .. 4];
+        let testGraphs = ExampleGraphs()[0..4];
         let testColorings = [
             // Every coloring would pass on a disconnected graph of 3 vertices
             [([0, 0, 0], true), ([2, 1, 3], true)],

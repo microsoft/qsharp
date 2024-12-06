@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // Distinguish |+❭ and |-❭ using Measure operation
-    operation StatePrep_IsQubitMinus (q : Qubit, state : Int) : Unit is Adj {
+    operation StatePrep_IsQubitMinus(q : Qubit, state : Int) : Unit is Adj {
         if state == 1 {
             // convert |0⟩ to |-⟩
             X(q);
@@ -19,7 +19,8 @@ namespace Kata.Verification {
             StatePrep_IsQubitMinus,
             Kata.IsQubitMinus,
             ["|+⟩", "|-⟩"],
-            false);
+            false
+        );
         if isCorrect {
             Message("Correct!");
         } else {

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation BasisChange(q : Qubit) : Unit is Adj + Ctl {
         H(q);

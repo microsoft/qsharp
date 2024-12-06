@@ -6,8 +6,8 @@ import Std.Convert.*;
 import Std.Diagnostics.*;
 import Std.Math.*;
 import Std.ResourceEstimation.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
-import Microsoft.Quantum.Unstable.TableLookup.*;
+import Std.Arithmetic.*;
+import Std.TableLookup.*;
 import Prepare.*;
 
 // ------------------------------------------ //

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -11,11 +11,11 @@ namespace Kata.Verification {
         ] {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_ContainsSubstringAtPosition(_, _, r, p), F_ContainsSubstringAtPosition(_, r, p)) {
                 Message($"Test failed for n = {n}, p = {p}, r = {r}");
-                return false;    
+                return false;
             }
         }
 
         Message("Correct!");
-        true 
-    }  
+        true
+    }
 }

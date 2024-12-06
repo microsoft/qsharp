@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     function F_Palindrome(args : Bool[]) : Bool {
         let N = Length(args);
-        for i in 0 .. N / 2 - 1 {
+        for i in 0..N / 2 - 1 {
             if args[i] != args[N - i - 1] {
                 return false;
             }
@@ -13,7 +13,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 2 .. 6 {
+        for n in 2..6 {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_Palindrome, F_Palindrome) {
                 Message($"Test failed for n = {n}");
                 return false;
@@ -22,5 +22,5 @@ namespace Kata.Verification {
 
         Message("Correct!");
         true
-    }  
+    }
 }

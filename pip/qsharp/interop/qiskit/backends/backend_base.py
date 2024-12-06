@@ -12,6 +12,7 @@ from qiskit import transpile
 from qiskit.circuit import (
     QuantumCircuit,
 )
+from qiskit.version import get_version_info
 
 from qiskit.qasm3.exporter import Exporter
 from qiskit.providers import BackendV2, Options
@@ -319,19 +320,26 @@ class BackendBase(BackendV2, ABC):
 
         circuit = self.run_qiskit_passes(circuit, options)
 
-        orig = self.target.num_qubits
-        try:
-            self.target.num_qubits = circuit.num_qubits
-            transpile_options = self._build_transpile_options(**options)
-            backend = transpile_options.pop("backend", self)
-            target = transpile_options.pop("target", self.target)
-            # in 1.3 add qubits_initially_zero=True to the transpile call
+        transpile_options = self._build_transpile_options(**options)
+        backend = transpile_options.pop("backend", self)
+        target = transpile_options.pop("target", self.target)
+        if get_version_info().startswith("1.2"):
+            # The older Qiskit version does not support the `qubits_initially_zero` option
             transpiled_circuit = transpile(
-                circuit, backend=backend, target=target, **transpile_options
+                circuit,
+                backend=backend,
+                target=target,
+                **transpile_options,
             )
-            return transpiled_circuit
-        finally:
-            self.target.num_qubits = orig
+        else:
+            transpiled_circuit = transpile(
+                circuit,
+                backend=backend,
+                target=target,
+                qubits_initially_zero=True,
+                **transpile_options,
+            )
+        return transpiled_circuit
 
     def run_qiskit_passes(self, circuit, options):
         pass_options = self._build_qiskit_pass_options(**options)

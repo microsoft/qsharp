@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation GHZ_State_Reference(qs : Qubit[]) : Unit is Adj {
         H(qs[0]);
-        for q in qs[1 ... ] {
+        for q in qs[1...] {
             CNOT(qs[0], q);
         }
     }
@@ -25,13 +25,15 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
 
-        for i in 2 .. 6 {
+        for i in 2..6 {
             let isCorrect = DistinguishStates_MultiQubit(
-                i, 2,
+                i,
+                2,
                 StatePrep_GHZOrWState,
                 Kata.GHZOrWState,
                 false,
-                ["|GHZ⟩", "|W⟩"]);
+                ["|GHZ⟩", "|W⟩"]
+            );
 
             if not isCorrect {
                 Message("Incorrect.");

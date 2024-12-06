@@ -3,7 +3,7 @@ namespace Test {
     import Std.Math.*;
     import Std.Diagnostics.*;
     import Std.Arrays.*;
-    import Microsoft.Quantum.Unstable.StatePreparation.*;
+    import Std.StatePreparation.*;
     import QIR.Intrinsic.*;
 
 

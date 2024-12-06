@@ -6,7 +6,7 @@ import Init.PrepareFxP;
 import Facts.AssertPointPositionsIdenticalFxP, Facts.AssertFormatsAreIdenticalFxP, Facts.AssertAllZeroFxP;
 import Signed.Operations.Invert2sSI, Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
 import Std.Arrays.Zipped;
-import Unstable.Arithmetic.RippleCarryTTKIncByLE;
+import Std.Arithmetic.RippleCarryTTKIncByLE;
 
 /// # Summary
 /// Adds a classical constant to a quantum fixed-point number.

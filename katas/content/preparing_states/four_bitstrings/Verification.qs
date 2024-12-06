@@ -1,22 +1,22 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import KatasUtils.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
-    operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit is Adj {
+    operation FourBitstringSuperposition_Reference(qs : Qubit[], bits : Bool[][]) : Unit is Adj {
         use anc = Qubit[2];
         ApplyToEachA(H, anc);
 
-        for i in 0 .. 3 {
-            for j in 0 .. Length(qs) - 1 {
+        for i in 0..3 {
+            for j in 0..Length(qs) - 1 {
                 if bits[i][j] {
                     ApplyControlledOnInt(i, X, anc, qs[j]);
                 }
             }
         }
 
-        for i in 0 .. 3 {
+        for i in 0..3 {
             if i % 2 == 1 {
                 ApplyControlledOnBitString(bits[i], X, qs, anc[0]);
             }

@@ -1,9 +1,9 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
-    operation AllBellStates (qs : Qubit[], index : Int) : Unit is Adj + Ctl {
+    operation AllBellStates(qs : Qubit[], index : Int) : Unit is Adj + Ctl {
         let bitmask = IntAsBoolArray(index, 2);
-        
+
         if bitmask[0] {
             X(qs[0]);
         }

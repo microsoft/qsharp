@@ -1,15 +1,15 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+
     operation MeasurementFreeTeleportTestLoop(
         measurementFreeTeleport : (Qubit, Qubit, Qubit) => Unit
     ) : Bool {
         let setupPsiOps = [(I, "|0⟩"), (X, "|1⟩"), (H, "|+⟩"), (Ry(ArcCos(0.6) * 2.0, _), "0.6|0⟩ + 0.8|1⟩")];
         let numRepetitions = 100;
-        
+
         for (psiOp, psiName) in setupPsiOps {
-            for j in 1 .. numRepetitions {
+            for j in 1..numRepetitions {
                 use (qMessage, qAlice, qBob) = (Qubit(), Qubit(), Qubit());
                 psiOp(qMessage);
                 StatePrep_BellState(qAlice, qBob, 0);
@@ -22,7 +22,7 @@ namespace Kata.Verification {
                     DumpMachine();
                     ResetAll([qMessage, qAlice, qBob]);
                     return false;
-                }        
+                }
                 ResetAll([qMessage, qAlice, qBob]);
             }
         }
@@ -33,6 +33,6 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        return MeasurementFreeTeleportTestLoop(Kata.MeasurementFreeTeleport);       
+        return MeasurementFreeTeleportTestLoop(Kata.MeasurementFreeTeleport);
     }
 }

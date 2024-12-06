@@ -3,7 +3,7 @@
 
 import Std.Arrays.Tail, Std.Arrays.Zipped, Std.Arrays.Most, Std.Arrays.Rest;
 import Std.Diagnostics.Fact;
-import Unstable.Arithmetic.ApplyIfGreaterLE;
+import Std.Arithmetic.ApplyIfGreaterLE;
 
 /// # Summary
 /// Wrapper for signed integer comparison: `result = xs > ys`.
