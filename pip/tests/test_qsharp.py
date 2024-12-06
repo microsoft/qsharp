@@ -257,6 +257,7 @@ def test_dump_operation() -> None:
             else:
                 assert res[i][j] == complex(0.0, 0.0)
 
+
 def test_run_with_noise_produces_noisy_results() -> None:
     qsharp.init()
     qsharp.set_quantum_seed(0)
@@ -272,6 +273,7 @@ def test_run_with_noise_produces_noisy_results() -> None:
         noise=qsharp.BitFlipNoise(0.1),
     )
     assert result[0] > 5
+
 
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
@@ -373,3 +375,77 @@ def test_target_profile_from_str_match_enum_values() -> None:
     assert qsharp.TargetProfile.from_str(str_value) == target_profile
     with pytest.raises(ValueError):
         qsharp.TargetProfile.from_str("Invalid")
+
+
+def test_callables_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("function Four() : Int { 4 }")
+    assert qsharp.env.Four() == 4
+    qsharp.eval("function Add(a : Int, b : Int) : Int { a + b }")
+    assert qsharp.env.Four() == 4
+    assert qsharp.env.Add(2, 3) == 5
+    qsharp.eval(
+        "function Complicated(a : Int, b : (Double, BigInt)) : ((Double, BigInt), Int) { (b, a) }"
+    )
+    assert qsharp.env.Complicated(2, (3.0, 4000000000000000000)) == (
+        (3.0, 4000000000000000000),
+        2,
+    )
+    qsharp.eval("function Smallest(a : Int[]) : Int { Std.Math.Min(a)}")
+    assert qsharp.env.Smallest([1, 2, 3, 0, 4, 5]) == 0
+    qsharp.init()
+    # After init, the callables should be cleared and no longer available
+    with pytest.raises(AttributeError):
+        qsharp.env.Four()
+    qsharp.eval("function Identity(a : Int) : Int { a }")
+    assert qsharp.env.Identity(4) == 4
+    with pytest.raises(TypeError):
+        qsharp.env.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.env.Identity(4.0)
+    # callables should be created with their namespaces
+    qsharp.eval("namespace Test { function Four() : Int { 4 } }")
+    assert qsharp.env.Test.Four() == 4
+    # should be able to import callables
+    from qsharp.env import Identity
+    from qsharp.env.Test import Four
+
+    assert Identity(4) == 4
+    assert Four() == 4
+    qsharp.init()
+    # namespaces should be removed
+    with pytest.raises(AttributeError):
+        qsharp.env.Test
+    # imported callables should fail gracefully
+    with pytest.raises(qsharp.QSharpError):
+        Four()
+
+
+def test_callables_with_unsupported_types_not_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("function Unsupported(q : Qubit) : Unit { }")
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+    qsharp.eval("function Unsupported(q : Qubit[]) : Unit { }")
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+    qsharp.eval('function Unsupported() : Qubit { fail "won\'t be called" }')
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+    qsharp.eval("function Unsupported(a : Std.Math.Complex) : Unit { }")
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+    qsharp.eval('function Unsupported() : Std.Math.Complex { fail "won\'t be called" }')
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+    qsharp.eval("struct Unsupported { a : Int }")
+    with pytest.raises(AttributeError):
+        qsharp.env.Unsupported
+
+
+def test_lambdas_not_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("a -> a + 1")
+    assert not hasattr(qsharp.env, "lambda")
+    qsharp.eval("q => I(q)")
+    assert not hasattr(qsharp.env, "lambda")

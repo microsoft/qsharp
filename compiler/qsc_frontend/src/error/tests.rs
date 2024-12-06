@@ -136,7 +136,9 @@ fn resolve_spans() {
         .labels()
         .expect("expected labels to exist")
         .map(|l| {
-            let resolved = with_source.resolve_span(l.inner());
+            let resolved = with_source
+                .resolve_span(l.inner())
+                .expect("expected to resolve span");
             (
                 resolved.0.name.to_string(),
                 resolved.1.offset(),
