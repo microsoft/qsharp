@@ -798,18 +798,22 @@ bitflags! {
         const LoopWithDynamicCondition = 1 << 20;
         /// Use of an advanced type as output of a computation.
         const UseOfAdvancedOutput = 1 << 21;
-        // Use of a `Bool` as output of a computation.
+        /// Use of a `Bool` as output of a computation.
         const UseOfBoolOutput = 1 << 22;
-        // Use of a `Double` as output of a computation.
+        /// Use of a `Double` as output of a computation.
         const UseOfDoubleOutput = 1 << 23;
-        // Use of an `Int` as output of a computation.
+        /// Use of an `Int` as output of a computation.
         const UseOfIntOutput = 1 << 24;
-        // Use of a dynamic exponent in a computation.
+        /// Use of a dynamic exponent in a computation.
         const UseOfDynamicExponent = 1 << 25;
-        // Use of a dynamic `Result` variable in a computation.
+        /// Use of a dynamic `Result` variable in a computation.
         const UseOfDynamicResult = 1 << 26;
-        // Use of a dynamic tuple variable.
+        /// Use of a dynamic tuple variable.
         const UseOfDynamicTuple = 1 << 27;
+        /// A callee expression to a measurement.
+        const CallToCustomMeasurement = 1 << 28;
+        /// A callee expression to a reset.
+        const CallToCustomReset = 1 << 29;
     }
 }
 
@@ -911,6 +915,13 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::CallToCustomMeasurement) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+        }
+        if self.contains(RuntimeFeatureFlags::CallToCustomReset) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+            capabilities |= TargetCapabilityFlags::QubitReset;
         }
         capabilities
     }

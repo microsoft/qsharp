@@ -15,10 +15,11 @@ use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
     extensions::InputParam,
     fir::{
-        BinOp, Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind,
-        FieldAssign, Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package, PackageId,
-        PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl,
-        SpecImpl, Stmt, StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId, StringComponent,
+        Attr, BinOp, Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId,
+        ExprKind, FieldAssign, Global, Ident, Item, ItemKind, LocalVarId, Mutability, Package,
+        PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res,
+        SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreExprId, StoreItemId, StorePatId,
+        StringComponent,
     },
     ty::{Arrow, FunctorSetValue, Prim, Ty},
     visit::{walk_stmt, Visitor},
@@ -1239,6 +1240,7 @@ impl<'a> Analyzer<'a> {
             callable_decl.kind,
             input_params,
             callable_decl.output.clone(),
+            &callable_decl.attrs,
         );
 
         // Continue with the analysis differently depending on whether the callable is an intrinsic or not.
@@ -1788,7 +1790,12 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         let package = self.package_store.get(package_id);
         let input_params = package.derive_callable_input_params(decl);
         let current_callable_context = self.get_current_item_context_mut();
-        current_callable_context.set_callable_context(decl.kind, input_params, decl.output.clone());
+        current_callable_context.set_callable_context(
+            decl.kind,
+            input_params,
+            decl.output.clone(),
+            &decl.attrs,
+        );
         self.visit_callable_impl(&decl.implementation);
     }
 
@@ -2129,12 +2136,14 @@ impl ItemContext {
         kind: CallableKind,
         input_params: Vec<InputParam>,
         output_type: Ty,
+        attrs: &[Attr],
     ) {
         assert!(self.callable_context.is_none());
         self.callable_context = Some(CallableContext {
             kind,
             input_params,
             output_type,
+            attrs: attrs.to_vec(),
         });
     }
 
@@ -2148,6 +2157,7 @@ struct CallableContext {
     pub kind: CallableKind,
     pub input_params: Vec<InputParam>,
     pub output_type: Ty,
+    pub attrs: Vec<Attr>,
 }
 
 struct SpecContext {
@@ -2249,9 +2259,17 @@ fn derive_instrinsic_operation_application_generator_set(
         ValueKind::new_dynamic_from_type(&callable_context.output_type)
     };
 
+    let mut inherent_runtime_features = RuntimeFeatureFlags::empty();
+    if callable_context.attrs.contains(&Attr::Measurement) {
+        inherent_runtime_features |= RuntimeFeatureFlags::CallToCustomMeasurement;
+    }
+    if callable_context.attrs.contains(&Attr::Reset) {
+        inherent_runtime_features |= RuntimeFeatureFlags::CallToCustomReset;
+    }
+
     // The compute kind of intrinsic operations is always quantum.
     let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-        runtime_features: RuntimeFeatureFlags::empty(),
+        runtime_features: inherent_runtime_features,
         value_kind,
     });
 

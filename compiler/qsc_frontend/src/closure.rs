@@ -151,6 +151,7 @@ pub(super) fn lift(
         adj: None,
         ctl: None,
         ctl_adj: None,
+        attrs: Vec::default(),
     };
 
     (free_vars, callable)

@@ -2209,6 +2209,56 @@ fn invalid_spec_pat() {
 }
 
 #[test]
+fn test_measurement_attr_on_function_issues_error() {
+    check_errors(
+        indoc! {r#"
+            namespace Test {
+                @Measurement()
+                function Foo(q: Qubit) : Result {
+                    body intrinsic;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrOnFunction(
+                    "Measurement",
+                    Span {
+                        lo: 49,
+                        hi: 52,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn test_reset_attr_on_function_issues_error() {
+    check_errors(
+        indoc! {r#"
+            namespace Test {
+                @Reset()
+                function Foo(q: Qubit) : Unit {
+                    body intrinsic;
+                }
+            }
+        "#},
+        &expect![[r#"
+            [
+                InvalidAttrOnFunction(
+                    "Reset",
+                    Span {
+                        lo: 43,
+                        hi: 46,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn item_docs() {
     check_hir(
         "/// This is a namespace.

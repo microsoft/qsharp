@@ -24,13 +24,10 @@ import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import {
-  CopilotConversation as AzQuantumCopilot,
-  CopilotWebviewViewProvider,
-  ICopilot,
-} from "./copilot/copilot";
+import { CopilotWebviewViewProvider, ICopilot } from "./copilot/copilot";
 import { Copilot as OpenAiCopilot } from "./copilot2";
 import { CopilotStreamCallback } from "./copilot/copilotTools";
+import { getPauliNoiseModel } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -360,10 +357,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
 
-        await worker.run(
+        const noise = getPauliNoiseModel();
+        if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+          sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
+        }
+        await worker.runWithPauliNoise(
           program.programConfig,
           "",
           parseInt(numberOfShots),
+          noise,
           evtTarget,
         );
         sendTelemetryEvent(

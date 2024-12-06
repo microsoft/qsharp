@@ -20,6 +20,7 @@ fn docs_generation() {
         ms.date: {TIMESTAMP}
         ms.topic: managed-reference
         qsharp.kind: function
+        qsharp.package: __Core__
         qsharp.namespace: Std.Core
         qsharp.name: Length
         qsharp.summary: "Returns the number of elements in the input array `a`."

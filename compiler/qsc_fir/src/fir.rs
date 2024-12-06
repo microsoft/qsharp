@@ -756,6 +756,8 @@ pub struct CallableDecl {
     pub functors: FunctorSetValue,
     /// The callable implementation.
     pub implementation: CallableImpl,
+    /// The attributes of the callable, (e.g.: Measurement or Reset).
+    pub attrs: Vec<Attr>,
 }
 
 impl CallableDecl {
@@ -1519,6 +1521,10 @@ impl Display for Ident {
 pub enum Attr {
     /// Indicates that a callable is an entry point to a program.
     EntryPoint,
+    /// Indicates that a callable is a measurement.
+    Measurement,
+    /// Indicates that a callable is a reset.
+    Reset,
 }
 
 /// A field.

@@ -39,6 +39,7 @@ export enum EventType {
   ResourceEstimationEnd = "Qsharp.ResourceEstimationEnd",
   TriggerHistogram = "Qsharp.TriggerHistogram",
   HistogramStart = "Qsharp.HistogramStart",
+  NoisySimulation = "Qsharp.NoisySimulation",
   HistogramEnd = "Qsharp.HistogramEnd",
   FormatStart = "Qsharp.FormatStart",
   FormatEnd = "Qsharp.FormatEnd",
@@ -206,6 +207,10 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.HistogramStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.NoisySimulation]: {
     properties: { associationId: string };
     measurements: Empty;
   };

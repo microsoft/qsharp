@@ -16,7 +16,7 @@ import {
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
-import { DocumentationView } from "./docview";
+import { DocumentationView, IDocFile } from "./docview";
 import hljsQsharp from "./qsharp-hljs";
 
 import "./webview.css";
@@ -57,7 +57,8 @@ type CircuitState = {
 
 type DocumentationState = {
   viewType: "documentation";
-  fragmentsToRender: string[];
+  fragmentsToRender: IDocFile[];
+  projectName: string;
 };
 
 type CopilotState = {
@@ -214,6 +215,7 @@ function onMessage(event: any) {
         state = {
           viewType: "documentation",
           fragmentsToRender: message.fragmentsToRender,
+          projectName: message.projectName,
         };
       }
       break;
@@ -356,13 +358,22 @@ function App({ state }: { state: State }) {
       return <div>Loading...</div>;
     case "histogram":
       return (
-        <Histogram
-          data={new Map(state.buckets)}
-          shotCount={state.shotCount}
-          filter=""
-          onFilter={onFilter}
-          shotsHeader={true}
-        ></Histogram>
+        <>
+          <Histogram
+            data={new Map(state.buckets)}
+            shotCount={state.shotCount}
+            filter=""
+            onFilter={onFilter}
+            shotsHeader={true}
+          ></Histogram>
+          <p style="margin-top: 8px; font-size: 0.8em">
+            Note: If a{" "}
+            <a href="vscode://settings/Q%23.simulation.pauliNoise">
+              noise model
+            </a>{" "}
+            has been configured, this may impact results
+          </p>
+        </>
       );
     case "estimates":
       return (
@@ -383,7 +394,12 @@ function App({ state }: { state: State }) {
       // too large in the others right now. Something to unify later.
       document.body.classList.add("markdown-body");
       document.body.style.fontSize = "0.8em";
-      return <DocumentationView fragmentsToRender={state.fragmentsToRender} />;
+      return (
+        <DocumentationView
+          fragmentsToRender={state.fragmentsToRender}
+          projectName={state.projectName}
+        />
+      );
     case "copilot": {
       const hrRef = useRef<HTMLHRElement>(null);
       const inputRef = useRef<HTMLInputElement>(null);

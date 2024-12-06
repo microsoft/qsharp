@@ -54,6 +54,13 @@ update_file(
     r'version = "0.0.0"',
     r'version = "{}"'.format(pip_version),
 )
+
+update_file(
+    os.path.join(root_dir, "pip/qsharp/telemetry.py"),
+    r'QSHARP_VERSION = "0.0.0.dev0"',
+    r'QSHARP_VERSION = "{}"'.format(pip_version),
+)
+
 update_file(
     os.path.join(root_dir, "widgets/pyproject.toml"),
     r'version = "0.0.0"',

@@ -16,12 +16,11 @@ import markdownIt from "markdown-it";
 
 import hljs from "highlight.js";
 
-import { Histogram, Markdown, ResultsTable } from "qsharp-lang/ux";
+import { Histogram, Markdown } from "qsharp-lang/ux";
 import { setRenderer } from "qsharp-lang/ux";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 
 import hlsjQsharp from "./hlsj-qsharp";
-import samples, { mock_stream } from "./copilot-samples";
 
 const vscodeApi = acquireVsCodeApi();
 
