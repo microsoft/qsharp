@@ -10,10 +10,12 @@ use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
 use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
+use qsc::hir::Attr;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
 use std::rc::Rc;
+use std::str::FromStr;
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -43,6 +45,7 @@ enum LocalKind {
     LambdaParam,
     Local,
 }
+
 struct HoverGenerator<'a> {
     position_encoding: Encoding,
     hover: Option<Hover>,
@@ -51,6 +54,18 @@ struct HoverGenerator<'a> {
 }
 
 impl<'a> Handler<'a> for HoverGenerator<'a> {
+    fn at_attr_ref(&mut self, name: &'a ast::Ident) {
+        let description = match Attr::from_str(&name.name) {
+            Ok(attr) => attr.description(),
+            Err(()) => return, // No hover information for unsupported attributes.
+        };
+
+        self.hover = Some(Hover {
+            contents: format!("attribute ```{}```\n\n{}", name.name, description),
+            span: self.range(name.span),
+        });
+    }
+
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'a>,
