@@ -120,11 +120,21 @@ pub fn run_qasm3(
         .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
     match run_ast(&mut interpreter, &mut receiver, shots, seed) {
-        Ok(result) => Ok(PyList::new_bound(
-            py,
-            result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
-        )
-        .into_py(py)),
+        Ok(result) => {
+            let mut interpreter = crate::interpreter::Interpreter {
+                interpreter,
+                qubits: Vec::new(),
+                env: None,
+                make_callable: None,
+            };
+            Ok(PyList::new_bound(
+                py,
+                result
+                    .iter()
+                    .map(|v| ValueWrapper(v.clone(), &mut interpreter).into_py(py)),
+            )
+            .into_py(py))
+        }
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
 }

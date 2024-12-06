@@ -11,16 +11,20 @@ mod package_tests;
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 pub use qsc_eval::{
     debug::Frame,
     noise::PauliNoise,
     output::{self, GenericReceiver},
     val::Closure,
+    val::QubitRef,
     val::Range as ValueRange,
     val::Result,
     val::Value,
     StepAction, StepResult,
 };
+use qsc_hir::global;
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
@@ -315,6 +319,101 @@ impl Interpreter {
         })
     }
 
+    pub fn get_global_items(
+        &self,
+        dependencies: &Dependencies,
+    ) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
+        let mut exported_items = Vec::new();
+        for (package_id, alias) in dependencies
+            .iter()
+            .chain(std::iter::once(&(qsc_hir::hir::PackageId::CORE, None)))
+        {
+            let alias: Option<Rc<str>> = alias.as_ref().map(|a| a.to_string().into());
+            let package = &self
+                .compiler
+                .package_store()
+                .get(*package_id)
+                .expect("package should be in compilation")
+                .package;
+            for global in global::iter_package(Some(*package_id), package) {
+                if let (global::Kind::Term(term), qsc_hir::hir::Visibility::Public) =
+                    (global.kind, global.visibility)
+                {
+                    let store_item_id = qsc_fir::fir::StoreItemId {
+                        package: map_hir_package_to_fir(*package_id),
+                        item: qsc_fir::fir::LocalItemId::from(usize::from(term.id.item)),
+                    };
+                    exported_items.push((
+                        alias
+                            .iter()
+                            .cloned()
+                            .chain(global.namespace)
+                            .collect::<Vec<_>>(),
+                        global.name,
+                        store_item_id,
+                    ));
+                }
+            }
+        }
+        let package = &self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.source_package))
+            .expect("package should exist in the package store")
+            .package;
+        for global in
+            global::iter_package(Some(map_fir_package_to_hir(self.source_package)), package)
+        {
+            if let global::Kind::Term(term) = global.kind {
+                let store_item_id = qsc_fir::fir::StoreItemId {
+                    package: self.source_package,
+                    item: qsc_fir::fir::LocalItemId::from(usize::from(term.id.item)),
+                };
+                exported_items.push((global.namespace, global.name, store_item_id));
+            }
+        }
+        exported_items
+    }
+
+    pub fn get_new_global_items(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
+        let mut new_items = Vec::new();
+        let package = &self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.package))
+            .expect("package should exist in the package store")
+            .package;
+        for global in global::iter_package(Some(map_fir_package_to_hir(self.package)), package) {
+            if let global::Kind::Term(term) = global.kind {
+                let store_item_id = qsc_fir::fir::StoreItemId {
+                    package: self.package,
+                    item: qsc_fir::fir::LocalItemId::from(usize::from(term.id.item)),
+                };
+                new_items.push((global.namespace, global.name, store_item_id));
+            }
+        }
+        new_items
+    }
+
+    pub fn get_item_ty(&self, item_id: qsc_fir::fir::StoreItemId) -> qsc_hir::ty::Ty {
+        let package_id = map_fir_package_to_hir(item_id.package);
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package_id)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(qsc_hir::hir::LocalItemId::from(usize::from(item_id.item)))
+            .expect("item should exist in the package");
+        match &item.kind {
+            qsc_hir::hir::ItemKind::Callable(decl) => decl.input.ty.clone(),
+            qsc_hir::hir::ItemKind::Ty(_, udt) => udt.get_pure_ty(),
+            _ => panic!("item is not callable"),
+        }
+    }
+
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.quantum_seed = seed;
         self.sim.set_seed(seed);
@@ -480,6 +579,32 @@ impl Interpreter {
             None => SparseSim::new(),
         };
         self.run_with_sim(&mut sim, receiver, expr)
+    }
+
+    pub fn invoke(
+        &mut self,
+        receiver: &mut impl Receiver,
+        callable: Value, // TODO(swernli): consider replacing this with dedicated callable type...
+        args: Value,
+    ) -> InterpretResult {
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut self.env,
+            &mut self.sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
     }
 
     /// Gets the current quantum state of the simulator.

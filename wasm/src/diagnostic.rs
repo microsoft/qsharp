@@ -195,7 +195,9 @@ fn resolve_label<T>(e: &WithSource<T>, labeled_span: &LabeledSpan) -> Label
 where
     T: Diagnostic + Send + Sync,
 {
-    let (source, span) = e.resolve_span(labeled_span.inner());
+    let (source, span) = e
+        .resolve_span(labeled_span.inner())
+        .expect("expected span to resolve");
     let start = u32::try_from(span.offset()).expect("offset should fit in u32");
     let len = u32::try_from(span.len()).expect("length should fit in u32");
     let range = qsc::line_column::Range::from_span(

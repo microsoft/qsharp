@@ -282,6 +282,38 @@ pub fn eval(
     Ok(value)
 }
 
+#[allow(clippy::too_many_arguments)]
+pub fn invoke(
+    package: PackageId,
+    seed: Option<u64>,
+    globals: &impl PackageStoreLookup,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    receiver: &mut impl Receiver,
+    callable: Value,
+    args: Value,
+) -> Result<Value, (Error, Vec<Frame>)> {
+    let mut state = State::new(package, Vec::new().into(), seed);
+    state.set_val_register(callable);
+    state.push_val();
+    state.set_val_register(args);
+    state
+        .eval_call(
+            env,
+            sim,
+            globals,
+            Span::default(),
+            Span::default(),
+            receiver,
+        )
+        .map_err(|e| (e, state.get_stack_frames()))?;
+    let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval should always return a value");
+    };
+    Ok(value)
+}
+
 /// The type of step action to take during evaluation
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum StepAction {

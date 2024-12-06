@@ -10,6 +10,7 @@ from ._native import (
     Output,
     Circuit,
 )
+from . import env
 from typing import (
     Any,
     Callable,
@@ -19,11 +20,11 @@ from typing import (
     TypedDict,
     Union,
     List,
-    overload,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
+import types
 from time import monotonic
 
 _interpreter = None
@@ -190,6 +191,13 @@ def init(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
 
+    keys_to_remove = []
+    for key in env.__dict__:
+        if isinstance(env.__dict__[key], types.ModuleType):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        env.__delattr__(key)
+
     _interpreter = Interpreter(
         target_profile,
         language_features,
@@ -198,6 +206,8 @@ def init(
         list_directory,
         resolve,
         fetch_github,
+        env,
+        _make_callable,
     )
 
     _config = Config(target_profile, language_features, manifest_contents, project_root)
@@ -250,6 +260,31 @@ def eval(source: str) -> Any:
     telemetry_events.on_eval_end(durationMs)
 
     return results
+
+
+def _make_callable(callable):
+
+    def _callable(*args):
+        ipython_helper()
+
+        def callback(output: Output) -> None:
+            if _in_jupyter:
+                try:
+                    display(output)
+                    return
+                except:
+                    # If IPython is not available, fall back to printing the output
+                    pass
+            print(output, flush=True)
+
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+
+        return get_interpreter().invoke(callable, args, callback)
+
+    return _callable
 
 
 class ShotResult(TypedDict):
@@ -577,3 +612,7 @@ def dump_circuit() -> Circuit:
     """
     ipython_helper()
     return get_interpreter().dump_circuit()
+
+
+# Initialize the interpreter with default settings on import to populate dynamic elements in the environment.
+_interpreter = get_interpreter()

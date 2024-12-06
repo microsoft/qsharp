@@ -46,6 +46,21 @@ mod given_interpreter {
         (result, receiver.dump())
     }
 
+    fn invoke(
+        interpreter: &mut Interpreter,
+        callable: &str,
+        args: Value,
+    ) -> (InterpretResult, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        let callable = match interpreter.eval_fragments(&mut receiver, callable) {
+            Ok(val) => val,
+            Err(e) => return (Err(e), receiver.dump()),
+        };
+        let result = interpreter.invoke(&mut receiver, callable, args);
+        (result, receiver.dump())
+    }
+
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
@@ -512,6 +527,48 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
+        fn invoke_callable_without_args_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "Std.Diagnostics.DumpMachine",
+                Value::unit(),
+            );
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
+        }
+
+        #[test]
+        fn invoke_callable_with_args_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "Message",
+                Value::String("Hello, World!".into()),
+            );
+            is_unit_with_output(&result, &output, "Hello, World!");
+        }
+
+        #[test]
+        fn invoke_lambda_with_capture_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = 1; let f = y -> x + y;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = invoke(&mut interpreter, "f", Value::Int(2));
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
+        fn invoke_lambda_with_capture_in_callable_expr_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "{let x = 1; let f = y -> x + y; f}",
+                Value::Int(2),
+            );
+            is_only_value(&result, &output, &Value::Int(3));
         }
 
         #[test]
