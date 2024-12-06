@@ -350,7 +350,7 @@ fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
 /// if the formula consists of more than 16 terms or if more than two coefficients are not recognized.
 #[must_use]
 pub fn get_state_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Option<String> {
-    if state.len() > 16 {
+    if state.len() > 16 || qubit_count == 0 {
         return None;
     }
 

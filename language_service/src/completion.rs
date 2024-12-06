@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod ast_context;
 mod fields;
 mod global_items;
 mod locals;
-mod path_context;
 #[cfg(test)]
 mod tests;
 mod text_edits;
@@ -13,11 +13,11 @@ use crate::{
     compilation::{Compilation, CompilationKind},
     protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit},
 };
+use ast_context::AstContext;
 use fields::Fields;
 use global_items::Globals;
 use locals::Locals;
 use log::{log_enabled, trace, Level::Trace};
-use path_context::PathOrFieldAccess;
 use qsc::{
     line_column::{Encoding, Position},
     parse::completion::{
@@ -61,6 +61,14 @@ pub(crate) fn get_completions(
         trace!("the character before the cursor is: {last_char:?}");
     }
 
+    // Special case: no completions in attribute arguments, even when the
+    // parser expects an expression.
+    let ast_context = AstContext::init(source_offset, &compilation.user_unit().ast.package);
+    if ast_context.is_in_attr_arg() {
+        // No completions in attribute expressions, they're misleading.
+        return CompletionList::default();
+    }
+
     // What kinds of words are expected at the cursor location?
     let expected_words_at_cursor = expected_word_kinds(
         compilation,
@@ -94,6 +102,16 @@ fn expected_word_kinds(
     source_contents: &str,
     cursor_offset: u32,
 ) -> WordKinds {
+    // We should not retun any completions in comments.
+    // This compensates for a bug in [`possible_words_at_offset_in_source`] .
+    // Ideally, that function would be aware of the comment context and not
+    // return any completions, however this is difficult to do today because
+    // of the parser's unawareness of comment tokens.
+    // So we do a simple check here where we have access to the full source contents.
+    if in_comment(source_contents, cursor_offset) {
+        return WordKinds::empty();
+    }
+
     match &compilation.kind {
         CompilationKind::OpenProject {
             package_graph_sources,
@@ -111,6 +129,16 @@ fn expected_word_kinds(
             cursor_offset,
         ),
     }
+}
+
+fn in_comment(source_contents: &str, cursor_offset: u32) -> bool {
+    // find the last newline before the cursor
+    let last_line_start = source_contents[..cursor_offset as usize]
+        .rfind('\n')
+        .unwrap_or(0);
+    // find the last comment start before the cursor
+    let last_comment_start = source_contents[last_line_start..cursor_offset as usize].rfind("//");
+    last_comment_start.is_some()
 }
 
 /// Collects hardcoded completions from the given set of parser predictions.
@@ -131,6 +159,10 @@ fn collect_hardcoded_words(expected: WordKinds) -> Vec<Completion> {
                 completions.extend([
                     Completion::new("EntryPoint".to_string(), CompletionItemKind::Interface),
                     Completion::new("Config".to_string(), CompletionItemKind::Interface),
+                    Completion::new(
+                        "SimulatableIntrinsic".to_string(),
+                        CompletionItemKind::Interface,
+                    ),
                     Completion::new("Measurement".to_string(), CompletionItemKind::Interface),
                     Completion::new("Reset".to_string(), CompletionItemKind::Interface),
                 ]);
@@ -175,20 +207,20 @@ fn collect_names(
             }
             NameKind::PathSegment => {
                 let globals = Globals::init(cursor_offset, compilation);
-                let path =
-                    PathOrFieldAccess::init(cursor_offset, &compilation.user_unit().ast.package);
-                let fields = Fields::new(compilation, &path);
+                let ast_context =
+                    AstContext::init(cursor_offset, &compilation.user_unit().ast.package);
+                let fields = Fields::new(compilation, &ast_context);
 
-                groups.extend(collect_path_segments(&path, &globals, &fields));
+                groups.extend(collect_path_segments(&ast_context, &globals, &fields));
             }
             NameKind::TyParam => {
                 let locals = Locals::new(cursor_offset, compilation);
                 groups.push(locals.type_names());
             }
             NameKind::Field => {
-                let path =
-                    PathOrFieldAccess::init(cursor_offset, &compilation.user_unit().ast.package);
-                let fields = Fields::new(compilation, &path);
+                let ast_context =
+                    AstContext::init(cursor_offset, &compilation.user_unit().ast.package);
+                let fields = Fields::new(compilation, &ast_context);
 
                 groups.push(fields.fields());
             }
@@ -260,11 +292,11 @@ fn collect_paths(
 /// `let x : Microsoft.Quantum.Math.↘`  should include `Complex` (a type) while
 /// `let x = Microsoft.Quantum.Math.↘` should include `PI` (a callable).
 fn collect_path_segments(
-    path_context: &PathOrFieldAccess,
+    ast_context: &AstContext,
     globals: &Globals,
     fields: &Fields,
 ) -> Vec<Vec<Completion>> {
-    let Some((path_kind, qualifier)) = path_context.path_segment_context() else {
+    let Some((path_kind, qualifier)) = ast_context.path_segment_context() else {
         return Vec::new();
     };
 

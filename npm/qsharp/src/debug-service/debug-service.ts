@@ -158,6 +158,7 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("DumpMachine", {
         state: qscMsg.state,
         stateLatex: qscMsg.stateLatex,
+        qubitCount: qscMsg.qubitCount,
       });
       break;
     case "Result":

@@ -95,7 +95,7 @@ pending_metrics: Dict[str, List[PendingMetric]] = {}
 
 # The telemetry queue is used to send telemetry from the main thread to the telemetry thread
 # This simplifies any thread-safety concerns, and avoids the need for locks, etc.
-telemetry_queue: SimpleQueue[Union[Literal["exit"], Metric]] = SimpleQueue()
+telemetry_queue: Any = SimpleQueue()  # type 'Any' until we get off Python 3.8 builds
 
 
 def log_telemetry(

@@ -4555,7 +4555,7 @@ fn expr_incomplete_field_access_no_semi() {
         &expect![[r##"
             #14 55-57 "()" : Unit
             #18 65-99 "{\n        (new B { C = 5 }).\n    }" : ?
-            #20 75-93 "(new B { C = 5 })." : ?
+            #20 75-98 "(new B { C = 5 }).\n    " : ?
             #21 75-92 "(new B { C = 5 })" : UDT<"B": Item 1>
             #22 76-91 "new B { C = 5 }" : UDT<"B": Item 1>
             #27 88-89 "5" : Int
