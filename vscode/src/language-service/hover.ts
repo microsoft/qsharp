@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "./common";
+import { toVscodeRange } from "../common";
 
 export function createHoverProvider(languageService: ILanguageService) {
   return new QSharpHoverProvider(languageService);

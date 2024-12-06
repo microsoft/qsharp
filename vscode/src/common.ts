@@ -3,7 +3,7 @@
 
 import { TextDocument, Uri, Range, Location } from "vscode";
 import { Utils } from "vscode-uri";
-import { ILocation, IRange, IWorkspaceEdit } from "qsharp-lang";
+import { ILocation, IRange, IWorkspaceEdit, VSDiagnostic } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
@@ -57,4 +57,41 @@ export function toVscodeWorkspaceEdit(
     workspaceEdit.set(uri, vsEdits);
   }
   return workspaceEdit;
+}
+
+export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
+  let severity;
+  switch (d.severity) {
+    case "error":
+      severity = vscode.DiagnosticSeverity.Error;
+      break;
+    case "warning":
+      severity = vscode.DiagnosticSeverity.Warning;
+      break;
+    case "info":
+      severity = vscode.DiagnosticSeverity.Information;
+      break;
+  }
+  const vscodeDiagnostic = new vscode.Diagnostic(
+    toVscodeRange(d.range),
+    d.message,
+    severity,
+  );
+  if (d.uri && d.code) {
+    vscodeDiagnostic.code = {
+      value: d.code,
+      target: vscode.Uri.parse(d.uri),
+    };
+  } else if (d.code) {
+    vscodeDiagnostic.code = d.code;
+  }
+  if (d.related) {
+    vscodeDiagnostic.relatedInformation = d.related.map((r) => {
+      return new vscode.DiagnosticRelatedInformation(
+        toVscodeLocation(r.location),
+        r.message,
+      );
+    });
+  }
+  return vscodeDiagnostic;
 }
