@@ -40,11 +40,9 @@ impl<E: Diagnostic + Send + Sync> WithSource<E> {
             .flatten()
             .map(|label| u32::try_from(label.offset()).expect("offset should fit into u32"))
         {
-            let Some(source) = sources.find_by_offset(offset) else {
-                // If the source is not found, skip it. This can happen when the originating line for this particular label
-                // comes from Python code, which is not included in the source map.
-                continue;
-            };
+            let source = sources
+                .find_by_offset(offset)
+                .expect("expected to find source at offset");
 
             // Keep the vector sorted by source offsets
             match filtered.binary_search_by_key(&source.offset, |s| s.offset) {
@@ -72,7 +70,7 @@ impl<E: Diagnostic + Send + Sync> WithSource<E> {
     /// Takes a span that uses `SourceMap` offsets, and returns
     /// a span that is relative to the `Source` that the span falls into,
     /// along with a reference to the `Source`.
-    pub fn resolve_span(&self, span: &SourceSpan) -> Result<(&Source, SourceSpan), MietteError> {
+    pub fn resolve_span(&self, span: &SourceSpan) -> (&Source, SourceSpan) {
         let offset = u32::try_from(span.offset()).expect("expected the offset to fit into u32");
         // Since some sources may be missing, treat any failure to find the source as "out of bounds" error.
         let source = self
@@ -80,8 +78,8 @@ impl<E: Diagnostic + Send + Sync> WithSource<E> {
             .iter()
             .rev()
             .find(|source| offset >= source.offset)
-            .ok_or(MietteError::OutOfBounds)?;
-        Ok((source, with_offset(span, |o| o - (source.offset as usize))))
+            .expect("expected to find source at span");
+        (source, with_offset(span, |o| o - (source.offset as usize)))
     }
 }
 
@@ -138,7 +136,7 @@ impl<E: Diagnostic + Sync + Send> SourceCode for WithSource<E> {
         context_lines_before: usize,
         context_lines_after: usize,
     ) -> Result<Box<dyn SpanContents<'a> + 'a>, MietteError> {
-        let (source, source_relative_span) = self.resolve_span(span)?;
+        let (source, source_relative_span) = self.resolve_span(span);
 
         let contents = source.contents.read_span(
             &source_relative_span,

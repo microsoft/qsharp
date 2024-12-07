@@ -566,8 +566,8 @@ fn map_errors_to_docs(
             .flatten()
             .next()
             .map_or(compilation_uri, |l| {
-                err.resolve_span(l.inner())
-                    .map_or(compilation_uri, |(s, _)| &s.name)
+                let (source, _) = err.resolve_span(l.inner());
+                &source.name
             });
 
         map.entry(doc.clone())
