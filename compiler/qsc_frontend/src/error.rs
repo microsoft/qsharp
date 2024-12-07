@@ -72,7 +72,6 @@ impl<E: Diagnostic + Send + Sync> WithSource<E> {
     /// along with a reference to the `Source`.
     pub fn resolve_span(&self, span: &SourceSpan) -> (&Source, SourceSpan) {
         let offset = u32::try_from(span.offset()).expect("expected the offset to fit into u32");
-        // Since some sources may be missing, treat any failure to find the source as "out of bounds" error.
         let source = self
             .sources
             .iter()
