@@ -289,14 +289,10 @@ impl Interpreter {
         ) {
             Ok(interpreter) => {
                 if let (Some(env), Some(make_callable)) = (&env, &make_callable) {
-                    // Add any global callables from the user source whose types are supported by interop as
-                    // Python functions to the environment.
+                    // Add any global callables from the user source as Python functions to the environment.
                     let exported_items = interpreter.get_source_package_global_items();
-                    for (namespace, name, item_id) in exported_items
-                        .iter()
-                        .filter(|(_, _, id)| item_supports_interop(&interpreter, *id))
-                    {
-                        create_py_callable(py, env, make_callable, namespace, name, *item_id)?;
+                    for (namespace, name, item_id) in exported_items {
+                        create_py_callable(py, env, make_callable, &namespace, &name, item_id)?;
                     }
                 }
                 Ok(Self {
@@ -328,16 +324,13 @@ impl Interpreter {
         match self.interpreter.eval_fragments(&mut receiver, input) {
             Ok(value) => {
                 if let (Some(env), Some(make_callable)) = (&self.env, &self.make_callable) {
-                    // Get any global callables from the evaluated input whose types are supported by interop and
-                    // add them to the environment. This will grab every callable that was defined in the input and by
-                    // previous calls that added to the open package. This is safe because either the callable will be replaced
-                    // with itself or a new callable with the same name will shadow the previous one, which is the expected behavior.
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
                     let new_items = self.interpreter.get_open_package_global_items();
-                    for (namespace, name, item_id) in new_items
-                        .iter()
-                        .filter(|(_, _, id)| item_supports_interop(&self.interpreter, *id))
-                    {
-                        create_py_callable(py, env, make_callable, namespace, name, *item_id)?;
+                    for (namespace, name, item_id) in new_items {
+                        create_py_callable(py, env, make_callable, &namespace, &name, item_id)?;
                     }
                 }
                 Ok(ValueWrapper(value).into_py(py))
@@ -407,15 +400,28 @@ impl Interpreter {
         callback: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        let (ty, _) = self
+        let (input_ty, output_ty) = self
             .interpreter
             .get_callable_tys(callable.id)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
+        // If the types are not supported, we can't convert the arguments or return value.
+        // Check this before trying to convert the arguments, and return an error if the types are not supported.
+        if let Some(ty) = first_unsupport_interop_ty(&input_ty) {
+            return Err(QSharpError::new_err(format!(
+                "unsupported input type: `{ty}`"
+            )));
+        }
+        if let Some(ty) = first_unsupport_interop_ty(&output_ty) {
+            return Err(QSharpError::new_err(format!(
+                "unsupported output type: `{ty}`"
+            )));
+        }
+
         let callable = Value::Global(callable.id, FunctorApp::default());
 
         // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
-        let args = if matches!(&ty, Ty::Tuple(tup) if tup.is_empty()) {
+        let args = if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
             // Special case for unit, where args should be None
             if args.is_some() {
                 return Err(QSharpError::new_err("expected no arguments"));
@@ -424,11 +430,11 @@ impl Interpreter {
         } else {
             let Some(args) = args else {
                 return Err(QSharpError::new_err(format!(
-                    "expected arguments of type `{ty}`"
+                    "expected arguments of type `{input_ty}`"
                 )));
             };
             // This conversion will produce errors if the types don't match or can't be converted.
-            convert_obj_with_ty(py, &args, &ty)?
+            convert_obj_with_ty(py, &args, &input_ty)?
         };
 
         match self.interpreter.invoke(&mut receiver, callable, args) {
@@ -574,17 +580,9 @@ impl Interpreter {
     }
 }
 
-/// Check if the given item supports interop with Python by verifying the input and output types.
-fn item_supports_interop(interpreter: &interpret::Interpreter, id: StoreItemId) -> bool {
-    let (input_ty, output_ty) = interpreter
-        .get_callable_tys(id)
-        .expect("item should exist in package");
-    type_supports_interop(&input_ty) && type_supports_interop(&output_ty)
-}
-
-/// Confirm a Q# type supports with interop with Python, meaning our code knows how to convert it back and forth
+/// Finds any Q# type recursively that does not support interop with Python, meaning our code cannot convert it back and forth
 /// across the interop boundary.
-fn type_supports_interop(ty: &Ty) -> bool {
+fn first_unsupport_interop_ty(ty: &Ty) -> Option<&Ty> {
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
             Prim::Pauli
@@ -593,12 +591,14 @@ fn type_supports_interop(ty: &Ty) -> bool {
             | Prim::Double
             | Prim::Int
             | Prim::String
-            | Prim::Result => true,
-            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => false,
+            | Prim::Result => None,
+            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
+                Some(ty)
+            }
         },
-        Ty::Tuple(tup) => tup.iter().all(type_supports_interop),
-        Ty::Array(ty) => type_supports_interop(ty),
-        _ => false,
+        Ty::Tuple(tup) => tup.iter().find(|t| first_unsupport_interop_ty(t).is_some()),
+        Ty::Array(ty) => first_unsupport_interop_ty(ty),
+        _ => Some(ty),
     }
 }
 

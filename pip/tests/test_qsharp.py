@@ -435,26 +435,34 @@ def test_callables_in_namespaces_exposed_into_env_submodules_and_removed_on_rein
         Four()
 
 
-def test_callables_with_unsupported_types_not_exposed_into_env() -> None:
+def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
     qsharp.init()
-    qsharp.eval("function Unsupported(q : Qubit) : Unit { }")
-    with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
-    qsharp.eval("function Unsupported(q : Qubit[]) : Unit { }")
-    with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
+    qsharp.eval("function Unsupported(a : Int, q : Qubit) : Unit { }")
+    with pytest.raises(qsharp.QSharpError, match="unsupported input type: `Qubit`"):
+        qsharp.env.Unsupported()
+    qsharp.eval("function Unsupported(q : (Int, Qubit)[]) : Unit { }")
+    with pytest.raises(qsharp.QSharpError, match="unsupported input type: `Qubit`"):
+        qsharp.env.Unsupported()
     qsharp.eval('function Unsupported() : Qubit { fail "won\'t be called" }')
-    with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
+    with pytest.raises(qsharp.QSharpError, match="unsupported output type: `Qubit`"):
+        qsharp.env.Unsupported()
     qsharp.eval("function Unsupported(a : Std.Math.Complex) : Unit { }")
-    with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported input type: `UDT<"Complex":'
+    ):
+        qsharp.env.Unsupported()
     qsharp.eval('function Unsupported() : Std.Math.Complex { fail "won\'t be called" }')
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported output type: `UDT<"Complex":'
+    ):
+        qsharp.env.Unsupported()
+
+
+def test_struct_call_constructor_not_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("struct CustomUDT { a : Int }")
     with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
-    qsharp.eval("struct Unsupported { a : Int }")
-    with pytest.raises(AttributeError):
-        qsharp.env.Unsupported
+        qsharp.env.CustomUDT
 
 
 def test_lambdas_not_exposed_into_env() -> None:
