@@ -621,9 +621,9 @@ fn convert_obj_with_ty(py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
                 Pauli::Y => fir::Pauli::Y,
                 Pauli::Z => fir::Pauli::Z,
             })),
-            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => Err(
-                PyException::new_err(format!("unhandled primitive input type: {prim_ty:?}")),
-            ),
+            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
+                unimplemented!("primitive input type: {prim_ty:?}")
+            }
         },
         Ty::Tuple(tup) => {
             if tup.len() == 1 {
@@ -653,7 +653,7 @@ fn convert_obj_with_ty(py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
             }
             Ok(Value::Array(values.into()))
         }
-        _ => Err(PyException::new_err(format!("unhandled input type: {ty}"))),
+        _ => unimplemented!("input type: {ty}"),
     }
 }
 

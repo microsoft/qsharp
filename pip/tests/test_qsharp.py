@@ -384,6 +384,13 @@ def test_callables_exposed_into_env() -> None:
     qsharp.eval("function Add(a : Int, b : Int) : Int { a + b }")
     assert qsharp.env.Four() == 4
     assert qsharp.env.Add(2, 3) == 5
+    # After init, the callables should be cleared and no longer available
+    qsharp.init()
+    with pytest.raises(AttributeError):
+        qsharp.env.Four()
+
+
+def test_callable_exposed_into_env_complex_types() -> None:
     qsharp.eval(
         "function Complicated(a : Int, b : (Double, BigInt)) : ((Double, BigInt), Int) { (b, a) }"
     )
@@ -393,18 +400,25 @@ def test_callables_exposed_into_env() -> None:
     )
     qsharp.eval("function Smallest(a : Int[]) : Int { Std.Math.Min(a)}")
     assert qsharp.env.Smallest([1, 2, 3, 0, 4, 5]) == 0
+
+
+def test_callable_exposed_into_env_fails_incorrect_types() -> None:
     qsharp.init()
-    # After init, the callables should be cleared and no longer available
-    with pytest.raises(AttributeError):
-        qsharp.env.Four()
     qsharp.eval("function Identity(a : Int) : Int { a }")
     assert qsharp.env.Identity(4) == 4
     with pytest.raises(TypeError):
         qsharp.env.Identity("4")
     with pytest.raises(TypeError):
         qsharp.env.Identity(4.0)
+
+
+def test_callables_in_namespaces_exposed_into_env_submodules_and_removed_on_reinit() -> (
+    None
+):
+    qsharp.init()
     # callables should be created with their namespaces
     qsharp.eval("namespace Test { function Four() : Int { 4 } }")
+    qsharp.eval("function Identity(a : Int) : Int { a }")
     assert qsharp.env.Test.Four() == 4
     # should be able to import callables
     from qsharp.env import Identity
