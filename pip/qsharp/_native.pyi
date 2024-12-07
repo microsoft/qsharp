@@ -103,6 +103,13 @@ class TargetProfile(Enum):
     Describes the unrestricted set of capabilities required to run any Q# program.
     """
 
+class GlobalCallable:
+    """
+    A callable reference that can be invoked with arguments.
+    """
+
+    ...
+
 class Interpreter:
     """A Q# interpreter."""
 
@@ -114,6 +121,8 @@ class Interpreter:
         read_file: Callable[[str], Tuple[str, str]],
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
+        env: Optional[Any],
+        make_callable: Optional[Callable[[GlobalCallable], Callable]],
     ) -> None:
         """
         Initializes the Q# interpreter.
@@ -123,6 +132,8 @@ class Interpreter:
         :param read_file: A function that reads a file from the file system.
         :param list_directory: A function that lists the contents of a directory.
         :param resolve_path: A function that joins path segments and normalizes the resulting path.
+        :param env: An object on which to add any globally accesible callables from the compiled source.
+        :param make_callable: A function that converts a GlobalCallable into a callable object.
         """
         ...
 
@@ -155,6 +166,22 @@ class Interpreter:
 
         :returns values: A result or runtime errors.
 
+        :raises QSharpError: If there is an error interpreting the input.
+        """
+        ...
+
+    def invoke(
+        self,
+        callable: GlobalCallable,
+        args: Any,
+        output_fn: Callable[[Output], None],
+    ) -> Any:
+        """
+        Invokes the callable with the given arguments, converted into the appropriate Q# values.
+        :param callable: The callable to invoke.
+        :param args: The arguments to pass to the callable.
+        :param output_fn: A callback function that will be called with each output.
+        :returns values: A result or runtime errors.
         :raises QSharpError: If there is an error interpreting the input.
         """
         ...
