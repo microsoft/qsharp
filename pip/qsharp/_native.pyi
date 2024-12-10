@@ -121,8 +121,7 @@ class Interpreter:
         read_file: Callable[[str], Tuple[str, str]],
         list_directory: Callable[[str], List[Dict[str, str]]],
         resolve_path: Callable[[str, str], str],
-        env: Optional[Any],
-        make_callable: Optional[Callable[[GlobalCallable], Callable]],
+        make_callable: Optional[Callable[[GlobalCallable], None]],
     ) -> None:
         """
         Initializes the Q# interpreter.
@@ -132,8 +131,7 @@ class Interpreter:
         :param read_file: A function that reads a file from the file system.
         :param list_directory: A function that lists the contents of a directory.
         :param resolve_path: A function that joins path segments and normalizes the resulting path.
-        :param env: An object on which to add any globally accesible callables from the compiled source.
-        :param make_callable: A function that converts a GlobalCallable into a callable object.
+        :param make_callable: A function that registers a Q# callable in the in the environment module.
         """
         ...
 

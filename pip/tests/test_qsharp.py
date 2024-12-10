@@ -521,6 +521,8 @@ def test_callables_in_namespaces_exposed_into_env_submodules_and_removed_on_rein
     # namespaces should be removed
     with pytest.raises(AttributeError):
         qsharp.env.Test
+    with pytest.raises(AttributeError):
+        qsharp.env.Identity()
     # imported callables should fail gracefully
     with pytest.raises(qsharp.QSharpError):
         Four()

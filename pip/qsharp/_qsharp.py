@@ -219,7 +219,6 @@ def init(
         list_directory,
         resolve,
         fetch_github,
-        env,
         _make_callable,
     )
 
@@ -278,7 +277,26 @@ def eval(source: str) -> Any:
 # Helper function that knows how to create a function that invokes a callable. This will be
 # used by the underlying native code to create functions for callables on the fly that know
 # how to get the currently intitialized global interpreter instance.
-def _make_callable(callable):
+def _make_callable(callable, namespace, callable_name):
+    module = env
+    # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
+    # to register created modules with the system.
+    accumulated_namespace = "qsharp.env"
+    accumulated_namespace += "."
+    for name in namespace:
+        accumulated_namespace += name
+        # Use the existing entry, which should already be a module.
+        if hasattr(module, name):
+            module = module.__getattribute__(name)
+        else:
+            # This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
+            # add it to sys.modules so it support import properly.
+            new_module = types.ModuleType(accumulated_namespace)
+            module.__setattr__(name, new_module)
+            sys.modules[accumulated_namespace] = new_module
+            module = new_module
+        accumulated_namespace += "."
+
     def _callable(*args):
         ipython_helper()
 
@@ -299,7 +317,11 @@ def _make_callable(callable):
 
         return get_interpreter().invoke(callable, args, callback)
 
-    return _callable
+    # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
+    _callable.__qs_gen = True
+
+    # Add the callable to the module.
+    module.__setattr__(callable_name, _callable)
 
 
 class ShotResult(TypedDict):
