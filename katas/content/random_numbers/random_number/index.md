@@ -5,4 +5,4 @@ Two integers $min$ and $max$ ($0 \leq min \leq max \leq 2^{10}-1$).
 
 **Goal:** Generate a random number in the range $[min, max]$ with an equal probability of getting each of the numbers in this range.
 
-> Q# namespace `Microsoft.Quantum.Math` includes useful function `BitSizeI` that calculates the number of bits in the binary representation of the given number.
+> Q# namespace `Std.Math` includes useful function `BitSizeI` that calculates the number of bits in the binary representation of the given number.

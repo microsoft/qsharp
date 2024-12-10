@@ -44,6 +44,42 @@ fn check_notebook_none(cells_with_markers: &[(&str, &str)]) {
 }
 
 #[test]
+fn attr() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            @◉Entr↘yPoint◉()
+            operation Bar() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            attribute ```EntryPoint```
+
+            Indicates that the callable is the entry point to a program."#]],
+    );
+}
+
+#[test]
+fn attr_with_arg() {
+    check(
+        indoc! {r#"
+        namespace Test {
+            @◉Con↘fig◉(BackwardsBranching)
+            operation Bar() : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            attribute ```Config```
+
+            Provides pre-processing information about when an item should be included in compilation.
+
+            Valid arguments are `Base`, `Adaptive`, `IntegerComputations`, `FloatingPointComputations`, `BackwardsBranching`, `HigherLevelConstructs`, `QubitReset`, and `Unrestricted`.
+
+            The `not` operator is also supported to negate the attribute, e.g. `not Adaptive`."#]],
+    );
+}
+
+#[test]
 fn callable_unit_types() {
     check(
         indoc! {r#"

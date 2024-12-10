@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation StatePrep_AllZerosOrWState(
         qs : Qubit[],
@@ -14,13 +14,15 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 2 .. 6 {
+        for i in 2..6 {
             let isCorrect = DistinguishStates_MultiQubit(
-                i, 2,
+                i,
+                2,
                 StatePrep_AllZerosOrWState,
                 Kata.AllZerosOrWState,
                 false,
-                ["|0...0⟩", "|W⟩"]);
+                ["|0...0⟩", "|W⟩"]
+            );
 
             if not isCorrect {
                 Message("Incorrect.");

@@ -1,19 +1,19 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
-    operation CheckSuperpositionBitstringsOneMeasurement (
+    operation CheckSuperpositionBitstringsOneMeasurement(
         nQubits : Int,
         ints1 : Int[],
         ints2 : Int[]
-    ): Bool {
+    ) : Bool {
         let bits1 = Mapped(IntAsBoolArray(_, nQubits), ints1);
         let bits2 = Mapped(IntAsBoolArray(_, nQubits), ints2);
 
         let stateNames = [IntArrayAsStateName(nQubits, bits1), IntArrayAsStateName(nQubits, bits2)];
 
-        let isCorrect =  DistinguishStates_MultiQubit(
+        let isCorrect = DistinguishStates_MultiQubit(
             nQubits,
             2,
             StatePrep_SuperpositionMeasurement(_, bits1, bits2, _, _),

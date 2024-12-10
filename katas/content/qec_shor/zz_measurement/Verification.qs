@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation StatePrep_ZZMeasurement(qs : Qubit[], state : Int, alpha : Double) : Unit is Adj {
         // prep cos(alpha) * |0..0⟩ + sin(alpha) * |1..1⟩
@@ -19,7 +19,8 @@ namespace Kata.Verification {
             StatePrep_ZZMeasurement,
             Kata.ZZMeasurement,
             true,
-            ["α|00⟩ + β|11⟩", "α|01⟩ + β|10⟩"]);
+            ["α|00⟩ + β|11⟩", "α|01⟩ + β|10⟩"]
+        );
 
         if (isCorrect) {
             Message("Correct!");

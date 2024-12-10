@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation AllEvenVectors(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);

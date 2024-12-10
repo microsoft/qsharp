@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // Distinguish orthogonal states using partial measurements
     operation StatePrep_IsPlusPlusMinus(qs : Qubit[], state : Int, dummyVar : Double) : Unit is Adj {
@@ -21,13 +21,14 @@ namespace Kata.Verification {
             StatePrep_IsPlusPlusMinus,
             Kata.IsPlusPlusMinus,
             true,
-            ["|++-⟩", "|---⟩"]);
+            ["|++-⟩", "|---⟩"]
+        );
         if (isCorrect) {
             Message("Correct!");
         } else {
             Message("Incorrect.");
         }
 
-        isCorrect            
+        isCorrect
     }
 }

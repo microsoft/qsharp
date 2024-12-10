@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Diagnostics.*;
+    import Std.Convert.*;
 
     // The classical function to perform the same computation
     function Meeting_Classical(x : Bool[], jasmine : Bool[]) : Bool {
@@ -36,8 +36,8 @@ namespace Kata {
     @EntryPoint()
     operation Test_Meeting_Oracle() : Unit {
         // There are 2^5 ways to arrange each of the schedules - let's try all of them
-        for k in 0 .. 2^5 - 1 {
-            for j in 0 .. 2^5 - 1 {
+        for k in 0..2^5 - 1 {
+            for j in 0..2^5 - 1 {
                 // Convert your and Jasmine's schedules to bit arrays
                 let binaryX = IntAsBoolArray(k, 5);
                 let binaryJasmine = IntAsBoolArray(j, 5);

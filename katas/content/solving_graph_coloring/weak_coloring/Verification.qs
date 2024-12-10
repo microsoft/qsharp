@@ -1,13 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
         for (V, edges) in Most(ExampleGraphs()) {
-            if not CheckOracleRecognizesColoring(V, edges, 
-                Kata.Oracle_WeakColoring, IsWeakColoringValid_Reference
-            ) {
+            if not CheckOracleRecognizesColoring(V, edges, Kata.Oracle_WeakColoring, IsWeakColoringValid_Reference) {
                 return false;
             }
         }

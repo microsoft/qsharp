@@ -1,5 +1,5 @@
 /// # Sample
-/// Grover's search algorithm
+/// Grover's Search Algorithm
 ///
 /// # Description
 /// Grover's search algorithm is a quantum algorithm that finds with high

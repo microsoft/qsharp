@@ -1,6 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Math.*;
 
     function ComplexExponent_Reference(x : Complex) : Complex {
         let expa = E()^x.Real;

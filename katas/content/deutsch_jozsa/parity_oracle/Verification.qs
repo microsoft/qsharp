@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation PhaseOracle_Parity_Reference(x : Qubit[]) : Unit is Adj + Ctl {
         for xi in x {
@@ -11,7 +11,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.PhaseOracle_Parity;
         let reference = PhaseOracle_Parity_Reference;
-        for N in 1 .. 4 {
+        for N in 1..4 {
             if not CheckOperationsAreEqualStrict(N, solution, reference) {
                 Message("Incorrect.");
                 Message($"Hint: examine the effect your solution has on the {N}-qubit state and compare it with the effect it " +

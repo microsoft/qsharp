@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation BellState (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation BellState(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
         CNOT(qs[0], qs[1]);
     }

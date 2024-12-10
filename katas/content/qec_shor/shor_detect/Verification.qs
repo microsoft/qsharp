@@ -1,18 +1,18 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
-    operation ShorEncode (qs : Qubit[]) : Unit is Adj + Ctl {
-        BitflipEncode(qs[0 .. 3 .. 8]);
-        ApplyToEachCA(H, qs[0 .. 3 .. 8]);
-        for i in 0 .. 2 {
-            BitflipEncode(qs[3 * i .. 3 * i + 2]);
+    operation ShorEncode(qs : Qubit[]) : Unit is Adj + Ctl {
+        BitflipEncode(qs[0..3..8]);
+        ApplyToEachCA(H, qs[0..3..8]);
+        for i in 0..2 {
+            BitflipEncode(qs[3 * i..3 * i + 2]);
         }
     }
 
-    operation BitflipEncode (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation BitflipEncode(qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);
         CNOT(qs[0], qs[2]);
     }
@@ -20,9 +20,9 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for err_ind in -1 .. 8 {
+        for err_ind in -1..8 {
             for err in [PauliX, PauliZ, PauliY] {
-                for _ in 1 .. 10 {
+                for _ in 1..10 {
                     mutable correct = true;
                     mutable msg = "";
                     use qs = Qubit[9];

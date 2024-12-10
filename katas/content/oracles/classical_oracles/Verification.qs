@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function IsSeven_Reference(x : Bool[]) : Bool {
         return BoolArrayAsInt(x) == 7;
@@ -8,7 +8,7 @@ namespace Kata.Verification {
     @EntryPoint()
     function CheckSolution() : Bool {
         let N = 3;
-        for k in 0 .. 2^N - 1 {
+        for k in 0..2^N - 1 {
             let x = IntAsBoolArray(k, N);
 
             let actual = Kata.IsSeven(x);

@@ -3,7 +3,7 @@ namespace Test {
     import Std.Convert.*;
     import Std.Diagnostics.*;
     import Std.Random.*;
-    import Microsoft.Quantum.Unstable.TableLookup.*;
+    import Std.TableLookup.*;
 
     internal operation TestSelect(addressBits : Int, dataBits : Int) : Unit {
         use addressRegister = Qubit[addressBits];

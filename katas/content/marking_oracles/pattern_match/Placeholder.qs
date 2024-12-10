@@ -1,8 +1,8 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
-    operation Oracle_PatternMatching (x : Qubit[], y : Qubit, a : Int[], r : Bool[]) : Unit is Adj + Ctl {
+    operation Oracle_PatternMatching(x : Qubit[], y : Qubit, a : Int[], r : Bool[]) : Unit is Adj + Ctl {
         // Implement your solution here...
 
-    }    
+    }
 }

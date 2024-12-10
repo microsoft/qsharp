@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation BitflipEncode (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation BitflipEncode(qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);
         CNOT(qs[0], qs[2]);
     }

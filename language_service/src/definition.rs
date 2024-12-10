@@ -42,6 +42,10 @@ struct DefinitionFinder<'a> {
 }
 
 impl<'a> Handler<'a> for DefinitionFinder<'a> {
+    fn at_attr_ref(&mut self, _: &'a ast::Ident) {
+        // We don't support goto def for attributes.
+    }
+
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,

@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Diagnostics;
+    import Std.Diagnostics.*;
 
     // This operation implements the oracle; we will learn how to implement oracles later in the kata
     operation AlternatingBitPattern_PhaseOracle(x : Qubit[]) : Unit is Adj + Ctl {

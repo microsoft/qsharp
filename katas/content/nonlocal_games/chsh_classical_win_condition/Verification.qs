@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function WinCondition_Reference(x : Bool, y : Bool, a : Bool, b : Bool) : Bool {
         return (x and y) == (a != b);
@@ -13,8 +13,8 @@ namespace Kata.Verification {
             let actual = Kata.WinCondition(bits[0], bits[1], bits[2], bits[3]);
 
             if actual != expected {
-                Message($"Win condition '{actual}' isn't as expected for X = {bits[0]}, Y = {bits[1]}, " + 
-		        $"A = {bits[2]}, B = {bits[3]}");
+                Message($"Win condition '{actual}' isn't as expected for X = {bits[0]}, Y = {bits[1]}, " +
+                    $"A = {bits[2]}, B = {bits[3]}");
                 return false;
             }
         }

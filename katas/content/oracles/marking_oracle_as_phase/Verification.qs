@@ -1,11 +1,12 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import Std.Convert.*;
+    import KatasUtils.*;
+    import Std.Random.*;
 
     operation ApplyMarkingOracleAsPhaseOracle_Reference(
         markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
-        qubits : Qubit[]) : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
 
         use minus = Qubit();
         within {
@@ -18,8 +19,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1 .. 3 {
-            for k in 0 .. 2^N - 1 {
+        for N in 1..3 {
+            for k in 0..2^N - 1 {
                 let pattern = IntAsBoolArray(k, N);
                 let marking = ApplyControlledOnBitString(pattern, X, _, _);
                 let sol = Kata.ApplyMarkingOracleAsPhaseOracle(marking, _);

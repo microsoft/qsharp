@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation SignalFrequency(qs : Qubit[]) : Int {
         Adjoint QFT(qs);

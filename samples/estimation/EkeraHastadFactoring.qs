@@ -12,8 +12,8 @@ import Std.Convert.*;
 import Std.Math.*;
 import Std.ResourceEstimation.*;
 import Std.Arrays.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
-import Microsoft.Quantum.Unstable.TableLookup.*;
+import Std.Arithmetic.*;
+import Std.TableLookup.*;
 
 // !!! IMPORTANT !!!
 // When computing resource estimtes from the VS Code plugin directly on this

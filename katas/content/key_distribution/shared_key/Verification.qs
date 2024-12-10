@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
+    import Std.Convert.*;
 
     function GenerateSharedKey_Reference(basesAlice : Bool[], basesBob : Bool[], bits : Bool[]) : Bool[] {
         mutable key = [];
-        for i in 0 .. Length(bits) - 1 {
+        for i in 0..Length(bits) - 1 {
             if basesAlice[i] == basesBob[i] {
                 set key += [bits[i]];
             }
@@ -15,7 +15,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
 
-        for N in 8 .. 20 {
+        for N in 8..20 {
             let basesAlice = RandomArray(N);
             let basesBob = RandomArray(N);
             let bits = RandomArray(N);

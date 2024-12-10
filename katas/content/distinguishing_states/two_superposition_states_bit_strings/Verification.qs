@@ -1,21 +1,26 @@
-namespace Kata.Verification{
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+namespace Kata.Verification {
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
-    operation CheckSuperpositionBitstringsMeasurement (
+    operation CheckSuperpositionBitstringsMeasurement(
         nQubits : Int,
         ints1 : Int[],
         ints2 : Int[]
-    ): Bool {
+    ) : Bool {
         let bits1 = Mapped(IntAsBoolArray(_, nQubits), ints1);
         let bits2 = Mapped(IntAsBoolArray(_, nQubits), ints2);
 
         let stateNames = [IntArrayAsStateName(nQubits, bits1), IntArrayAsStateName(nQubits, bits2)];
 
-        let isCorrect = DistinguishStates_MultiQubit(nQubits, 2, StatePrep_SuperpositionMeasurement(_, bits1, bits2, _, _),
-                                     Kata.SuperpositionMeasurement(_, bits1, bits2), false,
-                                     stateNames);
+        let isCorrect = DistinguishStates_MultiQubit(
+            nQubits,
+            2,
+            StatePrep_SuperpositionMeasurement(_, bits1, bits2, _, _),
+            Kata.SuperpositionMeasurement(_, bits1, bits2),
+            false,
+            stateNames
+        );
 
         if not isCorrect {
             Message($"Incorrect for: [{stateNames[0]}, {stateNames[1]}]")
@@ -24,7 +29,7 @@ namespace Kata.Verification{
         return isCorrect;
     }
 
-    operation CheckSolution () : Bool {
+    operation CheckSolution() : Bool {
         // note that bit strings in the comments (big endian) are the reverse of the bit strings passed to the solutions (little endian)
         for (n, ints1, ints2) in [
             (2, [2], [1]),                        // [10] vs [01]

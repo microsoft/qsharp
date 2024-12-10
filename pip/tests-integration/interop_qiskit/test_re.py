@@ -38,7 +38,7 @@ def test_qsharp_estimation_with_single_params() -> None:
     for index in range(10):
         circuit.t(index)
         circuit.measure(index, index)
-    sim = ResourceEstimatorBackend()
+    sim = ResourceEstimatorBackend(transpile_options={"optimization_level": 0})
     res = sim.run(circuit, params=params).result()
 
     assert res["status"] == "success"
@@ -69,8 +69,8 @@ def test_estimate_qiskit_rgqft_multiplier() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 958,
-            "rotationDepth": 658,
+            "rotationCount": 1002,
+            "rotationDepth": 680,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,
@@ -94,8 +94,8 @@ def test_estimate_qiskit_rgqft_multiplier_in_threadpool() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 958,
-            "rotationDepth": 658,
+            "rotationCount": 1002,
+            "rotationDepth": 680,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,

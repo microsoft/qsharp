@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation AlternatingAmplitudes_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation AlternatingAmplitudes_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         for q in qs {
             H(q);
         }
@@ -10,7 +10,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 1 .. 5 {
+        for n in 1..5 {
             let solution = Kata.AlternatingAmplitudes;
             let reference = AlternatingAmplitudes_Reference;
             if not CheckOperationsEquivalenceOnZeroState(solution, reference, n) {

@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Katas;
-    
+    import Std.Arrays.*;
+    import KatasUtils.*;
+
     operation LibraryQFT(qs : Qubit[]) : Unit is Adj + Ctl {
         ApplyQFT(Reversed(qs));
         SwapReverseRegister(qs);
@@ -9,7 +9,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 1 .. 5 {
+        for n in 1..5 {
             if not CheckOperationsAreEqualStrict(n, Kata.QuantumFourierTransform, LibraryQFT) {
                 Message($"Incorrect for n = {n}.");
                 return false;

@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
 
     // Hardcoded graphs used for testing the vertex coloring problem:
     //  - trivial graph with zero edges
@@ -12,18 +12,20 @@ namespace Kata.Verification {
     //  - regular-ish graph with 5 vertices (3-colorable, as shown at https://en.wikipedia.org/wiki/File:3-coloringEx.svg without one vertex)
     //  - 6-vertex graph from https://en.wikipedia.org/wiki/File:3-coloringEx.svg
     function ExampleGraphs() : (Int, (Int, Int)[])[] {
-        return [(3, []),
-                (4, [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]),
-                (5, [(4, 0), (2, 1), (3, 1), (3, 2)]),
-                (5, [(0, 1), (1, 2), (1, 3), (3, 2), (4, 2), (3, 4)]),
-                (5, [(0, 1), (0, 2), (0, 4), (1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]),
-                (6, [(0, 1), (0, 2), (0, 4), (0, 5), (1, 2), (1, 3), (1, 5), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)])];
-        // Graphs with 6+ vertices can take several minutes to be processed; 
+        return [
+            (3, []),
+            (4, [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]),
+            (5, [(4, 0), (2, 1), (3, 1), (3, 2)]),
+            (5, [(0, 1), (1, 2), (1, 3), (3, 2), (4, 2), (3, 4)]),
+            (5, [(0, 1), (0, 2), (0, 4), (1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]),
+            (6, [(0, 1), (0, 2), (0, 4), (0, 5), (1, 2), (1, 3), (1, 5), (2, 3), (2, 4), (3, 4), (3, 5), (4, 5)])
+        ];
+        // Graphs with 6+ vertices can take several minutes to be processed;
         // in the interest of keeping test runtime reasonable we're limiting most of the testing to graphs with 5 vertices or fewer.
     }
 
 
-    function IsVertexColoringValid_Reference (V : Int, edges: (Int, Int)[], colors: Int[]) : Bool {
+    function IsVertexColoringValid_Reference(V : Int, edges : (Int, Int)[], colors : Int[]) : Bool {
         for (start, end) in edges {
             if colors[start] == colors[end] {
                 return false;
@@ -41,10 +43,10 @@ namespace Kata.Verification {
 
 
     // Helper function specific to Graph Coloring kata.
-    operation CheckOracleRecognizesColoring (
+    operation CheckOracleRecognizesColoring(
         V : Int,
         edges : (Int, Int)[],
-        oracle : (Int, (Int, Int)[],Qubit[], Qubit) => Unit,
+        oracle : (Int, (Int, Int)[], Qubit[], Qubit) => Unit,
         classicalFunction : (Int, (Int, Int)[], Int[]) -> Bool
     ) : Bool {
         // Message($"Testing V = {V}, edges = {edges}");
@@ -52,7 +54,7 @@ namespace Kata.Verification {
         use (coloringRegister, target) = (Qubit[N], Qubit());
         // Try all possible colorings of 4 colors on V vertices and check if they are calculated correctly.
         // Hack: fix the color of the first vertex, since all colorings are agnostic to the specific colors used.
-        for k in 0 .. (1 <<< (N - 2)) - 1 {
+        for k in 0..(1 <<< (N - 2)) - 1 {
             // Prepare k-th coloring
             let binary = [false, false] + IntAsBoolArray(k, N - 2);
             ApplyPauliFromBitString(PauliX, true, binary, coloringRegister);
@@ -87,7 +89,7 @@ namespace Kata.Verification {
         true
     }
 
-    function IsWeakColoringValid_OneVertex_Reference (V : Int, edges: (Int, Int)[], colors: Int[], vertex : Int) : Bool {
+    function IsWeakColoringValid_OneVertex_Reference(V : Int, edges : (Int, Int)[], colors : Int[], vertex : Int) : Bool {
         mutable neighborCount = 0;
         mutable hasDifferentNeighbor = false;
 
@@ -103,8 +105,8 @@ namespace Kata.Verification {
         return neighborCount == 0 or hasDifferentNeighbor;
     }
 
-    function IsWeakColoringValid_Reference (V : Int, edges: (Int, Int)[], colors: Int[]) : Bool {
-        for v in 0 .. V - 1 {
+    function IsWeakColoringValid_Reference(V : Int, edges : (Int, Int)[], colors : Int[]) : Bool {
+        for v in 0..V - 1 {
             if not IsWeakColoringValid_OneVertex_Reference(V, edges, colors, v) {
                 return false;
             }

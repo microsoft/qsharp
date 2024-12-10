@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Random;
+    import KatasUtils.*;
+    import Std.Random.*;
 
     operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
@@ -9,7 +9,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1 .. 3 {
+        for N in 1..3 {
             let sol = ApplyOracle(_, Kata.Or_Oracle);
             let ref = ApplyOracle(_, Or_Oracle_Reference);
             let isCorrect = CheckOperationsAreEqualStrict(N + 1, sol, ref);

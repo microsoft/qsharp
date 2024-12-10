@@ -1341,6 +1341,7 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "ndarray",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -1625,8 +1626,8 @@ dependencies = [
 
 [[package]]
 name = "quantum-sparse-sim"
-version = "0.7.4"
-source = "git+https://github.com/qir-alliance/qir-runner?tag=v0.7.4#7b41f9313609f8309317ce91afccf0a2c7fe5a6f"
+version = "0.7.5"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=562e2c11ad685dd01bfc1ae975e00d4133615995#562e2c11ad685dd01bfc1ae975e00d4133615995"
 dependencies = [
  "ndarray",
  "num-bigint",

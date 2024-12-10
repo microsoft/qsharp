@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation StatePrep_ThreeQubitMeasurement(
         qs : Qubit[],
@@ -23,11 +23,13 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         let isCorrect = DistinguishStates_MultiQubit(
-            3, 2,
+            3,
+            2,
             StatePrep_ThreeQubitMeasurement,
             Kata.ThreeQubitMeasurement,
             false,
-            ["1/sqrt(3) (|100⟩ + ω |010⟩ + ω² |001⟩)", "1/sqrt(3) (|100⟩ + ω² |010⟩ + ω |001⟩)"]);
+            ["1/sqrt(3) (|100⟩ + ω |010⟩ + ω² |001⟩)", "1/sqrt(3) (|100⟩ + ω² |010⟩ + ω |001⟩)"]
+        );
 
         if not isCorrect {
             Message("Incorrect.");

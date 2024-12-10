@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation IsSeven_PhaseOracle_Reference(x : Qubit[]) : Unit is Adj + Ctl {
         Controlled Z(Most(x), Tail(x));
@@ -13,7 +13,8 @@ namespace Kata.Verification {
         let isCorrect = CheckOperationsAreEqualStrict(
             3,
             Kata.IsSeven_PhaseOracle,
-            IsSeven_PhaseOracle_Reference);
+            IsSeven_PhaseOracle_Reference
+        );
         if isCorrect {
             Message("Correct!");
         } else {

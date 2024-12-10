@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     operation IsQubitPsiPlus(q : Qubit) : Bool {
         // Implement your solution here...

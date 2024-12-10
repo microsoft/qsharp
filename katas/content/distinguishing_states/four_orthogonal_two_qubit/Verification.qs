@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // 0 - (|00⟩ + |01⟩ + |10⟩ + |11⟩) / 2
     // 1 - (|00⟩ - |01⟩ + |10⟩ - |11⟩) / 2
