@@ -11,6 +11,11 @@ import { getTarget } from './config';
 import { toVsCodeRange } from './common';
 
 
+// TODO(sezna):
+// - construct fully qualified callable name instead of assuming `Main`
+// - handle running all tests
+// - Auto-populate newly discovered tests
+// - CodeLens
 function localGetCompilerWorker(context: vscode.ExtensionContext): ICompilerWorker {
 	const compilerWorkerScriptPath = vscode.Uri.joinPath(
 		context.extensionUri,
@@ -65,7 +70,6 @@ function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.Extension
 const fileChangedEmitter = new vscode.EventEmitter<vscode.Uri>();
 
 
-// TODO(sezna) testrunprofile, running tests
 export async function initTestExplorer(context: vscode.ExtensionContext) {
 	const ctrl: vscode.TestController = vscode.tests.createTestController('qsharpTestController', 'Q# Tests');
 	context.subscriptions.push(ctrl);
