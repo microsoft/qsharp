@@ -32,7 +32,7 @@ export function basename(path: string): string | undefined {
   return path.replace(/\/+$/, "").split("/").pop();
 }
 
-export function toVscodeRange(range: IRange): Range {
+export function toVsCodeRange(range: IRange): Range {
   return new Range(
     range.start.line,
     range.start.character,
@@ -42,7 +42,7 @@ export function toVscodeRange(range: IRange): Range {
 }
 
 export function toVscodeLocation(location: ILocation): any {
-  return new Location(Uri.parse(location.source), toVscodeRange(location.span));
+  return new Location(Uri.parse(location.source), toVsCodeRange(location.span));
 }
 
 export function toVscodeWorkspaceEdit(
@@ -52,7 +52,7 @@ export function toVscodeWorkspaceEdit(
   for (const [source, edits] of iWorkspaceEdit.changes) {
     const uri = vscode.Uri.parse(source, true);
     const vsEdits = edits.map((edit) => {
-      return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
+      return new vscode.TextEdit(toVsCodeRange(edit.range), edit.newText);
     });
     workspaceEdit.set(uri, vsEdits);
   }
@@ -73,7 +73,7 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
       break;
   }
   const vscodeDiagnostic = new vscode.Diagnostic(
-    toVscodeRange(d.range),
+    toVsCodeRange(d.range),
     d.message,
     severity,
   );
