@@ -36,6 +36,9 @@ mod line_column;
 mod logging;
 mod project_system;
 mod serializable_type;
+mod test_explorer;
+
+pub use test_explorer::collect_test_callables;
 
 #[cfg(test)]
 mod tests;

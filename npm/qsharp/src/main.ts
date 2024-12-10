@@ -26,7 +26,7 @@ import {
 } from "./language-service/language-service.js";
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
-import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
+import type { IProgramConfig, ProjectLoader } from "../lib/web/qsc_wasm.js";
 import { IProjectHost } from "./browser.js";
 
 export { qsharpLibraryUriScheme };
@@ -89,6 +89,11 @@ export function getLanguageServiceWorker(): ILanguageServiceWorker {
     "../language-service/worker-node.js",
     languageServiceProtocol,
   );
+}
+
+export function collectTestCallables(config: IProgramConfig): string[] {
+  ensureWasm();
+  return wasm!.collect_test_callables(config);
 }
 
 export * as utils from "./utils.js";

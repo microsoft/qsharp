@@ -443,6 +443,7 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Test) => Some(hir::Attr::Test),
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),

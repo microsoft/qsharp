@@ -4,46 +4,57 @@
 
 import * as vscode from 'vscode';
 import { loadProject } from './projectSystem';
-import { IProjectConfig, log } from "qsharp-lang";
+import { getCompilerWorker, IProjectConfig, log } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from './programConfig';
+import { IProgramConfig } from '../../npm/qsharp/lib/web/qsc_wasm';
+import { getTarget } from './config';
 
+
+// TODO(sezna) testrunprofile, running tests
 export async function initTestExplorer(context: vscode.ExtensionContext) {
 	const ctrl: vscode.TestController = vscode.tests.createTestController('qsharpTestController', 'Q# Tests');
 	context.subscriptions.push(ctrl);
-	const item = ctrl.createTestItem("Q# test","test fn");
-	ctrl.items.add(item);
 
 
 	ctrl.refreshHandler = async () => {
-		log.info("1");
 		if (!vscode.workspace.workspaceFolders) {
 			log.info("No workspace detected; not starting test explorer")
 			return;
-		} 
+		}
 
-		log.info("2");
-		const docUri =  getActiveQSharpDocumentUri();
+		const docUri = getActiveQSharpDocumentUri();
 		if (!docUri) {
 			log.info("No active document detected; not starting test explorer")
 			return;
 		}
-
 
 		const projectConfig: IProjectConfig = await loadProject(docUri);
 		if (!projectConfig) {
 			log.info("No project detected; not starting test explorer")
 			return;
 		}
-		log.info("3");
 
-		const sources = projectConfig.packageGraphSources.root.sources;
-		for (const [sourceUrl, sourceContent] of sources) {
-			const testItem = ctrl.createTestItem(sourceUrl, sourceUrl);
+		let programConfig: IProgramConfig = {
+			profile: getTarget(),
+			...projectConfig
+		};
+		const compilerWorkerScriptPath = vscode.Uri.joinPath(
+			context.extensionUri,
+			"./out/compilerWorker.js",
+		).toString();
+		const worker = getCompilerWorker(compilerWorkerScriptPath);
+
+		const testCallables = await worker.collectTestCallables(programConfig);
+
+
+		testCallables.forEach((testCallable) => {
+			const testItem = ctrl.createTestItem(
+				testCallable, testCallable);
 			ctrl.items.add(testItem);
-		}
-		log.info("4");
+		});
 
-		
+
+
 	};
 
 	const fileChangedEmitter = new vscode.EventEmitter<vscode.Uri>();
@@ -146,19 +157,19 @@ function getWorkspaceTestPatterns() {
 function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>) {
 	return getWorkspaceTestPatterns().map(({ pattern }) => {
 		const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-/*
-		watcher.onDidCreate(uri => {
-			getOrCreateFile(controller, uri);
-			fileChangedEmitter.fire(uri);
-		});
-		watcher.onDidChange(async uri => {
-			const { file, data } = getOrCreateFile(controller, uri);
-			if (data.didResolve) {
-				await data.updateFromDisk(controller, file);
-			}
-			fileChangedEmitter.fire(uri);
-		});
-		*/
+		/*
+				watcher.onDidCreate(uri => {
+					getOrCreateFile(controller, uri);
+					fileChangedEmitter.fire(uri);
+				});
+				watcher.onDidChange(async uri => {
+					const { file, data } = getOrCreateFile(controller, uri);
+					if (data.didResolve) {
+						await data.updateFromDisk(controller, file);
+					}
+					fileChangedEmitter.fire(uri);
+				});
+				*/
 		watcher.onDidDelete(uri => controller.items.delete(uri.toString()));
 
 		// findInitialFiles(controller, pattern);
