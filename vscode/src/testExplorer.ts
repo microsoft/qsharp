@@ -16,6 +16,8 @@ import { toVsCodeRange } from './common';
 // - handle running all tests
 // - Auto-populate newly discovered tests
 // - CodeLens
+// - use namespace hierarchy to populate test items
+// - Cancellation tokens
 function localGetCompilerWorker(context: vscode.ExtensionContext): ICompilerWorker {
 	const compilerWorkerScriptPath = vscode.Uri.joinPath(
 		context.extensionUri,
@@ -48,6 +50,7 @@ async function getProgramConfig(): Promise<IProgramConfig | null> {
 		...projectConfig
 	}
 }
+
 function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.ExtensionContext) {
 	return async () => {
 		const programConfig = await getProgramConfig();
@@ -73,6 +76,13 @@ const fileChangedEmitter = new vscode.EventEmitter<vscode.Uri>();
 export async function initTestExplorer(context: vscode.ExtensionContext) {
 	const ctrl: vscode.TestController = vscode.tests.createTestController('qsharpTestController', 'Q# Tests');
 	context.subscriptions.push(ctrl);
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+		  "qsharp-vscode.runTest",
+		  // TODO: codelens callback
+		  () => {},
+		)
+	  )
 
 	// construct the handler that runs when the user presses the refresh button in the test explorer
 	const refreshHandler = mkRefreshHandler(ctrl, context);
@@ -124,7 +134,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 					}
 					run.end();
 				})
-				const callableExpr = `Main.${testCase.label}()`;
+				const callableExpr = `${testCase.label}()`;
 				log.info("about to run test", callableExpr);
 				try {
 					await worker.run(program, callableExpr, 1, evtTarget);

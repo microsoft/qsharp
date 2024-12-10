@@ -69,6 +69,11 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
         args = [cl.args];
       }
       break;
+    case "runTest":
+      title = "Run Test",
+      command = "qsharp-vscode.runTest";
+      tooltip = "Run test";
+      break;
   }
 
   return new vscode.CodeLens(toVsCodeRange(cl.range), {
