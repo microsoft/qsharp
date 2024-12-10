@@ -51,8 +51,13 @@ async function getProgramConfig(): Promise<IProgramConfig | null> {
 	}
 }
 
-function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.ExtensionContext) {
+function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.ExtensionContext, shouldDeleteOldTests: boolean = true) {
 	return async () => {
+		if (shouldDeleteOldTests) {
+			for (const [id, _] of ctrl.items) {
+				ctrl.items.delete(id);
+			}
+		}
 		const programConfig = await getProgramConfig();
 		if (!programConfig) {
 			return;
@@ -62,9 +67,17 @@ function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.Extension
 		const testCallables = await worker.collectTestCallables(programConfig);
 
 		testCallables.forEach((testCallable) => {
-			const testItem = ctrl.createTestItem(
-				testCallable, testCallable);
-			ctrl.items.add(testItem);
+			const parts = testCallable.split('.');
+			let parent = ctrl.items;
+
+			parts.forEach((part, index) => {
+				let item = parent.get(part);
+				if (!item) {
+					item = ctrl.createTestItem(testCallable, part);
+					parent.add(item);
+				}
+				parent = item.children;
+			});
 		});
 	}
 }
@@ -115,7 +128,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 			const testRunFunc = async () => {
 				const evtTarget = new QscEventTarget(false);
 				evtTarget.addEventListener('Message', (msg) => {
-					run.appendOutput(`Test ${testCase.label}: ${msg.detail}\r\n`);
+					run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
 
 				})
 
@@ -134,15 +147,15 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 					}
 					run.end();
 				})
-				const callableExpr = `${testCase.label}()`;
+				const callableExpr = `${testCase.id}()`;
 				log.info("about to run test", callableExpr);
 				try {
 					await worker.run(program, callableExpr, 1, evtTarget);
 				} catch (error) {
-					log.error(`Error running test ${testCase.label}:`, error);
-					run.appendOutput(`Error running test ${testCase.label}: ${error}\r\n`);
+					log.error(`Error running test ${testCase.id}:`, error);
+					run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
 				}
-				log.info("ran test", testCase.label);
+				log.info("ran test", testCase.id);
 
 			}
 
