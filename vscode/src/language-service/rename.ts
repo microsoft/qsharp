@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange, toVscodeWorkspaceEdit } from "../common";
+import { toVsCodeRange, toVscodeWorkspaceEdit } from "../common";
 
 export function createRenameProvider(languageService: ILanguageService) {
   return new QSharpRenameProvider(languageService);
@@ -40,7 +40,7 @@ class QSharpRenameProvider implements vscode.RenameProvider {
     );
     if (prepareRename) {
       return {
-        range: toVscodeRange(prepareRename.range),
+        range: toVsCodeRange(prepareRename.range),
         placeholder: prepareRename.newText,
       };
     } else {

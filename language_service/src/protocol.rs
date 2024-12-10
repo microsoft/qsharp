@@ -184,6 +184,7 @@ pub enum CodeLensCommand {
     Run,
     Estimate,
     Circuit(Option<OperationInfo>),
+    RunTest,
 }
 
 #[derive(Debug)]

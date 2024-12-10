@@ -312,6 +312,7 @@ impl LanguageService {
                             total_num_qubits: args.total_num_qubits,
                         }),
                     ),
+                    qsls::protocol::CodeLensCommand::RunTest => ("runTest", None),
                 };
                 CodeLens {
                     range,
@@ -502,7 +503,7 @@ serializable_type! {
     },
     r#"export type ICodeLens = {
         range: IRange;
-        command: "histogram" | "estimate" | "debug" | "run";
+        command: "histogram" | "estimate" | "debug" | "run" | "runTest";
     } | {
         range: IRange;
         command: "circuit";
