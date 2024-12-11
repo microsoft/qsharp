@@ -6,6 +6,20 @@ use crate::tests::check;
 use expect_test::expect;
 
 #[test]
+fn foo() {
+    check(
+        expr,
+        "x = j = 3",
+        &expect![[r#"
+            Expr _id_ [0-9]: Assign:
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [4-9]: Assign:
+                    Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "j")
+                    Expr _id_ [8-9]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
 fn lit_int() {
     check(expr, "123", &expect!["Expr _id_ [0-3]: Lit: Int(123)"]);
 }
@@ -699,6 +713,14 @@ fn set() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [8-9]: Path: Path _id_ [8-9] (Ident _id_ [8-9] "y")"#]],
     );
+    check(
+        expr,
+        "x = y",
+        &expect![[r#"
+            Expr _id_ [0-5]: Assign:
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "y")"#]],
+    );
 }
 
 #[test]
@@ -710,6 +732,14 @@ fn set_hole() {
             Expr _id_ [0-9]: Assign:
                 Expr _id_ [4-5]: Hole
                 Expr _id_ [8-9]: Lit: Int(1)"#]],
+    );
+    check(
+        expr,
+        "_ = 1",
+        &expect![[r#"
+            Expr _id_ [0-5]: Assign:
+                Expr _id_ [0-1]: Hole
+                Expr _id_ [4-5]: Lit: Int(1)"#]],
     );
 }
 
@@ -726,6 +756,18 @@ fn set_hole_tuple() {
                 Expr _id_ [13-19]: Tuple:
                     Expr _id_ [14-15]: Lit: Int(1)
                     Expr _id_ [17-18]: Lit: Int(2)"#]],
+    );
+    check(
+        expr,
+        "(x, _) = (1, 2)",
+        &expect![[r#"
+            Expr _id_ [0-15]: Assign:
+                Expr _id_ [0-6]: Tuple:
+                    Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
+                    Expr _id_ [4-5]: Hole
+                Expr _id_ [9-15]: Tuple:
+                    Expr _id_ [10-11]: Lit: Int(1)
+                    Expr _id_ [13-14]: Lit: Int(2)"#]],
     );
 }
 
@@ -747,6 +789,22 @@ fn set_hole_tuple_nested() {
                         Expr _id_ [23-24]: Lit: Int(2)
                         Expr _id_ [26-27]: Lit: Int(3)"#]],
     );
+    check(
+        expr,
+        "(_, (x, _)) = (1, (2, 3))",
+        &expect![[r#"
+            Expr _id_ [0-25]: Assign:
+                Expr _id_ [0-11]: Tuple:
+                    Expr _id_ [1-2]: Hole
+                    Expr _id_ [4-10]: Tuple:
+                        Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "x")
+                        Expr _id_ [8-9]: Hole
+                Expr _id_ [14-25]: Tuple:
+                    Expr _id_ [15-16]: Lit: Int(1)
+                    Expr _id_ [18-24]: Tuple:
+                        Expr _id_ [19-20]: Lit: Int(2)
+                        Expr _id_ [22-23]: Lit: Int(3)"#]],
+    );
 }
 
 #[test]
@@ -758,6 +816,14 @@ fn set_bitwise_and() {
             Expr _id_ [0-12]: AssignOp (AndB):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
+    );
+    check(
+        expr,
+        "x &&&= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (AndB):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
     );
 }
 
@@ -771,6 +837,14 @@ fn set_logical_and() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
     );
+    check(
+        expr,
+        "x and= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (AndL):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
+    );
 }
 
 #[test]
@@ -782,6 +856,14 @@ fn set_bitwise_or() {
             Expr _id_ [0-12]: AssignOp (OrB):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
+    );
+    check(
+        expr,
+        "x |||= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (OrB):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
     );
 }
 
@@ -795,6 +877,14 @@ fn set_exp() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
     );
+    check(
+        expr,
+        "x ^= y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Exp):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
+    );
 }
 
 #[test]
@@ -806,6 +896,14 @@ fn set_bitwise_xor() {
             Expr _id_ [0-12]: AssignOp (XorB):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
+    );
+    check(
+        expr,
+        "x ^^^= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (XorB):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
     );
 }
 
@@ -819,6 +917,14 @@ fn set_shr() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
     );
+    check(
+        expr,
+        "x >>>= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (Shr):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
+    );
 }
 
 #[test]
@@ -830,6 +936,14 @@ fn set_shl() {
             Expr _id_ [0-12]: AssignOp (Shl):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
+    );
+    check(
+        expr,
+        "x <<<= y",
+        &expect![[r#"
+            Expr _id_ [0-8]: AssignOp (Shl):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [7-8]: Path: Path _id_ [7-8] (Ident _id_ [7-8] "y")"#]],
     );
 }
 
@@ -843,6 +957,14 @@ fn set_sub() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
     );
+    check(
+        expr,
+        "x -= y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Sub):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
+    );
 }
 
 #[test]
@@ -854,6 +976,14 @@ fn set_logical_or() {
             Expr _id_ [0-11]: AssignOp (OrL):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [10-11]: Path: Path _id_ [10-11] (Ident _id_ [10-11] "y")"#]],
+    );
+    check(
+        expr,
+        "x or= y",
+        &expect![[r#"
+            Expr _id_ [0-7]: AssignOp (OrL):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [6-7]: Path: Path _id_ [6-7] (Ident _id_ [6-7] "y")"#]],
     );
 }
 
@@ -867,6 +997,14 @@ fn set_mod() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
     );
+    check(
+        expr,
+        "x %= y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Mod):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
+    );
 }
 
 #[test]
@@ -878,6 +1016,14 @@ fn set_add() {
             Expr _id_ [0-10]: AssignOp (Add):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
+    );
+    check(
+        expr,
+        "x += y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Add):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
     );
 }
 
@@ -891,6 +1037,14 @@ fn set_div() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
     );
+    check(
+        expr,
+        "x /= y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Div):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
+    );
 }
 
 #[test]
@@ -902,6 +1056,14 @@ fn set_mul() {
             Expr _id_ [0-10]: AssignOp (Mul):
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [9-10]: Path: Path _id_ [9-10] (Ident _id_ [9-10] "y")"#]],
+    );
+    check(
+        expr,
+        "x *= y",
+        &expect![[r#"
+            Expr _id_ [0-6]: AssignOp (Mul):
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")"#]],
     );
 }
 
@@ -915,6 +1077,15 @@ fn set_with_update() {
                 Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
                 Expr _id_ [10-11]: Path: Path _id_ [10-11] (Ident _id_ [10-11] "i")
                 Expr _id_ [15-16]: Path: Path _id_ [15-16] (Ident _id_ [15-16] "y")"#]],
+    );
+    check(
+        expr,
+        "x w/= i <- y",
+        &expect![[r#"
+            Expr _id_ [0-12]: AssignUpdate:
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [6-7]: Path: Path _id_ [6-7] (Ident _id_ [6-7] "i")
+                Expr _id_ [11-12]: Path: Path _id_ [11-12] (Ident _id_ [11-12] "y")"#]],
     );
 }
 
@@ -1073,19 +1244,10 @@ fn array_repeat_no_items() {
         expr,
         "[size = 3]",
         &expect![[r#"
-            Error(
-                Token(
-                    Close(
-                        Bracket,
-                    ),
-                    Eq,
-                    Span {
-                        lo: 6,
-                        hi: 7,
-                    },
-                ),
-            )
-        "#]],
+            Expr _id_ [0-10]: Array:
+                Expr _id_ [1-9]: Assign:
+                    Expr _id_ [1-5]: Path: Path _id_ [1-5] (Ident _id_ [1-5] "size")
+                    Expr _id_ [8-9]: Lit: Int(3)"#]],
     );
 }
 
@@ -1095,19 +1257,12 @@ fn array_repeat_two_items() {
         expr,
         "[1, 2, size = 3]",
         &expect![[r#"
-            Error(
-                Token(
-                    Close(
-                        Bracket,
-                    ),
-                    Eq,
-                    Span {
-                        lo: 12,
-                        hi: 13,
-                    },
-                ),
-            )
-        "#]],
+            Expr _id_ [0-16]: Array:
+                Expr _id_ [1-2]: Lit: Int(1)
+                Expr _id_ [4-5]: Lit: Int(2)
+                Expr _id_ [7-15]: Assign:
+                    Expr _id_ [7-11]: Path: Path _id_ [7-11] (Ident _id_ [7-11] "size")
+                    Expr _id_ [14-15]: Lit: Int(3)"#]],
     );
 }
 
@@ -2496,6 +2651,30 @@ fn duplicate_commas_in_pattern() {
                 ),
             ]"#]],
     );
+    check(
+        expr,
+        "(x,, y) = (1, 2)",
+        &expect![[r#"
+            Expr _id_ [0-16]: Assign:
+                Expr _id_ [0-7]: Tuple:
+                    Expr _id_ [1-2]: Path: Path _id_ [1-2] (Ident _id_ [1-2] "x")
+                    Expr _id_ [3-3]: Err
+                    Expr _id_ [5-6]: Path: Path _id_ [5-6] (Ident _id_ [5-6] "y")
+                Expr _id_ [10-16]: Tuple:
+                    Expr _id_ [11-12]: Lit: Int(1)
+                    Expr _id_ [14-15]: Lit: Int(2)
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 3,
+                            hi: 3,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
 }
 
 #[test]
@@ -2518,6 +2697,29 @@ fn invalid_initial_commas_in_pattern() {
                         Span {
                             lo: 5,
                             hi: 5,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+    check(
+        expr,
+        "(, x) = (1, 2)",
+        &expect![[r#"
+            Expr _id_ [0-14]: Assign:
+                Expr _id_ [0-5]: Tuple:
+                    Expr _id_ [1-1]: Err
+                    Expr _id_ [3-4]: Path: Path _id_ [3-4] (Ident _id_ [3-4] "x")
+                Expr _id_ [8-14]: Tuple:
+                    Expr _id_ [9-10]: Lit: Int(1)
+                    Expr _id_ [12-13]: Lit: Int(2)
+
+            [
+                Error(
+                    MissingSeqEntry(
+                        Span {
+                            lo: 1,
+                            hi: 1,
                         },
                     ),
                 ),
