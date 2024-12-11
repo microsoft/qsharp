@@ -287,9 +287,9 @@ impl Interpreter {
             Ok(interpreter) => {
                 if let Some(make_callable) = &make_callable {
                     // Add any global callables from the user source as Python functions to the environment.
-                    let exported_items = interpreter.get_source_package_global_items();
-                    for (namespace, name, item_id) in exported_items {
-                        create_py_callable(py, make_callable, &namespace, &name, item_id)?;
+                    let exported_items = interpreter.user_globals();
+                    for (namespace, name, val) in exported_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
                 Ok(Self {
@@ -324,9 +324,9 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.get_current_package_global_items();
-                    for (namespace, name, item_id) in new_items {
-                        create_py_callable(py, make_callable, &namespace, &name, item_id)?;
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
                     }
                 }
                 Ok(ValueWrapper(value).into_py(py))
@@ -398,7 +398,7 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         let (input_ty, output_ty) = self
             .interpreter
-            .get_callable_tys(callable.id)
+            .global_tys(&callable.into())
             .ok_or(QSharpError::new_err("callable not found"))?;
 
         // If the types are not supported, we can't convert the arguments or return value.
@@ -413,8 +413,6 @@ impl Interpreter {
                 "unsupported output type: `{ty}`"
             )));
         }
-
-        let callable = Value::Global(callable.id, FunctorApp::default());
 
         // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
         let args = if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
@@ -433,7 +431,10 @@ impl Interpreter {
             convert_obj_with_ty(py, &args, &input_ty)?
         };
 
-        match self.interpreter.invoke(&mut receiver, callable, args) {
+        match self
+            .interpreter
+            .invoke(&mut receiver, callable.into(), args)
+        {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -992,8 +993,21 @@ where
 
 #[pyclass]
 #[derive(Clone, Copy)]
-struct GlobalCallable {
-    id: StoreItemId,
+struct GlobalCallable(StoreItemId, FunctorApp);
+
+impl From<Value> for GlobalCallable {
+    fn from(val: Value) -> Self {
+        match val {
+            Value::Global(id, app) => GlobalCallable(id, app),
+            _ => panic!("expected global callable"),
+        }
+    }
+}
+
+impl From<GlobalCallable> for Value {
+    fn from(val: GlobalCallable) -> Self {
+        Value::Global(val.0, val.1)
+    }
 }
 
 /// Create a Python callable from a Q# callable and adds it to the given environment.
@@ -1002,7 +1016,7 @@ fn create_py_callable(
     make_callable: &PyObject,
     namespace: &[Rc<str>],
     name: &str,
-    item_id: StoreItemId,
+    val: Value,
 ) -> PyResult<()> {
     if namespace.is_empty() && name == "<lambda>" {
         // We don't want to bind auto-generated lambda callables.
@@ -1010,7 +1024,7 @@ fn create_py_callable(
     }
 
     let args = (
-        Py::new(py, GlobalCallable { id: item_id }).expect("should be able to create callable"), // callable id
+        Py::new(py, GlobalCallable::from(val)).expect("should be able to create callable"), // callable id
         PyList::new_bound(py, namespace.iter().map(ToString::to_string)), // namespace as string array
         PyString::new_bound(py, name),                                    // name of callable
     );

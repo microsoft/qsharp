@@ -532,7 +532,7 @@ mod given_interpreter {
         #[test]
         fn interpreter_without_sources_has_no_items() {
             let interpreter = get_interpreter();
-            let items = interpreter.get_source_package_global_items();
+            let items = interpreter.user_globals();
             assert!(items.is_empty());
         }
 
@@ -541,7 +541,7 @@ mod given_interpreter {
             let mut interpreter = get_interpreter();
             let (result, output) = line(&mut interpreter, "()");
             is_only_value(&result, &output, &Value::unit());
-            let items = interpreter.get_current_package_global_items();
+            let items = interpreter.source_globals();
             assert!(items.is_empty());
         }
 
@@ -556,7 +556,7 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
-            let items = interpreter.get_current_package_global_items();
+            let items = interpreter.source_globals();
             assert_eq!(items.len(), 2);
             // No namespace for top-level items
             assert!(items[0].0.is_empty());
@@ -584,7 +584,7 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
-            let items = interpreter.get_current_package_global_items();
+            let items = interpreter.source_globals();
             assert_eq!(items.len(), 1);
             expect![[r#"
                 [
@@ -609,7 +609,7 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
-            let items = interpreter.get_current_package_global_items();
+            let items = interpreter.source_globals();
             assert_eq!(items.len(), 2);
             let (result, output) = line(
                 &mut interpreter,
@@ -619,7 +619,7 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
-            let items = interpreter.get_current_package_global_items();
+            let items = interpreter.source_globals();
             assert_eq!(items.len(), 4);
             // No namespace for top-level items
             assert!(items[0].0.is_empty());
@@ -1899,7 +1899,7 @@ mod given_interpreter {
             )
             .expect("interpreter should be created");
 
-            let items = interpreter.get_source_package_global_items();
+            let items = interpreter.user_globals();
             assert_eq!(1, items.len());
             expect![[r#"
                 [

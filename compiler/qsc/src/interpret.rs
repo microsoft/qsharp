@@ -320,10 +320,7 @@ impl Interpreter {
 
     /// Given a package ID, returns all the global items in the package.
     /// Note this does not currently include re-exports.
-    pub fn get_global_items(
-        &self,
-        package_id: PackageId,
-    ) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
+    fn package_globals(&self, package_id: PackageId) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
         let mut exported_items = Vec::new();
         let package = &self
             .compiler
@@ -337,31 +334,34 @@ impl Interpreter {
                     package: package_id,
                     item: fir::LocalItemId::from(usize::from(term.id.item)),
                 };
-                exported_items.push((global.namespace, global.name, store_item_id));
+                exported_items.push((
+                    global.namespace,
+                    global.name,
+                    Value::Global(store_item_id, FunctorApp::default()),
+                ));
             }
         }
         exported_items
     }
 
-    /// Get the global items defined in the user source passed into initialization of the interpreter.
-    pub fn get_source_package_global_items(
-        &self,
-    ) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
-        self.get_global_items(self.source_package)
+    /// Get the global callables defined in the user source passed into initialization of the interpreter as `Value` instances.
+    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+        self.package_globals(self.source_package)
     }
 
-    /// Get the global items defined in the open package being interpreted, which will include any items
+    /// Get the global callables defined in the open package being interpreted as `Value` instances, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    pub fn get_current_package_global_items(
-        &self,
-    ) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
-        self.get_global_items(self.package)
+    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+        self.package_globals(self.package)
     }
 
-    /// Get the input and output types of a given callable item.
+    /// Get the input and output types of a given value representing a global item.
     /// # Panics
     /// Panics if the item is not callable or a type that can be invoked as a callable.
-    pub fn get_callable_tys(&self, item_id: fir::StoreItemId) -> Option<(ty::Ty, ty::Ty)> {
+    pub fn global_tys(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
+        let Value::Global(item_id, _) = item_id else {
+            panic!("value is not a global callable");
+        };
         let package_id = map_fir_package_to_hir(item_id.package);
         let unit = self
             .compiler
