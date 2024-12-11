@@ -9,6 +9,7 @@ from ._native import (
     QSharpError,
     Output,
     Circuit,
+    GlobalCallable,
 )
 from typing import (
     Any,
@@ -277,7 +278,7 @@ def eval(source: str) -> Any:
 # Helper function that knows how to create a function that invokes a callable. This will be
 # used by the underlying native code to create functions for callables on the fly that know
 # how to get the currently intitialized global interpreter instance.
-def _make_callable(callable, namespace, callable_name):
+def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name: str):
     module = code
     # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
     # to register created modules with the system.

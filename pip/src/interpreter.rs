@@ -403,12 +403,12 @@ impl Interpreter {
 
         // If the types are not supported, we can't convert the arguments or return value.
         // Check this before trying to convert the arguments, and return an error if the types are not supported.
-        if let Some(ty) = first_unsupport_interop_ty(&input_ty) {
+        if let Some(ty) = first_unsupported_interop_ty(&input_ty) {
             return Err(QSharpError::new_err(format!(
                 "unsupported input type: `{ty}`"
             )));
         }
-        if let Some(ty) = first_unsupport_interop_ty(&output_ty) {
+        if let Some(ty) = first_unsupported_interop_ty(&output_ty) {
             return Err(QSharpError::new_err(format!(
                 "unsupported output type: `{ty}`"
             )));
@@ -578,7 +578,7 @@ impl Interpreter {
 
 /// Finds any Q# type recursively that does not support interop with Python, meaning our code cannot convert it back and forth
 /// across the interop boundary.
-fn first_unsupport_interop_ty(ty: &Ty) -> Option<&Ty> {
+fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
     match ty {
         Ty::Prim(prim_ty) => match prim_ty {
             Prim::Pauli
@@ -592,8 +592,10 @@ fn first_unsupport_interop_ty(ty: &Ty) -> Option<&Ty> {
                 Some(ty)
             }
         },
-        Ty::Tuple(tup) => tup.iter().find(|t| first_unsupport_interop_ty(t).is_some()),
-        Ty::Array(ty) => first_unsupport_interop_ty(ty),
+        Ty::Tuple(tup) => tup
+            .iter()
+            .find(|t| first_unsupported_interop_ty(t).is_some()),
+        Ty::Array(ty) => first_unsupported_interop_ty(ty),
         _ => Some(ty),
     }
 }
