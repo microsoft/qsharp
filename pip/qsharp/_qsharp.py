@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from . import telemetry_events, env
+from . import telemetry_events, code
 from ._native import (
     Interpreter,
     TargetProfile,
@@ -195,18 +195,18 @@ def init(
     # Loop through the environment module and remove any dynamically added attributes that represent
     # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
     keys_to_remove = []
-    for key in env.__dict__:
-        if hasattr(env.__dict__[key], "__qs_gen") or isinstance(
-            env.__dict__[key], types.ModuleType
+    for key in code.__dict__:
+        if hasattr(code.__dict__[key], "__qs_gen") or isinstance(
+            code.__dict__[key], types.ModuleType
         ):
             keys_to_remove.append(key)
     for key in keys_to_remove:
-        env.__delattr__(key)
+        code.__delattr__(key)
 
     # Also remove any namespace modules dynamically added to the system.
     keys_to_remove = []
     for key in sys.modules:
-        if key.startswith("qsharp.env."):
+        if key.startswith("qsharp.code."):
             keys_to_remove.append(key)
     for key in keys_to_remove:
         sys.modules.__delitem__(key)
@@ -278,10 +278,10 @@ def eval(source: str) -> Any:
 # used by the underlying native code to create functions for callables on the fly that know
 # how to get the currently intitialized global interpreter instance.
 def _make_callable(callable, namespace, callable_name):
-    module = env
+    module = code
     # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
     # to register created modules with the system.
-    accumulated_namespace = "qsharp.env"
+    accumulated_namespace = "qsharp.code"
     accumulated_namespace += "."
     for name in namespace:
         accumulated_namespace += name

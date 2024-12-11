@@ -23,7 +23,7 @@ from ._qsharp import (
 
 telemetry_events.on_import()
 
-from ._native import Result, Pauli, QSharpError, TargetProfile, GlobalCallable
+from ._native import Result, Pauli, QSharpError, TargetProfile
 
 # IPython notebook specific features
 try:
@@ -57,5 +57,4 @@ __all__ = [
     "DepolarizingNoise",
     "BitFlipNoise",
     "PhaseFlipNoise",
-    "GlobalCallable",
 ]
