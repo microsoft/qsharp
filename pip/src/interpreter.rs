@@ -219,8 +219,6 @@ impl From<ProgramType> for qsc_qasm3::ProgramType {
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
-    /// The Python environment to which new callables will be added.
-    pub(crate) env: Option<PyObject>,
     /// The Python function to call to create a new function wrapping a callable invocation.
     pub(crate) make_callable: Option<PyObject>,
 }
@@ -232,7 +230,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
-    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, env=None, make_callable=None))]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, make_callable=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -244,7 +242,6 @@ impl Interpreter {
         list_directory: Option<PyObject>,
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
-        env: Option<PyObject>,
         make_callable: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = Into::<Profile>::into(target_profile).into();
@@ -288,16 +285,15 @@ impl Interpreter {
             &buildable_program.user_code_dependencies,
         ) {
             Ok(interpreter) => {
-                if let (Some(env), Some(make_callable)) = (&env, &make_callable) {
+                if let Some(make_callable) = &make_callable {
                     // Add any global callables from the user source as Python functions to the environment.
                     let exported_items = interpreter.get_source_package_global_items();
                     for (namespace, name, item_id) in exported_items {
-                        create_py_callable(py, env, make_callable, &namespace, &name, item_id)?;
+                        create_py_callable(py, make_callable, &namespace, &name, item_id)?;
                     }
                 }
                 Ok(Self {
                     interpreter,
-                    env,
                     make_callable,
                 })
             }
@@ -323,14 +319,14 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.eval_fragments(&mut receiver, input) {
             Ok(value) => {
-                if let (Some(env), Some(make_callable)) = (&self.env, &self.make_callable) {
+                if let Some(make_callable) = &self.make_callable {
                     // Get any global callables from the evaluated input and add them to the environment. This will grab
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
                     let new_items = self.interpreter.get_open_package_global_items();
                     for (namespace, name, item_id) in new_items {
-                        create_py_callable(py, env, make_callable, &namespace, &name, item_id)?;
+                        create_py_callable(py, make_callable, &namespace, &name, item_id)?;
                     }
                 }
                 Ok(ValueWrapper(value).into_py(py))
@@ -1001,7 +997,6 @@ struct GlobalCallable {
 /// Create a Python callable from a Q# callable and adds it to the given environment.
 fn create_py_callable(
     py: Python,
-    env: &PyObject,
     make_callable: &PyObject,
     namespace: &[Rc<str>],
     name: &str,
@@ -1012,46 +1007,14 @@ fn create_py_callable(
         return Ok(());
     }
 
-    // env is expected to be a module, any other type will raise an error.
-    let mut module: Bound<PyModule> = env.extract(py)?;
-
-    // Create a name that will be used to collect the hieirchy of namespace identifiers if they exist and use that
-    // to register created modules with the system.
-    let mut accumulated_namespace: String = module.name()?.extract()?;
-    accumulated_namespace.push('.');
-    for name in namespace {
-        accumulated_namespace.push_str(name);
-        let py_name = PyString::new_bound(py, name);
-        module = if let Ok(module) = module.as_any().getattr(py_name.clone()) {
-            // Use the existing entry, which should already be a module.
-            module.extract()?
-        } else {
-            // This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
-            // add it to sys.modules so it support import properly.
-            let new_module = PyModule::new_bound(py, &accumulated_namespace)?;
-            module.add(py_name, &new_module)?;
-            py.import_bound("sys")?
-                .getattr("modules")?
-                .set_item(accumulated_namespace.clone(), new_module.clone())?;
-            new_module
-        };
-        accumulated_namespace.push('.');
-    }
+    let args = (
+        Py::new(py, GlobalCallable { id: item_id }).expect("should be able to create callable"), // callable id
+        PyList::new_bound(py, namespace.iter().map(ToString::to_string)), // namespace as string array
+        PyString::new_bound(py, name),                                    // name of callable
+    );
 
     // Call into the Python layer to create the function wrapping the callable invocation.
-    let callable = make_callable.call1(
-        py,
-        PyTuple::new_bound(
-            py,
-            &[Py::new(py, GlobalCallable { id: item_id })
-                .expect("should be able to create callable")],
-        ),
-    )?;
+    make_callable.call1(py, args)?;
 
-    // Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
-    callable.setattr(py, "__qs_gen", true.into_py(py))?;
-
-    // Add the callable to the module.
-    module.add(name, callable)?;
     Ok(())
 }
