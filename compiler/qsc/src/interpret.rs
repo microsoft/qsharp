@@ -352,7 +352,9 @@ impl Interpreter {
 
     /// Get the global items defined in the open package being interpreted, which will include any items
     /// defined by calls to `eval_fragments` and the like.
-    pub fn get_open_package_global_items(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
+    pub fn get_current_package_global_items(
+        &self,
+    ) -> Vec<(Vec<Rc<str>>, Rc<str>, fir::StoreItemId)> {
         self.get_global_items(self.package)
     }
 

@@ -324,7 +324,7 @@ impl Interpreter {
                     // every callable that was defined in the input and by previous calls that added to the open package.
                     // This is safe because either the callable will be replaced with itself or a new callable with the
                     // same name will shadow the previous one, which is the expected behavior.
-                    let new_items = self.interpreter.get_open_package_global_items();
+                    let new_items = self.interpreter.get_current_package_global_items();
                     for (namespace, name, item_id) in new_items {
                         create_py_callable(py, make_callable, &namespace, &name, item_id)?;
                     }
