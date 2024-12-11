@@ -1,5 +1,5 @@
 /// # Sample
-/// Shor's algorithm
+/// Shor's Algorithm
 ///
 /// # Description
 /// Shor's algorithm is a quantum algorithm for finding the prime factors of an
@@ -10,7 +10,7 @@ import Std.Convert.*;
 import Std.Diagnostics.*;
 import Std.Random.*;
 import Std.Math.*;
-import Microsoft.Quantum.Unstable.Arithmetic.*;
+import Std.Arithmetic.*;
 import Std.Arrays.*;
 
 operation Main() : (Int, Int) {

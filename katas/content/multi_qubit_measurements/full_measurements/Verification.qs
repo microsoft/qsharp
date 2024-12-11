@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // Distinguish four basis states
     operation StatePrep_BasisStateMeasurement(qs : Qubit[], state : Int, dummyVar : Double) : Unit is Adj {
@@ -21,7 +21,8 @@ namespace Kata.Verification {
             StatePrep_BasisStateMeasurement,
             Kata.BasisStateMeasurement,
             false,
-            ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);
+            ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]
+        );
 
         if (isCorrect) {
             Message("Correct!");

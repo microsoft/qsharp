@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::noise::PauliNoise;
 use crate::val::Value;
+use crate::{noise::PauliNoise, val::unwrap_tuple};
+use ndarray::Array2;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
@@ -419,6 +420,29 @@ impl Backend for SparseSim {
                 self.apply_noise(q);
                 Some(Ok(Value::unit()))
             }
+            "Apply" => {
+                let [matrix, qubits] = unwrap_tuple(arg);
+                let qubits = qubits
+                    .unwrap_array()
+                    .iter()
+                    .filter_map(|q| q.clone().unwrap_qubit().try_deref().map(|q| q.0))
+                    .collect::<Vec<_>>();
+                let matrix = unwrap_matrix_as_array2(matrix, &qubits);
+
+                // Confirm the matrix is unitary by checking if multiplying it by its adjoint gives the identity matrix (up to numerical precision).
+                let adj = matrix.t().map(Complex::<f64>::conj);
+                if (matrix.dot(&adj) - Array2::<Complex<f64>>::eye(1 << qubits.len()))
+                    .map(|x| x.norm())
+                    .sum()
+                    > 1e-9
+                {
+                    return Some(Err("matrix is not unitary".to_string()));
+                }
+
+                self.sim.apply(&matrix, &qubits, None);
+
+                Some(Ok(Value::unit()))
+            }
             _ => None,
         }
     }
@@ -436,6 +460,27 @@ impl Backend for SparseSim {
             self.sim.set_rng_seed(rand::thread_rng().next_u64());
         }
     }
+}
+
+fn unwrap_matrix_as_array2(matrix: Value, qubits: &[usize]) -> Array2<Complex<f64>> {
+    let matrix: Vec<Vec<Complex<f64>>> = matrix
+        .unwrap_array()
+        .iter()
+        .map(|row| {
+            row.clone()
+                .unwrap_array()
+                .iter()
+                .map(|elem| {
+                    let [re, im] = unwrap_tuple(elem.clone());
+                    Complex::<f64>::new(re.unwrap_double(), im.unwrap_double())
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    Array2::from_shape_fn((1 << qubits.len(), 1 << qubits.len()), |(i, j)| {
+        matrix[i][j]
+    })
 }
 
 /// Simple struct that chains two backends together so that the chained

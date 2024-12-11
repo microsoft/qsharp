@@ -16,6 +16,9 @@ def run_transpile_test(
 ) -> None:
     circuit = QuantumCircuit(3, 3)
     operation(circuit)
+    if "optimization_level" not in options:
+        # Use no optimization so gate transpilation is consistent
+        options["optimization_level"] = 0
     info = QSharpBackend()._qasm3(circuit, **options)
     lines = info.splitlines()
     # remove the first four lines, which are the header

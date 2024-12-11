@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation KthBit_Oracle_Reference(x : Qubit[], k : Int) : Unit is Adj + Ctl {
         Z(x[k]);
@@ -7,8 +7,8 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1 .. 3 {
-            for k in 0 .. N - 1 {
+        for N in 1..3 {
+            for k in 0..N - 1 {
                 let sol = Kata.KthBit_Oracle(_, k);
                 let ref = KthBit_Oracle_Reference(_, k);
                 let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);

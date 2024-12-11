@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeLocation } from "./common";
+import { toVscodeLocation } from "../common";
 
 export function createReferenceProvider(languageService: ILanguageService) {
   return new QSharpReferenceProvider(languageService);

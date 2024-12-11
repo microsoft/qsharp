@@ -171,8 +171,8 @@ function CircularlyShifted<'T>(stepCount : Int, array : 'T[]) : 'T[] {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Transposed
-/// - Microsoft.Quantum.Arrays.Diagonal
+/// - [Std.Arrays.Transposed](xref:Qdk.Std.Arrays.Transposed)
+/// - [Std.Arrays.Diagonal](xref:Qdk.Std.Arrays.Diagonal)
 function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[] {
     Fact(IsRectangularArray(matrix), "`matrix` is not a rectangular array");
     mutable columnValues = [];
@@ -238,7 +238,7 @@ function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Transposed
+/// - [Std.Arrays.Transposed](xref:Qdk.Std.Arrays.Transposed)
 function Diagonal<'T>(matrix : 'T[][]) : 'T[] {
     Fact(IsRectangularArray(matrix), "`matrix` is not a rectangular array");
     let rows = Length(matrix);
@@ -274,7 +274,7 @@ function Diagonal<'T>(matrix : 'T[][]) : 'T[] {
 /// The following samples an alternating array of results.
 /// ```qsharp
 /// use qubit = Qubit();
-/// let results = Microsoft.Quantum.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
+/// let results = Std.Arrays.DrawMany(q => {X(q); M(q)}, 3, qubit);
 /// ```
 operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput) : 'TOutput[] {
     mutable outputs = [];
@@ -505,7 +505,7 @@ function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, arr
 /// An array `'U[]` of elements that are mapped by the `action` operation.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Mapped
+/// - [Std.Arrays.Mapped](xref:Qdk.Std.Arrays.Mapped)
 operation ForEach<'T, 'U>(action : ('T => 'U), array : 'T[]) : 'U[] {
     mutable output = [];
     for element in array {
@@ -686,7 +686,7 @@ function IsEmpty<'T>(array : 'T[]) : Bool {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.IsSquareArray
+/// - [Std.Arrays.IsSquareArray](xref:Qdk.Std.Arrays.IsSquareArray)
 function IsRectangularArray<'T>(array : 'T[][]) : Bool {
     if (Length(array) > 0) {
         let columnCount = Length(Head(array));
@@ -754,7 +754,7 @@ function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool {
 /// `true` if the array is square, `false` otherwise.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.IsRectangularArray
+/// - [Std.Arrays.IsRectangularArray](xref:Qdk.Std.Arrays.IsRectangularArray)
 function IsSquareArray<'T>(array : 'T[][]) : Bool {
     if (Length(array) > 0) {
         let columnCount = Length(array);
@@ -789,7 +789,7 @@ function IsSquareArray<'T>(array : 'T[][]) : Bool {
 /// An array `'U[]` of elements that are mapped by the `mapper` function.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.ForEach
+/// - [Std.Arrays.ForEach](xref:Qdk.Std.Arrays.ForEach)
 function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[] {
     mutable mapped = [];
     for element in array {
@@ -830,7 +830,7 @@ function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[] {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Mapped
+/// - [Std.Arrays.Mapped](xref:Qdk.Std.Arrays.Mapped)
 function MappedByIndex<'T, 'U>(mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
     mutable mapped = [];
     for index in 0..Length(array) - 1 {
@@ -865,7 +865,7 @@ function MappedByIndex<'T, 'U>(mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] 
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Mapped
+/// - [Std.Arrays.Mapped](xref:Qdk.Std.Arrays.Mapped)
 function MappedOverRange<'T>(mapper : (Int -> 'T), range : Range) : 'T[] {
     mutable output = [];
     for element in range {
@@ -1320,7 +1320,7 @@ function Tail<'A>(array : 'A[]) : 'A {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Zipped
+/// - [Std.Arrays.Zipped](xref:Qdk.Std.Arrays.Zipped)
 function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[]) {
     mutable first = [];
     mutable second = [];
@@ -1429,7 +1429,7 @@ function Windows<'T>(size : Int, array : 'T[]) : 'T[][] {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Arrays.Unzipped
+/// - [Std.Arrays.Unzipped](xref:Qdk.Std.Arrays.Unzipped)
 function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[] {
     let arrayLength = MinI(Length(left), Length(right));
     mutable zipped = [];

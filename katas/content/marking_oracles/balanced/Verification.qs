@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Arrays;
+    import KatasUtils.*;
+    import Std.Arrays.*;
 
     function F_Balanced(args : Bool[]) : Bool {
         return Count(x -> x, args) == Length(args) / 2;
@@ -8,7 +8,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 2 .. 2 .. 6 {
+        for n in 2..2..6 {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_Balanced, F_Balanced) {
                 Message($"Test failed for n = {n}");
                 return false;

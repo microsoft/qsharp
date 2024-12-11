@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation AllEvenVectors_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation AllEvenVectors_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         for q in qs[...Length(qs) - 2] {
             H(q);
         }
@@ -9,7 +9,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for n in 1 .. 5 {
+        for n in 1..5 {
             let solution = Kata.AllEvenVectors;
             let reference = AllEvenVectors_Reference;
             if not CheckOperationsEquivalenceOnZeroState(solution, reference, n) {

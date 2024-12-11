@@ -1,5 +1,5 @@
 namespace Test {
-    import Microsoft.Quantum.Unstable.Arithmetic.*;
+    import Std.Arithmetic.*;
     import Std.Convert.*;
     import Std.Diagnostics.*;
 

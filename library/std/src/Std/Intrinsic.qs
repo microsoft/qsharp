@@ -463,7 +463,7 @@ operation R1(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
 ///
 /// WARNING:
 /// This operation uses the **opposite** sign convention from
-/// Microsoft.Quantum.Intrinsic.R.
+/// Std.Intrinsic.R.
 ///
 /// # Input
 /// ## numerator
@@ -523,7 +523,7 @@ operation ResetAll(qubits : Qubit[]) : Unit {
 ///
 /// WARNING:
 /// This operation uses the **opposite** sign convention from
-/// Microsoft.Quantum.Intrinsic.R.
+/// Std.Intrinsic.R.
 ///
 /// # Input
 /// ## pauli
@@ -1141,6 +1141,55 @@ operation Z(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 /// # Summary
+/// Applies the given unitary matrix to the given qubits. The matrix is checked at runtime to ensure it's shape is square and that the matrix dimensions are `2 ^ Length(qubits)`.
+/// This operation is simulator-only and is not supported on hardware.
+///
+/// # Input
+/// ## matrix
+/// The unitary matrix to apply.
+/// ## qubits
+/// The qubits to which the unitary matrix should be applied.
+///
+/// # Example
+/// This performs a two qubit CNOT using the unitary matrix representation:
+/// ```qsharp
+/// import Std.Math.Complex;
+/// use qs = Qubit[2];
+/// let one = new Complex { Real = 1.0, Imag = 0.0 };
+/// let zero = new Complex { Real = 0.0, Imag = 0.0 };
+/// ApplyUnitary(
+///     [
+///         [one, zero, zero, zero],
+///         [zero, one, zero, zero],
+///         [zero, zero, zero, one],
+///         [zero, zero, one, zero]
+///     ],
+///     qs
+/// );
+/// ```
+@Config(Unrestricted)
+operation ApplyUnitary(matrix : Complex[][], qubits : Qubit[]) : Unit {
+    let num_rows = Length(matrix);
+    for col in matrix {
+        if Length(col) != num_rows {
+            fail "matrix passed to ApplyUnitary must be square.";
+        }
+    }
+
+    let num_qubits = Length(qubits);
+    if num_rows != 1 <<< num_qubits {
+        fail "matrix passed to ApplyUnitary must have dimensions 2^Length(qubits).";
+    }
+
+    Apply(matrix, qubits);
+}
+
+@Config(Unrestricted)
+operation Apply(matrix : Complex[][], qubits : Qubit[]) : Unit {
+    body intrinsic;
+}
+
+/// # Summary
 /// Logs a message.
 ///
 /// # Input
@@ -1155,4 +1204,4 @@ function Message(msg : String) : Unit {
     body intrinsic;
 }
 
-export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, Message;
+export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, ApplyUnitary, Message;

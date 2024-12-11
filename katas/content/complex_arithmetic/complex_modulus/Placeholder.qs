@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
-    
+    import Std.Math.*;
+
     function ComplexModulus(x : Complex) : Double {
         // Implement your solution here...
         return 0.;

@@ -2,11 +2,29 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Katas {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Random;
+    import KatasUtils.*;
+    export
+        CheckOperationsAreEqualStrict,
+        CheckOperationsEquivalenceOnZeroState,
+        CheckOperationsEquivalenceOnInitialStateStrict,
+        CheckOperationsEquivalenceOnZeroStateStrict,
+        ShowQuantumStateComparison,
+        CheckOperationsEquivalenceOnZeroStateWithFeedback,
+        EntangleRegisters,
+        PrepDemoState,
+        DistinguishTwoStates_SingleQubit,
+        DistinguishStates_MultiQubit,
+        BoolArrayAsKetState,
+        IntArrayAsStateName,
+        CheckOracleImplementsFunction;
+}
+
+namespace KatasUtils {
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
+    import Std.Random.*;
 
     /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
@@ -15,8 +33,8 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsAreEqualStrict(
         inputSize : Int,
         op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl))
-    : Bool {
+        reference : (Qubit[] => Unit is Adj + Ctl)
+    ) : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
@@ -30,8 +48,8 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalenceOnZeroState(
         op : (Qubit[] => Unit),
         reference : (Qubit[] => Unit is Adj),
-        inputSize : Int)
-    : Bool {
+        inputSize : Int
+    ) : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         use target = Qubit[inputSize];
         op(target);
@@ -57,8 +75,7 @@ namespace Microsoft.Quantum.Katas {
         within {
             H(control);
             initialState(target);
-        }
-        apply {
+        } apply {
             Controlled op([control], target);
             Adjoint Controlled reference([control], target);
         }
@@ -77,8 +94,8 @@ namespace Microsoft.Quantum.Katas {
     operation CheckOperationsEquivalenceOnZeroStateStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
+        inputSize : Int
+    ) : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
     }
@@ -91,8 +108,8 @@ namespace Microsoft.Quantum.Katas {
         registerSize : Int,
         initialState : Qubit[] => Unit,
         op : Qubit[] => Unit,
-        reference : Qubit[] => Unit)
-    : Unit {
+        reference : Qubit[] => Unit
+    ) : Unit {
         {
             use register = Qubit[registerSize];
             initialState(register);
@@ -142,10 +159,12 @@ namespace Microsoft.Quantum.Katas {
 
     internal operation EntangleRegisters(
         control : Qubit[],
-        target : Qubit[]) : Unit is Adj + Ctl {
+        target : Qubit[]
+    ) : Unit is Adj + Ctl {
         Fact(
             Length(control) == Length(target),
-            $"The length of qubit registers must be the same.");
+            $"The length of qubit registers must be the same."
+        );
 
         for index in IndexRange(control) {
             H(control[index]);
@@ -158,7 +177,7 @@ namespace Microsoft.Quantum.Katas {
     /// Prepare a random uneven superposition state on the given qubit array.
     operation PrepDemoState(qs : Qubit[]) : Unit {
         Fact(Length(qs) <= 4, "States with 5 qubits or more are not supported.");
-        let probs = [0.36, 0.25, 1. / 3., 1. / 5.][... Length(qs) - 1];
+        let probs = [0.36, 0.25, 1. / 3., 1. / 5.][...Length(qs) - 1];
         for (q, prob) in Zipped(qs, probs) {
             Ry(ArcCos(Sqrt(prob)) * 2.0, q);
         }
@@ -171,14 +190,15 @@ namespace Microsoft.Quantum.Katas {
         statePrep : ((Qubit, Int) => Unit is Adj),
         testImpl : (Qubit => Bool),
         stateNames : String[],
-        preserveState : Bool) : Bool {
+        preserveState : Bool
+    ) : Bool {
 
         let nTotal = 100;
         let nStates = 2;
-        mutable misclassifications = [0, size=nStates];
+        mutable misclassifications = [0, size = nStates];
 
         use q = Qubit();
-        for _ in 1 .. nTotal {
+        for _ in 1..nTotal {
             // get a random bit to define whether qubit will be in a state corresponding to true return (1) or to false one (0)
             // state = 0 false return
             // state = 1 true return
@@ -207,7 +227,7 @@ namespace Microsoft.Quantum.Katas {
         }
 
         mutable totalMisclassifications = 0;
-        for i in 0 .. nStates - 1 {
+        for i in 0..nStates - 1 {
             if misclassifications[i] != 0 {
                 set totalMisclassifications += misclassifications[i];
                 Message($"Misclassified {stateNames[i]} as {stateNames[1 - i]} in {misclassifications[i]} test runs.");
@@ -226,7 +246,8 @@ namespace Microsoft.Quantum.Katas {
         statePrep : ((Qubit[], Int, Double) => Unit is Adj),
         testImpl : (Qubit[] => Int),
         preserveState : Bool,
-        stateNames : String[]) : Bool {
+        stateNames : String[]
+    ) : Bool {
 
         let nTotal = 100;
         // misclassifications will store the number of times state i has been classified as state j (dimension nStates^2)
@@ -235,7 +256,7 @@ namespace Microsoft.Quantum.Katas {
         mutable unknownClassifications = [0, size = nStates];
 
         use qs = Qubit[nQubits];
-        for _ in 1 .. nTotal {
+        for _ in 1..nTotal {
             // get a random integer to define the state of the qubits
             let state = DrawRandomInt(0, nStates - 1);
             // get a random rotation angle to define the exact state of the qubits
@@ -252,8 +273,7 @@ namespace Microsoft.Quantum.Katas {
                 if ans != state {
                     set misclassifications w/= ((state * nStates) + ans) <- (misclassifications[(state * nStates) + ans] + 1);
                 }
-            }
-            else {
+            } else {
                 // classification result is an invalid state index - file it separately
                 set unknownClassifications w/= state <- (unknownClassifications[state] + 1);
             }
@@ -273,8 +293,8 @@ namespace Microsoft.Quantum.Katas {
         }
 
         mutable totalMisclassifications = 0;
-        for i in 0 .. nStates - 1 {
-            for j in 0 .. nStates - 1 {
+        for i in 0..nStates - 1 {
+            for j in 0..nStates - 1 {
                 if misclassifications[(i * nStates) + j] != 0 {
                     set totalMisclassifications += misclassifications[i * nStates + j];
                     Message($"Misclassified {stateNames[i]} as {stateNames[j]} in {misclassifications[(i * nStates) + j]} test runs.");
@@ -289,9 +309,9 @@ namespace Microsoft.Quantum.Katas {
     }
 
     // Helper function to convert a boolean array to its ket state representation
-    function BoolArrayAsKetState (bits : Bool[]) : String {
+    function BoolArrayAsKetState(bits : Bool[]) : String {
         mutable stateName = "|";
-        for i in 0 .. Length(bits) - 1 {
+        for i in 0..Length(bits) - 1 {
             set stateName += (bits[i] ? "1" | "0");
         }
 
@@ -299,12 +319,12 @@ namespace Microsoft.Quantum.Katas {
     }
 
     // Helper function to convert an array of bit strings to its ket state representation
-    function IntArrayAsStateName (
+    function IntArrayAsStateName(
         qubits : Int,
         bitStrings : Bool[][]
     ) : String {
         mutable statename = "";
-        for i in 0 .. Length(bitStrings) - 1 {
+        for i in 0..Length(bitStrings) - 1 {
             if i > 0 {
                 set statename += " + ";
             }
@@ -315,25 +335,25 @@ namespace Microsoft.Quantum.Katas {
     }
 
     /// # Summary
-    /// Given a marking oracle acting on N inputs, and a classical function acting on N bits, 
+    /// Given a marking oracle acting on N inputs, and a classical function acting on N bits,
     /// checks whether the oracle effect matches that of the function on every classical input.
-    operation CheckOracleImplementsFunction (
-        N : Int, 
-        oracle : (Qubit[], Qubit) => Unit, 
+    operation CheckOracleImplementsFunction(
+        N : Int,
+        oracle : (Qubit[], Qubit) => Unit,
         f : Bool[] -> Bool
     ) : Bool {
         let size = 1 <<< N;
         use (input, target) = (Qubit[N], Qubit());
-        for k in 0 .. size - 1 {
+        for k in 0..size - 1 {
             // Prepare k-th bit vector
             let binaryLE = IntAsBoolArray(k, N);
-            
+
             // "binary" is little-endian notation, so the second vector tried has qubit 0 in state 1 and the rest in state 0
             ApplyPauliFromBitString(PauliX, true, binaryLE, input);
-            
+
             // Apply the operation
             oracle(input, target);
-            
+
             // Calculate the expected classical result
             let val = f(binaryLE);
 
@@ -357,5 +377,5 @@ namespace Microsoft.Quantum.Katas {
             }
         }
         return true;
-    } 
+    }
 }

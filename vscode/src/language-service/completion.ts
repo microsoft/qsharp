@@ -4,8 +4,8 @@
 import { ILanguageService, samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
-import { EventType, sendTelemetryEvent } from "./telemetry";
-import { toVscodeRange } from "./common";
+import { toVscodeRange } from "../common";
+import { EventType, sendTelemetryEvent } from "../telemetry";
 
 export function createCompletionItemProvider(
   languageService: ILanguageService,

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation PhaseOracle_MostSignificantBit_Reference(x : Qubit[]) : Unit is Adj + Ctl {
         Z(x[0]);
@@ -9,7 +9,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.PhaseOracle_MostSignificantBit;
         let reference = PhaseOracle_MostSignificantBit_Reference;
-        for N in 1 .. 4 {
+        for N in 1..4 {
             if not CheckOperationsAreEqualStrict(N, solution, reference) {
                 Message("Incorrect.");
                 Message($"Hint: examine the effect your solution has on the {N}-qubit and compare it with the effect it " +

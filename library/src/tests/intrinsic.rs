@@ -7,7 +7,7 @@ use expect_test::expect;
 use indoc::indoc;
 use qsc::{interpret::Value, target::Profile, SparseSim};
 
-use super::{test_expression, test_expression_with_lib_and_profile_and_sim};
+use super::{test_expression, test_expression_fails, test_expression_with_lib_and_profile_and_sim};
 
 // These tests verify multi-controlled decomposition logic for gate operations. Each test
 // manually allocates 2N qubits, performs the decomposed operation from the library on the first N,
@@ -3007,4 +3007,143 @@ fn test_exp() {
         |1111⟩: 0.2252+0.1085𝑖
     "#]]
     .assert_eq(&dump);
+}
+
+#[test]
+fn test_apply_unitary_with_h_matrix() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            let one_sqrt_2 = new Complex { Real = 1.0 / Sqrt(2.0), Imag = 0.0 };
+            ApplyUnitary(
+                [
+                    [one_sqrt_2, one_sqrt_2],
+                    [one_sqrt_2, NegationC(one_sqrt_2)]
+                ],
+                [q]
+            );
+            DumpMachine();
+            Reset(q);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0⟩: 0.7071+0.0000𝑖
+        |1⟩: 0.7071+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn test_apply_unitary_with_swap_matrix() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use qs = Qubit[2];
+            H(qs[0]);
+            DumpMachine();
+            let one = new Complex { Real = 1.0, Imag = 0.0 };
+            let zero = new Complex { Real = 0.0, Imag = 0.0 };
+            ApplyUnitary(
+                [
+                    [one, zero, zero, zero],
+                    [zero, zero, one, zero],
+                    [zero, one, zero, zero],
+                    [zero, zero, zero, one]
+                ],
+                qs
+            );
+            DumpMachine();
+            ResetAll(qs);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 0.7071+0.0000𝑖
+        |10⟩: 0.7071+0.0000𝑖
+        STATE:
+        |00⟩: 0.7071+0.0000𝑖
+        |01⟩: 0.7071+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn test_apply_unitary_fails_when_matrix_not_square() {
+    let err = test_expression_fails(indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            ApplyUnitary(
+                [
+                    [new Complex { Real = 1.0, Imag = 0.0 }],
+                    [new Complex { Real = 0.0, Imag = 0.0 }]
+                ],
+                [q]
+            );
+            DumpMachine();
+            Reset(q);
+        }
+        "});
+
+    expect!["program failed: matrix passed to ApplyUnitary must be square."].assert_eq(&err);
+}
+
+#[test]
+fn test_apply_unitary_fails_when_matrix_wrong_size() {
+    let err = test_expression_fails(indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use qs = Qubit[2];
+            let one_sqrt_2 = new Complex { Real = 1.0 / Sqrt(2.0), Imag = 0.0 };
+            ApplyUnitary(
+                [
+                    [one_sqrt_2, one_sqrt_2],
+                    [one_sqrt_2, NegationC(one_sqrt_2)]
+                ],
+                qs
+            );
+            DumpMachine();
+            ResetAll(qs);
+        }
+        "});
+
+    expect!["program failed: matrix passed to ApplyUnitary must have dimensions 2^Length(qubits)."]
+        .assert_eq(&err);
+}
+
+#[test]
+fn test_apply_unitary_fails_when_matrix_not_unitary() {
+    let err = test_expression_fails(indoc! {"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use q = Qubit();
+            let zero = new Complex { Real = 0.0, Imag = 0.0 };
+            ApplyUnitary(
+                [
+                    [zero, zero],
+                    [zero, zero]
+                ],
+                [q]
+            );
+            DumpMachine();
+            Reset(q);
+        }
+        "});
+
+    expect!["intrinsic callable `Apply` failed: matrix is not unitary"].assert_eq(&err);
 }

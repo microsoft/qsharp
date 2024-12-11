@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Random;
+    import Std.Random.*;
     operation IsQubitZeroPlusOrInconclusive(q : Qubit) : Int {
         // Pick a random basis
         let basis = DrawRandomInt(0, 1);
@@ -8,8 +8,7 @@ namespace Kata {
             let result = M(q);
             // result is One only if the state was |+⟩
             return result == One ? 1 | -1;
-        }
-        else {
+        } else {
             // use Hadamard basis
             H(q);
             let result = M(q);

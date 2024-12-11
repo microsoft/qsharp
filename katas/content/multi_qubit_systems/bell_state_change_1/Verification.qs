@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
 
     operation PrepareBellState(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
@@ -17,9 +17,10 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let isCorrect = CheckOperationsEquivalenceOnInitialStateStrict(
             PrepareBellState,
-            Kata.BellStateChange1, 
-            BellStateChange1_Reference, 
-            2);
+            Kata.BellStateChange1,
+            BellStateChange1_Reference,
+            2
+        );
 
         if isCorrect {
             Message("Correct!");

@@ -61,6 +61,8 @@ class QirTarget(Target):
     ):
         super().__init__(num_qubits=num_qubits)
 
+        self._num_qubits = num_qubits
+
         if target_profile != TargetProfile.Base:
             self.add_instruction(ControlFlowOp, name="control_flow")
             self.add_instruction(IfElseOp, name="if_else")
@@ -121,3 +123,16 @@ class QirTarget(Target):
         self.add_instruction(IGate, name="id")
 
         self.add_instruction(CHGate, name="ch")
+
+    # NOTE: The follow property intentionally shadows the property on the parent class to allow it to return `None`
+    # when the value is not set, which allows bypassing transpilation checks for number of qubits. Without this,
+    # versions of Qiskit 1.3.0 and higher default to `0` which will fail later checks.
+    @property
+    def num_qubits(self):
+        return self._num_qubits
+
+    # NOTE: The follow property setter intentionally shadows the property on the parent class to allow it to be set, which
+    # maintains compatiblity with Qiskit versions before 1.3.0 where the property was settable.
+    @num_qubits.setter
+    def num_qubits(self, value):
+        self._num_qubits = value

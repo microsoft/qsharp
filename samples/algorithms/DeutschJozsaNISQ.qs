@@ -1,5 +1,5 @@
 /// # Sample
-/// Deutsch–Jozsa algorithm
+/// Deutsch–Jozsa Algorithm
 ///
 /// # Description
 /// Deutsch–Jozsa is a quantum algorithm that determines whether a given Boolean

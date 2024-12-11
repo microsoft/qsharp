@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexDiv(x : Complex, y : Complex) : Complex {
         let (a, b) = (x.Real, x.Imag);

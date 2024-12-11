@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation DemoBasisMeasurement() : Unit {
@@ -12,7 +12,7 @@ namespace Kata {
 
         use qs = Qubit[2];
         let numRuns = 1000;
-        for i in 1 .. numRuns {
+        for i in 1..numRuns {
             // Prepare the starting state.
             Ry(2. * ArcCos(1. / 3.), qs[1]);
             Controlled H([qs[1]], qs[0]);
@@ -30,9 +30,8 @@ namespace Kata {
 
         // Obtain simulated probability of measurement for each outcome.
         mutable simulated_probabilities = [];
-        for i in 0 .. 3 {
-            set simulated_probabilities +=
-                [IntAsDouble(countArray[i]) / IntAsDouble(numRuns)];
+        for i in 0..3 {
+            set simulated_probabilities += [IntAsDouble(countArray[i]) / IntAsDouble(numRuns)];
         }
 
         Message($"Theoretical measurement probabilities are {expected_probabilities}");

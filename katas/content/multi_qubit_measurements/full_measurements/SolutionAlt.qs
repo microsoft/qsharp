@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Convert.*;
 
     operation BasisStateMeasurement(qs : Qubit[]) : Int {
         return ResultArrayAsInt(Reversed(MeasureEachZ(qs)));

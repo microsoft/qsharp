@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Katas;
+    import Std.Arrays.*;
+    import KatasUtils.*;
 
-    function F_Exactly1One (args : Bool[]) : Bool {
+    function F_Exactly1One(args : Bool[]) : Bool {
         return Count(x -> x, args) == 1;
     }
 

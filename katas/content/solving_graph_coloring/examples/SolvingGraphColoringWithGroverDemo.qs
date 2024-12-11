@@ -1,8 +1,8 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation SolvingGraphColoringWithGroverDemo() : Unit {
@@ -11,9 +11,9 @@ namespace Kata {
         // The 0 -- 1 -- 2 graph from the examples
         let edges = [(0, 1), (1, 2)];
         let markingOracle = Oracle_VertexColoring(V, edges, _, _);
-        for iterations in 0 .. 9 {
+        for iterations in 0..9 {
             mutable success = 0;
-            for _ in 1 .. 100 {
+            for _ in 1..100 {
                 let res = GroversSearch(2 * V, markingOracle, iterations);
                 // Convert measurement results to integers
                 let colorPartitions = Chunks(2, res);
@@ -28,7 +28,7 @@ namespace Kata {
 
     operation GroversSearch(
         n : Int,
-        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl, 
+        markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
         iterations : Int
     ) : Bool[] {
         use qs = Qubit[n];
@@ -43,7 +43,7 @@ namespace Kata {
         meanStatePrep(qs);
 
         // Do Grover's iterations.
-        for _ in 1 .. iterations {
+        for _ in 1..iterations {
             // Apply the phase oracle.
             phaseOracle(qs);
 
@@ -57,8 +57,8 @@ namespace Kata {
 
     operation ApplyMarkingOracleAsPhaseOracle(
         markingOracle : (Qubit[], Qubit) => Unit is Adj + Ctl,
-        qubits : Qubit[])
-    : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);
@@ -70,8 +70,8 @@ namespace Kata {
 
     operation ReflectionAboutState(
         qs : Qubit[],
-        statePrep : Qubit[] => Unit is Adj + Ctl)
-    : Unit is Adj + Ctl {
+        statePrep : Qubit[] => Unit is Adj + Ctl
+    ) : Unit is Adj + Ctl {
         within {
             Adjoint statePrep(qs);
         } apply {
@@ -83,19 +83,22 @@ namespace Kata {
         within {
             ApplyToEachA(X, qs);
         } apply {
-            Controlled Z(qs[1 ...], qs[0]);
+            Controlled Z(qs[1...], qs[0]);
         }
         R(PauliI, 2.0 * PI(), qs[0]);
     }
 
-    operation Oracle_VertexColoring(V : Int, edges: (Int, Int)[], x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
+    operation Oracle_VertexColoring(V : Int, edges : (Int, Int)[], x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         let edgesNumber = Length(edges);
         use conflicts = Qubit[edgesNumber];
         within {
-            for i in 0 .. edgesNumber - 1 {
+            for i in 0..edgesNumber - 1 {
                 let (v0, v1) = edges[i];
-                Oracle_ColorEquality(x[2 * v0 .. 2 * v0 + 1], 
-                                     x[2 * v1 .. 2 * v1 + 1], conflicts[i]);
+                Oracle_ColorEquality(
+                    x[2 * v0 .. 2 * v0 + 1],
+                    x[2 * v1 .. 2 * v1 + 1],
+                    conflicts[i]
+                );
             }
         } apply {
             ApplyControlledOnInt(0, X, conflicts, y);
@@ -112,7 +115,7 @@ namespace Kata {
         }
     }
 
-    function IsVertexColoringValid(V : Int, edges: (Int, Int)[], colors: Int[]) : Bool {
+    function IsVertexColoringValid(V : Int, edges : (Int, Int)[], colors : Int[]) : Bool {
         for (v0, v1) in edges {
             if colors[v0] == colors[v1] {
                 return false;

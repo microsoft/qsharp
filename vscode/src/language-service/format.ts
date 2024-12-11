@@ -3,9 +3,9 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "./common";
-import { EventType, FormatEvent, sendTelemetryEvent } from "./telemetry";
-import { getRandomGuid } from "./utils";
+import { toVscodeRange } from "../common";
+import { EventType, FormatEvent, sendTelemetryEvent } from "../telemetry";
+import { getRandomGuid } from "../utils";
 
 export function createFormattingProvider(languageService: ILanguageService) {
   return new QSharpFormattingProvider(languageService);

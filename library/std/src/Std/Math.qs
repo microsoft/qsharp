@@ -22,7 +22,7 @@ import Std.Diagnostics.*;
 /// [Wikipedia article - Pi](https://en.wikipedia.org/wiki/Pi)
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.E
+/// - [Std.Math.E](xref:Qdk.Std.Math.E)
 function PI() : Double {
     3.14159265358979323846
 }
@@ -39,7 +39,7 @@ function PI() : Double {
 /// [Wikipedia article - e](https://en.wikipedia.org/wiki/E_(mathematical_constant))
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.PI
+/// - [Std.Math.PI](xref:Qdk.Std.Math.PI)
 function E() : Double {
     2.7182818284590452354
 }
@@ -103,7 +103,7 @@ function IsNaN(d : Double) : Bool {
 /// ```
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.IsNaN
+/// - [Std.Math.IsNaN](xref:Qdk.Std.Math.IsNaN)
 function IsInfinite(d : Double) : Bool {
     return d == 1.0 / 0.0 or d == -1.0 / 0.0;
 }
@@ -820,11 +820,11 @@ function HammingWeightI(n : Int) : Int {
 /// The factorial of `n`.
 ///
 /// # Remarks
-/// For inputs greater than 20, please use `Microsoft.Quantum.Math.FactorialL`.
+/// For inputs greater than 20, please use `Std.Math.FactorialL`.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.FactorialL
-/// - Microsoft.Quantum.Math.ApproximateFactorial
+/// - [Std.Math.FactorialL](xref:Qdk.Std.Math.FactorialL)
+/// - [Std.Math.ApproximateFactorial](xref:Qdk.Std.Math.ApproximateFactorial)
 function FactorialI(n : Int) : Int {
     Fact(n >= 0, "The factorial is not defined for negative inputs.");
     Fact(n <= 20, "The largest factorial that can be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
@@ -865,8 +865,8 @@ function FactorialI(n : Int) : Int {
 /// The factorial of `n`.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.FactorialI
-/// - Microsoft.Quantum.Math.ApproximateFactorial
+/// - [Std.Math.FactorialI](xref:Qdk.Std.Math.FactorialI)
+/// - [Std.Math.ApproximateFactorial](xref:Qdk.Std.Math.ApproximateFactorial)
 function FactorialL(n : Int) : BigInt {
     Fact(n >= 0, "The factorial is not defined for negative inputs.");
 
@@ -896,8 +896,8 @@ function FactorialL(n : Int) : BigInt {
 /// The approximate factorial of `n`.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.FactorialI
-/// - Microsoft.Quantum.Math.FactorialL
+/// - [Std.Math.FactorialI](xref:Qdk.Std.Math.FactorialI)
+/// - [Std.Math.FactorialL](xref:Qdk.Std.Math.FactorialL)
 function ApproximateFactorial(n : Int) : Double {
     Fact(n >= 0, "The factorial is not defined for negative inputs.");
     Fact(n <= 169, "The largest approximate factorial that can be stored as a Double is 169!. Use FactorialL.");
@@ -979,9 +979,9 @@ function LogGammaD(x : Double) : Double {
 /// The natural logarithm of the factorial of the provided input.
 ///
 /// # See Also
-/// - Microsoft.Quantum.Math.ApproximateFactorial
-/// - Microsoft.Quantum.Math.FactorialI
-/// - Microsoft.Quantum.Math.FactorialL
+/// - [Std.Math.ApproximateFactorial](xref:Qdk.Std.Math.ApproximateFactorial)
+/// - [Std.Math.FactorialI](xref:Qdk.Std.Math.FactorialI)
+/// - [Std.Math.FactorialL](xref:Qdk.Std.Math.FactorialL)
 function LogFactorialD(n : Int) : Double {
     LogGammaD(IntAsDouble(n) + 1.0)
 }

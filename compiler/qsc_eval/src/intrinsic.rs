@@ -10,13 +10,12 @@ use crate::{
     backend::Backend,
     error::PackageSpan,
     output::Receiver,
-    val::{self, Value},
+    val::{self, unwrap_tuple, Value},
     Error, Rc,
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::array;
 use std::convert::TryFrom;
 
 #[allow(clippy::too_many_lines)]
@@ -425,9 +424,4 @@ pub fn qubit_relabel(
     }
 
     Ok(Value::unit())
-}
-
-fn unwrap_tuple<const N: usize>(value: Value) -> [Value; N] {
-    let values = value.unwrap_tuple();
-    array::from_fn(|i| values[i].clone())
 }

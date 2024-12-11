@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation EvenOddNumbersSuperposition_Reference(qs : Qubit[], isEven : Bool) : Unit is Adj + Ctl {
         let N = Length(qs);
@@ -15,13 +15,14 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 1 .. 5 {
+        for i in 1..5 {
             for boolVal in [false, true] {
                 Message($"Testing {i} qubit(s) where isEven = {boolVal}...");
                 if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                     Kata.EvenOddNumbersSuperposition(_, boolVal),
                     EvenOddNumbersSuperposition_Reference(_, boolVal),
-                    i) {
+                    i
+                ) {
                     return false;
                 }
             }

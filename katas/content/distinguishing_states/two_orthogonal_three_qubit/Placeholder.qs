@@ -1,7 +1,7 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import Std.Measurement.*;
     operation ThreeQubitMeasurement(qs : Qubit[]) : Int {
         // Implement your solution here...
 

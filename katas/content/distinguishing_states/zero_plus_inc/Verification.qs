@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
+    import KatasUtils.*;
+    import Std.Convert.*;
+    import Std.Random.*;
 
-    operation SetQubitZeroOrPlus (q : Qubit, state : Int) : Unit {
+    operation SetQubitZeroOrPlus(q : Qubit, state : Int) : Unit {
         if state != 0 {
             H(q);
         }
@@ -26,7 +26,7 @@ namespace Kata.Verification {
         mutable nConclPlus = 0;
 
         use qs = Qubit[1];
-        for i in 1 .. nTotal {
+        for i in 1..nTotal {
 
             // get a random integer to define the state of the qubits
             let state = DrawRandomInt(0, 1);
@@ -67,7 +67,7 @@ namespace Kata.Verification {
             Message($"{nConclPlus} test runs out of {nTotal} returned conclusive |+⟩ which does not meet the required threshold of at least {thresholdConcl * 100.0}%.");
             set isCorrect = false;
         }
-        
+
         if (isCorrect) {
             Message("Correct!");
             return true;

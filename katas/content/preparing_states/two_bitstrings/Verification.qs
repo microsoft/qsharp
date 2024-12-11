@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
-    function FindFirstDiff (bits1 : Bool[], bits2 : Bool[]) : Int {
-        for i in 0 .. Length(bits1) - 1 {
+    function FindFirstDiff(bits1 : Bool[], bits2 : Bool[]) : Int {
+        for i in 0..Length(bits1) - 1 {
             if bits1[i] != bits2[i] {
                 return i;
             }
@@ -11,7 +11,7 @@ namespace Kata.Verification {
         return -1;
     }
 
-    operation TwoBitstringSuperposition_Reference (qs : Qubit[], bits1 : Bool[], bits2 : Bool[]) : Unit is Adj + Ctl {
+    operation TwoBitstringSuperposition_Reference(qs : Qubit[], bits1 : Bool[], bits2 : Bool[]) : Unit is Adj + Ctl {
         // find the index of the first bit at which the bit strings are different
         let firstDiff = FindFirstDiff(bits1, bits2);
 
@@ -19,7 +19,7 @@ namespace Kata.Verification {
         H(qs[firstDiff]);
 
         // iterate through the bit strings again setting the final state of qubits
-        for i in 0 .. Length(qs) - 1 {
+        for i in 0..Length(qs) - 1 {
             if bits1[i] == bits2[i] {
                 // if two bits are the same, apply X or nothing
                 if bits1[i] {
@@ -35,7 +35,7 @@ namespace Kata.Verification {
                 }
             }
         }
-    }  
+    }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -59,14 +59,15 @@ namespace Kata.Verification {
             [true, false, true]
         ];
 
-        for i in 0 .. Length(bitstrings_one) - 1 {
+        for i in 0..Length(bitstrings_one) - 1 {
             let bits1 = bitstrings_one[i];
             let bits2 = bitstrings_two[i];
             Message($"Testing for bits1 = {bits1} and bits2 = {bits2}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.TwoBitstringSuperposition(_, bits1, bits2),
                 TwoBitstringSuperposition_Reference(_, bits1, bits2),
-                Length(bits1)) {
+                Length(bits1)
+            ) {
                 return false;
             }
         }

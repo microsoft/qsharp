@@ -1,5 +1,5 @@
 /// # Sample
-/// Hidden shift
+/// Hidden Shift
 ///
 /// # Description
 /// There is a family of problems known as hidden shift problems, in which it

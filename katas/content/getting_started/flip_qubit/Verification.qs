@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Diagnostics;
+    import KatasUtils.*;
+    import Std.Diagnostics.*;
 
     operation FlipQubit(q : Qubit) : Unit is Adj + Ctl {
         X(q);

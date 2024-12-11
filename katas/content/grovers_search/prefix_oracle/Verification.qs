@@ -1,14 +1,14 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     function F_StartsWith(args : Bool[], p : Bool[]) : Bool {
-        for i in 0 .. Length(p) - 1 {
+        for i in 0..Length(p) - 1 {
             if p[i] != args[i] {
                 return false;
             }
         }
         return true;
-    }     
+    }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -22,11 +22,11 @@ namespace Kata.Verification {
         ] {
             if not CheckOracleImplementsFunction(n, Kata.Oracle_StartsWith(_, _, p), F_StartsWith(_, p)) {
                 Message($"Test failed for N = {n}, p = {p}");
-                return false;    
+                return false;
             }
         }
 
         Message("Correct!");
-        true 
-    }  
+        true
+    }
 }

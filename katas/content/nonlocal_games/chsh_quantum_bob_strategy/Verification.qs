@@ -1,17 +1,17 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
-    operation RotateBobQubit (clockwise : Bool, qubit : Qubit) : Unit {
+    operation RotateBobQubit(clockwise : Bool, qubit : Qubit) : Unit {
         if (clockwise) {
-            Ry(-PI()/4.0, qubit);
+            Ry(-PI() / 4.0, qubit);
         } else {
-            Ry(PI()/4.0, qubit);
+            Ry(PI() / 4.0, qubit);
         }
     }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for _ in 1 .. 4 {
+        for _ in 1..4 {
             // repeat 4 times since we are testing a measurement and wrong basis still might get
             // the correct answer, reduces probability of false positives
             use q = Qubit();
@@ -51,5 +51,5 @@ namespace Kata.Verification {
         }
         Message("Correct!");
         true
-    }   
+    }
 }

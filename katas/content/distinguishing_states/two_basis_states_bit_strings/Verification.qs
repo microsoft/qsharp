@@ -1,11 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation StatePrep_Bitstring(
         qs : Qubit[],
         bits : Bool[]
     ) : Unit is Adj {
-        for i in 0 .. Length(qs) - 1 {
+        for i in 0..Length(qs) - 1 {
             if bits[i] {
                 X(qs[i]);
             }
