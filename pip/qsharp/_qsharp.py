@@ -269,7 +269,7 @@ class StateDump:
         phase = None
         # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
         if isinstance(state, list):
-            state = {i: state[i] for i in range(len(state))}
+            state = {i: val for i, val in enumerate(state)}
         # Filter out zero states from the state dump and the given state based on tolerance
         state = {k: v for k, v in state.items() if abs(v) > tolerance}
         inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
