@@ -1,7 +1,12 @@
 /// # Sample
 /// Simulation of a simple Ising model evolution on a 2D grid
+///
+/// # Description
+/// This example demonstrates simulation
+/// of an Ising model Hamiltonian on an N1xN2 2D grid.
 /// This example can be easily simulated classically
 /// with 3x3 grid and about 500 shots.
+/// This sample is suitable for Base Profile.
 
 operation Main() : Result[] {
     // Dimensions of a 2D grid is N1 x N2
@@ -25,7 +30,7 @@ operation Main() : Result[] {
     // let g = 2.0;
 
     // Model evolution
-    IsingModel2DSim(N1, N2, J, g, evolutionTime, stepTime)
+    IsingModel2DEvolution(N1, N2, J, g, evolutionTime, stepTime)
 }
 
 /// # Summary
@@ -36,8 +41,8 @@ operation Main() : Result[] {
 /// |𝜓(0)⟩ is taken to be |0...0⟩.
 /// U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
 /// Here Σ' is taken over all pairs of neighboring qubits <i,j>.
-/// Simulation is done via K steps assuming U(t)≈U(t/K)^K.
-operation IsingModel2DSim(
+/// Simulation is done via K steps assuming U(t)≈U(t/K)ᴷ.
+operation IsingModel2DEvolution(
     N1 : Int,
     N2 : Int,
     J : Double,
