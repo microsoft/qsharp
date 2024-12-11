@@ -56,5 +56,5 @@ __all__ = [
     "PauliNoise",
     "DepolarizingNoise",
     "BitFlipNoise",
-    "PhaseFlipNoise"
+    "PhaseFlipNoise",
 ]

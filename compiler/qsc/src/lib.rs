@@ -38,7 +38,8 @@ pub mod project {
 }
 
 pub use qsc_data_structures::{
-    language_features::LanguageFeatures, namespaces::*, span::Span, target::TargetCapabilityFlags,
+    functors::FunctorApp, language_features::LanguageFeatures, namespaces::*, span::Span,
+    target::TargetCapabilityFlags,
 };
 
 pub use qsc_passes::{lower_hir_to_fir, PackageType, PassContext};

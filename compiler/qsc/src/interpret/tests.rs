@@ -46,6 +46,21 @@ mod given_interpreter {
         (result, receiver.dump())
     }
 
+    fn invoke(
+        interpreter: &mut Interpreter,
+        callable: &str,
+        args: Value,
+    ) -> (InterpretResult, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        let callable = match interpreter.eval_fragments(&mut receiver, callable) {
+            Ok(val) => val,
+            Err(e) => return (Err(e), receiver.dump()),
+        };
+        let result = interpreter.invoke(&mut receiver, callable, args);
+        (result, receiver.dump())
+    }
+
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
@@ -512,6 +527,166 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
+        }
+
+        #[test]
+        fn interpreter_without_sources_has_no_items() {
+            let interpreter = get_interpreter();
+            let items = interpreter.user_globals();
+            assert!(items.is_empty());
+        }
+
+        #[test]
+        fn fragment_without_items_has_no_items() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "()");
+            is_only_value(&result, &output, &Value::unit());
+            let items = interpreter.source_globals();
+            assert!(items.is_empty());
+        }
+
+        #[test]
+        fn fragment_defining_items_has_items() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    function Foo() : Int { 2 }
+                    function Bar() : Int { 3 }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let items = interpreter.source_globals();
+            assert_eq!(items.len(), 2);
+            // No namespace for top-level items
+            assert!(items[0].0.is_empty());
+            expect![[r#"
+                "Foo"
+            "#]]
+            .assert_debug_eq(&items[0].1);
+            // No namespace for top-level items
+            assert!(items[1].0.is_empty());
+            expect![[r#"
+                "Bar"
+            "#]]
+            .assert_debug_eq(&items[1].1);
+        }
+
+        #[test]
+        fn fragment_defining_items_with_namespace_has_items() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    namespace Foo {
+                        function Bar() : Int { 3 }
+                    }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let items = interpreter.source_globals();
+            assert_eq!(items.len(), 1);
+            expect![[r#"
+                [
+                    "Foo",
+                ]
+            "#]]
+            .assert_debug_eq(&items[0].0);
+            expect![[r#"
+                "Bar"
+            "#]]
+            .assert_debug_eq(&items[0].1);
+        }
+
+        #[test]
+        fn fragments_defining_items_add_to_existing_items() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    function Foo() : Int { 2 }
+                    function Bar() : Int { 3 }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let items = interpreter.source_globals();
+            assert_eq!(items.len(), 2);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    function Baz() : Int { 4 }
+                    function Qux() : Int { 5 }
+                "#},
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let items = interpreter.source_globals();
+            assert_eq!(items.len(), 4);
+            // No namespace for top-level items
+            assert!(items[0].0.is_empty());
+            expect![[r#"
+                "Foo"
+            "#]]
+            .assert_debug_eq(&items[0].1);
+            // No namespace for top-level items
+            assert!(items[1].0.is_empty());
+            expect![[r#"
+                "Bar"
+            "#]]
+            .assert_debug_eq(&items[1].1);
+            // No namespace for top-level items
+            assert!(items[2].0.is_empty());
+            expect![[r#"
+                "Baz"
+            "#]]
+            .assert_debug_eq(&items[2].1);
+            // No namespace for top-level items
+            assert!(items[3].0.is_empty());
+            expect![[r#"
+                "Qux"
+            "#]]
+            .assert_debug_eq(&items[3].1);
+        }
+
+        #[test]
+        fn invoke_callable_without_args_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "Std.Diagnostics.DumpMachine",
+                Value::unit(),
+            );
+            is_unit_with_output(&result, &output, "STATE:\nNo qubits allocated");
+        }
+
+        #[test]
+        fn invoke_callable_with_args_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "Message",
+                Value::String("Hello, World!".into()),
+            );
+            is_unit_with_output(&result, &output, "Hello, World!");
+        }
+
+        #[test]
+        fn invoke_lambda_with_capture_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(&mut interpreter, "let x = 1; let f = y -> x + y;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = invoke(&mut interpreter, "f", Value::Int(2));
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
+        fn invoke_lambda_with_capture_in_callable_expr_succeeds() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = invoke(
+                &mut interpreter,
+                "{let x = 1; let f = y -> x + y; f}",
+                Value::Int(2),
+            );
+            is_only_value(&result, &output, &Value::Int(3));
         }
 
         #[test]
@@ -1696,6 +1871,46 @@ mod given_interpreter {
                       explicit fail [qsharp-library-source:core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
+        }
+
+        #[test]
+        fn interpreter_returns_items_from_source() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Unit { }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("A.B()".into()),
+            );
+
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let interpreter = Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("interpreter should be created");
+
+            let items = interpreter.user_globals();
+            assert_eq!(1, items.len());
+            expect![[r#"
+                [
+                    "A",
+                ]
+            "#]]
+            .assert_debug_eq(&items[0].0);
+            expect![[r#"
+                "B"
+            "#]]
+            .assert_debug_eq(&items[0].1);
         }
 
         #[test]
