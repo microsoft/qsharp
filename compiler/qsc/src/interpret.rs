@@ -536,21 +536,6 @@ impl Interpreter {
         )
     }
 
-    /// Runs the given entry expression on a new instance of the environment and simulator,
-    /// but using the current compilation.
-    pub fn run(
-        &mut self,
-        receiver: &mut impl Receiver,
-        expr: Option<&str>,
-        noise: Option<PauliNoise>,
-    ) -> InterpretResult {
-        let mut sim = match noise {
-            Some(noise) => SparseSim::new_with_noise(&noise),
-            None => SparseSim::new(),
-        };
-        self.run_with_sim(&mut sim, receiver, expr)
-    }
-
     /// Invokes the given callable with the given arguments using the current environment, simlator, and compilation.
     pub fn invoke(
         &mut self,
@@ -577,6 +562,22 @@ impl Interpreter {
             )
         })
     }
+
+    /// Runs the given entry expression on a new instance of the environment and simulator,
+    /// but using the current compilation.
+    pub fn run(
+        &mut self,
+        receiver: &mut impl Receiver,
+        expr: Option<&str>,
+        noise: Option<PauliNoise>,
+    ) -> InterpretResult {
+        let mut sim = match noise {
+            Some(noise) => SparseSim::new_with_noise(&noise),
+            None => SparseSim::new(),
+        };
+        self.run_with_sim(&mut sim, receiver, expr)
+    }
+
     /// Gets the current quantum state of the simulator.
     pub fn get_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
         self.sim.capture_quantum_state()
