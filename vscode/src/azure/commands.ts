@@ -23,8 +23,9 @@ import { getQirForActiveWindow } from "../qirGeneration";
 import { supportsAdaptive, targetSupportQir } from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
 import { getTokenForWorkspace } from "./auth";
+import { qsharpExtensionId } from "../common";
 
-const workspacesSecret = "qsharp-vscode.workspaces";
+const workspacesSecret = `${qsharpExtensionId}.workspaces`;
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   const workspaceTreeProvider = new WorkspaceTreeProvider();
@@ -81,17 +82,17 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
       await vscode.commands.executeCommand(
         "setContext",
-        "qsharp-vscode.treeItemSupportsQir",
+        `${qsharpExtensionId}.treeItemSupportsQir`,
         supportsQir,
       );
       await vscode.commands.executeCommand(
         "setContext",
-        "qsharp-vscode.treeItemSupportsDownload",
+        `${qsharpExtensionId}.treeItemSupportsDownload`,
         supportsDownload,
       );
       await vscode.commands.executeCommand(
         "setContext",
-        "qsharp-vscode.treeItemIsWorkspace",
+        `${qsharpExtensionId}.treeItemIsWorkspace`,
         isWorkspace,
       );
     }),
@@ -99,7 +100,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.targetSubmit",
+      `${qsharpExtensionId}.targetSubmit`,
       async (arg: WorkspaceTreeItem) => {
         // Could be run via the treeItem icon or the menu command.
         const treeItem = arg || currentTreeItem;
@@ -156,17 +157,20 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.workspacesRefresh", () => {
-      // The user manually triggered a refresh. Start a cycle for each workspace
-      const workspaceIds = workspaceTreeProvider.getWorkspaceIds();
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.workspacesRefresh`,
+      () => {
+        // The user manually triggered a refresh. Start a cycle for each workspace
+        const workspaceIds = workspaceTreeProvider.getWorkspaceIds();
 
-      workspaceIds.forEach((id) => {
-        const workspace = workspaceTreeProvider.getWorkspace(id);
-        if (workspace) {
-          startRefreshCycle(workspaceTreeProvider, workspace);
-        }
-      });
-    }),
+        workspaceIds.forEach((id) => {
+          const workspace = workspaceTreeProvider.getWorkspace(id);
+          if (workspace) {
+            startRefreshCycle(workspaceTreeProvider, workspace);
+          }
+        });
+      },
+    ),
   );
 
   async function saveWorkspaceList() {
@@ -196,20 +200,23 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.workspacesAdd", async () => {
-      const workspace = await queryWorkspaces();
-      if (workspace) {
-        workspaceTreeProvider.updateWorkspace(workspace);
-        await saveWorkspaceList();
-        // Just kick off the refresh loop, no need to await
-        startRefreshCycle(workspaceTreeProvider, workspace);
-      }
-    }),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.workspacesAdd`,
+      async () => {
+        const workspace = await queryWorkspaces();
+        if (workspace) {
+          workspaceTreeProvider.updateWorkspace(workspace);
+          await saveWorkspaceList();
+          // Just kick off the refresh loop, no need to await
+          startRefreshCycle(workspaceTreeProvider, workspace);
+        }
+      },
+    ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.workspacesRemove",
+      `${qsharpExtensionId}.workspacesRemove`,
       async (arg: WorkspaceTreeItem) => {
         // Could be run via the treeItem icon or the menu command.
         const treeItem = arg || currentTreeItem;
@@ -224,7 +231,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.downloadResults",
+      `${qsharpExtensionId}.downloadResults`,
       async (arg: WorkspaceTreeItem) => {
         // Could be run via the treeItem icon or the menu command.
         const treeItem = arg || currentTreeItem;
@@ -273,7 +280,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.workspacePythonCode",
+      `${qsharpExtensionId}.workspacePythonCode`,
       async (arg: WorkspaceTreeItem) => {
         // Could be run via the treeItem icon or the menu command.
         const treeItem = arg || currentTreeItem;
@@ -300,7 +307,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.workspaceOpenPortal",
+      `${qsharpExtensionId}.workspaceOpenPortal`,
       async (arg: WorkspaceTreeItem) => {
         // Could be run via the treeItem icon or the menu command.
         const treeItem = arg || currentTreeItem;
