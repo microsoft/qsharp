@@ -13,16 +13,11 @@ import {
 } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from "./programConfig";
 import {
-  IOperationInfo,
   IProgramConfig,
 } from "../../npm/qsharp/lib/web/qsc_wasm";
 import { getTarget } from "./config";
 import { toVsCodeRange } from "./common";
-import { createDebugConsoleEventTarget } from "./debugger/output";
 
-// TODO(sezna):
-// - Cancellation tokens
-// - add tests to samples
 function localGetCompilerWorker(
   context: vscode.ExtensionContext,
 ): ICompilerWorker {
