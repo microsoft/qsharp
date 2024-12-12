@@ -300,26 +300,23 @@ impl LanguageService {
             .into_iter()
             .map(|lens| {
                 let range = lens.range.into();
-                let (command, args, test_name) = match lens.command {
-                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None, None),
-                    qsls::protocol::CodeLensCommand::Debug => ("debug", None, None),
-                    qsls::protocol::CodeLensCommand::Run => ("run", None, None),
-                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None, None),
+                let (command, args) = match lens.command {
+                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
+                    qsls::protocol::CodeLensCommand::Debug => ("debug", None),
+                    qsls::protocol::CodeLensCommand::Run => ("run", None),
+                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
                     qsls::protocol::CodeLensCommand::Circuit(args) => (
                         "circuit",
                         args.map(|args| OperationInfo {
                             operation: args.operation,
                             total_num_qubits: args.total_num_qubits,
                         }),
-                        None,
                     ),
-                    qsls::protocol::CodeLensCommand::RunTest(name) => ("runTest", None, Some(name)),
                 };
                 CodeLens {
                     range,
                     command: command.to_string(),
                     args,
-                    test_name
                 }
                 .into()
             })
@@ -502,8 +499,6 @@ serializable_type! {
         command: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         args: Option<OperationInfo>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        test_name: Option<String>,
     },
     r#"export type ICodeLens = {
         range: IRange;

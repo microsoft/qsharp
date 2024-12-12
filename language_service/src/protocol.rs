@@ -184,8 +184,6 @@ pub enum CodeLensCommand {
     Run,
     Estimate,
     Circuit(Option<OperationInfo>),
-    // The string represents the callable name to call to run the test
-    RunTest(String),
 }
 
 #[derive(Debug)]
