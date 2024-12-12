@@ -180,7 +180,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 
 	ctrl.resolveHandler = async item => {
 		if (!item) {
-			context.subscriptions.push(...startWatchingWorkspace(ctrl, fileChangedEmitter));
+			context.subscriptions.push(...startWatchingWorkspace(ctrl, fileChangedEmitter, context));
 			return;
 		}
 
@@ -229,23 +229,20 @@ function getWorkspaceTestPatterns() {
 }
 
 
-function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>) {
+function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>, context: vscode.ExtensionContext) {
 	return getWorkspaceTestPatterns().map(({ pattern }) => {
+		const refresher = mkRefreshHandler(controller, context, true)
 		const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-		/*
-				watcher.onDidCreate(uri => {
-					getOrCreateFile(controller, uri);
-					fileChangedEmitter.fire(uri);
-				});
-				watcher.onDidChange(async uri => {
-					const { file, data } = getOrCreateFile(controller, uri);
-					if (data.didResolve) {
-						await data.updateFromDisk(controller, file);
-					}
-					fileChangedEmitter.fire(uri);
-				});
-				*/
-		watcher.onDidDelete(uri => controller.items.delete(uri.toString()));
+		watcher.onDidCreate(async uri => {
+			await refresher();
+		});
+		watcher.onDidChange(async uri => {
+			await refresher();
+		});
+
+		watcher.onDidDelete(async uri => {
+			await refresher();
+		});
 
 		// findInitialFiles(controller, pattern);
 
@@ -255,34 +252,34 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 
 async function runTestCase(ctrl: vscode.TestController, testCase: vscode.TestItem, request: vscode.TestRunRequest, worker: ICompilerWorker, program: ProgramConfig): Promise<void> {
 	const run = ctrl.createTestRun(request);
-		const evtTarget = new QscEventTarget(false);
-		evtTarget.addEventListener('Message', (msg) => {
-			run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
+	const evtTarget = new QscEventTarget(false);
+	evtTarget.addEventListener('Message', (msg) => {
+		run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
 
-		})
+	})
 
-		evtTarget.addEventListener('Result', (msg) => {
-			if (msg.detail.success) {
-				run.passed(testCase);
-			} else {
-				let message: vscode.TestMessage = {
-					message: msg.detail.value.message,
-					location: {
-						range: toVsCodeRange(msg.detail.value.range),
-						uri: vscode.Uri.parse(msg.detail.value.uri || "")
-					}
+	evtTarget.addEventListener('Result', (msg) => {
+		if (msg.detail.success) {
+			run.passed(testCase);
+		} else {
+			let message: vscode.TestMessage = {
+				message: msg.detail.value.message,
+				location: {
+					range: toVsCodeRange(msg.detail.value.range),
+					uri: vscode.Uri.parse(msg.detail.value.uri || "")
 				}
-				run.failed(testCase, message);
 			}
-			run.end();
-		})
-
-		const callableExpr = `${testCase.id}()`;
-		try {
-			await worker.run(program, callableExpr, 1, evtTarget);
-		} catch (error) {
-			log.error(`Error running test ${testCase.id}:`, error);
-			run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+			run.failed(testCase, message);
 		}
-		log.info("ran test", testCase.id);
+		run.end();
+	})
+
+	const callableExpr = `${testCase.id}()`;
+	try {
+		await worker.run(program, callableExpr, 1, evtTarget);
+	} catch (error) {
+		log.error(`Error running test ${testCase.id}:`, error);
+		run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+	}
+	log.info("ran test", testCase.id);
 }
