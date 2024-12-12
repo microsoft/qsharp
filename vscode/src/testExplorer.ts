@@ -12,9 +12,7 @@ import {
   QscEventTarget,
 } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from "./programConfig";
-import {
-  IProgramConfig,
-} from "../../npm/qsharp/lib/web/qsc_wasm";
+import { IProgramConfig } from "../../npm/qsharp/lib/web/qsc_wasm";
 import { getTarget } from "./config";
 import { toVsCodeRange } from "./common";
 
@@ -65,7 +63,7 @@ function mkRefreshHandler(
 ) {
   return async () => {
     if (shouldDeleteOldTests) {
-      for (const [id, _] of ctrl.items) {
+      for (const [id] of ctrl.items) {
         ctrl.items.delete(id);
       }
     }
@@ -96,8 +94,6 @@ function mkRefreshHandler(
   };
 }
 
-const fileChangedEmitter = new vscode.EventEmitter<vscode.Uri>();
-
 export async function initTestExplorer(context: vscode.ExtensionContext) {
   const ctrl: vscode.TestController = vscode.tests.createTestController(
     "qsharpTestController",
@@ -111,22 +107,21 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 
   ctrl.refreshHandler = refreshHandler;
 
-  const runHandler = (
-    request: vscode.TestRunRequest,
-    cancellation: vscode.CancellationToken,
-  ) => {
+  const runHandler = (request: vscode.TestRunRequest) => {
     if (!request.continuous) {
       return startTestRun(request);
     }
   };
 
+  // runs an individual test run
+  // or test group (a test run where there are child tests)
   const startTestRun = async (request: vscode.TestRunRequest) => {
     // use the compiler worker to run the test in the interpreter
 
     log.info("Starting test run, request was", JSON.stringify(request));
     const worker = localGetCompilerWorker(context);
 
-    let program = await getProgramConfig();
+    const program = await getProgramConfig();
     if (!program) {
       return;
     }
@@ -163,9 +158,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 
   ctrl.resolveHandler = async (item) => {
     if (!item) {
-      context.subscriptions.push(
-        ...startWatchingWorkspace(ctrl, fileChangedEmitter, context),
-      );
+      context.subscriptions.push(...startWatchingWorkspace(ctrl, context));
       return;
     }
   };
@@ -192,6 +185,11 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
   );
 }
 
+/**
+ * If there are no workspace folders, then we can't watch anything. In general, though, there is a workspace since this extension
+ * is only activated when a .qs file is opened.
+ **/
+
 function getWorkspaceTestPatterns() {
   if (!vscode.workspace.workspaceFolders) {
     return [];
@@ -203,22 +201,25 @@ function getWorkspaceTestPatterns() {
   }));
 }
 
+/**
+ * Watches *.qs files and triggers the test discovery function on update/creation/deletion, ensuring we detect new tests without
+ * the user having to manually refresh the test explorer.
+ **/
 function startWatchingWorkspace(
   controller: vscode.TestController,
-  fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
   context: vscode.ExtensionContext,
 ) {
   return getWorkspaceTestPatterns().map(({ pattern }) => {
     const refresher = mkRefreshHandler(controller, context, true);
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    watcher.onDidCreate(async (uri) => {
+    watcher.onDidCreate(async () => {
       await refresher();
     });
-    watcher.onDidChange(async (uri) => {
+    watcher.onDidChange(async () => {
       await refresher();
     });
 
-    watcher.onDidDelete(async (uri) => {
+    watcher.onDidDelete(async () => {
       await refresher();
     });
 
@@ -228,6 +229,12 @@ function startWatchingWorkspace(
   });
 }
 
+/**
+ * Given a single test case, run it in the worker (which runs the interpreter) and report results back to the
+ * `TestController` as a side effect.
+ *
+ * This function manages its own event target for the results of the test run and uses the controller to render the output in the VS Code UI.
+ **/
 async function runTestCase(
   ctrl: vscode.TestController,
   testCase: vscode.TestItem,
@@ -245,7 +252,7 @@ async function runTestCase(
     if (msg.detail.success) {
       run.passed(testCase);
     } else {
-      let message: vscode.TestMessage = {
+      const message: vscode.TestMessage = {
         message: msg.detail.value.message,
         location: {
           range: toVsCodeRange(msg.detail.value.range),
