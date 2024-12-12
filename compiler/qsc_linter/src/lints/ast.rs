@@ -181,17 +181,16 @@ impl AstLintPass for DeprecatedSet {
             ExprKind::Assign(_, _)
             | ExprKind::AssignOp(_, _, _)
             | ExprKind::AssignUpdate(_, _, _) => {
-                if compilation.get_source_code(expr.span).starts_with("set ") {
+                if ["set ", "set\n", "set\r\n", "set\t"]
+                    .iter()
+                    .any(|s| compilation.get_source_code(expr.span).starts_with(s))
+                {
                     // If the `set` keyword is used, push a lint.
                     let span = Span {
                         lo: expr.span.lo,
                         hi: expr.span.lo + 3,
                     };
-                    let code_action_span = Span {
-                        lo: span.lo,
-                        hi: span.lo + 4,
-                    };
-                    buffer.push(lint!(self, span, vec![(String::new(), code_action_span)]));
+                    buffer.push(lint!(self, span, vec![(String::new(), span)]));
                 }
             }
             _ => {}

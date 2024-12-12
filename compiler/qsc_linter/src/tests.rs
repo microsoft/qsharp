@@ -30,7 +30,7 @@ fn set_keyword_lint() {
                             "",
                             Span {
                                 lo: 71,
-                                hi: 75,
+                                hi: 74,
                             },
                         ),
                     ],
@@ -494,23 +494,23 @@ fn deprecated_with_eq_op_for_structs() {
         struct Foo { x : Int }
         function Bar() : Foo {
             mutable foo = new Foo { x = 2 };
-            set foo w/= x <- 3;
+            foo w/= x <- 3;
             foo
         }
     "},
         &expect![[r#"
             [
                 SrcLint {
-                    source: "set foo w/= x <- 3",
+                    source: "foo w/= x <- 3",
                     level: Allow,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
                     code_action_edits: [
                         (
-                            "set foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
+                            "foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
                             Span {
                                 lo: 115,
-                                hi: 133,
+                                hi: 129,
                             },
                         ),
                     ],
