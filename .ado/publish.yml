@@ -34,13 +34,13 @@ parameters:
   default:
   - name: linux_x86_64
     poolName: 'Azure-Pipelines-DevTools-EO'
-    imageName: 'ubuntu-20.04'
+    imageName: 'ubuntu-22.04'
     os: linux
     arch: x86_64
     additionalTargets: wasm32-unknown-unknown
   - name: linux_aarch64
     poolName: 'Azure-Pipelines-DevTools-EO'
-    imageName: 'ubuntu-20.04'
+    imageName: 'ubuntu-22.04'
     os: linux
     arch: aarch64
     additionalRustTargets: aarch64-unknown-linux-gnu wasm32-unknown-unknown
