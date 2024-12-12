@@ -32,24 +32,17 @@ pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<String>, Stri
         .iter()
         .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
 
-    let (callables, others): (Vec<_>, Vec<_>) = items_with_test_attribute.partition(|(_, item)| {
-        log::info!("item parent: {:?}", item.parent);
-        matches!(item.kind, qsc::hir::ItemKind::Callable(_))
-    });
-
-    if !others.is_empty() {
-        todo!("Return pretty error for non-callable with test attribute")
-    }
+    let callables = items_with_test_attribute
+        .filter(|(_, item)| matches!(item.kind, qsc::hir::ItemKind::Callable(_)));
 
     let callable_names = callables
-        .iter()
-        .filter_map(|(_, item)| {
+        .filter_map(|(_, item)| -> Option<Result<String, String>>{
             if let qsc::hir::ItemKind::Callable(callable) = &item.kind {
                 if !callable.generics.is_empty() {
-                    todo!("Return pretty error for generic callable with test attribute")
+                    return Some(Err(format!("Callable {} has generic type parameters. Test callables cannot have generic type parameters.", callable.name.name)));
                 }
                 if callable.input.kind != PatKind::Tuple(vec![]) {
-                    todo!("Return pretty error for callable with input")
+                    return Some(Err(format!("Callable {} has input parameters. Test callables cannot have input parameters.", callable.name.name)));
                 }
                 // this is indeed a test callable, so let's grab its parent name
                 let name = match item.parent {
@@ -67,12 +60,12 @@ pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<String>, Stri
                     }
                 };
 
-                Some(name)
+                Some(Ok(name))
             } else {
                 None
             }
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     Ok(callable_names)
 }
