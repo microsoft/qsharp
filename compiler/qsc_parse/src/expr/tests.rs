@@ -724,6 +724,30 @@ fn set() {
 }
 
 #[test]
+fn set_chained() {
+    check(
+        expr,
+        "set x = set y = z",
+        &expect![[r#"
+            Expr _id_ [0-17]: Assign:
+                Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "x")
+                Expr _id_ [8-17]: Assign:
+                    Expr _id_ [12-13]: Path: Path _id_ [12-13] (Ident _id_ [12-13] "y")
+                    Expr _id_ [16-17]: Path: Path _id_ [16-17] (Ident _id_ [16-17] "z")"#]],
+    );
+    check(
+        expr,
+        "x = y = z",
+        &expect![[r#"
+            Expr _id_ [0-9]: Assign:
+                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
+                Expr _id_ [4-9]: Assign:
+                    Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "y")
+                    Expr _id_ [8-9]: Path: Path _id_ [8-9] (Ident _id_ [8-9] "z")"#]],
+    );
+}
+
+#[test]
 fn set_hole() {
     check(
         expr,
