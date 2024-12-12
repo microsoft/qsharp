@@ -4,7 +4,7 @@
 
 import * as vscode from 'vscode';
 import { loadProject } from './projectSystem';
-import { getCompilerWorker, ICompilerWorker, IProjectConfig, log, QscEventTarget } from "qsharp-lang";
+import { getCompilerWorker, ICompilerWorker, IProjectConfig, log, ProgramConfig, QscEventTarget } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from './programConfig';
 import { IProgramConfig } from '../../npm/qsharp/lib/web/qsc_wasm';
 import { getTarget } from './config';
@@ -71,11 +71,9 @@ function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.Extension
 
 		// break down the test callable into its parts, so we can construct 
 		// the namespace hierarchy in the test explorer
-		const hierarchy: {[key: string]: vscode.TestItem} = {};
-
 		for (const testCallable of testCallables) {
 			const parts = testCallable.split('.');
-			
+
 			// for an individual test case, e.g. foo.bar.baz, create a hierarchy of items
 			let rover = ctrl.items;
 			for (let i = 0; i < parts.length; i++) {
@@ -99,11 +97,11 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 	context.subscriptions.push(ctrl);
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-		  "qsharp-vscode.runTest",
-		  // TODO: codelens callback
-		  () => {},
+			"qsharp-vscode.runTest",
+			// TODO: codelens callback
+			() => { },
 		)
-	  )
+	)
 
 	// construct the handler that runs when the user presses the refresh button in the test explorer
 	const refreshHandler = mkRefreshHandler(ctrl, context);
@@ -132,42 +130,14 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 		const queue = [];
 
 		for (const testCase of request.include || []) {
-			const run = ctrl.createTestRun(request);
-			const testRunFunc = async () => {
-				const evtTarget = new QscEventTarget(false);
-				evtTarget.addEventListener('Message', (msg) => {
-					run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
-
-				})
-
-				evtTarget.addEventListener('Result', (msg) => {
-					if (msg.detail.success) {
-						run.passed(testCase);
-					} else {
-						let message: vscode.TestMessage = {
-							message: msg.detail.value.message,
-							location: {
-								range: toVsCodeRange(msg.detail.value.range),
-								uri: vscode.Uri.parse(msg.detail.value.uri || "")
-							}
-						}
-						run.failed(testCase, message);
-					}
-					run.end();
-				})
-				const callableExpr = `${testCase.id}()`;
-				log.info("about to run test", callableExpr);
-				try {
-					await worker.run(program, callableExpr, 1, evtTarget);
-				} catch (error) {
-					log.error(`Error running test ${testCase.id}:`, error);
-					run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+			if (testCase.children.size > 0) {
+				for (const childTestCase of testCase.children) {
+					queue.push(async () => runTestCase(ctrl, childTestCase[1], request, worker, program));
 				}
-				log.info("ran test", testCase.id);
-
 			}
-
-			queue.push(testRunFunc);
+			else {
+				queue.push(async () => runTestCase(ctrl, testCase, request, worker, program));
+			}
 		}
 
 		for (const func of queue) {
@@ -281,4 +251,38 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 
 		return watcher;
 	});
+}
+
+async function runTestCase(ctrl: vscode.TestController, testCase: vscode.TestItem, request: vscode.TestRunRequest, worker: ICompilerWorker, program: ProgramConfig): Promise<void> {
+	const run = ctrl.createTestRun(request);
+		const evtTarget = new QscEventTarget(false);
+		evtTarget.addEventListener('Message', (msg) => {
+			run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
+
+		})
+
+		evtTarget.addEventListener('Result', (msg) => {
+			if (msg.detail.success) {
+				run.passed(testCase);
+			} else {
+				let message: vscode.TestMessage = {
+					message: msg.detail.value.message,
+					location: {
+						range: toVsCodeRange(msg.detail.value.range),
+						uri: vscode.Uri.parse(msg.detail.value.uri || "")
+					}
+				}
+				run.failed(testCase, message);
+			}
+			run.end();
+		})
+
+		const callableExpr = `${testCase.id}()`;
+		try {
+			await worker.run(program, callableExpr, 1, evtTarget);
+		} catch (error) {
+			log.error(`Error running test ${testCase.id}:`, error);
+			run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+		}
+		log.info("ran test", testCase.id);
 }
