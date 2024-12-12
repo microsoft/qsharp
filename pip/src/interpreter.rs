@@ -20,7 +20,7 @@ use pyo3::{
     types::{PyComplex, PyDict, PyList, PyString, PyTuple, PyType},
 };
 use qsc::{
-    fir::{self, StoreItemId},
+    fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
         self,
@@ -30,7 +30,7 @@ use qsc::{
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
     target::Profile,
-    FunctorApp, LanguageFeatures, PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
 
 use resource_estimator::{self as re, estimate_expr};
@@ -398,7 +398,7 @@ impl Interpreter {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         let (input_ty, output_ty) = self
             .interpreter
-            .global_tys(&callable.into())
+            .global_tys(&callable.0)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
         // If the types are not supported, we can't convert the arguments or return value.
@@ -431,10 +431,7 @@ impl Interpreter {
             convert_obj_with_ty(py, &args, &input_ty)?
         };
 
-        match self
-            .interpreter
-            .invoke(&mut receiver, callable.into(), args)
-        {
+        match self.interpreter.invoke(&mut receiver, callable.0, args) {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -991,14 +988,14 @@ where
     }
 }
 
-#[pyclass]
-#[derive(Clone, Copy)]
-struct GlobalCallable(StoreItemId, FunctorApp);
+#[pyclass(unsendable)]
+#[derive(Clone)]
+struct GlobalCallable(Value);
 
 impl From<Value> for GlobalCallable {
     fn from(val: Value) -> Self {
         match val {
-            Value::Global(id, app) => GlobalCallable(id, app),
+            val @ Value::Global(..) => GlobalCallable(val),
             _ => panic!("expected global callable"),
         }
     }
@@ -1006,7 +1003,7 @@ impl From<Value> for GlobalCallable {
 
 impl From<GlobalCallable> for Value {
     fn from(val: GlobalCallable) -> Self {
-        Value::Global(val.0, val.1)
+        val.0
     }
 }
 
