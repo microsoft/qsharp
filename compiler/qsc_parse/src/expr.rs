@@ -343,29 +343,6 @@ fn expr_if(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::If(cond, body, otherwise)))
 }
 
-fn expr_set(s: &mut ParserContext) -> Result<Box<ExprKind>> {
-    let lhs = expr(s)?;
-    if token(s, TokenKind::Eq).is_ok() {
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::Assign(lhs, rhs)))
-    } else if token(s, TokenKind::WSlashEq).is_ok() {
-        let index = expr(s)?;
-        token(s, TokenKind::LArrow)?;
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::AssignUpdate(lhs, index, rhs)))
-    } else if let TokenKind::BinOpEq(op) = s.peek().kind {
-        s.advance();
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::AssignOp(closed_bin_op(op), lhs, rhs)))
-    } else {
-        Err(Error::new(ErrorKind::Rule(
-            "assignment operator",
-            s.peek().kind,
-            s.peek().span,
-        )))
-    }
-}
-
 fn expr_array(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let kind = expr_array_core(s)?;

@@ -15,6 +15,32 @@ use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
 #[test]
+fn set_keyword_lint() {
+    check(
+        &wrap_in_callable("set x = 3;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "set",
+                    level: Warn,
+                    message: "deprecated use of `set` keyword",
+                    help: "`set` keywords are deprecated for assignments, they can be removed",
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 71,
+                                hi: 75,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn multiple_lints() {
     check(
         &wrap_in_callable("let x = ((1 + 2)) / 0;;;;", CallableKind::Operation),
@@ -677,7 +703,7 @@ fn run_lints(
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
+    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
     let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
