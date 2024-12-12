@@ -12,11 +12,9 @@ import { toVsCodeRange } from './common';
 
 
 // TODO(sezna):
-// - construct fully qualified callable name instead of assuming `Main`
 // - handle running all tests
 // - Auto-populate newly discovered tests
 // - CodeLens
-// - use namespace hierarchy to populate test items
 // - Cancellation tokens
 function localGetCompilerWorker(context: vscode.ExtensionContext): ICompilerWorker {
 	const compilerWorkerScriptPath = vscode.Uri.joinPath(
@@ -51,6 +49,11 @@ async function getProgramConfig(): Promise<IProgramConfig | null> {
 	}
 }
 
+/** 
+ * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
+ * if `shouldDeleteOldTests` is `true`, then clear out previously discovered tests. If `false`, add new tests but don't dissolve old ones.
+ * 
+ */
 function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.ExtensionContext, shouldDeleteOldTests: boolean = true) {
 	return async () => {
 		if (shouldDeleteOldTests) {
@@ -66,19 +69,24 @@ function mkRefreshHandler(ctrl: vscode.TestController, context: vscode.Extension
 
 		const testCallables = await worker.collectTestCallables(programConfig);
 
-		testCallables.forEach((testCallable) => {
-			const parts = testCallable.split('.');
-			let parent = ctrl.items;
+		// break down the test callable into its parts, so we can construct 
+		// the namespace hierarchy in the test explorer
+		const hierarchy: {[key: string]: vscode.TestItem} = {};
 
-			parts.forEach((part, index) => {
-				let item = parent.get(part);
-				if (!item) {
-					item = ctrl.createTestItem(testCallable, part);
-					parent.add(item);
+		for (const testCallable of testCallables) {
+			const parts = testCallable.split('.');
+			
+			// for an individual test case, e.g. foo.bar.baz, create a hierarchy of items
+			let rover = ctrl.items;
+			for (let i = 0; i < parts.length; i++) {
+				const part = parts[i];
+				const id = i === parts.length - 1 ? testCallable : part;
+				if (!rover.get(part)) {
+					rover.add(ctrl.createTestItem(id, part));
 				}
-				parent = item.children;
-			});
-		});
+				rover = rover.get(id)!.children;
+			}
+		}
 	}
 }
 
