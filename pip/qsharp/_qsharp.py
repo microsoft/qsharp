@@ -334,13 +334,17 @@ def eval(
 
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
-        results["events"].append(output)
         if output.is_matrix():
+            results["events"].append(output)
             results["matrices"].append(output)
         elif output.is_state_dump():
-            results["dumps"].append(StateDump(output.state_dump()))
+            state_dump = StateDump(output.state_dump())
+            results["events"].append(state_dump)
+            results["dumps"].append(state_dump)
         elif output.is_message():
-            results["messages"].append(str(output))
+            stringified = str(output)
+            results["events"].append(stringified)
+            results["messages"].append(stringified)
 
     def callback(output: Output) -> None:
         if _in_jupyter:
