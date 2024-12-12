@@ -163,7 +163,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
     runHandler,
     true,
     undefined,
-    true,
+    false,
   );
 
   ctrl.resolveHandler = async (item) => {
