@@ -34,13 +34,13 @@ parameters:
   default:
   - name: linux_x86_64
     poolName: 'Azure-Pipelines-DevTools-EO'
-    imageName: 'ubuntu-20.04'
+    imageName: 'ubuntu-22.04'
     os: linux
     arch: x86_64
     additionalTargets: wasm32-unknown-unknown
   - name: linux_aarch64
     poolName: 'Azure-Pipelines-DevTools-EO'
-    imageName: 'ubuntu-20.04'
+    imageName: 'ubuntu-22.04'
     os: linux
     arch: aarch64
     additionalRustTargets: aarch64-unknown-linux-gnu wasm32-unknown-unknown
@@ -299,7 +299,7 @@ extends:
               python -m pip install auditwheel patchelf
               ls target/wheels
               ls target/wheels/*.whl | xargs auditwheel show
-              ls target/wheels/*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_31_x86_64
+              ls target/wheels/*.whl | xargs auditwheel repair --wheel-dir ./target/wheels/ --plat manylinux_2_35_x86_64
               rm target/wheels/*-linux_x86_64.whl
               ls target/wheels
             displayName: Run auditwheel for Linux Wheels
@@ -313,10 +313,8 @@ extends:
             condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
           - script: |
-              chmod +x ./docker/linux-aarch64/build.sh
               chmod +x ./docker/linux-aarch64/run.sh
 
-              ./docker/linux-aarch64/build.sh
               ./docker/linux-aarch64/run.sh
             displayName: Run auditwheel and python tests for Linux aarch64 Wheels
             condition: and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))

@@ -512,10 +512,6 @@ serializable_type! {
         range: IRange;
         command: "circuit";
         args?: IOperationInfo
-    } | {
-        range: IRange;
-        command: "runTest";
-        testName: string;
     }"#,
     ICodeLens
 }

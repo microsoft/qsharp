@@ -379,7 +379,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
     ),
   );
 
-
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showDocumentation", async () => {
       await showDocumentationCommand(context.extensionUri);

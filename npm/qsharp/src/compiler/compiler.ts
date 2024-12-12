@@ -79,9 +79,7 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 
-  collectTestCallables(
-    program: IProgramConfig,
-  ): Promise<string[]>;
+  collectTestCallables(program: IProgramConfig): Promise<string[]>;
 }
 
 /**

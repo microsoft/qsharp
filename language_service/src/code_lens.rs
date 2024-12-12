@@ -43,11 +43,8 @@ pub(crate) fn get_code_lenses(
                     let namespace = ns.name();
                     let range = into_range(position_encoding, decl.span, &user_unit.sources);
                     let name = decl.name.name.clone();
-                    let is_test_case = if decl.attrs.iter().any(|attr| *attr == qsc::hir::Attr::Test) { 
-                        Some(format!("{}.{}", ns.name(), decl.name.name.clone()))
-                    } else { None };
 
-                    return Some((item, range, namespace, name, Some(item_id) == entry_item_id, is_test_case));
+                    return Some((item, range, namespace, name, Some(item_id) == entry_item_id));
                 }
             }
         }
@@ -55,8 +52,8 @@ pub(crate) fn get_code_lenses(
     });
 
     callables
-        .flat_map(|(item, range, namespace, name, is_entry_point, is_test_case)| {
-            let mut lenses = if is_entry_point {
+        .flat_map(|(item, range, namespace, name, is_entry_point)| {
+            if is_entry_point {
                 vec![
                     CodeLens {
                         range,
@@ -90,19 +87,7 @@ pub(crate) fn get_code_lenses(
                     }];
                 }
                 vec![]
-            };
-
-            if let Some(test_name) = is_test_case {
-                lenses.push(CodeLens {
-                    range,
-                    command: CodeLensCommand::RunTest(
-                        test_name
-                    ),
-                });
             }
-
-            lenses
-
         })
         .collect()
 }
