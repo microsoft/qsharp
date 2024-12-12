@@ -73,6 +73,9 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       title = "Run Test",
       command = "qsharp-vscode.runTest";
       tooltip = "Run test";
+      if (cl.testName) {
+        args = [cl.testName];
+      }
       break;
   }
 

@@ -6,16 +6,15 @@ import * as vscode from 'vscode';
 import { loadProject } from './projectSystem';
 import { getCompilerWorker, ICompilerWorker, IProjectConfig, log, ProgramConfig, QscEventTarget } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from './programConfig';
-import { IProgramConfig } from '../../npm/qsharp/lib/web/qsc_wasm';
+import { IOperationInfo, IProgramConfig } from '../../npm/qsharp/lib/web/qsc_wasm';
 import { getTarget } from './config';
 import { toVsCodeRange } from './common';
 
 
 // TODO(sezna):
-// - handle running all tests
-// - Auto-populate newly discovered tests
 // - CodeLens
 // - Cancellation tokens
+// - add tests to samples
 function localGetCompilerWorker(context: vscode.ExtensionContext): ICompilerWorker {
 	const compilerWorkerScriptPath = vscode.Uri.joinPath(
 		context.extensionUri,
@@ -97,9 +96,13 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 	context.subscriptions.push(ctrl);
 	context.subscriptions.push(
 		vscode.commands.registerCommand(
-			"qsharp-vscode.runTest",
-			// TODO: codelens callback
-			() => { },
+			"${qsharpExtensionId}.runTest",
+			async (testName: string) => {
+				log.info("beginning manual test run", testName);
+				const program = await getProgramConfig();
+				if (!program)  { return; }
+				await runTestCaseCodeLens(ctrl, testName, localGetCompilerWorker(context));
+			  },
 		)
 	)
 
@@ -209,14 +212,6 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 	);
 }
 
-
-
-function gatherTestItems(collection: vscode.TestItemCollection) {
-	const items: vscode.TestItem[] = [];
-	collection.forEach(item => items.push(item));
-	return items;
-}
-
 function getWorkspaceTestPatterns() {
 	if (!vscode.workspace.workspaceFolders) {
 		return [];
@@ -227,7 +222,6 @@ function getWorkspaceTestPatterns() {
 		pattern: new vscode.RelativePattern(workspaceFolder, '**/*.qs'),
 	}));
 }
-
 
 function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>, context: vscode.ExtensionContext) {
 	return getWorkspaceTestPatterns().map(({ pattern }) => {
@@ -282,4 +276,28 @@ async function runTestCase(ctrl: vscode.TestController, testCase: vscode.TestIte
 		run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
 	}
 	log.info("ran test", testCase.id);
+}
+
+async function runTestCaseCodeLens(ctrl: vscode.TestController, testName: string, worker: ICompilerWorker): Promise<void> {
+	const program = await getProgramConfig();
+	if (!program) {
+		return;
+	}
+	
+	const evtTarget = new QscEventTarget(false);
+	evtTarget.addEventListener('Message', (msg) => {
+		// TODO
+	})
+
+	evtTarget.addEventListener('Result', (msg) => {
+		// TODO
+	})
+
+	const callableExpr = `${testName}()`;
+
+	try {
+		await worker.run(program, callableExpr, 1, evtTarget);
+	} catch (error) {
+		log.error(`Error running test ${testName}:`, error);
+	}
 }
