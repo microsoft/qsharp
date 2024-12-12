@@ -128,24 +128,8 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
       return;
     }
 
-    const queue = [];
-
     for (const testCase of request.include || []) {
-      if (testCase.children.size > 0) {
-        for (const childTestCase of testCase.children) {
-          queue.push(async () =>
-            runTestCase(ctrl, childTestCase[1], request, worker, program),
-          );
-        }
-      } else {
-        queue.push(async () =>
-          runTestCase(ctrl, testCase, request, worker, program),
-        );
-      }
-    }
-
-    for (const func of queue) {
-      await func();
+      await runTestCase(ctrl, testCase, request, worker, program);
     }
   };
 
@@ -244,6 +228,12 @@ async function runTestCase(
   worker: ICompilerWorker,
   program: ProgramConfig,
 ): Promise<void> {
+  if (testCase.children.size > 0) {
+    for (const childTestCase of testCase.children) {
+      await runTestCase(ctrl, childTestCase[1], request, worker, program);
+    }
+    return;
+  }
   const run = ctrl.createTestRun(request);
   const evtTarget = new QscEventTarget(false);
   evtTarget.addEventListener("Message", (msg) => {
@@ -273,5 +263,5 @@ async function runTestCase(
     log.error(`Error running test ${testCase.id}:`, error);
     run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
   }
-  log.info("ran test", testCase.id);
+  log.trace("ran test:", testCase.id);
 }
