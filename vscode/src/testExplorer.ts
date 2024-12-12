@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+// This file uses the VS Code Test Explorer API (https://code.visualstudio.com/docs/editor/testing)
+
 import * as vscode from "vscode";
 import { loadProject } from "./projectSystem";
 import {
