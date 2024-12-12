@@ -15,8 +15,8 @@ operation Main() : Result[] {
 
     // Total evolution time
     let evolutionTime : Double = 4.0;
-    // Time step
-    let stepTime : Double = 0.8;
+    // Number of steps
+    let numberOfSteps : Int = 5;
  
     // Coefficient for 2-qubit interactions between neighboring qubits
     let J : Double = 1.0;
@@ -30,7 +30,7 @@ operation Main() : Result[] {
     // let g = 2.0;
 
     // Model evolution
-    IsingModel2DEvolution(N1, N2, J, g, evolutionTime, stepTime)
+    IsingModel2DEvolution(N1, N2, J, g, evolutionTime, numberOfSteps)
 }
 
 /// # Summary
@@ -41,27 +41,28 @@ operation Main() : Result[] {
 /// |𝜓(0)⟩ is taken to be |0...0⟩.
 /// U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
 /// Here Σ' is taken over all pairs of neighboring qubits <i,j>.
-/// Simulation is done via K steps assuming U(t)≈U(t/K)ᴷ.
+/// Simulation is done by performing K steps assuming U(t)≈U(t/K)ᴷ.
 operation IsingModel2DEvolution(
     N1 : Int,
     N2 : Int,
     J : Double,
     g : Double,
     evolutionTime : Double,
-    stepTime : Double) : Result[] {
+    numberOfSteps : Int) : Result[] {
 
     // Allocate qubit grid and structure it as a 2D array.
     use qubits = Qubit[N1 * N2];
     let qubitsAs2D = Std.Arrays.Chunks(N2, qubits);
 
-    // Compute the number of steps K for evolution
-    let K = Std.Math.Ceiling(evolutionTime / stepTime);
+    // Compute the step time
+    import Std.Convert.IntAsDouble;
+    let stepTime: Double = evolutionTime / IntAsDouble(numberOfSteps);
 
     let theta_x = - g * stepTime;
     let theta_zz = J * stepTime;
  
     // Perform K steps
-    for i in 1..K {
+    for i in 1..numberOfSteps {
  
         // Single-qubit interaction with external field
         for q in qubits {
