@@ -27,7 +27,7 @@ use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, FieldAccess, FieldAssign, Functor, Lit, NodeId, Pat,
     PatKind, PathKind, Pauli, StringComponent, TernOp, UnOp,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use std::{result, str::FromStr};
 
 struct PrefixOp {
@@ -228,7 +228,9 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         Ok(Box::new(ExprKind::Repeat(body, cond, fixup)))
     } else if token(s, TokenKind::Keyword(Keyword::Return)).is_ok() {
         Ok(Box::new(ExprKind::Return(expr(s)?)))
-    } else if token(s, TokenKind::Keyword(Keyword::Set)).is_ok() {
+    } else if !s.contains_language_feature(LanguageFeatures::V2PreviewSyntax)
+        && token(s, TokenKind::Keyword(Keyword::Set)).is_ok()
+    {
         // Need to rewrite the span of the expr to include the `set` keyword.
         return expr(s).map(|assign| {
             Box::new(Expr {
