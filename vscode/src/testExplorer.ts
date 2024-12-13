@@ -12,11 +12,11 @@ import {
   log,
   ProgramConfig,
   QscEventTarget,
+  IProgramConfig,
 } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from "./programConfig";
-import { IProgramConfig } from "../../npm/qsharp/lib/web/qsc_wasm";
 import { getTarget } from "./config";
-import { toVsCodeRange } from "./common";
+import { isQsharpDocument, toVsCodeRange } from "./common";
 
 function localGetCompilerWorker(
   context: vscode.ExtensionContext,
@@ -55,19 +55,14 @@ async function getProgramConfig(): Promise<IProgramConfig | null> {
 
 /**
  * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
- * if `shouldDeleteOldTests` is `true`, then clear out previously discovered tests. If `false`, add new tests but don't dissolve old ones.
- *
  */
 function mkRefreshHandler(
   ctrl: vscode.TestController,
   context: vscode.ExtensionContext,
-  shouldDeleteOldTests: boolean = true,
 ) {
   return async () => {
-    if (shouldDeleteOldTests) {
-      for (const [id] of ctrl.items) {
-        ctrl.items.delete(id);
-      }
+    for (const [id] of ctrl.items) {
+      ctrl.items.delete(id);
     }
     const programConfig = await getProgramConfig();
     if (!programConfig) {
@@ -150,11 +145,7 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
   };
 
   function updateNodeForDocument(e: vscode.TextDocument) {
-    if (e.uri.scheme !== "file") {
-      return;
-    }
-
-    if (!e.uri.path.endsWith(".qs")) {
+    if (!isQsharpDocument(e)) {
       return;
     }
   }
@@ -196,7 +187,7 @@ function startWatchingWorkspace(
   context: vscode.ExtensionContext,
 ) {
   return getWorkspaceTestPatterns().map(({ pattern }) => {
-    const refresher = mkRefreshHandler(controller, context, true);
+    const refresher = mkRefreshHandler(controller, context);
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
     watcher.onDidCreate(async () => {
       await refresher();
@@ -208,8 +199,6 @@ function startWatchingWorkspace(
     watcher.onDidDelete(async () => {
       await refresher();
     });
-
-    // findInitialFiles(controller, pattern);
 
     return watcher;
   });
