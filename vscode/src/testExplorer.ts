@@ -12,7 +12,6 @@ import {
   log,
   ProgramConfig,
   QscEventTarget,
-  IProgramConfig,
 } from "qsharp-lang";
 import { getActiveQSharpDocumentUri } from "./programConfig";
 import { getTarget } from "./config";
@@ -29,7 +28,7 @@ function localGetCompilerWorker(
   return worker;
 }
 
-async function getProgramConfig(): Promise<IProgramConfig | null> {
+async function getProgramConfig(): Promise<ProgramConfig | null> {
   if (!vscode.workspace.workspaceFolders) {
     log.info("No workspace detected; not starting test explorer");
     return null;
