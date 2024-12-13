@@ -22,7 +22,7 @@ fn set_keyword_lint() {
             [
                 SrcLint {
                     source: "set",
-                    level: Warn,
+                    level: Allow,
                     message: "deprecated use of `set` keyword",
                     help: "`set` keywords are deprecated for assignments, they can be removed",
                     code_action_edits: [
