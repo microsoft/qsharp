@@ -746,6 +746,18 @@ impl Output {
             DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
+
+    fn is_state_dump(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::State(_))
+    }
+
+    fn is_matrix(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::Matrix(_))
+    }
+
+    fn is_message(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::Message(_))
+    }
 }
 
 #[pyclass]
