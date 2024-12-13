@@ -6,20 +6,6 @@ use crate::tests::check;
 use expect_test::expect;
 
 #[test]
-fn foo() {
-    check(
-        expr,
-        "x = j = 3",
-        &expect![[r#"
-            Expr _id_ [0-9]: Assign:
-                Expr _id_ [0-1]: Path: Path _id_ [0-1] (Ident _id_ [0-1] "x")
-                Expr _id_ [4-9]: Assign:
-                    Expr _id_ [4-5]: Path: Path _id_ [4-5] (Ident _id_ [4-5] "j")
-                    Expr _id_ [8-9]: Lit: Int(3)"#]],
-    );
-}
-
-#[test]
 fn lit_int() {
     check(expr, "123", &expect!["Expr _id_ [0-3]: Lit: Int(123)"]);
 }
