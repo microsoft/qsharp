@@ -15,6 +15,67 @@ use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
 #[test]
+fn daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn long_daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = z = z = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = z = z = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn nested_daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = { a = b = c; z } = z = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = { a = b = c; z } = z = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+                SrcLint {
+                    source: "a = b = c",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn set_keyword_lint() {
     check(
         &wrap_in_callable("set x = 3;", CallableKind::Function),

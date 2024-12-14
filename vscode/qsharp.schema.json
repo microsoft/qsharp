@@ -36,6 +36,7 @@
               "redundantSemicolons",
               "deprecatedNewtype",
               "deprecatedSet",
+              "discourageDaisyChain",
               "needlessOperation",
               "deprecatedFunctionConstructor",
               "deprecatedWithOperator",

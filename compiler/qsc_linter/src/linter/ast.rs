@@ -50,65 +50,71 @@ pub fn run_ast_lints(
 /// The trait provides default empty implementations for the rest of the methods,
 /// which will be optimized to a no-op by the rust compiler.
 pub(crate) trait AstLintPass {
-    fn check_attr(&self, _attr: &Attr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
-    fn check_block(&self, _block: &Block, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_attr(&mut self, _attr: &Attr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_block(&mut self, _block: &Block, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_callable_decl(
-        &self,
+        &mut self,
         _callable_decl: &CallableDecl,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
-    fn check_expr(&self, _expr: &Expr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_expr(&mut self, _expr: &Expr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_functor_expr(
-        &self,
+        &mut self,
         _functor_expr: &FunctorExpr,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
-    fn check_ident(&self, _ident: &Ident, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
-    fn check_item(&self, _item: &Item, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ident(&mut self, _ident: &Ident, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_item(&mut self, _item: &Item, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_namespace(
-        &self,
+        &mut self,
         _namespace: &Namespace,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
     fn check_package(
-        &self,
+        &mut self,
         _package: &Package,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
-    fn check_pat(&self, _pat: &Pat, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
-    fn check_path(&self, _path: &Path, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_pat(&mut self, _pat: &Pat, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_path(&mut self, _path: &Path, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
     fn check_path_kind(
-        &self,
+        &mut self,
         _path: &PathKind,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
     fn check_qubit_init(
-        &self,
+        &mut self,
         _qubit_init: &QubitInit,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
     fn check_spec_decl(
-        &self,
+        &mut self,
         _spec_decl: &SpecDecl,
         _buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
     }
-    fn check_stmt(&self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
-    fn check_ty(&self, _ty: &Ty, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
-    fn check_ty_def(&self, _ty_def: &TyDef, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_stmt(&mut self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ty(&mut self, _ty: &Ty, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ty_def(
+        &mut self,
+        _ty_def: &TyDef,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
 }
 
 /// This macro allow us to declare lints while avoiding boilerplate. It does three things:
@@ -152,12 +158,6 @@ macro_rules! declare_ast_lints {
 
     // Declare & implement a struct representing a lint.
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
-
-        #[derive(Default)]
-        pub(crate) struct $lint_name {
-            level: LintLevel,
-        }
-
         impl $lint_name {
             const DEFAULT_LEVEL: LintLevel = $default_level;
 
