@@ -34,9 +34,12 @@
               "divisionByZero",
               "needlessParens",
               "redundantSemicolons",
+              "deprecatedNewtype",
+              "deprecatedSet",
+              "needlessOperation",
+              "deprecatedFunctionConstructor",
               "deprecatedWithOperator",
-              "deprecatedDoubleColonOperator",
-              "deprecatedNewtype"
+              "deprecatedDoubleColonOperator"
             ]
           },
           "level": {
