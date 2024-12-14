@@ -28,7 +28,7 @@ declare_ast_lints! {
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
-    (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "`set` keywords are deprecated for assignments, they can be removed"),
+    (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
     (DiscourageDaisyChain, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
 }
 

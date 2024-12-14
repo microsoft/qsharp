@@ -85,7 +85,7 @@ fn set_keyword_lint() {
                     source: "set",
                     level: Allow,
                     message: "deprecated use of `set` keyword",
-                    help: "`set` keywords are deprecated for assignments, they can be removed",
+                    help: "the `set` keyword is deprecated for assignments and can be removed",
                     code_action_edits: [
                         (
                             "",
