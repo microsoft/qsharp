@@ -9,11 +9,7 @@ import Std.Convert.IntAsDouble;
 import Std.Math.AbsD;
 import Operations.*;
 
-operation Main() : Unit {
-    FxpMeasurementTest();
-    FxpOperationTests();
-}
-
+@Test()
 operation FxpMeasurementTest() : Unit {
     for numQubits in 3..12 {
         for numIntBits in 2..numQubits {
@@ -43,6 +39,7 @@ operation TestConstantMeasurement(constant : Double, registerWidth : Int, intege
     ResetAll(register);
 }
 
+@Test()
 operation FxpOperationTests() : Unit {
     for i in 0..10 {
         let constant1 = 0.2 * IntAsDouble(i);
@@ -54,6 +51,7 @@ operation FxpOperationTests() : Unit {
         TestSquare(constant1);
     }
 }
+
 operation TestSquare(a : Double) : Unit {
     Message($"Testing Square({a})");
     use resultRegister = Qubit[30];
