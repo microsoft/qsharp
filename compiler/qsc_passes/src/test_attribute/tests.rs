@@ -45,8 +45,8 @@ fn callable_cant_have_params() {
             [
                 CallableHasParameters(
                     Span {
-                        lo: 33,
-                        hi: 71,
+                        lo: 43,
+                        hi: 44,
                     },
                 ),
             ]
@@ -67,10 +67,10 @@ fn callable_cant_have_type_params() {
         "},
         &expect![[r#"
             [
-                CallableHaSTypeParameters(
+                CallableHasTypeParameters(
                     Span {
-                        lo: 33,
-                        hi: 66,
+                        lo: 43,
+                        hi: 44,
                     },
                 ),
             ]
