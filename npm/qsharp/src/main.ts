@@ -26,7 +26,7 @@ import {
 } from "./language-service/language-service.js";
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
-import type { IProgramConfig, ProjectLoader } from "../lib/web/qsc_wasm.js";
+import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
 import { IProjectHost } from "./browser.js";
 
 export { qsharpLibraryUriScheme };

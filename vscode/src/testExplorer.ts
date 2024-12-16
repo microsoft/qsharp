@@ -4,17 +4,14 @@
 // This file uses the VS Code Test Explorer API (https://code.visualstudio.com/docs/editor/testing)
 
 import * as vscode from "vscode";
-import { loadProject } from "./projectSystem";
 import {
   getCompilerWorker,
   ICompilerWorker,
-  IProjectConfig,
   log,
   ProgramConfig,
   QscEventTarget,
 } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
-import { getTarget } from "./config";
 import { isQsharpDocument, toVsCodeRange } from "./common";
 
 function localGetCompilerWorker(
