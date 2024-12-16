@@ -2,12 +2,12 @@
 /// Simulation of a simple Ising model evolution on a 2D grid
 ///
 /// # Description
-/// This example demonstrates simulation
-/// of an Ising model Hamiltonian on an N1xN2 2D grid.
-/// This example can be easily simulated classically
+/// This example demonstrates simulation of an Ising model Hamiltonian
+/// on an N1xN2 2D grid. This example can be easily simulated classically
 /// with 3x3 grid and about 500 shots.
 /// This sample is suitable for Base Profile.
-
+/// For the purpose of simplicity this sample intentionally doesn't
+/// post-process results or perform eigenvalue estimation.
 operation Main() : Result[] {
     // Dimensions of a 2D grid is N1 x N2
     let N1 : Int = 3;
@@ -17,7 +17,7 @@ operation Main() : Result[] {
     let evolutionTime : Double = 4.0;
     // Number of steps
     let numberOfSteps : Int = 5;
- 
+
     // Coefficient for 2-qubit interactions between neighboring qubits
     let J : Double = 1.0;
     // Coefficient for external field interaction for individual qubits
@@ -34,7 +34,7 @@ operation Main() : Result[] {
 }
 
 /// # Summary
-/// Simulate Ising model evolution
+/// Simulate simple Ising model evolution
 ///
 /// # Description
 /// Simulates state |𝜓⟩ evolution to find |𝜓(t)⟩=U(t)|𝜓(0)⟩.
@@ -48,7 +48,8 @@ operation IsingModel2DEvolution(
     J : Double,
     g : Double,
     evolutionTime : Double,
-    numberOfSteps : Int) : Result[] {
+    numberOfSteps : Int
+) : Result[] {
 
     // Allocate qubit grid and structure it as a 2D array.
     use qubits = Qubit[N1 * N2];
@@ -56,19 +57,19 @@ operation IsingModel2DEvolution(
 
     // Compute the step time
     import Std.Convert.IntAsDouble;
-    let stepTime: Double = evolutionTime / IntAsDouble(numberOfSteps);
+    let stepTime : Double = evolutionTime / IntAsDouble(numberOfSteps);
 
     let theta_x = - g * stepTime;
     let theta_zz = J * stepTime;
- 
+
     // Perform K steps
     for i in 1..numberOfSteps {
- 
+
         // Single-qubit interaction with external field
         for q in qubits {
             Rx(2.0 * theta_x, q);
         }
- 
+
         // All Rzz gates applied in the following two loops commute so they can be
         // applied in any order. To reduce the depth of the algorithm, Rzz gates
         // between horizontal "even" pairs of qubits are applied first - pairs
@@ -89,7 +90,7 @@ operation IsingModel2DEvolution(
                 Rzz(2.0 * theta_zz, qubitsAs2D[row][col], qubitsAs2D[row][col + 1]);
             }
         }
- 
+
         // Vertical two-qubit interactions
         for col in 0..N2-1 {
 
