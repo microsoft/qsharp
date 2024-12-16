@@ -13,7 +13,7 @@ import {
   ProgramConfig,
   QscEventTarget,
 } from "qsharp-lang";
-import { getActiveQSharpDocumentUri } from "./programConfig";
+import { getActiveProgram } from "./programConfig";
 import { getTarget } from "./config";
 import { isQsharpDocument, toVsCodeRange } from "./common";
 
@@ -28,30 +28,6 @@ function localGetCompilerWorker(
   return worker;
 }
 
-async function getProgramConfig(): Promise<ProgramConfig | null> {
-  if (!vscode.workspace.workspaceFolders) {
-    log.info("No workspace detected; not starting test explorer");
-    return null;
-  }
-
-  const docUri = getActiveQSharpDocumentUri();
-  if (!docUri) {
-    log.info("No active document detected; not starting test explorer");
-    return null;
-  }
-
-  const projectConfig: IProjectConfig = await loadProject(docUri);
-  if (!projectConfig) {
-    log.info("No project detected; not starting test explorer");
-    return null;
-  }
-
-  return {
-    profile: getTarget(),
-    ...projectConfig,
-  };
-}
-
 /**
  * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
  */
@@ -63,10 +39,13 @@ function mkRefreshHandler(
     for (const [id] of ctrl.items) {
       ctrl.items.delete(id);
     }
-    const programConfig = await getProgramConfig();
-    if (!programConfig) {
-      return;
+    const program = await getActiveProgram();
+    if (!program.success) {
+      throw new Error(program.errorMsg);
     }
+
+    const programConfig = program.programConfig;
+
     const worker = localGetCompilerWorker(context);
 
     const testCallables = await worker.collectTestCallables(programConfig);
@@ -117,10 +96,12 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
     log.info("Starting test run, request was", JSON.stringify(request));
     const worker = localGetCompilerWorker(context);
 
-    const program = await getProgramConfig();
-    if (!program) {
-      return;
+    const programResult = await getActiveProgram();
+    if (!programResult.success) {
+      throw new Error(programResult.errorMsg);
     }
+
+    const program = programResult.programConfig;
 
     for (const testCase of request.include || []) {
       await runTestCase(ctrl, testCase, request, worker, program);
