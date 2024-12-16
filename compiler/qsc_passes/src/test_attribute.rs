@@ -11,10 +11,10 @@ mod tests;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum TestAttributeError {
-    #[error("This callable has parameters. Tests cannot have parameters.")]
+    #[error("test callables cannot take arguments")]
     CallableHasParameters(#[label] Span),
-    #[error("This callable has type parameters. Tests cannot have type parameters.")]
-    CallableHaSTypeParameters(#[label] Span),
+    #[error("test callables cannot have type parameters")]
+    CallableHasTypeParameters(#[label] Span),
 }
 
 pub(crate) fn validate_test_attributes(
@@ -34,11 +34,11 @@ impl<'a> Visitor<'a> for TestAttributeValidator {
         if decl.attrs.iter().any(|attr| matches!(attr, Attr::Test)) {
             if !decl.generics.is_empty() {
                 self.errors
-                    .push(TestAttributeError::CallableHaSTypeParameters(decl.span));
+                    .push(TestAttributeError::CallableHasTypeParameters(decl.name.span));
             }
             if decl.input.ty != qsc_hir::ty::Ty::UNIT {
                 self.errors
-                    .push(TestAttributeError::CallableHasParameters(decl.span));
+                    .push(TestAttributeError::CallableHasParameters(decl.name.span));
             }
         }
     }

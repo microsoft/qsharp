@@ -91,9 +91,4 @@ export function getLanguageServiceWorker(): ILanguageServiceWorker {
   );
 }
 
-export function collectTestCallables(config: IProgramConfig): string[] {
-  ensureWasm();
-  return wasm!.collect_test_callables(config);
-}
-
 export * as utils from "./utils.js";
