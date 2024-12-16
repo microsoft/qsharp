@@ -197,7 +197,7 @@ def init(
     # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
     keys_to_remove = []
     for key in code.__dict__:
-        if hasattr(code.__dict__[key], "__qs_gen") or isinstance(
+        if hasattr(code.__dict__[key], "__global_callable") or isinstance(
             code.__dict__[key], types.ModuleType
         ):
             keys_to_remove.append(key)
@@ -439,7 +439,7 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
         return get_interpreter().invoke(callable, args, callback)
 
     # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
-    _callable.__qs_gen = True
+    _callable.__global_callable = callable
 
     # Add the callable to the module.
     module.__setattr__(callable_name, _callable)
@@ -556,12 +556,14 @@ class QirInputData:
         return self._ll_str
 
 
-def compile(entry_expr: str) -> QirInputData:
+def compile(entry_expr: Union[str, Callable], *args) -> QirInputData:
     """
     Compiles the Q# source code into a program that can be submitted to a target.
+    Either an entry expression or a callable with arguments must be provided.
 
     :param entry_expr: The Q# expression that will be used as the entrypoint
-        for the program.
+        for the program. Alternatively, a callable can be provided, which must
+        be a Q# global callable.
 
     :returns QirInputData: The compiled program.
 
@@ -579,7 +581,16 @@ def compile(entry_expr: str) -> QirInputData:
     global _config
     target_profile = _config._config.get("targetProfile", "unspecified")
     telemetry_events.on_compile(target_profile)
-    ll_str = get_interpreter().qir(entry_expr)
+    if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+        ll_str = get_interpreter().qir(
+            entry_expr=None, callable=entry_expr.__global_callable, args=args
+        )
+    else:
+        ll_str = get_interpreter().qir(entry_expr=entry_expr)
     res = QirInputData("main", ll_str)
     durationMs = (monotonic() - start) * 1000
     telemetry_events.on_compile_end(durationMs, target_profile)
@@ -606,13 +617,16 @@ def circuit(
 
 
 def estimate(
-    entry_expr: str,
+    entry_expr: Union[str | Callable],
     params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
+    *args,
 ) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
+    Either an entry expression or a callable with arguments must be provided.
 
-    :param entry_expr: The entry expression.
+    :param entry_expr: The entry expression. Alternatively, a callable can be provided,
+        which must be a Q# global callable.
     :param params: The parameters to configure physical estimation.
 
     :returns `EstimatorResult`: The estimated resources.
@@ -638,7 +652,16 @@ def estimate(
     param_str = json.dumps(params)
     telemetry_events.on_estimate()
     start = monotonic()
-    res_str = get_interpreter().estimate(entry_expr, param_str)
+    if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+        res_str = get_interpreter().estimate(
+            param_str, callable=entry_expr.__global_callable, args=args
+        )
+    else:
+        res_str = get_interpreter().estimate(param_str, entry_expr=entry_expr)
     res = json.loads(res_str)
 
     try:

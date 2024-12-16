@@ -315,10 +315,95 @@ def test_compile_qir_input_data() -> None:
 
 def test_compile_qir_str() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
-    qsharp.eval("operation Program() : Result { use q = Qubit(); return M(q) }")
+    qsharp.eval("operation Program() : Result { use q = Qubit(); return MResetZ(q); }")
     operation = qsharp.compile("Program()")
     qir = str(operation)
     assert "define void @ENTRYPOINT__main()" in qir
+    assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+
+
+def test_compile_qir_str_from_python_callable() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval("operation Program() : Result { use q = Qubit(); return MResetZ(q); }")
+    operation = qsharp.compile(qsharp.code.Program)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert '"required_num_qubits"="1" "required_num_results"="1"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_single_arg() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs) }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, 5)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_array_arg() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int[]) : Result[] { use qs = Qubit[nQubits[1]]; MResetEachZ(qs) }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, [5, 3])
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="3" "required_num_results"="3"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_multiple_args() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int, nResults : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs)[...nResults-1] }"
+    )
+    operation = qsharp.compile(qsharp.code.Program, 5, 3)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
+
+
+def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple() -> (
+    None
+):
+    qsharp.init(target_profile=qsharp.TargetProfile.Base)
+    qsharp.eval(
+        "operation Program(nQubits : Int, nResults : Int) : Result[] { use qs = Qubit[nQubits]; MResetEachZ(qs)[...nResults-1] }"
+    )
+    args = (5, 3)
+    operation = qsharp.compile(qsharp.code.Program, args)
+    qir = str(operation)
+    assert "define void @ENTRYPOINT__main()" in qir
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)"
+        in qir
+    )
+    assert (
+        "call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)"
+        not in qir
+    )
+    assert '"required_num_qubits"="5" "required_num_results"="5"' in qir
 
 
 def test_init_from_provider_name() -> None:
