@@ -29,7 +29,7 @@ declare_ast_lints! {
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
     (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
-    (DiscourageDaisyChain, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
+    (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
 }
 
 #[derive(Default)]
@@ -226,13 +226,13 @@ impl AstLintPass for DeprecatedSet {
 }
 
 #[derive(Default)]
-struct DiscourageDaisyChain {
+struct DiscourageChainAssignment {
     level: LintLevel,
     // Keeps track of the expressions that won't create lints because they are part of a chain.
     repressed_exprs: Vec<NodeId>,
 }
 
-impl AstLintPass for DiscourageDaisyChain {
+impl AstLintPass for DiscourageChainAssignment {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         match expr.kind.as_ref() {
             ExprKind::Assign(_, rhs)
