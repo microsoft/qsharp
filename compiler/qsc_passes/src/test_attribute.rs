@@ -34,7 +34,9 @@ impl<'a> Visitor<'a> for TestAttributeValidator {
         if decl.attrs.iter().any(|attr| matches!(attr, Attr::Test)) {
             if !decl.generics.is_empty() {
                 self.errors
-                    .push(TestAttributeError::CallableHasTypeParameters(decl.name.span));
+                    .push(TestAttributeError::CallableHasTypeParameters(
+                        decl.name.span,
+                    ));
             }
             if decl.input.ty != qsc_hir::ty::Ty::UNIT {
                 self.errors

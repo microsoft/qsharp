@@ -172,7 +172,7 @@ function startWatchingWorkspace(
     watcher.onDidCreate(async () => {
       await refresher();
     });
-    
+
     watcher.onDidChange(async () => {
       await refresher();
     });
