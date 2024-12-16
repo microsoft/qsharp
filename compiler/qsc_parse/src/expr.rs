@@ -27,7 +27,7 @@ use qsc_ast::ast::{
     self, BinOp, CallableKind, Expr, ExprKind, FieldAccess, FieldAssign, Functor, Lit, NodeId, Pat,
     PatKind, PathKind, Pauli, StringComponent, TernOp, UnOp,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use std::{result, str::FromStr};
 
 struct PrefixOp {
@@ -43,6 +43,9 @@ struct MixfixOp {
 enum OpKind {
     Postfix(UnOp),
     Binary(BinOp, Assoc),
+    Assign,
+    AssignUpdate,
+    AssignBinary(BinOp),
     Ternary(TernOp, TokenKind, Assoc),
     Rich(fn(&mut ParserContext, Box<Expr>) -> Result<Box<ExprKind>>),
 }
@@ -131,6 +134,20 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
         s.advance();
         let kind = match op.kind {
             OpKind::Postfix(kind) => Box::new(ExprKind::UnOp(kind, lhs)),
+            OpKind::Assign => {
+                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+                Box::new(ExprKind::Assign(lhs, rhs))
+            }
+            OpKind::AssignUpdate => {
+                let mid = expr(s)?;
+                token(s, TokenKind::LArrow)?;
+                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+                Box::new(ExprKind::AssignUpdate(lhs, mid, rhs))
+            }
+            OpKind::AssignBinary(kind) => {
+                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+                Box::new(ExprKind::AssignOp(kind, lhs, rhs))
+            }
             OpKind::Binary(kind, assoc) => {
                 let precedence = next_precedence(op.precedence, assoc);
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
@@ -211,8 +228,20 @@ fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
         Ok(Box::new(ExprKind::Repeat(body, cond, fixup)))
     } else if token(s, TokenKind::Keyword(Keyword::Return)).is_ok() {
         Ok(Box::new(ExprKind::Return(expr(s)?)))
-    } else if token(s, TokenKind::Keyword(Keyword::Set)).is_ok() {
-        expr_set(s)
+    } else if !s.contains_language_feature(LanguageFeatures::V2PreviewSyntax)
+        && token(s, TokenKind::Keyword(Keyword::Set)).is_ok()
+    {
+        // Need to rewrite the span of the expr to include the `set` keyword.
+        return expr(s).map(|assign| {
+            Box::new(Expr {
+                id: assign.id,
+                span: Span {
+                    lo,
+                    hi: assign.span.hi,
+                },
+                kind: assign.kind,
+            })
+        });
     } else if token(s, TokenKind::Keyword(Keyword::While)).is_ok() {
         Ok(Box::new(ExprKind::While(expr(s)?, stmt::parse_block(s)?)))
     } else if token(s, TokenKind::Keyword(Keyword::Within)).is_ok() {
@@ -316,29 +345,6 @@ fn expr_if(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::If(cond, body, otherwise)))
 }
 
-fn expr_set(s: &mut ParserContext) -> Result<Box<ExprKind>> {
-    let lhs = expr(s)?;
-    if token(s, TokenKind::Eq).is_ok() {
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::Assign(lhs, rhs)))
-    } else if token(s, TokenKind::WSlashEq).is_ok() {
-        let index = expr(s)?;
-        token(s, TokenKind::LArrow)?;
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::AssignUpdate(lhs, index, rhs)))
-    } else if let TokenKind::BinOpEq(op) = s.peek().kind {
-        s.advance();
-        let rhs = expr(s)?;
-        Ok(Box::new(ExprKind::AssignOp(closed_bin_op(op), lhs, rhs)))
-    } else {
-        Err(Error::new(ErrorKind::Rule(
-            "assignment operator",
-            s.peek().kind,
-            s.peek().span,
-        )))
-    }
-}
-
 fn expr_array(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let kind = expr_array_core(s)?;
@@ -357,8 +363,8 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 
     s.expect(WordKinds::Size);
     let second = expr(s)?;
-    if is_ident("size", &second.kind) && token(s, TokenKind::Eq).is_ok() {
-        let size = expr(s)?;
+    if let Some(size) = is_array_size(&second.kind) {
+        let size = Box::new(size.clone());
         return Ok(Box::new(ExprKind::ArrayRepeat(first, size)));
     }
 
@@ -369,8 +375,18 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Array(items.into_boxed_slice())))
 }
 
-fn is_ident(name: &str, kind: &ExprKind) -> bool {
-    matches!(kind, ExprKind::Path(PathKind::Ok(path)) if path.segments.is_none() && path.name.name.as_ref() == name)
+fn is_array_size(kind: &ExprKind) -> Option<&Expr> {
+    match kind {
+        ExprKind::Assign(lhs, rhs) => match lhs.kind.as_ref() {
+            ExprKind::Path(PathKind::Ok(path))
+                if path.segments.is_none() && path.name.name.as_ref() == "size" =>
+            {
+                Some(rhs)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
@@ -572,6 +588,18 @@ fn prefix_op(name: OpName) -> Option<PrefixOp> {
 #[allow(clippy::too_many_lines)]
 fn mixfix_op(name: OpName) -> Option<MixfixOp> {
     match name {
+        OpName::Token(TokenKind::Eq) => Some(MixfixOp {
+            kind: OpKind::Assign,
+            precedence: 0,
+        }),
+        OpName::Token(TokenKind::WSlashEq) => Some(MixfixOp {
+            kind: OpKind::AssignUpdate,
+            precedence: 0,
+        }),
+        OpName::Token(TokenKind::BinOpEq(kind)) => Some(MixfixOp {
+            kind: OpKind::AssignBinary(closed_bin_op(kind)),
+            precedence: 0,
+        }),
         OpName::Token(TokenKind::RArrow) => Some(MixfixOp {
             kind: OpKind::Rich(|s, input| lambda_op(s, *input, CallableKind::Function)),
             precedence: LAMBDA_PRECEDENCE,

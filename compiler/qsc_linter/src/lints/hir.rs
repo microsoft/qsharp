@@ -222,7 +222,7 @@ impl HirLintPass for DeprecatedWithOperator {
                         (compilation.indentation_at_offset(info.span.lo) + 4) as usize;
                     let innermost_expr = compilation.get_source_code(expr.span);
                     let mut new_expr = if info.is_w_eq {
-                        format!("set {} = new {} {{\n", innermost_expr, info.ty_name)
+                        format!("{} = new {} {{\n", innermost_expr, info.ty_name)
                     } else {
                         format!("new {} {{\n", info.ty_name)
                     };
