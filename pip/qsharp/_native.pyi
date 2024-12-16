@@ -184,11 +184,18 @@ class Interpreter:
         """
         ...
 
-    def qir(self, entry_expr: str) -> str:
+    def qir(
+        self,
+        entry_expr: Optional[str],
+        callable: Optional[GlobalCallable],
+        args: Optional[Any],
+    ) -> str:
         """
-        Generates QIR from Q# source code.
+        Generates QIR from Q# source code. Either an entry expression or a callable with arguments must be provided.
 
         :param entry_expr: The entry expression.
+        :param callable: The callable to generate QIR for.
+        :param args: The arguments to pass to the callable
 
         :returns qir: The QIR string.
         """

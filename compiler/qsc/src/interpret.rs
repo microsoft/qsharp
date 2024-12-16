@@ -42,7 +42,7 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::qir::fir_to_qir;
+use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable};
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
@@ -621,6 +621,43 @@ impl Interpreter {
             self.capabilities,
             Some(compute_properties),
             &entry,
+        )
+        .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(hir_package_id)
+                .expect("package should exist in the package store");
+            vec![Error::PartialEvaluation(WithSource::from_map(
+                &source_package.sources,
+                e,
+            ))]
+        })
+    }
+
+    pub fn qirgen_from_callable(
+        &mut self,
+        callable: &Value,
+        args: Value,
+    ) -> std::result::Result<String, Vec<Error>> {
+        if self.capabilities == TargetCapabilityFlags::all() {
+            return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+        }
+
+        let Value::Global(store_item_id, _) = callable else {
+            panic!("value is not a global callable");
+        };
+
+        fir_to_qir_from_callable(
+            &self.fir_store,
+            self.capabilities,
+            None,
+            *store_item_id,
+            args,
         )
         .map_err(|e| {
             let hir_package_id = match e.span() {
