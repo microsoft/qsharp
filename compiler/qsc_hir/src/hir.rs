@@ -291,36 +291,35 @@ impl Package {
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
 
         let callable_names = callables
-        .filter_map(|(_, item)| -> Option<std::result::Result<String, String>>{
-            if let ItemKind::Callable(callable) = &item.kind {
-                if !callable.generics.is_empty() {
-                    return Some(Err(format!("Callable {} has generic type parameters. Test callables cannot have generic type parameters.", callable.name.name)));
-                }
-                if callable.input.kind != PatKind::Tuple(vec![]) {
-                    return Some(Err(format!("Callable {} has input parameters. Test callables cannot have input parameters.", callable.name.name)));
-                }
-                // this is indeed a test callable, so let's grab its parent name
-                let name = match item.parent {
-                    None => Default::default(),
-                    Some(parent_id) => {
-                        let parent_item = self
-                            .items
-                            .get(parent_id)
-                            .expect("Parent item did not exist in package");
-                        if let ItemKind::Namespace(ns, _) = &parent_item.kind {
-                            format!("{}.{}", ns.name(), callable.name.name)
-                        } else {
-                            callable.name.name.to_string()
-                        }
+            .filter_map(|(_, item)| -> Option<std::result::Result<String, String>> {
+                if let ItemKind::Callable(callable) = &item.kind {
+                    if !callable.generics.is_empty()
+                        || callable.input.kind != PatKind::Tuple(vec![])
+                    {
+                        return None;
                     }
-                };
+                    // this is indeed a test callable, so let's grab its parent name
+                    let name = match item.parent {
+                        None => Default::default(),
+                        Some(parent_id) => {
+                            let parent_item = self
+                                .items
+                                .get(parent_id)
+                                .expect("Parent item did not exist in package");
+                            if let ItemKind::Namespace(ns, _) = &parent_item.kind {
+                                format!("{}.{}", ns.name(), callable.name.name)
+                            } else {
+                                callable.name.name.to_string()
+                            }
+                        }
+                    };
 
-                Some(Ok(name))
-            } else {
-                None
-            }
-        })
-        .collect::<std::result::Result<_, _>>()?;
+                    Some(Ok(name))
+                } else {
+                    None
+                }
+            })
+            .collect::<std::result::Result<_, _>>()?;
 
         Ok(callable_names)
     }
