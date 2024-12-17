@@ -220,12 +220,20 @@ class Interpreter:
         """
         ...
 
-    def estimate(self, entry_expr: str, params: str) -> str:
+    def estimate(
+        self,
+        params: str,
+        entry_expr: Optional[str],
+        callable: Optional[GlobalCallable],
+        args: Optional[Any],
+    ) -> str:
         """
         Estimates resources for Q# source code.
 
-        :param entry_expr: The entry expression.
         :param params: The parameters to configure estimation.
+        :param entry_expr: The entry expression.
+        :param callable: The callable to estimate resources for.
+        :param args: The arguments to pass to the callable
 
         :returns resources: The estimated resources.
         """
