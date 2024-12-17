@@ -24,7 +24,7 @@ import { supportsAdaptive } from "./azure/providerProperties.js";
 import { getQirForVisibleQs } from "./qirGeneration.js";
 import { startRefreshingWorkspace } from "./copilot/copilotTools.js";
 import { apiKey } from "./copilotApiKey.js";
-import { CopilotMessageHandler, ICopilot } from "./copilot/copilot.js";
+import { CopilotEventHandler, ICopilot } from "./copilot/copilot.js";
 
 // Don't check in a filled in API key
 const openai = new OpenAI({
@@ -224,7 +224,7 @@ const GetJob = async (jobId: string): Promise<Job | undefined> => {
 
 const tryRenderResults = (
   file: string,
-  streamCallback: CopilotMessageHandler,
+  streamCallback: CopilotEventHandler,
 ): boolean => {
   try {
     // Parse the JSON file
@@ -258,7 +258,7 @@ const tryRenderResults = (
 
 const DownloadJobResults = async (
   jobId: string,
-  streamCallback: CopilotMessageHandler,
+  streamCallback: CopilotEventHandler,
 ): Promise<string> => {
   const job = await GetJob(jobId);
 
@@ -401,9 +401,9 @@ const SubmitToTarget = async (
 
 export class OpenAICopilot implements ICopilot {
   messages: ChatCompletionMessageParam[] = [];
-  streamCallback: CopilotMessageHandler;
+  streamCallback: CopilotEventHandler;
 
-  constructor(streamCallback: CopilotMessageHandler) {
+  constructor(streamCallback: CopilotEventHandler) {
     this.messages.push(systemMessage);
     this.streamCallback = streamCallback;
   }

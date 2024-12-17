@@ -18,7 +18,7 @@ import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { AzureQuantumCopilot } from "./azqCopilot.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
-import { CopilotMessageHandler } from "./copilot.js";
+import { CopilotEventHandler } from "./copilot.js";
 
 // Define the tools and system prompt that the model can use
 
@@ -299,7 +299,7 @@ async function getJob(
 function tryRenderResults(
   file: string,
   shots: number,
-  streamCallback: CopilotMessageHandler,
+  streamCallback: CopilotEventHandler,
 ): boolean {
   try {
     // Parse the JSON file

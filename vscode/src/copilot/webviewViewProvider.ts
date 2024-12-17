@@ -7,7 +7,7 @@ import {
 } from "vscode";
 import { OpenAICopilot } from "../copilot2";
 import { AzureQuantumCopilot } from "./azqCopilot";
-import { ICopilot, CopilotMessageHandler } from "./copilot";
+import { ICopilot, CopilotEventHandler } from "./copilot";
 
 export class CopilotWebviewViewProvider implements WebviewViewProvider {
   public static readonly viewType = "quantum-copilot";
@@ -28,7 +28,7 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
     this._copilot = new AzureQuantumCopilot(this._streamCallback);
   }
   private _copilot: ICopilot;
-  private _streamCallback: CopilotMessageHandler;
+  private _streamCallback: CopilotEventHandler;
 
   resolveWebviewView(
     webviewView: WebviewView,

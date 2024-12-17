@@ -8,16 +8,12 @@ import { EventSourceMessage, fetchEventSource } from "../fetch";
 import { AuthenticationSession } from "vscode";
 import { executeTool } from "./copilotTools";
 import { WorkspaceConnection } from "../azure/treeView";
-import { CopilotMessageHandler, ICopilot } from "./copilot";
+import { CopilotEventHandler, ICopilot } from "./copilot";
 
-const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming"; // new API
+const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
-type QuantumChatMessage =
-  | UserMessage
-  | AssistantMessage
-  | SystemMessage
-  | ToolMessage;
+type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
 
 type UserMessage = {
   role: "user";
@@ -30,11 +26,6 @@ type AssistantMessage = {
   ToolCalls?: ToolCall[];
 };
 
-type SystemMessage = {
-  role: "system";
-  content: string;
-};
-
 type ToolMessage = {
   role: "tool";
   content: string;
@@ -42,35 +33,57 @@ type ToolMessage = {
 };
 
 type ToolCall = {
-  name: string; // The name of the function to call
-  arguments: any; // Dictionary of the argument names and their values
-  id: string; // The tool call id used to match the toll call responses appropriately
+  /**
+   * The name of the function to call
+   */
+  name: string;
+  /**
+   * Dictionary of the argument names and their values
+   */
+  arguments: any;
+  /**
+   * The tool call id used to match the tool call responses appropriately
+   */
+  id: string;
 };
 
 type QuantumChatResponse = {
-  ConversationId: string; // GUID,
-  Role: string; // e.g. "assistant"
-  Content?: string; // The full response
+  /**
+   * The unique id for the conversation. Should be a GUID.
+   */
+  ConversationId: string;
+  /**
+   * The role of the author of this message, e.g. "assistant"
+   */
+  Role?: string;
+  /**
+   * The full content of the message.
+   */
+  Content?: string;
+  /**
+   * The tool calls that should be made as a result of this message.
+   */
   ToolCalls?: ToolCall[];
-  Delta?: string; // The next response token
-  FinishReason?: string; // e.g. "stop"|"content_filter"|"length"|null,
+  /**
+   * The delta containing the fields that have changed on the Message.
+   */
+  Delta?: string;
+  /**
+   * The reason the model stopped generating tokens, e.g. "stop"|"content_filter"|"length"|null
+   */
+  FinishReason?: string;
   EmbeddedData: any;
   Created: string; // e.g. "2021-09-29T17:00:00.000Z"
 };
 
-const systemMessage: AssistantMessage = {
-  role: "assistant",
-  content:
-    "You are a helpful customer support assistant. Use the supplied tools to assist the user. " +
-    // 'Do not provide information about jobs whose status is "Not Found", unless the user specifically asks for the job by its id. ' +
-    "Do not provide container URI links from jobs to the user. " +
-    "When submitting a Q# program, the Q# code is automatically retrieved from the currently visible Q# editor by the SubmitToTarget tool. " +
-    "When submitting to a target, if the user doesn't explicitly specify the number of shots or the target, ask the user for these values. " +
-    "When checking the status of a job, if the job is not specified, use the job ID from the last submitted job.",
-};
-
 type QuantumChatRequest = {
-  conversationId: string; // GUID
+  /**
+   * The unique id for the conversation. Should be a GUID.
+   */
+  conversationId: string;
+  /**
+   * The entire conversation so far.
+   */
   messages: QuantumChatMessage[];
   additionalContext: any;
   identifier: string;
@@ -80,12 +93,11 @@ export class AzureQuantumCopilot implements ICopilot {
   conversationId: string;
   messages: QuantumChatMessage[] = [];
   activeWorkspace?: WorkspaceConnection;
-  sendMessage: CopilotMessageHandler;
+  sendMessage: CopilotEventHandler;
   msaChatSession?: AuthenticationSession;
 
-  constructor(sendMessage: CopilotMessageHandler) {
+  constructor(sendMessage: CopilotEventHandler) {
     this.conversationId = getRandomGuid();
-    this.messages.push(systemMessage);
     this.sendMessage = sendMessage;
     log.debug("Starting copilot chat request flow");
   }
@@ -130,9 +142,6 @@ export class AzureQuantumCopilot implements ICopilot {
     delta: (delta: string) => void,
     resolve: (content?: string, toolCalls?: ToolCall[]) => Promise<void>,
   ) {
-    //   log.debug(
-    //     `ChatAPI response message:\n${JSON.stringify(response, undefined, 2)}`,
-    //   );
     if (response.Delta) {
       delta(response.Delta);
     } else if (response.Content || response.ToolCalls) {

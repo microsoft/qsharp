@@ -25,7 +25,7 @@ import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { CopilotWebviewViewProvider } from "./copilot/webviewViewProvider";
-import { CopilotMessageHandler, ICopilot } from "./copilot/copilot";
+import { CopilotEventHandler, ICopilot } from "./copilot/copilot";
 import { OpenAICopilot as OpenAiCopilot } from "./copilot2";
 import { getPauliNoiseModel } from "./config";
 
@@ -475,7 +475,7 @@ export class QSharpWebViewPanel {
   private _ready = false;
   private _queuedMessages: any[] = [];
   private _copilot: ICopilot;
-  private _streamCallback: CopilotMessageHandler;
+  private _streamCallback: CopilotEventHandler;
 
   constructor(
     private type: PanelType,

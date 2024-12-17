@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 /**
- * Messages that get sent across the webview <-> extension boundary
+ * Events that get sent across the webview <-> extension boundary
  * for the copilot feature.
  */
-type MessageFromCopilot =
+type CopilotEvent =
   | { kind: "copilotResponseDelta"; payload: { response: string } }
   | { kind: "copilotResponse"; payload: { response: string } }
   | { kind: "copilotToolCall"; payload: { toolName: string } }
@@ -18,10 +18,10 @@ type MessageFromCopilot =
       };
     };
 
-export type CopilotMessageHandler = (msg: MessageFromCopilot) => void;
+export type CopilotEventHandler = (event: CopilotEvent) => void;
 
 export interface ICopilotFactory {
-  createCopilot(callback: CopilotMessageHandler): Promise<ICopilot>;
+  createCopilot(callback: CopilotEventHandler): Promise<ICopilot>;
 }
 
 export interface ICopilot {

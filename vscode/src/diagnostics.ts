@@ -9,7 +9,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeLocation, toVscodeRange, qsharpLanguageId } from "./common.js";
+import { toVsCodeLocation, toVscodeRange, qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(
   languageService: ILanguageService,
@@ -89,7 +89,7 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
   if (d.related) {
     vscodeDiagnostic.relatedInformation = d.related.map((r) => {
       return new vscode.DiagnosticRelatedInformation(
-        toVscodeLocation(r.location),
+        toVsCodeLocation(r.location),
         r.message,
       );
     });

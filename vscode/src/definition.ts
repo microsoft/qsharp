@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { toVscodeLocation } from "./common";
+import { toVsCodeLocation } from "./common";
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
 
@@ -21,6 +21,6 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
       position,
     );
     if (!definition) return null;
-    return toVscodeLocation(definition);
+    return toVsCodeLocation(definition);
   }
 }
