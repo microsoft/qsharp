@@ -33,7 +33,7 @@ use qsc::{
     LanguageFeatures, PackageType, SourceMap,
 };
 
-use resource_estimator::{self as re, estimate_expr};
+use resource_estimator::{self as re, estimate_call, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
 
 /// If the classes are not Send, the Python interpreter
@@ -472,8 +472,29 @@ impl Interpreter {
         }
     }
 
-    fn estimate(&mut self, _py: Python, entry_expr: &str, job_params: &str) -> PyResult<String> {
-        match estimate_expr(&mut self.interpreter, entry_expr, job_params) {
+    #[pyo3(signature=(job_params, entry_expr=None, callable=None, args=None))]
+    fn estimate(
+        &mut self,
+        py: Python,
+        job_params: &str,
+        entry_expr: Option<&str>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
+    ) -> PyResult<String> {
+        let results = if let Some(entry_expr) = entry_expr {
+            estimate_expr(&mut self.interpreter, entry_expr, job_params)
+        } else {
+            let callable = callable.ok_or_else(|| {
+                QSharpError::new_err("either entry_expr or callable must be specified")
+            })?;
+            let (input_ty, output_ty) = self
+                .interpreter
+                .global_tys(&callable.0)
+                .ok_or(QSharpError::new_err("callable not found"))?;
+            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            estimate_call(&mut self.interpreter, callable.0, args, job_params)
+        };
+        match results {
             Ok(estimate) => Ok(estimate),
             Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
                 Err(QSharpError::new_err(format_errors(

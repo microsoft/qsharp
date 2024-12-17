@@ -795,6 +795,35 @@ impl Interpreter {
         )
     }
 
+    /// Invokes the given callable with the given arguments on the given simulator with a new instance of the environment
+    /// but using the current compilation.
+    pub fn invoke_with_sim(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+        callable: Value,
+        args: Value,
+    ) -> InterpretResult {
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
+    }
+
     fn compile_entry_expr(
         &mut self,
         expr: &str,

@@ -617,13 +617,16 @@ def circuit(
 
 
 def estimate(
-    entry_expr: str,
+    entry_expr: Union[str | Callable],
     params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
+    *args,
 ) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
+    Either an entry expression or a callable with arguments must be provided.
 
-    :param entry_expr: The entry expression.
+    :param entry_expr: The entry expression. Alternatively, a callable can be provided,
+        which must be a Q# global callable.
     :param params: The parameters to configure physical estimation.
 
     :returns `EstimatorResult`: The estimated resources.
@@ -649,7 +652,16 @@ def estimate(
     param_str = json.dumps(params)
     telemetry_events.on_estimate()
     start = monotonic()
-    res_str = get_interpreter().estimate(entry_expr, param_str)
+    if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+        res_str = get_interpreter().estimate(
+            param_str, callable=entry_expr.__global_callable, args=args
+        )
+    else:
+        res_str = get_interpreter().estimate(param_str, entry_expr=entry_expr)
     res = json.loads(res_str)
 
     try:
