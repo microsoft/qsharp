@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from . import telemetry_events
+from . import telemetry_events, code
 from ._native import (
     Interpreter,
     TargetProfile,
@@ -9,6 +9,7 @@ from ._native import (
     QSharpError,
     Output,
     Circuit,
+    GlobalCallable,
 )
 from typing import (
     Any,
@@ -24,6 +25,8 @@ from typing import (
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
+import sys
+import types
 from time import monotonic
 
 _interpreter = None
@@ -190,6 +193,25 @@ def init(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
 
+    # Loop through the environment module and remove any dynamically added attributes that represent
+    # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
+    keys_to_remove = []
+    for key in code.__dict__:
+        if hasattr(code.__dict__[key], "__qs_gen") or isinstance(
+            code.__dict__[key], types.ModuleType
+        ):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        code.__delattr__(key)
+
+    # Also remove any namespace modules dynamically added to the system.
+    keys_to_remove = []
+    for key in sys.modules:
+        if key.startswith("qsharp.code."):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        sys.modules.__delitem__(key)
+
     _interpreter = Interpreter(
         target_profile,
         language_features,
@@ -198,6 +220,7 @@ def init(
         list_directory,
         resolve,
         fetch_github,
+        _make_callable,
     )
 
     _config = Config(target_profile, language_features, manifest_contents, project_root)
@@ -370,6 +393,56 @@ def eval(
         return results
     else:
         return results["result"]
+
+
+# Helper function that knows how to create a function that invokes a callable. This will be
+# used by the underlying native code to create functions for callables on the fly that know
+# how to get the currently intitialized global interpreter instance.
+def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name: str):
+    module = code
+    # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
+    # to register created modules with the system.
+    accumulated_namespace = "qsharp.code"
+    accumulated_namespace += "."
+    for name in namespace:
+        accumulated_namespace += name
+        # Use the existing entry, which should already be a module.
+        if hasattr(module, name):
+            module = module.__getattribute__(name)
+        else:
+            # This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
+            # add it to sys.modules so it supports import properly.
+            new_module = types.ModuleType(accumulated_namespace)
+            module.__setattr__(name, new_module)
+            sys.modules[accumulated_namespace] = new_module
+            module = new_module
+        accumulated_namespace += "."
+
+    def _callable(*args):
+        ipython_helper()
+
+        def callback(output: Output) -> None:
+            if _in_jupyter:
+                try:
+                    display(output)
+                    return
+                except:
+                    # If IPython is not available, fall back to printing the output
+                    pass
+            print(output, flush=True)
+
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+
+        return get_interpreter().invoke(callable, args, callback)
+
+    # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
+    _callable.__qs_gen = True
+
+    # Add the callable to the module.
+    module.__setattr__(callable_name, _callable)
 
 
 def run(

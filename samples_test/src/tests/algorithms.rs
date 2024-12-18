@@ -254,6 +254,10 @@ pub const SHOR_EXPECT_DEBUG: Expect = expect![[r#"
     Found factor=13
     Found factorization 143 = 13 * 11
     (13, 11)"#]];
+pub const SIMPLEISING_EXPECT: Expect =
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
+pub const SIMPLEISING_EXPECT_DEBUG: Expect =
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
 pub const SUPERDENSECODING_EXPECT: Expect = expect!["((false, true), (false, true))"];
 pub const SUPERDENSECODING_EXPECT_DEBUG: Expect = expect!["((false, true), (false, true))"];
 pub const SUPERPOSITION_EXPECT: Expect = expect!["Zero"];

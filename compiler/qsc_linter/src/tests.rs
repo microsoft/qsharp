@@ -15,6 +15,93 @@ use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
 #[test]
+fn daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn long_daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = z = z = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = z = z = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn nested_daisy_chain_lint() {
+    check(
+        &wrap_in_callable("x = y = { a = b = c; z } = z = z", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "x = y = { a = b = c; z } = z = z",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+                SrcLint {
+                    source: "a = b = c",
+                    level: Warn,
+                    message: "discouraged use of chain assignment",
+                    help: "assignment expressions always return `Unit`, so chaining them may not be useful",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn set_keyword_lint() {
+    check(
+        &wrap_in_callable("set x = 3;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "set",
+                    level: Allow,
+                    message: "deprecated use of `set` keyword",
+                    help: "the `set` keyword is deprecated for assignments and can be removed",
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 71,
+                                hi: 74,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn multiple_lints() {
     check(
         &wrap_in_callable("let x = ((1 + 2)) / 0;;;;", CallableKind::Operation),
@@ -468,23 +555,23 @@ fn deprecated_with_eq_op_for_structs() {
         struct Foo { x : Int }
         function Bar() : Foo {
             mutable foo = new Foo { x = 2 };
-            set foo w/= x <- 3;
+            foo w/= x <- 3;
             foo
         }
     "},
         &expect![[r#"
             [
                 SrcLint {
-                    source: "set foo w/= x <- 3",
+                    source: "foo w/= x <- 3",
                     level: Allow,
                     message: "deprecated `w/` and `w/=` operators for structs",
                     help: "`w/` and `w/=` operators for structs are deprecated, use `new` instead",
                     code_action_edits: [
                         (
-                            "set foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
+                            "foo = new Foo {\n        ...foo,\n        x = 3,\n    }",
                             Span {
                                 lo: 115,
-                                hi: 133,
+                                hi: 129,
                             },
                         ),
                     ],
@@ -677,7 +764,7 @@ fn run_lints(
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
+    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
     let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
