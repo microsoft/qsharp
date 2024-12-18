@@ -10,6 +10,7 @@ import {
   TargetProfile,
   type VSDiagnostic,
   IProgramConfig,
+  ITestDescriptor,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -79,7 +80,7 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 
-  collectTestCallables(program: ProgramConfig): Promise<string[]>;
+  collectTestCallables(program: ProgramConfig): Promise<ITestDescriptor[]>;
 }
 
 /**
@@ -247,7 +248,7 @@ export class Compiler implements ICompiler {
     return success;
   }
 
-  async collectTestCallables(program: IProgramConfig): Promise<string[]> {
+  async collectTestCallables(program: IProgramConfig): Promise<ITestDescriptor[]> {
     return this.wasm.collect_test_callables(program);
   }
 }

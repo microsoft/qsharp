@@ -12,7 +12,7 @@ import {
   QscEventTarget,
 } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
-import { isQsharpDocument, toVsCodeRange } from "./common";
+import { isQsharpDocument, toVscodeLocation, toVsCodeRange } from "./common";
 
 function localGetCompilerWorker(
   context: vscode.ExtensionContext,
@@ -49,16 +49,20 @@ function mkRefreshHandler(
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
-    for (const testCallable of testCallables) {
-      const parts = testCallable.split(".");
+    log.info("test callables:", JSON.stringify(testCallables));
+    for (const {callableName, location } of testCallables) {
+      const vscLocation = toVscodeLocation(location);
+      const parts = callableName.split(".");
 
       // for an individual test case, e.g. foo.bar.baz, create a hierarchy of items
       let rover = ctrl.items;
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
-        const id = i === parts.length - 1 ? testCallable : part;
+        const id = i === parts.length - 1 ? callableName : part;
         if (!rover.get(part)) {
-          rover.add(ctrl.createTestItem(id, part));
+          let testItem = ctrl.createTestItem(id, part, vscLocation.uri);
+          testItem.range = vscLocation.range;
+          rover.add(testItem);
         }
         rover = rover.get(id)!.children;
       }

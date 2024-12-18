@@ -3,6 +3,8 @@
 
 use qsc::{compile, location::Location, PackageType};
 use wasm_bindgen::prelude::wasm_bindgen;
+use serde::{Serialize, Deserialize};
+
 
 use crate::{
     project_system::{into_qsc_args, ProgramConfig}, serializable_type, STORE_CORE_STD
@@ -11,11 +13,12 @@ use crate::{
 serializable_type! {
     TestDescriptor,
     {
+        #[serde(rename = "callableName")]
         pub callable_name: String,
-        pub location: Location,
+        pub location: crate::line_column::Location,
     },
     r#"export interface ITestDescriptor {
-        callable_name: string; 
+        callableName: string; 
         location: ILocation;
     }"#,
     ITestDescriptor
@@ -27,7 +30,7 @@ pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescript
         into_qsc_args(config, None).map_err(super::compile_errors_into_qsharp_errors_json)?;
 
     let compile_unit = STORE_CORE_STD.with(|(store, std)| {
-        let (unit, errs) = compile::compile(
+        let (unit, _errs) = compile::compile(
             store,
             &[(*std, None)],
             source_map,
@@ -46,7 +49,7 @@ pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescript
     Ok(test_descriptors.map(|qsc::test_callables::TestDescriptor { callable_name, location }| {
         TestDescriptor {
             callable_name,
-            location,
+            location: location.into(),
         }.into()
     }).collect())
 
