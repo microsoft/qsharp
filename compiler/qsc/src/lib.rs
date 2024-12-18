@@ -9,6 +9,44 @@ pub mod interpret;
 pub mod location;
 pub mod packages;
 pub mod target;
+pub mod test_callables {
+    use qsc_data_structures::line_column::{Encoding, Range};
+    use qsc_frontend::compile::CompileUnit;
+
+    use crate::location::Location;
+
+    pub struct TestDescriptor {
+        pub callable_name: String,
+        pub location: Location,
+    }
+
+    pub fn collect_test_callables(
+        unit: &CompileUnit
+    ) -> Result<impl Iterator<Item = TestDescriptor> + '_, String> {
+        let test_callables = unit.package.collect_test_callables()?;
+
+        Ok(test_callables.into_iter().map(|(name, span)| {
+            let source = unit
+                .sources
+                .find_by_offset(span.lo)
+                .expect("source should exist for offset");
+
+            let location = Location {
+                source: source.name.clone(),
+                range: Range::from_span(
+                    // TODO(@sezna) ask @minestarks if this is correct
+                    Encoding::Utf8,
+                    &source.contents,
+                    &(span - source.offset),
+                ),
+            };
+            TestDescriptor {
+                callable_name: name,
+                location,
+            }
+        }))
+    }
+}
 
 pub use qsc_formatter::formatter;
 

@@ -279,9 +279,11 @@ impl Display for Package {
     }
 }
 
+pub type TestCallableName = String;
+
 impl Package {
     /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
-    pub fn collect_test_callables(&self) -> std::result::Result<Vec<String>, String> {
+    pub fn collect_test_callables(&self) -> std::result::Result<Vec<(TestCallableName, Span)>, String> {
         let items_with_test_attribute = self
             .items
             .iter()
@@ -291,7 +293,7 @@ impl Package {
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
 
         let callable_names = callables
-            .filter_map(|(_, item)| -> Option<std::result::Result<String, String>> {
+            .filter_map(|(_, item)| -> Option<std::result::Result<_, String>> {
                 if let ItemKind::Callable(callable) = &item.kind {
                     if !callable.generics.is_empty()
                         || callable.input.kind != PatKind::Tuple(vec![])
@@ -314,7 +316,9 @@ impl Package {
                         }
                     };
 
-                    Some(Ok(name))
+                    let span = item.span;
+
+                    Some(Ok((name,span)))
                 } else {
                     None
                 }

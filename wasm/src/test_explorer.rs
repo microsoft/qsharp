@@ -1,30 +1,53 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::{compile, PackageType};
+use qsc::{compile, location::Location, PackageType};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    project_system::{into_qsc_args, ProgramConfig},
-    STORE_CORE_STD,
+    project_system::{into_qsc_args, ProgramConfig}, serializable_type, STORE_CORE_STD
 };
 
+serializable_type! {
+    TestDescriptor,
+    {
+        pub callable_name: String,
+        pub location: Location,
+    },
+    r#"export interface ITestDescriptor {
+        callable_name: string; 
+        location: ILocation;
+    }"#,
+    ITestDescriptor
+}
+
 #[wasm_bindgen]
-pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<String>, String> {
-    let (source_map, capabilities, language_features, _store, _deps) =
+pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescriptor>, String> {
+    let (source_map, capabilities, language_features, store, _deps) =
         into_qsc_args(config, None).map_err(super::compile_errors_into_qsharp_errors_json)?;
 
-    let package = STORE_CORE_STD.with(|(store, std)| {
-        let (unit, _) = compile::compile(
+    let compile_unit = STORE_CORE_STD.with(|(store, std)| {
+        let (unit, errs) = compile::compile(
             store,
             &[(*std, None)],
             source_map,
             PackageType::Lib,
             capabilities,
             language_features,
-        );
-        unit.package
+        ); 
+        unit
     });
 
-    package.collect_test_callables()
+
+    let test_descriptors =  qsc::test_callables::collect_test_callables(
+        &compile_unit
+    )?;
+
+    Ok(test_descriptors.map(|qsc::test_callables::TestDescriptor { callable_name, location }| {
+        TestDescriptor {
+            callable_name,
+            location,
+        }.into()
+    }).collect())
+
 }
