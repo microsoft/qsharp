@@ -3,7 +3,11 @@
 
 import { IQSharpError, log, qsharpLibraryUriScheme } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpLanguageId, toVsCodeDiagnostic } from "./common.js";
+import {
+  qsharpExtensionId,
+  qsharpLanguageId,
+  toVsCodeDiagnostic,
+} from "./common.js";
 
 /**
  * Initialize diagnostics for `qsharp.json` files and failures
@@ -84,7 +88,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
   const dismissCommand = vscode.commands.registerCommand(
-    "qsharp-vscode.dismissCommandDiagnostics",
+    `${qsharpExtensionId}.dismissCommandDiagnostics`,
     clearCommandDiagnostics,
   );
 
@@ -102,7 +106,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
           );
           action.diagnostics = commandErrors;
           action.command = {
-            command: "qsharp-vscode.dismissCommandDiagnostics",
+            command: `${qsharpExtensionId}.dismissCommandDiagnostics`,
             title: "Dismiss errors for the last run Q# command",
           };
           action.isPreferred = true;

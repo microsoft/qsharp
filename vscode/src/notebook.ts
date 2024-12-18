@@ -5,7 +5,7 @@ import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { WorkspaceTreeProvider } from "./azure/treeView.js";
 import { getPythonCodeForWorkspace } from "./azure/workspaceActions.js";
-import { qsharpLanguageId } from "./common.js";
+import { qsharpExtensionId, qsharpLanguageId } from "./common.js";
 import { notebookTemplate } from "./notebookTemplate.js";
 
 const qsharpCellMagic = "%%qsharp";
@@ -130,7 +130,7 @@ export function registerCreateNotebookCommand(
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.createNotebook",
+      `${qsharpExtensionId}.createNotebook`,
       async () => {
         // Update the workspace connection info in the notebook if workspaces are already connected to
         const tree = WorkspaceTreeProvider.instance;

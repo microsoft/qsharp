@@ -4,11 +4,12 @@
 import * as vscode from "vscode";
 import { log, samples } from "qsharp-lang";
 import { EventType, sendTelemetryEvent } from "./telemetry";
+import { qsharpExtensionId } from "./common";
 
 export async function initProjectCreator(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.createProject",
+      `${qsharpExtensionId}.createProject`,
       async (folderUri: vscode.Uri | undefined) => {
         sendTelemetryEvent(EventType.CreateProject, {}, {});
 
@@ -66,7 +67,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.populateFilesList",
+      `${qsharpExtensionId}.populateFilesList`,
       async (qsharpJsonUri: vscode.Uri | undefined) => {
         // If called from the content menu qsharpJsonUri will be the full qsharp.json uri
         // If called from the command palette is will be undefined, so use the active editor
@@ -228,7 +229,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.addProjectReference",
+      `${qsharpExtensionId}.addProjectReference`,
       async (qsharpJsonUri: vscode.Uri | undefined) => {
         // If called from the content menu qsharpJsonUri will be the full qsharp.json uri
         // If called from the command palette is will be undefined, so use the active editor

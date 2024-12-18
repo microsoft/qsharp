@@ -3,7 +3,7 @@
 
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpDocument } from "./common";
+import { isQsharpDocument, qsharpExtensionId } from "./common";
 import { getTarget, getTargetFriendlyName, setTarget } from "./config";
 import { getActiveQSharpDocumentUri } from "./programConfig";
 
@@ -18,7 +18,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   );
   disposables.push(statusBarItem);
 
-  statusBarItem.command = "qsharp-vscode.setTargetProfile";
+  statusBarItem.command = `${qsharpExtensionId}.setTargetProfile`;
 
   disposables.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
@@ -75,7 +75,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 
 function registerTargetProfileCommand() {
   return vscode.commands.registerCommand(
-    "qsharp-vscode.setTargetProfile",
+    `${qsharpExtensionId}.setTargetProfile`,
     async () => {
       const target = await vscode.window.showQuickPick(
         targetProfiles.map((profile) => ({

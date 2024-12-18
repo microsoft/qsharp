@@ -8,6 +8,7 @@ import { invokeAndReportCommandDiagnostics } from "./diagnostics";
 import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { qsharpExtensionId } from "./common";
 
 const generateQirTimeoutMs = 120000;
 
@@ -142,7 +143,7 @@ export function initCodegen(context: vscode.ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.getQir", async () => {
+    vscode.commands.registerCommand(`${qsharpExtensionId}.getQir`, async () => {
       try {
         const qir = await getQirForActiveWindow();
         const qirDoc = await vscode.workspace.openTextDocument({
