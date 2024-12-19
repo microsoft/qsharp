@@ -15,6 +15,7 @@ mod measurement;
 mod replace_qubit_allocation;
 mod reset;
 mod spec_gen;
+mod test_attribute;
 
 use callable_limits::CallableLimits;
 use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
@@ -52,6 +53,7 @@ pub enum Error {
     Measurement(measurement::Error),
     Reset(reset::Error),
     SpecGen(spec_gen::Error),
+    TestAttribute(test_attribute::TestAttributeError),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -121,6 +123,9 @@ impl PassContext {
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
+        let test_attribute_errors = test_attribute::validate_test_attributes(package);
+        Validator::default().visit_package(package);
+
         callable_errors
             .into_iter()
             .map(Error::CallableLimits)
@@ -130,6 +135,7 @@ impl PassContext {
             .chain(entry_point_errors)
             .chain(measurement_decl_errors.into_iter().map(Error::Measurement))
             .chain(reset_decl_errors.into_iter().map(Error::Reset))
+            .chain(test_attribute_errors.into_iter().map(Error::TestAttribute))
             .collect()
     }
 

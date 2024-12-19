@@ -2396,3 +2396,20 @@ fn top_level_nodes_error_recovery() {
             ]"#]],
     );
 }
+
+#[test]
+fn test_attribute() {
+    check(
+        parse,
+        "@Test() function Foo() : Unit {}",
+        &expect![[r#"
+            Item _id_ [0-32]:
+                Attr _id_ [0-7] (Ident _id_ [1-5] "Test"):
+                    Expr _id_ [5-7]: Unit
+                Callable _id_ [8-32] (Function):
+                    name: Ident _id_ [17-20] "Foo"
+                    input: Pat _id_ [20-22]: Unit
+                    output: Type _id_ [25-29]: Path: Path _id_ [25-29] (Ident _id_ [25-29] "Unit")
+                    body: Block: Block _id_ [30-32]: <empty>"#]],
+    );
+}
