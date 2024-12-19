@@ -99,9 +99,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
 
-results = qsharp.run("RandomBit()", shots=1000)
+# Use save_events to suppress the automatic printing of events for every shot
+results = qsharp.run("RandomBit()", shots=1000, save_events=True)
+
 # Sort the results so that the histogram labels appear in the correct order
+# We only care about the result values, not the event data, so extract just the result
+results = [entry["result"] for entry in results]
 results.sort()
+
 # Count the number of times each result appears
 counts = Counter(results)
 
@@ -111,7 +116,35 @@ plt.title("RandomBit() Results")
 plt.bar(xlabels, counts)
 plt.xticks(xlabels, values)
 plt.show()
-      `,
+`,
+    },
+    {
+      kind: vscode.NotebookCellKind.Markup,
+      languageId: "markdown",
+      value: `## Q# widgets
+
+You can also use the \`qsharp_widgets\` package to visualize data. Install with \`pip install qsharp-widgets\``,
+    },
+    {
+      kind: vscode.NotebookCellKind.Code,
+      languageId: "python",
+      value: `from qsharp_widgets import Histogram
+
+Histogram(results)
+`,
+    },
+    {
+      kind: vscode.NotebookCellKind.Code,
+      languageId: "python",
+      value: `from qsharp_widgets import EstimatesPanel
+
+estimate = qsharp.estimate("RandomBit()", [
+    {"errorBudget": 0.333, "qubitParams": {"name": "qubit_gate_ns_e3"}},
+    {"errorBudget": 0.333, "qubitParams": {"name": "qubit_gate_us_e4"}},
+    {"errorBudget": 0.333, "qubitParams": {"name": "qubit_maj_ns_e6"}, "qecScheme": {"name": "floquet_code"}}
+])
+EstimatesPanel(estimate)
+`,
     },
     {
       kind: vscode.NotebookCellKind.Markup,
