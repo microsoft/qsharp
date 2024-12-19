@@ -2,10 +2,10 @@ import qsharp
 
 qsharp.init(project_root=".")
 
+from qsharp.code.GenerateRandomNumbers import GenerateRandomNumbers
+
 nQubits = input("Enter the number of random bits to be generated: ")
-(results, number) = qsharp.eval(
-    f"GenerateRandomNumbers.GenerateRandomNumbers({nQubits})"
-)
+(results, number) = GenerateRandomNumbers(int(nQubits))
 
 count = 0
 for result in results:
