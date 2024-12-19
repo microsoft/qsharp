@@ -279,6 +279,52 @@ impl Display for Package {
     }
 }
 
+impl Package {
+    /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
+    pub fn collect_test_callables(&self) -> std::result::Result<Vec<String>, String> {
+        let items_with_test_attribute = self
+            .items
+            .iter()
+            .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
+
+        let callables = items_with_test_attribute
+            .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
+
+        let callable_names = callables
+            .filter_map(|(_, item)| -> Option<std::result::Result<String, String>> {
+                if let ItemKind::Callable(callable) = &item.kind {
+                    if !callable.generics.is_empty()
+                        || callable.input.kind != PatKind::Tuple(vec![])
+                    {
+                        return None;
+                    }
+                    // this is indeed a test callable, so let's grab its parent name
+                    let name = match item.parent {
+                        None => Default::default(),
+                        Some(parent_id) => {
+                            let parent_item = self
+                                .items
+                                .get(parent_id)
+                                .expect("Parent item did not exist in package");
+                            if let ItemKind::Namespace(ns, _) = &parent_item.kind {
+                                format!("{}.{}", ns.name(), callable.name.name)
+                            } else {
+                                callable.name.name.to_string()
+                            }
+                        }
+                    };
+
+                    Some(Ok(name))
+                } else {
+                    None
+                }
+            })
+            .collect::<std::result::Result<_, _>>()?;
+
+        Ok(callable_names)
+    }
+}
+
 /// An item.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
@@ -1359,6 +1405,8 @@ pub enum Attr {
     /// Indicates that an intrinsic callable is a reset. This means that the operation will be marked as
     /// "irreversible" in the generated QIR.
     Reset,
+    /// Indicates that a callable is a test case.
+    Test,
 }
 
 impl Attr {
@@ -1376,6 +1424,7 @@ The `not` operator is also supported to negate the attribute, e.g. `not Adaptive
             Attr::SimulatableIntrinsic => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should only be used during simulation.",
             Attr::Measurement => "Indicates that an intrinsic callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
             Attr::Reset => "Indicates that an intrinsic callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
+            Attr::Test =>  "Indicates that a callable is a test case.",
         }
     }
 }
@@ -1391,6 +1440,7 @@ impl FromStr for Attr {
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             "Measurement" => Ok(Self::Measurement),
             "Reset" => Ok(Self::Reset),
+            "Test" => Ok(Self::Test),
             _ => Err(()),
         }
     }
