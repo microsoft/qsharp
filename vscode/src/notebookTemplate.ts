@@ -143,7 +143,7 @@ estimate = qsharp.estimate("RandomBit()", [
     {"errorBudget": 0.333, "qubitParams": {"name": "qubit_gate_us_e4"}},
     {"errorBudget": 0.333, "qubitParams": {"name": "qubit_maj_ns_e6"}, "qecScheme": {"name": "floquet_code"}}
 ])
-EstimatesPanel(estimate)"
+EstimatesPanel(estimate)
 `,
     },
     {
