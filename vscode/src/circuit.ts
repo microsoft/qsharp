@@ -332,6 +332,7 @@ export function updateCircuitPanel(
     calculating?: boolean;
   },
 ) {
+  const panelId = params?.operation?.operation || projectName;
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
     : projectName;
@@ -352,7 +353,7 @@ export function updateCircuitPanel(
     command: "circuit",
     props,
   };
-  sendMessageToPanel("circuit", reveal, message);
+  sendMessageToPanel({ panelType: "circuit", id: panelId }, reveal, message);
 }
 
 /**

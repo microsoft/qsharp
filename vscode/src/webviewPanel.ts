@@ -155,7 +155,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return;
       }
 
-      let runName = await window.showInputBox({
+      const runName = await window.showInputBox({
         title: "Friendly name for run",
         value: `${program.programConfig.projectName}`,
       });
@@ -171,24 +171,25 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
       log.info("RE params", params);
 
-      sendMessageToPanel("estimates", true, {
+      sendMessageToPanel({ panelType: "estimates", id: runName }, true, {
         command: "estimates",
         calculating: true,
       });
 
+      // ToDo: Check what effect this is supposed to have
       // Ensure the name is unique
-      if (panelTypeToPanel["estimates"].state[runName] !== undefined) {
-        let idx = 2;
-        for (;;) {
-          const newName = `${runName}-${idx}`;
-          if (panelTypeToPanel["estimates"].state[newName] === undefined) {
-            runName = newName;
-            break;
-          }
-          idx++;
-        }
-      }
-      panelTypeToPanel["estimates"].state[runName] = true;
+      // if (panelTypeToPanel["estimates"].state[runName] !== undefined) {
+      //   let idx = 2;
+      //   for (;;) {
+      //     const newName = `${runName}-${idx}`;
+      //     if (panelTypeToPanel["estimates"].state[newName] === undefined) {
+      //       runName = newName;
+      //       break;
+      //     }
+      //     idx++;
+      //   }
+      // }
+      getOrCreatePanel("estimates", runName).state[runName] = true;
 
       // Start the worker, run the code, and send the results to the webview
       log.debug("Starting resource estimates worker.");
@@ -242,7 +243,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
           calculating: false,
           estimates,
         };
-        sendMessageToPanel("estimates", true, message);
+        sendMessageToPanel(
+          { panelType: "estimates", id: runName },
+          true,
+          message,
+        );
       } catch (e: any) {
         // Stop the 'calculating' animation
         const message = {
@@ -250,7 +255,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
           calculating: false,
           estimates: [],
         };
-        sendMessageToPanel("estimates", false, message);
+        sendMessageToPanel(
+          { panelType: "estimates", id: runName },
+          false,
+          message,
+        );
 
         if (timedOut) {
           // Show a VS Code popup that a timeout occurred
@@ -275,7 +284,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       const message = {
         command: "help",
       };
-      sendMessageToPanel("help", true, message);
+      sendMessageToPanel({ panelType: "help", id: "" }, true, message);
     }),
   );
 
@@ -294,6 +303,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
       if (!program.success) {
         throw new Error(program.errorMsg);
       }
+
+      const panelId = program.programConfig.projectName;
 
       // Start the worker, run the code, and send the results to the webview
       const worker = getCompilerWorker(compilerWorkerScriptPath);
@@ -321,7 +332,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
           return;
         }
 
-        sendMessageToPanel("histogram", true, undefined);
+        sendMessageToPanel(
+          { panelType: "histogram", id: panelId },
+          true,
+          undefined,
+        );
 
         const evtTarget = new QscEventTarget(true);
         evtTarget.addEventListener("uiResultsRefresh", () => {
@@ -339,7 +354,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
             buckets: Array.from(buckets.entries()),
             shotCount: resultCount,
           };
-          sendMessageToPanel("histogram", false, message);
+          sendMessageToPanel(
+            { panelType: "histogram", id: panelId },
+            false,
+            message,
+          );
         });
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
@@ -386,6 +405,12 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 }
 
+type PanelDesc = {
+  title: string;
+  panel: QSharpWebViewPanel;
+  state: any;
+};
+
 type PanelType =
   | "histogram"
   | "estimates"
@@ -393,31 +418,50 @@ type PanelType =
   | "circuit"
   | "documentation";
 
-const panelTypeToPanel: Record<
-  PanelType,
-  { title: string; panel: QSharpWebViewPanel | undefined; state: any }
-> = {
-  histogram: { title: "Q# Histogram", panel: undefined, state: {} },
-  estimates: { title: "Q# Estimates", panel: undefined, state: {} },
-  circuit: { title: "Q# Circuit", panel: undefined, state: {} },
-  help: { title: "Q# Help", panel: undefined, state: {} },
-  documentation: {
-    title: "Q# Documentation",
-    panel: undefined,
-    state: {},
-  },
+const panels: Record<PanelType, { [id: string]: PanelDesc }> = {
+  histogram: {},
+  estimates: {},
+  circuit: {},
+  help: {},
+  documentation: {},
 };
 
-export function sendMessageToPanel(
-  panelType: PanelType,
-  reveal: boolean,
-  message: any,
-) {
-  const panelRecord = panelTypeToPanel[panelType];
-  if (!panelRecord.panel) {
-    const panel = window.createWebviewPanel(
+const panelTypeToTitle: Record<PanelType, string> = {
+  histogram: "Histogram",
+  estimates: "Estimates",
+  circuit: "Circuit",
+  help: "Q# Help",
+  documentation: "Q# Documentation",
+};
+
+function getPanel(type: PanelType, id: string): PanelDesc | undefined {
+  return panels[type][id];
+}
+
+export function isPanelOpen(panelType: PanelType, id: string): boolean {
+  return getPanel(panelType, id)?.panel !== undefined;
+}
+
+function createPanel(
+  type: PanelType,
+  id: string,
+  webViewPanel?: WebviewPanel,
+): PanelDesc {
+  if (webViewPanel) {
+    const title = webViewPanel.title;
+    const panel = new QSharpWebViewPanel(type, webViewPanel, id);
+    panels[type][id] = { title, panel, state: {} };
+    return panels[type][id];
+  } else {
+    const title =
+      type == "help"
+        ? "Q# Help"
+        : type == "documentation"
+          ? "Q# Documentation"
+          : `${id} ${panelTypeToTitle[type]}`;
+    const newPanel = window.createWebviewPanel(
       QSharpWebViewType,
-      panelRecord.title,
+      title,
       {
         viewColumn: ViewColumn.Three,
         preserveFocus: true,
@@ -435,15 +479,29 @@ export function sendMessageToPanel(
       },
     );
 
-    panelRecord.panel = new QSharpWebViewPanel(panelType, panel);
+    const panel = new QSharpWebViewPanel(type, newPanel, id);
+    panels[type][id] = { title, panel, state: {} };
+    return panels[type][id];
   }
-
-  if (reveal) panelRecord.panel.reveal(ViewColumn.Beside);
-  if (message) panelRecord.panel.sendMessage(message);
 }
 
-export function isPanelOpen(panelType: PanelType) {
-  return panelTypeToPanel[panelType].panel !== undefined;
+function getOrCreatePanel(type: PanelType, id: string): PanelDesc {
+  const panel = getPanel(type, id);
+  if (panel) {
+    return panel;
+  } else {
+    return createPanel(type, id);
+  }
+}
+
+export function sendMessageToPanel(
+  panel: { panelType: PanelType; id: string },
+  reveal: boolean,
+  message: any,
+) {
+  const panelRecord = getOrCreatePanel(panel.panelType, panel.id);
+  if (reveal) panelRecord.panel.reveal(ViewColumn.Beside);
+  if (message) panelRecord.panel.sendMessage(message);
 }
 
 export class QSharpWebViewPanel {
@@ -454,8 +512,9 @@ export class QSharpWebViewPanel {
   constructor(
     private type: PanelType,
     private panel: WebviewPanel,
+    private id: string,
   ) {
-    log.info("Creating webview panel of type", type);
+    log.info(`Creating webview panel of type ${type} and id ${id}`);
     this.panel.onDidDispose(() => this.dispose());
 
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
@@ -528,8 +587,11 @@ export class QSharpWebViewPanel {
 
   public dispose() {
     log.info("Disposing webview panel", this.type);
-    panelTypeToPanel[this.type].panel = undefined;
-    panelTypeToPanel[this.type].state = {};
+    const panel = getPanel(this.type, this.id);
+    if (panel) {
+      panel.state = {};
+      delete panels[this.type][this.id];
+    }
     this.panel.dispose();
   }
 }
@@ -539,6 +601,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
     log.info("Deserializing webview panel", state);
 
     const panelType: PanelType = state?.viewType;
+    const id = state?.panelId; // ToDo: This doesn't work
 
     if (
       panelType !== "estimates" &&
@@ -555,14 +618,11 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       return;
     }
 
-    if (panelTypeToPanel[panelType].panel !== undefined) {
-      log.error("Panel of type already exists", panelType);
+    if (getPanel(panelType, id) !== undefined) {
+      log.error(`Panel of type ${panelType} and id ${id} already exists`);
       return;
     }
 
-    panelTypeToPanel[panelType].panel = new QSharpWebViewPanel(
-      panelType,
-      panel,
-    );
+    createPanel(panelType, id, panel);
   }
 }
