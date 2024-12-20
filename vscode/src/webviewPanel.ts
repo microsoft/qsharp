@@ -597,7 +597,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
     log.info("Deserializing webview panel", state);
 
     const panelType: PanelType = state?.viewType;
-    const id = state?.panelId; // ToDo: This doesn't work
+    const id = state?.panelId;
 
     if (
       panelType !== "estimates" &&
