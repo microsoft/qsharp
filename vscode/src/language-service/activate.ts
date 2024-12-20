@@ -38,7 +38,14 @@ import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
 
-export async function activateLanguageService(extensionUri: vscode.Uri) {
+/**
+ * Returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+export async function activateLanguageService(
+  extensionUri: vscode.Uri,
+  eventEmitter?: vscode.EventEmitter<string>,
+): Promise<vscode.Disposable[]> {
   const subscriptions: vscode.Disposable[] = [];
 
   const languageService = await loadLanguageService(extensionUri);
@@ -47,7 +54,9 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   subscriptions.push(...startLanguageServiceDiagnostics(languageService));
 
   // synchronize document contents
-  subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+  subscriptions.push(
+    ...registerDocumentUpdateHandlers(languageService, eventEmitter),
+  );
 
   // synchronize notebook cell contents
   subscriptions.push(
@@ -80,7 +89,7 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
       createCompletionItemProvider(languageService),
       // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
       "@",
-      "."
+      ".",
     ),
   );
 
@@ -147,7 +156,9 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   return subscriptions;
 }
 
-async function loadLanguageService(baseUri: vscode.Uri) {
+async function loadLanguageService(
+  baseUri: vscode.Uri,
+): Promise<ILanguageService> {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
@@ -169,11 +180,14 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   return languageService;
 }
 
-function registerDocumentUpdateHandlers(languageService: ILanguageService): vscode.EventTarget<string> {
-
-  // consumers can subscribe to this event to get notified when updateDocument finishes
-  const eventEmitter = new vscode.EventEmitter<string>();
-
+/**
+ * This function returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+function registerDocumentUpdateHandlers(
+  languageService: ILanguageService,
+  eventEmitter?: vscode.EventEmitter<string>,
+): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document, eventEmitter);
   });
@@ -263,15 +277,25 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService): vsco
     }
   }
 
-  function updateIfQsharpDocument(document: vscode.TextDocument, emitter?: vscode.EventEmitter<string>) {
+  function updateIfQsharpDocument(
+    document: vscode.TextDocument,
+    emitter?: vscode.EventEmitter<string>,
+  ) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText(),
-        emitter,
       );
+
+      if (emitter) {
+        // this is used to trigger functionality outside of the language service.
+        // by firing an event here, we unify the points at which the language service
+        // recognizes an "update document" and when subscribers to the event react, avoiding
+        // multiple implementations of the same logic.
+        emitter.fire(document.uri.toString());
+      }
     }
   }
 

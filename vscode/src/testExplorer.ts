@@ -11,8 +11,12 @@ import {
   QscEventTarget,
 } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
-import { getCommonCompilerWorker, isQsharpDocument, toVscodeLocation, toVsCodeRange } from "./common";
-
+import {
+  getCommonCompilerWorker,
+  isQsharpDocument,
+  toVscodeLocation,
+  toVsCodeRange,
+} from "./common";
 
 /**
  * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
@@ -38,7 +42,7 @@ function mkRefreshHandler(
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
-    for (const {callableName, location } of testCallables) {
+    for (const { callableName, location } of testCallables) {
       const vscLocation = toVscodeLocation(location);
       const parts = callableName.split(".");
 
@@ -58,7 +62,10 @@ function mkRefreshHandler(
   };
 }
 
-export async function initTestExplorer(context: vscode.ExtensionContext) {
+export async function initTestExplorer(
+  context: vscode.ExtensionContext,
+  updateDocumentEvent: vscode.Event<string>,
+) {
   const ctrl: vscode.TestController = vscode.tests.createTestController(
     "qsharpTestController",
     "Q# Tests",
@@ -108,7 +115,9 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
 
   ctrl.resolveHandler = async (item) => {
     if (!item) {
-      context.subscriptions.push(...startWatchingWorkspace(ctrl, context));
+      context.subscriptions.push(
+        ...startWatchingWorkspace(ctrl, context, updateDocumentEvent),
+      );
       return;
     }
   };
@@ -154,22 +163,12 @@ function getWorkspaceTestPatterns() {
 function startWatchingWorkspace(
   controller: vscode.TestController,
   context: vscode.ExtensionContext,
+  updateDocumentEvent: vscode.Event<string>,
 ) {
   return getWorkspaceTestPatterns().map(({ pattern }) => {
     const refresher = mkRefreshHandler(controller, context);
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    watcher.onDidCreate(async () => {
-      await refresher();
-    });
-
-    watcher.onDidChange(async () => {
-      await refresher();
-    });
-
-    watcher.onDidDelete(async () => {
-      await refresher();
-    });
-
+    updateDocumentEvent(refresher);
     return watcher;
   });
 }

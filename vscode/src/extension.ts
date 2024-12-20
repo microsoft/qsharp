@@ -68,15 +68,17 @@ export async function activate(
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
+  const eventEmitter = new vscode.EventEmitter<string>();
+
   context.subscriptions.push(
-    ...(await activateLanguageService(context.extensionUri)),
+    ...(await activateLanguageService(context.extensionUri, eventEmitter)),
   );
 
   context.subscriptions.push(...startOtherQSharpDiagnostics());
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  initTestExplorer(context);
+  initTestExplorer(context, eventEmitter.event);
   initAzureWorkspaces(context);
   initCodegen(context);
   activateDebugger(context);
