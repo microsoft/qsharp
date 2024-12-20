@@ -168,9 +168,14 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   );
   return languageService;
 }
-function registerDocumentUpdateHandlers(languageService: ILanguageService) {
+
+function registerDocumentUpdateHandlers(languageService: ILanguageService): vscode.EventTarget<string> {
+
+  // consumers can subscribe to this event to get notified when updateDocument finishes
+  const eventEmitter = new vscode.EventEmitter<string>();
+
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document);
+    updateIfQsharpDocument(document, eventEmitter);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
@@ -203,13 +208,13 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document);
+      updateIfQsharpDocument(document, eventEmitter);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document);
+      updateIfQsharpDocument(evt.document, eventEmitter);
     }),
   );
 
@@ -252,19 +257,20 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           // Check that the document is on the same project as the manifest.
           document.fileName.startsWith(project_folder)
         ) {
-          updateIfQsharpDocument(document);
+          updateIfQsharpDocument(document, eventEmitter);
         }
       });
     }
   }
 
-  function updateIfQsharpDocument(document: vscode.TextDocument) {
+  function updateIfQsharpDocument(document: vscode.TextDocument, emitter?: vscode.EventEmitter<string>) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
         document.getText(),
+        emitter,
       );
     }
   }

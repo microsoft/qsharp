@@ -139,8 +139,14 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     version: number,
     code: string,
+    emitter?: vscode.EventTarget<string>,
   ): Promise<void> {
     this.languageService.update_document(documentUri, version, code);
+    // this is used to trigger functionality outside of the language service.
+    // by firing an event here, we unify the points at which the language service
+    // recognizes an "update document" and when subscribers to the event react, avoiding
+    // multiple implementations of the same logic.
+    emitter && emitter.fire("updateDocument");
   }
 
   async updateNotebookDocument(
