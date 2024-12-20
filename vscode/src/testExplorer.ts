@@ -5,25 +5,14 @@
 
 import * as vscode from "vscode";
 import {
-  getCompilerWorker,
   ICompilerWorker,
   log,
   ProgramConfig,
   QscEventTarget,
 } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
-import { isQsharpDocument, toVscodeLocation, toVsCodeRange } from "./common";
+import { getCommonCompilerWorker, isQsharpDocument, toVscodeLocation, toVsCodeRange } from "./common";
 
-function localGetCompilerWorker(
-  context: vscode.ExtensionContext,
-): ICompilerWorker {
-  const compilerWorkerScriptPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "./out/compilerWorker.js",
-  ).toString();
-  const worker = getCompilerWorker(compilerWorkerScriptPath);
-  return worker;
-}
 
 /**
  * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
@@ -43,13 +32,12 @@ function mkRefreshHandler(
 
     const programConfig = program.programConfig;
 
-    const worker = localGetCompilerWorker(context);
+    const worker = getCommonCompilerWorker(context);
 
     const testCallables = await worker.collectTestCallables(programConfig);
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
-    log.info("test callables:", JSON.stringify(testCallables));
     for (const {callableName, location } of testCallables) {
       const vscLocation = toVscodeLocation(location);
       const parts = callableName.split(".");
@@ -94,8 +82,8 @@ export async function initTestExplorer(context: vscode.ExtensionContext) {
   const startTestRun = async (request: vscode.TestRunRequest) => {
     // use the compiler worker to run the test in the interpreter
 
-    log.info("Starting test run, request was", JSON.stringify(request));
-    const worker = localGetCompilerWorker(context);
+    log.trace("Starting test run, request was", JSON.stringify(request));
+    const worker = getCommonCompilerWorker(context);
 
     const programResult = await getActiveProgram();
     if (!programResult.success) {

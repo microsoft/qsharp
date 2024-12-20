@@ -80,7 +80,7 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
       createCompletionItemProvider(languageService),
       // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
       "@",
-      ".",
+      "."
     ),
   );
 
