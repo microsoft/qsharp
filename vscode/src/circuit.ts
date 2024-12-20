@@ -350,7 +350,6 @@ export function updateCircuitPanel(
   };
 
   const message = {
-    command: "circuit",
     props,
   };
   sendMessageToPanel({ panelType: "circuit", id: panelId }, reveal, message);

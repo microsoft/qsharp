@@ -172,7 +172,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       log.info("RE params", params);
 
       sendMessageToPanel({ panelType: "estimates", id: runName }, true, {
-        command: "estimates",
         calculating: true,
       });
 
@@ -239,7 +238,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
         clearTimeout(compilerTimeout);
 
         const message = {
-          command: "estimates",
           calculating: false,
           estimates,
         };
@@ -251,7 +249,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       } catch (e: any) {
         // Stop the 'calculating' animation
         const message = {
-          command: "estimates",
           calculating: false,
           estimates: [],
         };
@@ -281,9 +278,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHelp", async () => {
-      const message = {
-        command: "help",
-      };
+      const message = {};
       sendMessageToPanel({ panelType: "help", id: "" }, true, message);
     }),
   );
@@ -350,7 +345,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
             buckets.set(strKey, newValue);
           }
           const message = {
-            command: "histogram",
             buckets: Array.from(buckets.entries()),
             shotCount: resultCount,
           };
@@ -560,6 +554,8 @@ export class QSharpWebViewPanel {
   }
 
   sendMessage(message: any) {
+    message.command = message.command || this.type;
+    message.panelId = message.panelId || this.id;
     if (this._ready) {
       log.debug("Sending message to webview", message);
       this.panel.webview.postMessage(message);
