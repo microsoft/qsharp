@@ -119,6 +119,17 @@ pub fn result_record_decl() -> Callable {
 }
 
 #[must_use]
+pub fn double_record_decl() -> Callable {
+    Callable {
+        name: "__quantum__rt__double_record_output".to_string(),
+        input_type: vec![Ty::Double, Ty::Pointer],
+        output_type: None,
+        body: None,
+        call_type: CallableType::OutputRecording,
+    }
+}
+
+#[must_use]
 pub fn int_record_decl() -> Callable {
     Callable {
         name: "__quantum__rt__int_record_output".to_string(),

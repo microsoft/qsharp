@@ -572,7 +572,7 @@ serializable_type! {
         pub projectRoot: Option<String>,
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "base" | "adaptive_ri" | "unrestricted";
+        targetProfile?: "base" | "adaptive_ri" | "adaptive_rif" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
         manifest?: string;
         projectRoot?: string;
