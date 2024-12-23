@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 use qsc::{compile, PackageType};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
-use serde::{Serialize, Deserialize};
-
 
 use crate::{
-    project_system::{into_qsc_args, ProgramConfig}, serializable_type, STORE_CORE_STD
+    project_system::{into_qsc_args, ProgramConfig},
+    serializable_type, STORE_CORE_STD,
 };
 
 serializable_type! {
@@ -37,20 +37,24 @@ pub fn get_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescriptor>,
             PackageType::Lib,
             capabilities,
             language_features,
-        ); 
+        );
         unit
     });
 
+    let test_descriptors = qsc::test_callables::get_test_callables(&compile_unit);
 
-    let test_descriptors =  qsc::test_callables::get_test_callables(
-        &compile_unit
-    );
-
-    Ok(test_descriptors.map(|qsc::test_callables::TestDescriptor { callable_name, location }| {
-        TestDescriptor {
-            callable_name,
-            location: location.into(),
-        }.into()
-    }).collect())
-
+    Ok(test_descriptors
+        .map(
+            |qsc::test_callables::TestDescriptor {
+                 callable_name,
+                 location,
+             }| {
+                TestDescriptor {
+                    callable_name,
+                    location: location.into(),
+                }
+                .into()
+            },
+        )
+        .collect())
 }

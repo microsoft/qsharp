@@ -4,11 +4,7 @@
 // This file uses the VS Code Test Explorer API (https://code.visualstudio.com/docs/editor/testing)
 
 import * as vscode from "vscode";
-import {
-  ICompilerWorker,
-  log,
-  ProgramConfig,
-} from "qsharp-lang";
+import { ICompilerWorker, log, ProgramConfig } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
 import {
   getCommonCompilerWorker,
@@ -69,7 +65,7 @@ function mkRefreshHandler(
         const part = parts[i];
         const id = i === parts.length - 1 ? callableName : part;
         if (!rover.get(part)) {
-          let testItem = ctrl.createTestItem(id, part, vscLocation.uri);
+          const testItem = ctrl.createTestItem(id, part, vscLocation.uri);
           testItem.range = vscLocation.range;
           rover.add(testItem);
         }
@@ -178,7 +174,7 @@ async function runTestCase(
   }
   const run = ctrl.createTestRun(request);
   const evtTarget = createDebugConsoleEventTarget((msg) => {
-    run.appendOutput(msg);
+    run.appendOutput(`${msg}\n`);
   });
   evtTarget.addEventListener("Result", (msg) => {
     if (msg.detail.success) {

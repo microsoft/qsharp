@@ -20,9 +20,7 @@ pub mod test_callables {
         pub location: Location,
     }
 
-    pub fn get_test_callables(
-        unit: &CompileUnit
-    ) -> impl Iterator<Item = TestDescriptor> + '_ {
+    pub fn get_test_callables(unit: &CompileUnit) -> impl Iterator<Item = TestDescriptor> + '_ {
         let test_callables = unit.package.get_test_callables();
 
         test_callables.into_iter().map(|(name, span)| {
@@ -33,11 +31,7 @@ pub mod test_callables {
 
             let location = Location {
                 source: source.name.clone(),
-                range: Range::from_span(
-                    Encoding::Utf8,
-                    &source.contents,
-                    &(span - source.offset),
-                ),
+                range: Range::from_span(Encoding::Utf8, &source.contents, &(span - source.offset)),
             };
             TestDescriptor {
                 callable_name: name,

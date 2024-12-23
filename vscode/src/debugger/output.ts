@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, QscEventTarget } from "qsharp-lang";
+import { QscEventTarget } from "qsharp-lang";
 
 function formatComplex(real: number, imag: number) {
   // Format -0 as 0

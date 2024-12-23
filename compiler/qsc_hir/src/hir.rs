@@ -319,7 +319,7 @@ impl Package {
 
                     let span = item.span;
 
-                    Some((name,span))
+                    Some((name, span))
                 } else {
                     None
                 }
