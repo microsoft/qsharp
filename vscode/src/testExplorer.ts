@@ -26,8 +26,8 @@ function mkRefreshHandler(
   context: vscode.ExtensionContext,
 ) {
   /// if `uri` is null, then we are performing a full refresh and scanning the entire program
-  return async (uri: vscode.Uri  | null = null) => {
-    log.info("Refreshing tests for uri", uri);
+  return async (uri: vscode.Uri | null = null) => {
+    log.trace("Refreshing tests for uri", uri?.toString());
     // clear out old tests
     for (const [id, testItem] of ctrl.items) {
       // if the uri is null, delete all test items, as we are going to repopulate
@@ -49,10 +49,13 @@ function mkRefreshHandler(
     const allTestCallables = await worker.collectTestCallables(programConfig);
 
     // only update test callables from this Uri
-    const scopedTestCallables = uri === null ? allTestCallables : allTestCallables.filter(({callableName, location}) => {
-      const vscLocation = toVscodeLocation(location);
-      return vscLocation.uri.toString() === uri.toString();
-    });
+    const scopedTestCallables =
+      uri === null
+        ? allTestCallables
+        : allTestCallables.filter(({ callableName, location }) => {
+            const vscLocation = toVscodeLocation(location);
+            return vscLocation.uri.toString() === uri.toString();
+          });
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
@@ -76,7 +79,7 @@ function mkRefreshHandler(
   };
 }
 
-/** 
+/**
  * Initializes the test explorer with the Q# tests in the active document.
  **/
 export async function initTestExplorer(
@@ -96,7 +99,7 @@ export async function initTestExplorer(
   // when the refresh button is pressed, refresh all tests by passing in a null uri
   ctrl.refreshHandler = () => refreshHandler(null);
 
-  // when the language service detects an updateDocument, this event fires. 
+  // when the language service detects an updateDocument, this event fires.
   // we call the test refresher when that happens
   updateDocumentEvent(refreshHandler);
 
@@ -127,7 +130,7 @@ export async function initTestExplorer(
   };
 
   ctrl.createRunProfile(
-    "Run Tests",
+    "Interpreter",
     vscode.TestRunProfileKind.Run,
     runHandler,
     true,
@@ -166,6 +169,7 @@ async function runTestCase(
   worker: ICompilerWorker,
   program: ProgramConfig,
 ): Promise<void> {
+  log.trace("Running Q# test: ", testCase.id);
   if (testCase.children.size > 0) {
     for (const childTestCase of testCase.children) {
       await runTestCase(ctrl, childTestCase[1], request, worker, program);
