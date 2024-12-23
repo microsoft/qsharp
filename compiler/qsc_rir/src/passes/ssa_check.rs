@@ -95,6 +95,7 @@ fn check_phi_nodes(program: &Program, preds: &IndexMap<BlockId, Vec<BlockId>>) {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, usize)>> {
     let mut uses: IndexMap<VariableId, Vec<(BlockId, usize)>> = IndexMap::default();
     let mut add_use = |var_id, block_id, idx| {
@@ -122,6 +123,16 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::Shl(Operand::Literal(_), Operand::Variable(var), _)
                 | Instruction::Ashr(Operand::Variable(var), Operand::Literal(_), _)
                 | Instruction::Ashr(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Fadd(Operand::Variable(var), Operand::Literal(_), _)
+                | Instruction::Fadd(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Fsub(Operand::Variable(var), Operand::Literal(_), _)
+                | Instruction::Fsub(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Fmul(Operand::Variable(var), Operand::Literal(_), _)
+                | Instruction::Fmul(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Fdiv(Operand::Variable(var), Operand::Literal(_), _)
+                | Instruction::Fdiv(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Fcmp(_, Operand::Variable(var), Operand::Literal(_), _)
+                | Instruction::Fcmp(_, Operand::Literal(_), Operand::Variable(var), _)
                 | Instruction::Icmp(_, Operand::Variable(var), Operand::Literal(_), _)
                 | Instruction::Icmp(_, Operand::Literal(_), Operand::Variable(var), _)
                 | Instruction::LogicalNot(Operand::Variable(var), _)
@@ -148,6 +159,11 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::Srem(Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::Shl(Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::Ashr(Operand::Variable(var1), Operand::Variable(var2), _)
+                | Instruction::Fadd(Operand::Variable(var1), Operand::Variable(var2), _)
+                | Instruction::Fsub(Operand::Variable(var1), Operand::Variable(var2), _)
+                | Instruction::Fmul(Operand::Variable(var1), Operand::Variable(var2), _)
+                | Instruction::Fdiv(Operand::Variable(var1), Operand::Variable(var2), _)
+                | Instruction::Fcmp(_, Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::Icmp(_, Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::LogicalAnd(Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::LogicalOr(Operand::Variable(var1), Operand::Variable(var2), _)
@@ -185,6 +201,11 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::Srem(Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::Shl(Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::Ashr(Operand::Literal(_), Operand::Literal(_), _)
+                | Instruction::Fadd(Operand::Literal(_), Operand::Literal(_), _)
+                | Instruction::Fsub(Operand::Literal(_), Operand::Literal(_), _)
+                | Instruction::Fmul(Operand::Literal(_), Operand::Literal(_), _)
+                | Instruction::Fdiv(Operand::Literal(_), Operand::Literal(_), _)
+                | Instruction::Fcmp(_, Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::Icmp(_, Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::LogicalNot(Operand::Literal(_), _)
                 | Instruction::LogicalAnd(Operand::Literal(_), Operand::Literal(_), _)

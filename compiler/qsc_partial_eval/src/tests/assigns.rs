@@ -2681,3 +2681,338 @@ fn integer_assign_bitwise_right_shift_with_lhs_classical_integer_and_rhs_dynamic
                 Jump(1)"#]],
     );
 }
+
+#[test]
+fn double_assign_add_with_lhs_classical_double_and_rhs_dynamic_double() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                use q = Qubit();
+                mutable i = 0.0;
+                set i += MResetZ(q) == Zero ? 0.0 | 1.0;
+                i
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__double_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Double
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Variable(0, Double) = Store Double(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(0), )
+                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
+                Branch Variable(2, Boolean), 2, 3
+            Block 1:Block:
+                Variable(4, Double) = Fadd Double(0), Variable(3, Double)
+                Variable(0, Double) = Store Variable(4, Double)
+                Variable(5, Double) = Store Variable(0, Double)
+                Call id(3), args( Variable(5, Double), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(3, Double) = Store Double(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(3, Double) = Store Double(1)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn double_assign_sub_with_lhs_dynamic_double_and_rhs_classical_double() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                use q = Qubit();
+                mutable i = MResetZ(q) == Zero ? 0.0 | 1.0;
+                set i -= 1.0;
+                i
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__double_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Double
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Double) = Store Variable(2, Double)
+                Variable(4, Double) = Fsub Variable(3, Double), Double(1)
+                Variable(3, Double) = Store Variable(4, Double)
+                Variable(5, Double) = Store Variable(3, Double)
+                Call id(3), args( Variable(5, Double), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Double) = Store Double(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Double) = Store Double(1)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn double_assign_mul_with_lhs_dynamic_double_and_rhs_dynamic_double() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                use q = Qubit();
+                mutable i = MResetZ(q) == Zero ? 0.0 | 1.0;
+                set i *= MResetZ(q) == Zero ? 1.1 | 0.1;
+                i
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__double_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Double
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Double) = Store Variable(2, Double)
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false)
+                Branch Variable(5, Boolean), 5, 6
+            Block 2:Block:
+                Variable(2, Double) = Store Double(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Double) = Store Double(1)
+                Jump(1)
+            Block 4:Block:
+                Variable(7, Double) = Fmul Variable(3, Double), Variable(6, Double)
+                Variable(3, Double) = Store Variable(7, Double)
+                Variable(8, Double) = Store Variable(3, Double)
+                Call id(3), args( Variable(8, Double), Pointer, )
+                Return
+            Block 5:Block:
+                Variable(6, Double) = Store Double(1.1)
+                Jump(4)
+            Block 6:Block:
+                Variable(6, Double) = Store Double(0.1)
+                Jump(4)"#]],
+    );
+}
+
+#[test]
+fn double_assign_div_with_lhs_classical_double_and_rhs_dynamic_double() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                use q = Qubit();
+                mutable i = 0.0;
+                set i /= MResetZ(q) == Zero ? 0.0 | 1.0;
+                i
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let readout_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        readout_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let output_record_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_record_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__double_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Double
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Variable(0, Double) = Store Double(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(0), )
+                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
+                Branch Variable(2, Boolean), 2, 3
+            Block 1:Block:
+                Variable(4, Double) = Fdiv Double(0), Variable(3, Double)
+                Variable(0, Double) = Store Variable(4, Double)
+                Variable(5, Double) = Store Variable(0, Double)
+                Call id(3), args( Variable(5, Double), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(3, Double) = Store Double(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(3, Double) = Store Double(1)
+                Jump(1)"#]],
+    );
+}

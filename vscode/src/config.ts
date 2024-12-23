@@ -11,6 +11,7 @@ export function getTarget(): TargetProfile {
   switch (target) {
     case "base":
     case "adaptive_ri":
+    case "adaptive_rif":
     case "unrestricted":
       return target;
     default:
@@ -34,6 +35,8 @@ export function getTargetFriendlyName(targetProfile?: string) {
       return "Q#: QIR base";
     case "adaptive_ri":
       return "Q#: QIR Adaptive RI";
+    case "adaptive_rif":
+      return "Q#: QIR Adaptive RIF";
     case "unrestricted":
       return "Q#: unrestricted";
     default:

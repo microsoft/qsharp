@@ -144,7 +144,7 @@ export function Editor(props: {
       props.setAst(
         await props.compiler.getAst(
           code,
-          config.languageFeatures ?? [],
+          config.languageFeatures,
           config.profile,
         ),
       );
@@ -153,7 +153,7 @@ export function Editor(props: {
       props.setHir(
         await props.compiler.getHir(
           code,
-          config.languageFeatures ?? [],
+          config.languageFeatures,
           config.profile,
         ),
       );
@@ -448,6 +448,7 @@ export function Editor(props: {
             <span>Profile</span>
             <select value={profile} onChange={profileChanged}>
               <option value="unrestricted">Unrestricted</option>
+              <option value="adaptive_rif">Adaptive RIF</option>
               <option value="adaptive_ri">Adaptive RI</option>
               <option value="base">Base</option>
             </select>
