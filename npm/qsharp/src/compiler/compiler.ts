@@ -103,6 +103,10 @@ export type ProgramConfig = (
 export type ICompilerWorker = ICompiler & IServiceProxy;
 export type CompilerState = ServiceState;
 
+function get_default_profile(): string {
+  return "adaptive_ri";
+}
+
 export class Compiler implements ICompiler {
   private wasm: Wasm;
 
@@ -146,7 +150,7 @@ export class Compiler implements ICompiler {
     return this.wasm.get_ast(
       code,
       languageFeatures ?? [],
-      profile ?? "adaptive_ri",
+      profile ?? get_default_profile(),
     );
   }
 
@@ -158,7 +162,7 @@ export class Compiler implements ICompiler {
     return this.wasm.get_hir(
       code,
       languageFeatures ?? [],
-      profile ?? "adaptive_ri",
+      profile ?? get_default_profile(),
     );
   }
 

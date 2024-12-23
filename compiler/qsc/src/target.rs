@@ -10,6 +10,7 @@ pub enum Profile {
     Unrestricted,
     Base,
     AdaptiveRI,
+    AdaptiveRIF,
 }
 
 impl Profile {
@@ -19,6 +20,7 @@ impl Profile {
             Self::Unrestricted => "Unrestricted",
             Self::Base => "Base",
             Self::AdaptiveRI => "Adaptive_RI",
+            Self::AdaptiveRIF => "Adaptive_RIF",
         }
     }
 }
@@ -29,6 +31,12 @@ impl From<Profile> for TargetCapabilityFlags {
             Profile::Unrestricted => Self::all(),
             Profile::Base => Self::empty(),
             Profile::AdaptiveRI => Self::Adaptive | Self::QubitReset | Self::IntegerComputations,
+            Profile::AdaptiveRIF => {
+                Self::Adaptive
+                    | Self::QubitReset
+                    | Self::IntegerComputations
+                    | Self::FloatingPointComputations
+            }
         }
     }
 }
@@ -39,6 +47,7 @@ impl FromStr for Profile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Adaptive_RI" | "adaptive_ri" => Ok(Self::AdaptiveRI),
+            "Adaptive_RIF" | "adaptive_rif" => Ok(Self::AdaptiveRIF),
             "Base" | "base" => Ok(Self::Base),
             "Unrestricted" | "unrestricted" => Ok(Self::Unrestricted),
             _ => Err(()),

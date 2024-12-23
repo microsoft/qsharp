@@ -90,11 +90,19 @@ class TargetProfile(Enum):
 
     Adaptive_RI: TargetProfile
     """
-    Target supports the Adaptive profile with integer computation and qubit
-    reset capabilities.
+    Target supports the Adaptive profile with integer computation and qubit reset capabilities.
 
     This profile includes all of the required Adaptive Profile
     capabilities, as well as the optional integer computation and qubit
+    reset capabilities, as defined by the QIR specification.
+    """
+
+    Adaptive_RIF: TargetProfile
+    """
+    Target supports the Adaptive profile with integer & floating point computation and qubit reset capabilities.
+
+    This profile includes all of the required Adaptive Profile and Adaptive_RI
+    capabilities, as well as the optional floating point computation and qubit
     reset capabilities, as defined by the QIR specification.
     """
 
