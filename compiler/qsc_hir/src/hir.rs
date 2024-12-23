@@ -279,11 +279,12 @@ impl Display for Package {
     }
 }
 
+/// The name of a test callable, including its parent namespace.
 pub type TestCallableName = String;
 
 impl Package {
     /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
-    pub fn get_test_callables(&self) -> std::result::Result<Vec<(TestCallableName, Span)>, String> {
+    pub fn get_test_callables(&self) -> Vec<(TestCallableName, Span)> {
         let items_with_test_attribute = self
             .items
             .iter()
@@ -293,7 +294,7 @@ impl Package {
             .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
 
         let callable_names = callables
-            .filter_map(|(_, item)| -> Option<std::result::Result<_, String>> {
+            .filter_map(|(_, item)| -> Option<_> {
                 if let ItemKind::Callable(callable) = &item.kind {
                     if !callable.generics.is_empty()
                         || callable.input.kind != PatKind::Tuple(vec![])
@@ -318,14 +319,14 @@ impl Package {
 
                     let span = item.span;
 
-                    Some(Ok((name,span)))
+                    Some((name,span))
                 } else {
                     None
                 }
             })
-            .collect::<std::result::Result<_, _>>()?;
+            .collect::<Vec<_>>();
 
-        Ok(callable_names)
+        callable_names
     }
 }
 

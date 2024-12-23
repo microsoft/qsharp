@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { QscEventTarget } from "qsharp-lang";
+import { log, QscEventTarget } from "qsharp-lang";
 
 function formatComplex(real: number, imag: number) {
   // Format -0 as 0
@@ -72,7 +72,11 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   });
 
   eventTarget.addEventListener("Result", (evt) => {
-    out(`${evt.detail.value}`);
+    if (evt.detail.success) {
+      out(`${evt.detail.value}`);
+    } else {
+      out(`${evt.detail.value.message}`);
+    }
   });
 
   return eventTarget;

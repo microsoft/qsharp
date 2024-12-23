@@ -248,9 +248,7 @@ export class Compiler implements ICompiler {
     return success;
   }
 
-  async getTestCallables(
-    program: IProgramConfig,
-  ): Promise<ITestDescriptor[]> {
+  async getTestCallables(program: IProgramConfig): Promise<ITestDescriptor[]> {
     return this.wasm.get_test_callables(program);
   }
 }

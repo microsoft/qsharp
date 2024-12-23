@@ -17,6 +17,7 @@ import {
   toVsCodeLocation,
   toVsCodeRange,
 } from "./common";
+import { createDebugConsoleEventTarget } from "./debugger/output";
 
 /**
  * Constructs the handler to pass to the `TestController` that refreshes the discovered tests.
@@ -52,7 +53,7 @@ function mkRefreshHandler(
     const scopedTestCallables =
       uri === null
         ? allTestCallables
-        : allTestCallables.filter(({ callableName, location }) => {
+        : allTestCallables.filter(({ location }) => {
             const vscLocation = toVsCodeLocation(location);
             return vscLocation.uri.toString() === uri.toString();
           });
@@ -177,11 +178,9 @@ async function runTestCase(
     return;
   }
   const run = ctrl.createTestRun(request);
-  const evtTarget = new QscEventTarget(false);
-  evtTarget.addEventListener("Message", (msg) => {
-    run.appendOutput(`Test ${testCase.id}: ${msg.detail}\r\n`);
+  const evtTarget = createDebugConsoleEventTarget((msg) => {
+    run.appendOutput(msg);
   });
-
   evtTarget.addEventListener("Result", (msg) => {
     if (msg.detail.success) {
       run.passed(testCase);
@@ -199,6 +198,7 @@ async function runTestCase(
   });
 
   const callableExpr = `${testCase.id}()`;
+
   try {
     await worker.run(program, callableExpr, 1, evtTarget);
   } catch (error) {

@@ -22,10 +22,10 @@ pub mod test_callables {
 
     pub fn get_test_callables(
         unit: &CompileUnit
-    ) -> Result<impl Iterator<Item = TestDescriptor> + '_, String> {
-        let test_callables = unit.package.get_test_callables()?;
+    ) -> impl Iterator<Item = TestDescriptor> + '_ {
+        let test_callables = unit.package.get_test_callables();
 
-        Ok(test_callables.into_iter().map(|(name, span)| {
+        test_callables.into_iter().map(|(name, span)| {
             let source = unit
                 .sources
                 .find_by_offset(span.lo)
@@ -34,7 +34,6 @@ pub mod test_callables {
             let location = Location {
                 source: source.name.clone(),
                 range: Range::from_span(
-                    // TODO(@sezna) ask @minestarks if this is correct
                     Encoding::Utf8,
                     &source.contents,
                     &(span - source.offset),
@@ -44,7 +43,7 @@ pub mod test_callables {
                 callable_name: name,
                 location,
             }
-        }))
+        })
     }
 }
 
