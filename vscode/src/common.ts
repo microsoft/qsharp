@@ -48,7 +48,7 @@ export function toVsCodeRange(range: IRange): Range {
   );
 }
 
-export function toVscodeLocation(location: ILocation): any {
+export function toVscodeLocation(location: ILocation): Location {
   return new Location(Uri.parse(location.source), toVsCodeRange(location.span));
 }
 

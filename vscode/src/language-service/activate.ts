@@ -44,7 +44,7 @@ import { createSignatureHelpProvider } from "./signature.js";
  */
 export async function activateLanguageService(
   extensionUri: vscode.Uri,
-  eventEmitter?: vscode.EventEmitter<string>,
+  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
 ): Promise<vscode.Disposable[]> {
   const subscriptions: vscode.Disposable[] = [];
 
@@ -186,7 +186,7 @@ async function loadLanguageService(
  */
 function registerDocumentUpdateHandlers(
   languageService: ILanguageService,
-  eventEmitter?: vscode.EventEmitter<string>,
+  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
 ): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document, eventEmitter);
@@ -279,7 +279,7 @@ function registerDocumentUpdateHandlers(
 
   function updateIfQsharpDocument(
     document: vscode.TextDocument,
-    emitter?: vscode.EventEmitter<string>,
+    emitter?: vscode.EventEmitter<vscode.Uri>,
   ) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
@@ -294,7 +294,7 @@ function registerDocumentUpdateHandlers(
         // by firing an event here, we unify the points at which the language service
         // recognizes an "update document" and when subscribers to the event react, avoiding
         // multiple implementations of the same logic.
-        emitter.fire(document.uri.toString());
+        emitter.fire(document.uri);
       }
     }
   }

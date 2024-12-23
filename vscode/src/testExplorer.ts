@@ -25,24 +25,38 @@ function mkRefreshHandler(
   ctrl: vscode.TestController,
   context: vscode.ExtensionContext,
 ) {
-  return async () => {
-    for (const [id] of ctrl.items) {
-      ctrl.items.delete(id);
+  /// if `uri` is null, then we are performing a full refresh and scanning the entire program
+  return async (uri: vscode.Uri  | null = null) => {
+    log.info("Refreshing tests for uri", uri);
+    // clear out old tests
+    for (const [id, testItem] of ctrl.items) {
+      // if the uri is null, delete all test items, as we are going to repopulate
+      // all tests.
+      // if the uri is some value, and the test item is from this same URI,
+      //  delete it because we are about to repopulate tests from that document.
+      if (uri === null || testItem.uri?.toString() == uri.toString()) {
+        ctrl.items.delete(id);
+      }
     }
+
     const program = await getActiveProgram();
     if (!program.success) {
       throw new Error(program.errorMsg);
     }
 
     const programConfig = program.programConfig;
-
     const worker = getCommonCompilerWorker(context);
+    const allTestCallables = await worker.collectTestCallables(programConfig);
 
-    const testCallables = await worker.collectTestCallables(programConfig);
+    // only update test callables from this Uri
+    const scopedTestCallables = uri === null ? allTestCallables : allTestCallables.filter(({callableName, location}) => {
+      const vscLocation = toVscodeLocation(location);
+      return vscLocation.uri.toString() === uri.toString();
+    });
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
-    for (const { callableName, location } of testCallables) {
+    for (const { callableName, location } of scopedTestCallables) {
       const vscLocation = toVscodeLocation(location);
       const parts = callableName.split(".");
 
@@ -62,21 +76,29 @@ function mkRefreshHandler(
   };
 }
 
+/** 
+ * Initializes the test explorer with the Q# tests in the active document.
+ **/
 export async function initTestExplorer(
   context: vscode.ExtensionContext,
-  updateDocumentEvent: vscode.Event<string>,
+  updateDocumentEvent: vscode.Event<vscode.Uri>,
 ) {
   const ctrl: vscode.TestController = vscode.tests.createTestController(
     "qsharpTestController",
     "Q# Tests",
   );
   context.subscriptions.push(ctrl);
-  // construct the handler that runs when the user presses the refresh button in the test explorer
+
   const refreshHandler = mkRefreshHandler(ctrl, context);
   // initially populate tests
-  await refreshHandler();
+  await refreshHandler(null);
 
-  ctrl.refreshHandler = refreshHandler;
+  // when the refresh button is pressed, refresh all tests by passing in a null uri
+  ctrl.refreshHandler = () => refreshHandler(null);
+
+  // when the language service detects an updateDocument, this event fires. 
+  // we call the test refresher when that happens
+  updateDocumentEvent(refreshHandler);
 
   const runHandler = (request: vscode.TestRunRequest) => {
     if (!request.continuous) {
@@ -113,15 +135,6 @@ export async function initTestExplorer(
     false,
   );
 
-  ctrl.resolveHandler = async (item) => {
-    if (!item) {
-      context.subscriptions.push(
-        ...startWatchingWorkspace(ctrl, context, updateDocumentEvent),
-      );
-      return;
-    }
-  };
-
   function updateNodeForDocument(e: vscode.TextDocument) {
     if (!isQsharpDocument(e)) {
       return;
@@ -138,39 +151,6 @@ export async function initTestExplorer(
       updateNodeForDocument(e.document),
     ),
   );
-}
-
-/**
- * If there are no workspace folders, then we can't watch anything. In general, though, there is a workspace since this extension
- * is only activated when a .qs file is opened.
- **/
-
-function getWorkspaceTestPatterns() {
-  if (!vscode.workspace.workspaceFolders) {
-    return [];
-  }
-
-  return vscode.workspace.workspaceFolders.map((workspaceFolder) => ({
-    workspaceFolder,
-    pattern: new vscode.RelativePattern(workspaceFolder, "**/*.qs"),
-  }));
-}
-
-/**
- * Watches *.qs files and triggers the test discovery function on update/creation/deletion, ensuring we detect new tests without
- * the user having to manually refresh the test explorer.
- **/
-function startWatchingWorkspace(
-  controller: vscode.TestController,
-  context: vscode.ExtensionContext,
-  updateDocumentEvent: vscode.Event<string>,
-) {
-  return getWorkspaceTestPatterns().map(({ pattern }) => {
-    const refresher = mkRefreshHandler(controller, context);
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    updateDocumentEvent(refresher);
-    return watcher;
-  });
 }
 
 /**
