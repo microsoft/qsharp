@@ -14,7 +14,7 @@ import { getActiveProgram } from "./programConfig";
 import {
   getCommonCompilerWorker,
   isQsharpDocument,
-  toVscodeLocation,
+  toVsCodeLocation,
   toVsCodeRange,
 } from "./common";
 
@@ -53,14 +53,14 @@ function mkRefreshHandler(
       uri === null
         ? allTestCallables
         : allTestCallables.filter(({ callableName, location }) => {
-            const vscLocation = toVscodeLocation(location);
+            const vscLocation = toVsCodeLocation(location);
             return vscLocation.uri.toString() === uri.toString();
           });
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
     for (const { callableName, location } of scopedTestCallables) {
-      const vscLocation = toVscodeLocation(location);
+      const vscLocation = toVsCodeLocation(location);
       const parts = callableName.split(".");
 
       // for an individual test case, e.g. foo.bar.baz, create a hierarchy of items

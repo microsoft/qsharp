@@ -48,11 +48,11 @@ export function toVsCodeRange(range: IRange): Range {
   );
 }
 
-export function toVscodeLocation(location: ILocation): Location {
+export function toVsCodeLocation(location: ILocation): Location {
   return new Location(Uri.parse(location.source), toVsCodeRange(location.span));
 }
 
-export function toVscodeWorkspaceEdit(
+export function toVsCodeWorkspaceEdit(
   iWorkspaceEdit: IWorkspaceEdit,
 ): vscode.WorkspaceEdit {
   const workspaceEdit = new vscode.WorkspaceEdit();
@@ -95,7 +95,7 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
   if (d.related) {
     vscodeDiagnostic.relatedInformation = d.related.map((r) => {
       return new vscode.DiagnosticRelatedInformation(
-        toVscodeLocation(r.location),
+        toVsCodeLocation(r.location),
         r.message,
       );
     });
