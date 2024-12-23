@@ -8,7 +8,6 @@ import {
   ICompilerWorker,
   log,
   ProgramConfig,
-  QscEventTarget,
 } from "qsharp-lang";
 import { getActiveProgram } from "./programConfig";
 import {
