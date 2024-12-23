@@ -38,7 +38,7 @@ mod project_system;
 mod serializable_type;
 mod test_explorer;
 
-pub use test_explorer::collect_test_callables;
+pub use test_explorer::get_test_callables;
 
 #[cfg(test)]
 mod tests;

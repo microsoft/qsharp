@@ -283,7 +283,7 @@ pub type TestCallableName = String;
 
 impl Package {
     /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
-    pub fn collect_test_callables(&self) -> std::result::Result<Vec<(TestCallableName, Span)>, String> {
+    pub fn get_test_callables(&self) -> std::result::Result<Vec<(TestCallableName, Span)>, String> {
         let items_with_test_attribute = self
             .items
             .iter()

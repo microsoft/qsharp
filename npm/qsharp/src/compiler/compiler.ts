@@ -80,7 +80,7 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 
-  collectTestCallables(program: ProgramConfig): Promise<ITestDescriptor[]>;
+  getTestCallables(program: ProgramConfig): Promise<ITestDescriptor[]>;
 }
 
 /**
@@ -248,10 +248,10 @@ export class Compiler implements ICompiler {
     return success;
   }
 
-  async collectTestCallables(
+  async getTestCallables(
     program: IProgramConfig,
   ): Promise<ITestDescriptor[]> {
-    return this.wasm.collect_test_callables(program);
+    return this.wasm.get_test_callables(program);
   }
 }
 
@@ -336,7 +336,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     run: "requestWithProgress",
     runWithPauliNoise: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
-    collectTestCallables: "request",
+    getTestCallables: "request",
   },
   eventNames: ["DumpMachine", "Matrix", "Message", "Result"],
 };

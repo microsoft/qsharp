@@ -25,7 +25,7 @@ serializable_type! {
 }
 
 #[wasm_bindgen]
-pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescriptor>, String> {
+pub fn get_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescriptor>, String> {
     let (source_map, capabilities, language_features, store, _deps) =
         into_qsc_args(config, None).map_err(super::compile_errors_into_qsharp_errors_json)?;
 
@@ -42,7 +42,7 @@ pub fn collect_test_callables(config: ProgramConfig) -> Result<Vec<ITestDescript
     });
 
 
-    let test_descriptors =  qsc::test_callables::collect_test_callables(
+    let test_descriptors =  qsc::test_callables::get_test_callables(
         &compile_unit
     )?;
 

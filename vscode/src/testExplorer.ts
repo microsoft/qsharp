@@ -46,7 +46,7 @@ function mkRefreshHandler(
 
     const programConfig = program.programConfig;
     const worker = getCommonCompilerWorker(context);
-    const allTestCallables = await worker.collectTestCallables(programConfig);
+    const allTestCallables = await worker.getTestCallables(programConfig);
 
     // only update test callables from this Uri
     const scopedTestCallables =

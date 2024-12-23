@@ -20,10 +20,10 @@ pub mod test_callables {
         pub location: Location,
     }
 
-    pub fn collect_test_callables(
+    pub fn get_test_callables(
         unit: &CompileUnit
     ) -> Result<impl Iterator<Item = TestDescriptor> + '_, String> {
-        let test_callables = unit.package.collect_test_callables()?;
+        let test_callables = unit.package.get_test_callables()?;
 
         Ok(test_callables.into_iter().map(|(name, span)| {
             let source = unit
