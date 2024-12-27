@@ -229,7 +229,10 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         )!;
 
         const versionChoice = await vscode.window.showQuickPick(
-          chosenPackage.dependency.github.refs,
+          chosenPackage.dependency.github.refs.map(({ ref, notes }) => ({
+            label: ref,
+            description: notes,
+          })),
           { placeHolder: "Pick a version to import" },
         );
 
