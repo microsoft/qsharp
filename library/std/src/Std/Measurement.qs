@@ -87,7 +87,7 @@ operation MResetEachZ(register : Qubit[]) : Result[] {
 
 /// # Summary
 /// Performs a single-qubit measurement in the Pauli X basis,
-/// and resets qubit to |0⟩ state after the measurement.
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
@@ -104,7 +104,7 @@ operation MResetX(target : Qubit) : Result {
 
 /// # Summary
 /// Performs a single-qubit measurement in the Pauli Y basis,
-/// and resets qubit to |0⟩ state after the measurement.
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
@@ -123,7 +123,7 @@ operation MResetY(target : Qubit) : Result {
 
 /// # Summary
 /// Performs a single-qubit measurement in the Pauli Z basis,
-/// and resets qubit to |0⟩ state after the measurement.
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
