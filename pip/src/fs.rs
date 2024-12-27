@@ -105,7 +105,7 @@ impl FileSystem for Py<'_> {
 
 fn read_file(py: Python, read_file: &PyObject, path: &Path) -> PyResult<(Arc<str>, Arc<str>)> {
     let read_file_result =
-        read_file.call1(py, PyTuple::new_bound(py, &[path.to_string_lossy()]))?;
+        read_file.call1(py, PyTuple::new(py, &[path.to_string_lossy()])?)?;
 
     let tuple = read_file_result.downcast_bound::<PyTuple>(py)?;
 
@@ -114,7 +114,7 @@ fn read_file(py: Python, read_file: &PyObject, path: &Path) -> PyResult<(Arc<str
 
 fn list_directory(py: Python, list_directory: &PyObject, path: &Path) -> PyResult<Vec<Entry>> {
     let list_directory_result =
-        list_directory.call1(py, PyTuple::new_bound(py, &[path.to_string_lossy()]))?;
+        list_directory.call1(py, PyTuple::new(py, &[path.to_string_lossy()])?)?;
 
     list_directory_result
         .downcast_bound::<PyList>(py)?
@@ -147,7 +147,7 @@ fn resolve_path(
 ) -> PyResult<PathBuf> {
     let resolve_path_result = resolve_path.call1(
         py,
-        PyTuple::new_bound(py, &[base.to_string_lossy(), path.to_string_lossy()]),
+        PyTuple::new(py, &[base.to_string_lossy(), path.to_string_lossy()])?,
     )?;
 
     Ok(PathBuf::from(
@@ -167,7 +167,7 @@ fn fetch_github(
     path: &str,
 ) -> PyResult<Arc<str>> {
     let fetch_github_result =
-        fetch_github.call1(py, PyTuple::new_bound(py, [owner, repo, r#ref, path]))?;
+        fetch_github.call1(py, PyTuple::new(py, [owner, repo, r#ref, path])?)?;
 
     Ok(fetch_github_result
         .downcast_bound::<PyString>(py)?
@@ -191,7 +191,7 @@ fn get_dict_string<'a>(dict: &Bound<'a, PyDict>, key: &'a str) -> PyResult<Bound
 }
 
 fn diagnostic_from(py: Python<'_>, err: &PyErr) -> miette::Report {
-    if let Some(traceback) = err.traceback_bound(py) {
+    if let Some(traceback) = err.traceback(py) {
         match traceback.format() {
             Ok(traceback) => miette!(format!("{err}\n{traceback}",)),
             Err(traceback_err) => {

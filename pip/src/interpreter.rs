@@ -17,7 +17,7 @@ use pyo3::{
     create_exception,
     exceptions::{PyException, PyValueError},
     prelude::*,
-    types::{PyComplex, PyDict, PyList, PyString, PyTuple, PyType},
+    types::{PyBool, PyComplex, PyDict, PyList, PyString, PyTuple, PyType}, BoundObject,
 };
 use qsc::{
     fir::{self},
@@ -521,7 +521,7 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
-        let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
         let operation_name = crate::interop::get_operation_name(&kwargs)?;
         let seed = crate::interop::get_seed(&kwargs);
@@ -561,7 +561,7 @@ impl Interpreter {
                     .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
                 match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
-                    Ok(result) => Ok(PyList::new_bound(
+                    Ok(result) => Ok(PyList::new(
                         py,
                         result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
                     )
@@ -767,13 +767,13 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 #[pymethods]
 impl StateDumpData {
     fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
-        PyDict::from_sequence_bound(&PyList::new_bound(
+        PyDict::from_sequence_bound(&PyList::new(
             py,
             self.0
                  .0
                 .iter()
                 .map(|(k, v)| {
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         py,
                         &[
                             k.clone().into_py(py),
@@ -861,41 +861,51 @@ pub(crate) enum Pauli {
 // Mapping of Q# value types to Python value types.
 pub(crate) struct ValueWrapper(pub(crate) Value);
 
-impl IntoPy<PyObject> for ValueWrapper {
-    fn into_py(self, py: Python) -> PyObject {
-        match self.0 {
-            Value::BigInt(val) => val.into_py(py),
-            Value::Int(val) => val.into_py(py),
-            Value::Double(val) => val.into_py(py),
-            Value::Bool(val) => val.into_py(py),
-            Value::String(val) => val.into_py(py),
+impl <'py> IntoPyObject<'py> for ValueWrapper {
+    type Target = PyAny;
+    
+    type Output = Bound<'py, Self::Target>;
+    
+    type Error = PyErr;
+    
+    fn into_pyobject(self, py: Python<'py>) -> std::result::Result<Self::Output, Self::Error> {
+        Ok(match self.0 {
+            Value::BigInt(val) => val.into_pyobject(py)?.into_any(),
+            Value::Int(val) => val.into_pyobject(py)?.into_any(),
+            Value::Double(val) =>val.into_pyobject(py)?.into_any(),
+            Value::Bool(val) => val.into_pyobject(py)?.into_bound().into_any(),
+            Value::String(val) =>val.to_string().into_pyobject(py)?.into_any(),
             Value::Result(val) => if val.unwrap_bool() {
                 Result::One
             } else {
                 Result::Zero
-            }
-            .into_py(py),
+            }.into_pyobject(py)?
+            .into_any(),
             Value::Pauli(val) => match val {
-                fir::Pauli::I => Pauli::I.into_py(py),
-                fir::Pauli::X => Pauli::X.into_py(py),
-                fir::Pauli::Y => Pauli::Y.into_py(py),
-                fir::Pauli::Z => Pauli::Z.into_py(py),
-            },
+                fir::Pauli::I => Pauli::I,
+                fir::Pauli::X => Pauli::X,
+                fir::Pauli::Y => Pauli::Y,
+                fir::Pauli::Z => Pauli::Z,
+            }.into_pyobject(py)?.into_any(),
             Value::Tuple(val) => {
                 if val.is_empty() {
                     // Special case Value::unit as None
-                    py.None()
+                    py.None().into_any().into_bound(py)
                 } else {
-                    PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-                        .into_py(py)
+                   PyTuple::new(
+                    py,
+                     val.iter().map(
+                        |v| ValueWrapper(v.clone()).into_pyobject(py)
+                        ).collect::<std::result::Result<Vec<_>, _>>()?
+                    )?.into_any()
                 }
             }
             Value::Array(val) => {
-                PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-                    .into_py(py)
+                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone()).into_pyobject(py)).collect::<std::result::Result<Vec<_>, _>>()?)?.into_any()
             }
-            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
-        }
+            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_pyobject(py)?.into_any(),
+        })
+
     }
 }
 
@@ -915,7 +925,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -931,7 +941,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -947,7 +957,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     ),
@@ -1034,8 +1044,8 @@ fn create_py_callable(
 
     let args = (
         Py::new(py, GlobalCallable::from(val)).expect("should be able to create callable"), // callable id
-        PyList::new_bound(py, namespace.iter().map(ToString::to_string)), // namespace as string array
-        PyString::new_bound(py, name),                                    // name of callable
+        PyList::new(py, namespace.iter().map(ToString::to_string)), // namespace as string array
+        PyString::new(py, name),                                    // name of callable
     );
 
     // Call into the Python layer to create the function wrapping the callable invocation.
