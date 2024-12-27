@@ -767,7 +767,7 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 #[pymethods]
 impl StateDumpData {
     fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
-        PyDict::from_sequence_bound(&PyList::new(
+        Ok(PyDict::from_sequence(&PyList::new(
             py,
             self.0
                  .0
@@ -776,13 +776,14 @@ impl StateDumpData {
                     PyTuple::new(
                         py,
                         &[
-                            k.clone().into_py(py),
-                            PyComplex::from_doubles_bound(py, v.re, v.im).into(),
+                            k.clone().into_pyobject(py)?,
+                            // TODO(sezna) -- did they get rid of this From impl?
+                            PyComplex::from_doubles(py, v.re, v.im),
                         ],
                     )
                 })
-                .collect::<Vec<_>>(),
-        ))
+                .collect::<std::result::Result< Vec<_>, _>>()?,
+        )?.into_any())?)
     }
 
     #[getter]

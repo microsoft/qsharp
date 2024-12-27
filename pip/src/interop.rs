@@ -85,7 +85,7 @@ pub fn run_qasm3(
     resolve_path: Option<PyObject>,
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
-) -> PyResult<PyObject> {
+) -> PyResult<Bound<'py, PyObject>> {
     let mut receiver = OptionalCallbackReceiver { callback, py };
 
     let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
@@ -123,7 +123,7 @@ pub fn run_qasm3(
         Ok(result) => Ok(PyList::new(
             py,
             result.iter().map(|v| ValueWrapper(v.clone())),
-        )?
+        )?.into_any()
         ),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
