@@ -245,7 +245,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
         manifestObj["dependencies"][packageChoice.label] = {
           github: {
-            ref: versionChoice,
+            ref: versionChoice.label,
             ...chosenPackage.dependency.github,
             refs: undefined,
           },
