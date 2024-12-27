@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { log, samples } from "qsharp-lang";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { qsharpExtensionId } from "./common";
+import registryJson from "./registry.json";
 
 export async function initProjectCreator(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -146,6 +147,106 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         manifestObj["files"] = files.map((file) =>
           file.replace(srcDirPrefix, "src"),
         );
+
+        // Apply the edits to the qsharp.json
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          qsharpJsonUri,
+          new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
+          JSON.stringify(manifestObj, null, 2),
+        );
+        if (!(await vscode.workspace.applyEdit(edit))) {
+          vscode.window.showErrorMessage(
+            "Unable to update the qsharp.json file. Check the file is writable",
+          );
+          return;
+        }
+
+        // Bring the qsharp.json to the front for the user to save
+        await vscode.window.showTextDocument(qsharpJsonDoc);
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.importExternalPackage`,
+      async (qsharpJsonUri: vscode.Uri | undefined) => {
+        // If called from the content menu qsharpJsonUri will be the full qsharp.json uri
+        // If called from the command palette is will be undefined, so use the active editor
+        log.info("importExternalPackage called with", qsharpJsonUri);
+
+        qsharpJsonUri =
+          qsharpJsonUri ?? vscode.window.activeTextEditor?.document.uri;
+        if (!qsharpJsonUri) {
+          log.error(
+            "populateFilesList called, but argument or active editor is not qsharp.json",
+          );
+          return;
+        }
+
+        // First, verify the qsharp.json can be opened and is a valid json file
+        const qsharpJsonDoc =
+          await vscode.workspace.openTextDocument(qsharpJsonUri);
+        if (!qsharpJsonDoc) {
+          log.error("Unable to open the qsharp.json file at ", qsharpJsonDoc);
+          return;
+        }
+
+        let manifestObj: any = {};
+        try {
+          manifestObj = JSON.parse(qsharpJsonDoc.getText());
+        } catch {
+          await vscode.window.showErrorMessage(
+            `Unable to parse the contents of ${qsharpJsonUri.path}`,
+          );
+          return;
+        }
+
+        // ask the user to pick a package to import
+        const packageChoice = await vscode.window.showQuickPick(
+          registryJson.knownPackages.map(
+            (pkg: {
+              name: string;
+              description: string;
+              dependency: object;
+            }) => ({
+              label: pkg.name,
+              description: pkg.description,
+            }),
+          ),
+          { placeHolder: "Pick a package to import" },
+        );
+
+        if (!packageChoice) {
+          log.info("User cancelled package choice");
+          return;
+        }
+
+        const chosenPackage = registryJson.knownPackages.find(
+          (pkg: { name: string; description: string; dependency: object }) =>
+            pkg.name === packageChoice.label,
+        )!;
+
+        const versionChoice = await vscode.window.showQuickPick(
+          chosenPackage.dependency.github.refs,
+          { placeHolder: "Pick a version to import" },
+        );
+
+        if (!versionChoice) {
+          log.info("User cancelled version choice");
+          return;
+        }
+
+        // Update the dependencies property of the qsharp.json and write back to the document
+        if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
+        manifestObj["dependencies"][packageChoice.label] = {
+          github: {
+            ref: versionChoice,
+            ...chosenPackage.dependency.github,
+            refs: undefined,
+          },
+        };
 
         // Apply the edits to the qsharp.json
         const edit = new vscode.WorkspaceEdit();
