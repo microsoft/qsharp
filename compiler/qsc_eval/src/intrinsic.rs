@@ -347,7 +347,7 @@ fn two_qubit_rotation(
 pub fn qubit_relabel(
     arg: Value,
     arg_span: PackageSpan,
-    mut swap: impl FnMut(usize, usize),
+    swap: impl FnMut(usize, usize),
 ) -> Result<Value, Error> {
     let [left, right] = unwrap_tuple(arg);
     let left = left.unwrap_array();
@@ -377,58 +377,44 @@ pub fn qubit_relabel(
         return Err(Error::RelabelingMismatch(arg_span));
     }
 
-    let mut map = FxHashMap::default();
-    map.reserve(left.len());
-    for (l, r) in left.into_iter().zip(right.into_iter()) {
-        if l == r {
-            continue;
-        }
-        match (map.contains_key(&l), map.contains_key(&r)) {
-            (false, false) => {
-                // Neither qubit has been relabeled yet.
-                swap(l, r);
-                map.insert(l, r);
-                map.insert(r, l);
-            }
-            (false, true) => {
-                // The right qubit has been relabeled, so we need to swap the left qubit with the
-                // new label for the right qubit.
-                let label = *map
-                    .keys()
-                    .find(|k| map[*k] == r)
-                    .expect("mapped qubit should be present as both key and value");
-                swap(l, label);
-                map.insert(l, r);
-                map.insert(label, l);
-            }
-            (true, false) => {
-                // The left qubit has been relabeled, so we swap the qubits as normal but
-                // remember the new mapping of the right qubit.
-                let mapped = *map.get(&l).expect("mapped qubit should be present");
-                swap(l, r);
-                map.insert(l, r);
-                map.insert(r, mapped);
-            }
-            (true, true) => {
-                // Both qubits have been relabeled, so we need to swap new label for the right qubit with
-                // the left qubit and remember the new mapping of both qubits.
-                // This is effectively a combination of the second and third cases above.
-                let label_r = *map
-                    .keys()
-                    .find(|k| map[*k] == r)
-                    .expect("mapped qubit should be present as both key and value");
-                let mapped_l = *map.get(&l).expect("mapped qubit should be present");
-                let mapped_r = *map.get(&r).expect("mapped qubit should be present");
+    permutation_via_transpositions(&right, &left, swap);
+    Ok(Value::unit())
+}
 
-                // This swap is only necessary if the labels don't already point to each other.
-                if mapped_l != r && mapped_r != l {
-                    swap(label_r, l);
-                    map.insert(label_r, mapped_l);
-                    map.insert(l, mapped_r);
-                }
-            }
-        }
+/// Performs arbitrary permutation of object labels using label swap function.
+/// Upon completions an object labeled with ``original_labels``[i] will be labeled ``permuted_labels``[i].
+/// Transposition function swaps labels on objects identified by their labels.
+pub fn permutation_via_transpositions(
+    original_labels: &[usize],          // Original placement of labels
+    permuted_labels: &[usize],          // Desired placement of labels
+    mut swap: impl FnMut(usize, usize), // Swap these labels
+) {
+    // Create a map of objects that may potentially need relabeling.
+    let mut object_with_label = FxHashMap::default();
+    object_with_label.reserve(original_labels.len());
+    for (i, &label) in original_labels.iter().enumerate() {
+        object_with_label.insert(label, i);
     }
 
-    Ok(Value::unit())
+    // While we have more objects that need relabeling
+    while let Some((&label, &i)) = object_with_label.iter().next() {
+        // Currently label is on object i. What is the desired label for it?
+        let desired = permuted_labels[i];
+        if desired == label {
+            // When desired label and current label is the same -
+            // remove from the map. We are done with this object.
+            object_with_label.remove(&label);
+            continue;
+        }
+        // Which object has the desired label now? It's object j.
+        let &j = object_with_label
+            .get(&desired)
+            .expect("Missing label that still needs relabeling.");
+        // Swap labels on objects with current and desired label.
+        swap(label, desired);
+        // We are done with the desired label, remove it for map.
+        object_with_label.remove(&desired);
+        // Now label is on object j and it may still need relabeling.
+        object_with_label.insert(label, j);
+    }
 }
