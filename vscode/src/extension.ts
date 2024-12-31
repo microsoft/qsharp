@@ -28,6 +28,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { initTestExplorer } from "./testExplorer.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -67,14 +68,17 @@ export async function activate(
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
+  const eventEmitter = new vscode.EventEmitter<vscode.Uri>();
+
   context.subscriptions.push(
-    ...(await activateLanguageService(context.extensionUri)),
+    ...(await activateLanguageService(context.extensionUri, eventEmitter)),
   );
 
   context.subscriptions.push(...startOtherQSharpDiagnostics());
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
+  initTestExplorer(context, eventEmitter.event);
   initAzureWorkspaces(context);
   initCodegen(context);
   activateDebugger(context);

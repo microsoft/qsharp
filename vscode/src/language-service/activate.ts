@@ -38,7 +38,14 @@ import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
 
-export async function activateLanguageService(extensionUri: vscode.Uri) {
+/**
+ * Returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+export async function activateLanguageService(
+  extensionUri: vscode.Uri,
+  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
+): Promise<vscode.Disposable[]> {
   const subscriptions: vscode.Disposable[] = [];
 
   const languageService = await loadLanguageService(extensionUri);
@@ -47,7 +54,9 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   subscriptions.push(...startLanguageServiceDiagnostics(languageService));
 
   // synchronize document contents
-  subscriptions.push(...registerDocumentUpdateHandlers(languageService));
+  subscriptions.push(
+    ...registerDocumentUpdateHandlers(languageService, eventEmitter),
+  );
 
   // synchronize notebook cell contents
   subscriptions.push(
@@ -147,7 +156,9 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   return subscriptions;
 }
 
-async function loadLanguageService(baseUri: vscode.Uri) {
+async function loadLanguageService(
+  baseUri: vscode.Uri,
+): Promise<ILanguageService> {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
@@ -168,9 +179,17 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   );
   return languageService;
 }
-function registerDocumentUpdateHandlers(languageService: ILanguageService) {
+
+/**
+ * This function returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+function registerDocumentUpdateHandlers(
+  languageService: ILanguageService,
+  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
+): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document);
+    updateIfQsharpDocument(document, eventEmitter);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
@@ -203,13 +222,13 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document);
+      updateIfQsharpDocument(document, eventEmitter);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document);
+      updateIfQsharpDocument(evt.document, eventEmitter);
     }),
   );
 
@@ -252,13 +271,16 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
           // Check that the document is on the same project as the manifest.
           document.fileName.startsWith(project_folder)
         ) {
-          updateIfQsharpDocument(document);
+          updateIfQsharpDocument(document, eventEmitter);
         }
       });
     }
   }
 
-  function updateIfQsharpDocument(document: vscode.TextDocument) {
+  function updateIfQsharpDocument(
+    document: vscode.TextDocument,
+    emitter?: vscode.EventEmitter<vscode.Uri>,
+  ) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
       languageService.updateDocument(
@@ -266,6 +288,14 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
         document.version,
         document.getText(),
       );
+
+      if (emitter) {
+        // this is used to trigger functionality outside of the language service.
+        // by firing an event here, we unify the points at which the language service
+        // recognizes an "update document" and when subscribers to the event react, avoiding
+        // multiple implementations of the same logic.
+        emitter.fire(document.uri);
+      }
     }
   }
 

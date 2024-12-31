@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeLocation } from "../common";
+import { toVsCodeLocation } from "../common";
 
 export function createDefinitionProvider(languageService: ILanguageService) {
   return new QSharpDefinitionProvider(languageService);
@@ -21,6 +21,6 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
       position,
     );
     if (!definition) return null;
-    return toVscodeLocation(definition);
+    return toVsCodeLocation(definition);
   }
 }

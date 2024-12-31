@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "../common";
+import { toVsCodeRange } from "../common";
 import { EventType, FormatEvent, sendTelemetryEvent } from "../telemetry";
 import { getRandomGuid } from "../utils";
 
@@ -50,7 +50,7 @@ class QSharpFormattingProvider
     }
 
     let edits = lsEdits.map(
-      (edit) => new vscode.TextEdit(toVscodeRange(edit.range), edit.newText),
+      (edit) => new vscode.TextEdit(toVsCodeRange(edit.range), edit.newText),
     );
 
     if (range) {

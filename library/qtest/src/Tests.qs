@@ -3,24 +3,34 @@
 
 import Std.Diagnostics.Fact;
 
-function Main() : Unit {
-    let sample_tests = [
+
+function SampleTestData() : (String, () -> Int, Int)[] {
+    [
         ("Should return 42", TestCaseOne, 43),
         ("Should add one", () -> AddOne(5), 42),
         ("Should add one", () -> AddOne(5), 6)
-    ];
+    ]
+}
 
+@Test()
+function ReturnsFalseForFailingTest() : Unit {
     Fact(
-        not Functions.CheckAllTestCases(sample_tests),
+        not Functions.CheckAllTestCases(SampleTestData()),
         "Test harness failed to return false for a failing tests."
     );
+}
 
+@Test()
+function ReturnsTrueForPassingTest() : Unit {
     Fact(
         Functions.CheckAllTestCases([("always returns true", () -> true, true)]),
         "Test harness failed to return true for a passing test"
     );
+}
 
-    let run_all_result = Functions.RunAllTestCases(sample_tests);
+@Test()
+function RunAllTests() : Unit {
+    let run_all_result = Functions.RunAllTestCases(SampleTestData());
 
     Fact(
         Length(run_all_result) == 3,
