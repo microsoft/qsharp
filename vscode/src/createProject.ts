@@ -168,108 +168,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
     ),
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      `${qsharpExtensionId}.importExternalPackage`,
-      async (qsharpJsonUri: vscode.Uri | undefined) => {
-        // If called from the content menu qsharpJsonUri will be the full qsharp.json uri
-        // If called from the command palette is will be undefined, so use the active editor
-        log.info("importExternalPackage called with", qsharpJsonUri);
 
-        qsharpJsonUri =
-          qsharpJsonUri ?? vscode.window.activeTextEditor?.document.uri;
-        if (!qsharpJsonUri) {
-          log.error(
-            "populateFilesList called, but argument or active editor is not qsharp.json",
-          );
-          return;
-        }
-
-        // First, verify the qsharp.json can be opened and is a valid json file
-        const qsharpJsonDoc =
-          await vscode.workspace.openTextDocument(qsharpJsonUri);
-        if (!qsharpJsonDoc) {
-          log.error("Unable to open the qsharp.json file at ", qsharpJsonDoc);
-          return;
-        }
-
-        let manifestObj: any = {};
-        try {
-          manifestObj = JSON.parse(qsharpJsonDoc.getText());
-        } catch {
-          await vscode.window.showErrorMessage(
-            `Unable to parse the contents of ${qsharpJsonUri.path}`,
-          );
-          return;
-        }
-
-        // ask the user to pick a package to import
-        const packageChoice = await vscode.window.showQuickPick(
-          registryJson.knownPackages.map(
-            (pkg: {
-              name: string;
-              description: string;
-              dependency: object;
-            }) => ({
-              label: pkg.name,
-              description: pkg.description,
-            }),
-          ),
-          { placeHolder: "Pick a package to import" },
-        );
-
-        if (!packageChoice) {
-          log.info("User cancelled package choice");
-          return;
-        }
-
-        const chosenPackage = registryJson.knownPackages.find(
-          (pkg: { name: string; description: string; dependency: object }) =>
-            pkg.name === packageChoice.label,
-        )!;
-
-        const versionChoice = await vscode.window.showQuickPick(
-          chosenPackage.dependency.github.refs.map(({ ref, notes }) => ({
-            label: ref,
-            description: notes,
-          })),
-          { placeHolder: "Pick a version to import" },
-        );
-
-        if (!versionChoice) {
-          log.info("User cancelled version choice");
-          return;
-        }
-
-        // Update the dependencies property of the qsharp.json and write back to the document
-        if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
-        manifestObj["dependencies"][packageChoice.label] = {
-          github: {
-            ref: versionChoice.label,
-            ...chosenPackage.dependency.github,
-            refs: undefined,
-          },
-        };
-
-        // Apply the edits to the qsharp.json
-        const edit = new vscode.WorkspaceEdit();
-        edit.replace(
-          qsharpJsonUri,
-          new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
-          JSON.stringify(manifestObj, null, 2),
-        );
-        if (!(await vscode.workspace.applyEdit(edit))) {
-          vscode.window.showErrorMessage(
-            "Unable to update the qsharp.json file. Check the file is writable",
-          );
-          return;
-        }
-
-        // Bring the qsharp.json to the front for the user to save
-        await vscode.window.showTextDocument(qsharpJsonDoc);
-      },
-    ),
-  );
 
   type LocalProjectRef = {
     path: string; // Absolute or relative path to the project dir
@@ -285,18 +184,6 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
   };
 
   type Dependency = LocalProjectRef | GitHubProjectRef;
-
-  // TODO: Replace with a list of legitimate known Q# projects on GitHub
-  const githubProjects: { [name: string]: GitHubProjectRef } = {
-    // Add a template to the end of the list users can use to easily add their own
-    "<id>": {
-      github: {
-        owner: "<owner>",
-        repo: "<project>",
-        ref: "<commit>",
-      },
-    },
-  };
 
   // Given two directory paths, return the relative path from the first to the second
   function getRelativeDirPath(from: string, to: string): string {
@@ -369,13 +256,34 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           return;
         }
 
+        // ask the user if they want to import from github, or locally on their computer
+        const importChoice = await vscode.window.showQuickPick(
+          ["Import from GitHub", "Import from local directory"],
+          { placeHolder: "Pick a source to import from" },
+        );
+
+        if (!importChoice) {
+          log.info("User cancelled import choice");
+          return;
+        }
+
+        if (importChoice === "Import from GitHub") {
+          await importExternalPackage(qsharpJsonDoc, qsharpJsonUri, manifestObj);
+        } else {
+          await importLocalPackage(qsharpJsonDoc, qsharpJsonDir, qsharpJsonUri, manifestObj);
+        }
+
+      }));
+
+
+      async function importLocalPackage(qsharpJsonDoc: vscode.TextDocument, qsharpJsonDir: vscode.Uri, qsharpJsonUri: vscode.Uri, manifestObj: any) {
         // Find all the other Q# projects in the workspace
         const projectFiles = (
           await vscode.workspace.findFiles("**/qsharp.json")
         ).filter((file) => file.toString() !== qsharpJsonUri.toString());
-
+      
         const projectChoices: Array<{ name: string; ref: Dependency }> = [];
-
+      
         projectFiles.forEach((file) => {
           const dirName = file.path.slice(0, -"/qsharp.json".length);
           const relPath = getRelativeDirPath(qsharpJsonDir.path, dirName);
@@ -386,14 +294,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
             },
           });
         });
-
-        Object.keys(githubProjects).forEach((name) => {
-          projectChoices.push({
-            name: name,
-            ref: githubProjects[name],
-          });
-        });
-
+      
         // Convert any spaces, dashes, dots, tildes, or quotes in project names
         // to underscores. (Leave more 'exotic' non-identifier patterns to the user to fix)
         //
@@ -403,10 +304,10 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           (val, idx, arr) =>
             (arr[idx].name = val.name.replace(/[- "'.~]/g, "_")),
         );
-
+      
         const folderIcon = new vscode.ThemeIcon("folder");
         const githubIcon = new vscode.ThemeIcon("github");
-
+      
         // Ask the user to pick a project to add as a reference
         const projectChoice = await vscode.window.showQuickPick(
           projectChoices.map((choice) => {
@@ -428,17 +329,17 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           }),
           { placeHolder: "Pick a project to add as a reference" },
         );
-
+      
         if (!projectChoice) {
           log.info("User cancelled project choice");
           return;
         }
-
+      
         log.info("User picked project: ", projectChoice);
-
+      
         if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
         manifestObj["dependencies"][projectChoice.label] = projectChoice.ref;
-
+      
         // Apply the edits to the qsharp.json
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
@@ -452,10 +353,76 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           );
           return;
         }
-
+      
         // Bring the qsharp.json to the front for the user to save
         await vscode.window.showTextDocument(qsharpJsonDoc);
-      },
-    ),
-  );
+      }
+      
+      async function importExternalPackage(qsharpJsonDoc: vscode.TextDocument, qsharpJsonUri: vscode.Uri, manifestObj: any) {
+        // ask the user to pick a package to import
+        const packageChoice = await vscode.window.showQuickPick(
+          registryJson.knownPackages.map(
+            (pkg: {
+              name: string;
+              description: string;
+              dependency: object;
+            }) => ({
+              label: pkg.name,
+              description: pkg.description,
+            }),
+          ),
+          { placeHolder: "Pick a package to import" },
+        );
+      
+        if (!packageChoice) {
+          log.info("User cancelled package choice");
+          return;
+        }
+      
+        const chosenPackage = registryJson.knownPackages.find(
+          (pkg: { name: string; description: string; dependency: object }) =>
+            pkg.name === packageChoice.label,
+        )!;
+      
+        const versionChoice = await vscode.window.showQuickPick(
+          chosenPackage.dependency.github.refs.map(({ ref, notes }) => ({
+            label: ref,
+            description: notes,
+          })),
+          { placeHolder: "Pick a version to import" },
+        );
+      
+        if (!versionChoice) {
+          log.info("User cancelled version choice");
+          return;
+        }
+      
+        // Update the dependencies property of the qsharp.json and write back to the document
+        if (!manifestObj["dependencies"]) manifestObj["dependencies"] = {};
+        manifestObj["dependencies"][packageChoice.label] = {
+          github: {
+            ref: versionChoice.label,
+            ...chosenPackage.dependency.github,
+            refs: undefined,
+          },
+        };
+      
+        // Apply the edits to the qsharp.json
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          qsharpJsonUri,
+          new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
+          JSON.stringify(manifestObj, null, 2),
+        );
+        if (!(await vscode.workspace.applyEdit(edit))) {
+          vscode.window.showErrorMessage(
+            "Unable to update the qsharp.json file. Check the file is writable",
+          );
+          return;
+        }
+      
+        // Bring the qsharp.json to the front for the user to save
+        await vscode.window.showTextDocument(qsharpJsonDoc);
+      }
+
 }

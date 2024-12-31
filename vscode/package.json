@@ -224,10 +224,6 @@
           "when": "resourceFilename == qsharp.json"
         },
         {
-          "command": "qsharp-vscode.importExternalPackage",
-          "when": "resourceFilename == qsharp.json"
-        },
-        {
           "command": "qsharp-vscode.addProjectReference",
           "when": "resourceFilename == qsharp.json"
         }
@@ -418,11 +414,6 @@
         "command": "qsharp-vscode.populateFilesList",
         "category": "Q#",
         "title": "Populate qsharp.json files list"
-      },
-      {
-        "command": "qsharp-vscode.importExternalPackage",
-        "category": "Q#",
-        "title": "Import external Q# package"
       },
       {
         "command": "qsharp-vscode.addProjectReference",
