@@ -77,3 +77,34 @@ fn callable_cant_have_type_params() {
         "#]],
     );
 }
+
+#[test]
+fn callable_is_valid_test_callable() {
+    check(
+        indoc! {"
+        namespace test {
+            @Test()
+            operation A() : Unit {
+
+            }
+        }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-64] (Public):
+                    Namespace (Ident 5 [10-14] "test"): Item 1
+                Item 1 [21-62] (Internal):
+                    Parent: 0
+                    Test
+                    Callable 0 [33-62] (operation):
+                        name: Ident 1 [43-44] "A"
+                        input: Pat 2 [44-46] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [33-62]: Impl:
+                            Block 4 [54-62]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
