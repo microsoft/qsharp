@@ -7,6 +7,9 @@
       "include": "#comments"
     },
     {
+      "include": "#functions"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -32,6 +35,23 @@
         {
           "name": "comment.documentation",
           "match": "\\/\\/\\/.*$"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "comment": "function definition",
+          "name": "meta.function.definition.qsharp",
+          "match": "\\b(function)\\s+([A-Za-z0-9_]+)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.qsharp"
+            },
+            "2": {
+              "name": "entity.name.function.qsharp"
+            }
+          }
         }
       ]
     },
