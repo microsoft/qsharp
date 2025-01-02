@@ -28,7 +28,6 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { initTestExplorer } from "./testExplorer.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -78,7 +77,6 @@ export async function activate(
 
   context.subscriptions.push(...registerQSharpNotebookHandlers());
 
-  initTestExplorer(context, eventEmitter.event);
   initAzureWorkspaces(context);
   initCodegen(context);
   activateDebugger(context);

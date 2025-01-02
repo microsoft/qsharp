@@ -69,21 +69,8 @@ impl LanguageService {
             let callables = update
                 .callables
                 .iter()
-                // TODO(sezna) -- convert span to Range
-                .map(|(name, _range)| -> (String, Range) {
-                    (
-                        name.clone(),
-                        crate::line_column::Range {
-                            start: crate::line_column::Position {
-                                line: 0,
-                                character: 0,
-                            },
-                            end: crate::line_column::Position {
-                                line: 0,
-                                character: 0,
-                            },
-                        },
-                    )
+                .map(|(name, location)| -> (String, Location) {
+                    (name.clone(), location.clone().into())
                 })
                 .collect::<Vec<_>>();
 
@@ -629,6 +616,6 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(callables: [string, IRange][]) => void")]
+    #[wasm_bindgen(typescript_type = "(callables: [string, ILocation][]) => void")]
     pub type TestCallableCallback;
 }

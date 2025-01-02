@@ -178,7 +178,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
         self.insert_buffer_aware_compilation(project);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Attempts to resolve a manifest for the given document uri.
@@ -279,7 +279,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Removes a document from the open documents map. If the
@@ -376,7 +376,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 (compilation, notebook_configuration),
             );
         });
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     pub(super) fn close_notebook_document(&mut self, notebook_uri: &str) {
@@ -394,18 +394,19 @@ impl<'a> CompilationStateUpdater<'a> {
             state.compilations.remove(notebook_uri);
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
+    fn publish_diagnostics_and_test_callables(&mut self) {
         let last_docs_with_errors = take(&mut self.documents_with_errors);
         let mut docs_with_errors = FxHashSet::default();
 
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
+                self.publish_test_callables(&compilation_uri, &compilation.0);
                 trace!("publishing diagnostics for {compilation_uri}");
 
                 for (uri, errors) in map_errors_to_docs(
@@ -507,7 +508,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Borrows the compilation state immutably and invokes `f`.
@@ -536,6 +537,30 @@ impl<'a> CompilationStateUpdater<'a> {
     {
         let mut state = self.state.borrow_mut();
         f(&mut state)
+    }
+
+    fn publish_test_callables(&self, uri: &Arc<str>, compilation: &Compilation) {
+        let callables = TestCallables {
+            callables: compilation
+                .test_cases
+                .iter()
+                .map(|(name, span)| {
+                    (
+                        name.clone(),
+                        // TODO(sezna) verify encoding
+                        crate::qsc_utils::into_location(
+                            qsc::line_column::Encoding::Utf16,
+                            &compilation,
+                            *span,
+                            compilation.user_package_id,
+                        ),
+                    )
+                })
+                .collect(),
+            version: None,
+        };
+
+        (self.test_callable_receiver)(callables);
     }
 }
 

@@ -3,6 +3,7 @@
 
 use miette::Diagnostic;
 use qsc::line_column::Range;
+use qsc::location::Location;
 use qsc::{compile, project};
 use qsc::{linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures, PackageType};
 use thiserror::Error;
@@ -35,7 +36,7 @@ pub struct DiagnosticUpdate {
 
 #[derive(Debug)]
 pub struct TestCallables {
-    pub callables: Vec<(String, qsc::Span)>,
+    pub callables: Vec<(String, Location)>,
     pub version: Option<u32>,
 }
 
