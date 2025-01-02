@@ -5,12 +5,12 @@
 mod tests;
 
 use super::compilation::Compilation;
-use super::protocol::{DiagnosticUpdate, NotebookMetadata};
-use crate::protocol::{ErrorKind, WorkspaceConfigurationUpdate};
+use super::protocol::{
+    DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
+};
 use log::{debug, trace};
 use miette::Diagnostic;
-use qsc::{compile, project};
-use qsc::{target::Profile, LanguageFeatures, PackageType};
+use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -102,6 +102,8 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Callback which will receive test callables whenever a (re-)compilation occurs.
+    test_callable_receiver: Box<dyn Fn(TestCallables) + 'a>,
     cache: RefCell<PackageCache>,
     /// Functions to interact with the host filesystem for project system operations.
     project_host: Box<dyn JSProjectHost>,
@@ -111,6 +113,7 @@ impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
     ) -> Self {
         Self {
@@ -118,6 +121,7 @@ impl<'a> CompilationStateUpdater<'a> {
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            test_callable_receiver: Box::new(test_callable_receiver),
             cache: RefCell::default(),
             project_host: Box::new(project_host),
         }

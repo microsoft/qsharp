@@ -37,6 +37,7 @@ pub(crate) struct Compilation {
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
     pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
+    pub test_cases: Vec<(String, Span)>,
 }
 
 #[derive(Debug)]
@@ -102,6 +103,8 @@ impl Compilation {
 
         run_linter_passes(&mut compile_errors, &package_store, unit, lints_config);
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
@@ -111,6 +114,7 @@ impl Compilation {
             compile_errors,
             project_errors,
             dependencies: user_code_dependencies.into_iter().collect(),
+            test_cases,
         }
     }
 
@@ -218,12 +222,15 @@ impl Compilation {
             .chain(once((source_package_id, None)))
             .collect();
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
+            test_cases,
             dependencies,
         }
     }

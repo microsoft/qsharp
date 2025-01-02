@@ -11,7 +11,7 @@ use qsc::{
     self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
 };
 use qsc_project::Manifest;
-use qsls::protocol::DiagnosticUpdate;
+use qsls::protocol::{DiagnosticUpdate, TestCallables};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -32,6 +32,7 @@ impl LanguageService {
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
+        test_callables_callback: TestCallableCallback,
         host: ProjectHost,
     ) -> js_sys::Promise {
         let diagnostics_callback =
@@ -58,7 +59,45 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self.0.create_update_worker(diagnostics_callback, host);
+
+        let test_callables_callback = test_callables_callback
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let test_callables_callback = move |update: TestCallables| {
+            let callables = update
+                .callables
+                .iter()
+                // TODO(sezna) -- convert span to Range
+                .map(|(name, _range)| -> (String, Range) {
+                    (
+                        name.clone(),
+                        crate::line_column::Range {
+                            start: crate::line_column::Position {
+                                line: 0,
+                                character: 0,
+                            },
+                            end: crate::line_column::Position {
+                                line: 0,
+                                character: 0,
+                            },
+                        },
+                    )
+                })
+                .collect::<Vec<_>>();
+
+            let _ = test_callables_callback
+                .call1(
+                    &JsValue::NULL,
+                    &serde_wasm_bindgen::to_value(&callables)
+                        .expect("conversion to TestCallables should succeed"),
+                )
+                .expect("callback should succeed");
+        };
+        let mut worker =
+            self.0
+                .create_update_worker(diagnostics_callback, test_callables_callback, host);
 
         future_to_promise(async move {
             worker.run().await;
@@ -586,4 +625,10 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(callables: [string, IRange][]) => void")]
+    pub type TestCallableCallback;
 }

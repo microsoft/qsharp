@@ -6,7 +6,9 @@
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
-    protocol::{DiagnosticUpdate, ErrorKind, NotebookMetadata, WorkspaceConfigurationUpdate},
+    protocol::{
+        DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
+    },
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
@@ -17,7 +19,8 @@ use std::{cell::RefCell, fmt::Write, rc::Rc};
 #[tokio::test]
 async fn no_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_document(
@@ -38,7 +41,8 @@ async fn no_error() {
 #[tokio::test]
 async fn clear_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_document("single/foo.qs", 1, "namespace {")
@@ -107,7 +111,8 @@ async fn clear_error() {
 #[tokio::test]
 async fn close_last_doc_in_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
@@ -216,7 +221,9 @@ async fn close_last_doc_in_project() {
 #[tokio::test]
 async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_document("single/foo.qs", 1, "namespace {")
@@ -277,7 +284,8 @@ async fn clear_on_document_close() {
 #[tokio::test]
 async fn compile_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_document("single/foo.qs", 1, "badsyntax")
@@ -320,7 +328,8 @@ async fn compile_error() {
 #[tokio::test]
 async fn rca_errors_are_reported_when_compilation_succeeds() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::AdaptiveRI),
@@ -374,7 +383,8 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
 #[tokio::test]
 async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -438,7 +448,8 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
 #[tokio::test]
 async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         package_type: Some(PackageType::Lib),
@@ -491,7 +502,8 @@ async fn package_type_update_causes_error() {
 #[tokio::test]
 async fn target_profile_update_fixes_error() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -559,7 +571,8 @@ async fn target_profile_update_fixes_error() {
 #[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater.update_document(
         "single/foo.qs",
@@ -610,7 +623,8 @@ async fn target_profile_update_causes_error_in_stdlib() {
 #[tokio::test]
 async fn notebook_document_no_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -635,7 +649,8 @@ async fn notebook_document_no_errors() {
 #[tokio::test]
 async fn notebook_document_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -697,7 +712,8 @@ async fn notebook_document_errors() {
 #[tokio::test]
 async fn notebook_document_lints() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -779,7 +795,8 @@ async fn notebook_document_lints() {
 #[tokio::test]
 async fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -863,7 +880,8 @@ async fn notebook_update_remove_cell_clears_errors() {
 #[tokio::test]
 async fn close_notebook_clears_errors() {
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
 
     updater
         .update_notebook_document(
@@ -960,7 +978,9 @@ async fn update_notebook_with_valid_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -1005,7 +1025,9 @@ async fn update_notebook_reports_errors_from_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -1154,7 +1176,9 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
 
     let fs = Rc::new(RefCell::new(fs));
     let errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&errors, &test_cases, &fs);
 
     updater
         .update_notebook_document(
@@ -1204,7 +1228,8 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
 #[tokio::test]
 async fn update_doc_updates_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
@@ -1301,7 +1326,8 @@ async fn update_doc_updates_project() {
 #[tokio::test]
 async fn close_doc_prioritizes_fs() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
@@ -1395,7 +1421,8 @@ async fn close_doc_prioritizes_fs() {
 #[tokio::test]
 async fn delete_manifest() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
@@ -1480,7 +1507,8 @@ async fn delete_manifest() {
 #[tokio::test]
 async fn delete_manifest_then_close() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document(
@@ -1539,7 +1567,8 @@ async fn delete_manifest_then_close() {
 #[tokio::test]
 async fn doc_switches_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
@@ -1647,7 +1676,8 @@ async fn doc_switches_project() {
 #[tokio::test]
 async fn doc_switches_project_on_close() {
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
         .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
@@ -1771,7 +1801,9 @@ async fn loading_lints_config_from_manifest() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
     // Check the LintConfig.
     check_lints_config(
@@ -1823,7 +1855,9 @@ async fn lints_update_after_manifest_change() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
     // Trigger a document update.
     updater
@@ -1956,7 +1990,8 @@ async fn lints_prefer_workspace_over_defaults() {
         "namespace Foo { @EntryPoint() function Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
 
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater(&received_errors);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
     updater.update_configuration(WorkspaceConfigurationUpdate {
         lints_config: Some(vec![LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
@@ -2016,7 +2051,8 @@ async fn lints_prefer_manifest_over_workspace() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
     updater.update_configuration(WorkspaceConfigurationUpdate {
         lints_config: Some(vec![LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
@@ -2053,9 +2089,10 @@ async fn missing_dependency_reported() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
         .await;
@@ -2106,9 +2143,10 @@ async fn error_from_dependency_reported() {
 
     let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
 
-    // Triger a document update.
+    // Trigger a document update.
     updater
         .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
         .await;
@@ -2143,6 +2181,39 @@ async fn error_from_dependency_reported() {
     .assert_debug_eq(&received_errors.borrow());
 }
 
+#[tokio::test]
+async fn test_case_detected() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir("src", [file("main.qs", "function MyTestCase() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+        )
+        .await;
+
+    expect![[r#"
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
 type ErrorInfo = (
     String,
     Option<u32>,
@@ -2150,7 +2221,10 @@ type ErrorInfo = (
     Vec<project::Error>,
 );
 
-fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
+fn new_updater<'a>(
+    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_test_cases: &'a RefCell<Vec<TestCallables>>,
+) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
         let project_errors = update.errors.iter().filter_map(|error| match error {
             ErrorKind::Project(error) => Some(error.clone()),
@@ -2171,9 +2245,15 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
         ));
     };
 
+    let test_callable_receiver = move |update: TestCallables| {
+        let mut v = received_test_cases.borrow_mut();
+        v.push(update);
+    };
+
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
+        test_callable_receiver,
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),
         },
@@ -2182,6 +2262,7 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
 
 fn new_updater_with_file_system<'a>(
     received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_test_cases: &'a RefCell<Vec<TestCallables>>,
     fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
@@ -2204,9 +2285,15 @@ fn new_updater_with_file_system<'a>(
         ));
     };
 
+    let test_callable_receiver = move |update: TestCallables| {
+        let mut v = received_test_cases.borrow_mut();
+        v.push(update);
+    };
+
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
+        test_callable_receiver,
         TestProjectHost { fs: fs.clone() },
     )
 }

@@ -34,6 +34,12 @@ pub struct DiagnosticUpdate {
 }
 
 #[derive(Debug)]
+pub struct TestCallables {
+    pub callables: Vec<(String, qsc::Span)>,
+    pub version: Option<u32>,
+}
+
+#[derive(Debug)]
 pub enum CodeActionKind {
     Empty,
     QuickFix,
