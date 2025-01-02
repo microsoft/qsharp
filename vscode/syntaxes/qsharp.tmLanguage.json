@@ -43,13 +43,41 @@
         {
           "comment": "function definition",
           "name": "meta.function.definition.qsharp",
-          "match": "\\b(function)\\s+([A-Za-z0-9_]+)",
-          "captures": {
+          "begin": "\\b(function)\\s+([A-Za-z0-9_]+)(\\()",
+          "beginCaptures": {
             "1": {
               "name": "keyword.other.qsharp"
             },
             "2": {
               "name": "entity.name.function.qsharp"
+            },
+            "3": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          }
+        },
+        {
+          "comment": "function calls",
+          "name": "meta.function.call.qsharp",
+          "begin": "([A-Za-z0-9_]+)(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.name.function.qsharp"
+            },
+            "2": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.brackets.round.qsharp"
             }
           }
         }
