@@ -60,7 +60,30 @@
             "0": {
               "name": "punctuation.brackets.round.qsharp"
             }
-          }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#functions"
+            },
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#operators"
+            },
+            {
+              "include": "#types"
+            },
+            {
+              "include": "#constants"
+            },
+            {
+              "include": "#strings"
+            }
+          ]
         },
         {
           "comment": "function calls",
@@ -79,7 +102,30 @@
             "0": {
               "name": "punctuation.brackets.round.qsharp"
             }
-          }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#functions"
+            },
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#operators"
+            },
+            {
+              "include": "#types"
+            },
+            {
+              "include": "#constants"
+            },
+            {
+              "include": "#strings"
+            }
+          ]
         }
       ]
     },
