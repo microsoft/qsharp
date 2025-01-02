@@ -8,10 +8,13 @@ import {
   IRange,
   ILocation,
   log,
+  ICompilerWorker,
+  ProgramConfig,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getCommonCompilerWorker, qsharpLanguageId, toVsCodeDiagnostic , toVsCodeLocation, toVsCodeRange} from "../common";
 import { getActiveProgram } from "../programConfig";
+import { createDebugConsoleEventTarget } from "../debugger/output";
 
 export function startLanguageServiceDiagnostics(
   languageService: ILanguageService,
@@ -72,6 +75,58 @@ export function startLanguageServiceDiagnostics(
       await runTestCase(testController, testCase, request, worker, program);
     }
   };
+
+  /**
+   * Given a single test case, run it in the worker (which runs the interpreter) and report results back to the
+   * `TestController` as a side effect.
+   *
+   * This function manages its own event target for the results of the test run and uses the controller to render the output in the VS Code UI.
+   **/
+  async function runTestCase(
+    ctrl: vscode.TestController,
+    testCase: vscode.TestItem,
+    request: vscode.TestRunRequest,
+    worker: ICompilerWorker,
+    program: ProgramConfig,
+  ): Promise<void> {
+    log.trace("Running Q# test: ", testCase.id);
+    if (testCase.children.size > 0) {
+      for (const childTestCase of testCase.children) {
+        await runTestCase(ctrl, childTestCase[1], request, worker, program);
+      }
+      return;
+    }
+    const run = ctrl.createTestRun(request);
+    const evtTarget = createDebugConsoleEventTarget((msg) => {
+      run.appendOutput(`${msg}\n`);
+    });
+    evtTarget.addEventListener("Result", (msg) => {
+      if (msg.detail.success) {
+        run.passed(testCase);
+      } else {
+        const message: vscode.TestMessage = {
+          message: msg.detail.value.message,
+          location: {
+            range: toVsCodeRange(msg.detail.value.range),
+            uri: vscode.Uri.parse(msg.detail.value.uri || ""),
+          },
+        };
+        run.failed(testCase, message);
+      }
+      run.end();
+    });
+  
+    const callableExpr = `${testCase.id}()`;
+  
+    try {
+      await worker.run(program, callableExpr, 1, evtTarget);
+    } catch (error) {
+      log.error(`Error running test ${testCase.id}:`, error);
+      run.appendOutput(`Error running test ${testCase.id}: ${error}\r\n`);
+    }
+    log.trace("ran test:", testCase.id);
+  }
+  
 
   testController.createRunProfile(
     "Interpreter",
