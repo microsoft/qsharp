@@ -7,9 +7,11 @@ import {
   qsharpLibraryUriScheme,
   IRange,
   ILocation,
+  log,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { qsharpLanguageId, toVsCodeDiagnostic , toVsCodeLocation, toVsCodeRange} from "../common";
+import { getCommonCompilerWorker, qsharpLanguageId, toVsCodeDiagnostic , toVsCodeLocation, toVsCodeRange} from "../common";
+import { getActiveProgram } from "../programConfig";
 
 export function startLanguageServiceDiagnostics(
   languageService: ILanguageService,
@@ -42,6 +44,43 @@ export function startLanguageServiceDiagnostics(
       diagnostics.diagnostics.map((d) => toVsCodeDiagnostic(d)),
     );
   }
+
+  // test explorer features
+
+  const runHandler = (request: vscode.TestRunRequest) => {
+    if (!request.continuous) {
+      return startTestRun(request);
+    }
+  };
+  
+    // runs an individual test run
+  // or test group (a test run where there are child tests)
+  const startTestRun = async (request: vscode.TestRunRequest) => {
+    // use the compiler worker to run the test in the interpreter
+
+    log.trace("Starting test run, request was", JSON.stringify(request));
+    const worker = getCommonCompilerWorker(context);
+
+    const programResult = await getActiveProgram();
+    if (!programResult.success) {
+      throw new Error(programResult.errorMsg);
+    }
+
+    const program = programResult.programConfig;
+
+    for (const testCase of request.include || []) {
+      await runTestCase(testController, testCase, request, worker, program);
+    }
+  };
+
+  testController.createRunProfile(
+    "Interpreter",
+    vscode.TestRunProfileKind.Run,
+    runHandler,
+    true,
+    undefined,
+    false,
+  );
 
   async function onTestCallables(evt: {
     detail: {
