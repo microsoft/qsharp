@@ -66,7 +66,6 @@ export function startLanguageServiceDiagnostics(
         const part = parts[i];
         const id = i === parts.length - 1 ? callableName : part;
         if (!rover.get(part)) {
-          // TODO get URI of test
           const testItem = testController.createTestItem(id, part, vscRange.uri);
           testItem.range = vscRange.range;
           rover.add(testItem);
