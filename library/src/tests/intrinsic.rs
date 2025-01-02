@@ -3010,6 +3010,39 @@ fn test_exp() {
 }
 
 #[test]
+fn test_exp_mixed_paulis() {
+    let dump = test_expression(
+        indoc! {r#"
+        {
+            open Std.Math;
+            open Std.Diagnostics;
+            use qs = Qubit[3];
+            for q in qs {
+                H(q);
+            }
+            Exp([PauliX, PauliI, PauliY], PI() / 7.0, qs);
+            DumpMachine();
+            ResetAll(qs);
+        }
+        "#},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |000⟩: 0.4719+0.0000𝑖
+        |001⟩: 0.1651+0.0000𝑖
+        |010⟩: 0.4719+0.0000𝑖
+        |011⟩: 0.1651+0.0000𝑖
+        |100⟩: 0.4719+0.0000𝑖
+        |101⟩: 0.1651+0.0000𝑖
+        |110⟩: 0.4719+0.0000𝑖
+        |111⟩: 0.1651+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
 fn test_apply_unitary_with_h_matrix() {
     let dump = test_expression(
         indoc! {"

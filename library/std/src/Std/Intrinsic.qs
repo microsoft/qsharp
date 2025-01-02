@@ -143,14 +143,14 @@ operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
 operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
     body ... {
         Fact(Length(paulis) == Length(qubits), "Arrays 'pauli' and 'qubits' must have the same length");
-        let (newPaulis, newQubits) = RemovePauliI(paulis, qubits);
+        let (paulis, qubits) = RemovePauliI(paulis, qubits);
         let angle = -2.0 * theta;
-        let len = Length(newPaulis);
+        let len = Length(paulis);
 
         if len == 0 {
             ApplyGlobalPhase(theta);
         } elif len == 1 {
-            R(newPaulis[0], angle, qubits[0]);
+            R(paulis[0], angle, qubits[0]);
         } elif len == 2 {
             within {
                 MapPauli(qubits[1], paulis[0], paulis[1]);
