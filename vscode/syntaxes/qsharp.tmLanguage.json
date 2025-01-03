@@ -23,6 +23,9 @@
     },
     {
       "include": "#strings"
+    },
+    {
+      "include": "#variables"
     }
   ],
   "repository": {
@@ -82,6 +85,9 @@
             },
             {
               "include": "#strings"
+            },
+            {
+              "include": "#variables"
             }
           ]
         },
@@ -124,6 +130,9 @@
             },
             {
               "include": "#strings"
+            },
+            {
+              "include": "#variables"
             }
           ]
         }
@@ -186,6 +195,14 @@
               "match": "\\\\."
             }
           ]
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.qsharp",
+          "match": "\\b[A-Za-z0-9_]+\\b"
         }
       ]
     }
