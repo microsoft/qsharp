@@ -364,10 +364,10 @@ fn fcmp_to_qir(
     let var_ty = get_variable_ty(variable);
     assert_eq!(
         lhs_ty, rhs_ty,
-        "mismatched input types ({lhs_ty}, {rhs_ty}) for icmp {op}"
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for fcmp {op}"
     );
 
-    assert_eq!(var_ty, "i1", "unsupported output type {var_ty} for icmp");
+    assert_eq!(var_ty, "i1", "unsupported output type {var_ty} for fcmp");
     format!(
         "  {} = fcmp {} {lhs_ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
