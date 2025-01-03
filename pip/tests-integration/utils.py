@@ -46,8 +46,6 @@ def get_output_dir(target_profile: TargetProfile) -> str:
     return os.path.join(get_resource_dir(target_profile), "output")
 
 
-# This function is used to generate the expected output files for the tests
-# Rename the function to start with test_ to generate the expected output files
 def generate_test_outputs(target_profile: TargetProfile) -> None:
     input_files = get_input_files(target_profile)
     output_dir = get_output_dir(target_profile)

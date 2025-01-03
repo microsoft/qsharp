@@ -1,0 +1,14 @@
+START
+METADATA	entry_point
+METADATA	output_labeling_schema
+METADATA	qir_profiles	adaptive_profile
+METADATA	required_num_qubits	1
+METADATA	required_num_results	10
+OUTPUT	TUPLE	6
+OUTPUT	DOUBLE	10.0
+OUTPUT	BOOL	true
+OUTPUT	BOOL	false
+OUTPUT	BOOL	true
+OUTPUT	BOOL	true
+OUTPUT	BOOL	false
+END	0

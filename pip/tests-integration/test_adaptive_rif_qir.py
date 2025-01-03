@@ -17,7 +17,7 @@ from utils import (
     SKIP_REASON,
 )
 
-TARGET_PROFILE = TargetProfile.Adaptive_RI
+TARGET_PROFILE = TargetProfile.Adaptive_RIF
 
 
 # This function is used to generate the expected output files for the tests
