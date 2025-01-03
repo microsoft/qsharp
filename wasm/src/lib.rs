@@ -558,7 +558,7 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "adaptive_ri" | "unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" | "adaptive_rif" | "unrestricted";
 "#;
 
 #[wasm_bindgen(typescript_custom_section)]

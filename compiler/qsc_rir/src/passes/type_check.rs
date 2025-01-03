@@ -27,6 +27,10 @@ fn check_instr_types(program: &Program, instr: &Instruction) {
         | Instruction::Srem(opr1, opr2, var)
         | Instruction::Shl(opr1, opr2, var)
         | Instruction::Ashr(opr1, opr2, var)
+        | Instruction::Fadd(opr1, opr2, var)
+        | Instruction::Fsub(opr1, opr2, var)
+        | Instruction::Fmul(opr1, opr2, var)
+        | Instruction::Fdiv(opr1, opr2, var)
         | Instruction::LogicalAnd(opr1, opr2, var)
         | Instruction::LogicalOr(opr1, opr2, var)
         | Instruction::BitwiseAnd(opr1, opr2, var)
@@ -36,7 +40,7 @@ fn check_instr_types(program: &Program, instr: &Instruction) {
             assert_eq!(opr1.get_type(), var.ty);
         }
 
-        Instruction::Icmp(_, opr1, opr2, var) => {
+        Instruction::Fcmp(_, opr1, opr2, var) | Instruction::Icmp(_, opr1, opr2, var) => {
             assert_eq!(opr1.get_type(), opr2.get_type());
             assert_eq!(Ty::Boolean, var.ty);
         }

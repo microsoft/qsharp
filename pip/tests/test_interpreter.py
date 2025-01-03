@@ -392,19 +392,13 @@ def test_adaptive_ri_qir_can_be_generated() -> None:
 
         ; module flags
 
-        !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+        !llvm.module.flags = !{!0, !1, !2, !3, !4}
 
         !0 = !{i32 1, !"qir_major_version", i32 1}
         !1 = !{i32 7, !"qir_minor_version", i32 0}
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
-        !4 = !{i32 1, !"classical_ints", i1 true}
-        !5 = !{i32 1, !"qubit_resetting", i1 true}
-        !6 = !{i32 1, !"classical_floats", i1 false}
-        !7 = !{i32 1, !"backwards_branching", i1 false}
-        !8 = !{i32 1, !"classical_fixed_points", i1 false}
-        !9 = !{i32 1, !"user_functions", i1 false}
-        !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        !4 = !{i32 1, !"int_computations", !"i64"}
         """
     )
 

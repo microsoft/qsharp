@@ -448,6 +448,7 @@ export function Editor(props: {
             <span>Profile</span>
             <select value={profile} onChange={profileChanged}>
               <option value="unrestricted">Unrestricted</option>
+              <option value="adaptive_rif">Adaptive RIF</option>
               <option value="adaptive_ri">Adaptive RI</option>
               <option value="base">Base</option>
             </select>
