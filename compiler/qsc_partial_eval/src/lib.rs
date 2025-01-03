@@ -3218,12 +3218,12 @@ fn eval_bin_op_with_double_literals(
     };
 
     match bin_op {
-        BinOp::Eq => Ok(Value::Bool((lhs - rhs).abs() < f64::EPSILON)),
-        BinOp::Neq => Ok(Value::Bool((lhs - rhs).abs() > f64::EPSILON)),
+        BinOp::Eq => Ok(Value::Bool(f64_approx_eq(lhs, rhs))),
+        BinOp::Neq => Ok(Value::Bool(f64_approx_neq(lhs, rhs))),
         BinOp::Gt => Ok(Value::Bool(lhs > rhs)),
-        BinOp::Gte => Ok(Value::Bool(lhs >= rhs)),
+        BinOp::Gte => Ok(Value::Bool(f64_approx_gte(lhs, rhs))),
         BinOp::Lt => Ok(Value::Bool(lhs < rhs)),
-        BinOp::Lte => Ok(Value::Bool(lhs <= rhs)),
+        BinOp::Lte => Ok(Value::Bool(f64_approx_lte(lhs, rhs))),
         BinOp::Add => Ok(Value::Double(lhs + rhs)),
         BinOp::Sub => Ok(Value::Double(lhs - rhs)),
         BinOp::Mul => Ok(Value::Double(lhs * rhs)),
@@ -3376,5 +3376,26 @@ fn try_get_eval_var_type(value: &Value) -> Option<VarTy> {
         Value::Double(_) => Some(VarTy::Double),
         Value::Var(var) => Some(var.ty),
         _ => None,
+    }
+}
+
+fn f64_approx_lte(lhs: f64, rhs: f64) -> bool {
+    lhs < rhs || f64_approx_eq(lhs, rhs)
+}
+
+fn f64_approx_gte(lhs: f64, rhs: f64) -> bool {
+    lhs > rhs || f64_approx_eq(lhs, rhs)
+}
+
+fn f64_approx_neq(lhs: f64, rhs: f64) -> bool {
+    !f64_approx_eq(lhs, rhs)
+}
+
+fn f64_approx_eq(lhs: f64, rhs: f64) -> bool {
+    // check equality, this is fastest and handles +0.0 == -0.0
+    // also lets us avoid constly math operations in the true case
+    lhs == rhs || {
+        // not equal, check if they are close enough
+        (lhs - rhs).abs() <= f64::EPSILON
     }
 }
