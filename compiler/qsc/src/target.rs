@@ -45,11 +45,11 @@ impl FromStr for Profile {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Adaptive_RI" | "adaptive_ri" => Ok(Self::AdaptiveRI),
-            "Adaptive_RIF" | "adaptive_rif" => Ok(Self::AdaptiveRIF),
-            "Base" | "base" => Ok(Self::Base),
-            "Unrestricted" | "unrestricted" => Ok(Self::Unrestricted),
+        match s.to_lowercase().as_str() {
+            "adaptive_ri" => Ok(Self::AdaptiveRI),
+            "adaptive_rif" => Ok(Self::AdaptiveRIF),
+            "base" => Ok(Self::Base),
+            "unrestricted" => Ok(Self::Unrestricted),
             _ => Err(()),
         }
     }
