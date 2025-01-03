@@ -32,19 +32,33 @@ except ImportError:
 SKIP_REASON = "QIR runner is not available"
 
 
+def get_resource_dir(target_profile: TargetProfile) -> str:
+    return os.path.join(
+        os.path.dirname(__file__), "resources", str(target_profile).lower()
+    )
+
+
+def get_input_dir(target_profile: TargetProfile) -> str:
+    return os.path.join(get_resource_dir(target_profile), "input")
+
+
+def get_output_dir(target_profile: TargetProfile) -> str:
+    return os.path.join(get_resource_dir(target_profile), "output")
+
+
 # This function is used to generate the expected output files for the tests
 # Rename the function to start with test_ to generate the expected output files
-def generate_test_outputs() -> None:
-    input_files = get_input_files()
-    output_dir = get_output_dir()
+def generate_test_outputs(target_profile: TargetProfile) -> None:
+    input_files = get_input_files(target_profile)
+    output_dir = get_output_dir(target_profile)
     os.makedirs(output_dir, exist_ok=True)
 
     for file_path in input_files:
-        ll_file_path = get_output_ll_file(file_path)
-        out_file_path = get_output_out_file(file_path)
+        ll_file_path = get_output_ll_file(file_path, target_profile)
+        out_file_path = get_output_out_file(file_path, target_profile)
         with open(file_path, "rt", encoding="utf-8") as f:
             source = f.read()
-            qir = compile_qsharp(source)
+            qir = compile_qsharp(source, target_profile)
             with open(ll_file_path, "wt", encoding="utf-8") as f:
                 f.write(qir)
             output = execute_qir(ll_file_path)
@@ -52,8 +66,8 @@ def generate_test_outputs() -> None:
                 f.write(output)
 
 
-def read_file(file_name: str) -> str:
-    file_path = os.path.join(os.path.dirname(__file__), "resources", file_name)
+def read_file(file_name: str, target_profile: TargetProfile) -> str:
+    file_path = os.path.join(get_input_dir(target_profile), file_name)
     with open(file_path, "rt", encoding="utf-8") as file:
         source = file.read()
     return source
@@ -132,8 +146,8 @@ def compile_qsharp(
     return qir
 
 
-def get_input_files() -> List[str]:
-    resources_dir = get_resource_dir()
+def get_input_files(target_profile: TargetProfile) -> List[str]:
+    resources_dir = get_input_dir(target_profile)
     input_files = [
         os.path.join(resources_dir, file_name)
         for file_name in os.listdir(resources_dir)
@@ -142,26 +156,18 @@ def get_input_files() -> List[str]:
     return input_files
 
 
-def get_resource_dir() -> str:
-    return os.path.join(os.path.dirname(__file__), "resources")
-
-
-def get_output_dir() -> str:
-    return os.path.join(get_resource_dir(), "output", "Adaptive_RI")
-
-
-def get_ouput_file_basename(file_path: str) -> str:
+def get_ouput_file_basename(file_path: str, target_profile: TargetProfile) -> str:
     file_name, _ext = os.path.splitext(file_path)
-    output_dir = get_output_dir()
+    output_dir = get_output_dir(target_profile)
     output_file = os.path.join(output_dir, os.path.basename(file_name))
     return output_file
 
 
-def get_output_ll_file(file_path: str) -> str:
-    output_file = get_ouput_file_basename(file_path)
+def get_output_ll_file(file_path: str, target_profile: TargetProfile) -> str:
+    output_file = get_ouput_file_basename(file_path, target_profile)
     return output_file + ".ll"
 
 
-def get_output_out_file(file_path: str) -> str:
-    output_file = get_ouput_file_basename(file_path)
+def get_output_out_file(file_path: str, target_profile: TargetProfile) -> str:
+    output_file = get_ouput_file_basename(file_path, target_profile)
     return output_file + ".out"
