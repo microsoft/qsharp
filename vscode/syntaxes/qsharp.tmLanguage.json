@@ -166,6 +166,11 @@
         {
           "name": "constant.other.result.qsharp",
           "match": "\\b(One|Zero)\\b"
+        },
+        {
+          "comment": "integers and decimals",
+          "name": "constant.numeric.qsharp",
+          "match": "\\b[\\d_]*\\.?[\\d_]\\b"
         }
       ]
     },
