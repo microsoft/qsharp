@@ -100,17 +100,18 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
-    /// Target supports the Adaptive profile with integer computation and qubit reset capabilities.
+    /// Target supports the Adaptive profile with the integer computation extension.
     ///
     /// This profile includes all of the required Adaptive Profile
-    /// capabilities, as well as the optional integer computation and qubit
-    /// reset capabilities, as defined by the QIR specification.
+    /// capabilities, as well as the optional integer computation
+    /// extension defined by the QIR specification.
     Adaptive_RI,
-    /// Target supports the Adaptive profile with integer & floating point computation and qubit reset capabilities.
+    /// Target supports the Adaptive profile with integer & floating-point
+    /// computation extensions.
     ///
-    /// This profile includes all of the required Adaptive Profile and Adaptive_RI
-    /// capabilities, as well as the optional floating point computation and qubit
-    /// reset capabilities, as defined by the QIR specification.
+    /// This profile includes all required Adaptive Profile and `Adaptive_RI`
+    /// capabilities, as well as the optional floating-point computation
+    /// extension defined by the QIR specification.
     Adaptive_RIF,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
