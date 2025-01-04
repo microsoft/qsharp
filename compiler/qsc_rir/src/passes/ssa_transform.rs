@@ -172,7 +172,10 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
         match &mut instr {
             // Track the new value of the variable and omit the store instruction.
             Instruction::Store(operand, var) => {
-                var_map.insert(var.variable_id, *operand);
+                // Note this uses the mapped operand to make sure this variable points to whatever root literal or variable
+                // this operand corresponds to at this point in the block. This makes the new variable respect a point-in-time
+                // copy of the operand.
+                var_map.insert(var.variable_id, operand.mapped(var_map));
                 continue;
             }
 
@@ -181,7 +184,7 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
                 *args = args
                     .iter()
                     .map(|arg| match arg {
-                        Operand::Variable(var) => var.map_to_operand(var_map),
+                        Operand::Variable(var) => *var_map.get(&var.variable_id).unwrap_or(arg),
                         Operand::Literal(_) => *arg,
                     })
                     .collect();

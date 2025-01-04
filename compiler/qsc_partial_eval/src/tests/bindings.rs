@@ -175,7 +175,9 @@ fn immutable_bool_binding_does_not_generate_store_instruction() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Call id(3), args( Variable(3, Boolean), Pointer, )
                 Return"#]],
     );
 }
@@ -242,7 +244,8 @@ fn mutable_bool_binding_generates_store_instruction() {
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Call id(3), args( Variable(3, Boolean), Pointer, )
                 Return"#]],
     );
 }
@@ -310,7 +313,9 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
                 Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
-                Call id(3), args( Variable(2, Integer), Pointer, )
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Variable(4, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(4, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(2, Integer) = Store Integer(0)
@@ -385,7 +390,8 @@ fn mutable_int_binding_does_generate_store_instruction() {
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer)
-                Call id(3), args( Variable(3, Integer), Pointer, )
+                Variable(4, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(4, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(2, Integer) = Store Integer(0)
@@ -462,22 +468,23 @@ fn mutable_variable_in_outer_scope_set_to_mutable_from_inner_scope() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Variable(0, Integer) = Store Integer(0)
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(1, Boolean) = Call id(2), args( Result(0), )
-            Variable(2, Boolean) = Store Variable(1, Boolean)
-            Branch Variable(2, Boolean), 2, 3
-        Block 1:Block:
-            Call id(3), args( Variable(0, Integer), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(3, Integer) = Store Integer(1)
-            Variable(0, Integer) = Store Integer(1)
-            Jump(1)
-        Block 3:Block:
-            Variable(0, Integer) = Store Integer(2)
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Variable(0, Integer) = Store Integer(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(0), )
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Branch Variable(2, Boolean), 2, 3
+            Block 1:Block:
+                Variable(4, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(4, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(3, Integer) = Store Integer(1)
+                Variable(0, Integer) = Store Integer(1)
+                Jump(1)
+            Block 3:Block:
+                Variable(0, Integer) = Store Integer(2)
+                Jump(1)"#]],
     );
 }

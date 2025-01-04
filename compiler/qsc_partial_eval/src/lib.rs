@@ -13,7 +13,7 @@ mod management;
 
 use core::panic;
 use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, Scope,
+    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, Scope,
 };
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -204,8 +204,19 @@ impl<'a> PartialEvaluator<'a> {
     fn bind_value_to_ident(&mut self, mutability: Mutability, ident: &Ident, value: Value) {
         // We do slightly different things depending on the mutability of the identifier.
         match mutability {
-            Mutability::Immutable => self.bind_value_to_immutable_ident(ident, value),
             Mutability::Mutable => self.bind_value_to_mutable_ident(ident, value),
+            Mutability::Immutable => {
+                let current_scope = self.eval_context.get_current_scope();
+                if matches!(value, Value::Var(var) if current_scope.get_static_value(var.id.into()).is_none())
+                {
+                    // An immutable identifier is being bound to a dynamic value, so treat the identifier as mutable.
+                    // This allows it to represent a point-in-time copy of the mutable value during evaluation.
+                    self.bind_value_to_mutable_ident(ident, value);
+                } else {
+                    // The value is static, so bind it to the classical map.
+                    self.bind_value_to_immutable_ident(ident, value);
+                }
+            }
         };
     }
 
@@ -226,11 +237,13 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
-        if let Some((var_id, mutable_kind)) = self.try_create_mutable_variable(ident.id, &value) {
-            // Keep track of whether the mutable variable is static or dynamic.
-            self.eval_context
-                .get_current_scope_mut()
-                .insert_mutable_var(var_id, mutable_kind);
+        if let Some((var_id, literal)) = self.try_create_mutable_variable(ident.id, &value) {
+            // If the variable maps to a know static literal, track that mapping.
+            if let Some(literal) = literal {
+                self.eval_context
+                    .get_current_scope_mut()
+                    .insert_static_var_mapping(var_id, literal);
+            }
         } else {
             self.bind_value_in_hybrid_map(ident, value);
         }
@@ -1510,6 +1523,11 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Evaluate the body expression.
+        // First, we cache the current static variable mappings so that we can restore them later.
+        let cached_mappings = self
+            .eval_context
+            .get_current_scope()
+            .clone_static_var_mappings();
         let if_true_branch_control_flow =
             self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
         let if_true_block_id = match if_true_branch_control_flow {
@@ -1519,16 +1537,37 @@ impl<'a> PartialEvaluator<'a> {
 
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
         let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
+            // Cache the mappings after the true block so we can compare afterwards.
+            let post_if_true_mappings = self
+                .eval_context
+                .get_current_scope()
+                .clone_static_var_mappings();
+            // Restore the cached mappings from before evaluating the true block.
+            self.eval_context
+                .get_current_scope_mut()
+                .set_static_var_mappings(cached_mappings);
             let if_false_branch_control_flow = self.eval_expr_if_branch(
                 otherwise_expr_id,
                 continuation_block_node_id,
                 maybe_if_expr_var,
             )?;
+            // Only keep the static mappings that are the same in both blocks; when they are different,
+            // the variable is no longer static across the if expression.
+            self.eval_context
+                .get_current_scope_mut()
+                .keep_matching_static_var_mappings(&post_if_true_mappings);
             match if_false_branch_control_flow {
                 BranchControlFlow::Block(block_id) => block_id,
                 BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
             }
         } else {
+            // Only keep the static mappings that are the same after the true block as before; when they are different,
+            // the variable is no longer static across the if expression.
+            self.eval_context
+                .get_current_scope_mut()
+                .keep_matching_static_var_mappings(&cached_mappings);
+
+            // Since there is no otherwise block, we branch to the continuation block.
             continuation_block_node_id
         };
 
@@ -1814,9 +1853,7 @@ impl<'a> PartialEvaluator<'a> {
                 // the variable if it is static at this moment.
                 if let Value::Var(var) = bound_value {
                     let current_scope = self.eval_context.get_current_scope();
-                    if let Some(MutableKind::Static(literal)) =
-                        current_scope.find_mutable_kind(var.id.into())
-                    {
+                    if let Some(literal) = current_scope.get_static_value(var.id.into()) {
                         map_rir_literal_to_eval_value(*literal)
                     } else {
                         bound_value.clone()
@@ -2229,7 +2266,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         local_var_id: LocalVarId,
         value: &Value,
-    ) -> Option<(rir::VariableId, MutableKind)> {
+    ) -> Option<(rir::VariableId, Option<Literal>)> {
         // Check if we can create a mutable variable for this value.
         let var_ty = try_get_eval_var_type(value)?;
 
@@ -2249,13 +2286,13 @@ impl<'a> PartialEvaluator<'a> {
         let store_ins = Instruction::Store(value_operand, rir_var);
         self.get_current_rir_block_mut().0.push(store_ins);
 
-        // Create a mutable variable.
-        let mutable_kind = match value_operand {
-            Operand::Literal(literal) => MutableKind::Static(literal),
-            Operand::Variable(_) => MutableKind::Dynamic,
+        // Create a mutable variable, mapping it to the static value if any.
+        let static_value = match value_operand {
+            Operand::Literal(literal) => Some(literal),
+            Operand::Variable(_) => None,
         };
 
-        Some((var_id, mutable_kind))
+        Some((var_id, static_value))
     }
 
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
@@ -2625,14 +2662,16 @@ impl<'a> PartialEvaluator<'a> {
 
             // If this is a mutable variable, make sure to update whether it is static or dynamic.
             let current_scope = self.eval_context.get_current_scope_mut();
-            if matches!(rhs_operand, Operand::Variable(_))
-                || current_scope.is_currently_evaluating_branch()
-            {
-                if let Some(mutable_kind) = current_scope.find_mutable_var_mut(rir_var.variable_id)
-                {
-                    *mutable_kind = MutableKind::Dynamic;
+            match rhs_operand {
+                Operand::Literal(literal) => {
+                    // The variable maps to a static literal here, so track that literal value.
+                    current_scope.insert_static_var_mapping(rir_var.variable_id, literal);
                 }
-            }
+                Operand::Variable(_) => {
+                    // The variable is not known to be some literal value, so remove the static mapping.
+                    current_scope.remove_static_value(rir_var.variable_id);
+                }
+            };
         } else {
             // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
             // because it is unsupported.

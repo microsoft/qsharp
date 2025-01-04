@@ -206,7 +206,8 @@ fn boolean_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
-                Call id(3), args( Variable(0, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Variable(0, Boolean)
+                Call id(3), args( Variable(3, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Variable(0, Boolean) = Store Bool(false)
@@ -242,7 +243,8 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(3, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(3, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(0, Integer) = Store Integer(5)
@@ -313,31 +315,32 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Variable(0, Integer) = Store Integer(0)
-            Variable(1, Integer) = Store Integer(0)
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(2, Boolean) = Call id(2), args( Result(0), )
-            Variable(3, Boolean) = Store Variable(2, Boolean)
-            Branch Variable(3, Boolean), 2, 1
-        Block 1:Block:
-            Variable(1, Integer) = Store Integer(1)
-            Call id(1), args( Qubit(0), Result(1), )
-            Variable(4, Boolean) = Call id(2), args( Result(1), )
-            Variable(5, Boolean) = Store Variable(4, Boolean)
-            Branch Variable(5, Boolean), 4, 3
-        Block 2:Block:
-            Variable(0, Integer) = Store Integer(1)
-            Jump(1)
-        Block 3:Block:
-            Variable(1, Integer) = Store Integer(2)
-            Call id(3), args( Variable(0, Integer), Pointer, )
-            Return
-        Block 4:Block:
-            Variable(6, Integer) = BitwiseOr Variable(0, Integer), Integer(2)
-            Variable(0, Integer) = Store Variable(6, Integer)
-            Jump(3)"#]],
+            Blocks:
+            Block 0:Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(1, Integer) = Store Integer(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(2, Boolean) = Call id(2), args( Result(0), )
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Branch Variable(3, Boolean), 2, 1
+            Block 1:Block:
+                Variable(1, Integer) = Store Integer(1)
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Store Variable(4, Boolean)
+                Branch Variable(5, Boolean), 4, 3
+            Block 2:Block:
+                Variable(0, Integer) = Store Integer(1)
+                Jump(1)
+            Block 3:Block:
+                Variable(1, Integer) = Store Integer(2)
+                Variable(7, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(7, Integer), Pointer, )
+                Return
+            Block 4:Block:
+                Variable(6, Integer) = BitwiseOr Variable(0, Integer), Integer(2)
+                Variable(0, Integer) = Store Variable(6, Integer)
+                Jump(3)"#]],
     );
 }
 
@@ -372,7 +375,8 @@ fn large_loop_with_inner_if_completes_eval_and_transform() {
         &expect![[r#"
             Block:
                 Variable(1, Integer) = Store Integer(100)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(400, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(400, Integer), Pointer, )
                 Return"#]],
     );
 }
