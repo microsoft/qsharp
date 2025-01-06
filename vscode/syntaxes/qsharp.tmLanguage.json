@@ -94,7 +94,7 @@
         {
           "comment": "function calls",
           "name": "meta.function.call.qsharp",
-          "begin": "([A-Za-z0-9_]+)(\\()",
+          "begin": "\\b(?<!@)([A-Za-z0-9_]+)(\\()",
           "beginCaptures": {
             "1": {
               "name": "entity.name.function.qsharp"
@@ -202,7 +202,7 @@
       "patterns": [
         {
           "name": "variable.other.qsharp",
-          "match": "\\b[A-Za-z0-9_]+\\b"
+          "match": "\\b(?<!@)[A-Za-z0-9_]+\\b"
         }
       ]
     }
