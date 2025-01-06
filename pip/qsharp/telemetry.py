@@ -239,7 +239,7 @@ def _post_telemetry() -> bool:
             return True
 
     except Exception:
-        logger.exception(
+        logger.debug(
             "Failed to post telemetry. Pending metrics will be retried at the next interval."
         )
         return False
@@ -271,7 +271,7 @@ def _telemetry_thread_start():
             if msg == "exit":
                 logger.debug("Exiting telemetry thread")
                 if not _post_telemetry():
-                    logger.error("Failed to post telemetry on exit")
+                    logger.debug("Failed to post telemetry on exit")
                 return
             else:
                 on_metric(msg)
