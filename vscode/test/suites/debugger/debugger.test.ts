@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { assert } from "chai";
 import { activateExtension, waitForCondition } from "../extensionUtils";
 import { DebugProtocol } from "@vscode/debugprotocol";
+import { qsharpExtensionId } from "../../../src/common";
 
 /**
  * Set to true to log Debug Adapter Protocol messages to the console.
@@ -47,7 +48,9 @@ suite("Q# Debugger Tests", function suite() {
     await vscode.window.showTextDocument(fooUri);
 
     // launch debugger
-    await vscode.commands.executeCommand("qsharp-vscode.debugEditorContents");
+    await vscode.commands.executeCommand(
+      `${qsharpExtensionId}.debugEditorContents`,
+    );
 
     await waitUntilPaused([
       {

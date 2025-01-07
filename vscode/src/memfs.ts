@@ -3,6 +3,7 @@
 
 import { log, samples } from "qsharp-lang";
 import * as vscode from "vscode";
+import { qsharpExtensionId } from "./common";
 
 export const scheme = "qsharp-vfs";
 
@@ -69,7 +70,7 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      "qsharp-vscode.openPlayground",
+      `${qsharpExtensionId}.openPlayground`,
       async () => {
         await vscode.commands.executeCommand(
           "vscode.openFolder",
@@ -80,47 +81,52 @@ export async function initFileSystem(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("qsharp-vscode.webOpener", async (uri) => {
-      log.debug(`webOpener called with URI ${uri}`);
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.webOpener`,
+      async (uri) => {
+        log.debug(`webOpener called with URI ${uri}`);
 
-      // Open the README if the user has navigated to the playground
-      if (typeof uri === "string" && uri.endsWith("/playground/")) {
-        // Nice to have: First check if the readme is already open from a prior visit
-        await vscode.commands.executeCommand(
-          "markdown.showPreview",
-          playgroundRootUri.with({ path: "/README.md" }),
-        );
-        return;
-      }
+        // Open the README if the user has navigated to the playground
+        if (typeof uri === "string" && uri.endsWith("/playground/")) {
+          // Nice to have: First check if the readme is already open from a prior visit
+          await vscode.commands.executeCommand(
+            "markdown.showPreview",
+            playgroundRootUri.with({ path: "/README.md" }),
+          );
+          return;
+        }
 
-      // Example: https://vscode.dev/quantum?code=H4sIAAAAAAAAEz2Ouw6CQBRE%2B%2F2KITbQSI%2BNhRYWhkc0FoTiBm5kE9kld3c1xPDvEjSe8mQmM2mKS68dWtsxXuTgehLu8NQEwrU6RZFShgZ2I7WM81QGMj4Mhdi70IC3UljYH42XqbDa%2BDhZjR1ZyGtrcCZt4gQZKnbh4etmKeFHusznhzzDTbRnTDYIys33Tc%2FC239S2AcxqJvdqmY1qw8FRbBxvAAAAA%3D%3D
-      let linkedCode: string | undefined;
-      if (typeof uri === "string") {
-        const uriObj = vscode.Uri.parse(uri);
-        log.debug("uri query component: " + uriObj.query);
+        // Example: https://vscode.dev/quantum?code=H4sIAAAAAAAAEz2Ouw6CQBRE%2B%2F2KITbQSI%2BNhRYWhkc0FoTiBm5kE9kld3c1xPDvEjSe8mQmM2mKS68dWtsxXuTgehLu8NQEwrU6RZFShgZ2I7WM81QGMj4Mhdi70IC3UljYH42XqbDa%2BDhZjR1ZyGtrcCZt4gQZKnbh4etmKeFHusznhzzDTbRnTDYIys33Tc%2FC239S2AcxqJvdqmY1qw8FRbBxvAAAAA%3D%3D
+        let linkedCode: string | undefined;
+        if (typeof uri === "string") {
+          const uriObj = vscode.Uri.parse(uri);
+          log.debug("uri query component: " + uriObj.query);
 
-        // The query appears to be URIDecoded already, which is causing issues with URLSearchParams, so extract with a regex for now.
-        const code = uriObj.query.match(/code=([^&]*)/)?.[1];
+          // The query appears to be URIDecoded already, which is causing issues with URLSearchParams, so extract with a regex for now.
+          const code = uriObj.query.match(/code=([^&]*)/)?.[1];
 
-        if (code) {
-          log.debug("code from query: " + code);
-          try {
-            linkedCode = await compressedBase64ToCode(code);
-            const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
+          if (code) {
+            log.debug("code from query: " + code);
+            try {
+              linkedCode = await compressedBase64ToCode(code);
+              const codeFile = vscode.Uri.parse(`${scheme}:/code.qs`);
 
-            const encoder = new TextEncoder();
-            vfs.writeFile(codeFile, encoder.encode(linkedCode), {
-              create: true,
-              overwrite: true,
-            });
-            await vscode.commands.executeCommand("vscode.open", codeFile);
-            await vscode.commands.executeCommand("qsharp-vscode.showHelp");
-          } catch (err) {
-            log.warn("Unable to decode the code in the URL. ", err);
+              const encoder = new TextEncoder();
+              vfs.writeFile(codeFile, encoder.encode(linkedCode), {
+                create: true,
+                overwrite: true,
+              });
+              await vscode.commands.executeCommand("vscode.open", codeFile);
+              await vscode.commands.executeCommand(
+                `${qsharpExtensionId}.showHelp`,
+              );
+            } catch (err) {
+              log.warn("Unable to decode the code in the URL. ", err);
+            }
           }
         }
-      }
-    }),
+      },
+    ),
   );
 }
 
