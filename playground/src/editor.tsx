@@ -90,6 +90,7 @@ export function Editor(props: {
   profile: TargetProfile;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
+  setRir: (rir: string[]) => void;
   setQir: (qir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
@@ -159,7 +160,7 @@ export function Editor(props: {
       );
     }
     const codeGenTimeout = 1000; // ms
-    if (props.activeTab === "qir-tab") {
+    if (props.activeTab === "qir-tab" || props.activeTab === "rir-tab") {
       let timedOut = false;
       const compiler = props.compiler_worker_factory();
       const compilerTimeout = setTimeout(() => {
@@ -168,9 +169,15 @@ export function Editor(props: {
         compiler.terminate();
       }, codeGenTimeout);
       try {
-        const qir = await compiler.getQir(config);
-        clearTimeout(compilerTimeout);
-        props.setQir(qir);
+        if (props.activeTab === "rir-tab") {
+          const ir = await compiler.getRir(config);
+          clearTimeout(compilerTimeout);
+          props.setRir(ir);
+        } else {
+          const ir = await compiler.getQir(config);
+          clearTimeout(compilerTimeout);
+          props.setQir(ir);
+        }
       } catch (e: any) {
         if (timedOut) {
           props.setQir("timed out");
