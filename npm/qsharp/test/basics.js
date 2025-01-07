@@ -485,6 +485,37 @@ test("language service diagnostics", async () => {
   assert(gotDiagnostics);
 });
 
+test("testCallableDiscovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 1);
+    assert.equal(
+      event.detail.callables[0][0],
+      "Sample.main",
+    );
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation main() : Unit {
+        use q1 = Qubit();
+        Ry(q1);
+        let m1 = M(q1);
+        return [m1];
+    }
+}`,
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
+});
+
 test("diagnostics with related spans", async () => {
   const languageService = getLanguageService();
   let gotDiagnostics = false;

@@ -2244,7 +2244,10 @@ async fn test_case_removed() {
             "parent",
             [
                 file("qsharp.json", r#"{}"#),
-                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
             ],
         )]
         .into_iter()
@@ -2258,11 +2261,7 @@ async fn test_case_removed() {
 
     // Trigger a document update.
     updater
-        .update_document(
-            "parent/src/main.qs",
-            1,
-            "function MyTestCase() : Unit {}",
-        )
+        .update_document("parent/src/main.qs", 1, "function MyTestCase() : Unit {}")
         .await;
 
     expect![[r#"
@@ -2283,7 +2282,10 @@ async fn test_case_modified() {
             "parent",
             [
                 file("qsharp.json", r#"{}"#),
-                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
             ],
         )]
         .into_iter()
@@ -2368,7 +2370,10 @@ async fn test_annotation_removed() {
             "parent",
             [
                 file("qsharp.json", r#"{}"#),
-                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+                dir(
+                    "src",
+                    [file("main.qs", "@Test() function MyTestCase() : Unit {}")],
+                ),
             ],
         )]
         .into_iter()
@@ -2390,14 +2395,10 @@ async fn test_annotation_removed() {
         .await;
 
     updater
-        .update_document(
-            "parent/src/main.qs",
-            2,
-            "function MyTestCase() : Unit {}",
-        )
+        .update_document("parent/src/main.qs", 2, "function MyTestCase() : Unit {}")
         .await;
 
-        expect![[r#"
+    expect![[r#"
             [
                 TestCallables {
                     callables: [
@@ -2425,7 +2426,8 @@ async fn test_annotation_removed() {
                     version: None,
                 },
             ]
-        "#]].assert_debug_eq(&test_cases.borrow());
+        "#]]
+    .assert_debug_eq(&test_cases.borrow());
 }
 
 #[tokio::test]
@@ -2437,9 +2439,10 @@ async fn multiple_tests() {
                 file("qsharp.json", r#"{}"#),
                 dir(
                     "src",
-                    [
-                        file("main.qs", "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}"),
-                    ],
+                    [file(
+                        "main.qs",
+                        "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}",
+                    )],
                 ),
             ],
         )]
@@ -2532,12 +2535,20 @@ async fn test_case_in_different_files() {
 
     // Trigger a document update for the first test file.
     updater
-        .update_document("parent/src/test1.qs", 1, "@Test() function Test1() : Unit {}")
+        .update_document(
+            "parent/src/test1.qs",
+            1,
+            "@Test() function Test1() : Unit {}",
+        )
         .await;
 
     // Trigger a document update for the second test file.
     updater
-        .update_document("parent/src/test2.qs", 1, "@Test() function Test2() : Unit {}")
+        .update_document(
+            "parent/src/test2.qs",
+            1,
+            "@Test() function Test2() : Unit {}",
+        )
         .await;
 
     expect![[r#"
