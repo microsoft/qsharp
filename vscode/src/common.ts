@@ -3,14 +3,7 @@
 
 import { TextDocument, Uri, Range, Location } from "vscode";
 import { Utils } from "vscode-uri";
-import {
-  ILocation,
-  IRange,
-  IWorkspaceEdit,
-  VSDiagnostic,
-  getCompilerWorker,
-  ICompilerWorker,
-} from "qsharp-lang";
+import { ILocation, IRange, IWorkspaceEdit, VSDiagnostic } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
@@ -101,31 +94,4 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
     });
   }
   return vscodeDiagnostic;
-}
-
-// the below worker is common to multiple consumers in the language extension.
-let worker: ICompilerWorker | null = null;
-/**
- * Returns a singleton instance of the compiler worker.
- * @param context The extension context.
- * @returns The compiler worker.
- *
- * This function is used to get a *common* compiler worker. It should only be used for performance-light
- * and safe (infallible) operations. For performance-intensive, blocking operations, or for fallible operations,
- * use `getCompilerWorker` instead.
- **/
-export function getCommonCompilerWorker(
-  context: vscode.ExtensionContext,
-): ICompilerWorker {
-  if (worker !== null) {
-    return worker;
-  }
-
-  const compilerWorkerScriptPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "./out/compilerWorker.js",
-  ).toString();
-  worker = getCompilerWorker(compilerWorkerScriptPath);
-
-  return worker;
 }

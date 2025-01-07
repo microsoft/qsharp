@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import {
+  getCompilerWorker,
   ICompilerWorker,
   ILanguageService,
   ILocation,
@@ -9,13 +10,31 @@ import {
   ProgramConfig,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import {
-  getCommonCompilerWorker,
-  toVsCodeLocation,
-  toVsCodeRange,
-} from "../common";
+import { toVsCodeLocation, toVsCodeRange } from "../common";
 import { getActiveProgram } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
+
+let worker: ICompilerWorker | null = null;
+/**
+ * Returns a singleton instance of the compiler worker.
+ * @param context The extension context.
+ * @returns The compiler worker.
+ **/
+function getLocalCompilerWorker(
+  context: vscode.ExtensionContext,
+): ICompilerWorker {
+  if (worker !== null) {
+    return worker;
+  }
+
+  const compilerWorkerScriptPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "./out/compilerWorker.js",
+  ).toString();
+  worker = getCompilerWorker(compilerWorkerScriptPath);
+
+  return worker;
+}
 
 export function startTestDiscovery(
   languageService: ILanguageService,
@@ -36,7 +55,7 @@ export function startTestDiscovery(
     // use the compiler worker to run the test in the interpreter
 
     log.trace("Starting test run, request was", JSON.stringify(request));
-    const worker = getCommonCompilerWorker(context);
+    const worker = getLocalCompilerWorker(context);
 
     const programResult = await getActiveProgram();
     if (!programResult.success) {
