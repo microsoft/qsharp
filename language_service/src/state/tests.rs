@@ -2210,6 +2210,29 @@ async fn test_case_detected() {
         .await;
 
     expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "main.MyTestCase",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 39,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+        ]
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
