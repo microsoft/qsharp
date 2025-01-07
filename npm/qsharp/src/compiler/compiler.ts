@@ -11,8 +11,6 @@ import {
   type VSDiagnostic,
   IProgramConfig,
   ITestDescriptor,
-  IRange,
-  ILocation,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -127,7 +125,7 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
-      (callables: [string, ILocation][]) => {
+      () => {
         // do nothing; test callables are not reported in checkCode
       },
       {

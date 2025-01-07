@@ -7,13 +7,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import {
-  qsharpLanguageId,
-  toVsCodeDiagnostic,
-  toVsCodeLocation,
-  toVsCodeRange,
-  getCommonCompilerWorker,
-} from "../common";
+import { qsharpLanguageId, toVsCodeDiagnostic } from "../common";
 
 export function startLanguageServiceDiagnostics(
   languageService: ILanguageService,

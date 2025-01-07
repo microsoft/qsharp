@@ -5,7 +5,6 @@ import {
   ICompilerWorker,
   ILanguageService,
   ILocation,
-  LanguageServiceTestCallablesEvent,
   log,
   ProgramConfig,
 } from "qsharp-lang";
