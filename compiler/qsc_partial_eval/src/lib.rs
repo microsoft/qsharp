@@ -51,7 +51,7 @@ use qsc_rir::{
     builder,
     rir::{
         self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
-        Program,
+        Program, VariableId,
     },
 };
 use rustc_hash::FxHashMap;
@@ -1524,10 +1524,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Evaluate the body expression.
         // First, we cache the current static variable mappings so that we can restore them later.
-        let cached_mappings = self
-            .eval_context
-            .get_current_scope()
-            .clone_static_var_mappings();
+        let cached_mappings = self.clone_current_static_var_map();
         let if_true_branch_control_flow =
             self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
         let if_true_block_id = match if_true_branch_control_flow {
@@ -1538,14 +1535,9 @@ impl<'a> PartialEvaluator<'a> {
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
         let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
             // Cache the mappings after the true block so we can compare afterwards.
-            let post_if_true_mappings = self
-                .eval_context
-                .get_current_scope()
-                .clone_static_var_mappings();
+            let post_if_true_mappings = self.clone_current_static_var_map();
             // Restore the cached mappings from before evaluating the true block.
-            self.eval_context
-                .get_current_scope_mut()
-                .set_static_var_mappings(cached_mappings);
+            self.overwrite_current_static_var_map(cached_mappings);
             let if_false_branch_control_flow = self.eval_expr_if_branch(
                 otherwise_expr_id,
                 continuation_block_node_id,
@@ -1553,9 +1545,7 @@ impl<'a> PartialEvaluator<'a> {
             )?;
             // Only keep the static mappings that are the same in both blocks; when they are different,
             // the variable is no longer static across the if expression.
-            self.eval_context
-                .get_current_scope_mut()
-                .keep_matching_static_var_mappings(&post_if_true_mappings);
+            self.keep_matching_static_var_mappings(&post_if_true_mappings);
             match if_false_branch_control_flow {
                 BranchControlFlow::Block(block_id) => block_id,
                 BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
@@ -1563,9 +1553,7 @@ impl<'a> PartialEvaluator<'a> {
         } else {
             // Only keep the static mappings that are the same after the true block as before; when they are different,
             // the variable is no longer static across the if expression.
-            self.eval_context
-                .get_current_scope_mut()
-                .keep_matching_static_var_mappings(&cached_mappings);
+            self.keep_matching_static_var_mappings(&cached_mappings);
 
             // Since there is no otherwise block, we branch to the continuation block.
             continuation_block_node_id
@@ -2956,6 +2944,27 @@ impl<'a> PartialEvaluator<'a> {
             Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
             _ => panic!("{value} cannot be mapped to a RIR operand"),
         }
+    }
+
+    fn clone_current_static_var_map(&self) -> FxHashMap<VariableId, Literal> {
+        self.eval_context
+            .get_current_scope()
+            .clone_static_var_mappings()
+    }
+
+    fn overwrite_current_static_var_map(&mut self, static_vars: FxHashMap<VariableId, Literal>) {
+        self.eval_context
+            .get_current_scope_mut()
+            .set_static_var_mappings(static_vars);
+    }
+
+    fn keep_matching_static_var_mappings(
+        &mut self,
+        other_mappings: &FxHashMap<VariableId, Literal>,
+    ) {
+        self.eval_context
+            .get_current_scope_mut()
+            .keep_matching_static_var_mappings(other_mappings);
     }
 }
 

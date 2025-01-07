@@ -184,7 +184,11 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
                 *args = args
                     .iter()
                     .map(|arg| match arg {
-                        Operand::Variable(var) => *var_map.get(&var.variable_id).unwrap_or(arg),
+                        Operand::Variable(var) => {
+                            // If the variable is not in the map, it is not something whose value has been updated via store in this block,
+                            // so just fallback to use the `arg` value directly.
+                            *var_map.get(&var.variable_id).unwrap_or(arg)
+                        }
                         Operand::Literal(_) => *arg,
                     })
                     .collect();
