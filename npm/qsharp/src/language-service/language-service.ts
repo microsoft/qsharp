@@ -42,7 +42,9 @@ export type LanguageServiceTestCallablesEvent = {
   };
 };
 
-export type LanguageServiceEvent = LanguageServiceDiagnosticEvent | LanguageServiceTestCallablesEvent;
+export type LanguageServiceEvent =
+  | LanguageServiceDiagnosticEvent
+  | LanguageServiceTestCallablesEvent;
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).

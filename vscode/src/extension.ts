@@ -67,9 +67,7 @@ export async function activate(
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
-  context.subscriptions.push(
-    ...(await activateLanguageService(context)),
-  );
+  context.subscriptions.push(...(await activateLanguageService(context)));
 
   context.subscriptions.push(...startOtherQSharpDiagnostics());
 

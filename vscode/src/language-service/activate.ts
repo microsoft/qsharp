@@ -37,6 +37,7 @@ import { registerQSharpNotebookCellUpdateHandlers } from "./notebook.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
+import { startTestDiscovery } from "./testExplorer.js";
 
 /**
  * Returns all of the subscriptions that should be registered for the language service.
@@ -50,12 +51,13 @@ export async function activateLanguageService(
   const languageService = await loadLanguageService(extensionUri);
 
   // diagnostics
-  subscriptions.push(...startLanguageServiceDiagnostics(languageService, context));
+  subscriptions.push(...startLanguageServiceDiagnostics(languageService));
+
+  // test explorer
+  subscriptions.push(...startTestDiscovery(languageService, context));
 
   // synchronize document contents
-  subscriptions.push(
-    ...registerDocumentUpdateHandlers(languageService),
-  );
+  subscriptions.push(...registerDocumentUpdateHandlers(languageService));
 
   // synchronize notebook cell contents
   subscriptions.push(
@@ -275,9 +277,7 @@ function registerDocumentUpdateHandlers(
     }
   }
 
-  function updateIfQsharpDocument(
-    document: vscode.TextDocument,
-  ) {
+  function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
       languageService.updateDocument(
