@@ -485,30 +485,73 @@ test("language service diagnostics", async () => {
   assert(gotDiagnostics);
 });
 
-test("testCallableDiscovery", async () => {
+test("test callable discovery", async () => {
   const languageService = getLanguageService();
   let gotTests = false;
   languageService.addEventListener("testCallables", (event) => {
     gotTests = true;
     assert.equal(event.type, "testCallables");
     assert.equal(event.detail.callables.length, 1);
-    assert.equal(
-      event.detail.callables[0][0],
-      "Sample.main",
-    );
+    assert.equal(event.detail.callables[0][0], "Sample.main");
+    assert.deepStrictEqual(event.detail.callables[0][1], {
+      source: "test.qs",
+      span: {
+        end: {
+          character: 30,
+          line: 2,
+        },
+        start: {
+          character: 4,
+          line: 1,
+        },
+      },
+    });
   });
   await languageService.updateDocument(
     "test.qs",
     1,
     `namespace Sample {
     @Test()
-    operation main() : Unit {
-        use q1 = Qubit();
-        Ry(q1);
-        let m1 = M(q1);
-        return [m1];
-    }
+    operation main() : Unit {}
 }`,
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
+});
+
+test("test callable discovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 4);
+    assert.equal(event.detail.callables[0][0], "Sample.test1");
+    assert.equal(event.detail.callables[1][0], "Sample.test2");
+    assert.equal(event.detail.callables[2][0], "Sample2.test1");
+    assert.equal(event.detail.callables[3][0], "Sample2.test2");
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+}
+namespace Sample2 {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+  }    
+}
+`,
   );
 
   // dispose() will complete when the language service has processed all the updates.
