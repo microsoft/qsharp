@@ -32,7 +32,7 @@ impl LanguageService {
     pub fn start_background_work(
         &mut self,
         diagnostics_callback: DiagnosticsCallback,
-        test_callables_callback: TestCallableCallback,
+        test_callables_callback: &TestCallableCallback,
         host: ProjectHost,
     ) -> js_sys::Promise {
         let diagnostics_callback =

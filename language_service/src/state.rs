@@ -406,7 +406,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
-                self.publish_test_callables(&compilation_uri, &compilation.0);
+                self.publish_test_callables(&compilation.0);
                 trace!("publishing diagnostics for {compilation_uri}");
 
                 for (uri, errors) in map_errors_to_docs(
@@ -539,7 +539,7 @@ impl<'a> CompilationStateUpdater<'a> {
         f(&mut state)
     }
 
-    fn publish_test_callables(&self, uri: &Arc<str>, compilation: &Compilation) {
+    fn publish_test_callables(&self, compilation: &Compilation) {
         let callables = TestCallables {
             callables: compilation
                 .test_cases
@@ -550,7 +550,7 @@ impl<'a> CompilationStateUpdater<'a> {
                         // TODO(sezna) verify encoding
                         crate::qsc_utils::into_location(
                             qsc::line_column::Encoding::Utf16,
-                            &compilation,
+                            compilation,
                             *span,
                             compilation.user_package_id,
                         ),
