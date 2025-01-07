@@ -148,16 +148,15 @@ export function startLanguageServiceDiagnostics(
       callables: [string, ILocation][];
     };
   }) {
-    let current_parity = 0;
+    let currentVersion = 0;
     for (const [id, testItem] of testController.items) {
-      // set the parity of this run
-      const discoveredParity = testMetadata.get(testItem) || 0;
-      // increment the parity
-      current_parity = discoveredParity + 1;
+      // set the version of this run
+      const discoveredVersion = testMetadata.get(testItem) || 0;
+      // increment the version
+      currentVersion = (discoveredVersion + 1) % 1000;
       break;
     }
 
-    // use a parity check to find old items
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
@@ -174,10 +173,10 @@ export function startLanguageServiceDiagnostics(
         if (!discoveredTestItem) {
           const testItem = testController.createTestItem(id, part, vscRange.uri);
           testItem.range = vscRange.range;
-          testMetadata.set(testItem, current_parity);
+          testMetadata.set(testItem, currentVersion);
           rover.add(testItem);
         } else {
-          testMetadata.set(discoveredTestItem, current_parity);
+          testMetadata.set(discoveredTestItem, currentVersion);
         }
         
         rover = rover.get(id)!.children;
@@ -186,13 +185,13 @@ export function startLanguageServiceDiagnostics(
 
 
     // delete old items
-    deleteItemsNotOfParity(current_parity, testController.items, testController);
+    deleteItemsNotOfVersion(currentVersion, testController.items, testController);
   }
 
-  function deleteItemsNotOfParity(parity: number, items: vscode.TestItemCollection, testController: vscode.TestController) {
+  function deleteItemsNotOfVersion(version: number, items: vscode.TestItemCollection, testController: vscode.TestController) {
     for (const [id, testItem] of items) {
-      deleteItemsNotOfParity(parity, testItem.children, testController)
-      if (testMetadata.get(testItem) !== parity) {
+      deleteItemsNotOfVersion(version, testItem.children, testController)
+      if (testMetadata.get(testItem) !== version) {
         items.delete(id);
       }
     }
