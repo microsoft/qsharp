@@ -56,7 +56,12 @@ md.use((mk as any).default, {
 }); // Not sure why it's not using the default export automatically :-/
 setRenderer((input: string) => md.render(input));
 
-export type ActiveTab = "results-tab" | "ast-tab" | "hir-tab" | "qir-tab";
+export type ActiveTab =
+  | "results-tab"
+  | "ast-tab"
+  | "hir-tab"
+  | "rir-tab"
+  | "qir-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -104,6 +109,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const [ast, setAst] = useState<string>("");
   const [hir, setHir] = useState<string>("");
+  const [rir, setRir] = useState<string[]>(["", ""]);
   const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
@@ -178,6 +184,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
               profile={getProfile()}
               setAst={setAst}
               setHir={setHir}
+              setRir={setRir}
               setQir={setQir}
               activeTab={activeTab}
               languageService={languageService}
@@ -188,6 +195,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
               onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
               ast={ast}
               hir={hir}
+              rir={rir}
               qir={qir}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
