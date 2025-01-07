@@ -10,14 +10,17 @@ import {
   log,
   ICompilerWorker,
   ProgramConfig,
+  getCompilerWorker,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { getCommonCompilerWorker, qsharpLanguageId, toVsCodeDiagnostic , toVsCodeLocation, toVsCodeRange} from "../common";
+import { qsharpLanguageId, toVsCodeDiagnostic, toVsCodeLocation, toVsCodeRange, getCommonCompilerWorker } from "../common";
 import { getActiveProgram } from "../programConfig";
-import { createDebugConsoleEventTarget } from "../debugger/output";
+import { createDebugConsoleEventTarget } from "../debugger/output"
+
 
 export function startLanguageServiceDiagnostics(
   languageService: ILanguageService,
+  context: vscode.ExtensionContext,
 ): vscode.Disposable[] {
   const diagCollection =
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
@@ -55,8 +58,8 @@ export function startLanguageServiceDiagnostics(
       return startTestRun(request);
     }
   };
-  
-    // runs an individual test run
+
+  // runs an individual test run
   // or test group (a test run where there are child tests)
   const startTestRun = async (request: vscode.TestRunRequest) => {
     // use the compiler worker to run the test in the interpreter
@@ -115,9 +118,9 @@ export function startLanguageServiceDiagnostics(
       }
       run.end();
     });
-  
+
     const callableExpr = `${testCase.id}()`;
-  
+
     try {
       await worker.run(program, callableExpr, 1, evtTarget);
     } catch (error) {
@@ -126,7 +129,7 @@ export function startLanguageServiceDiagnostics(
     }
     log.trace("ran test:", testCase.id);
   }
-  
+
 
   testController.createRunProfile(
     "Interpreter",
@@ -137,20 +140,28 @@ export function startLanguageServiceDiagnostics(
     false,
   );
 
+  const testMetadata = new WeakMap<vscode.TestItem, number>();
+
+
   async function onTestCallables(evt: {
     detail: {
       callables: [string, ILocation][];
     };
   }) {
-
+    let current_parity = 0;
     for (const [id, testItem] of testController.items) {
-        testController.items.delete(id);
+      // set the parity of this run
+      const discoveredParity = testMetadata.get(testItem) || 0;
+      // increment the parity
+      current_parity = discoveredParity + 1;
+      break;
     }
 
+    // use a parity check to find old items
 
     // break down the test callable into its parts, so we can construct
     // the namespace hierarchy in the test explorer
-    for (const [ callableName, location ] of evt.detail.callables) {
+    for (const [callableName, location] of evt.detail.callables) {
       const vscRange = toVsCodeLocation(location);
       const parts = callableName.split(".");
 
@@ -159,16 +170,34 @@ export function startLanguageServiceDiagnostics(
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
         const id = i === parts.length - 1 ? callableName : part;
-        if (!rover.get(part)) {
+        const discoveredTestItem = rover.get(part);
+        if (!discoveredTestItem) {
           const testItem = testController.createTestItem(id, part, vscRange.uri);
           testItem.range = vscRange.range;
+          testMetadata.set(testItem, current_parity);
           rover.add(testItem);
+        } else {
+          testMetadata.set(discoveredTestItem, current_parity);
         }
+        
         rover = rover.get(id)!.children;
       }
     }
 
+
+    // delete old items
+    deleteItemsNotOfParity(current_parity, testController.items, testController);
   }
+
+  function deleteItemsNotOfParity(parity: number, items: vscode.TestItemCollection, testController: vscode.TestController) {
+    for (const [id, testItem] of items) {
+      deleteItemsNotOfParity(parity, testItem.children, testController)
+      if (testMetadata.get(testItem) !== parity) {
+        items.delete(id);
+      }
+    }
+  }
+  
 
   languageService.addEventListener("diagnostics", onDiagnostics);
   languageService.addEventListener("testCallables", onTestCallables);
@@ -183,4 +212,24 @@ export function startLanguageServiceDiagnostics(
     diagCollection,
     testController,
   ];
+}
+
+
+
+let worker: ICompilerWorker | null = null;
+
+function getLocalCompilerWorker(
+  context: vscode.ExtensionContext,
+): ICompilerWorker {
+  if (worker !== null) {
+    return worker;
+  }
+
+  const compilerWorkerScriptPath = vscode.Uri.joinPath(
+    context.extensionUri,
+    "./out/compilerWorker.js",
+  ).toString();
+  worker = getCompilerWorker(compilerWorkerScriptPath);
+
+  return worker;
 }

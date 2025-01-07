@@ -67,10 +67,8 @@ export async function activate(
 
   context.subscriptions.push(...activateTargetProfileStatusBarItem());
 
-  const eventEmitter = new vscode.EventEmitter<vscode.Uri>();
-
   context.subscriptions.push(
-    ...(await activateLanguageService(context.extensionUri, eventEmitter)),
+    ...(await activateLanguageService(context)),
   );
 
   context.subscriptions.push(...startOtherQSharpDiagnostics());

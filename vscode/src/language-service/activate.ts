@@ -40,22 +40,21 @@ import { createSignatureHelpProvider } from "./signature.js";
 
 /**
  * Returns all of the subscriptions that should be registered for the language service.
- * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
  */
 export async function activateLanguageService(
-  extensionUri: vscode.Uri,
-  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
+  context: vscode.ExtensionContext,
 ): Promise<vscode.Disposable[]> {
+  const extensionUri = context.extensionUri;
   const subscriptions: vscode.Disposable[] = [];
 
   const languageService = await loadLanguageService(extensionUri);
 
   // diagnostics
-  subscriptions.push(...startLanguageServiceDiagnostics(languageService));
+  subscriptions.push(...startLanguageServiceDiagnostics(languageService, context));
 
   // synchronize document contents
   subscriptions.push(
-    ...registerDocumentUpdateHandlers(languageService, eventEmitter),
+    ...registerDocumentUpdateHandlers(languageService),
   );
 
   // synchronize notebook cell contents
@@ -186,10 +185,9 @@ async function loadLanguageService(
  */
 function registerDocumentUpdateHandlers(
   languageService: ILanguageService,
-  eventEmitter?: vscode.EventEmitter<vscode.Uri>,
 ): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document, eventEmitter);
+    updateIfQsharpDocument(document);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
@@ -222,13 +220,13 @@ function registerDocumentUpdateHandlers(
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document, eventEmitter);
+      updateIfQsharpDocument(document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document, eventEmitter);
+      updateIfQsharpDocument(evt.document);
     }),
   );
 
@@ -271,7 +269,7 @@ function registerDocumentUpdateHandlers(
           // Check that the document is on the same project as the manifest.
           document.fileName.startsWith(project_folder)
         ) {
-          updateIfQsharpDocument(document, eventEmitter);
+          updateIfQsharpDocument(document);
         }
       });
     }
@@ -279,7 +277,6 @@ function registerDocumentUpdateHandlers(
 
   function updateIfQsharpDocument(
     document: vscode.TextDocument,
-    emitter?: vscode.EventEmitter<vscode.Uri>,
   ) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
@@ -288,14 +285,6 @@ function registerDocumentUpdateHandlers(
         document.version,
         document.getText(),
       );
-
-      if (emitter) {
-        // this is used to trigger functionality outside of the language service.
-        // by firing an event here, we unify the points at which the language service
-        // recognizes an "update document" and when subscribers to the event react, avoiding
-        // multiple implementations of the same logic.
-        emitter.fire(document.uri);
-      }
     }
   }
 
