@@ -16,7 +16,11 @@ use qsc_ast::{
 /// The entry point to the AST linter. It takes a [`qsc_ast::ast::Package`]
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
-pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&[LintConfig]>) -> Vec<Lint> {
+pub fn run_ast_lints(
+    package: &qsc_ast::ast::Package,
+    config: Option<&[LintConfig]>,
+    compilation: Compilation,
+) -> Vec<Lint> {
     let config: Vec<(AstLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
@@ -29,7 +33,7 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&[LintConfi
         })
         .collect();
 
-    let mut lints = CombinedAstLints::from_config(config);
+    let mut lints = CombinedAstLints::from_config(config, compilation);
 
     for node in &package.nodes {
         match node {
@@ -46,23 +50,71 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&[LintConfi
 /// The trait provides default empty implementations for the rest of the methods,
 /// which will be optimized to a no-op by the rust compiler.
 pub(crate) trait AstLintPass {
-    fn check_attr(&self, _attr: &Attr, _buffer: &mut Vec<Lint>) {}
-    fn check_block(&self, _block: &Block, _buffer: &mut Vec<Lint>) {}
-    fn check_callable_decl(&self, _callable_decl: &CallableDecl, _buffer: &mut Vec<Lint>) {}
-    fn check_expr(&self, _expr: &Expr, _buffer: &mut Vec<Lint>) {}
-    fn check_functor_expr(&self, _functor_expr: &FunctorExpr, _buffer: &mut Vec<Lint>) {}
-    fn check_ident(&self, _ident: &Ident, _buffer: &mut Vec<Lint>) {}
-    fn check_item(&self, _item: &Item, _buffer: &mut Vec<Lint>) {}
-    fn check_namespace(&self, _namespace: &Namespace, _buffer: &mut Vec<Lint>) {}
-    fn check_package(&self, _package: &Package, _buffer: &mut Vec<Lint>) {}
-    fn check_pat(&self, _pat: &Pat, _buffer: &mut Vec<Lint>) {}
-    fn check_path(&self, _path: &Path, _buffer: &mut Vec<Lint>) {}
-    fn check_path_kind(&self, _path: &PathKind, _buffer: &mut Vec<Lint>) {}
-    fn check_qubit_init(&self, _qubit_init: &QubitInit, _buffer: &mut Vec<Lint>) {}
-    fn check_spec_decl(&self, _spec_decl: &SpecDecl, _buffer: &mut Vec<Lint>) {}
-    fn check_stmt(&self, _stmt: &Stmt, _buffer: &mut Vec<Lint>) {}
-    fn check_ty(&self, _ty: &Ty, _buffer: &mut Vec<Lint>) {}
-    fn check_ty_def(&self, _ty_def: &TyDef, _buffer: &mut Vec<Lint>) {}
+    fn check_attr(&mut self, _attr: &Attr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_block(&mut self, _block: &Block, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_callable_decl(
+        &mut self,
+        _callable_decl: &CallableDecl,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_expr(&mut self, _expr: &Expr, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_functor_expr(
+        &mut self,
+        _functor_expr: &FunctorExpr,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_ident(&mut self, _ident: &Ident, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_item(&mut self, _item: &Item, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_namespace(
+        &mut self,
+        _namespace: &Namespace,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_package(
+        &mut self,
+        _package: &Package,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_pat(&mut self, _pat: &Pat, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_path(&mut self, _path: &Path, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_path_kind(
+        &mut self,
+        _path: &PathKind,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_qubit_init(
+        &mut self,
+        _qubit_init: &QubitInit,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_spec_decl(
+        &mut self,
+        _spec_decl: &SpecDecl,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
+    fn check_stmt(&mut self, _stmt: &Stmt, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ty(&mut self, _ty: &Ty, _buffer: &mut Vec<Lint>, _compilation: Compilation) {}
+    fn check_ty_def(
+        &mut self,
+        _ty_def: &TyDef,
+        _buffer: &mut Vec<Lint>,
+        _compilation: Compilation,
+    ) {
+    }
 }
 
 /// This macro allow us to declare lints while avoiding boilerplate. It does three things:
@@ -82,7 +134,7 @@ macro_rules! declare_ast_lints {
         // This is a silly wrapper module to avoid contaminating the environment
         // calling the macro with unwanted imports.
         mod _ast_macro_expansion {
-            use crate::{linter::ast::{declare_ast_lints, AstLintPass}, Lint, LintLevel};
+            use crate::{linter::Compilation, linter::ast::{declare_ast_lints, AstLintPass}, Lint, LintLevel};
             use qsc_ast::{
                 ast::{
                     Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path, PathKind,
@@ -106,24 +158,13 @@ macro_rules! declare_ast_lints {
 
     // Declare & implement a struct representing a lint.
     (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
-        pub(crate) struct $lint_name {
-            level: LintLevel,
-        }
-
-        impl Default for $lint_name {
-            fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL }
-            }
-        }
-
-        impl From<LintLevel> for $lint_name {
-            fn from(value: LintLevel) -> Self {
-                Self { level: value }
-            }
-        }
-
         impl $lint_name {
             const DEFAULT_LEVEL: LintLevel = $default_level;
+
+            fn new() -> Self {
+                #[allow(clippy::needless_update)]
+                Self { level: Self::DEFAULT_LEVEL, ..Default::default() }
+            }
 
             const fn lint_kind(&self) -> LintKind {
                 LintKind::Ast(AstLint::$lint_name)
@@ -164,24 +205,26 @@ macro_rules! declare_ast_lints {
         /// Combined AST lints for speed. This combined lint allow us to
         /// evaluate all the lints in a single AST pass, instead of doing
         /// an individual pass for each lint in the linter.
-        pub(crate) struct CombinedAstLints {
+        pub(crate) struct CombinedAstLints<'compilation> {
             pub buffer: Vec<Lint>,
+            pub compilation: Compilation<'compilation>,
             $($lint_name: $lint_name),*
         }
 
-        impl Default for CombinedAstLints {
-            fn default() -> Self {
+        impl<'compilation> CombinedAstLints<'compilation> {
+            fn new(compilation: Compilation<'compilation>) -> Self {
                 Self {
-                    buffer: Vec::default(),
-                    $($lint_name: <$lint_name>::default()),*
+                    buffer: Vec::new(),
+                    compilation,
+                    $($lint_name: <$lint_name>::new()),*
                 }
             }
         }
 
         // Most of the calls here are empty methods and they get optimized at compile time to a no-op.
-        impl CombinedAstLints {
-            pub fn from_config(config: Vec<(AstLint, LintLevel)>) -> Self {
-                let mut combined_ast_lints = Self::default();
+        impl<'compilation> CombinedAstLints<'compilation> {
+            pub fn from_config(config: Vec<(AstLint, LintLevel)>, compilation: Compilation<'compilation>) -> Self {
+                let mut combined_ast_lints = Self::new(compilation);
                 for (lint, level) in config {
                     match lint {
                         $(AstLint::$lint_name => combined_ast_lints.$lint_name.level = level),*
@@ -190,26 +233,26 @@ macro_rules! declare_ast_lints {
                 combined_ast_lints
             }
 
-            fn check_package(&mut self, package: &Package) { $(self.$lint_name.check_package(package, &mut self.buffer));*; }
-            fn check_namespace(&mut self, namespace: &Namespace) { $(self.$lint_name.check_namespace(namespace, &mut self.buffer));*; }
-            fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer));*; }
-            fn check_attr(&mut self, attr: &Attr) { $(self.$lint_name.check_attr(attr, &mut self.buffer));*; }
-            fn check_ty_def(&mut self, def: &TyDef) { $(self.$lint_name.check_ty_def(def, &mut self.buffer));*; }
-            fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer));*; }
-            fn check_spec_decl(&mut self, decl: &SpecDecl) { $(self.$lint_name.check_spec_decl(decl, &mut self.buffer));*; }
-            fn check_functor_expr(&mut self, expr: &FunctorExpr) { $(self.$lint_name.check_functor_expr(expr, &mut self.buffer));*; }
-            fn check_ty(&mut self, ty: &Ty) { $(self.$lint_name.check_ty(ty, &mut self.buffer));*; }
-            fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer));*; }
-            fn check_stmt(&mut self, stmt: &Stmt) { $(self.$lint_name.check_stmt(stmt, &mut self.buffer));*; }
-            fn check_expr(&mut self, expr: &Expr) { $(self.$lint_name.check_expr(expr, &mut self.buffer));*; }
-            fn check_pat(&mut self, pat: &Pat) { $(self.$lint_name.check_pat(pat, &mut self.buffer));*; }
-            fn check_qubit_init(&mut self, init: &QubitInit) { $(self.$lint_name.check_qubit_init(init, &mut self.buffer));*; }
-            fn check_path(&mut self, path: &Path) { $(self.$lint_name.check_path(path, &mut self.buffer));*; }
-            fn check_path_kind(&mut self, path: &PathKind) { $(self.$lint_name.check_path_kind(path, &mut self.buffer));*; }
-            fn check_ident(&mut self, ident: &Ident) { $(self.$lint_name.check_ident(ident, &mut self.buffer));*; }
+            fn check_package(&mut self, package: &Package) { $(self.$lint_name.check_package(package, &mut self.buffer, self.compilation));*; }
+            fn check_namespace(&mut self, namespace: &Namespace) { $(self.$lint_name.check_namespace(namespace, &mut self.buffer, self.compilation));*; }
+            fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer, self.compilation));*; }
+            fn check_attr(&mut self, attr: &Attr) { $(self.$lint_name.check_attr(attr, &mut self.buffer, self.compilation));*; }
+            fn check_ty_def(&mut self, def: &TyDef) { $(self.$lint_name.check_ty_def(def, &mut self.buffer, self.compilation));*; }
+            fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer, self.compilation));*; }
+            fn check_spec_decl(&mut self, decl: &SpecDecl) { $(self.$lint_name.check_spec_decl(decl, &mut self.buffer, self.compilation));*; }
+            fn check_functor_expr(&mut self, expr: &FunctorExpr) { $(self.$lint_name.check_functor_expr(expr, &mut self.buffer, self.compilation));*; }
+            fn check_ty(&mut self, ty: &Ty) { $(self.$lint_name.check_ty(ty, &mut self.buffer, self.compilation));*; }
+            fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer, self.compilation));*; }
+            fn check_stmt(&mut self, stmt: &Stmt) { $(self.$lint_name.check_stmt(stmt, &mut self.buffer, self.compilation));*; }
+            fn check_expr(&mut self, expr: &Expr) { $(self.$lint_name.check_expr(expr, &mut self.buffer, self.compilation));*; }
+            fn check_pat(&mut self, pat: &Pat) { $(self.$lint_name.check_pat(pat, &mut self.buffer, self.compilation));*; }
+            fn check_qubit_init(&mut self, init: &QubitInit) { $(self.$lint_name.check_qubit_init(init, &mut self.buffer, self.compilation));*; }
+            fn check_path(&mut self, path: &Path) { $(self.$lint_name.check_path(path, &mut self.buffer, self.compilation));*; }
+            fn check_path_kind(&mut self, path: &PathKind) { $(self.$lint_name.check_path_kind(path, &mut self.buffer, self.compilation));*; }
+            fn check_ident(&mut self, ident: &Ident) { $(self.$lint_name.check_ident(ident, &mut self.buffer, self.compilation));*; }
         }
 
-        impl<'a> Visitor<'a> for CombinedAstLints {
+        impl<'a> Visitor<'a> for CombinedAstLints<'_> {
             fn visit_package(&mut self, package: &'a Package) {
                 self.check_package(package);
                 visit::walk_package(self, package);
@@ -299,4 +342,4 @@ macro_rules! declare_ast_lints {
 
 pub(crate) use declare_ast_lints;
 
-use super::LintKind;
+use super::{Compilation, LintKind};

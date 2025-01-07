@@ -58,6 +58,7 @@ log = "0.4"
 miette = { version = "7.2", features = ["fancy-no-syscall"] }
 thiserror = "1.0"
 nalgebra = { version = "0.33" }
+ndarray = "0.15.4"
 num-bigint = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
@@ -77,7 +78,7 @@ wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
 pyo3 = "0.22"
-quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", tag = "v0.7.4" }
+quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "562e2c11ad685dd01bfc1ae975e00d4133615995" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
 

@@ -10,13 +10,12 @@ use crate::{
     backend::Backend,
     error::PackageSpan,
     output::Receiver,
-    val::{self, Value},
+    val::{self, unwrap_tuple, Value},
     Error, Rc,
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::array;
 use std::convert::TryFrom;
 
 #[allow(clippy::too_many_lines)]
@@ -393,14 +392,14 @@ pub fn qubit_relabel(
             }
             (false, true) => {
                 // The right qubit has been relabeled, so we need to swap the left qubit with the
-                // qubit that the right qubit was relabeled to.
-                let mapped = *map
+                // new label for the right qubit.
+                let label = *map
                     .keys()
                     .find(|k| map[*k] == r)
                     .expect("mapped qubit should be present as both key and value");
-                swap(l, mapped);
+                swap(l, label);
                 map.insert(l, r);
-                map.insert(mapped, l);
+                map.insert(label, l);
             }
             (true, false) => {
                 // The left qubit has been relabeled, so we swap the qubits as normal but
@@ -411,23 +410,25 @@ pub fn qubit_relabel(
                 map.insert(r, mapped);
             }
             (true, true) => {
-                // Both qubits have been relabeled, so we need to swap the mapped right qubit with
+                // Both qubits have been relabeled, so we need to swap new label for the right qubit with
                 // the left qubit and remember the new mapping of both qubits.
+                // This is effectively a combination of the second and third cases above.
+                let label_r = *map
+                    .keys()
+                    .find(|k| map[*k] == r)
+                    .expect("mapped qubit should be present as both key and value");
                 let mapped_l = *map.get(&l).expect("mapped qubit should be present");
                 let mapped_r = *map.get(&r).expect("mapped qubit should be present");
+
+                // This swap is only necessary if the labels don't already point to each other.
                 if mapped_l != r && mapped_r != l {
-                    swap(mapped_r, l);
-                    map.insert(mapped_r, mapped_l);
-                    map.insert(l, r);
+                    swap(label_r, l);
+                    map.insert(label_r, mapped_l);
+                    map.insert(l, mapped_r);
                 }
             }
         }
     }
 
     Ok(Value::unit())
-}
-
-fn unwrap_tuple<const N: usize>(value: Value) -> [Value; N] {
-    let values = value.unwrap_tuple();
-    array::from_fn(|i| values[i].clone())
 }

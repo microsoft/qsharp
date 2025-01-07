@@ -5,6 +5,7 @@ use num_bigint::BigInt;
 use qsc_data_structures::{display::join, functors::FunctorApp};
 use qsc_fir::fir::{Functor, Pauli, StoreItemId};
 use std::{
+    array,
     fmt::{self, Display, Formatter},
     rc::{Rc, Weak},
 };
@@ -577,4 +578,10 @@ pub fn update_functor_app(functor: Functor, app: FunctorApp) -> FunctorApp {
             controlled: app.controlled + 1,
         },
     }
+}
+
+#[must_use]
+pub fn unwrap_tuple<const N: usize>(value: Value) -> [Value; N] {
+    let values = value.unwrap_tuple();
+    array::from_fn(|i| values[i].clone())
 }

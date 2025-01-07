@@ -152,6 +152,10 @@ impl<'a> Rename<'a> {
 }
 
 impl<'a> Handler<'a> for Rename<'a> {
+    fn at_attr_ref(&mut self, _: &'a ast::Ident) {
+        // We don't support renaming attributes.
+    }
+
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,

@@ -282,6 +282,51 @@ pub fn eval(
     Ok(value)
 }
 
+/// Evaluates the given callable with the given context.
+/// # Errors
+/// Returns the first error encountered during execution.
+/// # Panics
+/// On internal error where no result is returned.
+#[allow(clippy::too_many_arguments)]
+pub fn invoke(
+    package: PackageId,
+    seed: Option<u64>,
+    globals: &impl PackageStoreLookup,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    receiver: &mut impl Receiver,
+    callable: Value,
+    args: Value,
+) -> Result<Value, (Error, Vec<Frame>)> {
+    let mut state = State::new(package, Vec::new().into(), seed);
+    // Push the callable value into the state stack and then the args value so they are ready for evaluation.
+    state.set_val_register(callable);
+    state.push_val();
+    state.set_val_register(args);
+
+    // Evaluate the call, which will pop the args and callable values from the stack and then either
+    // a) prepare the call stack for the execution of the callable, or
+    // b) invoke the callable directly if it is an intrinsic.
+    state
+        .eval_call(
+            env,
+            sim,
+            globals,
+            Span::default(),
+            Span::default(),
+            receiver,
+        )
+        .map_err(|e| (e, state.get_stack_frames()))?;
+
+    // Trigger evaluation of the state until the end of the stack is reached and a return value is obtained, which will be the final
+    // result of the invocation.
+    let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
+    let StepResult::Return(value) = res else {
+        panic!("eval should always return a value");
+    };
+    Ok(value)
+}
+
 /// The type of step action to take during evaluation
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum StepAction {

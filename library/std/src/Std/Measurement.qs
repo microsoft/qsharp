@@ -24,13 +24,13 @@ open QIR.Intrinsic;
 /// The result of measuring in the `Z ⊗ Z ⊗ ••• ⊗ Z` basis.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureEachZ
+/// - [Std.Measurement.MeasureEachZ](xref:Qdk.Std.Measurement.MeasureEachZ)
 operation MeasureAllZ(register : Qubit[]) : Result {
     Measure(Repeated(PauliZ, Length(register)), register)
 }
 
 /// # Summary
-/// Measures each qubit in a given array in the standard basis.
+/// Measures each qubit in a given array in the Pauli Z basis.
 ///
 /// # Description
 /// Measures each qubit in a register in the `Z` basis
@@ -54,8 +54,8 @@ operation MeasureAllZ(register : Qubit[]) : Result {
 ///   and returns one result. The operation does not reset the qubits.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureAllZ
-/// - Microsoft.Quantum.Measurement.MResetEachZ
+/// - [Std.Measurement.MeasureAllZ](xref:Qdk.Std.Measurement.MeasureAllZ)
+/// - [Std.Measurement.MResetEachZ](xref:Qdk.Std.Measurement.MResetEachZ)
 operation MeasureEachZ(register : Qubit[]) : Result[] {
     mutable results = [];
     for qubit in register {
@@ -65,8 +65,8 @@ operation MeasureEachZ(register : Qubit[]) : Result[] {
 }
 
 /// # Summary
-/// Measures each qubit in a given array in the Z basis
-/// and resets them to a fixed initial state.
+/// Measures each qubit in a given array in the Pauli Z basis
+/// and resets them to |0⟩ state.
 ///
 /// # Input
 /// ## targets
@@ -76,7 +76,7 @@ operation MeasureEachZ(register : Qubit[]) : Result[] {
 /// An array of measurement results.
 ///
 /// # See also
-/// - Microsoft.Quantum.Measurement.MeasureEachZ
+/// - [Std.Measurement.MeasureEachZ](xref:Qdk.Std.Measurement.MeasureEachZ)
 operation MResetEachZ(register : Qubit[]) : Result[] {
     mutable results = [];
     for qubit in register {
@@ -86,14 +86,8 @@ operation MResetEachZ(register : Qubit[]) : Result[] {
 }
 
 /// # Summary
-/// Measures a single qubit in the X basis,
-/// and resets it to a fixed initial state
-/// following the measurement.
-///
-/// # Description
-/// Performs a single-qubit measurement in the X-basis,
-/// and ensures that the qubit is returned to |0⟩
-/// following the measurement.
+/// Performs a single-qubit measurement in the Pauli X basis,
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
@@ -109,14 +103,8 @@ operation MResetX(target : Qubit) : Result {
 }
 
 /// # Summary
-/// Measures a single qubit in the Y basis,
-/// and resets it to a fixed initial state
-/// following the measurement.
-///
-/// # Description
-/// Performs a single-qubit measurement in the Y-basis,
-/// and ensures that the qubit is returned to |0⟩
-/// following the measurement.
+/// Performs a single-qubit measurement in the Pauli Y basis,
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
@@ -134,14 +122,8 @@ operation MResetY(target : Qubit) : Result {
 }
 
 /// # Summary
-/// Measures a single qubit in the Z basis,
-/// and resets it to a fixed initial state
-/// following the measurement.
-///
-/// # Description
-/// Performs a single-qubit measurement in the Z-basis,
-/// and ensures that the qubit is returned to |0⟩
-/// following the measurement.
+/// Performs a single-qubit measurement in the Pauli Z basis,
+/// and resets `target` to the |0⟩ state after the measurement.
 ///
 /// # Input
 /// ## target
@@ -154,9 +136,10 @@ operation MResetZ(target : Qubit) : Result {
 }
 
 /// # Summary
-/// Measures the content of a quantum register and converts
-/// it to an integer. The measurement is performed with respect
-/// to the standard computational basis, i.e., the eigenbasis of `PauliZ`.
+/// Measures the content of a quantum register and converts it to an integer.
+/// The measurement is performed with respect to the standard computational basis,
+/// i.e., the eigenbasis of `PauliZ`. Input register is reset to the |00...0⟩ state,
+/// which is suitable for releasing the register back to a target machine.
 ///
 /// # Input
 /// ## target
@@ -164,10 +147,6 @@ operation MResetZ(target : Qubit) : Result {
 ///
 /// # Output
 /// An unsigned integer that contains the measured value of `target`.
-///
-/// # Remarks
-/// This operation resets its input register to the |00...0> state,
-/// suitable for releasing back to a target machine.
 operation MeasureInteger(target : Qubit[]) : Int {
     let nBits = Length(target);
     Fact(nBits < 64, $"`Length(target)` must be less than 64, but was {nBits}.");

@@ -1,10 +1,10 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for k in 0 .. 10 {
+        for k in 0..10 {
             let solution = qs => Kata.Rotation(qs[0], k);
             let reference = qs => R1Frac(2, k, qs[0]);
             if not CheckOperationsAreEqualStrict(1, solution, reference) {

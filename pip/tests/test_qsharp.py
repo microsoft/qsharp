@@ -3,6 +3,7 @@
 
 import pytest
 import qsharp
+import qsharp.code
 import qsharp.utils
 from contextlib import redirect_stdout
 import io
@@ -33,6 +34,35 @@ def test_stdout_multiple_lines() -> None:
         )
 
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
+
+
+def test_captured_stdout() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = qsharp.eval(
+            '{Message("Hello, world!"); Message("Goodbye!")}', save_events=True
+        )
+    assert f.getvalue() == ""
+    assert len(result["messages"]) == 2
+    assert result["messages"][0] == "Hello, world!"
+    assert result["messages"][1] == "Goodbye!"
+
+
+def test_captured_matrix() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        result = qsharp.eval(
+            "Std.Diagnostics.DumpOperation(1, qs => H(qs[0]))",
+            save_events=True,
+        )
+    assert f.getvalue() == ""
+    assert len(result["matrices"]) == 1
+    assert (
+        str(result["matrices"][0])
+        == "MATRIX:\n 0.7071+0.0000𝑖 0.7071+0.0000𝑖\n 0.7071+0.0000𝑖 −0.7071+0.0000𝑖"
+    )
 
 
 def test_quantum_seed() -> None:
@@ -257,6 +287,7 @@ def test_dump_operation() -> None:
             else:
                 assert res[i][j] == complex(0.0, 0.0)
 
+
 def test_run_with_noise_produces_noisy_results() -> None:
     qsharp.init()
     qsharp.set_quantum_seed(0)
@@ -272,6 +303,7 @@ def test_run_with_noise_produces_noisy_results() -> None:
         noise=qsharp.BitFlipNoise(0.1),
     )
     assert result[0] > 5
+
 
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
@@ -324,7 +356,7 @@ def test_run_with_result_callback(capsys) -> None:
     results = qsharp.run("Foo()", 3, on_result=on_result, save_events=True)
     assert (
         str(results)
-        == "[{'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}, {'result': Zero, 'events': [Hello, world!]}]"
+        == "[{'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}]"
     )
     stdout = capsys.readouterr().out
     assert stdout == ""
@@ -373,3 +405,207 @@ def test_target_profile_from_str_match_enum_values() -> None:
     assert qsharp.TargetProfile.from_str(str_value) == target_profile
     with pytest.raises(ValueError):
         qsharp.TargetProfile.from_str("Invalid")
+
+
+def test_callables_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("function Four() : Int { 4 }")
+    assert qsharp.code.Four() == 4, "callable should be available"
+    qsharp.eval("function Add(a : Int, b : Int) : Int { a + b }")
+    assert qsharp.code.Four() == 4, "first callable should still be available"
+    assert qsharp.code.Add(2, 3) == 5, "second callable should be available"
+    # After init, the callables should be cleared and no longer available
+    qsharp.init()
+    with pytest.raises(AttributeError):
+        qsharp.code.Four()
+
+
+def test_callable_exposed_into_env_complex_types() -> None:
+    qsharp.eval(
+        "function Complicated(a : Int, b : (Double, BigInt)) : ((Double, BigInt), Int) { (b, a) }"
+    )
+    assert qsharp.code.Complicated(2, (3.0, 4000000000000000000000)) == (
+        (3.0, 4000000000000000000000),
+        2,
+    ), "callables that take complex types should marshall them correctly"
+
+
+def test_callable_exposed_into_env_with_array() -> None:
+    qsharp.init()
+    qsharp.eval("function Smallest(a : Int[]) : Int { Std.Math.Min(a)}")
+    assert (
+        qsharp.code.Smallest([1, 2, 3, 0, 4, 5]) == 0
+    ), "callable that takes array should work"
+
+
+def test_callable_with_int_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : Int) : Int { a }")
+    assert qsharp.code.Identity(4) == 4
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+    with pytest.raises(OverflowError):
+        qsharp.code.Identity(4000000000000000000000)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([4])
+
+
+def test_callable_with_double_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : Double) : Double { a }")
+    assert qsharp.code.Identity(4.0) == 4.0
+    assert qsharp.code.Identity(4) == 4.0
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([4])
+
+
+def test_callable_with_bigint_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : BigInt) : BigInt { a }")
+    assert qsharp.code.Identity(4000000000000000000000) == 4000000000000000000000
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+
+
+def test_callable_with_string_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : String) : String { a }")
+    assert qsharp.code.Identity("4") == "4"
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([4])
+
+
+def test_callable_with_bool_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : Bool) : Bool { a }")
+    assert qsharp.code.Identity(True) == True
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([4])
+
+
+def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : Int[]) : Int[] { a }")
+    assert qsharp.code.Identity([4, 5, 6]) == [4, 5, 6]
+    assert qsharp.code.Identity([]) == []
+    assert qsharp.code.Identity((4, 5, 6)) == [4, 5, 6]
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([1, 2, 3.0])
+
+
+def test_callable_with_tuple_exposed_into_env_fails_incorrect_types() -> None:
+    qsharp.init()
+    qsharp.eval("function Identity(a : (Int, Double)) : (Int, Double) { a }")
+    assert qsharp.code.Identity((4, 5.0)) == (4, 5.0)
+    assert qsharp.code.Identity((4, 5)) == (4, 5.0)
+    assert qsharp.code.Identity([4, 5.0]) == (4, 5.0)
+    with pytest.raises(qsharp.QSharpError):
+        qsharp.code.Identity((4, 5, 6))
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity("4")
+    with pytest.raises(TypeError):
+        qsharp.code.Identity(4.0)
+    with pytest.raises(TypeError):
+        qsharp.code.Identity([4.0, 5])
+
+
+def test_callables_in_namespaces_exposed_into_env_submodules_and_removed_on_reinit() -> (
+    None
+):
+    qsharp.init()
+    # callables should be created with their namespaces
+    qsharp.eval("namespace Test { function Four() : Int { 4 } }")
+    qsharp.eval("function Identity(a : Int) : Int { a }")
+    # should be able to import callables from env and namespace submodule
+    from qsharp.code import Identity
+    from qsharp.code.Test import Four
+
+    assert Identity(4) == 4
+    assert Four() == 4
+    qsharp.init()
+    # namespaces should be removed
+    with pytest.raises(AttributeError):
+        qsharp.code.Test
+    with pytest.raises(AttributeError):
+        qsharp.code.Identity()
+    # imported callables should fail gracefully
+    with pytest.raises(qsharp.QSharpError):
+        Four()
+
+
+def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
+    qsharp.init()
+    qsharp.eval("function Unsupported(a : Int, q : Qubit) : Unit { }")
+    with pytest.raises(qsharp.QSharpError, match="unsupported input type: `Qubit`"):
+        qsharp.code.Unsupported()
+
+
+def test_callables_with_unsupported_types_in_tuples_raise_errors_on_call() -> None:
+    qsharp.init()
+    qsharp.eval("function Unsupported(q : (Int, Qubit)[]) : Unit { }")
+    with pytest.raises(qsharp.QSharpError, match="unsupported input type: `Qubit`"):
+        qsharp.code.Unsupported()
+
+
+def test_callables_with_unsupported_return_types_raise_errors_on_call() -> None:
+    qsharp.init()
+    qsharp.eval('function Unsupported() : Qubit { fail "won\'t be called" }')
+    with pytest.raises(qsharp.QSharpError, match="unsupported output type: `Qubit`"):
+        qsharp.code.Unsupported()
+
+
+def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
+    qsharp.init()
+    qsharp.eval("function Unsupported(a : Std.Math.Complex) : Unit { }")
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported input type: `UDT<"Complex":'
+    ):
+        qsharp.code.Unsupported()
+
+
+def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
+    qsharp.init()
+    qsharp.eval('function Unsupported() : Std.Math.Complex { fail "won\'t be called" }')
+    with pytest.raises(
+        qsharp.QSharpError, match='unsupported output type: `UDT<"Complex":'
+    ):
+        qsharp.code.Unsupported()
+
+
+def test_struct_call_constructor_not_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("struct CustomUDT { a : Int }")
+    with pytest.raises(AttributeError):
+        qsharp.code.CustomUDT
+
+
+def test_lambdas_not_exposed_into_env() -> None:
+    qsharp.init()
+    qsharp.eval("a -> a + 1")
+    assert not hasattr(qsharp.code, "<lambda>")
+    qsharp.eval("q => I(q)")
+    assert not hasattr(qsharp.code, "<lambda>")

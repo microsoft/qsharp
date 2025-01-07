@@ -52,6 +52,10 @@ struct NameHandler<'a> {
 }
 
 impl<'a> Handler<'a> for NameHandler<'a> {
+    fn at_attr_ref(&mut self, _: &'a ast::Ident) {
+        // We don't support find all refs for attributes.
+    }
+
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,

@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     // 0 - |Φ⁺⟩ = (|00⟩ + |11⟩) / sqrt(2)
     // 1 - |Φ⁻⟩ = (|00⟩ - |11⟩) / sqrt(2)

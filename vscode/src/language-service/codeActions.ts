@@ -3,7 +3,7 @@
 
 import { ILanguageService, ICodeAction } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeWorkspaceEdit } from "./common";
+import { toVscodeWorkspaceEdit } from "../common";
 
 export function createCodeActionsProvider(languageService: ILanguageService) {
   return new QSharpCodeActionProvider(languageService);

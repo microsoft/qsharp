@@ -118,21 +118,21 @@ fn redirect_generation() {
         ---
         uid: Qdk.Microsoft.Quantum.Core.Length
         title: Length exported item
-        description: "Q# Length exported item: This is an exported item. The actual definition is found here: [Length](xref:Qdk.Std.Core.Length)"
+        description: "Q# Length exported item: This is an exported item. The actual definition is found here: [Std.Core.Length](xref:Qdk.Std.Core.Length)"
         ms.date: {TIMESTAMP}
         ms.topic: managed-reference
         qsharp.kind: export
         qsharp.package: __Std__
         qsharp.namespace: Microsoft.Quantum.Core
         qsharp.name: Length
-        qsharp.summary: "This is an exported item. The actual definition is found here: [Length](xref:Qdk.Std.Core.Length)"
+        qsharp.summary: "This is an exported item. The actual definition is found here: [Std.Core.Length](xref:Qdk.Std.Core.Length)"
         ---
 
         # Length exported item
 
         Fully qualified name: Microsoft.Quantum.Core.Length
 
-        This is an exported item. The actual definition is found here: [Length](xref:Qdk.Std.Core.Length)
+        This is an exported item. The actual definition is found here: [Std.Core.Length](xref:Qdk.Std.Core.Length)
     "#]]
     .assert_eq(full_contents.as_str());
 }

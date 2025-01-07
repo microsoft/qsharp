@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import Std.Math.*;
+    import KatasUtils.*;
 
     operation CheckSolution() : Bool {
         let isCorrect = DistinguishStates_MultiQubit(2, 4, StatePrep_BasisStateMeasurement, Kata.BasisStateMeasurement, false, ["|00⟩", "|01⟩", "|10⟩", "|11⟩"]);

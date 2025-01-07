@@ -1,21 +1,19 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Convert.*;
+    import Std.Random.*;
+    import Std.Math.*;
 
-    operation StatePrep_IsQubitNotInABC (q : Qubit, state : Int) : Unit {
+    operation StatePrep_IsQubitNotInABC(q : Qubit, state : Int) : Unit {
         let alpha = (2.0 * PI()) / 3.0;
         H(q);
 
         if state == 0 {
             // convert |0⟩ to 1/sqrt(2) (|0⟩ + |1⟩)
-        }
-        elif state == 1 {
+        } elif state == 1 {
             // convert |0⟩ to 1/sqrt(2) (|0⟩ + ω |1⟩), where ω = exp(2iπ/3)
             R1(alpha, q);
-        }
-        else {
+        } else {
             // convert |0⟩ to 1/sqrt(2) (|0⟩ + ω² |1⟩), where ω = exp(2iπ/3)
             R1(2.0 * alpha, q);
         }
@@ -23,14 +21,14 @@ namespace Kata.Verification {
 
 
     @EntryPoint()
-    operation CheckSolution () : Bool {
+    operation CheckSolution() : Bool {
         let nTotal = 1000;
         mutable bad_value = 0;
         mutable wrong_state = 0;
 
         use qs = Qubit[1];
 
-        for i in 1 .. nTotal {
+        for i in 1..nTotal {
             // get a random integer to define the state of the qubits
             let state = DrawRandomInt(0, 2);
 

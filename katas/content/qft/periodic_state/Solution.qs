@@ -1,6 +1,6 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
+    import Std.Arrays.*;
+    import Std.Convert.*;
 
     operation PeriodicState(qs : Qubit[], F : Int) : Unit is Adj + Ctl {
         let bitsBE = Reversed(IntAsBoolArray(F, Length(qs)));

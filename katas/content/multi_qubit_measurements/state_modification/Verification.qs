@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Convert.*;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     // State selection using partial measurements
     operation StateInitialize_StateSelection(alpha : Double, qs : Qubit[]) : Unit {
@@ -29,11 +29,11 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         use qs = Qubit[2];
-        for i in 0 .. 5 {
+        for i in 0..5 {
             let alpha = (PI() * IntAsDouble(i)) / 5.0;
             let params = $"a = {Cos(alpha)}, b = {Sin(alpha)}";
 
-            for ind in 0 .. 1 {
+            for ind in 0..1 {
                 // Prepare the state to be input to the testImplementation
                 StateInitialize_StateSelection(alpha, qs);
 
@@ -42,7 +42,7 @@ namespace Kata.Verification {
                 // Apply adjoint of state preparation operation
                 Adjoint StatePrepare_StateSelection(alpha, ind, qs[1]);
 
-                // We only care about the state of the second qubit; 
+                // We only care about the state of the second qubit;
                 // if it's still entangled with the first one or not in zero state, this check will fail.
                 if not CheckZero(qs[1]) {
                     ResetAll(qs);

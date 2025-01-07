@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Math;
+    import KatasUtils.*;
+    import Std.Math.*;
 
     operation IsSeven_MarkingOracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);
@@ -8,7 +8,7 @@ namespace Kata.Verification {
 
     // ------------------------------------------------------
     @EntryPoint()
-    operation CheckSolution () : Bool {
+    operation CheckSolution() : Bool {
         let N = 3;
         let sol = ApplyOracle(_, Kata.IsSeven_MarkingOracle);
         let ref = ApplyOracle(_, IsSeven_MarkingOracle_Reference);

@@ -1906,7 +1906,7 @@ fn lambda_adj_calls_adj() {
                 Item 4 [138-147] (Internal):
                     Parent: 3
                     Callable 27 [138-147] (operation):
-                        name: Ident 28 [138-147] "lambda"
+                        name: Ident 28 [138-147] "<lambda>"
                         input: Pat 26 [138-147] [Type (Qubit,)]: Tuple:
                             Pat 21 [138-139] [Type Qubit]: Bind: Ident 22 [138-139] "q"
                         output: Unit
@@ -2032,7 +2032,7 @@ fn op_array_forget_functors_with_lambdas() {
                 Item 5 [270-281] (Internal):
                     Parent: 4
                     Callable 35 [270-281] (operation):
-                        name: Ident 36 [270-281] "lambda"
+                        name: Ident 36 [270-281] "<lambda>"
                         input: Pat 34 [270-281] [Type (Qubit,)]: Tuple:
                             Pat 29 [270-271] [Type Qubit]: Bind: Ident 30 [270-271] "q"
                         output: Unit
@@ -2048,7 +2048,7 @@ fn op_array_forget_functors_with_lambdas() {
                 Item 6 [283-294] (Internal):
                     Parent: 4
                     Callable 47 [283-294] (operation):
-                        name: Ident 48 [283-294] "lambda"
+                        name: Ident 48 [283-294] "<lambda>"
                         input: Pat 46 [283-294] [Type (Qubit,)]: Tuple:
                             Pat 41 [283-284] [Type Qubit]: Bind: Ident 42 [283-284] "q"
                         output: Unit

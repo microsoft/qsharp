@@ -1,9 +1,9 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
-    operation ControlledRotation_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation ControlledRotation_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         H(qs[0]);
-        Controlled H ([qs[0]], qs[1]);
+        Controlled H([qs[0]], qs[1]);
     }
 
     @EntryPoint()
@@ -11,6 +11,7 @@ namespace Kata.Verification {
         CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.ControlledRotation,
             ControlledRotation_Reference,
-            2)
+            2
+        )
     }
 }

@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import Std.Arrays.*;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -38,7 +38,7 @@ namespace Kata.Verification {
                     }
                     for (expected, actual) in Zipped(expectedColors, result) {
                         if expected != actual {
-                            Message($"Unexpected colors for V = {V}, nBits = {nBits}, " + 
+                            Message($"Unexpected colors for V = {V}, nBits = {nBits}, " +
                                 $"state = {BoolArrayAsKetState(binaryState)} : expected {expectedColors}, got {result}");
                             return false;
                         }

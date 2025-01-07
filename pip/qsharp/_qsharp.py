@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from . import telemetry_events
+from . import telemetry_events, code
 from ._native import (
     Interpreter,
     TargetProfile,
@@ -9,6 +9,7 @@ from ._native import (
     QSharpError,
     Output,
     Circuit,
+    GlobalCallable,
 )
 from typing import (
     Any,
@@ -24,6 +25,8 @@ from typing import (
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
+import sys
+import types
 from time import monotonic
 
 _interpreter = None
@@ -190,6 +193,25 @@ def init(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
 
+    # Loop through the environment module and remove any dynamically added attributes that represent
+    # Q# callables. This is necessary to avoid conflicts with the new interpreter instance.
+    keys_to_remove = []
+    for key in code.__dict__:
+        if hasattr(code.__dict__[key], "__qs_gen") or isinstance(
+            code.__dict__[key], types.ModuleType
+        ):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        code.__delattr__(key)
+
+    # Also remove any namespace modules dynamically added to the system.
+    keys_to_remove = []
+    for key in sys.modules:
+        if key.startswith("qsharp.code."):
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        sys.modules.__delitem__(key)
+
     _interpreter = Interpreter(
         target_profile,
         language_features,
@@ -198,6 +220,7 @@ def init(
         list_directory,
         resolve,
         fetch_github,
+        _make_callable,
     )
 
     _config = Config(target_profile, language_features, manifest_contents, project_root)
@@ -219,17 +242,132 @@ def get_interpreter() -> Interpreter:
     return _interpreter
 
 
-def eval(source: str) -> Any:
+class StateDump:
+    """
+    A state dump returned from the Q# interpreter.
+    """
+
+    """
+    The number of allocated qubits at the time of the dump.
+    """
+    qubit_count: int
+
+    __inner: dict
+    __data: StateDumpData
+
+    def __init__(self, data: StateDumpData):
+        self.__data = data
+        self.__inner = data.get_dict()
+        self.qubit_count = data.qubit_count
+
+    def __getitem__(self, index: int) -> complex:
+        return self.__inner.__getitem__(index)
+
+    def __iter__(self):
+        return self.__inner.__iter__()
+
+    def __len__(self) -> int:
+        return len(self.__inner)
+
+    def __repr__(self) -> str:
+        return self.__data.__repr__()
+
+    def __str__(self) -> str:
+        return self.__data.__str__()
+
+    def _repr_markdown_(self) -> str:
+        return self.__data._repr_markdown_()
+
+    def check_eq(
+        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
+    ) -> bool:
+        """
+        Checks if the state dump is equal to the given state. This is not mathematical equality,
+        as the check ignores global phase.
+
+        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
+            or as a list of real amplitudes.
+        :param tolerance: The tolerance for the check. Defaults to 1e-10.
+        """
+        phase = None
+        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
+        if isinstance(state, list):
+            state = {i: val for i, val in enumerate(state)}
+        # Filter out zero states from the state dump and the given state based on tolerance
+        state = {k: v for k, v in state.items() if abs(v) > tolerance}
+        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
+        if len(state) != len(inner_state):
+            return False
+        for key in state:
+            if key not in inner_state:
+                return False
+            if phase is None:
+                # Calculate the phase based on the first state pair encountered.
+                # Every pair of states after this must have the same phase for the states to be equivalent.
+                phase = inner_state[key] / state[key]
+            elif abs(phase - inner_state[key] / state[key]) > tolerance:
+                # This pair of states does not have the same phase,
+                # within tolerance, so the equivalence check fails.
+                return False
+        return True
+
+    def as_dense_state(self) -> List[complex]:
+        """
+        Returns the state dump as a dense list of complex amplitudes. This will include zero amplitudes.
+        """
+        return [self.__inner.get(i, complex(0)) for i in range(2**self.qubit_count)]
+
+
+class ShotResult(TypedDict):
+    """
+    A single result of a shot.
+    """
+
+    events: List[Output]
+    result: Any
+    messages: List[str]
+    matrices: List[Output]
+    dumps: List[StateDump]
+
+
+def eval(
+    source: str,
+    *,
+    save_events: bool = False,
+) -> Any:
     """
     Evaluates Q# source code.
 
     Output is printed to console.
 
     :param source: The Q# source code to evaluate.
-    :returns value: The value returned by the last statement in the source code.
+    :param save_events: If true, all output will be saved and returned. If false, they will be printed.
+    :returns value: The value returned by the last statement in the source code or the saved output if `save_events` is true.
     :raises QSharpError: If there is an error evaluating the source code.
     """
     ipython_helper()
+
+    results: ShotResult = {
+        "events": [],
+        "result": None,
+        "messages": [],
+        "matrices": [],
+        "dumps": [],
+    }
+
+    def on_save_events(output: Output) -> None:
+        # Append the output to the last shot's output list
+        if output.is_matrix():
+            results["events"].append(output)
+            results["matrices"].append(output)
+        elif output.is_state_dump():
+            state_dump = StateDump(output.state_dump())
+            results["events"].append(state_dump)
+            results["dumps"].append(state_dump)
+        elif output.is_message():
+            stringified = str(output)
+            results["events"].append(stringified)
+            results["messages"].append(stringified)
 
     def callback(output: Output) -> None:
         if _in_jupyter:
@@ -244,21 +382,67 @@ def eval(source: str) -> Any:
     telemetry_events.on_eval()
     start_time = monotonic()
 
-    results = get_interpreter().interpret(source, callback)
+    results["result"] = get_interpreter().interpret(
+        source, on_save_events if save_events else callback
+    )
 
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_eval_end(durationMs)
 
-    return results
+    if save_events:
+        return results
+    else:
+        return results["result"]
 
 
-class ShotResult(TypedDict):
-    """
-    A single result of a shot.
-    """
+# Helper function that knows how to create a function that invokes a callable. This will be
+# used by the underlying native code to create functions for callables on the fly that know
+# how to get the currently intitialized global interpreter instance.
+def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name: str):
+    module = code
+    # Create a name that will be used to collect the hierachy of namespace identifiers if they exist and use that
+    # to register created modules with the system.
+    accumulated_namespace = "qsharp.code"
+    accumulated_namespace += "."
+    for name in namespace:
+        accumulated_namespace += name
+        # Use the existing entry, which should already be a module.
+        if hasattr(module, name):
+            module = module.__getattribute__(name)
+        else:
+            # This namespace entry doesn't exist as a module yet, so create it, add it to the environment, and
+            # add it to sys.modules so it supports import properly.
+            new_module = types.ModuleType(accumulated_namespace)
+            module.__setattr__(name, new_module)
+            sys.modules[accumulated_namespace] = new_module
+            module = new_module
+        accumulated_namespace += "."
 
-    events: List[Output]
-    result: Any
+    def _callable(*args):
+        ipython_helper()
+
+        def callback(output: Output) -> None:
+            if _in_jupyter:
+                try:
+                    display(output)
+                    return
+                except:
+                    # If IPython is not available, fall back to printing the output
+                    pass
+            print(output, flush=True)
+
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+
+        return get_interpreter().invoke(callable, args, callback)
+
+    # Each callable is annotated so that we know it is auto-generated and can be removed on a re-init of the interpreter.
+    _callable.__qs_gen = True
+
+    # Add the callable to the module.
+    module.__setattr__(callable_name, _callable)
 
 
 def run(
@@ -315,9 +499,17 @@ def run(
     def on_save_events(output: Output) -> None:
         # Append the output to the last shot's output list
         results[-1]["events"].append(output)
+        if output.is_matrix():
+            results[-1]["matrices"].append(output)
+        elif output.is_state_dump():
+            results[-1]["dumps"].append(StateDump(output.state_dump()))
+        elif output.is_message():
+            results[-1]["messages"].append(str(output))
 
     for shot in range(shots):
-        results.append({"result": None, "events": []})
+        results.append(
+            {"result": None, "events": [], "messages": [], "matrices": [], "dumps": []}
+        )
         run_results = get_interpreter().run(
             entry_expr,
             on_save_events if save_events else print_output,
@@ -480,82 +672,6 @@ def set_classical_seed(seed: Optional[int]) -> None:
         If None, the seed will be generated from entropy.
     """
     get_interpreter().set_classical_seed(seed)
-
-
-class StateDump:
-    """
-    A state dump returned from the Q# interpreter.
-    """
-
-    """
-    The number of allocated qubits at the time of the dump.
-    """
-    qubit_count: int
-
-    __inner: dict
-    __data: StateDumpData
-
-    def __init__(self, data: StateDumpData):
-        self.__data = data
-        self.__inner = data.get_dict()
-        self.qubit_count = data.qubit_count
-
-    def __getitem__(self, index: int) -> complex:
-        return self.__inner.__getitem__(index)
-
-    def __iter__(self):
-        return self.__inner.__iter__()
-
-    def __len__(self) -> int:
-        return len(self.__inner)
-
-    def __repr__(self) -> str:
-        return self.__data.__repr__()
-
-    def __str__(self) -> str:
-        return self.__data.__str__()
-
-    def _repr_markdown_(self) -> str:
-        return self.__data._repr_markdown_()
-
-    def check_eq(
-        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
-    ) -> bool:
-        """
-        Checks if the state dump is equal to the given state. This is not mathematical equality,
-        as the check ignores global phase.
-
-        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
-            or as a list of real amplitudes.
-        :param tolerance: The tolerance for the check. Defaults to 1e-10.
-        """
-        phase = None
-        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
-        if isinstance(state, list):
-            state = {i: state[i] for i in range(len(state))}
-        # Filter out zero states from the state dump and the given state based on tolerance
-        state = {k: v for k, v in state.items() if abs(v) > tolerance}
-        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
-        if len(state) != len(inner_state):
-            return False
-        for key in state:
-            if key not in inner_state:
-                return False
-            if phase is None:
-                # Calculate the phase based on the first state pair encountered.
-                # Every pair of states after this must have the same phase for the states to be equivalent.
-                phase = inner_state[key] / state[key]
-            elif abs(phase - inner_state[key] / state[key]) > tolerance:
-                # This pair of states does not have the same phase,
-                # within tolerance, so the equivalence check fails.
-                return False
-        return True
-
-    def as_dense_state(self) -> List[complex]:
-        """
-        Returns the state dump as a dense list of complex amplitudes. This will include zero amplitudes.
-        """
-        return [self.__inner.get(i, complex(0)) for i in range(2**self.qubit_count)]
 
 
 def dump_machine() -> StateDump:

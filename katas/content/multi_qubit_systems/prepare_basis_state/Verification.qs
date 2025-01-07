@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     operation PrepareBasisState_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[0]);
@@ -8,7 +8,10 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        CheckOperationsEquivalenceOnZeroStateWithFeedback(Kata.PrepareBasisState, 
-            PrepareBasisState_Reference, 2)
+        CheckOperationsEquivalenceOnZeroStateWithFeedback(
+            Kata.PrepareBasisState,
+            PrepareBasisState_Reference,
+            2
+        )
     }
 }

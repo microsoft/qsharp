@@ -1,7 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
-    function ComplexEqual(x : Complex, y : Complex) : Bool { 
+    function ComplexEqual(x : Complex, y : Complex) : Bool {
         // Tests two complex numbers for equality.
         AbsD(x::Real - y::Real) <= 0.001 and AbsD(x::Imag - y::Imag) <= 0.001
     }
@@ -15,7 +15,7 @@ namespace Kata.Verification {
             Message("The array of eigenvalues should have exactly two elements.");
             return false;
         }
-        if ComplexEqual(actual[0], expected[0]) and ComplexEqual(actual[1], expected[1]) or 
+        if ComplexEqual(actual[0], expected[0]) and ComplexEqual(actual[1], expected[1]) or
             ComplexEqual(actual[0], expected[1]) and ComplexEqual(actual[1], expected[0]) {
             Message("Correct!");
             return true;

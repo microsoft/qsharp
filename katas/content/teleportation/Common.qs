@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
+    import Std.Diagnostics.*;
+    import Std.Math.*;
 
     operation EntangleWrapper_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         let (qAlice, qBob) = (qs[0], qs[1]);
@@ -17,13 +17,13 @@ namespace Kata.Verification {
     operation StatePrep_BellState(q1 : Qubit, q2 : Qubit, state : Int) : Unit {
         H(q1);
         CNOT(q1, q2);
-        
+
         // now we have |00⟩ + |11⟩ - modify it based on state arg
         if state % 2 == 1 {
             // negative phase
             Z(q2);
         }
-        
+
         if state / 2 == 1 {
             X(q2);
         }
@@ -33,22 +33,23 @@ namespace Kata.Verification {
     // Helper operation that run teleportation using the given operations to prepare the message qubit
     // and the entangled pair, and to run sender and receiver parts of the protocol.
     operation ComposeTeleportation(
-        bellPrepOp : ((Qubit, Qubit) => Unit), 
-        getDescriptionOp : ((Qubit, Qubit) => (Bool, Bool)), 
+        bellPrepOp : ((Qubit, Qubit) => Unit),
+        getDescriptionOp : ((Qubit, Qubit) => (Bool, Bool)),
         reconstructOp : ((Qubit, (Bool, Bool)) => Unit),
-        qAlice : Qubit, 
-        qBob : Qubit, 
-        qMessage : Qubit) : Unit {
+        qAlice : Qubit,
+        qBob : Qubit,
+        qMessage : Qubit
+    ) : Unit {
 
         bellPrepOp(qAlice, qBob);
         let classicalBits = getDescriptionOp(qAlice, qMessage);
-        
+
         // Alice sends the classical bits to Bob.
         // Bob uses these bits to transform his part of the entangled pair into the message.
         reconstructOp(qBob, classicalBits);
     }
-    
-    operation SendMessage_Reference(qAlice: Qubit, qMessage: Qubit) : (Bool, Bool) {
+
+    operation SendMessage_Reference(qAlice : Qubit, qMessage : Qubit) : (Bool, Bool) {
         CNOT(qMessage, qAlice);
         H(qMessage);
         return (M(qMessage) == One, M(qAlice) == One);
@@ -70,17 +71,18 @@ namespace Kata.Verification {
     // Specifying the state to teleport through an operation allows to get the inverse
     // which makes testing easier.
     operation TeleportTestHelper(
-        teleportOp : ((Qubit, Qubit, Qubit) => Unit), 
+        teleportOp : ((Qubit, Qubit, Qubit) => Unit),
         setupPsiOp : (Qubit => Unit is Adj),
-        psiName: String) : Bool {
-        
+        psiName : String
+    ) : Bool {
+
         use (qMessage, qAlice, qBob) = (Qubit(), Qubit(), Qubit());
         setupPsiOp(qMessage);
-            
+
         // This should modify qBob to be identical to the state
         // of qMessage before the function call.
         teleportOp(qAlice, qBob, qMessage);
-            
+
         // Applying the inverse of the setup operation to qBob
         // should make it Zero.
         Adjoint setupPsiOp(qBob);
@@ -106,14 +108,14 @@ namespace Kata.Verification {
         // Define setup operations for the message qubit
         // on which to test teleportation: |0⟩, |1⟩, |0⟩ + |1⟩, unequal superposition.
         let setupPsiOps = [(I, "|0⟩"), (X, "|1⟩"), (H, "|+⟩"), (Ry(ArcCos(0.6) * 2.0, _), "0.6|0⟩ + 0.8|1⟩")];
-        
+
         // As part of teleportation Alice runs some measurements
         // with nondeterministic outcome.
         // Depending on the outcomes different paths are taken on Bob's side.
         // We repeat each test run several times to ensure that all paths are checked.
         let numRepetitions = 100;
         for (psiOp, psiName) in setupPsiOps {
-            for j in 1 .. numRepetitions {
+            for j in 1..numRepetitions {
                 if not TeleportTestHelper(teleportOp, psiOp, psiName) {
                     return false;
                 }
@@ -151,20 +153,22 @@ namespace Kata.Verification {
     // code is expected to take different paths each time since
     // measurements done by Alice are not deterministic.
     operation TeleportPreparedStateTestLoop(
-        prepareAndSendMessageOp : ((Qubit, Pauli, Result) => (Bool, Bool)), 
+        prepareAndSendMessageOp : ((Qubit, Pauli, Result) => (Bool, Bool)),
         reconstructAndMeasureMessageOp : ((Qubit, (Bool, Bool), Pauli) => Result)
-        ) : Bool {
-        
-        let messages = [(PauliX, Zero, "|+⟩"), 
-                        (PauliX, One, "|-⟩"), 
-                        (PauliY, Zero, "|i⟩"), 
-                        (PauliY, One, "|-i⟩"), 
-                        (PauliZ, Zero, "|0⟩"), 
-                        (PauliZ, One, "|1⟩")];
+    ) : Bool {
+
+        let messages = [
+            (PauliX, Zero, "|+⟩"),
+            (PauliX, One, "|-⟩"),
+            (PauliY, Zero, "|i⟩"),
+            (PauliY, One, "|-i⟩"),
+            (PauliZ, Zero, "|0⟩"),
+            (PauliZ, One, "|1⟩")
+        ];
         let numRepetitions = 100;
         use (qAlice, qBob) = (Qubit(), Qubit());
         for (basis, sentState, stateName) in messages {
-            for j in 1 .. numRepetitions {
+            for j in 1..numRepetitions {
                 StatePrep_BellState(qAlice, qBob, 0);
                 let classicalBits = prepareAndSendMessageOp(qAlice, basis, sentState);
                 let receivedState = reconstructAndMeasureMessageOp(qBob, classicalBits, basis);

@@ -26,7 +26,7 @@ pub fn run_lints(
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
+    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
     let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
 
     let mut lints = Vec::new();

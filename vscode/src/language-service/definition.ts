@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { toVscodeLocation } from "./common";
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
+import { toVscodeLocation } from "../common";
 
 export function createDefinitionProvider(languageService: ILanguageService) {
   return new QSharpDefinitionProvider(languageService);

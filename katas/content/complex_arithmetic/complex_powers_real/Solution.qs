@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexExpReal(r : Double, x : Complex) : Complex {
         if AbsD(r) < 1e-9 {

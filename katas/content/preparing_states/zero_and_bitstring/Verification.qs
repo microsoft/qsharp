@@ -1,11 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Katas;
+    import Std.Convert.*;
+    import KatasUtils.*;
 
-    operation ZeroAndBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[]) : Unit is Adj + Ctl {
+    operation ZeroAndBitstringSuperposition_Reference(qs : Qubit[], bits : Bool[]) : Unit is Adj + Ctl {
         H(qs[0]);
 
-        for i in 1 .. Length(qs) - 1 {
+        for i in 1..Length(qs) - 1 {
             if bits[i] {
                 CNOT(qs[0], qs[i]);
             }
@@ -29,7 +29,8 @@ namespace Kata.Verification {
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.ZeroAndBitstringSuperposition(_, bits),
                 ZeroAndBitstringSuperposition_Reference(_, bits),
-                Length(bits)) {
+                Length(bits)
+            ) {
                 return false;
             }
         }

@@ -1,100 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import {
-  ILanguageService,
-  IQSharpError,
-  VSDiagnostic,
-  log,
-  qsharpLibraryUriScheme,
-} from "qsharp-lang";
+import { IQSharpError, log, qsharpLibraryUriScheme } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeLocation, toVscodeRange, qsharpLanguageId } from "./common.js";
+import {
+  qsharpExtensionId,
+  qsharpLanguageId,
+  toVsCodeDiagnostic,
+} from "./common.js";
 
-export function startCheckingQSharp(
-  languageService: ILanguageService,
-): vscode.Disposable[] {
-  return [
-    ...startLanguageServiceDiagnostics(languageService),
-    ...startQsharpJsonDiagnostics(),
-    ...startCommandDiagnostics(),
-  ];
-}
-
-function startLanguageServiceDiagnostics(
-  languageService: ILanguageService,
-): vscode.Disposable[] {
-  const diagCollection =
-    vscode.languages.createDiagnosticCollection(qsharpLanguageId);
-
-  async function onDiagnostics(evt: {
-    detail: {
-      uri: string;
-      version: number;
-      diagnostics: VSDiagnostic[];
-    };
-  }) {
-    const diagnostics = evt.detail;
-    const uri = vscode.Uri.parse(diagnostics.uri);
-
-    if (uri.scheme === qsharpLibraryUriScheme) {
-      // Don't report diagnostics for library files.
-      return;
-    }
-
-    diagCollection.set(
-      uri,
-      diagnostics.diagnostics.map((d) => toVsCodeDiagnostic(d)),
-    );
-  }
-
-  languageService.addEventListener("diagnostics", onDiagnostics);
-
-  return [
-    {
-      dispose: () => {
-        languageService.removeEventListener("diagnostics", onDiagnostics);
-      },
-    },
-    diagCollection,
-  ];
-}
-
-export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
-  let severity;
-  switch (d.severity) {
-    case "error":
-      severity = vscode.DiagnosticSeverity.Error;
-      break;
-    case "warning":
-      severity = vscode.DiagnosticSeverity.Warning;
-      break;
-    case "info":
-      severity = vscode.DiagnosticSeverity.Information;
-      break;
-  }
-  const vscodeDiagnostic = new vscode.Diagnostic(
-    toVscodeRange(d.range),
-    d.message,
-    severity,
-  );
-  if (d.uri && d.code) {
-    vscodeDiagnostic.code = {
-      value: d.code,
-      target: vscode.Uri.parse(d.uri),
-    };
-  } else if (d.code) {
-    vscodeDiagnostic.code = d.code;
-  }
-  if (d.related) {
-    vscodeDiagnostic.relatedInformation = d.related.map((r) => {
-      return new vscode.DiagnosticRelatedInformation(
-        toVscodeLocation(r.location),
-        r.message,
-      );
-    });
-  }
-  return vscodeDiagnostic;
+/**
+ * Initialize diagnostics for `qsharp.json` files and failures
+ * that get reported from various Q# commands.
+ *
+ * These are distinct from the errors reported by the Q# language
+ * service, (a.k.a. compiler errors that get reported as you type).
+ * Those are initialized in `language-service/diagnostics.js`
+ */
+export function startOtherQSharpDiagnostics(): vscode.Disposable[] {
+  return [...startQsharpJsonDiagnostics(), ...startCommandDiagnostics()];
 }
 
 //
@@ -164,7 +88,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
     vscode.languages.createDiagnosticCollection(qsharpLanguageId);
 
   const dismissCommand = vscode.commands.registerCommand(
-    "qsharp-vscode.dismissCommandDiagnostics",
+    `${qsharpExtensionId}.dismissCommandDiagnostics`,
     clearCommandDiagnostics,
   );
 
@@ -182,7 +106,7 @@ function startCommandDiagnostics(): vscode.Disposable[] {
           );
           action.diagnostics = commandErrors;
           action.command = {
-            command: "qsharp-vscode.dismissCommandDiagnostics",
+            command: `${qsharpExtensionId}.dismissCommandDiagnostics`,
             title: "Dismiss errors for the last run Q# command",
           };
           action.isPreferred = true;

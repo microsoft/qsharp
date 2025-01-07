@@ -1,16 +1,16 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
+    import KatasUtils.*;
 
     function F_ContainsSubstring(args : Bool[], r : Bool[]) : Bool {
         let N = Length(args);
         let K = Length(r);
-        for P in 0 .. N - K {
+        for P in 0..N - K {
             if F_ContainsSubstringAtPosition(args, r, P) {
                 return true;
             }
         }
         return false;
-    } 
+    }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -27,6 +27,6 @@ namespace Kata.Verification {
         }
 
         Message("Correct!");
-        true 
-    }  
+        true
+    }
 }

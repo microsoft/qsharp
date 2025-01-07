@@ -1,9 +1,11 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function NormalizedVector_Reference() : Complex[][] {
-        return [[Complex(-0.6, 0.)],
-                [Complex(0., 0.8)]];
+        return [
+            [Complex(-0.6, 0.)],
+            [Complex(0., 0.8)]
+        ];
     }
 
     @EntryPoint()

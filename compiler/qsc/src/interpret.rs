@@ -11,6 +11,8 @@ mod package_tests;
 #[cfg(test)]
 mod tests;
 
+use std::rc::Rc;
+
 pub use qsc_eval::{
     debug::Frame,
     noise::PauliNoise,
@@ -21,6 +23,7 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_hir::{global, ty};
 use qsc_linter::{HirLint, Lint, LintKind, LintLevel};
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 use qsc_partial_eval::ProgramEntry;
@@ -315,6 +318,72 @@ impl Interpreter {
         })
     }
 
+    /// Given a package ID, returns all the global items in the package.
+    /// Note this does not currently include re-exports.
+    fn package_globals(&self, package_id: PackageId) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+        let mut exported_items = Vec::new();
+        let package = &self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(package_id))
+            .expect("package should exist in the package store")
+            .package;
+        for global in global::iter_package(Some(map_fir_package_to_hir(package_id)), package) {
+            if let global::Kind::Term(term) = global.kind {
+                let store_item_id = fir::StoreItemId {
+                    package: package_id,
+                    item: fir::LocalItemId::from(usize::from(term.id.item)),
+                };
+                exported_items.push((
+                    global.namespace,
+                    global.name,
+                    Value::Global(store_item_id, FunctorApp::default()),
+                ));
+            }
+        }
+        exported_items
+    }
+
+    /// Get the global callables defined in the user source passed into initialization of the interpreter as `Value` instances.
+    pub fn user_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+        self.package_globals(self.source_package)
+    }
+
+    /// Get the global callables defined in the open package being interpreted as `Value` instances, which will include any items
+    /// defined by calls to `eval_fragments` and the like.
+    pub fn source_globals(&self) -> Vec<(Vec<Rc<str>>, Rc<str>, Value)> {
+        self.package_globals(self.package)
+    }
+
+    /// Get the input and output types of a given value representing a global item.
+    /// # Panics
+    /// Panics if the item is not callable or a type that can be invoked as a callable.
+    pub fn global_tys(&self, item_id: &Value) -> Option<(ty::Ty, ty::Ty)> {
+        let Value::Global(item_id, _) = item_id else {
+            panic!("value is not a global callable");
+        };
+        let package_id = map_fir_package_to_hir(item_id.package);
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package_id)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(qsc_hir::hir::LocalItemId::from(usize::from(item_id.item)))?;
+        match &item.kind {
+            qsc_hir::hir::ItemKind::Callable(decl) => {
+                Some((decl.input.ty.clone(), decl.output.clone()))
+            }
+            qsc_hir::hir::ItemKind::Ty(_, udt) => {
+                // We don't handle UDTs, so we return an error type that prevents later code from processing this item.
+                Some((udt.get_pure_ty(), ty::Ty::Err))
+            }
+            _ => panic!("item is not callable"),
+        }
+    }
+
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.quantum_seed = seed;
         self.sim.set_seed(seed);
@@ -465,6 +534,33 @@ impl Interpreter {
             &mut self.sim,
             receiver,
         )
+    }
+
+    /// Invokes the given callable with the given arguments using the current environment, simlator, and compilation.
+    pub fn invoke(
+        &mut self,
+        receiver: &mut impl Receiver,
+        callable: Value,
+        args: Value,
+    ) -> InterpretResult {
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut self.env,
+            &mut self.sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
     }
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
@@ -1033,7 +1129,7 @@ impl<'a> BreakpointCollector<'a> {
             .expect("Couldn't find source file")
     }
 
-    fn add_stmt(&mut self, stmt: &qsc_fir::fir::Stmt) {
+    fn add_stmt(&mut self, stmt: &fir::Stmt) {
         let source: &Source = self.get_source(stmt.span.lo);
         if source.offset == self.offset {
             let span = stmt.span - source.offset;

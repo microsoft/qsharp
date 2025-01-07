@@ -9,14 +9,6 @@
         "ref": "3195043",
         "path": "library/signed"
       }
-    },
-    "Unstable": {
-      "github": {
-        "owner": "Microsoft",
-        "repo": "qsharp",
-        "ref": "3195043",
-        "path": "library/unstable"
-      }
     }
   },
   "files": [

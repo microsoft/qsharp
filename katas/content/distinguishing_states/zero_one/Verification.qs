@@ -1,8 +1,8 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Katas;
+    import Std.Diagnostics.*;
+    import KatasUtils.*;
 
-    operation StatePrep_IsQubitOne (q : Qubit, state : Int) : Unit is Adj {
+    operation StatePrep_IsQubitOne(q : Qubit, state : Int) : Unit is Adj {
         if state == 1 {
             // convert |0⟩ to |1⟩
             X(q);
@@ -15,7 +15,8 @@ namespace Kata.Verification {
             StatePrep_IsQubitOne,
             Kata.IsQubitOne,
             ["|0⟩", "|1⟩"],
-            false);
+            false
+        );
         if isCorrect {
             Message("Correct!");
         } else {

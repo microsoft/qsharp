@@ -13,9 +13,8 @@ export function targetSupportQir(target: string) {
   // Note: Most of these should be dynamic at some point, with configuration coming
   // from the service, and able to be overridden by settings.
   return (
-    target.startsWith("ionq") ||
-    target.startsWith("quantinuum") ||
-    target.startsWith("rigetti")
+    !(target == "microsoft.estimator") &&
+    !(target.startsWith("microsoft") && target.endsWith("cpu"))
   );
 }
 
@@ -28,5 +27,5 @@ export function shouldExcludeProvider(provider: string) {
 }
 
 export function supportsAdaptive(target: string) {
-  return target.startsWith("quantinuum");
+  return !target.startsWith("ionq") && !target.startsWith("rigetti");
 }

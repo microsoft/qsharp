@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Math;
+    import Std.Math.*;
 
     function ComplexConjugate_Reference(x : Complex) : Complex {
         // Return the complex conjugate

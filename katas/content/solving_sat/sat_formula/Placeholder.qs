@@ -1,5 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation Oracle_SATFormula(x : Qubit[], y : Qubit, formula : (Int, Bool)[][]) : Unit is Adj + Ctl {
         // Implement your solution here...
@@ -23,9 +23,9 @@ namespace Kata {
     operation Oracle_Or(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         ApplyControlledOnInt(0, X, x, y);
         X(y);
-    }        
+    }
 
     operation Oracle_And(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         Controlled X(x, y);
-    }        
+    }
 }

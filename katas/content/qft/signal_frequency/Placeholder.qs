@@ -1,9 +1,9 @@
 namespace Kata {
-    open Microsoft.Quantum.Arrays;
+    import Std.Arrays.*;
 
     operation SignalFrequency(qs : Qubit[]) : Int {
         // Implement your solution here...
-        
+
         return -1;
     }
 

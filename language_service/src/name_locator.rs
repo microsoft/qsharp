@@ -5,19 +5,23 @@ use std::mem::replace;
 use std::rc::Rc;
 
 use crate::compilation::Compilation;
-use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::ast::visit::{
+    walk_attr, walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor,
+};
 use qsc::ast::{FieldAccess, Idents, PathKind};
 use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
-#[allow(unused_variables)]
 pub(crate) trait Handler<'package> {
+    fn at_attr_ref(&mut self, name: &'package ast::Ident);
+
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'package>,
         name: &'package ast::Ident,
         decl: &'package ast::CallableDecl,
     );
+
     fn at_callable_ref(
         &mut self,
         path: &'package ast::Path,
@@ -166,6 +170,13 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
 }
 
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
+    fn visit_attr(&mut self, attr: &'package ast::Attr) {
+        if attr.name.span.contains(self.offset) {
+            self.inner.at_attr_ref(&attr.name);
+        }
+        walk_attr(self, attr);
+    }
+
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if namespace.span.contains(self.offset) {
             self.context.current_namespace = namespace.name.full_name();
@@ -177,6 +188,7 @@ impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inne
     fn visit_item(&mut self, item: &'package ast::Item) {
         if item.span.contains(self.offset) {
             let context = replace(&mut self.context.current_item_doc, item.doc.clone());
+            item.attrs.iter().for_each(|a| self.visit_attr(a));
             match &*item.kind {
                 ast::ItemKind::Callable(decl) => {
                     if decl.name.span.touches(self.offset) {

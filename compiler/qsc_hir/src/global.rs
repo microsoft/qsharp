@@ -157,6 +157,17 @@ impl PackageIter<'_> {
                     intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
                 }),
             }),
+            (ItemKind::Callable(decl), None) => Some(Global {
+                namespace: Vec::new(),
+                name: alias.map_or_else(|| Rc::clone(&decl.name.name), |alias| alias.name.clone()),
+                visibility,
+                status,
+                kind: Kind::Term(Term {
+                    id,
+                    scheme: decl.scheme(),
+                    intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
+                }),
+            }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
                     namespace: namespace.into(),
