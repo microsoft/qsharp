@@ -2237,6 +2237,390 @@ async fn test_case_detected() {
     .assert_debug_eq(&test_cases.borrow());
 }
 
+#[tokio::test]
+async fn test_case_removed() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function MyTestCase() : Unit {}",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+                version: None,
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_case_modified() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+        )
+        .await;
+
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            2,
+            "@Test() function MyTestCase2() : Unit { }",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "main.MyTestCase",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 39,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+            TestCallables {
+                callables: [
+                    (
+                        "main.MyTestCase2",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 41,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_annotation_removed() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir("src", [file("main.qs", "@Test() function MyTestCase() : Unit {}")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function MyTestCase() : Unit {}",
+        )
+        .await;
+
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            2,
+            "function MyTestCase() : Unit {}",
+        )
+        .await;
+
+        expect![[r#"
+            [
+                TestCallables {
+                    callables: [
+                        (
+                            "main.MyTestCase",
+                            Location {
+                                source: "parent/src/main.qs",
+                                range: Range {
+                                    start: Position {
+                                        line: 0,
+                                        column: 0,
+                                    },
+                                    end: Position {
+                                        line: 0,
+                                        column: 39,
+                                    },
+                                },
+                            },
+                        ),
+                    ],
+                    version: None,
+                },
+                TestCallables {
+                    callables: [],
+                    version: None,
+                },
+            ]
+        "#]].assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn multiple_tests() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [
+                        file("main.qs", "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update.
+    updater
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "main.Test1",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 34,
+                                },
+                            },
+                        },
+                    ),
+                    (
+                        "main.Test2",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 35,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 69,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
+async fn test_case_in_different_files() {
+    let fs = FsNode::Dir(
+        [dir(
+            "parent",
+            [
+                file("qsharp.json", r#"{}"#),
+                dir(
+                    "src",
+                    [
+                        file("test1.qs", "@Test() function Test1() : Unit {}"),
+                        file("test2.qs", "@Test() function Test2() : Unit {}"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Trigger a document update for the first test file.
+    updater
+        .update_document("parent/src/test1.qs", 1, "@Test() function Test1() : Unit {}")
+        .await;
+
+    // Trigger a document update for the second test file.
+    updater
+        .update_document("parent/src/test2.qs", 1, "@Test() function Test2() : Unit {}")
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "test1.Test1",
+                        Location {
+                            source: "parent/src/test1.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 34,
+                                },
+                            },
+                        },
+                    ),
+                    (
+                        "test2.Test2",
+                        Location {
+                            source: "parent/src/test2.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 34,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+            TestCallables {
+                callables: [
+                    (
+                        "test1.Test1",
+                        Location {
+                            source: "parent/src/test1.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 34,
+                                },
+                            },
+                        },
+                    ),
+                    (
+                        "test2.Test2",
+                        Location {
+                            source: "parent/src/test2.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 34,
+                                },
+                            },
+                        },
+                    ),
+                ],
+                version: None,
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
 type ErrorInfo = (
     String,
     Option<u32>,
