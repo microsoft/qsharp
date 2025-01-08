@@ -175,20 +175,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       sendMessageToPanel({ panelType: "estimates", id: runName }, true, {
         calculating: true,
       });
-
-      // ToDo: Check what effect this is supposed to have
-      // Ensure the name is unique
-      // if (panelTypeToPanel["estimates"].state[runName] !== undefined) {
-      //   let idx = 2;
-      //   for (;;) {
-      //     const newName = `${runName}-${idx}`;
-      //     if (panelTypeToPanel["estimates"].state[newName] === undefined) {
-      //       runName = newName;
-      //       break;
-      //     }
-      //     idx++;
-      //   }
-      // }
       getOrCreatePanel("estimates", runName).state[runName] = true;
 
       // Start the worker, run the code, and send the results to the webview
