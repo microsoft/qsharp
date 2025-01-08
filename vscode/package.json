@@ -507,7 +507,19 @@
       "[qsharp]": {
         "debug.saveBeforeStart": "none"
       }
-    }
+    },
+    "customEditors": [
+      {
+        "viewType": "qsharp-webview.circuit",
+        "displayName": "Quantum Circuit",
+        "selector": [
+          {
+            "filenamePattern": "*.circ"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
   },
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",
