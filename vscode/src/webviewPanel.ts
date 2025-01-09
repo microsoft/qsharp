@@ -172,10 +172,25 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
       log.info("RE params", params);
 
-      sendMessageToPanel({ panelType: "estimates", id: runName }, true, {
+      sendMessageToPanel({ panelType: "estimates", id: "" }, true, {
         calculating: true,
       });
-      getOrCreatePanel("estimates", runName).state[runName] = true;
+
+      let uniqueRunName = runName;
+      const estimatePanel = getOrCreatePanel("estimates", "");
+      // Ensure the name is unique
+      if (estimatePanel.state[uniqueRunName] !== undefined) {
+        let idx = 2;
+        for (;;) {
+          const newName = `${uniqueRunName}-${idx}`;
+          if (estimatePanel.state[newName] === undefined) {
+            uniqueRunName = newName;
+            break;
+          }
+          idx++;
+        }
+      }
+      estimatePanel.state[uniqueRunName] = true;
 
       // Start the worker, run the code, and send the results to the webview
       log.debug("Starting resource estimates worker.");
@@ -228,22 +243,14 @@ export function registerWebViewCommands(context: ExtensionContext) {
           calculating: false,
           estimates,
         };
-        sendMessageToPanel(
-          { panelType: "estimates", id: runName },
-          true,
-          message,
-        );
+        sendMessageToPanel({ panelType: "estimates", id: "" }, true, message);
       } catch (e: any) {
         // Stop the 'calculating' animation
         const message = {
           calculating: false,
           estimates: [],
         };
-        sendMessageToPanel(
-          { panelType: "estimates", id: runName },
-          false,
-          message,
-        );
+        sendMessageToPanel({ panelType: "estimates", id: "" }, false, message);
 
         if (timedOut) {
           // Show a VS Code popup that a timeout occurred
