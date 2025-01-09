@@ -521,7 +521,7 @@ test("test callable discovery", async () => {
   assert(gotTests);
 });
 
-test("test callable discovery", async () => {
+test("multiple test callable discovery", async () => {
   const languageService = getLanguageService();
   let gotTests = false;
   languageService.addEventListener("testCallables", (event) => {

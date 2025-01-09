@@ -8,12 +8,12 @@ import {
   CompilerState,
   ICompilerWorker,
   ILanguageServiceWorker,
-  LanguageServiceEvent,
   QscEventTarget,
   VSDiagnostic,
   log,
   ProgramConfig,
   TargetProfile,
+  LanguageServiceDiagnosticEvent,
 } from "qsharp-lang";
 import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
@@ -296,7 +296,7 @@ export function Editor(props: {
         : [{ lint: "needlessOperation", level: "warn" }],
     });
 
-    function onDiagnostics(evt: LanguageServiceEvent) {
+    function onDiagnostics(evt: LanguageServiceDiagnosticEvent) {
       const diagnostics = evt.detail.diagnostics;
       errMarks.current.checkDiags = diagnostics;
       markErrors();

@@ -9,8 +9,6 @@ import {
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
-  IProgramConfig,
-  ITestDescriptor,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -79,8 +77,6 @@ export interface ICompiler {
     exerciseSources: string[],
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
-
-  getTestCallables(program: ProgramConfig): Promise<ITestDescriptor[]>;
 }
 
 /**
@@ -250,10 +246,6 @@ export class Compiler implements ICompiler {
 
     return success;
   }
-
-  async getTestCallables(program: IProgramConfig): Promise<ITestDescriptor[]> {
-    return this.wasm.get_test_callables(program);
-  }
 }
 
 /**
@@ -337,7 +329,6 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     run: "requestWithProgress",
     runWithPauliNoise: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
-    getTestCallables: "request",
   },
   eventNames: ["DumpMachine", "Matrix", "Message", "Result"],
 };

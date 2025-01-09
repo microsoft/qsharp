@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { ITestDescriptor } from "../../lib/node/qsc_wasm.cjs";
 import type {
   ICodeAction,
   ICodeLens,
@@ -38,7 +39,7 @@ export type LanguageServiceDiagnosticEvent = {
 export type LanguageServiceTestCallablesEvent = {
   type: "testCallables";
   detail: {
-    callables: [string, ILocation][];
+    callables: ITestDescriptor[];
   };
 };
 
@@ -286,7 +287,7 @@ export class QSharpLanguageService implements ILanguageService {
     }
   }
 
-  async onTestCallables(callables: [string, ILocation][]) {
+  async onTestCallables(callables: ITestDescriptor[]) {
     try {
       const event = new Event("testCallables") as LanguageServiceEvent & Event;
       event.detail = {

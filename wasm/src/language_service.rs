@@ -616,6 +616,6 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(typescript_type = "(callables: [string, ILocation][]) => void")]
+    #[wasm_bindgen(typescript_type = "(callables: ITestDescriptor[]) => void")]
     pub type TestCallableCallback;
 }

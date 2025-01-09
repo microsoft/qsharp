@@ -5,7 +5,7 @@ import {
   getCompilerWorker,
   ICompilerWorker,
   ILanguageService,
-  ILocation,
+  ITestDescriptor,
   log,
   ProgramConfig,
 } from "qsharp-lang";
@@ -130,10 +130,9 @@ export function startTestDiscovery(
   );
 
   const testMetadata = new WeakMap<vscode.TestItem, number>();
-
   async function onTestCallables(evt: {
     detail: {
-      callables: [string, ILocation][];
+      callables: ITestDescriptor[];
     };
   }) {
     let currentVersion = 0;
@@ -142,7 +141,7 @@ export function startTestDiscovery(
       break;
     }
 
-    for (const [callableName, location] of evt.detail.callables) {
+    for (const { callableName, location } of evt.detail.callables) {
       const vscLocation = toVsCodeLocation(location);
       const parts = callableName.split(".");
 
