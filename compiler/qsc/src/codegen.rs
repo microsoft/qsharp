@@ -169,7 +169,7 @@ pub mod qir {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
         let (unit, errors) = crate::compile::compile(
-            &*package_store,
+            package_store,
             dependencies,
             sources,
             PackageType::Exe,
@@ -180,7 +180,7 @@ pub mod qir {
             return Err(errors.iter().map(|e| Error::Compile(e.clone())).collect());
         }
         let package_id = package_store.insert(unit);
-        let (fir_store, fir_package_id) = qsc_passes::lower_hir_to_fir(&*package_store, package_id);
+        let (fir_store, fir_package_id) = qsc_passes::lower_hir_to_fir(package_store, package_id);
         let package = fir_store.get(fir_package_id);
         let entry = ProgramEntry {
             exec_graph: package.entry_exec_graph.clone(),

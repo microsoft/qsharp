@@ -180,9 +180,17 @@ export function Editor(props: {
         }
       } catch (e: any) {
         if (timedOut) {
-          props.setQir("timed out");
+          if (props.activeTab === "rir-tab") {
+            props.setRir(["timed out", "timed out"]);
+          } else {
+            props.setQir("timed out");
+          }
         } else {
-          props.setQir(e.toString());
+          if (props.activeTab === "rir-tab") {
+            props.setRir([e.toString(), e.toString()]);
+          } else {
+            props.setQir(e.toString());
+          }
         }
       } finally {
         compiler.terminate();
