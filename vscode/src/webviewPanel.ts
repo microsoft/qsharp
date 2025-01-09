@@ -156,7 +156,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         return;
       }
 
-      const runName = await window.showInputBox({
+      let runName = await window.showInputBox({
         title: "Friendly name for run",
         value: `${program.programConfig.projectName}`,
       });
@@ -176,21 +176,20 @@ export function registerWebViewCommands(context: ExtensionContext) {
         calculating: true,
       });
 
-      let uniqueRunName = runName;
       const estimatePanel = getOrCreatePanel("estimates", "");
       // Ensure the name is unique
-      if (estimatePanel.state[uniqueRunName] !== undefined) {
+      if (estimatePanel.state[runName] !== undefined) {
         let idx = 2;
         for (;;) {
-          const newName = `${uniqueRunName}-${idx}`;
+          const newName = `${runName}-${idx}`;
           if (estimatePanel.state[newName] === undefined) {
-            uniqueRunName = newName;
+            runName = newName;
             break;
           }
           idx++;
         }
       }
-      estimatePanel.state[uniqueRunName] = true;
+      estimatePanel.state[runName] = true;
 
       // Start the worker, run the code, and send the results to the webview
       log.debug("Starting resource estimates worker.");
@@ -419,7 +418,7 @@ const panels: Record<PanelType, { [id: string]: PanelDesc }> = {
 
 const panelTypeToTitle: Record<PanelType, string> = {
   histogram: "Histogram",
-  estimates: "Estimates",
+  estimates: "Q# Estimates",
   circuit: "Circuit",
   help: "Q# Help",
   documentation: "Q# Documentation",
@@ -449,7 +448,9 @@ function createPanel(
         ? "Q# Help"
         : type == "documentation"
           ? "Q# Documentation"
-          : `${id} ${panelTypeToTitle[type]}`;
+          : type == "estimates"
+            ? "Q# Estimates"
+            : `${id} ${panelTypeToTitle[type]}`;
     const newPanel = window.createWebviewPanel(
       QSharpWebViewType,
       title,
