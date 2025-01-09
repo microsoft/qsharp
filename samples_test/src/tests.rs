@@ -20,6 +20,10 @@ use qsc::{
 };
 use qsc_project::{FileSystem, StdFs};
 
+// Two tests are needed to check interpreter working in debug and non-debug mode.
+// This results in two exepected stings defined. Although two strings are typically the same,
+// there may be a difference. Also, having two separate strings helps with
+// automatic updates of expected value by Rust analyzer.
 fn compile_and_run(sources: SourceMap) -> String {
     compile_and_run_internal(sources, false)
 }

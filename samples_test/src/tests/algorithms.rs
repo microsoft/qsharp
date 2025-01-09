@@ -3,9 +3,9 @@
 
 use expect_test::{expect, Expect};
 
-/// Each file in the samples/algorithms folder is compiled and run as two tests and should
-/// have matching expect strings in this file. If new samples are added, this file will
-/// fail to compile until the new expect strings are added.
+// Each file in the samples/algorithms folder is compiled and run as two tests and should
+// have matching expect strings in this file. If new samples are added, this file will
+// fail to compile until the new expect strings are added.
 pub const BELLSTATE_EXPECT: Expect = expect![[r#"
     Bell state |Φ+〉:
     STATE:

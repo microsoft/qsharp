@@ -3,9 +3,9 @@
 
 use expect_test::{expect, Expect};
 
-/// Each file in the samples/language folder is compiled and run as two tests and should
-/// have matching expect strings in this file. If new samples are added, this file will
-/// fail to compile until the new expect strings are added.
+// Each file in the samples/language folder is compiled and run as two tests and should
+// have matching expect strings in this file. If new samples are added, this file will
+// fail to compile until the new expect strings are added.
 pub const ARITHMETICOPERATORS_EXPECT: Expect = expect!["()"];
 pub const ARITHMETICOPERATORS_EXPECT_DEBUG: Expect = expect!["()"];
 pub const ARRAY_EXPECT: Expect = expect![[r#"
