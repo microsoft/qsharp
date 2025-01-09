@@ -34,26 +34,27 @@ operation Main() : Double {
         // Start from these angles for ansatz state preparation
         [1.0, 1.0],
         // Use initial step pi/8 to find minimum
-        PI()/8.0,
+        PI() / 8.0,
         // Stop optimization if step is 0
         0.0,
         // Stop optimization after 100 attempts to improve
-        100)
+        100
+    )
 }
 
 /// # Summary
 /// Find expectation value of a Hamiltonian given parameters for the
 /// ansatz state and number of shots to evaluate each term.
-operation FindHamiltonianExpectationValue(thetas: Double[], shots: Int): Double {
+operation FindHamiltonianExpectationValue(thetas : Double[], shots : Int) : Double {
     let terms = [
-        ([PauliZ,PauliI,PauliI,PauliI], 0.16),
-        ([PauliI,PauliI,PauliZ,PauliI], 0.25),
-        ([PauliZ,PauliZ,PauliI,PauliI], 0.17),
-        ([PauliI,PauliI,PauliZ,PauliZ], 0.45),
-        ([PauliX,PauliX,PauliX,PauliX], 0.2),
-        ([PauliY,PauliY,PauliY,PauliY], 0.1),
-        ([PauliY,PauliX,PauliX,PauliY], 0.02),
-        ([PauliX,PauliY,PauliY,PauliX], 0.22),
+        ([PauliZ, PauliI, PauliI, PauliI], 0.16),
+        ([PauliI, PauliI, PauliZ, PauliI], 0.25),
+        ([PauliZ, PauliZ, PauliI, PauliI], 0.17),
+        ([PauliI, PauliI, PauliZ, PauliZ], 0.45),
+        ([PauliX, PauliX, PauliX, PauliX], 0.2),
+        ([PauliY, PauliY, PauliY, PauliY], 0.1),
+        ([PauliY, PauliX, PauliX, PauliY], 0.02),
+        ([PauliX, PauliY, PauliY, PauliX], 0.22),
     ];
     mutable value = 0.0;
     for (basis, coefficient) in terms {
@@ -66,9 +67,10 @@ operation FindHamiltonianExpectationValue(thetas: Double[], shots: Int): Double 
 /// Find expectation value of a Hamiltonian term given parameters for the
 /// ansatz state, measurement basis and number of shots to evaluate each term.
 operation FindTermExpectationValue(
-    thetas: Double[],
-    pauliBasis: Pauli[],
-    shots: Int): Double {
+    thetas : Double[],
+    pauliBasis : Pauli[],
+    shots : Int
+) : Double {
 
     mutable zeroCount = 0;
     for _ in 1..shots {
@@ -84,7 +86,7 @@ operation FindTermExpectationValue(
 
 /// # Summary
 /// Prepare the ansatz state for given parameters on a qubit register
-operation PrepareAnsatzState(qs: Qubit[], thetas: Double[]): Unit {
+operation PrepareAnsatzState(qs : Qubit[], thetas : Double[]) : Unit {
     BosonicExitationTerm(thetas[0], qs[0], qs[2]);
     CNOT(qs[0], qs[1]);
     NonBosonicExitataionTerm(thetas[1], qs[0], qs[1], qs[2], qs[3]);
@@ -93,9 +95,10 @@ operation PrepareAnsatzState(qs: Qubit[], thetas: Double[]): Unit {
 /// # Summary
 /// Bosonic exitation circuit
 operation BosonicExitationTerm(
-    theta: Double,
-    moX: Qubit,
-    moY: Qubit): Unit {
+    theta : Double,
+    moX : Qubit,
+    moY : Qubit
+) : Unit {
 
     Adjoint S(moX);
     Rxx(theta, moX, moY);
@@ -108,11 +111,12 @@ operation BosonicExitationTerm(
 /// # Summary
 /// Non-bosonic exitation circuit
 operation NonBosonicExitataionTerm(
-    theta: Double,
+    theta : Double,
     moXsoX : Qubit,
     moXsoY : Qubit,
     moYsoX : Qubit,
-    moYsoY : Qubit) : Unit {
+    moYsoY : Qubit
+) : Unit {
 
     Adjoint S(moXsoX);
     within {
@@ -146,11 +150,12 @@ operation NonBosonicExitataionTerm(
 /// Tries to takes steps in all directions and proceeds if the new point is better.
 /// If no moves result in function value improvement the step size is halved.
 operation SimpleDescent(
-    f: Double[] => Double,
-    initialPoint: Double[],
-    initialStep: Double,
-    minimalStep: Double,
-    attemptLimit: Int) : Double {
+    f : Double[] => Double,
+    initialPoint : Double[],
+    initialStep : Double,
+    minimalStep : Double,
+    attemptLimit : Int
+) : Double {
     Fact(not IsEmpty(initialPoint), "Argument array must contain elements.");
     Fact(initialStep > 0.0, "Initial step must be positive.");
     Fact(minimalStep >= 0.0, "Minimal step must be non-negative.");
