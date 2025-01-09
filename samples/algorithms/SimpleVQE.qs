@@ -1,18 +1,94 @@
 /// # Sample
-/// A part of ansatz circuit used in water molecule simulation
-/// This sample is suitable for adaptive profile.
+/// Simplified Sample of a Variational Quantum Eigensolver
 ///
 /// # Description
-/// This is an example of the quantum part of a Variational Quantum Eigensolver (VQE) method.
-/// This example shows one variant of ansatz circuit used in a water molecule simulation
-/// in the referenced paper. To keep this sample suitable for adaptive profile,
-/// random angles are used and optimization part is omitted.
+/// This is an example of a Variational Quantum Eigensolver (VQE).
+/// This example includes:
+///   1. Simple classical optimization to find minimum of a multi-variable function
+///      in order to find the approximation to the minimum eigenvalue of a hamiltonian
+///   2. Finding Hamiltonian expectation value as a weighted sum of terms.
+///   3. Finding one term expectation value by performing multiple shots.
+///   4. Ansatz state preparation similar to the circuit in the referenced paper.
+/// To keep this sample simple hamiltonian terms are randomly selected.
 ///
 /// # Reference
 /// Ground-state energy estimation of the water molecule on a trapped ion quantum
 /// computer by Yunseong Nam et al., 2019. https://arxiv.org/abs/1902.10171
 
+import Std.Arrays.IsEmpty;
+import Std.Arrays.IndexRange;
+import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
+import Std.Math.AbsD;
+import Std.Math.PI;
+
+/// # Summary
+/// Find the approximation to the minimum eigenvalue of a Hamiltonian by applying VQE
+operation Main() : Double {
+
+    // Find the approximation to the minimum eigenvalue of a Hamiltonian
+    // by varying ansatz parameters to minimize its expectation value.
+    SimpleDescent(
+        // Use 1000 shots when estimating hamiltonian terms
+        FindHamiltonianExpectationValue(_, 1000),
+        // Start from these angles for ansatz state preparation
+        [1.0, 1.0],
+        // Use initial step pi/8 to find minimum
+        PI()/8.0,
+        // Stop optimization if step is 0
+        0.0,
+        // Stop optimization after 100 attempts to improve
+        100)
+}
+
+/// # Summary
+/// Find expectation value of a Hamiltonian given parameters for the
+/// ansatz state and number of shots to evaluate each term.
+operation FindHamiltonianExpectationValue(thetas: Double[], shots: Int): Double {
+    let terms = [
+        ([PauliZ,PauliI,PauliI,PauliI], 0.16),
+        ([PauliI,PauliI,PauliZ,PauliI], 0.25),
+        ([PauliZ,PauliZ,PauliI,PauliI], 0.17),
+        ([PauliI,PauliI,PauliZ,PauliZ], 0.45),
+        ([PauliX,PauliX,PauliX,PauliX], 0.2),
+        ([PauliY,PauliY,PauliY,PauliY], 0.1),
+        ([PauliY,PauliX,PauliX,PauliY], 0.02),
+        ([PauliX,PauliY,PauliY,PauliX], 0.22),
+    ];
+    mutable value = 0.0;
+    for (basis, coefficient) in terms {
+        value += coefficient * FindTermExpectationValue(thetas, basis, shots);
+    }
+    value
+}
+
+/// # Summary
+/// Find expectation value of a Hamiltonian term given parameters for the
+/// ansatz state, measurement basis and number of shots to evaluate each term.
+operation FindTermExpectationValue(
+    thetas: Double[],
+    pauliBasis: Pauli[],
+    shots: Int): Double {
+
+    mutable zeroCount = 0;
+    for _ in 1..shots {
+        use qs = Qubit[4];
+        PrepareAnsatzState(qs, thetas);
+        if Measure(pauliBasis, qs) == Zero {
+            zeroCount += 1;
+        }
+        ResetAll(qs);
+    }
+    IntAsDouble(zeroCount) / IntAsDouble(shots)
+}
+
+/// # Summary
+/// Prepare the ansatz state for given parameters on a qubit register
+operation PrepareAnsatzState(qs: Qubit[], thetas: Double[]): Unit {
+    BosonicExitationTerm(thetas[0], qs[0], qs[2]);
+    CNOT(qs[0], qs[1]);
+    NonBosonicExitataionTerm(thetas[1], qs[0], qs[1], qs[2], qs[3]);
+}
 
 /// # Summary
 /// Bosonic exitation circuit
@@ -66,68 +142,54 @@ operation NonBosonicExitataionTerm(
 }
 
 /// # Summary
-/// Prepare state containing both bosonic and non-bosinic interactions
-/// And measure the result in PauliZ basis.
-operation PrepareAndMeasureAnsatzInZ(
-    thetasMo: Double[],
-    thetasSo: Double[]) : Result[] {
+/// Simple classical optimizer. A descent to a local minimum of function `f`.
+/// Tries to takes steps in all directions and proceeds if the new point is better.
+/// If no moves result in function value improvement the step size is halved.
+operation SimpleDescent(
+    f: Double[] => Double,
+    initialPoint: Double[],
+    initialStep: Double,
+    minimalStep: Double,
+    attemptLimit: Int) : Double {
+    Fact(not IsEmpty(initialPoint), "Argument array must contain elements.");
+    Fact(initialStep > 0.0, "Initial step must be positive.");
+    Fact(minimalStep >= 0.0, "Minimal step must be non-negative.");
 
-    Fact(Length(thetasMo) == 4, "Length of thetasMo should be 4.");
-    Fact(Length(thetasSo) == 4, "Length of thetasSo should be 4.");
+    mutable bestPoint = initialPoint;
+    mutable bestValue = f(bestPoint);
+    mutable currentStep = initialStep;
+    mutable currentAttempt = 0;
 
-    use mo = Qubit[4];
+    Message($"Beginning descent from value {bestValue}.");
 
-    BosonicExitationTerm(thetasMo[0], mo[0], mo[1]);
-    BosonicExitationTerm(thetasMo[1], mo[2], mo[3]);
-    BosonicExitationTerm(thetasMo[2], mo[0], mo[3]);
-    BosonicExitationTerm(thetasMo[3], mo[1], mo[2]);
+    while (currentAttempt < attemptLimit) and (currentStep > minimalStep) {
+        mutable hadImprovement = false;
+        for i in IndexRange(initialPoint) {
+            let nextPoint = bestPoint w/ i <- bestPoint[i] + currentStep;
+            let nextValue = f(nextPoint);
+            currentAttempt = currentAttempt + 1;
+            if nextValue < bestValue {
+                hadImprovement = true;
+                bestValue = nextValue;
+                bestPoint = nextPoint;
+                Message($"Value improved to {bestValue}.");
+            }
 
-    use so = Qubit[4];
-    CNOT(mo[0], so[0]);
-    CNOT(mo[1], so[1]);
-    CNOT(mo[2], so[2]);
-    CNOT(mo[3], so[3]);
+            let nextPoint = bestPoint w/ i <- bestPoint[i] - currentStep;
+            let nextValue = f(nextPoint);
+            currentAttempt = currentAttempt + 1;
+            if nextValue < bestValue {
+                hadImprovement = true;
+                bestValue = nextValue;
+                bestPoint = nextPoint;
+                Message($"Value improved to {bestValue}.");
+            }
+        }
 
-    NonBosonicExitataionTerm(thetasSo[0], mo[0], so[0], mo[1], so[1]);
-    NonBosonicExitataionTerm(thetasSo[1], mo[2], so[2], mo[3], so[3]);
-    NonBosonicExitataionTerm(thetasSo[2], mo[1], so[1], mo[2], so[2]);
-    NonBosonicExitataionTerm(thetasSo[3], mo[0], so[0], mo[3], so[3]);
-
-    MResetEachZ(mo+so)
-}
-
-/// # Summary
-/// Count number of zeroes when performing measurements
-/// on a state determined by some predefined angles.
-operation FindZeroFrequencies(shots: Int): Int[] {
-    let thetasMo = [0.5, 0.5, 0.5, 0.5];
-    let thetasSo = [0.3, 0.3, 0.3, 0.3];
-    mutable c0 = 0;
-    mutable c1 = 0;
-    mutable c2 = 0;
-    mutable c3 = 0;
-    mutable c4 = 0;
-    mutable c5 = 0;
-    mutable c6 = 0;
-    mutable c7 = 0;
-    for _ in 1..shots {
-        let results = PrepareAndMeasureAnsatzInZ(thetasMo, thetasSo);
-        set c0 = c0 + if results[0] == Zero {1} else {0};
-        set c1 = c1 + if results[1] == Zero {1} else {0};
-        set c2 = c2 + if results[2] == Zero {1} else {0};
-        set c3 = c3 + if results[3] == Zero {1} else {0};
-        set c4 = c4 + if results[4] == Zero {1} else {0};
-        set c5 = c4 + if results[5] == Zero {1} else {0};
-        set c6 = c4 + if results[6] == Zero {1} else {0};
-        set c7 = c4 + if results[7] == Zero {1} else {0};
+        if not hadImprovement {
+            currentStep = currentStep / 2.0;
+        }
     }
-    [c0, c1, c2, c3, c4, c5, c6, c7]
-}
-
-/// # Summary
-/// Prepare one ansatz state and perform measurements multiple times
-/// In actual VQE state parameters will be varied based on measurement
-/// results.
-operation Main() : Int[] {
-    FindZeroFrequencies(1000)
+    Message($"Descent done. Attempts: {currentAttempt}, Step: {currentStep}, Arguments: {bestPoint}, Value: {bestValue}.");
+    bestValue
 }
