@@ -72,11 +72,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   });
 
   eventTarget.addEventListener("Result", (evt) => {
-    if (evt.detail.success) {
-      out(`${evt.detail.value}`);
-    } else {
-      out(`${evt.detail.value.message}`);
-    }
+    out(`${evt.detail.value}`);
   });
 
   return eventTarget;
