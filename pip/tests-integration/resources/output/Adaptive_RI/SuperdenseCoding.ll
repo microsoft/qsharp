@@ -10,13 +10,13 @@ block_0:
   %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))
   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
-  %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 1 to %Result*))
+  %var_4 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 1 to %Result*))
   br i1 %var_0, label %block_1, label %block_2
 block_1:
   call void @__quantum__qis__z__body(%Qubit* inttoptr (i64 0 to %Qubit*))
   br label %block_2
 block_2:
-  br i1 %var_2, label %block_3, label %block_4
+  br i1 %var_4, label %block_3, label %block_4
 block_3:
   call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
   br label %block_4
@@ -26,22 +26,22 @@ block_4:
   call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))
   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*))
-  %var_5 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 2 to %Result*))
+  %var_9 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 2 to %Result*))
   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))
   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Qubit* inttoptr (i64 0 to %Qubit*))
   call void @__quantum__qis__cz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
   call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))
   call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 3 to %Result*))
-  %var_8 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 3 to %Result*))
+  %var_13 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 3 to %Result*))
   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
   call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
   call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
   call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
   call void @__quantum__rt__bool_record_output(i1 %var_0, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_2, i8* null)
+  call void @__quantum__rt__bool_record_output(i1 %var_4, i8* null)
   call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_5, i8* null)
-  call void @__quantum__rt__bool_record_output(i1 %var_8, i8* null)
+  call void @__quantum__rt__bool_record_output(i1 %var_9, i8* null)
+  call void @__quantum__rt__bool_record_output(i1 %var_13, i8* null)
   ret void
 }
 

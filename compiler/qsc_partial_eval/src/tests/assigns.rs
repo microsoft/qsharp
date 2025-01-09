@@ -191,7 +191,8 @@ fn assigning_dynamic_bool_updates_value_and_adds_store_instructions() {
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Variable(0, Boolean) = Store Variable(2, Boolean)
-                Call id(3), args( Variable(0, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Variable(0, Boolean)
+                Call id(3), args( Variable(3, Boolean), Pointer, )
                 Return"#]],
     );
 }
@@ -301,7 +302,8 @@ fn assigning_dynamic_int_updates_value_and_adds_store_instructions() {
                 Branch Variable(2, Boolean), 2, 3
             Block 1:Block:
                 Variable(0, Integer) = Store Variable(3, Integer)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(4, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(4, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(3, Integer) = Store Integer(1)
@@ -379,7 +381,8 @@ fn assigning_classical_bool_within_dynamic_if_expression_adds_store_instruction(
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
-                Call id(3), args( Variable(0, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Variable(0, Boolean)
+                Call id(3), args( Variable(3, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Variable(0, Boolean) = Store Bool(true)
@@ -456,7 +459,8 @@ fn assigning_classical_int_within_dynamic_if_else_expression_adds_store_instruct
                 Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(false)
                 Branch Variable(2, Boolean), 2, 3
             Block 1:Block:
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(3, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(3, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(0, Integer) = Store Integer(1)
@@ -1210,9 +1214,11 @@ fn logical_and_assign_with_lhs_classical_true_is_optimized_as_store() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Variable(2, Boolean) = Store Bool(true)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Bool(true)
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Variable(4, Boolean) = Store Variable(3, Boolean)
+                Call id(3), args( Variable(4, Boolean), Pointer, )
                 Return"#]],
     );
 }
@@ -1282,8 +1288,9 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Variable(2, Boolean) = Store Bool(false)
-                Variable(2, Boolean) = Store Bool(false)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Variable(3, Boolean) = Store Bool(false)
+                Variable(3, Boolean) = Store Bool(false)
                 Call id(3), args( Bool(false), Pointer, )
                 Return"#]],
     );
@@ -1358,7 +1365,8 @@ fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_i
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
                 Variable(2, Boolean) = Store Variable(3, Boolean)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Variable(6, Boolean) = Store Variable(2, Boolean)
+                Call id(3), args( Variable(6, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Call id(1), args( Qubit(0), Result(1), )
@@ -1434,8 +1442,9 @@ fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Variable(2, Boolean) = Store Bool(true)
-                Variable(2, Boolean) = Store Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Variable(3, Boolean) = Store Bool(true)
+                Variable(3, Boolean) = Store Bool(true)
                 Call id(3), args( Bool(true), Pointer, )
                 Return"#]],
     );
@@ -1506,9 +1515,11 @@ fn logical_or_assign_with_lhs_classical_false_is_optimized_as_store() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
-                Variable(2, Boolean) = Store Bool(false)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Variable(3, Boolean) = Store Bool(false)
+                Variable(3, Boolean) = Store Variable(2, Boolean)
+                Variable(4, Boolean) = Store Variable(3, Boolean)
+                Call id(3), args( Variable(4, Boolean), Pointer, )
                 Return"#]],
     );
 }
@@ -1582,7 +1593,8 @@ fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_short_circuits_when_rhs_is
                 Branch Variable(2, Boolean), 1, 2
             Block 1:Block:
                 Variable(2, Boolean) = Store Variable(3, Boolean)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Variable(6, Boolean) = Store Variable(2, Boolean)
+                Call id(3), args( Variable(6, Boolean), Pointer, )
                 Return
             Block 2:Block:
                 Call id(1), args( Qubit(0), Result(1), )
@@ -1662,7 +1674,8 @@ fn integer_assign_add_with_lhs_classical_integer_and_rhs_dynamic_integer() {
             Block 1:Block:
                 Variable(4, Integer) = Add Integer(0), Variable(3, Integer)
                 Variable(0, Integer) = Store Variable(4, Integer)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(5, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(3, Integer) = Store Integer(0)
@@ -1732,24 +1745,25 @@ fn integer_assign_sub_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Variable(3, Integer) = Store Variable(2, Integer)
-            Variable(4, Integer) = Sub Variable(3, Integer), Integer(1)
-            Variable(3, Integer) = Store Variable(4, Integer)
-            Call id(3), args( Variable(3, Integer), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(2, Integer) = Store Integer(0)
-            Jump(1)
-        Block 3:Block:
-            Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Variable(4, Integer) = Sub Variable(3, Integer), Integer(1)
+                Variable(3, Integer) = Store Variable(4, Integer)
+                Variable(5, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
     );
 }
 
@@ -1812,35 +1826,36 @@ fn integer_assign_mul_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Variable(3, Integer) = Store Variable(2, Integer)
-            Call id(1), args( Qubit(0), Result(1), )
-            Variable(4, Boolean) = Call id(2), args( Result(1), )
-            Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false)
-            Branch Variable(5, Boolean), 5, 6
-        Block 2:Block:
-            Variable(2, Integer) = Store Integer(0)
-            Jump(1)
-        Block 3:Block:
-            Variable(2, Integer) = Store Integer(1)
-            Jump(1)
-        Block 4:Block:
-            Variable(7, Integer) = Mul Variable(3, Integer), Variable(6, Integer)
-            Variable(3, Integer) = Store Variable(7, Integer)
-            Call id(3), args( Variable(3, Integer), Pointer, )
-            Return
-        Block 5:Block:
-            Variable(6, Integer) = Store Integer(1)
-            Jump(4)
-        Block 6:Block:
-            Variable(6, Integer) = Store Integer(0)
-            Jump(4)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(4, Boolean) = Call id(2), args( Result(1), )
+                Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(false)
+                Branch Variable(5, Boolean), 5, 6
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)
+            Block 4:Block:
+                Variable(7, Integer) = Mul Variable(3, Integer), Variable(6, Integer)
+                Variable(3, Integer) = Store Variable(7, Integer)
+                Variable(8, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(8, Integer), Pointer, )
+                Return
+            Block 5:Block:
+                Variable(6, Integer) = Store Integer(1)
+                Jump(4)
+            Block 6:Block:
+                Variable(6, Integer) = Store Integer(0)
+                Jump(4)"#]],
     );
 }
 
@@ -1913,7 +1928,8 @@ fn integer_assign_div_with_lhs_classical_integer_and_rhs_dynamic_integer() {
             Block 1:Block:
                 Variable(4, Integer) = Sdiv Integer(0), Variable(3, Integer)
                 Variable(0, Integer) = Store Variable(4, Integer)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(5, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(3, Integer) = Store Integer(0)
@@ -1983,24 +1999,25 @@ fn integer_assign_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Variable(3, Integer) = Store Variable(2, Integer)
-            Variable(4, Integer) = Srem Variable(3, Integer), Integer(1)
-            Variable(3, Integer) = Store Variable(4, Integer)
-            Call id(3), args( Variable(3, Integer), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(2, Integer) = Store Integer(0)
-            Jump(1)
-        Block 3:Block:
-            Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Variable(4, Integer) = Srem Variable(3, Integer), Integer(1)
+                Variable(3, Integer) = Store Variable(4, Integer)
+                Variable(5, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
     );
 }
 
@@ -2119,7 +2136,8 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_zero_integer() 
                 Variable(3, Integer) = Store Variable(2, Integer)
                 Variable(4, Integer) = Store Integer(1)
                 Variable(3, Integer) = Store Variable(4, Integer)
-                Call id(3), args( Variable(3, Integer), Pointer, )
+                Variable(5, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(2, Integer) = Store Integer(0)
@@ -2202,7 +2220,8 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_positive_intege
                 Variable(6, Integer) = Mul Variable(5, Integer), Variable(3, Integer)
                 Variable(7, Integer) = Mul Variable(6, Integer), Variable(3, Integer)
                 Variable(3, Integer) = Store Variable(7, Integer)
-                Call id(3), args( Variable(3, Integer), Pointer, )
+                Variable(8, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(8, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(2, Integer) = Store Integer(0)
@@ -2316,7 +2335,8 @@ fn integer_assign_bitwise_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer()
             Block 4:Block:
                 Variable(7, Integer) = BitwiseAnd Variable(3, Integer), Variable(6, Integer)
                 Variable(3, Integer) = Store Variable(7, Integer)
-                Call id(3), args( Variable(3, Integer), Pointer, )
+                Variable(8, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(8, Integer), Pointer, )
                 Return
             Block 5:Block:
                 Variable(6, Integer) = Store Integer(1)
@@ -2396,7 +2416,8 @@ fn integer_assign_bitwise_or_with_lhs_classical_integer_and_rhs_dynamic_integer(
             Block 1:Block:
                 Variable(4, Integer) = BitwiseOr Integer(0), Variable(3, Integer)
                 Variable(0, Integer) = Store Variable(4, Integer)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(5, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(3, Integer) = Store Integer(0)
@@ -2466,24 +2487,25 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Variable(3, Integer) = Store Variable(2, Integer)
-            Variable(4, Integer) = BitwiseXor Variable(3, Integer), Integer(1)
-            Variable(3, Integer) = Store Variable(4, Integer)
-            Call id(3), args( Variable(3, Integer), Pointer, )
-            Return
-        Block 2:Block:
-            Variable(2, Integer) = Store Integer(0)
-            Jump(1)
-        Block 3:Block:
-            Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
+                Variable(4, Integer) = BitwiseXor Variable(3, Integer), Integer(1)
+                Variable(3, Integer) = Store Variable(4, Integer)
+                Variable(5, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
     );
 }
 
@@ -2567,7 +2589,8 @@ fn integer_assign_bitwise_left_shift_with_lhs_dynamic_integer_and_rhs_dynamic_in
             Block 4:Block:
                 Variable(7, Integer) = Shl Variable(3, Integer), Variable(6, Integer)
                 Variable(3, Integer) = Store Variable(7, Integer)
-                Call id(3), args( Variable(3, Integer), Pointer, )
+                Variable(8, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(8, Integer), Pointer, )
                 Return
             Block 5:Block:
                 Variable(6, Integer) = Store Integer(1)
@@ -2647,7 +2670,8 @@ fn integer_assign_bitwise_right_shift_with_lhs_classical_integer_and_rhs_dynamic
             Block 1:Block:
                 Variable(4, Integer) = Ashr Integer(0), Variable(3, Integer)
                 Variable(0, Integer) = Store Variable(4, Integer)
-                Call id(3), args( Variable(0, Integer), Pointer, )
+                Variable(5, Integer) = Store Variable(0, Integer)
+                Call id(3), args( Variable(5, Integer), Pointer, )
                 Return
             Block 2:Block:
                 Variable(3, Integer) = Store Integer(0)
