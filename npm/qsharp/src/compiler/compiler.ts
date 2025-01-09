@@ -45,6 +45,8 @@ export interface ICompiler {
     profile?: TargetProfile,
   ): Promise<string>;
 
+  getRir(program: ProgramConfig): Promise<string[]>;
+
   run(
     program: ProgramConfig,
     expr: string,
@@ -160,6 +162,14 @@ export class Compiler implements ICompiler {
       languageFeatures ?? [],
       profile ?? "adaptive_ri",
     );
+  }
+
+  async getRir(program: ProgramConfig): Promise<string[]> {
+    const config = toWasmProgramConfig(
+      program,
+      program.profile || "adaptive_ri",
+    );
+    return this.wasm.get_rir(config);
   }
 
   async run(
@@ -319,6 +329,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     checkCode: "request",
     getAst: "request",
     getHir: "request",
+    getRir: "request",
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",

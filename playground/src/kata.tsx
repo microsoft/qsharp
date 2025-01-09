@@ -113,6 +113,7 @@ function LessonElem(props: Props & { section: KataSection }) {
                     profile={getProfile()}
                     setAst={() => ({})}
                     setHir={() => ({})}
+                    setRir={() => ({})}
                     setQir={() => ({})}
                     activeTab="results-tab"
                     languageService={props.languageService}
@@ -124,6 +125,7 @@ function LessonElem(props: Props & { section: KataSection }) {
                     onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
                     ast=""
                     hir=""
+                    rir={["", ""]}
                     qir=""
                     activeTab="results-tab"
                     setActiveTab={() => undefined}
@@ -176,6 +178,7 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           profile={getProfile()}
           setAst={() => ({})}
           setHir={() => ({})}
+          setRir={() => ({})}
           setQir={() => ({})}
           activeTab="results-tab"
           languageService={props.languageService}
@@ -187,6 +190,7 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
           ast=""
           hir=""
+          rir={["", ""]}
           qir=""
           activeTab="results-tab"
           setActiveTab={() => undefined}
