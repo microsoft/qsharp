@@ -30,7 +30,7 @@ operation Main() : Double {
     // by varying ansatz parameters to minimize its expectation value.
     SimpleDescent(
         // Use 1000 shots when estimating hamiltonian terms
-        FindHamiltonianExpectationValue(_, 1000),
+        FindHamiltonianExpectationValue(_, 100),
         // Start from these angles for ansatz state preparation
         [1.0, 1.0],
         // Use initial step pi/8 to find minimum
