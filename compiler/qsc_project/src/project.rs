@@ -8,6 +8,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
+use qsc_circuit::circ_to_qsharp::str_test;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
@@ -243,8 +244,11 @@ pub trait FileSystemAsync {
             })?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
+            let extension = item.entry_extension();
             match item.entry_type() {
-                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item.path()),
+                Ok(EntryType::File) if extension == "qs" || extension == "circ" => {
+                    files.push(item.path())
+                }
                 Ok(EntryType::Folder) => {
                     files.append(&mut self.collect_project_sources_inner(&item.path()).await?);
                 }
@@ -419,22 +423,29 @@ pub trait FileSystemAsync {
         // all the found files in the package sources. This way compilation
         // can continue as the user probably intended, without compounding errors.
 
-        let mut all_qs_files = self.collect_project_sources(directory).await?;
+        let mut all_project_files = self.collect_project_sources(directory).await?;
 
         let mut listed_files = self
             .collect_sources_from_files_field(directory, &manifest)
             .await?;
 
         if !listed_files.is_empty() {
-            Self::validate_files_list(directory, &mut all_qs_files, &mut listed_files, errors);
+            Self::validate_files_list(directory, &mut all_project_files, &mut listed_files, errors);
         }
 
-        let mut sources = Vec::with_capacity(all_qs_files.len());
-        for path in all_qs_files {
-            sources.push(self.read_file(&path).await.map_err(|e| Error::FileSystem {
-                about_path: path.to_string_lossy().to_string(),
-                error: e.to_string(),
-            })?);
+        let mut sources = Vec::with_capacity(all_project_files.len());
+        for path in all_project_files {
+            let (name, mut contents) =
+                self.read_file(&path).await.map_err(|e| Error::FileSystem {
+                    about_path: path.to_string_lossy().to_string(),
+                    error: e.to_string(),
+                })?;
+            if let Some(ext) = path.extension() {
+                if ext == "circ" {
+                    contents = Arc::from(str_test(contents.to_string()));
+                }
+            }
+            sources.push((name, contents));
         }
 
         let mut dependencies = FxHashMap::default();

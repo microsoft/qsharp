@@ -5,6 +5,35 @@ use super::*;
 use expect_test::expect;
 
 #[test]
+fn deserialize_circuit() {
+    let contents = r#"
+{
+  "operations": [
+    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
+    { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] },
+    {
+      "gate": "X",
+      "isControlled": true,
+      "controls": [{ "qId": 0, "type": 0 }],
+      "targets": [{ "qId": 1, "type": 0 }]
+    }
+  ],
+  "qubits": [
+    { "id": 0, "numChildren": 0 },
+    { "id": 1, "numChildren": 0 }
+  ]
+}"#;
+
+    let c = serde_json::from_str::<Circuit>(contents).unwrap();
+
+    expect![[r#"
+        q_0    ── H ──── Z ──── ● ──
+        q_1    ── X ─────────── X ──
+    "#]].assert_eq(&c.to_string());
+}
+
+#[test]
 fn empty() {
     let c = Circuit {
         operations: vec![],
