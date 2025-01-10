@@ -33,6 +33,7 @@ export async function getQirForActiveWindow(
   const config = program.programConfig;
   const targetProfile = config.profile;
   const is_unrestricted = targetProfile === "unrestricted";
+  const is_unsupported_adaptive = targetProfile === "adaptive_rif";
   const is_base = targetProfile === "base";
 
   // We differentiate between submission to Azure and on-demand QIR codegen by checking
@@ -50,7 +51,11 @@ export async function getQirForActiveWindow(
   }
 
   // Check that the current target is base or adaptive_ri profile, and current doc has no errors.
-  if (is_unrestricted || (!is_base && supports_adaptive === false)) {
+  if (
+    is_unrestricted ||
+    (!is_base && supports_adaptive === false) ||
+    is_unsupported_adaptive
+  ) {
     const result = await vscode.window.showWarningMessage(
       // if supports_adaptive is undefined, use the generic codegen message
       error_msg,
