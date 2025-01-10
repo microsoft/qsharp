@@ -48,7 +48,7 @@ function RunAllTestCases<'T : Eq + Show>(test_cases : (String, () -> 'T, 'T)[]) 
 }
 
 /// # Summary
-/// Given a function to test and an array of test cases of the form (input, expected_output), and a test mode, runs the test cases and returns the result of the test mode.
+/// Given a function to test, an array of test cases of the form (input, expected_output), and a test mode, runs the test cases and returns the result of the test mode.
 ///
 /// # Inputs
 /// - `test_suite_name` : A string representing the name of the test suite.
