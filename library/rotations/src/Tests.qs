@@ -6,11 +6,7 @@ import Std.Math.HammingWeightI, Std.Math.PI;
 
 import HammingWeightPhasing.HammingWeightPhasing, HammingWeightPhasing.WithHammingWeight;
 
-operation Main() : Unit {
-    TestHammingWeight();
-    TestPhasing();
-}
-
+@Test()
 operation TestHammingWeight() : Unit {
     // exhaustive
     use qs = Qubit[4];
@@ -41,6 +37,7 @@ operation TestHammingWeight() : Unit {
     }
 }
 
+@Test()
 operation TestPhasing() : Unit {
     for theta in [1.0, 2.0, 0.0, -0.5, 5.0 * PI()] {
         for numQubits in 1..6 {

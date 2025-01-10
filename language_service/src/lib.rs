@@ -26,7 +26,7 @@ use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
     CodeAction, CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
-    TextEdit, WorkspaceConfigurationUpdate,
+    TestCallables, TextEdit, WorkspaceConfigurationUpdate,
 };
 use qsc::{
     line_column::{Encoding, Position, Range},
@@ -67,6 +67,9 @@ impl LanguageService {
     pub fn create_update_worker<'a>(
         &mut self,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        // Callback which receives detected test callables and does something with them
+        // in the case of VS Code, updates the test explorer with them
+        test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
     ) -> UpdateWorker<'a> {
         assert!(self.state_updater.is_none());
@@ -75,6 +78,7 @@ impl LanguageService {
             updater: CompilationStateUpdater::new(
                 self.state.clone(),
                 diagnostics_receiver,
+                test_callable_receiver,
                 project_host,
             ),
             recv,

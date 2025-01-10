@@ -37,14 +37,24 @@ import { registerQSharpNotebookCellUpdateHandlers } from "./notebook.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
+import { startTestDiscovery } from "./testExplorer.js";
 
-export async function activateLanguageService(extensionUri: vscode.Uri) {
+/**
+ * Returns all of the subscriptions that should be registered for the language service.
+ */
+export async function activateLanguageService(
+  context: vscode.ExtensionContext,
+): Promise<vscode.Disposable[]> {
+  const extensionUri = context.extensionUri;
   const subscriptions: vscode.Disposable[] = [];
 
   const languageService = await loadLanguageService(extensionUri);
 
   // diagnostics
   subscriptions.push(...startLanguageServiceDiagnostics(languageService));
+
+  // test explorer
+  subscriptions.push(...startTestDiscovery(languageService, context));
 
   // synchronize document contents
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
@@ -147,7 +157,9 @@ export async function activateLanguageService(extensionUri: vscode.Uri) {
   return subscriptions;
 }
 
-async function loadLanguageService(baseUri: vscode.Uri) {
+async function loadLanguageService(
+  baseUri: vscode.Uri,
+): Promise<ILanguageService> {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
   const wasmBytes = await vscode.workspace.fs.readFile(wasmUri);
@@ -168,7 +180,14 @@ async function loadLanguageService(baseUri: vscode.Uri) {
   );
   return languageService;
 }
-function registerDocumentUpdateHandlers(languageService: ILanguageService) {
+
+/**
+ * This function returns all of the subscriptions that should be registered for the language service.
+ * Additionally, if an `eventEmitter` is passed in, will fire an event when a document is updated.
+ */
+function registerDocumentUpdateHandlers(
+  languageService: ILanguageService,
+): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document);
   });
