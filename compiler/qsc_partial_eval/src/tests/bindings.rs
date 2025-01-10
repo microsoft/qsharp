@@ -488,3 +488,79 @@ fn mutable_variable_in_outer_scope_set_to_mutable_from_inner_scope() {
                 Jump(1)"#]],
     );
 }
+
+#[test]
+fn mutable_double_binding_does_generate_store_instruction() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                use q = Qubit();
+                mutable d = MResetZ(q) == One ? 0.1 | 1.1;
+                d
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__read_result__body
+                call_type: Readout
+                input_type:
+                    [0]: Result
+                output_type: Boolean
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__double_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Double
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Variable(3, Double) = Store Variable(2, Double)
+                Variable(4, Double) = Store Variable(3, Double)
+                Call id(3), args( Variable(4, Double), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Double) = Store Double(0.1)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Double) = Store Double(1.1)
+                Jump(1)"#]],
+    );
+}

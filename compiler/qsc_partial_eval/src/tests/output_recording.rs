@@ -402,6 +402,48 @@ fn output_recording_for_literal_bool() {
 }
 
 #[test]
+fn output_recording_for_literal_double() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Double {
+                42.1
+            }
+        }
+        "#,
+    });
+
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: __quantum__rt__double_record_output
+                    call_type: OutputRecording
+                    input_type:
+                        [0]: Double
+                        [1]: Pointer
+                    output_type: <VOID>
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Call id(1), args( Double(42.1), Pointer, )
+                    Return
+            config: Config:
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
+            num_qubits: 0
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
+}
+
+#[test]
 fn output_recording_for_literal_int() {
     let program = get_rir_program(indoc! {
         r#"

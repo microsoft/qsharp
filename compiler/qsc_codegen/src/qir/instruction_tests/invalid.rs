@@ -5,7 +5,7 @@ use crate::qir::ToQir;
 use qsc_rir::rir;
 
 #[test]
-#[should_panic(expected = "mismatched input types (i64, f64) for add")]
+#[should_panic(expected = "mismatched input types (i64, double) for add")]
 fn add_mismatched_literal_input_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Literal(rir::Literal::Integer(2)),
@@ -19,7 +19,7 @@ fn add_mismatched_literal_input_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input/output types (i64, f64) for add")]
+#[should_panic(expected = "mismatched input/output types (i64, double) for add")]
 fn add_mismatched_literal_input_output_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Literal(rir::Literal::Integer(2)),
@@ -33,7 +33,7 @@ fn add_mismatched_literal_input_output_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input types (i64, f64) for add")]
+#[should_panic(expected = "mismatched input types (i64, double) for add")]
 fn add_mismatched_variable_input_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Variable(rir::Variable {
@@ -53,7 +53,7 @@ fn add_mismatched_variable_input_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input/output types (i64, f64) for add")]
+#[should_panic(expected = "mismatched input/output types (i64, double) for add")]
 fn add_mismatched_variable_input_output_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Variable(rir::Variable {
@@ -73,7 +73,7 @@ fn add_mismatched_variable_input_output_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input types (i64, f64) for and")]
+#[should_panic(expected = "mismatched input types (i64, double) for and")]
 fn bitwise_and_mismatched_literal_input_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Literal(rir::Literal::Integer(2)),
@@ -87,7 +87,7 @@ fn bitwise_and_mismatched_literal_input_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input/output types (i64, f64) for and")]
+#[should_panic(expected = "mismatched input/output types (i64, double) for and")]
 fn bitwise_and_mismatched_literal_input_output_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Literal(rir::Literal::Integer(2)),
@@ -101,7 +101,7 @@ fn bitwise_and_mismatched_literal_input_output_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input types (i64, f64) for and")]
+#[should_panic(expected = "mismatched input types (i64, double) for and")]
 fn bitwise_and_mismatched_variable_input_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Variable(rir::Variable {
@@ -121,7 +121,7 @@ fn bitwise_and_mismatched_variable_input_tys_should_panic() {
 }
 
 #[test]
-#[should_panic(expected = "mismatched input/output types (i64, f64) for and")]
+#[should_panic(expected = "mismatched input/output types (i64, double) for and")]
 fn bitwise_and_mismatched_variable_input_output_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Variable(rir::Variable {
