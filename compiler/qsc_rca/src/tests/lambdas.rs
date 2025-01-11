@@ -174,3 +174,46 @@ fn check_rca_for_dynamic_lambda_two_dynamic_parameters_one_classical_capture() {
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_operation_lambda_two_parameters() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use (q0, q1) = (Qubit(), Qubit());
+        let myOp = (a, b) => MResetEachZ([a, b]);
+        myOp(q0, q1)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Array(Content: Dynamic, Size: Static)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_lambda_two_parameters_with_controls() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use (q0, q1) = (Qubit(), Qubit());
+        use (qs0, qs1) = (Qubit[2], Qubit[2]);
+        let myOp = (a, b) => CNOT(a, b);
+        Controlled Controlled myOp(qs0, (qs1, (q0, q1)))"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
+                    value_kind: Element(Static)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
