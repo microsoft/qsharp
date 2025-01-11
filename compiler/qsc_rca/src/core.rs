@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::panic;
+
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
     common::{
@@ -449,7 +451,7 @@ impl<'a> Analyzer<'a> {
             callee_input_pattern_id,
             args_input_id,
             self.package_store,
-            fixed_args.as_ref().map_or(0, Vec::len),
+            fixed_args.as_ref().map(Vec::len),
         );
         let application_instance = self.get_current_application_instance();
 
@@ -2509,17 +2511,28 @@ fn map_input_pattern_to_input_expressions(
     pat_id: StorePatId,
     expr_id: StoreExprId,
     package_store: &impl PackageStoreLookup,
-    skip_ahead: usize,
+    skip_ahead: Option<usize>,
 ) -> Vec<ExprId> {
     let pat = package_store.get_pat(pat_id);
     match &pat.kind {
         PatKind::Bind(_) | PatKind::Discard => vec![expr_id.expr],
         PatKind::Tuple(pats) => {
             // Map each one of the elements in the pattern to an expression in the tuple.
-            let pats = &pats[skip_ahead..];
+            let pats = &pats[skip_ahead.unwrap_or_default()..];
             let expr = package_store.get_expr(expr_id);
             if let ExprKind::Tuple(exprs) = &expr.kind {
-                assert!(pats.len() == exprs.len());
+                let pats = if skip_ahead.is_some() && exprs.len() > 1 {
+                    // When skip_ahead is not None we know we are processing a lambda, so the final pattern is itself a tuple.
+                    // Unpack the tuple pattern to get the individual elements and map input to those.
+                    let PatKind::Tuple(pats) =
+                        &package_store.get_pat((pat_id.package, pats[0]).into()).kind
+                    else {
+                        panic!("expected tuple pattern for lambda receiving multiple arguments");
+                    };
+                    pats
+                } else {
+                    pats
+                };
                 let mut input_param_exprs = Vec::<ExprId>::with_capacity(pats.len());
                 for (local_pat_id, local_expr_id) in pats.iter().zip(exprs.iter()) {
                     let global_pat_id = StorePatId::from((pat_id.package, *local_pat_id));
@@ -2528,7 +2541,7 @@ fn map_input_pattern_to_input_expressions(
                         global_pat_id,
                         global_expr_id,
                         package_store,
-                        0,
+                        None,
                     );
                     input_param_exprs.append(&mut sub_input_param_exprs);
                 }
