@@ -161,52 +161,54 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         samples={sampleTitles}
         namespaces={getNamespaces(documentation)}
       ></Nav>
-      {sampleCode ? (
-        <>
-          <Editor
-            code={sampleCode}
+      <div class="content">
+        {sampleCode ? (
+          <div class="samples">
+            <Editor
+              code={sampleCode}
+              compiler={compiler}
+              compiler_worker_factory={compiler_worker_factory}
+              compilerState={compilerState}
+              onRestartCompiler={onRestartCompiler}
+              evtTarget={evtTarget}
+              defaultShots={defaultShots}
+              showShots={true}
+              showExpr={true}
+              shotError={shotError}
+              profile={getProfile()}
+              setAst={setAst}
+              setHir={setHir}
+              setQir={setQir}
+              activeTab={activeTab}
+              languageService={languageService}
+            ></Editor>
+            <OutputTabs
+              evtTarget={evtTarget}
+              showPanel={true}
+              onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+              ast={ast}
+              hir={hir}
+              qir={qir}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            ></OutputTabs>
+          </div>
+        ) : activeKata ? (
+          <Katas
+            kata={activeKata!}
             compiler={compiler}
             compiler_worker_factory={compiler_worker_factory}
             compilerState={compilerState}
             onRestartCompiler={onRestartCompiler}
-            evtTarget={evtTarget}
-            defaultShots={defaultShots}
-            showShots={true}
-            showExpr={true}
-            shotError={shotError}
-            profile={getProfile()}
-            setAst={setAst}
-            setHir={setHir}
-            setQir={setQir}
-            activeTab={activeTab}
             languageService={languageService}
-          ></Editor>
-          <OutputTabs
-            evtTarget={evtTarget}
-            showPanel={true}
-            onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
-            ast={ast}
-            hir={hir}
-            qir={qir}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          ></OutputTabs>
-        </>
-      ) : activeKata ? (
-        <Katas
-          kata={activeKata!}
-          compiler={compiler}
-          compiler_worker_factory={compiler_worker_factory}
-          compilerState={compilerState}
-          onRestartCompiler={onRestartCompiler}
-          languageService={languageService}
-        ></Katas>
-      ) : (
-        <DocumentationDisplay
-          currentNamespace={currentNavItem}
-          documentation={documentation}
-        ></DocumentationDisplay>
-      )}
+          ></Katas>
+        ) : (
+          <DocumentationDisplay
+            currentNamespace={currentNavItem}
+            documentation={documentation}
+          ></DocumentationDisplay>
+        )}
+      </div>
       <div id="popup"></div>
     </>
   );
