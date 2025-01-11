@@ -174,4 +174,3 @@ fn check_rca_for_dynamic_lambda_two_dynamic_parameters_one_classical_capture() {
                 dynamic_param_applications: <empty>"#]],
     );
 }
-
