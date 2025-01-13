@@ -553,7 +553,8 @@ fn call_to_operation_that_returns_dynamic_bool() {
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
-                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
     );
 }

@@ -7,6 +7,9 @@
       "include": "#comments"
     },
     {
+      "include": "#functions"
+    },
+    {
       "include": "#keywords"
     },
     {
@@ -20,6 +23,9 @@
     },
     {
       "include": "#strings"
+    },
+    {
+      "include": "#variables"
     }
   ],
   "repository": {
@@ -32,6 +38,103 @@
         {
           "name": "comment.documentation",
           "match": "\\/\\/\\/.*$"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "comment": "function definition",
+          "name": "meta.function.definition.qsharp",
+          "begin": "\\b(function)\\s+([A-Za-z0-9_]+)(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.other.qsharp"
+            },
+            "2": {
+              "name": "entity.name.function.qsharp"
+            },
+            "3": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#functions"
+            },
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#operators"
+            },
+            {
+              "include": "#types"
+            },
+            {
+              "include": "#constants"
+            },
+            {
+              "include": "#strings"
+            },
+            {
+              "include": "#variables"
+            }
+          ]
+        },
+        {
+          "comment": "function calls",
+          "name": "meta.function.call.qsharp",
+          "begin": "\\b(?<!@)([A-Za-z0-9_]+)(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.name.function.qsharp"
+            },
+            "2": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "end": "\\)",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.brackets.round.qsharp"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comments"
+            },
+            {
+              "include": "#functions"
+            },
+            {
+              "include": "#keywords"
+            },
+            {
+              "include": "#operators"
+            },
+            {
+              "include": "#types"
+            },
+            {
+              "include": "#constants"
+            },
+            {
+              "include": "#strings"
+            },
+            {
+              "include": "#variables"
+            }
+          ]
         }
       ]
     },
@@ -72,6 +175,11 @@
         {
           "name": "constant.other.result.qsharp",
           "match": "\\b(One|Zero)\\b"
+        },
+        {
+          "comment": "integers and decimals",
+          "name": "constant.numeric.qsharp",
+          "match": "\\b[\\d_]*\\.?[\\d_]\\b"
         }
       ]
     },
@@ -87,6 +195,14 @@
               "match": "\\\\."
             }
           ]
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.qsharp",
+          "match": "\\b(?<!@)[A-Za-z0-9_]+\\b"
         }
       ]
     }
