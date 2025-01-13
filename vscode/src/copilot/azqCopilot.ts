@@ -10,7 +10,8 @@ import { executeTool } from "./copilotTools";
 import { WorkspaceConnection } from "../azure/treeView";
 import { CopilotEventHandler, ICopilot } from "./copilot";
 
-const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming";
+// const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming";
+const chatUrl = "https://localhost:7044/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
@@ -32,7 +33,7 @@ type ToolMessage = {
   toolCallId?: string;
 };
 
-type ToolCall = {
+export type ToolCall = {
   /**
    * The name of the function to call
    */
@@ -89,16 +90,20 @@ type QuantumChatRequest = {
   identifier: string;
 };
 
+export type ConversationState = {
+  activeWorkspace?: WorkspaceConnection;
+  sendMessage: CopilotEventHandler;
+};
+
 export class AzureQuantumCopilot implements ICopilot {
   conversationId: string;
   messages: QuantumChatMessage[] = [];
-  activeWorkspace?: WorkspaceConnection;
-  sendMessage: CopilotEventHandler;
+  conversationState: ConversationState;
   msaChatSession?: AuthenticationSession;
 
   constructor(sendMessage: CopilotEventHandler) {
     this.conversationId = getRandomGuid();
-    this.sendMessage = sendMessage;
+    this.conversationState = { sendMessage };
     log.debug("Starting copilot chat request flow");
   }
 
@@ -111,12 +116,14 @@ export class AzureQuantumCopilot implements ICopilot {
     const { content, toolCalls } = await this.converseWithCopilot();
     await this.handleFullResponse(content, toolCalls);
 
-    this.sendMessage({ kind: "copilotResponseDone", payload: undefined });
+    this.conversationState.sendMessage({
+      kind: "copilotResponseDone",
+      payload: { history: this.messages },
+    });
   }
 
   async getMsaChatSession(): Promise<string> {
     if (!this.msaChatSession) {
-      log.info("new token");
       this.msaChatSession = await getAuthSession(
         [scopes.chatApi, `VSCODE_TENANT:common`, `VSCODE_CLIENT_ID:${chatApp}`],
         getRandomGuid(),
@@ -157,7 +164,7 @@ export class AzureQuantumCopilot implements ICopilot {
 
   handleDelta(delta: string) {
     // ToDo: For now, just log the delta
-    this.sendMessage({
+    this.conversationState.sendMessage({
       kind: "copilotResponseDelta",
       payload: { response: delta },
     });
@@ -177,14 +184,13 @@ export class AzureQuantumCopilot implements ICopilot {
       ToolCalls: toolCalls,
     });
     if (content) {
-      this.sendMessage({
+      this.conversationState.sendMessage({
         kind: "copilotResponse",
         payload: { response: content },
       });
     }
     if (toolCalls) {
       await this.handleToolCalls(toolCalls);
-
       {
         const { content, toolCalls } = await this.converseWithCopilot();
         await this.handleFullResponse(content, toolCalls);
@@ -194,14 +200,14 @@ export class AzureQuantumCopilot implements ICopilot {
 
   async handleToolCalls(toolCalls: ToolCall[]) {
     for (const toolCall of toolCalls) {
-      this.sendMessage({
+      this.conversationState.sendMessage({
         kind: "copilotToolCall",
         payload: { toolName: toolCall.name },
       });
       const content = await executeTool(
         toolCall.name,
         JSON.parse(toolCall.arguments),
-        this,
+        this.conversationState,
       );
       // Create a message containing the result of the function call
       const function_call_result_message: ToolMessage = {
@@ -217,7 +223,8 @@ export class AzureQuantumCopilot implements ICopilot {
     content?: string;
     toolCalls?: ToolCall[];
   }> {
-    const token = await this.getMsaChatSession();
+    // const token = await this.getMsaChatSession();
+    const token = "XXXX";
     const payload: QuantumChatRequest = {
       conversationId: this.conversationId,
       messages: this.messages,
@@ -273,7 +280,6 @@ export class AzureQuantumCopilot implements ICopilot {
       });
 
       log.info("ChatAPI fetch completed");
-      // this.streamCallback({}, "copilotResponseDone");
       return { content: contentInResponse, toolCalls: toolCallsInResponse };
     } catch (error) {
       log.error("ChatAPI fetch failed with error: ", error);

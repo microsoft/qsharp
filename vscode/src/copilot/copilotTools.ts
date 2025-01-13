@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import * as vscode from "vscode";
 import { log } from "qsharp-lang";
 import { ChatCompletionTool } from "openai/resources/chat/completions";
@@ -16,9 +19,11 @@ import {
 } from "../azure/workspaceActions.js";
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
-import { AzureQuantumCopilot } from "./azqCopilot.js";
+import { ConversationState } from "./azqCopilot.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
 import { CopilotEventHandler } from "./copilot.js";
+import { handleGetJobs } from "./toolGetJobs.js";
+import { handleConnectToWorkspace } from "./toolAddWorkspace.js";
 
 // Define the tools and system prompt that the model can use
 
@@ -39,21 +44,6 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
           },
         },
         required: ["job_id"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetJobs",
-      description:
-        "Get a list of recent jobs that have been run by the customer, along with their statuses. Call this when you need to know what jobs have been run recently or need a history of jobs run, for example when a customer asks 'What are my recent jobs?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
         additionalProperties: false,
       },
     },
@@ -200,51 +190,41 @@ export const CopilotToolsDescriptions: ChatCompletionTool[] = [
   },
 ];
 
-const jobLimit = 10;
-const jobLimitDays = 14;
-
-export async function getJobs(
-  conversation: AzureQuantumCopilot,
-): Promise<Job[]> {
-  const workspace = await getConversationWorkspace(conversation);
-  if (workspace) {
-    const jobs = workspace.jobs;
-
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - jobLimitDays);
-
-    const limitedJobs = (
-      jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs
-    ).filter((j) => new Date(j.creationTime) > start);
-    return limitedJobs;
-  } else {
-    return [];
+/**
+ * The messages from these exceptions will be added to the conversation
+ * history, so keep the messages meaningful to the copilot and/or user.
+ */
+class CopilotToolError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CopilotToolError";
   }
 }
 
 // Gets the first workspace in the tree, if there is one
-async function getInitialWorkspace(): Promise<WorkspaceConnection | undefined> {
+async function getInitialWorkspace(): Promise<WorkspaceConnection> {
   const tree = WorkspaceTreeProvider.instance;
   const workspaces = tree.getWorkspaceIds();
-  const workspace = workspaces[0] || undefined;
+  const workspace = workspaces[0] && tree.getWorkspace(workspaces[0]);
   if (workspace) {
-    return tree.getWorkspace(workspace);
+    return workspace;
   } else {
-    return undefined;
+    throw new CopilotToolError(
+      "There are no Azure Quantum workspace connections set up.",
+    );
   }
 }
 
 // Gets the workspace for the conversation, or the first workspace if none is active
-async function getConversationWorkspace(
-  conversation: AzureQuantumCopilot,
-): Promise<WorkspaceConnection | undefined> {
-  if (conversation.activeWorkspace) {
-    return conversation.activeWorkspace;
+export async function getConversationWorkspace(
+  toolState: ConversationState,
+): Promise<WorkspaceConnection> {
+  if (toolState.activeWorkspace) {
+    return toolState.activeWorkspace;
   } else {
-    const init_workspace = await getInitialWorkspace();
-    conversation.activeWorkspace = init_workspace;
-    return init_workspace;
+    const initialWorkspaceResult = await getInitialWorkspace();
+    toolState.activeWorkspace = initialWorkspaceResult;
+    return initialWorkspaceResult;
   }
 }
 
@@ -265,9 +245,9 @@ export const GetWorkspaces = async (): Promise<string[]> => {
 };
 
 export const GetActiveWorkspace = async (
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<string> => {
-  const workspace = await getConversationWorkspace(conversation);
+  const workspace = await getConversationWorkspace(toolState);
   if (!workspace) {
     return "No active workspace found.";
   }
@@ -276,24 +256,30 @@ export const GetActiveWorkspace = async (
 
 export const SetActiveWorkspace = async (
   workspaceId: string,
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<string> => {
   const tree = WorkspaceTreeProvider.instance;
   const workspace = tree.getWorkspace(workspaceId);
   if (!workspace) {
     return "Workspace not found.";
   } else {
-    conversation.activeWorkspace = workspace;
+    toolState.activeWorkspace = workspace;
     return "Workspace " + workspaceId + " set as active.";
   }
 };
 
 async function getJob(
   jobId: string,
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<Job | undefined> {
-  const jobs = await getJobs(conversation);
-  return jobs.find((job) => job.id === jobId);
+  const workspace = await getConversationWorkspace(toolState);
+  if (workspace) {
+    const jobs = workspace.jobs;
+
+    return jobs.find((job) => job.id === jobId);
+  } else {
+    return undefined;
+  }
 }
 
 function tryRenderResults(
@@ -333,9 +319,9 @@ function tryRenderResults(
 
 export async function downloadJobResults(
   jobId: string,
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<string> {
-  const job = await getJob(jobId, conversation);
+  const job = await getJob(jobId, toolState);
 
   if (!job) {
     log.error("Failed to find the job.");
@@ -346,7 +332,7 @@ export async function downloadJobResults(
     return "Job has not completed successfully.";
   }
 
-  const workspace = await getConversationWorkspace(conversation);
+  const workspace = await getConversationWorkspace(toolState);
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -374,7 +360,7 @@ export async function downloadJobResults(
     if (file) {
       // log.info("Downloaded file: ", file);
 
-      if (!tryRenderResults(file, job.shots, conversation.sendMessage)) {
+      if (!tryRenderResults(file, job.shots, toolState.sendMessage)) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -396,18 +382,18 @@ export async function downloadJobResults(
   }
 }
 
-export const GetProviders = async (
-  conversation: AzureQuantumCopilot,
-): Promise<Provider[]> => {
-  const workspace = await getConversationWorkspace(conversation);
+export async function GetProviders(
+  toolState: ConversationState,
+): Promise<Provider[]> {
+  const workspace = await getConversationWorkspace(toolState);
   return workspace?.providers ?? [];
-};
+}
 
 export const GetTarget = async (
   targetId: string,
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<Target | undefined> => {
-  const providers = await GetProviders(conversation);
+  const providers = await GetProviders(toolState);
   for (const provider of providers) {
     const target = provider.targets.find((target) => target.id === targetId);
     if (target) {
@@ -420,13 +406,13 @@ export async function submitToTarget(
   jobName: string,
   targetId: string,
   numberOfShots: number,
-  conversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<string> {
-  const target = await GetTarget(targetId, conversation);
+  const target = await GetTarget(targetId, toolState);
   if (!target || target.currentAvailability !== "Available")
     return "Target not available.";
 
-  const workspace = await getConversationWorkspace(conversation);
+  const workspace = await getConversationWorkspace(toolState);
 
   if (!workspace) {
     log.error("Failed to find the workspace.");
@@ -480,46 +466,60 @@ export async function submitToTarget(
   }
 }
 
+const toolHandlers: {
+  [key: string]: (conversationState: ConversationState) => object;
+} = {
+  GetJobs: handleGetJobs,
+  ConnectToWorkspace: handleConnectToWorkspace,
+};
+
 export async function executeTool(
   tool_name: string,
   args: any,
-  copilotConversation: AzureQuantumCopilot,
+  toolState: ConversationState,
 ): Promise<any> {
   const content: any = {};
 
   log.info("Tool call name: ", tool_name);
   log.info("Tool call args: ", args);
+
+  const handler = toolHandlers[tool_name];
+  if (handler) {
+    try {
+      // Ignore the IDE suggestions, the `await` here is crucial
+      // as the exception will not be handled if the promise is not awaited.
+      return await handler(toolState);
+    } catch (e) {
+      if (e instanceof CopilotToolError) {
+        return { error: e.message };
+      }
+    }
+  }
+
   if (tool_name === "GetJob") {
     const job_id = args.job_id;
-    const job = await getJob(job_id, copilotConversation);
+    const job = await getJob(job_id, toolState);
     content.job = job;
-  } else if (tool_name === "GetJobs") {
-    const recent_jobs = await getJobs(copilotConversation);
-
-    content.recent_jobs = cloneToMinimizedJobs(recent_jobs);
   } else if (tool_name === "GetWorkspaces") {
     const workspace_ids = await GetWorkspaces();
     content.workspace_ids = workspace_ids;
   } else if (tool_name === "GetActiveWorkspace") {
-    const active_workspace = await GetActiveWorkspace(copilotConversation);
+    const active_workspace = await GetActiveWorkspace(toolState);
     content.active_workspace = active_workspace;
   } else if (tool_name === "SetActiveWorkspace") {
     const workspace_id = args.workspace_id;
-    const result = await SetActiveWorkspace(workspace_id, copilotConversation);
+    const result = await SetActiveWorkspace(workspace_id, toolState);
     content.result = result;
   } else if (tool_name === "DownloadJobResults") {
     const job_id = args.job_id;
-    const download_result = await downloadJobResults(
-      job_id,
-      copilotConversation,
-    );
+    const download_result = await downloadJobResults(job_id, toolState);
     content.download_result = download_result;
   } else if (tool_name === "GetProviders") {
-    const providers = await GetProviders(copilotConversation);
+    const providers = await GetProviders(toolState);
     content.providers = providers;
   } else if (tool_name === "GetTarget") {
     const target_id = args.target_id;
-    const target = await GetTarget(target_id, copilotConversation);
+    const target = await GetTarget(target_id, toolState);
     content.target = target;
   } else if (tool_name === "SubmitToTarget") {
     const job_name = args.job_name;
@@ -529,50 +529,10 @@ export async function executeTool(
       job_name,
       target_id,
       number_of_shots,
-      copilotConversation,
+      toolState,
     );
     content.submit_result = submit_result;
   }
 
   return content;
-}
-
-type MinimizedJob = {
-  id: string;
-  name: string;
-  target: string;
-  status:
-    | "Waiting"
-    | "Executing"
-    | "Succeeded"
-    | "Failed"
-    | "Finishing"
-    | "Cancelled";
-  outputDataUri?: string;
-  count: number;
-  shots: number;
-  creationTime: string;
-  beginExecutionTime?: string;
-  endExecutionTime?: string;
-  cancellationTime?: string;
-  costEstimate?: any;
-  errorData?: { code: string; message: string };
-};
-
-function cloneToMinimizedJobs(recent_jobs: Job[]): MinimizedJob[] {
-  return recent_jobs.map((job) => {
-    return {
-      id: job.id,
-      name: job.name,
-      target: job.target,
-      status: job.status,
-      count: job.count,
-      shots: job.shots,
-      creationTime: job.creationTime,
-      beginExecutionTime: job.beginExecutionTime,
-      endExecutionTime: job.endExecutionTime,
-      cancellationTime: job.cancellationTime,
-      costEstimate: job.costEstimate,
-    };
-  });
 }

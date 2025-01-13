@@ -9,7 +9,7 @@ type CopilotEvent =
   | { kind: "copilotResponseDelta"; payload: { response: string } }
   | { kind: "copilotResponse"; payload: { response: string } }
   | { kind: "copilotToolCall"; payload: { toolName: string } }
-  | { kind: "copilotResponseDone"; payload: undefined }
+  | { kind: "copilotResponseDone"; payload: { history: object[] } }
   | {
       kind: "copilotResponseHistogram";
       payload: {

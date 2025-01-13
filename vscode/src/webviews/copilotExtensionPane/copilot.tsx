@@ -52,7 +52,7 @@ function InputBox(props: {
 
   useEffect(() => {
     hrRef.current?.scrollIntoView(false);
-    textRef.current?.focus();
+    // textRef.current?.focus();
   });
 
   function submit() {
@@ -160,6 +160,7 @@ type CopilotState = {
   toolInProgress: string | null;
   inProgress: boolean;
   service: "AzureQuantum" | "OpenAI";
+  history: object[];
 };
 
 function App({ state }: { state: CopilotState }) {
@@ -176,6 +177,7 @@ function App({ state }: { state: CopilotState }) {
       inProgress: false,
       service,
       toolInProgress: null,
+      history: [],
     };
     render(<App state={globalState} />, document.body);
   }
@@ -196,6 +198,8 @@ function App({ state }: { state: CopilotState }) {
     globalState.inProgress = true;
     render(<App state={state} />, document.body);
   }
+
+  const historyRef = useRef<HTMLPreElement>(null);
 
   return (
     <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
@@ -218,6 +222,25 @@ function App({ state }: { state: CopilotState }) {
           {state.toolInProgress ? state.toolInProgress : ""}
         </div>
         <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
+        <div>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (historyRef.current) {
+                historyRef.current.style.display =
+                  historyRef.current.style.display === "none"
+                    ? "block"
+                    : "none";
+              }
+            }}
+          >
+            history
+          </a>
+          <pre ref={historyRef} style="display: none;">
+            {JSON.stringify(state.history, undefined, 2)}
+          </pre>
+        </div>
       </div>
       <div style="height: 30px;">
         <div class="toggle-container">
@@ -246,6 +269,7 @@ let globalState: CopilotState = {
   inProgress: false,
   toolInProgress: null,
   service: "AzureQuantum", // default
+  history: [],
 };
 
 function loaded() {
@@ -315,6 +339,7 @@ function onMessage(event: any) {
       {
         globalState.inProgress = false;
         globalState.toolInProgress = null;
+        globalState.history = message.history;
       }
       // Highlight any code blocks
       // Need to wait until Markdown is rendered. Hack for now with a timeout
