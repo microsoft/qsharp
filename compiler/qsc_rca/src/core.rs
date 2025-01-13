@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use core::panic;
-
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
     common::{
