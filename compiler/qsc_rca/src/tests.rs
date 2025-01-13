@@ -10,6 +10,7 @@ mod calls;
 mod cycles;
 mod ifs;
 mod intrinsics;
+mod lambdas;
 mod loops;
 mod measurements;
 mod overrides;
