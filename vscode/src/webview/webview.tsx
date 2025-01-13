@@ -33,12 +33,14 @@ window.addEventListener("load", main);
 
 type HistogramState = {
   viewType: "histogram";
+  panelId: string;
   buckets: Array<[string, number]>;
   shotCount: number;
 };
 
 type EstimatesState = {
   viewType: "estimates";
+  panelId: string;
   estimatesData: {
     calculating: boolean;
     estimates: ReData[];
@@ -47,24 +49,26 @@ type EstimatesState = {
 
 type CircuitState = {
   viewType: "circuit";
+  panelId: string;
   props: CircuitProps;
 };
 
 type DocumentationState = {
   viewType: "documentation";
+  panelId: string;
   fragmentsToRender: IDocFile[];
   projectName: string;
 };
 
 type State =
-  | { viewType: "loading" }
-  | { viewType: "help" }
+  | { viewType: "loading"; panelId: string }
+  | { viewType: "help"; panelId: string }
   | HistogramState
   | EstimatesState
   | CircuitState
   | DocumentationState;
-const loadingState: State = { viewType: "loading" };
-const helpState: State = { viewType: "help" };
+const loadingState: State = { viewType: "loading", panelId: "" };
+const helpState: State = { viewType: "help", panelId: "" };
 let state: State = loadingState;
 
 const themeAttribute = "data-vscode-theme-kind";
@@ -140,6 +144,7 @@ function onMessage(event: any) {
       }
       state = {
         viewType: "histogram",
+        panelId: message.panelId,
         buckets: message.buckets as Array<[string, number]>,
         shotCount: message.shotCount,
       };
@@ -149,6 +154,7 @@ function onMessage(event: any) {
       {
         const newState: EstimatesState = {
           viewType: "estimates",
+          panelId: message.panelId,
           estimatesData: {
             calculating: !!message.calculating,
             estimates: [],
@@ -186,6 +192,7 @@ function onMessage(event: any) {
       {
         state = {
           viewType: "documentation",
+          panelId: message.panelId,
           fragmentsToRender: message.fragmentsToRender,
           projectName: message.projectName,
         };
