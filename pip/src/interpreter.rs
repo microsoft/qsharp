@@ -363,13 +363,15 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None, callable=None, args=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
         noise: Option<(f64, f64, f64)>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
@@ -381,7 +383,20 @@ impl Interpreter {
             },
         };
 
-        match self.interpreter.run(&mut receiver, entry_expr, noise) {
+        let result = match callable {
+            Some(callable) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                self.interpreter
+                    .invoke_with_noise(&mut receiver, callable.0, args, noise)
+            }
+            _ => self.interpreter.run(&mut receiver, entry_expr, noise),
+        };
+
+        match result {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -448,17 +463,31 @@ impl Interpreter {
     /// an operation of a lambda expression. The operation must take only
     /// qubits or arrays of qubits as parameters.
     ///
+    /// :param callable: A callable to synthesize.
+    ///
+    /// :param args: The arguments to pass to the callable.
+    ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
-    #[pyo3(signature=(entry_expr=None, operation=None))]
+    #[pyo3(signature=(entry_expr=None, operation=None, callable=None, args=None))]
     fn circuit(
         &mut self,
         py: Python,
         entry_expr: Option<String>,
         operation: Option<String>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
-        let entrypoint = match (entry_expr, operation) {
-            (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
-            (None, Some(operation)) => CircuitEntryPoint::Operation(operation),
+        let entrypoint = match (entry_expr, operation, callable) {
+            (Some(entry_expr), None, None) => CircuitEntryPoint::EntryExpr(entry_expr),
+            (None, Some(operation), None) => CircuitEntryPoint::Operation(operation),
+            (None, None, Some(callable)) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                CircuitEntryPoint::Callable(callable.0, args)
+            }
             _ => {
                 return Err(PyException::new_err(
                     "either entry_expr or operation must be specified",

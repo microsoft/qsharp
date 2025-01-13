@@ -446,9 +446,9 @@ def _make_callable(callable: GlobalCallable, namespace: List[str], callable_name
 
 
 def run(
-    entry_expr: str,
+    entry_expr: Union[str, Callable],
     shots: int,
-    *,
+    *args,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
     noise: Optional[
@@ -465,8 +465,10 @@ def run(
     Runs the given Q# expression for the given number of shots.
     Each shot uses an independent instance of the simulator.
 
-    :param entry_expr: The entry expression.
+    :param entry_expr: The entry expression. Alternatively, a callable can be provided,
+        which must be a Q# global callable.
     :param shots: The number of shots to run.
+    :param *args: The arguments to pass to the callable, if one is provided.
     :param on_result: A callback function that will be called with each result.
     :param save_events: If true, the output of each shot will be saved. If false, they will be printed.
     :param noise: The noise to use in simulation.
@@ -506,6 +508,15 @@ def run(
         elif output.is_message():
             results[-1]["messages"].append(str(output))
 
+    callable = None
+    if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+        callable = entry_expr.__global_callable
+        entry_expr = None
+
     for shot in range(shots):
         results.append(
             {"result": None, "events": [], "messages": [], "matrices": [], "dumps": []}
@@ -514,6 +525,8 @@ def run(
             entry_expr,
             on_save_events if save_events else print_output,
             noise,
+            callable,
+            args,
         )
         results[-1]["result"] = run_results
         if on_result:
@@ -598,13 +611,18 @@ def compile(entry_expr: Union[str, Callable], *args) -> QirInputData:
 
 
 def circuit(
-    entry_expr: Optional[str] = None, *, operation: Optional[str] = None
+    entry_expr: Optional[Union[str, Callable]] = None,
+    *args,
+    operation: Optional[str] = None,
 ) -> Circuit:
     """
     Synthesizes a circuit for a Q# program. Either an entry
     expression or an operation must be provided.
 
-    :param entry_expr: An entry expression.
+    :param entry_expr: An entry expression. Alternatively, a callable can be provided,
+        which must be a Q# global callable.
+
+    :param *args: The arguments to pass to the callable, if one is provided.
 
     :param operation: The operation to synthesize. This can be a name of
     an operation of a lambda expression. The operation must take only
@@ -613,7 +631,16 @@ def circuit(
     :raises QSharpError: If there is an error synthesizing the circuit.
     """
     ipython_helper()
-    return get_interpreter().circuit(entry_expr, operation)
+    if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
+        if len(args) == 1:
+            args = args[0]
+        elif len(args) == 0:
+            args = None
+        return get_interpreter().circuit(
+            callable=entry_expr.__global_callable, args=args
+        )
+    else:
+        return get_interpreter().circuit(entry_expr, operation)
 
 
 def estimate(

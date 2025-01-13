@@ -153,6 +153,8 @@ class Interpreter:
         entry_expr: str,
         output_fn: Callable[[Output], None],
         noise: Optional[Tuple[float, float, float]],
+        callable: Optional[GlobalCallable],
+        args: Optional[Any],
     ) -> Any:
         """
         Runs the given Q# expression with an independent instance of the simulator.
@@ -161,6 +163,8 @@ class Interpreter:
         :param output_fn: A callback function that will be called with each output.
         :param noise: A tuple with probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
             to use in simulation as a parametric Pauli noise.
+        :param callable: The callable to run.
+        :param args: The arguments to pass to the callable.
 
         :returns values: A result or runtime errors.
 
@@ -205,6 +209,8 @@ class Interpreter:
         self,
         entry_expr: Optional[str],
         operation: Optional[str],
+        callable: Optional[GlobalCallable],
+        args: Optional[Any],
     ) -> Circuit:
         """
         Synthesizes a circuit for a Q# program. Either an entry
@@ -215,6 +221,10 @@ class Interpreter:
         :param operation: The operation to synthesize. This can be a name of
         an operation of a lambda expression. The operation must take only
         qubits or arrays of qubits as parameters.
+
+        :param callable: The callable to synthesize the circuit for.
+
+        :param args: The arguments to pass to the callable.
 
         :raises QSharpError: If there is an error synthesizing the circuit.
         """

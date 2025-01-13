@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from textwrap import dedent
 import pytest
 import qsharp
 import qsharp.code
@@ -428,6 +429,15 @@ def test_run_with_result(capsys) -> None:
     assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
 
 
+def test_run_with_result_from_callable(capsys) -> None:
+    qsharp.init()
+    qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
+    results = qsharp.run(qsharp.code.Foo, 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
 def test_run_with_result_callback(capsys) -> None:
     def on_result(result):
         nonlocal called
@@ -442,6 +452,28 @@ def test_run_with_result_callback(capsys) -> None:
     assert (
         str(results)
         == "[{'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': Zero, 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}]"
+    )
+    stdout = capsys.readouterr().out
+    assert stdout == ""
+    assert called
+
+
+def test_run_with_result_callback_from_callable_with_args(capsys) -> None:
+    def on_result(result):
+        nonlocal called
+        called = True
+        assert result["result"] == [qsharp.Result.Zero, qsharp.Result.Zero]
+        assert str(result["events"]) == "[Hello, world!]"
+
+    called = False
+    qsharp.init()
+    qsharp.eval(
+        'operation Foo(nResults : Int) : Result[] { Message("Hello, world!"); Repeated(Zero, nResults) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3, 2, on_result=on_result, save_events=True)
+    assert (
+        str(results)
+        == "[{'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}, {'result': [Zero, Zero], 'events': [Hello, world!], 'messages': ['Hello, world!'], 'matrices': [], 'dumps': []}]"
     )
     stdout = capsys.readouterr().out
     assert stdout == ""
@@ -694,3 +726,68 @@ def test_lambdas_not_exposed_into_env() -> None:
     assert not hasattr(qsharp.code, "<lambda>")
     qsharp.eval("q => I(q)")
     assert not hasattr(qsharp.code, "<lambda>")
+
+
+def test_circuit_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+    operation Foo() : Unit {
+        use q1 = Qubit();
+        use q2 = Qubit();
+        X(q1);
+    }
+    """
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ───────
+        """
+    )
+
+
+def test_circuit_from_callable_with_args() -> None:
+    qsharp.init()
+    qsharp.eval(
+        """
+    operation Foo(nQubits : Int) : Unit {
+        use qs = Qubit[nQubits];
+        ApplyToEach(X, qs);
+    }
+    """
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo, 2)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ── X ──
+        """
+    )
+
+
+def test_circuit_with_measure_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval("operation Foo() : Result { use q = Qubit(); H(q); return M(q) }")
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── H ──── M ──
+                         ╘═══
+        """
+    )
+
+
+def test_swap_label_circuit_from_callable() -> None:
+    qsharp.init()
+    qsharp.eval(
+        "operation Foo() : Unit { use q1 = Qubit(); use q2 = Qubit(); X(q1); Relabel([q1, q2], [q2, q1]); X(q2); }"
+    )
+    circuit = qsharp.circuit(qsharp.code.Foo)
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──── X ──
+        q_1    ──────────────
+        """
+    )

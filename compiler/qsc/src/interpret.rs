@@ -563,6 +563,39 @@ impl Interpreter {
         })
     }
 
+    // Invokes the given callable with the given arguments using the current environment and compilation but with a fresh
+    // simulator configured with the given noise, if any.
+    pub fn invoke_with_noise(
+        &mut self,
+        receiver: &mut impl Receiver,
+        callable: Value,
+        args: Value,
+        noise: Option<PauliNoise>,
+    ) -> InterpretResult {
+        let mut sim = match noise {
+            Some(noise) => SparseSim::new_with_noise(&noise),
+            None => SparseSim::new(),
+        };
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut self.env,
+            &mut sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
+    }
+
     /// Runs the given entry expression on a new instance of the environment and simulator,
     /// but using the current compilation.
     pub fn run(
@@ -695,21 +728,30 @@ impl Interpreter {
         entry: CircuitEntryPoint,
         simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let entry_expr = match entry {
+        let (entry_expr, invoke_params) = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
                 let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
                 let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
                     .map_err(|e| vec![e.into()])?;
-                Some(expr)
+                (Some(expr), None)
             }
-            CircuitEntryPoint::EntryExpr(expr) => Some(expr),
-            CircuitEntryPoint::EntryPoint => None,
+            CircuitEntryPoint::EntryExpr(expr) => (Some(expr), None),
+            CircuitEntryPoint::Callable(call_val, args_val) => (None, Some((call_val, args_val))),
+            CircuitEntryPoint::EntryPoint => (None, None),
         };
 
         let circuit = if simulate {
             let mut sim = sim_circuit_backend();
 
-            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+            match invoke_params {
+                Some((callable, args)) => {
+                    let mut sink = std::io::sink();
+                    let mut out = GenericReceiver::new(&mut sink);
+
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                }
+                None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
+            };
 
             sim.chained.finish()
         } else {
@@ -717,7 +759,15 @@ impl Interpreter {
                 base_profile: self.capabilities.is_empty(),
             });
 
-            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+            match invoke_params {
+                Some((callable, args)) => {
+                    let mut sink = std::io::sink();
+                    let mut out = GenericReceiver::new(&mut sink);
+
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                }
+                None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
+            };
 
             sim.finish()
         };
@@ -970,6 +1020,8 @@ pub enum CircuitEntryPoint {
     Operation(String),
     /// An explicitly provided entry expression.
     EntryExpr(String),
+    /// A global callable with arguments.
+    Callable(Value, Value),
     /// The entry point for the current package.
     EntryPoint,
 }

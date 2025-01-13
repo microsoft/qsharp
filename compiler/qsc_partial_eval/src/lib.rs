@@ -167,35 +167,13 @@ impl<'a> PartialEvaluator<'a> {
         entry: &'a ProgramEntry,
         capabilities: TargetCapabilityFlags,
     ) -> Self {
-        // Create the entry-point callable.
-        let mut resource_manager = ResourceManager::default();
-        let mut program = Program::new();
-        program.config.capabilities = capabilities;
-        let entry_block_id = resource_manager.next_block();
-        program.blocks.insert(entry_block_id, rir::Block::default());
-        let entry_point_id = resource_manager.next_callable();
-        let entry_point = rir::Callable {
-            name: "main".into(),
-            input_type: Vec::new(),
-            output_type: None,
-            body: Some(entry_block_id),
-            call_type: CallableType::Regular,
-        };
-        program.callables.insert(entry_point_id, entry_point);
-        program.entry = entry_point_id;
-
-        // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
-        Self {
+        Self::new_internal(
             package_store,
             compute_properties,
-            eval_context: context,
-            resource_manager,
-            backend: QuantumIntrinsicsChecker::default(),
-            callables_map: FxHashMap::default(),
-            program,
-            entry: Some(entry),
-        }
+            capabilities,
+            Some(entry),
+            None,
+        )
     }
 
     fn new_from_package_id(
@@ -203,6 +181,22 @@ impl<'a> PartialEvaluator<'a> {
         compute_properties: &'a PackageStoreComputeProperties,
         package_id: PackageId,
         capabilities: TargetCapabilityFlags,
+    ) -> Self {
+        Self::new_internal(
+            package_store,
+            compute_properties,
+            capabilities,
+            None,
+            Some(package_id),
+        )
+    }
+
+    fn new_internal(
+        package_store: &'a PackageStore,
+        compute_properties: &'a PackageStoreComputeProperties,
+        capabilities: TargetCapabilityFlags,
+        entry: Option<&'a ProgramEntry>,
+        package_id: Option<PackageId>,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
@@ -222,7 +216,15 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(package_id, entry_block_id);
+        let context = EvaluationContext::new(
+            package_id.unwrap_or_else(|| {
+                entry
+                    .expect("program entry should be provided when package id is None")
+                    .expr
+                    .package
+            }),
+            entry_block_id,
+        );
         Self {
             package_store,
             compute_properties,
@@ -231,7 +233,7 @@ impl<'a> PartialEvaluator<'a> {
             backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
-            entry: None,
+            entry,
         }
     }
 
