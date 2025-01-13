@@ -11,7 +11,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
-use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
+use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 #[tokio::test]
@@ -1958,10 +1958,10 @@ async fn lints_prefer_workspace_over_defaults() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 
@@ -2018,10 +2018,10 @@ async fn lints_prefer_manifest_over_workspace() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&received_errors, &fs);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 

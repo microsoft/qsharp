@@ -19,7 +19,7 @@ use std::fmt::Display;
 pub fn run_lints(
     package_store: &PackageStore,
     compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
+    config: Option<&[LintOrGroupConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
@@ -177,13 +177,33 @@ impl Display for LintLevel {
     }
 }
 
-/// End-user configuration for each lint level.
+/// End-user configuration for a specific lint or a lint group.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum LintOrGroupConfig {
+    /// An specific lint configuration.
+    Lint(LintConfig),
+    /// A lint group configuration.
+    Group(GroupConfig),
+}
+
+/// End-user configuration for a specific lint.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct LintConfig {
     #[serde(rename = "lint")]
-    /// Represents the lint name.
+    /// The lint name.
     pub kind: LintKind,
     /// The lint level.
+    pub level: LintLevel,
+}
+
+/// End-user configuration for a lint group.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct GroupConfig {
+    #[serde(rename = "group")]
+    /// The lint group.
+    pub lint_group: LintGroup,
+    /// The group level.
     pub level: LintLevel,
 }
 
@@ -195,4 +215,9 @@ pub enum LintKind {
     Ast(AstLint),
     /// HIR lint name.
     Hir(HirLint),
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum LintGroup {
+    Pedantic,
 }

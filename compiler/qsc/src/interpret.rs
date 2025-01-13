@@ -404,10 +404,12 @@ impl Interpreter {
                 compile_unit,
                 // see https://github.com/microsoft/qsharp/pull/1627 for context
                 // on why we override this config
-                Some(&[qsc_linter::LintConfig {
-                    kind: LintKind::Hir(HirLint::NeedlessOperation),
-                    level: LintLevel::Warn,
-                }]),
+                Some(&[qsc_linter::LintOrGroupConfig::Lint(
+                    qsc_linter::LintConfig {
+                        kind: LintKind::Hir(HirLint::NeedlessOperation),
+                        level: LintLevel::Warn,
+                    },
+                )]),
             )
         } else {
             Vec::new()

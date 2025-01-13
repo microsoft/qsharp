@@ -8,7 +8,8 @@ use crate::{
     serializable_type,
 };
 use qsc::{
-    self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
+    self, line_column::Encoding, linter::LintOrGroupConfig, target::Profile, LanguageFeatures,
+    PackageType,
 };
 use qsc_project::Manifest;
 use qsls::protocol::DiagnosticUpdate;
@@ -330,7 +331,7 @@ serializable_type! {
         pub targetProfile: Option<String>,
         pub packageType: Option<String>,
         pub languageFeatures: Option<Vec<String>>,
-        pub lints: Option<Vec<LintConfig>>
+        pub lints: Option<Vec<LintOrGroupConfig>>
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;

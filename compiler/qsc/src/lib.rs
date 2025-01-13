@@ -58,7 +58,9 @@ pub use qsc_eval::{
 };
 
 pub mod linter {
-    pub use qsc_linter::{run_lints, LintConfig, LintKind, LintLevel};
+    pub use qsc_linter::{
+        run_lints, GroupConfig, LintConfig, LintKind, LintLevel, LintOrGroupConfig,
+    };
 }
 
 pub use qsc_doc_gen::{display, generate_docs};

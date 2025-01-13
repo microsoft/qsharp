@@ -3,7 +3,7 @@
 
 use crate::{
     lints::hir::{CombinedHirLints, HirLint},
-    Lint, LintConfig, LintLevel,
+    Lint, LintLevel, LintOrGroupConfig,
 };
 use qsc_hir::{
     hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},
@@ -15,18 +15,21 @@ use qsc_hir::{
 #[must_use]
 pub fn run_hir_lints(
     package: &Package,
-    config: Option<&[LintConfig]>,
+    config: Option<&[LintOrGroupConfig]>,
     compilation: Compilation,
 ) -> Vec<Lint> {
     let config: Vec<(HirLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
-        .filter_map(|lint_config| {
-            if let LintKind::Hir(kind) = lint_config.kind {
-                Some((kind, lint_config.level))
-            } else {
-                None
+        .filter_map(|linter_config| match linter_config {
+            LintOrGroupConfig::Lint(lint) => {
+                if let LintKind::Hir(kind) = lint.kind {
+                    Some((kind, lint.level))
+                } else {
+                    None
+                }
             }
+            LintOrGroupConfig::Group(group) => todo!(),
         })
         .collect();
 

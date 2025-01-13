@@ -3,7 +3,7 @@
 
 use crate::{
     linter::{ast::run_ast_lints, hir::run_hir_lints, Compilation},
-    Lint, LintConfig, LintLevel,
+    Lint, LintLevel, LintOrGroupConfig,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -757,7 +757,7 @@ impl SrcLint {
 fn run_lints(
     package_store: &PackageStore,
     compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
+    config: Option<&[LintOrGroupConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
