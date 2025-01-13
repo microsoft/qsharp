@@ -639,6 +639,8 @@ impl Interpreter {
         })
     }
 
+    /// Performs QIR codegen using the given callable with the given arguments on a new instance of the environment
+    /// and simulator but using the current compilation.
     pub fn qirgen_from_callable(
         &mut self,
         callable: &Value,
