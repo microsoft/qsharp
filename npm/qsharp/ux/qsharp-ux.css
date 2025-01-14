@@ -343,6 +343,14 @@ html {
   white-space: pre;
 }
 
+.rir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
 .qir-output {
   height: 100%;
   width: 100%;
