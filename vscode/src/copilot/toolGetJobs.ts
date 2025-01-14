@@ -39,19 +39,14 @@ async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
   }
 }
 
-type GetJobsResult =
-  | {
-      recentJobs: MinimizedJob[];
-    }
-  | { error: string };
+type GetJobsResult = {
+  recentJobs: MinimizedJob[];
+};
 
 export async function handleGetJobs(
   conversationState: ConversationState,
 ): Promise<GetJobsResult> {
   const workspace = await getConversationWorkspace(conversationState);
-  if (!workspace) {
-    return { error: "There is no active Azure Quantum workspace." };
-  }
 
   const recentJobs = (await getRecentJobs(workspace)).map((job) => {
     return {

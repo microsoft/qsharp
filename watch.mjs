@@ -17,8 +17,7 @@ Notes:
 - This builds the wasm module, npm package, VS Code extension, docs, katas, samples and runs the playground.
 - It does NOT build Python packages or native binaries (currently).
 - It does NOT build the Node.js wasm package (or run any of the node unit tests).
-- It builds debug binaries (whereas ./build.py builds for release).
-- Future updates could include supporting '--release'
+- It builds debug binaries unless the '--release' command line argument is provided.
 
 */
 
@@ -50,7 +49,10 @@ const npmCmd = isWin ? "npm.cmd" : "npm";
 const release = process.argv.includes("--release");
 
 function buildRust() {
-  console.log("Compiling the .wasm module with wasm-pack");
+  console.log(
+    "Compiling the .wasm module with wasm-pack " +
+      (release ? "(release)" : "(debug)"),
+  );
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
   // Build only web and not node targets to half time.

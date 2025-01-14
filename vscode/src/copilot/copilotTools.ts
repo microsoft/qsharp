@@ -202,7 +202,7 @@ class CopilotToolError extends Error {
 }
 
 // Gets the first workspace in the tree, if there is one
-async function getInitialWorkspace(): Promise<WorkspaceConnection> {
+export async function getInitialWorkspace(): Promise<WorkspaceConnection> {
   const tree = WorkspaceTreeProvider.instance;
   const workspaces = tree.getWorkspaceIds();
   const workspace = workspaces[0] && tree.getWorkspace(workspaces[0]);

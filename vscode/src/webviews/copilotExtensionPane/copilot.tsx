@@ -53,6 +53,8 @@ function InputBox(props: {
 
   useEffect(() => {
     hrRef.current?.scrollIntoView(false);
+    // TODO: bring this back, it's annoying
+
     // textRef.current?.focus();
   });
 
