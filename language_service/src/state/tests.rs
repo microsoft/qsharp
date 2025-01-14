@@ -1778,18 +1778,22 @@ async fn loading_lints_config_from_manifest() {
         &updater,
         &expect![[r#"
             [
-                LintConfig {
-                    kind: Ast(
-                        DivisionByZero,
-                    ),
-                    level: Error,
-                },
-                LintConfig {
-                    kind: Ast(
-                        NeedlessParens,
-                    ),
-                    level: Error,
-                },
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
+                        level: Error,
+                    },
+                ),
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            NeedlessParens,
+                        ),
+                        level: Error,
+                    },
+                ),
             ]"#]],
     )
     .await;
