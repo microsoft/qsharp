@@ -215,6 +215,42 @@ fn division_by_zero() {
 }
 
 #[test]
+fn double_equality() {
+    check(
+        &wrap_in_callable("1.0 == 1.01;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "1.0 == 1.01",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn double_inequality() {
+    check(
+        &wrap_in_callable("1.0 != 1.01;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "1.0 != 1.01",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn needless_parens_in_assignment() {
     check(
         &wrap_in_callable("let x = (42);", CallableKind::Function),
