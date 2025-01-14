@@ -5,11 +5,15 @@ pub(crate) mod ast;
 pub(crate) mod hir;
 
 use self::{ast::run_ast_lints, hir::run_hir_lints};
-use crate::lints::{ast::AstLint, hir::HirLint};
+use crate::{
+    lints::{ast::AstLint, hir::HirLint},
+    GroupConfig,
+};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::{CompileUnit, PackageStore};
 use qsc_hir::hir::{Item, ItemId};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -26,13 +30,52 @@ pub fn run_lints(
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
+    let unfolded_config = config.map(unfold_groups);
+
+    let mut ast_lints = run_ast_lints(
+        &compile_unit.ast.package,
+        unfolded_config.as_deref(),
+        compilation,
+    );
+    let mut hir_lints = run_hir_lints(
+        &compile_unit.package,
+        unfolded_config.as_deref(),
+        compilation,
+    );
 
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
     lints
+}
+
+/// Unfolds groups into lists of lints. Specific lints override group configs.
+pub(crate) fn unfold_groups(config: &[LintOrGroupConfig]) -> Vec<LintConfig> {
+    let mut config_map: FxHashMap<LintKind, LintLevel> = FxHashMap::default();
+
+    // Unfold groups in the order they appear.
+    for elt in config {
+        if let LintOrGroupConfig::Group(group) = elt {
+            for lint in group.lint_group.unfold() {
+                config_map.insert(lint, group.level);
+            }
+        }
+    }
+
+    // Specific lints override group configs.
+    for elt in config {
+        if let LintOrGroupConfig::Lint(lint) = elt {
+            config_map.insert(lint.kind, lint.level);
+        }
+    }
+
+    config_map
+        .iter()
+        .map(|(kind, level)| LintConfig {
+            kind: *kind,
+            level: *level,
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy)]
@@ -197,27 +240,12 @@ pub struct LintConfig {
     pub level: LintLevel,
 }
 
-/// End-user configuration for a lint group.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct GroupConfig {
-    #[serde(rename = "group")]
-    /// The lint group.
-    pub lint_group: LintGroup,
-    /// The group level.
-    pub level: LintLevel,
-}
-
 /// Represents a lint name.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(untagged)]
 pub enum LintKind {
     /// AST lint name.
     Ast(AstLint),
     /// HIR lint name.
     Hir(HirLint),
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-pub enum LintGroup {
-    Pedantic,
 }

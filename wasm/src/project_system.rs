@@ -323,10 +323,7 @@ serializable_type! {
          */
         projectUri: string;
         packageGraphSources: IPackageGraphSources;
-        lints: {
-          lint: string;
-          level: string;
-        }[];
+        lints: ({ lint: string; level: string } | { group: string; level: string })[];
         errors: string[];
     }"#,
     IProjectConfig

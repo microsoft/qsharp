@@ -1379,6 +1379,7 @@ dependencies = [
  "qsc_hir",
  "qsc_parse",
  "qsc_passes",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",

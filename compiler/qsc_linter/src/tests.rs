@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints, Compilation},
+    lint_groups::LintGroup,
+    linter::{ast::run_ast_lints, hir::run_hir_lints, unfold_groups, Compilation},
     Lint, LintLevel, LintOrGroupConfig,
 };
 use expect_test::{expect, Expect};
@@ -95,6 +96,72 @@ fn set_keyword_lint() {
                             },
                         ),
                     ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn lint_group() {
+    check_with_config(
+        &wrap_in_callable("let x = ((1 + 2)) / 0;;;;", CallableKind::Operation),
+        Some(&[LintOrGroupConfig::Group(crate::GroupConfig {
+            lint_group: LintGroup::Pedantic,
+            level: LintLevel::Error,
+        })]),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: ";;;",
+                    level: Error,
+                    message: "redundant semicolons",
+                    help: "remove the redundant semicolons",
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 94,
+                                hi: 97,
+                            },
+                        ),
+                    ],
+                },
+                SrcLint {
+                    source: "((1 + 2)) / 0",
+                    level: Error,
+                    message: "attempt to divide by zero",
+                    help: "division by zero will fail at runtime",
+                    code_action_edits: [],
+                },
+                SrcLint {
+                    source: "((1 + 2))",
+                    level: Error,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
+                    code_action_edits: [
+                        (
+                            "",
+                            Span {
+                                lo: 80,
+                                hi: 81,
+                            },
+                        ),
+                        (
+                            "",
+                            Span {
+                                lo: 88,
+                                hi: 89,
+                            },
+                        ),
+                    ],
+                },
+                SrcLint {
+                    source: "RunProgram",
+                    level: Error,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -685,6 +752,10 @@ fn needless_operation_inside_function_call() {
 }
 
 fn check(source: &str, expected: &Expect) {
+    check_with_config(source, None, expected);
+}
+
+fn check_with_config(source: &str, config: Option<&[LintOrGroupConfig]>, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
@@ -701,7 +772,7 @@ fn check(source: &str, expected: &Expect) {
     let id = store.insert(unit);
     let unit = store.get(id).expect("user package should exist");
 
-    let actual: Vec<SrcLint> = run_lints(&store, unit, None)
+    let actual: Vec<SrcLint> = run_lints(&store, unit, config)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
@@ -764,8 +835,10 @@ fn run_lints(
         compile_unit,
     };
 
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
+    let config = config.map(unfold_groups);
+
+    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config.as_deref(), compilation);
+    let mut hir_lints = run_hir_lints(&compile_unit.package, config.as_deref(), compilation);
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);

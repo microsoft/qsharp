@@ -337,7 +337,7 @@ serializable_type! {
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
-        lints?: { lint: string; level: string }[];
+        lints?: ({ lint: string; level: string } | { group: string; level: string })[];
     }"#,
     IWorkspaceConfiguration
 }

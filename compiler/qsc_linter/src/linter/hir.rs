@@ -3,7 +3,7 @@
 
 use crate::{
     lints::hir::{CombinedHirLints, HirLint},
-    Lint, LintLevel, LintOrGroupConfig,
+    Lint, LintLevel,
 };
 use qsc_hir::{
     hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},
@@ -15,21 +15,18 @@ use qsc_hir::{
 #[must_use]
 pub fn run_hir_lints(
     package: &Package,
-    config: Option<&[LintOrGroupConfig]>,
+    config: Option<&[LintConfig]>,
     compilation: Compilation,
 ) -> Vec<Lint> {
     let config: Vec<(HirLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
-        .filter_map(|linter_config| match linter_config {
-            LintOrGroupConfig::Lint(lint) => {
-                if let LintKind::Hir(kind) = lint.kind {
-                    Some((kind, lint.level))
-                } else {
-                    None
-                }
+        .filter_map(|lint| {
+            if let LintKind::Hir(kind) = lint.kind {
+                Some((kind, lint.level))
+            } else {
+                None
             }
-            LintOrGroupConfig::Group(group) => todo!(),
         })
         .collect();
 
@@ -152,7 +149,7 @@ macro_rules! declare_hir_lints {
         use serde::{Deserialize, Serialize};
 
         /// An enum listing all existing HIR lints.
-        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
         #[serde(rename_all = "camelCase")]
         pub enum HirLint {
             $(
@@ -267,4 +264,4 @@ macro_rules! declare_hir_lints {
 
 pub(crate) use declare_hir_lints;
 
-use super::{Compilation, LintKind};
+use super::{Compilation, LintConfig, LintKind};

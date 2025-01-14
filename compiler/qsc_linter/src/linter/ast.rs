@@ -3,7 +3,7 @@
 
 use crate::{
     lints::ast::{AstLint, CombinedAstLints},
-    Lint, LintLevel, LintOrGroupConfig,
+    Lint, LintLevel,
 };
 use qsc_ast::{
     ast::{
@@ -18,21 +18,18 @@ use qsc_ast::{
 #[must_use]
 pub fn run_ast_lints(
     package: &qsc_ast::ast::Package,
-    config: Option<&[LintOrGroupConfig]>,
+    config: Option<&[LintConfig]>,
     compilation: Compilation,
 ) -> Vec<Lint> {
     let config: Vec<(AstLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
-        .filter_map(|linter_config| match linter_config {
-            LintOrGroupConfig::Lint(lint) => {
-                if let LintKind::Ast(kind) = lint.kind {
-                    Some((kind, lint.level))
-                } else {
-                    None
-                }
+        .filter_map(|lint| {
+            if let LintKind::Ast(kind) = lint.kind {
+                Some((kind, lint.level))
+            } else {
+                None
             }
-            LintOrGroupConfig::Group(group) => todo!(),
         })
         .collect();
 
@@ -188,7 +185,7 @@ macro_rules! declare_ast_lints {
         use serde::{Deserialize, Serialize};
 
         /// An enum listing all existing AST lints.
-        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
         #[serde(rename_all = "camelCase")]
         pub enum AstLint {
             $(
@@ -345,4 +342,4 @@ macro_rules! declare_ast_lints {
 
 pub(crate) use declare_ast_lints;
 
-use super::{Compilation, LintKind};
+use super::{Compilation, LintConfig, LintKind};
