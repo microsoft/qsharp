@@ -5,11 +5,11 @@
 /// This is an example of a Variational Quantum Eigensolver (VQE).
 /// This example includes:
 ///   1. Simple classical optimization to find minimum of a multi-variable function
-///      in order to find the approximation to the minimum eigenvalue of a hamiltonian
+///      in order to find an approximation to the minimum eigenvalue of a hamiltonian
 ///   2. Finding Hamiltonian expectation value as a weighted sum of terms.
 ///   3. Finding one term expectation value by performing multiple shots.
 ///   4. Ansatz state preparation similar to the circuit in the referenced paper.
-/// To keep this sample simple hamiltonian terms are randomly selected.
+/// To keep this sample simple hamiltonian terms are generated randomly.
 ///
 /// # Reference
 /// Ground-state energy estimation of the water molecule on a trapped ion quantum
@@ -29,32 +29,37 @@ operation Main() : Double {
     // Find the approximation to the minimum eigenvalue of a Hamiltonian
     // by varying ansatz parameters to minimize its expectation value.
     SimpleDescent(
-        // Use 1000 shots when estimating hamiltonian terms
+        // Use a number of shots when estimating hamiltonian terms
+        // Actual VQE implementations may require very large number of shots.
         FindHamiltonianExpectationValue(_, 100),
         // Start from these angles for ansatz state preparation
         [1.0, 1.0],
-        // Use initial step pi/8 to find minimum
-        PI() / 8.0,
+        // Initial step to search for minimum
+        0.5,
         // Stop optimization if step is 0
         0.0,
-        // Stop optimization after 100 attempts to improve
-        100
+        // Stop optimization after several attempts.
+        // Actual VQE would need to make enough iterations
+        // to find energy with sufficient chemical accuracy.
+        50
     )
 }
 
 /// # Summary
 /// Find expectation value of a Hamiltonian given parameters for the
 /// ansatz state and number of shots to evaluate each term.
+/// Different VQE applications will have different measurements and
+/// coefficients depending on the Hamiltonian being evaluated.
 operation FindHamiltonianExpectationValue(thetas : Double[], shots : Int) : Double {
     let terms = [
         ([PauliZ, PauliI, PauliI, PauliI], 0.16),
-        ([PauliI, PauliI, PauliZ, PauliI], 0.25),
+        ([PauliI, PauliI, PauliZ, PauliI], -0.25),
         ([PauliZ, PauliZ, PauliI, PauliI], 0.17),
         ([PauliI, PauliI, PauliZ, PauliZ], 0.45),
         ([PauliX, PauliX, PauliX, PauliX], 0.2),
         ([PauliY, PauliY, PauliY, PauliY], 0.1),
-        ([PauliY, PauliX, PauliX, PauliY], 0.02),
-        ([PauliX, PauliY, PauliY, PauliX], 0.22),
+        ([PauliY, PauliX, PauliX, PauliY], -0.02),
+        ([PauliX, PauliY, PauliY, PauliX], -0.22),
     ];
     mutable value = 0.0;
     for (basis, coefficient) in terms {
@@ -86,6 +91,9 @@ operation FindTermExpectationValue(
 
 /// # Summary
 /// Prepare the ansatz state for given parameters on a qubit register
+/// This is an example of ansatz state preparation similar to the
+/// unitary couple clustered method used in the referenced paper.
+/// Actual VQE application will have different ansatz preparation operations.
 operation PrepareAnsatzState(qs : Qubit[], thetas : Double[]) : Unit {
     BosonicExitationTerm(thetas[0], qs[0], qs[2]);
     CNOT(qs[0], qs[1]);
@@ -93,13 +101,13 @@ operation PrepareAnsatzState(qs : Qubit[], thetas : Double[]) : Unit {
 }
 
 /// # Summary
-/// Bosonic exitation circuit
+/// Bosonic exitation circuit from the referenced paper.
 operation BosonicExitationTerm(
     theta : Double,
     moX : Qubit,
     moY : Qubit
 ) : Unit {
-
+    X(moX);
     Adjoint S(moX);
     Rxx(theta, moX, moY);
     S(moX);
@@ -109,7 +117,7 @@ operation BosonicExitationTerm(
 }
 
 /// # Summary
-/// Non-bosonic exitation circuit
+/// Non-bosonic exitation circuit from the referenced paper.
 operation NonBosonicExitataionTerm(
     theta : Double,
     moXsoX : Qubit,
@@ -117,14 +125,12 @@ operation NonBosonicExitataionTerm(
     moYsoX : Qubit,
     moYsoY : Qubit
 ) : Unit {
-
     Adjoint S(moXsoX);
     within {
         CNOT(moXsoX, moYsoY);
         CNOT(moXsoX, moYsoX);
         CNOT(moXsoX, moXsoY);
         H(moXsoX);
-    } apply {
         Rz(theta, moXsoX);
         CNOT(moXsoY, moXsoX);
         Rz(theta, moXsoX);
@@ -132,15 +138,9 @@ operation NonBosonicExitataionTerm(
         Rz(-theta, moXsoX);
         CNOT(moXsoY, moXsoX);
         Rz(-theta, moXsoX);
+    } apply {
         Adjoint S(moYsoX);
         CNOT(moYsoX, moXsoX);
-        Rx(theta, moXsoX);
-        CNOT(moXsoY, moXsoX);
-        Rx(theta, moXsoX);
-        CNOT(moYsoY, moXsoX);
-        Rz(-theta, moXsoX);
-        CNOT(moXsoY, moXsoX);
-        Rz(-theta, moXsoX);
     }
     S(moYsoX);
 }
@@ -149,6 +149,7 @@ operation NonBosonicExitataionTerm(
 /// Simple classical optimizer. A descent to a local minimum of function `f`.
 /// Tries to takes steps in all directions and proceeds if the new point is better.
 /// If no moves result in function value improvement the step size is halved.
+/// Actual VQE implementations use more elaborate optimizers.
 operation SimpleDescent(
     f : Double[] => Double,
     initialPoint : Double[],
@@ -171,7 +172,7 @@ operation SimpleDescent(
         mutable hadImprovement = false;
         for i in IndexRange(initialPoint) {
             let nextPoint = bestPoint w/ i <- bestPoint[i] + currentStep;
-            let nextValue = f(nextPoint);
+            let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
             if nextValue < bestValue {
                 hadImprovement = true;
@@ -179,9 +180,8 @@ operation SimpleDescent(
                 bestPoint = nextPoint;
                 Message($"Value improved to {bestValue}.");
             }
-
             let nextPoint = bestPoint w/ i <- bestPoint[i] - currentStep;
-            let nextValue = f(nextPoint);
+            let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
             if nextValue < bestValue {
                 hadImprovement = true;
