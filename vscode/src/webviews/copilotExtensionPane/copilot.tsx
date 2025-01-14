@@ -7,6 +7,7 @@
 import "modern-normalize/modern-normalize.css";
 import "highlight.js/styles/default.css";
 import "./copilot.css";
+import { MessageToCopilot } from "../../commonTypes";
 
 import { render } from "preact";
 
@@ -159,13 +160,13 @@ type CopilotState = {
   qas: QA[];
   toolInProgress: string | null;
   inProgress: boolean;
-  service: "AzureQuantum" | "OpenAI";
+  service: "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
   history: object[];
 };
 
 function App({ state }: { state: CopilotState }) {
   function reset(ev: any) {
-    const service = ev.target.checked ? "AzureQuantum" : "OpenAI";
+    const service = ev.target.value;
 
     sendMessageToExtension({
       command: "resetCopilot",
@@ -244,19 +245,38 @@ function App({ state }: { state: CopilotState }) {
       </div>
       <div style="height: 30px;">
         <div class="toggle-container">
-          <span class="label-left">Proto</span>
-          <label for="serviceToggle">
-            <div class="toggle-switch">
+          <div class="radio-group">
+            <label>
               <input
-                checked={state.service === "AzureQuantum"}
-                type="checkbox"
-                id="serviceToggle"
+                type="radio"
+                name="service"
+                value="AzureQuantumTest"
+                checked={state.service === "AzureQuantumTest"}
                 onChange={reset}
-              ></input>
-              <span class="slider"></span>
-            </div>
-          </label>
-          <span class="label-left">Test</span>
+              />
+              AzureQuantumTest
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="service"
+                value="AzureQuantumLocal"
+                checked={state.service === "AzureQuantumLocal"}
+                onChange={reset}
+              />
+              AzureQuantumLocal
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="service"
+                value="OpenAI"
+                checked={state.service === "OpenAI"}
+                onChange={reset}
+              />
+              OpenAI
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -268,7 +288,7 @@ let globalState: CopilotState = {
   qas: [],
   inProgress: false,
   toolInProgress: null,
-  service: "AzureQuantum", // default
+  service: "AzureQuantumLocal", // default
   history: [],
 };
 

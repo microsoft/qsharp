@@ -8,6 +8,7 @@ import {
 import { OpenAICopilot } from "../copilot2";
 import { AzureQuantumCopilot } from "./azqCopilot";
 import { ICopilot, CopilotEventHandler } from "./copilot";
+import { MessageToCopilot } from "../commonTypes";
 
 export class CopilotWebviewViewProvider implements WebviewViewProvider {
   public static readonly viewType = "quantum-copilot";
@@ -25,7 +26,7 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       }
     };
 
-    this._copilot = new AzureQuantumCopilot(this._streamCallback);
+    this._copilot = new AzureQuantumCopilot(this._streamCallback, "local");
   }
   private _copilot: ICopilot;
   private _streamCallback: CopilotEventHandler;
@@ -85,21 +86,20 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
     if (message.command == "copilotRequest") {
       this._copilot.converse(message.request);
     } else if (message.command == "resetCopilot") {
-      if (message.request === "AzureQuantum") {
-        this._copilot = new AzureQuantumCopilot(this._streamCallback);
-      } else if (message.request === "OpenAI") {
-        this._copilot = new OpenAICopilot(this._streamCallback);
+      switch (message.request) {
+        case "AzureQuantumLocal":
+          this._copilot = new AzureQuantumCopilot(
+            this._streamCallback,
+            "local",
+          );
+          break;
+        case "AzureQuantumTest":
+          this._copilot = new AzureQuantumCopilot(this._streamCallback, "test");
+          break;
+        case "OpenAI":
+          this._copilot = new OpenAICopilot(this._streamCallback);
+          break;
       }
     }
   }
 }
-
-export type MessageToCopilot =
-  | {
-      command: "copilotRequest";
-      request: string;
-    }
-  | {
-      command: "resetCopilot";
-      request: "AzureQuantum" | "OpenAI";
-    };

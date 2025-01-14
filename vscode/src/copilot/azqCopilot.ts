@@ -10,8 +10,8 @@ import { executeTool } from "./copilotTools";
 import { WorkspaceConnection } from "../azure/treeView";
 import { CopilotEventHandler, ICopilot } from "./copilot";
 
-// const chatUrl = "https://api.quantum-test.microsoft.com/api/chat/streaming";
-const chatUrl = "https://localhost:7044/api/chat/streaming";
+const chatUrlTest = "https://api.quantum-test.microsoft.com/api/chat/streaming";
+const chatUrlLocal = "https://localhost:7044/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
@@ -101,7 +101,10 @@ export class AzureQuantumCopilot implements ICopilot {
   conversationState: ConversationState;
   msaChatSession?: AuthenticationSession;
 
-  constructor(sendMessage: CopilotEventHandler) {
+  constructor(
+    sendMessage: CopilotEventHandler,
+    private env: "local" | "test",
+  ) {
     this.conversationId = getRandomGuid();
     this.conversationState = { sendMessage };
     log.debug("Starting copilot chat request flow");
@@ -219,6 +222,10 @@ export class AzureQuantumCopilot implements ICopilot {
     }
   }
 
+  getChatUrl(): string {
+    return this.env === "local" ? chatUrlLocal : chatUrlTest;
+  }
+
   async converseWithCopilot(): Promise<{
     content?: string;
     toolCalls?: ToolCall[];
@@ -253,7 +260,7 @@ export class AzureQuantumCopilot implements ICopilot {
       let contentInResponse: string | undefined = undefined;
       let toolCallsInResponse: ToolCall[] | undefined = undefined;
 
-      await fetchEventSource(chatUrl, {
+      await fetchEventSource(this.getChatUrl(), {
         ...options,
         onMessage: (ev) => {
           if (!JSON.parse(ev.data).Delta) {

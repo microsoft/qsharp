@@ -47,15 +47,33 @@ const samplesDir = join(thisDir, "samples");
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
 
+const release = process.argv.includes("--release");
+
 function buildRust() {
   console.log("Compiling the .wasm module with wasm-pack");
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
   // Build only web and not node targets to half time.
-  const buildDir = join(thisDir, "target", "wasm32", "debug", "web");
+  const buildDir = join(
+    thisDir,
+    "target",
+    "wasm32",
+    release ? "release" : "debug",
+    "web",
+  );
   const result = spawnSync(
     "wasm-pack",
-    ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
+    release
+      ? ["build", "--no-pack", "--target", "web", "--out-dir", buildDir]
+      : [
+          "build",
+          "--dev",
+          "--no-pack",
+          "--target",
+          "web",
+          "--out-dir",
+          buildDir,
+        ],
     { cwd: wasmDir, shell: true },
   );
   console.log("wasm-pack done! ", result.stderr.toString());
