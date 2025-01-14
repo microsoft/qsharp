@@ -220,6 +220,21 @@ pub fn get_hir(
     Ok(package.to_string())
 }
 
+#[wasm_bindgen]
+pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+
+    qsc::codegen::qir::get_rir(
+        source_map,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    )
+    .map_err(interpret_errors_into_qsharp_errors_json)
+}
+
 struct CallbackReceiver<F>
 where
     F: FnMut(&str),

@@ -63,6 +63,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 
 html {
   box-sizing: border-box;
+  overflow: hidden;
   font-size: 16px;
 }
 
@@ -72,17 +73,17 @@ html {
 
 .qs-play-body {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   font-family: system-ui, "Segoe UI", "SegoeUI", Roboto, Helvetica, Arial,
     sans-serif;
   color: var(--main-color);
   background-color: var(--main-background);
   display: grid;
   grid-template-areas:
-    "header header header"
-    "nav editor results";
+    "header header"
+    "nav content";
   grid-template-rows: auto 1fr;
-  grid-template-columns: minmax(180px, auto) 8fr 8fr;
+  grid-template-columns: minmax(180px, auto) 1fr;
   column-gap: 16px;
 }
 
@@ -99,6 +100,12 @@ html {
   padding-bottom: 8px;
 }
 
+.content {
+  grid-area: content;
+  height: 100%;
+  overflow: auto;
+}
+
 #popup {
   position: absolute;
   display: none;
@@ -113,6 +120,7 @@ html {
 
 .nav-column {
   grid-area: nav;
+  overflow: auto;
   background-color: var(--nav-background);
 }
 
@@ -143,12 +151,60 @@ html {
   background-color: var(--nav-current-background);
 }
 
+/* Samples layout */
+
+.samples {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-areas:
+    "editor-header results-labels"
+    "editor-code output"
+    "editor-commands ."
+    "editor-diags .";
+  grid-template-rows: 35px 1fr 35px 150px;
+  grid-template-columns: 3fr 4fr;
+  column-gap: 16px;
+  padding-right: 16px;
+  padding-top: 16px;
+}
+
+.samples .code-editor {
+  /* This position attribute allows the monaco editor
+  to shrink when the window is resized to be smaller.
+  https://stackoverflow.com/a/71876526 */
+  position: absolute !important;
+  grid-area: editor-code;
+  height: 100%;
+  width: 100%;
+}
+
+.samples .button-row {
+  grid-area: editor-commands;
+}
+
+.samples .editor-header {
+  grid-area: editor-header;
+}
+
+.samples .diag-list {
+  overflow: auto;
+  grid-area: editor-diags;
+}
+
+.samples .output {
+  grid-area: output;
+  height: 100%;
+  min-height: 400px;
+  resize: none;
+}
+
 /* Editor section */
 
-.editor-column {
-  grid-area: editor;
-  margin: 16px;
-  margin-top: 32px;
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
 }
 
 .file-name {
@@ -235,19 +291,24 @@ html {
 /* Katas */
 
 .kata-override {
+  /* The padding is just to shrink the width
+  to make the content more readable */
+  padding-right: 40%;
+  background-color: var(--main-background);
+}
+
+/* Documentation */
+
+.doc-container {
+  /* The padding is just to shrink the width
+  to make the content more readable */
+  padding-right: 40%;
   background-color: var(--main-background);
 }
 
 /* TODO: Update all components with specific prefixes */
 
 /* Results panels */
-
-.results-column {
-  grid-area: results;
-  margin-left: 0px;
-  margin-top: 32px;
-  margin-right: 120px;
-}
 
 .active-tab {
   font-size: 1.1rem;
@@ -256,8 +317,9 @@ html {
 }
 
 .results-labels {
+  grid-area: results-labels;
   display: flex;
-  height: 32px;
+  align-items: center;
 }
 
 .results-labels > div {
@@ -268,14 +330,20 @@ html {
 }
 
 .ast-output {
-  height: 40vh;
-  min-height: 400px;
+  height: 100%;
   width: 100%;
   resize: none;
   white-space: pre;
 }
 
 .hir-output {
+  height: 100%;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
+.rir-output {
   height: 40vh;
   min-height: 400px;
   width: 100%;
@@ -284,8 +352,7 @@ html {
 }
 
 .qir-output {
-  height: 40vh;
-  min-height: 400px;
+  height: 100%;
   width: 100%;
   resize: none;
   white-space: pre;
@@ -298,11 +365,10 @@ html {
   font-weight: 400;
   margin-top: 16px;
   margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
 }
 
 .prev-next {
+  margin-bottom: 16px;
   font-weight: 200;
   cursor: pointer;
 }

@@ -225,12 +225,12 @@ export function ResultsTab(props: {
           {props.kataMode ? null : (
             <>
               <div class="output-header">
-                <div>
-                  Shot {currIndex + 1} of {countForFilter}
-                </div>
                 <div class="prev-next">
                   <span onClick={onPrev}>Prev</span> |{" "}
                   <span onClick={onNext}>Next</span>
+                </div>
+                <div>
+                  Shot {currIndex + 1} of {countForFilter}
                 </div>
               </div>
               <div class="result-label">Result: {resultLabel}</div>

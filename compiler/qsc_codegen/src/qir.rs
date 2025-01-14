@@ -13,7 +13,7 @@ use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::check_and_transform,
-    rir::{self, ConditionCode, FcmpConditionCode},
+    rir::{self, ConditionCode, FcmpConditionCode, Program},
     utils::get_all_block_successors,
 };
 
@@ -35,6 +35,18 @@ pub fn hir_to_qir(
 ) -> Result<String, qsc_partial_eval::Error> {
     let fir_store = lower_store(package_store);
     fir_to_qir(&fir_store, capabilities, compute_properties, entry)
+}
+
+pub fn fir_to_rir(
+    fir_store: &qsc_fir::fir::PackageStore,
+    capabilities: TargetCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+    entry: &ProgramEntry,
+) -> Result<(Program, Program), qsc_partial_eval::Error> {
+    let mut program = get_rir_from_compilation(fir_store, compute_properties, entry, capabilities)?;
+    let orig = program.clone();
+    check_and_transform(&mut program);
+    Ok((orig, program))
 }
 
 pub fn fir_to_qir(
