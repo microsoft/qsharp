@@ -3,7 +3,7 @@
 
 import vscode from "vscode";
 import { getInitialWorkspace } from "./copilotTools";
-import { ConversationState } from "./azqCopilot";
+import { ConversationState } from "./copilot";
 
 export async function handleConnectToWorkspace(
   conversationState: ConversationState,

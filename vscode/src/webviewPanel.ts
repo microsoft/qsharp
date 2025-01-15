@@ -25,8 +25,7 @@ import { getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { CopilotWebviewViewProvider } from "./copilot/webviewViewProvider";
-import { CopilotEventHandler, ICopilot } from "./copilot/copilot";
-import { OpenAICopilot as OpenAiCopilot } from "./copilot2";
+import { CopilotEventHandler } from "./copilot/copilot";
 import { getPauliNoiseModel } from "./config";
 
 const QSharpWebViewType = "qsharp-webview";
@@ -474,7 +473,7 @@ export class QSharpWebViewPanel {
   public static extensionUri: Uri;
   private _ready = false;
   private _queuedMessages: any[] = [];
-  private _copilot: ICopilot;
+  // private _copilot: ICopilot;
   private _streamCallback: CopilotEventHandler;
 
   constructor(
@@ -492,7 +491,8 @@ export class QSharpWebViewPanel {
       });
     };
 
-    this._copilot = new OpenAiCopilot(this._streamCallback);
+    // TODO: DEAD CODE?
+    // this._copilot = new OpenAiCopilot({ sendMessage: this._streamCallback });
     this.panel.webview.html = this._getWebviewContent(this.panel.webview);
     this._setWebviewMessageListener(this.panel.webview);
   }

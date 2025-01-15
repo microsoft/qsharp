@@ -1,9 +1,14 @@
 import OpenAI from "openai";
 import { log } from "qsharp-lang";
-import { ConversationState } from "./copilot/azqCopilot.js";
-import { CopilotEventHandler, ICopilot } from "./copilot/copilot.js";
-import { executeTool } from "./copilot/copilotTools.js";
-import { apiKey } from "./copilotApiKey.js";
+import {
+  ConversationState,
+  CopilotEventHandler,
+  ICopilot,
+  QuantumChatMessage,
+  ToolCall,
+} from "./copilot.js";
+import { executeTool } from "./copilotTools.js";
+import { apiKey } from "../copilotApiKey.js";
 
 // Don't check in a filled in API key
 const openai = new OpenAI({
@@ -151,7 +156,7 @@ const tools: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
-const systemMessage: OpenAI.ChatCompletionMessageParam = {
+const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
   role: "system",
   content:
     "You are a helpful customer support assistant. Use the supplied tools to assist the user. " +
@@ -160,14 +165,14 @@ const systemMessage: OpenAI.ChatCompletionMessageParam = {
 };
 
 export class OpenAICopilot implements ICopilot {
-  messages: OpenAI.ChatCompletionMessageParam[] = [];
+  systemMessage: OpenAI.ChatCompletionSystemMessageParam;
+  messages: QuantumChatMessage[];
   streamCallback: CopilotEventHandler;
-  conversationState: ConversationState;
 
-  constructor(streamCallback: CopilotEventHandler) {
-    this.conversationState = { sendMessage: streamCallback };
-    this.messages.push(systemMessage);
-    this.streamCallback = streamCallback;
+  constructor(private conversationState: ConversationState) {
+    this.systemMessage = systemMessage;
+    this.messages = this.conversationState.messages;
+    this.streamCallback = conversationState.sendMessage;
   }
 
   // OpenAI handling functions
@@ -191,7 +196,13 @@ export class OpenAICopilot implements ICopilot {
     this.messages.push({
       role: "assistant",
       content: content || "",
-      tool_calls: toolCalls,
+      ToolCalls: toolCalls?.map((tc) => {
+        return {
+          arguments: tc.function.arguments,
+          id: tc.id,
+          name: tc.function.name,
+        } as ToolCall;
+      }),
     });
     if (content) {
       this.conversationState.sendMessage({
@@ -214,7 +225,39 @@ export class OpenAICopilot implements ICopilot {
   }> {
     const payload = {
       model: "gpt-4o-mini",
-      messages: this.messages,
+      messages: [
+        this.systemMessage,
+        ...this.messages.map((m) => {
+          switch (m.role) {
+            case "user":
+              return {
+                role: m.role,
+                content: m.content,
+              } as OpenAI.ChatCompletionUserMessageParam;
+            case "assistant":
+              return {
+                role: m.role,
+                content: m.content,
+                tool_calls: m.ToolCalls?.map((tc) => {
+                  return {
+                    type: "function",
+                    id: tc.id,
+                    function: {
+                      name: tc.name,
+                      arguments: tc.arguments,
+                    },
+                  } as OpenAI.ChatCompletionMessageToolCall;
+                }),
+              } as OpenAI.ChatCompletionAssistantMessageParam;
+            case "tool":
+              return {
+                role: m.role,
+                content: m.content,
+                tool_call_id: m.toolCallId,
+              } as OpenAI.ChatCompletionToolMessageParam;
+          }
+        }),
+      ],
       tools: tools,
     };
 
@@ -243,19 +286,29 @@ export class OpenAICopilot implements ICopilot {
         kind: "copilotToolCall",
         payload: { toolName: toolCall.function.name },
       });
-      const content = await executeTool(
+      const args = JSON.parse(toolCall.function.arguments);
+      const result = await executeTool(
         toolCall.function.name,
-        JSON.parse(toolCall.function.arguments),
+        args,
         this.conversationState,
       );
+
       // Create a message containing the result of the function call
-      const function_call_result_message: OpenAI.ChatCompletionToolMessageParam =
-        {
-          role: "tool",
-          content: JSON.stringify(content),
-          tool_call_id: toolCall.id,
-        };
-      this.messages.push(function_call_result_message);
+      const toolMessage: QuantumChatMessage = {
+        role: "tool",
+        content: JSON.stringify(result),
+        toolCallId: toolCall.id,
+      };
+      this.messages.push(toolMessage);
+      this.conversationState.sendMessage({
+        kind: "copilotToolCallDone",
+        payload: {
+          toolName: toolCall.function.name,
+          args,
+          result,
+          history: this.messages,
+        },
+      });
     }
   }
 }

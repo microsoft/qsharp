@@ -19,9 +19,8 @@ import {
 } from "../azure/workspaceActions.js";
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
-import { ConversationState } from "./azqCopilot.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
-import { CopilotEventHandler } from "./copilot.js";
+import { ConversationState, CopilotEventHandler } from "./copilot.js";
 import { handleGetJobs } from "./toolGetJobs.js";
 import { handleConnectToWorkspace } from "./toolAddWorkspace.js";
 

@@ -1,7 +1,7 @@
 import { ChatCompletionTool } from "openai/resources/index.mjs";
 import { Job, WorkspaceConnection } from "../azure/treeView";
-import { ConversationState } from "./azqCopilot";
 import { getConversationWorkspace } from "./copilotTools";
+import { ConversationState } from "./copilot";
 
 const jobLimit = 10;
 const jobLimitDays = 14;

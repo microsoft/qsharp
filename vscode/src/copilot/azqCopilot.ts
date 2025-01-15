@@ -7,46 +7,16 @@ import { getAuthSession, scopes } from "../azure/auth";
 import { EventSourceMessage, fetchEventSource } from "../fetch";
 import { AuthenticationSession } from "vscode";
 import { executeTool } from "./copilotTools";
-import { WorkspaceConnection } from "../azure/treeView";
-import { CopilotEventHandler, ICopilot } from "./copilot";
+import {
+  ConversationState,
+  ICopilot,
+  QuantumChatMessage,
+  ToolCall,
+} from "./copilot";
 
 const chatUrlTest = "https://api.quantum-test.microsoft.com/api/chat/streaming";
 const chatUrlLocal = "https://localhost:7044/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
-
-type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
-
-type UserMessage = {
-  role: "user";
-  content: string;
-};
-
-type AssistantMessage = {
-  role: "assistant";
-  content: string;
-  ToolCalls?: ToolCall[];
-};
-
-type ToolMessage = {
-  role: "tool";
-  content: string;
-  toolCallId?: string;
-};
-
-export type ToolCall = {
-  /**
-   * The name of the function to call
-   */
-  name: string;
-  /**
-   * Dictionary of the argument names and their values
-   */
-  arguments: any;
-  /**
-   * The tool call id used to match the tool call responses appropriately
-   */
-  id: string;
-};
 
 type QuantumChatResponse = {
   /**
@@ -90,23 +60,17 @@ type QuantumChatRequest = {
   identifier: string;
 };
 
-export type ConversationState = {
-  activeWorkspace?: WorkspaceConnection;
-  sendMessage: CopilotEventHandler;
-};
-
 export class AzureQuantumCopilot implements ICopilot {
   conversationId: string;
-  messages: QuantumChatMessage[] = [];
-  conversationState: ConversationState;
+  messages: QuantumChatMessage[];
   msaChatSession?: AuthenticationSession;
 
   constructor(
-    sendMessage: CopilotEventHandler,
     private env: "local" | "test",
+    private conversationState: ConversationState,
   ) {
     this.conversationId = getRandomGuid();
-    this.conversationState = { sendMessage };
+    this.messages = this.conversationState.messages;
     log.debug("Starting copilot chat request flow");
   }
 
@@ -214,12 +178,12 @@ export class AzureQuantumCopilot implements ICopilot {
         this.conversationState,
       );
       // Create a message containing the result of the function call
-      const function_call_result_message: ToolMessage = {
+      const toolMessage: QuantumChatMessage = {
         role: "tool",
         content: JSON.stringify(result),
         toolCallId: toolCall.id,
       };
-      this.messages.push(function_call_result_message);
+      this.messages.push(toolMessage);
       this.conversationState.sendMessage({
         kind: "copilotToolCallDone",
         payload: {

@@ -12,7 +12,13 @@ export type MessageToCopilot =
   | {
       command: "resetCopilot";
       request: "AzureQuantumTest" | "AzureQuantumLocal" | "OpenAI";
+    }
+  | {
+      command: "retryRequest";
+      service: "AzureQuantumTest" | "AzureQuantumLocal" | "OpenAI";
     };
+
+export type ServiceTypes = "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
 
 /**
  * Events that get sent across the webview <-> extension boundary

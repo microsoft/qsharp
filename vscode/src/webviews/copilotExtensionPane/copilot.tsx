@@ -7,7 +7,11 @@
 import "modern-normalize/modern-normalize.css";
 import "highlight.js/styles/default.css";
 import "./copilot.css";
-import { CopilotEvent, MessageToCopilot } from "../../commonTypes";
+import {
+  CopilotEvent,
+  MessageToCopilot,
+  ServiceTypes,
+} from "../../commonTypes";
 
 import { render } from "preact";
 
@@ -93,65 +97,95 @@ function InputBox(props: {
   );
 }
 
-function ConversationMessage(props: { message: ConversationMessage }) {
-  const parts: Array<string | any> = [];
+function ResponseBox(props: { response: string }) {
+  const responseParts: string[] = [];
+  const response = props.response;
 
-  const message = props.message;
-
-  if (message.role === "assistant") {
-    const widget = message.response.indexOf("```widget\n");
-    if (widget >= 0) {
-      parts.push(message.response.slice(0, widget));
-      let endWidget = message.response.indexOf("\n```\n", widget + 9);
-      if (endWidget < 0 || endWidget >= message.response.length - 4) {
-        endWidget = message.response.length;
-        parts.push(message.response.slice(widget));
-      } else {
-        parts.push(message.response.slice(widget, endWidget + 4));
-        parts.push(message.response.slice(endWidget + 4));
-      }
+  const widget = response.indexOf("```widget\n");
+  if (widget >= 0) {
+    responseParts.push(response.slice(0, widget));
+    let endWidget = response.indexOf("\n```\n", widget + 9);
+    if (endWidget < 0 || endWidget >= response.length - 4) {
+      endWidget = response.length;
+      responseParts.push(response.slice(widget));
     } else {
-      parts.push(message.response);
+      responseParts.push(response.slice(widget, endWidget + 4));
+      responseParts.push(response.slice(endWidget + 4));
     }
+  } else {
+    responseParts.push(response);
   }
 
   return (
-    <div>
-      {message.role === "user" ? (
+    <div class="responseBox">
+      {responseParts.map((part) => {
+        if (part.startsWith("```widget\nHistogram")) {
+          const histo = JSON.parse(part.slice(20));
+          if (histo.buckets && typeof histo.shotCount === "number") {
+            const histoMap: Map<string, number> = new Map(histo.buckets);
+            return (
+              <Histogram
+                data={histoMap}
+                filter=""
+                shotCount={histo.shotCount}
+                onFilter={() => undefined}
+                shotsHeader={false}
+              />
+            );
+          }
+        } else {
+          return <Markdown markdown={part}></Markdown>;
+        }
+      })}
+    </div>
+  );
+}
+
+function RetryButton(props: {
+  service: ServiceTypes;
+  retryRequest: (service: ServiceTypes) => void;
+}) {
+  const serviceDropdown = useRef<HTMLSelectElement>(null);
+  return (
+    <div style="margin: 10px 0;">
+      <select ref={serviceDropdown} value={props.service}>
+        <option value="OpenAI">OpenAI</option>
+        <option value="AzureQuantumTest">AzureQuantumTest</option>
+        <option value="AzureQuantumLocal">AzureQuantumLocal</option>
+      </select>
+      <button
+        onClick={() => {
+          const dropdown = serviceDropdown.current!;
+          const selectedService = dropdown.value;
+          props.retryRequest(selectedService as ServiceTypes);
+        }}
+      >
+        Try Again
+      </button>
+    </div>
+  );
+}
+
+function ConversationMessage(props: { message: ConversationMessage }) {
+  const message = props.message;
+
+  switch (message.role) {
+    case "user": {
+      return (
         <div class="requestBox">
           <Markdown markdown={message.request} />
         </div>
-      ) : null}
-      <div class="responseBox">
-        {parts.map((part) => {
-          if (part.startsWith("```widget\nHistogram")) {
-            const histo = JSON.parse(part.slice(20));
-            if (histo.buckets && typeof histo.shotCount === "number") {
-              const histoMap: Map<string, number> = new Map(histo.buckets);
-              return (
-                <Histogram
-                  data={histoMap}
-                  filter=""
-                  shotCount={histo.shotCount}
-                  onFilter={() => undefined}
-                  shotsHeader={false}
-                />
-              );
-            }
-          } else {
-            return <Markdown markdown={part}></Markdown>;
-          }
-        })}
-      </div>
-      {message.role === "tool" ? (
+      );
+    }
+    case "tool": {
+      return (
         <div style="font-weight: bold; text-align: right; font-size: smaller;">
           {message.name}({message.args}) =&gt; {message.result}
         </div>
-      ) : (
-        <></>
-      )}
-    </div>
-  );
+      );
+    }
+  }
+  return <></>;
 }
 
 type ConversationMessage =
@@ -175,7 +209,7 @@ type CopilotState = {
   conversation: ConversationMessage[];
   toolInProgress: string | null;
   inProgress: boolean;
-  service: "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
+  service: ServiceTypes;
   history: object[];
 };
 
@@ -215,23 +249,34 @@ function App({ state }: { state: CopilotState }) {
     render(<App state={state} />, document.body);
   }
 
+  function retryRequest(service: ServiceTypes) {
+    vscodeApi.postMessage({
+      command: "retryRequest",
+      service,
+    });
+    globalState.service = service;
+    // pop until the last user message - don't pop the user message
+    while (globalState.conversation.length > 0) {
+      const lastMessage = globalState.conversation.pop();
+      const lastHistoryMessage = globalState.history.pop();
+      if (lastMessage?.role === "user" && lastHistoryMessage) {
+        globalState.conversation.push(lastMessage);
+        globalState.history.push(lastHistoryMessage);
+        break;
+      }
+    }
+    globalState.inProgress = true;
+    render(<App state={state} />, document.body);
+  }
+
   const historyRef = useRef<HTMLDivElement>(null);
 
   return (
     <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
       <div style="flex: 1; ">
         <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
-        {(state as CopilotState).conversation.map((message) => (
-          <ConversationMessage message={message} />
-        ))}
-        {
-          <ConversationMessage
-            message={{
-              role: "assistant",
-              response: (state as CopilotState).tidbits.join(""),
-            }}
-          />
-        }
+        {FinishedConversation(state, retryRequest)}
+
         <div
           id="toolStatus"
           style="height: 30px; font-weight: bold; text-align: right; font-size: smaller;"
@@ -326,6 +371,45 @@ let globalState: CopilotState = {
   service: "AzureQuantumLocal", // default
   history: [],
 };
+
+function FinishedConversation(
+  state: CopilotState,
+  retryRequest: (service: ServiceTypes) => void,
+) {
+  const elements = [];
+  // oh my god
+  const lastUserMessage =
+    state.conversation
+      .map((c, index) => (c.role === "user" ? index : -1))
+      .filter((index) => index !== -1)
+      .pop() ?? -1;
+
+  for (const message of state.conversation) {
+    if (message.role === "assistant") {
+      elements.push(<ResponseBox response={message.response} />);
+    } else {
+      elements.push(<ConversationMessage message={message} />);
+    }
+  }
+
+  if (state.tidbits.length > 0) {
+    elements.push(<ResponseBox response={state.tidbits.join("")} />);
+  }
+
+  // insert at lastUserMessage
+  if (lastUserMessage >= 0) {
+    elements.splice(
+      lastUserMessage + 1,
+      0,
+      <RetryButton
+        service={state.service}
+        retryRequest={retryRequest}
+      ></RetryButton>,
+    );
+  }
+
+  return elements;
+}
 
 function loaded() {
   render(<App state={globalState} />, document.body);
