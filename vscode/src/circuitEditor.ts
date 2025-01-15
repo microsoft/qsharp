@@ -81,6 +81,38 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     updateWebview();
   }
 
+  private _getHtmlForWebview(webview: vscode.Webview): string {
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "src",
+        "webview",
+        "editor.js",
+      ),
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "src",
+        "webview",
+        "style.css",
+      ),
+    );
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Q#</title>
+          <link rel="stylesheet" href="${styleUri}" />
+          <script src="${scriptUri}"></script>
+        </head>
+        <body>
+        </body>
+      </html>`;
+  }
+
   private getHtmlForWebview(webview: vscode.Webview): string {
     const extensionUri = this.context.extensionUri;
 
@@ -95,22 +127,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     const webviewCss = getUri(["out", "webview", "webview.css"]);
     const scriptUri = getUri(["out", "webview", "editor.js"]);
     const resourcesUri = getUri(["resources"]);
-    // const scriptUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(
-    //     this.context.extensionUri,
-    //     "src",
-    //     "webview",
-    //     "editor.js",
-    //   ),
-    // );
-    // const styleUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(
-    //     this.context.extensionUri,
-    //     "src",
-    //     "webview",
-    //     "style.css",
-    //   ),
-    // );
     return `
       <!DOCTYPE html>
       <html lang="en">
