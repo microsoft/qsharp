@@ -40,7 +40,7 @@ const config = {
     minimize: true,
     minimizer: [
       new TerserPlugin({
-        sourceMap: true,
+        // sourceMap: true,
         include: /\.min\.js$/,
       }),
     ],
