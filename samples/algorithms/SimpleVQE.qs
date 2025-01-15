@@ -5,11 +5,11 @@
 /// This is an example of a Variational Quantum Eigensolver (VQE).
 /// This example includes:
 ///   1. Simple classical optimization to find minimum of a multi-variable function
-///      in order to find an approximation to the minimum eigenvalue of a hamiltonian
+///      in order to find an approximation to the minimum eigenvalue of a Hamiltonian
 ///   2. Finding Hamiltonian expectation value as a weighted sum of terms.
 ///   3. Finding one term expectation value by performing multiple shots.
 ///   4. Ansatz state preparation similar to the circuit in the referenced paper.
-/// To keep this sample simple hamiltonian terms are generated randomly.
+/// To keep this sample simple Hamiltonian terms are generated randomly.
 ///
 /// # Reference
 /// Ground-state energy estimation of the water molecule on a trapped ion quantum
@@ -29,7 +29,7 @@ operation Main() : Double {
     // Find the approximation to the minimum eigenvalue of a Hamiltonian
     // by varying ansatz parameters to minimize its expectation value.
     SimpleDescent(
-        // Use a number of shots when estimating hamiltonian terms
+        // Use a number of shots when estimating Hamiltonian terms
         // Actual VQE implementations may require very large number of shots.
         FindHamiltonianExpectationValue(_, 100),
         // Start from these angles for ansatz state preparation
