@@ -357,5 +357,5 @@ internal function AllEigenVectorsAsBitString(eigenVectors : Double[][], precisio
 }
 
 internal function IsNaN(value : Double) : Bool {
-    value != value
+    not (value == value)
 }

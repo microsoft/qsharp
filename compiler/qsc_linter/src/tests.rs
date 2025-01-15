@@ -233,6 +233,22 @@ fn double_equality() {
 }
 
 #[test]
+fn check_double_equality_with_itself_is_allowed_for_nan_check() {
+    check(
+        &wrap_in_callable(
+            r#"
+            let a = 1.0;
+            let is_nan = not (a == a);
+        "#,
+            CallableKind::Function,
+        ),
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
 fn double_inequality() {
     check(
         &wrap_in_callable("1.0 != 1.01;", CallableKind::Function),

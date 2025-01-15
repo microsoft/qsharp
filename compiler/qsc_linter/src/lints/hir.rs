@@ -49,6 +49,19 @@ struct DoubleEquality {
 
 impl HirLintPass for DoubleEquality {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+        // Ignore the case where the identifier is being compared for equlity with itself,
+        // Since this is used to check if the double is `NaN`. This will be compiled to
+        // fcmp oeq value value
+        // in LLVM because we only implemented the ord side of fcmp.
+        // See https://llvm.org/docs/LangRef.html#id313 for more details.
+        if let ExprKind::BinOp(BinOp::Eq, ref lhs, ref rhs) = expr.kind {
+            if let (ExprKind::Var(lhs_id, _), ExprKind::Var(rhs_id, _)) = (&lhs.kind, &rhs.kind) {
+                if lhs_id == rhs_id {
+                    return;
+                }
+            }
+        }
+
         if let ExprKind::BinOp(BinOp::Eq | BinOp::Neq, ref lhs, ref rhs) = expr.kind {
             if matches!(lhs.ty, Ty::Prim(Prim::Double)) && matches!(rhs.ty, Ty::Prim(Prim::Double))
             {
