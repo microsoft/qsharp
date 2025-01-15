@@ -162,7 +162,7 @@ struct SpecImplPass<'a> {
     is_codegen_intrinsic: bool,
 }
 
-impl<'a> SpecImplPass<'a> {
+impl SpecImplPass<'_> {
     fn ctl_distrib(&mut self, spec_decl: &mut SpecDecl, block: &Block) {
         let ctls_id = self.assigner.next_node();
 
@@ -214,7 +214,7 @@ impl<'a> SpecImplPass<'a> {
     }
 }
 
-impl<'a> MutVisitor for SpecImplPass<'a> {
+impl MutVisitor for SpecImplPass<'_> {
     fn visit_item(&mut self, item: &mut Item) {
         self.is_codegen_intrinsic = item.attrs.contains(&Attr::SimulatableIntrinsic);
         walk_item(self, item);

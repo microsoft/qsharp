@@ -153,8 +153,7 @@ impl DebugService {
                 success = false;
                 errors[0]
                     .stack_trace()
-                    .clone()
-                    .map(serde_json::Value::String)
+                    .map(|arg0: &std::string::String| serde_json::Value::String(arg0.clone()))
             }
         };
         if let Some(value) = msg {

@@ -173,7 +173,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 }
 
-impl<'a> Renamer<'a> {
+impl Renamer<'_> {
     fn find_namespace_id(&mut self, idents: &impl Idents) -> Option<NamespaceId> {
         let ns_id = self
             .namespaces
