@@ -207,18 +207,28 @@ export class AzureQuantumCopilot implements ICopilot {
         kind: "copilotToolCall",
         payload: { toolName: toolCall.name },
       });
-      const content = await executeTool(
+      const args = JSON.parse(toolCall.arguments);
+      const result = await executeTool(
         toolCall.name,
-        JSON.parse(toolCall.arguments),
+        args,
         this.conversationState,
       );
       // Create a message containing the result of the function call
       const function_call_result_message: ToolMessage = {
         role: "tool",
-        content: JSON.stringify(content),
+        content: JSON.stringify(result),
         toolCallId: toolCall.id,
       };
       this.messages.push(function_call_result_message);
+      this.conversationState.sendMessage({
+        kind: "copilotToolCallDone",
+        payload: {
+          toolName: toolCall.name,
+          args,
+          result,
+          history: this.messages,
+        },
+      });
     }
   }
 

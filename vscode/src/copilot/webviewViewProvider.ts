@@ -20,8 +20,8 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       if (this.view) {
         // log.info("message posted with command: ", command);
         this.view.webview.postMessage({
-          command: kind,
-          ...payload,
+          kind,
+          payload,
         });
       }
     };
@@ -72,7 +72,7 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
     <link rel="stylesheet" href="${katexCss}" />
     <link rel="stylesheet" href="${copilotCss}" />
     </head>
-    <body class="markdown-body" data-theme="light">
+    <body>
     <script src="${copilotJs}"></script>
     </body>
     </html>`;

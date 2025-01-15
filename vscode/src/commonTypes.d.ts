@@ -13,3 +13,29 @@ export type MessageToCopilot =
       command: "resetCopilot";
       request: "AzureQuantumTest" | "AzureQuantumLocal" | "OpenAI";
     };
+
+/**
+ * Events that get sent across the webview <-> extension boundary
+ * for the copilot feature.
+ */
+export type CopilotEvent =
+  | { kind: "copilotResponseDelta"; payload: { response: string } }
+  | { kind: "copilotResponse"; payload: { response: string } }
+  | { kind: "copilotToolCall"; payload: { toolName: string } }
+  | {
+      kind: "copilotToolCallDone";
+      payload: {
+        toolName: string;
+        args: object;
+        result: object;
+        history: object[];
+      };
+    }
+  | { kind: "copilotResponseDone"; payload: { history: object[] } }
+  | {
+      kind: "copilotResponseHistogram";
+      payload: {
+        buckets: [string, number][];
+        shotCount: number;
+      };
+    };

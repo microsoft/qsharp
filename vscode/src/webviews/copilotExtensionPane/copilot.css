@@ -1,6 +1,8 @@
 body {
   padding: 12px;
   height: 100%;
+  /*  match the native vscode chat colors */
+  background-color: var(--vscode-chat-list-background);
 }
 html {
   height: 100%;
@@ -28,6 +30,7 @@ textarea:focus {
   margin-bottom: 16px;
   border: 1px solid #ccc;
   border-radius: 0.5em;
+  background-color: var(--vscode-input-background);
 }
 
 .requestBox p {
@@ -47,15 +50,25 @@ textarea:focus {
 }
 
 .inputDiv {
-  border: 1px solid #ccc;
-  border-radius: 0.375em;
-  padding-left: 8px;
-  padding-right: 8px;
+  /* border: 1px solid #ccc; */
+  /* border-radius: 0.375em; */
+  /* padding-left: 8px; */
+  /* padding-right: 8px; */
   display: flex;
   justify-content: flex-start;
   align-items: center;
   width: 80vw;
-  max-width: 600px;
+  /* max-width: 600px; */
+
+  /* match native vscode chat UI */
+  /* https://github.com/microsoft/vscode/blob/7fadaa1ddc1c03dcd9a58fab063dac74284eb63e/src/vs/workbench/contrib/chat/browser/media/chat.css#L522 */
+  /* box-sizing: border-box; */
+  /* cursor: text; */
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 4px;
+  padding: 0 6px 6px 6px; /* top padding is inside the editor widget */
+  max-width: 100%;
 }
 
 .inputDiv:has(textarea:focus) {

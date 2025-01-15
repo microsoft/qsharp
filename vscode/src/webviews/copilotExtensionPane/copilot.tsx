@@ -7,7 +7,7 @@
 import "modern-normalize/modern-normalize.css";
 import "highlight.js/styles/default.css";
 import "./copilot.css";
-import { MessageToCopilot } from "../../commonTypes";
+import { CopilotEvent, MessageToCopilot } from "../../commonTypes";
 
 import { render } from "preact";
 
@@ -93,31 +93,33 @@ function InputBox(props: {
   );
 }
 
-function Response(props: { request: string; response: string }) {
+function ConversationMessage(props: { message: ConversationMessage }) {
   const parts: Array<string | any> = [];
 
-  const widget = props.response.indexOf("```widget\n");
-  if (widget >= 0) {
-    parts.push(props.response.slice(0, widget));
-    let endWidget = props.response.indexOf("\n```\n", widget + 9);
-    if (endWidget < 0 || endWidget >= props.response.length - 4) {
-      endWidget = props.response.length;
-      parts.push(props.response.slice(widget));
-    } else {
-      parts.push(props.response.slice(widget, endWidget + 4));
-      parts.push(props.response.slice(endWidget + 4));
-    }
-  } else {
-    parts.push(props.response);
-  }
+  const message = props.message;
 
-  const toolCallPrefix = "Executing: ";
+  if (message.role === "assistant") {
+    const widget = message.response.indexOf("```widget\n");
+    if (widget >= 0) {
+      parts.push(message.response.slice(0, widget));
+      let endWidget = message.response.indexOf("\n```\n", widget + 9);
+      if (endWidget < 0 || endWidget >= message.response.length - 4) {
+        endWidget = message.response.length;
+        parts.push(message.response.slice(widget));
+      } else {
+        parts.push(message.response.slice(widget, endWidget + 4));
+        parts.push(message.response.slice(endWidget + 4));
+      }
+    } else {
+      parts.push(message.response);
+    }
+  }
 
   return (
     <div>
-      {props.request ? (
+      {message.role === "user" ? (
         <div class="requestBox">
-          <Markdown markdown={props.request} />
+          <Markdown markdown={message.request} />
         </div>
       ) : null}
       <div class="responseBox">
@@ -136,30 +138,41 @@ function Response(props: { request: string; response: string }) {
                 />
               );
             }
-          } else if (props.response.startsWith(toolCallPrefix)) {
-            const tool = props.response.slice(toolCallPrefix.length);
-            return (
-              <div style="font-weight: bold; text-align: right; font-size: smaller;">
-                {tool}
-              </div>
-            );
           } else {
             return <Markdown markdown={part}></Markdown>;
           }
         })}
       </div>
+      {message.role === "tool" ? (
+        <div style="font-weight: bold; text-align: right; font-size: smaller;">
+          {message.name}({message.args}) =&gt; {message.result}
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 }
 
-type QA = {
-  request: string;
-  response: string;
-};
+type ConversationMessage =
+  | {
+      role: "assistant";
+      response: string;
+    }
+  | {
+      role: "user";
+      request: string;
+    }
+  | {
+      role: "tool";
+      name: string;
+      args: string;
+      result: string;
+    };
 
 type CopilotState = {
   tidbits: string[];
-  qas: QA[];
+  conversation: ConversationMessage[];
   toolInProgress: string | null;
   inProgress: boolean;
   service: "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
@@ -176,7 +189,7 @@ function App({ state }: { state: CopilotState }) {
     });
     globalState = {
       tidbits: [],
-      qas: [],
+      conversation: [],
       inProgress: false,
       service,
       toolInProgress: null,
@@ -194,27 +207,29 @@ function App({ state }: { state: CopilotState }) {
       command: "copilotRequest",
       request: text,
     });
-    globalState.qas.push({
+    globalState.conversation.push({
+      role: "user",
       request: text,
-      response: "",
     });
     globalState.inProgress = true;
     render(<App state={state} />, document.body);
   }
 
-  const historyRef = useRef<HTMLPreElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
 
   return (
     <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
       <div style="flex: 1; ">
         <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
-        {(state as CopilotState).qas.map((qa) => (
-          <Response request={qa.request} response={qa.response} />
+        {(state as CopilotState).conversation.map((message) => (
+          <ConversationMessage message={message} />
         ))}
         {
-          <Response
-            request={""}
-            response={(state as CopilotState).tidbits.join("")}
+          <ConversationMessage
+            message={{
+              role: "assistant",
+              response: (state as CopilotState).tidbits.join(""),
+            }}
           />
         }
         <div
@@ -240,9 +255,27 @@ function App({ state }: { state: CopilotState }) {
           >
             history
           </a>
-          <pre ref={historyRef} style="display: none;">
-            {JSON.stringify(state.history, undefined, 2)}
-          </pre>
+          <div ref={historyRef} style="display: none;">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(
+                  JSON.stringify(state.history, undefined, 2),
+                );
+                if (e.target) {
+                  const a = e.target as HTMLAnchorElement;
+                  a.textContent = "copy to clipboard - copied.";
+                  setTimeout(() => {
+                    a.textContent = "copy to clipboard";
+                  }, 2000);
+                }
+              }}
+            >
+              copy to clipboard
+            </a>
+            <pre>{JSON.stringify(state.history, undefined, 2)}</pre>
+          </div>
         </div>
       </div>
       <div style="height: 30px;">
@@ -287,7 +320,7 @@ function App({ state }: { state: CopilotState }) {
 
 let globalState: CopilotState = {
   tidbits: [],
-  qas: [],
+  conversation: [],
   inProgress: false,
   toolInProgress: null,
   service: "AzureQuantumLocal", // default
@@ -301,14 +334,14 @@ function loaded() {
 document.addEventListener("DOMContentLoaded", loaded);
 window.addEventListener("message", onMessage);
 
-function onMessage(event: any) {
+function onMessage(event: MessageEvent<CopilotEvent>) {
   const message = event.data;
-  switch (message.command) {
+  switch (message.kind) {
     case "copilotResponseDelta":
       // After a copilot response from the service, but before any tool calls are executed.
       {
         // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-        let cleanedResponse = message.response;
+        let cleanedResponse = message.payload.response;
         cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
         cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
         globalState.toolInProgress = null;
@@ -319,39 +352,53 @@ function onMessage(event: any) {
       // After a copilot response from the service, but before any tool calls are executed.
       {
         // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-        let cleanedResponse = message.response;
+        let cleanedResponse = message.payload.response;
         cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
         cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
         globalState.toolInProgress = null;
         globalState.tidbits = [];
-        globalState.qas.push({
-          request: message.request ?? "",
+        globalState.conversation.push({
+          role: "assistant",
           response: cleanedResponse,
         });
       }
       break;
     case "copilotToolCall":
       {
-        globalState.toolInProgress = message.toolName;
-        // globalState.qas.push({
-        //   request: message.request ?? "",
-        //   response: "Executing: " + message.toolName,
-        // });
+        globalState.toolInProgress = message.payload.toolName;
+      }
+      break;
+    case "copilotToolCallDone":
+      {
+        const toolName = message.payload.toolName;
+        const args = JSON.stringify(message.payload.args);
+        const result = JSON.stringify(message.payload.result);
+        globalState.conversation.push({
+          role: "tool",
+          name: toolName,
+          args: args,
+          result: result,
+        });
+        globalState.history = message.payload.history;
+        globalState.toolInProgress = null;
       }
       break;
     case "copilotResponseHistogram":
       {
-        if (!message.buckets || typeof message.shotCount !== "number") {
+        if (
+          !message.payload.buckets ||
+          typeof message.payload.shotCount !== "number"
+        ) {
           console.error("No buckets in message: ", message);
           return;
         }
-        const buckets = message.buckets as Array<[string, number]>;
+        const buckets = message.payload.buckets as Array<[string, number]>;
         const histogram = JSON.stringify({
           buckets: buckets,
-          shotCount: message.shotCount,
+          shotCount: message.payload.shotCount,
         });
-        globalState.qas.push({
-          request: "",
+        globalState.conversation.push({
+          role: "assistant",
           response: "```widget\nHistogram\n" + histogram,
         });
       }
@@ -361,7 +408,7 @@ function onMessage(event: any) {
       {
         globalState.inProgress = false;
         globalState.toolInProgress = null;
-        globalState.history = message.history;
+        globalState.history = message.payload.history;
       }
       // Highlight any code blocks
       // Need to wait until Markdown is rendered. Hack for now with a timeout
@@ -370,7 +417,7 @@ function onMessage(event: any) {
       }, 100);
       break;
     default:
-      console.error("Unknown command: ", message.command);
+      console.error("Unknown message kind: ", (message as any).kind);
       return;
   }
   // vscodeApi.setState(state);
