@@ -169,7 +169,7 @@ impl<'inner, 'package, T: Handler<'package>> Locator<'inner, 'package, T> {
     }
 }
 
-impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
+impl<'package, T: Handler<'package>> Visitor<'package> for Locator<'_, 'package, T> {
     fn visit_attr(&mut self, attr: &'package ast::Attr) {
         if attr.name.span.contains(self.offset) {
             self.inner.at_attr_ref(&attr.name);

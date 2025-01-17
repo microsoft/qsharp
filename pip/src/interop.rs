@@ -88,7 +88,7 @@ pub fn run_qasm3(
 ) -> PyResult<PyObject> {
     let mut receiver = OptionalCallbackReceiver { callback, py };
 
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let target = get_target_profile(&kwargs)?;
     let operation_name = get_operation_name(&kwargs)?;
@@ -120,11 +120,7 @@ pub fn run_qasm3(
         .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
     match run_ast(&mut interpreter, &mut receiver, shots, seed) {
-        Ok(result) => Ok(PyList::new_bound(
-            py,
-            result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
-        )
-        .into_py(py)),
+        Ok(result) => Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into()),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
 }
@@ -166,7 +162,7 @@ pub(crate) fn resource_estimate_qasm3(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
@@ -228,7 +224,7 @@ pub(crate) fn compile_qasm3_to_qir(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let target = get_target_profile(&kwargs)?;
     let operation_name = get_operation_name(&kwargs)?;
@@ -367,7 +363,7 @@ pub(crate) fn compile_qasm3_to_qsharp(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;

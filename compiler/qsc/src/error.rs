@@ -19,8 +19,8 @@ impl<E> WithStack<E> {
         WithStack { error, stack_trace }
     }
 
-    pub(super) fn stack_trace(&self) -> &Option<String> {
-        &self.stack_trace
+    pub(super) fn stack_trace(&self) -> Option<&String> {
+        self.stack_trace.as_ref()
     }
 
     pub fn error(&self) -> &E {

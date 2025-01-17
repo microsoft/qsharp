@@ -227,7 +227,7 @@ struct Formatter<'a> {
     import_export_state: ImportExportState,
 }
 
-impl<'a> Formatter<'a> {
+impl Formatter<'_> {
     fn apply_rules(
         &mut self,
         left: &ConcreteToken,

@@ -60,7 +60,7 @@ pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) =
         into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
-    _get_qir(
+    get_qir_(
         source_map,
         language_features,
         capabilities,
@@ -69,7 +69,7 @@ pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     )
 }
 
-pub(crate) fn _get_qir(
+pub(crate) fn get_qir_(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,

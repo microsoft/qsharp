@@ -142,7 +142,7 @@ impl Lowerer {
         assigner: &'a mut Assigner,
         names: &'a Names,
         tys: &'a typeck::Table,
-    ) -> With {
+    ) -> With<'a> {
         With {
             lowerer: self,
             assigner,
