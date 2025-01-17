@@ -3,7 +3,6 @@
 
 import * as vscode from "vscode";
 import { log } from "qsharp-lang";
-import { ChatCompletionTool } from "openai/resources/chat/completions";
 import {
   Job,
   Provider,
@@ -20,174 +19,11 @@ import {
 import { supportsAdaptive } from "../azure/providerProperties.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
-import { ConversationState, CopilotEventHandler } from "./copilot.js";
+import { ConversationState } from "./copilot.js";
 import { handleGetJobs } from "./toolGetJobs.js";
 import { handleConnectToWorkspace } from "./toolAddWorkspace.js";
 
 // Define the tools and system prompt that the model can use
-
-export const CopilotToolsDescriptions: ChatCompletionTool[] = [
-  {
-    type: "function",
-    function: {
-      name: "GetJob",
-      description:
-        "Get the job information for a customer's job. Call this whenever you need to know information about a specific job, for example when a customer asks 'What is the status of my job?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          job_id: {
-            type: "string",
-            description: "The customer's job ID.",
-          },
-        },
-        required: ["job_id"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetWorkspaces",
-      description:
-        "Get a list of workspaces the customer has access to, in the form of workspace ids. Call this when you need to know what workspaces the customer has access to, for example when a customer asks 'What are my workspaces?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetActiveWorkspace",
-      description:
-        "Get the id of the active workspace for this conversation. " +
-        "Call this when you need to know what workspace is the active workspace being used in the context of the current conversation, " +
-        "for example when a customer asks 'What is the workspace that's being used?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "SetActiveWorkspace",
-      description:
-        "Set the active workspace for this conversation by id. " +
-        "Call this when you need to set what workspace is the active workspace being used in the context of the current conversation, " +
-        "for example when a customer says 'Please use this workspace for my requests.'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          workspace_id: {
-            type: "string",
-            description: "The id of the workspace to set as active.",
-          },
-        },
-        required: ["workspace_id"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "DownloadJobResults",
-      description:
-        "Download and display the results from a customer's job. " +
-        "Call this when you need to download or display as a histogram the results for a job, " +
-        "for example when a customer asks 'What are the results of my last job?' " +
-        "or 'Can you show me the histogram for this job?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          job_id: {
-            type: "string",
-            description: "The customer's job ID.",
-          },
-        },
-        required: ["job_id"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetProviders",
-      description:
-        "Get a list of hardware providers available to the customer, along with their provided targets. Call this when you need to know what providers or targets are available, for example when a customer asks 'What are the available providers?' or 'What targets do I have available?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {},
-        required: [],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "GetTarget",
-      description:
-        "Get the target information for a specified target. Call this whenever you need to know information about a specific target, for example when a customer asks 'What is the status of this target?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          target_id: {
-            type: "string",
-            description: "The ID of the target to get.",
-          },
-        },
-        required: ["target_id"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "SubmitToTarget",
-      description:
-        "Submit the current Q# program to Azure Quantum with the provided information. Call this when you need to submit or run a Q# program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
-      strict: true,
-      parameters: {
-        type: "object",
-        properties: {
-          job_name: {
-            type: "string",
-            description: "The string to name the created job.",
-          },
-          target_id: {
-            type: "string",
-            description: "The ID or name of the target to submit the job to.",
-          },
-          number_of_shots: {
-            type: "number",
-            description: "The number of shots to use for the job.",
-          },
-        },
-        required: ["job_name", "target_id", "number_of_shots"],
-        additionalProperties: false,
-      },
-    },
-  },
-];
 
 /**
  * The messages from these exceptions will be added to the conversation
@@ -281,18 +117,14 @@ async function getJob(
   }
 }
 
-function tryRenderResults(
-  file: string,
-  shots: number,
-  streamCallback: CopilotEventHandler,
-): boolean {
+function tryRenderResults(file: string): [string, number][] | undefined {
   try {
     // Parse the JSON file
     const parsedArray = JSON.parse(file).Histogram as Array<any>;
 
     if (parsedArray.length % 2 !== 0) {
       // "Data is not in correct format for histogram."
-      return false;
+      return undefined;
     }
 
     // Transform the flat array into an array of pairs [string, number]
@@ -301,18 +133,10 @@ function tryRenderResults(
       histo.push([parsedArray[i], parsedArray[i + 1]]);
     }
 
-    streamCallback({
-      payload: {
-        buckets: histo,
-        shotCount: shots,
-      },
-      kind: "copilotResponseHistogram",
-    });
-
-    return true;
+    return histo;
   } catch (e: any) {
     log.error("Error rendering results as histogram: ", e);
-    return false;
+    return undefined;
   }
 }
 
@@ -357,9 +181,8 @@ export async function downloadJobResults(
 
     const file = await getJobFiles(container, blob, token, quantumUris);
     if (file) {
-      // log.info("Downloaded file: ", file);
-
-      if (!tryRenderResults(file, job.shots, toolState.sendMessage)) {
+      const histo = tryRenderResults(file);
+      if (histo === undefined) {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -367,6 +190,13 @@ export async function downloadJobResults(
         vscode.window.showTextDocument(doc);
         return "Results downloaded successfully as file.";
       } else {
+        toolState.sendMessage({
+          payload: {
+            buckets: histo,
+            shotCount: job.shots,
+          },
+          kind: "copilotResponseHistogram",
+        });
         return "Results rendered successfully.";
       }
     }

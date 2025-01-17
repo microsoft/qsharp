@@ -27,6 +27,7 @@
     "@types/node": "^18.17",
     "@types/vscode": "^1.83.0",
     "@types/vscode-webview": "^1.57.3",
+    "@vscode/codicons": "^0.0.36",
     "@vscode/debugadapter": "^1.63.0",
     "@vscode/debugprotocol": "^1.63.0",
     "@vscode/extension-telemetry": "^0.8.5",

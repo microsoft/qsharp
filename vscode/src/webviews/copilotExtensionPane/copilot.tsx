@@ -63,7 +63,11 @@ function InputBox(props: {
   });
 
   function submit() {
-    if (textRef.current) {
+    if (
+      textRef.current &&
+      textRef.current.value?.trim().length > 0 &&
+      !props.inProgress
+    ) {
       props.onSubmit(textRef.current.value);
       textRef.current.value = "";
     }
@@ -80,9 +84,19 @@ function InputBox(props: {
             props.inProgress ? "Please wait..." : "How can I help you?"
           }
           disabled={props.inProgress}
-          onKeyUp={(e) => e.key === "Enter" && submit()}
+          onKeyUp={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
         ></textarea>
-        <svg
+        <i
+          onClick={submit}
+          className="codicon codicon-send"
+          style="padding: 2px;"
+        ></i>
+        {/* <svg
           onClick={submit}
           focusable="false"
           viewBox="0 0 16 16"
@@ -90,7 +104,7 @@ function InputBox(props: {
           height="16"
         >
           <path d="M.989 8 .064 2.68a1.342 1.342 0 0 1 1.85-1.462l13.402 5.744a1.13 1.13 0 0 1 0 2.076L1.913 14.782a1.343 1.343 0 0 1-1.85-1.463L.99 8Zm.603-5.288L2.38 7.25h4.87a.75.75 0 0 1 0 1.5H2.38l-.788 4.538L13.929 8Z"></path>
-        </svg>
+        </svg> */}
       </div>
       <div style="height: 50px" ref={hrRef} />
     </>
@@ -147,7 +161,7 @@ function RetryButton(props: {
 }) {
   const serviceDropdown = useRef<HTMLSelectElement>(null);
   return (
-    <div style="margin: 10px 0;">
+    <div style="margin: 10px 0 10px 32px; text-align: right;">
       <select ref={serviceDropdown} value={props.service}>
         <option value="OpenAI">OpenAI</option>
         <option value="AzureQuantumTest">AzureQuantumTest</option>
@@ -179,7 +193,19 @@ function ConversationMessage(props: { message: ConversationMessage }) {
     }
     case "tool": {
       return (
-        <div style="font-weight: bold; text-align: right; font-size: smaller;">
+        // match the widget style from https://github.com/microsoft/vscode/blob/c799d209cd4846a2a822b55dbf2ca21893008faa/src/vs/workbench/contrib/chat/browser/media/chatCodeBlockPill.css#L6
+        <div
+          style="
+        	border: 1px solid var(--vscode-chat-requestBorder, var(--vscode-input-background, transparent));
+          border-radius: 4px;
+          width: fit-content;
+          font-weight: normal;
+          text-decoration: none;
+          font-size: 11px;
+          padding: 0 3px;
+          white-space: pre;
+        "
+        >
           {message.name}({message.args}) =&gt; {message.result}
         </div>
       );
@@ -273,10 +299,8 @@ function App({ state }: { state: CopilotState }) {
 
   return (
     <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
-      <div style="flex: 1; ">
-        <h2 style="margin-top: 0">Welcome to Quantum Copilot</h2>
+      <div style="flex: 1;">
         {FinishedConversation(state, retryRequest)}
-
         <div
           id="toolStatus"
           style="height: 30px; font-weight: bold; text-align: right; font-size: smaller;"
@@ -319,7 +343,13 @@ function App({ state }: { state: CopilotState }) {
             >
               copy to clipboard
             </a>
-            <pre>{JSON.stringify(state.history, undefined, 2)}</pre>
+            <Markdown
+              markdown={
+                "```json\n" +
+                JSON.stringify(state.history, undefined, 2) +
+                "\n```"
+              }
+            ></Markdown>
           </div>
         </div>
       </div>
@@ -386,14 +416,26 @@ function FinishedConversation(
 
   for (const message of state.conversation) {
     if (message.role === "assistant") {
-      elements.push(<ResponseBox response={message.response} />);
+      elements.push(
+        <div className="response-container">
+          <ResponseBox response={message.response} />
+        </div>,
+      );
     } else {
-      elements.push(<ConversationMessage message={message} />);
+      elements.push(
+        <div className="request-container">
+          <ConversationMessage message={message} />
+        </div>,
+      );
     }
   }
 
   if (state.tidbits.length > 0) {
-    elements.push(<ResponseBox response={state.tidbits.join("")} />);
+    elements.push(
+      <div className="response-container">
+        <ResponseBox response={state.tidbits.join("")} />
+      </div>,
+    );
   }
 
   // insert at lastUserMessage
@@ -455,8 +497,8 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
     case "copilotToolCallDone":
       {
         const toolName = message.payload.toolName;
-        const args = JSON.stringify(message.payload.args);
-        const result = JSON.stringify(message.payload.result);
+        const args = JSON.stringify(message.payload.args, undefined, 2);
+        const result = JSON.stringify(message.payload.result, undefined, 2);
         globalState.conversation.push({
           role: "tool",
           name: toolName,

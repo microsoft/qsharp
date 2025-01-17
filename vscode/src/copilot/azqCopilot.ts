@@ -238,8 +238,7 @@ export class AzureQuantumCopilot implements ICopilot {
         ...options,
         onMessage: (ev) => {
           if (!JSON.parse(ev.data).Delta) {
-            // deltas are too noisy
-            log.info(
+            log.debug(
               `chat api message: ${JSON.stringify(JSON.parse(ev.data), undefined, 2)}`,
             );
           }

@@ -7,41 +7,54 @@ body {
 html {
   height: 100%;
 }
+
 textarea {
-  height: 3em;
+  height: auto;
+  min-height: calc(1.33em * 2);
   background: inherit;
   width: 100%;
   border: none;
   outline: none;
-  overflow-y: scroll;
-  margin: 4px;
+  overflow-y: auto;
+  padding: 16px 10px;
+  margin: 0;
   line-height: 1.33;
   vertical-align: middle;
   cursor: text;
+  resize: none;
 }
 
 textarea:focus {
   outline: none;
 }
 
-.requestBox {
+.request-container,
+.response-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.request-container {
+  justify-content: flex-end;
+}
+
+.response-container {
+  justify-content: flex-start;
+}
+
+.requestBox,
+.responseBox {
   padding: 16px;
-  margin-left: 32px;
   margin-bottom: 16px;
   border: 1px solid #ccc;
   border-radius: 0.5em;
+}
+
+.requestBox {
   background-color: var(--vscode-input-background);
 }
 
-.requestBox p {
-  margin-bottom: 0px;
-}
-
-.responseBox {
-  margin-bottom: 16px;
-}
-
-.responseBox pre code {
+pre code {
   background: inherit;
   /* border: 0.5px solid gray; */
   display: block;
@@ -56,7 +69,7 @@ textarea:focus {
   /* padding-right: 8px; */
   display: flex;
   justify-content: flex-start;
-  align-items: center;
+  align-items: flex-end;
   width: 80vw;
   /* max-width: 600px; */
 
@@ -91,4 +104,9 @@ textarea:focus {
 
 .radio-group input {
   margin-right: 5px;
+}
+
+/* override the github-markdown css background color */
+.markdown-body {
+  background-color: var(--vscode-chat-list-background);
 }

@@ -77,14 +77,14 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       "copilot.css",
     ]);
     const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown-light.css"]);
+    const codiconCss = getUri(["out", "katex", "codicon.css"]);
 
     webviewView.webview.html = `<!DOCTYPE html>
     <html lang="en">
     <head>
-    <link rel="stylesheet" href="${githubCss}" />
     <link rel="stylesheet" href="${katexCss}" />
     <link rel="stylesheet" href="${copilotCss}" />
+    <link rel="stylesheet" href="${codiconCss}" />
     </head>
     <body>
     <script src="${copilotJs}"></script>

@@ -86,6 +86,14 @@ export function copyKatex(destDir) {
     join(libsDir, `github-markdown-css/github-markdown-dark.css`),
     join(katexDest, "github-markdown-dark.css"),
   );
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.css"),
+    join(katexDest, "codicon.css"),
+  );
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.ttf"),
+    join(katexDest, "codicon.ttf"),
+  );
 
   const fontsDir = join(katexBase, "fonts");
   const fontsOutDir = join(katexDest, "fonts");
