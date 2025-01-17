@@ -362,9 +362,7 @@ fn display_local(
     match param_kind {
         LocalKind::Param => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("param should have a callable name");
+            let callable_name = callable_name.expect("param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
@@ -372,9 +370,7 @@ fn display_local(
         }
         LocalKind::TypeParam => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("type param should have a callable name");
+            let callable_name = callable_name.expect("type param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("type parameter of `{callable_name}`\n{markdown}",),
