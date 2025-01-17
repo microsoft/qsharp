@@ -898,44 +898,6 @@ impl<'py> IntoPyObject<'py> for ValueWrapper {
     }
 }
 
-// impl IntoPy<PyObject> for ValueWrapper {
-//     fn into_py(self, py: Python) -> PyObject {
-//         match self.0 {
-//             Value::BigInt(val) => val.into_py(py),
-//             Value::Int(val) => val.into_py(py),
-//             Value::Double(val) => val.into_py(py),
-//             Value::Bool(val) => val.into_py(py),
-//             Value::String(val) => val.into_py(py),
-//             Value::Result(val) => if val.unwrap_bool() {
-//                 Result::One
-//             } else {
-//                 Result::Zero
-//             }
-//             .into_py(py),
-//             Value::Pauli(val) => match val {
-//                 fir::Pauli::I => Pauli::I.into_py(py),
-//                 fir::Pauli::X => Pauli::X.into_py(py),
-//                 fir::Pauli::Y => Pauli::Y.into_py(py),
-//                 fir::Pauli::Z => Pauli::Z.into_py(py),
-//             },
-//             Value::Tuple(val) => {
-//                 if val.is_empty() {
-//                     // Special case Value::unit as None
-//                     py.None()
-//                 } else {
-//                     PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-//                         .into_py(py)
-//                 }
-//             }
-//             Value::Array(val) => {
-//                 PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-//                     .into_py(py)
-//             }
-//             _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
-//         }
-//     }
-// }
-
 pub(crate) struct OptionalCallbackReceiver<'a> {
     pub(crate) callback: Option<PyObject>,
     pub(crate) py: Python<'a>,
