@@ -70,6 +70,8 @@ class Config:
     ):
         if target_profile == TargetProfile.Adaptive_RI:
             self._config = {"targetProfile": "adaptive_ri"}
+        if target_profile == TargetProfile.Adaptive_RIF:
+            self._config = {"targetProfile": "adaptive_rif"}
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
         elif target_profile == TargetProfile.Unrestricted:

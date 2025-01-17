@@ -35,15 +35,17 @@ export interface ICompiler {
 
   getAst(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string>;
 
   getHir(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string>;
+
+  getRir(program: ProgramConfig): Promise<string[]>;
 
   run(
     program: ProgramConfig,
@@ -88,7 +90,7 @@ export type ProgramConfig = (
       /** An array of source objects, each containing a name and contents. */
       sources: [string, string][];
       /** An array of language features to be opted in to in this compilation. */
-      languageFeatures?: string[];
+      languageFeatures: string[];
     }
   | {
       /** Sources from all resolved dependencies, along with their languageFeatures configuration */
@@ -140,14 +142,10 @@ export class Compiler implements ICompiler {
 
   async getAst(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string> {
-    return this.wasm.get_ast(
-      code,
-      languageFeatures ?? [],
-      profile ?? "adaptive_ri",
-    );
+    return this.wasm.get_ast(code, languageFeatures, profile);
   }
 
   async getHir(
@@ -155,11 +153,15 @@ export class Compiler implements ICompiler {
     languageFeatures: string[],
     profile: TargetProfile,
   ): Promise<string> {
-    return this.wasm.get_hir(
-      code,
-      languageFeatures ?? [],
-      profile ?? "adaptive_ri",
+    return this.wasm.get_hir(code, languageFeatures, profile);
+  }
+
+  async getRir(program: ProgramConfig): Promise<string[]> {
+    const config = toWasmProgramConfig(
+      program,
+      program.profile || "adaptive_ri",
     );
+    return this.wasm.get_rir(config);
   }
 
   async run(
@@ -319,6 +321,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     checkCode: "request",
     getAst: "request",
     getHir: "request",
+    getRir: "request",
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",

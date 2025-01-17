@@ -278,11 +278,10 @@ impl<
 }
 
 impl<
-        'a,
         E: ErrorCorrection<Parameter = impl Clone>,
         B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
         L: Overhead,
-    > Deref for EstimateWithoutRestrictions<'a, E, B, L>
+    > Deref for EstimateWithoutRestrictions<'_, E, B, L>
 {
     type Target = PhysicalResourceEstimation<E, B, L>;
 

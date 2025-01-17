@@ -13,14 +13,14 @@ import tempfile
 import functools
 
 python_ver = (3, 11)  # Python support for Windows on ARM64 requires v3.11 or later
-rust_ver = (1, 82)  # Ensure Rust version 1.82 or later is installed
+rust_ver = (1, 84)  # Ensure Rust version 1.84 or later is installed
 node_ver = (
     18,
     17,
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
-rust_fmt_ver = (1, 7, 1)  # Current version when Rust 1.82 shipped
-clippy_ver = (0, 1, 82)
+rust_fmt_ver = (1, 8, 0)  # Current version when Rust 1.84 shipped
+clippy_ver = (0, 1, 84)
 
 # Disable buffered output so that the log statements and subprocess output get interleaved in proper order
 print = functools.partial(print, flush=True)

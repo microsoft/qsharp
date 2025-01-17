@@ -50,8 +50,8 @@ use qsc_rca::{
 use qsc_rir::{
     builder,
     rir::{
-        self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
-        Program, VariableId,
+        self, Callable, CallableId, CallableType, ConditionCode, FcmpConditionCode, Instruction,
+        Literal, Operand, Program, VariableId,
     },
 };
 use rustc_hash::FxHashMap;
@@ -539,10 +539,15 @@ impl<'a> PartialEvaluator<'a> {
                     bin_op_expr_span,
                 )
             }
-            Value::Double(_lhs_double) => Err(Error::Unimplemented(
-                "double binary operation".to_string(),
-                lhs_span,
-            )),
+            Value::Double(lhs_double) => {
+                let lhs_operand = Operand::Literal(Literal::Double(lhs_double));
+                self.eval_bin_op_with_lhs_double_operand(
+                    bin_op,
+                    lhs_operand,
+                    rhs_expr_id,
+                    bin_op_expr_span,
+                )
+            }
             Value::Var(lhs_eval_var) => {
                 self.eval_bin_op_with_lhs_var(bin_op, lhs_eval_var, rhs_expr_id, bin_op_expr_span)
             }
@@ -909,6 +914,62 @@ impl<'a> PartialEvaluator<'a> {
         Ok(result_eval_var)
     }
 
+    fn eval_bin_op_with_lhs_double_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_operand: Operand,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: PackageSpan, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        assert!(
+            matches!(lhs_operand.get_type(), rir::Ty::Double),
+            "LHS is expected to be of double type"
+        );
+
+        // Try to evaluate the RHS expression to get its value and construct its operand.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                self.get_expr_package_span(rhs_expr_id),
+            ));
+        };
+        let rhs_operand = self.map_eval_value_to_rir_operand(&rhs_value);
+        assert!(
+            matches!(rhs_operand.get_type(), rir::Ty::Double),
+            "LHS value is expected to be of double type"
+        );
+
+        // If both operands are literals, evaluate the binary operation and return its value.
+        if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
+            (lhs_operand, rhs_operand)
+        {
+            let value = eval_bin_op_with_double_literals(
+                bin_op,
+                lhs_literal,
+                rhs_literal,
+                bin_op_expr_span,
+            )?;
+            return Ok(EvalControlFlow::Continue(value));
+        }
+
+        // Generate the instructions.
+        let bin_op_rir_variable = self
+            .generate_instructions_for_binary_operation_with_double_operands(
+                bin_op,
+                lhs_operand,
+                rhs_operand,
+                bin_op_expr_span,
+            )?;
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable).map_err(|()| {
+            Error::Unexpected(
+                format!("{} type in binop", bin_op_rir_variable.ty),
+                bin_op_expr_span,
+            )
+        })?);
+        Ok(EvalControlFlow::Continue(value))
+    }
+
     fn eval_bin_op_with_lhs_integer_operand(
         &mut self,
         bin_op: BinOp,
@@ -986,10 +1047,16 @@ impl<'a> PartialEvaluator<'a> {
                     bin_op_expr_span,
                 )
             }
-            VarTy::Double => Err(Error::Unimplemented(
-                "double binary operation with dynamic LHS".to_string(),
-                bin_op_expr_span,
-            )),
+            VarTy::Double => {
+                let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+                let lhs_operand = Operand::Variable(lhs_rir_var);
+                self.eval_bin_op_with_lhs_double_operand(
+                    bin_op,
+                    lhs_operand,
+                    rhs_expr_id,
+                    bin_op_expr_span,
+                )
+            }
         }
     }
 
@@ -1922,14 +1989,17 @@ impl<'a> PartialEvaluator<'a> {
         // Generate the instruction depending on the unary operator.
         let value_operand = self.map_eval_value_to_rir_operand(&value);
         let instruction = match un_op {
-            UnOp::Neg => {
-                let constant = match rir_variable_type {
-                    rir::Ty::Integer => Operand::Literal(Literal::Integer(-1)),
-                    rir::Ty::Double => Operand::Literal(Literal::Double(-1.0)),
-                    _ => panic!("invalid type for negation operator {rir_variable_type}"),
-                };
-                Instruction::Mul(constant, value_operand, rir_variable)
-            }
+            UnOp::Neg => match rir_variable_type {
+                rir::Ty::Integer => {
+                    let constant = Operand::Literal(Literal::Integer(-1));
+                    Instruction::Mul(constant, value_operand, rir_variable)
+                }
+                rir::Ty::Double => {
+                    let constant = Operand::Literal(Literal::Double(-1.0));
+                    Instruction::Fmul(constant, value_operand, rir_variable)
+                }
+                _ => panic!("invalid type for negation operator {rir_variable_type}"),
+            },
             UnOp::NotB => {
                 assert!(matches!(rir_variable_type, rir::Ty::Integer));
                 Instruction::BitwiseNot(value_operand, rir_variable)
@@ -2084,6 +2154,80 @@ impl<'a> PartialEvaluator<'a> {
             }
             val::Result::Val(bool) => Operand::Literal(Literal::Bool(bool)),
         }
+    }
+
+    fn generate_instructions_for_binary_operation_with_double_operands(
+        &mut self,
+        bin_op: BinOp,
+        lhs_operand: Operand,
+        rhs_operand: Operand,
+        bin_op_expr_span: PackageSpan, // For diagnostic purposes only.
+    ) -> Result<rir::Variable, Error> {
+        let bin_op_variable_id = self.resource_manager.next_var();
+
+        let bin_op_rir_variable = match bin_op {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => {
+                rir::Variable::new_double(bin_op_variable_id)
+            }
+            BinOp::Eq | BinOp::Neq | BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
+                rir::Variable::new_boolean(bin_op_variable_id)
+            }
+            _ => panic!("unsupported binary operation for double: {bin_op:?}"),
+        };
+
+        let bin_op_rir_ins = match bin_op {
+            BinOp::Add => Instruction::Fadd(lhs_operand, rhs_operand, bin_op_rir_variable),
+            BinOp::Sub => Instruction::Fsub(lhs_operand, rhs_operand, bin_op_rir_variable),
+            BinOp::Mul => Instruction::Fmul(lhs_operand, rhs_operand, bin_op_rir_variable),
+            BinOp::Div => {
+                // Validate that the RHS is not a zero.
+                if let Operand::Literal(Literal::Double(0.0)) = rhs_operand {
+                    let error = EvalError::DivZero(bin_op_expr_span).into();
+                    return Err(error);
+                }
+
+                Instruction::Fdiv(lhs_operand, rhs_operand, bin_op_rir_variable)
+            }
+            BinOp::Eq => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndEqual,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            BinOp::Neq => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndNotEqual,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            BinOp::Gt => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndGreaterThan,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            BinOp::Gte => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndGreaterThanOrEqual,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            BinOp::Lt => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndLessThan,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            BinOp::Lte => Instruction::Fcmp(
+                FcmpConditionCode::OrderedAndLessThanOrEqual,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            ),
+            _ => panic!("unsupported binary operation for double: {bin_op:?}"),
+        };
+        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+        Ok(bin_op_rir_variable)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -2885,10 +3029,10 @@ impl<'a> PartialEvaluator<'a> {
             Value::Var(var) => self.record_variable(ty, &mut instrs, var),
             Value::Bool(val) => self.record_bool(&mut instrs, val),
             Value::Int(val) => self.record_int(&mut instrs, val),
+            Value::Double(val) => self.record_double(&mut instrs, val),
 
             Value::BigInt(_)
             | Value::Closure(_)
-            | Value::Double(_)
             | Value::Global(_, _)
             | Value::Pauli(_)
             | Value::Qubit(_)
@@ -2911,6 +3055,18 @@ impl<'a> PartialEvaluator<'a> {
         ));
     }
 
+    fn record_double(&mut self, instrs: &mut Vec<Instruction>, val: f64) {
+        let double_record_callable_id = self.get_double_record_callable();
+        instrs.push(Instruction::Call(
+            double_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Double(val)),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
     fn record_bool(&mut self, instrs: &mut Vec<Instruction>, val: bool) {
         let bool_record_callable_id = self.get_bool_record_callable();
         instrs.push(Instruction::Call(
@@ -2927,6 +3083,7 @@ impl<'a> PartialEvaluator<'a> {
         let record_callable_id = match ty {
             Ty::Prim(Prim::Bool) => self.get_bool_record_callable(),
             Ty::Prim(Prim::Int) => self.get_int_record_callable(),
+            Ty::Prim(Prim::Double) => self.get_double_record_callable(),
             _ => panic!("unsupported variable type in output recording"),
         };
         instrs.push(Instruction::Call(
@@ -3068,6 +3225,22 @@ impl<'a> PartialEvaluator<'a> {
         callable_id
     }
 
+    fn get_double_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self
+            .callables_map
+            .get("__quantum__rt__double_record_output")
+        {
+            return *id;
+        }
+
+        let callable = builder::double_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__double_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
     fn get_int_record_callable(&mut self) -> CallableId {
         if let Some(id) = self.callables_map.get("__quantum__rt__int_record_output") {
             return *id;
@@ -3182,6 +3355,47 @@ fn eval_bin_op_with_bool_literals(
         _ => panic!("invalid bool operator: {bin_op:?}"),
     };
     Value::Bool(bin_op_result)
+}
+
+fn eval_bin_op_with_double_literals(
+    bin_op: BinOp,
+    lhs_literal: Literal,
+    rhs_literal: Literal,
+    bin_op_expr_span: PackageSpan, // For diagnostic purposes only
+) -> Result<Value, Error> {
+    fn eval_double_div(lhs: f64, rhs: f64, span: PackageSpan) -> Result<Value, Error> {
+        match (lhs, rhs) {
+            (_, 0.0) => Err(EvalError::DivZero(span).into()),
+            (lhs, rhs) => Ok(Value::Double(lhs / rhs)),
+        }
+    }
+
+    // Validate that both literals are doubles.
+    let (Literal::Double(lhs), Literal::Double(rhs)) = (lhs_literal, rhs_literal) else {
+        panic!("at least one literal is not an double: {lhs_literal}, {rhs_literal}");
+    };
+
+    match bin_op {
+        BinOp::Eq => {
+            // matching simulator behavior
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(lhs == rhs))
+        }
+        BinOp::Neq => {
+            // matching simulator behavior
+            #[allow(clippy::float_cmp)]
+            Ok(Value::Bool(lhs != rhs))
+        }
+        BinOp::Gt => Ok(Value::Bool(lhs > rhs)),
+        BinOp::Gte => Ok(Value::Bool(lhs >= rhs)),
+        BinOp::Lt => Ok(Value::Bool(lhs < rhs)),
+        BinOp::Lte => Ok(Value::Bool(lhs <= rhs)),
+        BinOp::Add => Ok(Value::Double(lhs + rhs)),
+        BinOp::Sub => Ok(Value::Double(lhs - rhs)),
+        BinOp::Mul => Ok(Value::Double(lhs * rhs)),
+        BinOp::Div => eval_double_div(lhs, rhs, bin_op_expr_span),
+        _ => panic!("invalid double operator: {bin_op:?}"),
+    }
 }
 
 fn eval_bin_op_with_integer_literals(

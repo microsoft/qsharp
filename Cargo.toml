@@ -73,11 +73,11 @@ regex-lite = "0.1"
 rustc-hash = "1"
 serde = { version = "1.0", features = [ "derive" ] }
 serde-wasm-bindgen = "0.6"
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4"
 rand = "0.8"
 serde_json = "1.0"
-pyo3 = "0.22"
+pyo3 = "0.23.4"
 quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev = "562e2c11ad685dd01bfc1ae975e00d4133615995" }
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }

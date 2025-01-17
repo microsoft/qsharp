@@ -319,10 +319,7 @@ impl<'a> Lexer<'a> {
     fn string(&mut self, c: char) -> Option<TokenKind> {
         let kind = self.start_string(c)?;
 
-        while self
-            .first()
-            .map_or(false, |c| !is_string_terminator(kind, c))
-        {
+        while self.first().is_some_and(|c| !is_string_terminator(kind, c)) {
             self.eat_while(|c| c != '\\' && !is_string_terminator(kind, c));
             if self.next_if_eq('\\') {
                 self.chars.next();

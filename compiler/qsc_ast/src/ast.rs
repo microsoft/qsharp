@@ -937,17 +937,23 @@ impl Display for ExprKind {
             ExprKind::Field(expr, id) => display_field(indent, expr, id)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
-            ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
+            ExprKind::If(cond, body, els) => display_if(indent, cond, body, els.as_deref())?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Interpolate(components) => display_interpolate(indent, components)?,
             ExprKind::Lambda(kind, param, expr) => display_lambda(indent, *kind, param, expr)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
             ExprKind::Paren(e) => write!(indent, "Paren: {e}")?,
             ExprKind::Path(p) => write!(indent, "Path: {p}")?,
-            ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
-            ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
+            ExprKind::Range(start, step, end) => {
+                display_range(indent, start.as_deref(), step.as_deref(), end.as_deref())?;
+            }
+            ExprKind::Repeat(repeat, until, fixup) => {
+                display_repeat(indent, repeat, until, fixup.as_deref())?;
+            }
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
-            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
+            ExprKind::Struct(name, copy, fields) => {
+                display_struct(indent, name, copy.as_deref(), fields)?;
+            }
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1073,7 +1079,7 @@ fn display_if(
     mut indent: Indented<Formatter>,
     cond: &Expr,
     body: &Block,
-    els: &Option<Box<Expr>>,
+    els: Option<&Expr>,
 ) -> fmt::Result {
     write!(indent, "If:")?;
     indent = set_indentation(indent, 1);
@@ -1124,9 +1130,9 @@ fn display_lambda(
 
 fn display_range(
     mut indent: Indented<Formatter>,
-    start: &Option<Box<Expr>>,
-    step: &Option<Box<Expr>>,
-    end: &Option<Box<Expr>>,
+    start: Option<&Expr>,
+    step: Option<&Expr>,
+    end: Option<&Expr>,
 ) -> fmt::Result {
     write!(indent, "Range:")?;
     indent = set_indentation(indent, 1);
@@ -1149,7 +1155,7 @@ fn display_repeat(
     mut indent: Indented<Formatter>,
     repeat: &Block,
     until: &Expr,
-    fixup: &Option<Box<Block>>,
+    fixup: Option<&Block>,
 ) -> fmt::Result {
     write!(indent, "Repeat:")?;
     indent = set_indentation(indent, 1);
@@ -1165,7 +1171,7 @@ fn display_repeat(
 fn display_struct(
     mut indent: Indented<Formatter>,
     name: &PathKind,
-    copy: &Option<Box<Expr>>,
+    copy: Option<&Expr>,
     fields: &[Box<FieldAssign>],
 ) -> fmt::Result {
     write!(indent, "Struct ({name}):")?;
@@ -1612,7 +1618,7 @@ impl Idents for &[Ident] {
     }
 }
 
-impl<T, U> Idents for (&T, &U)
+impl<T, U> Idents for (T, U)
 where
     T: Idents,
     U: Idents,
@@ -1625,6 +1631,12 @@ where
 impl Idents for Ident {
     fn iter(&self) -> impl Iterator<Item = &Ident> {
         once(self)
+    }
+}
+
+impl Idents for &Ident {
+    fn iter(&self) -> impl Iterator<Item = &Ident> {
+        once(*self)
     }
 }
 
