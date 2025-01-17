@@ -151,9 +151,14 @@ export class AzureQuantumCopilot implements ICopilot {
       ToolCalls: toolCalls,
     });
     if (content) {
+      // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+      let cleanedResponse = content;
+      cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+      cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+
       this.conversationState.sendMessage({
         kind: "copilotResponse",
-        payload: { response: content },
+        payload: { response: cleanedResponse },
       });
     }
     if (toolCalls) {

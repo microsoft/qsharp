@@ -24,6 +24,7 @@ export const getJobsToolDescription: ChatCompletionTool = {
 
 async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
   if (workspace) {
+    // TODO: if this is in a failure state, it should be forced to recover?
     const jobs = workspace.jobs;
 
     const start = new Date();

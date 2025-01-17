@@ -395,10 +395,10 @@ function App({ state }: { state: CopilotState }) {
 
 let globalState: CopilotState = {
   tidbits: [],
-  conversation: [],
   inProgress: false,
   toolInProgress: null,
   service: "AzureQuantumLocal", // default
+  conversation: [],
   history: [],
 };
 
@@ -476,18 +476,12 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
       break;
     case "copilotResponse":
       // After a copilot response from the service, but before any tool calls are executed.
-      {
-        // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-        let cleanedResponse = message.payload.response;
-        cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
-        cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
-        globalState.toolInProgress = null;
-        globalState.tidbits = [];
-        globalState.conversation.push({
-          role: "assistant",
-          response: cleanedResponse,
-        });
-      }
+      globalState.toolInProgress = null;
+      globalState.tidbits = [];
+      globalState.conversation.push({
+        role: "assistant",
+        response: message.payload.response,
+      });
       break;
     case "copilotToolCall":
       {
@@ -511,21 +505,9 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
       break;
     case "copilotResponseHistogram":
       {
-        if (
-          !message.payload.buckets ||
-          typeof message.payload.shotCount !== "number"
-        ) {
-          console.error("No buckets in message: ", message);
-          return;
-        }
-        const buckets = message.payload.buckets as Array<[string, number]>;
-        const histogram = JSON.stringify({
-          buckets: buckets,
-          shotCount: message.payload.shotCount,
-        });
         globalState.conversation.push({
           role: "assistant",
-          response: "```widget\nHistogram\n" + histogram,
+          response: message.payload.response,
         });
       }
       break;

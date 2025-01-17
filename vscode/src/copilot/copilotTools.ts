@@ -181,8 +181,9 @@ export async function downloadJobResults(
 
     const file = await getJobFiles(container, blob, token, quantumUris);
     if (file) {
-      const histo = tryRenderResults(file);
-      if (histo === undefined) {
+      const buckets = tryRenderResults(file);
+      // TODO: why did I need to check for the type of `shots` here?
+      if (!buckets || typeof job.shots !== "number") {
         const doc = await vscode.workspace.openTextDocument({
           content: file,
           language: "json",
@@ -190,10 +191,15 @@ export async function downloadJobResults(
         vscode.window.showTextDocument(doc);
         return "Results downloaded successfully as file.";
       } else {
+        const histogram = JSON.stringify({
+          buckets: buckets,
+          shotCount: job.shots,
+        });
+        const response = "```widget\nHistogram\n" + histogram;
+
         toolState.sendMessage({
           payload: {
-            buckets: histo,
-            shotCount: job.shots,
+            response,
           },
           kind: "copilotResponseHistogram",
         });

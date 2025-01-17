@@ -41,7 +41,6 @@ export type CopilotEvent =
   | {
       kind: "copilotResponseHistogram";
       payload: {
-        buckets: [string, number][];
-        shotCount: number;
+        response: string;
       };
     };
