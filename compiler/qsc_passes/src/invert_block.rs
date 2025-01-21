@@ -43,7 +43,7 @@ struct BlockInverter<'a> {
     should_reverse_loop: bool,
 }
 
-impl<'a> MutVisitor for BlockInverter<'a> {
+impl MutVisitor for BlockInverter<'_> {
     fn visit_block(&mut self, block: &mut Block) {
         // Each block is split into classical and quantum statements based on the presence of operation
         // calls, so that the quantum statements can be reversed.
@@ -80,7 +80,7 @@ impl<'a> MutVisitor for BlockInverter<'a> {
     }
 }
 
-impl<'a> BlockInverter<'a> {
+impl BlockInverter<'_> {
     fn reverse_loop(&mut self, pat: &Pat, iterable: &Expr, block: &Block) -> Expr {
         let mut wrapper = Block {
             id: NodeId::default(),

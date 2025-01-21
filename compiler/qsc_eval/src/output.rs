@@ -37,7 +37,7 @@ impl<'a> GenericReceiver<'a> {
     }
 }
 
-impl<'a> Receiver for GenericReceiver<'a> {
+impl Receiver for GenericReceiver<'_> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.writer, "STATE:").map_err(|_| Error)?;
         if qubit_count > 0 {
@@ -89,7 +89,7 @@ impl<'a> CursorReceiver<'a> {
     }
 }
 
-impl<'a> Receiver for CursorReceiver<'a> {
+impl Receiver for CursorReceiver<'_> {
     fn state(&mut self, state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> Result<(), Error> {
         writeln!(self.cursor, "STATE:").map_err(|_| Error)?;
         if qubit_count > 0 {

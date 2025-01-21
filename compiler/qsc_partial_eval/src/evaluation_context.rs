@@ -96,12 +96,10 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
-    // Consider optimizing `hybrid_vars` and `mutable_vars` by removing them and enlightening the evaluator on how to
-    // properly handle `Value::Var`, which could be either `static` or `dynamic`.
     /// Map that holds the values of local variables.
     hybrid_vars: FxHashMap<LocalVarId, Value>,
-    /// Maps variable IDs to mutable variables, which contain their current kind.
-    mutable_vars: FxHashMap<VariableId, MutableKind>,
+    /// Maps variable IDs to static literal values, if any.
+    static_vars: FxHashMap<VariableId, Literal>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
 }
@@ -161,18 +159,37 @@ impl Scope {
             env,
             active_block_count: 1,
             hybrid_vars,
-            mutable_vars: FxHashMap::default(),
+            static_vars: FxHashMap::default(),
         }
     }
 
-    /// Gets a mutable variable.
-    pub fn find_mutable_kind(&self, var_id: VariableId) -> Option<&MutableKind> {
-        self.mutable_vars.get(&var_id)
+    /// Gets the static literal value for the given variable.
+    pub fn get_static_value(&self, var_id: VariableId) -> Option<&Literal> {
+        self.static_vars.get(&var_id)
     }
 
-    /// Gets a mutable mutable variable.
-    pub fn find_mutable_var_mut(&mut self, var_id: VariableId) -> Option<&mut MutableKind> {
-        self.mutable_vars.get_mut(&var_id)
+    /// Removes the static literal value for the given variable.
+    pub fn remove_static_value(&mut self, var_id: VariableId) {
+        self.static_vars.remove(&var_id);
+    }
+
+    /// Clones the static literal value mappings, which allows callers to cache the mappings across branches.
+    pub fn clone_static_var_mappings(&self) -> FxHashMap<VariableId, Literal> {
+        self.static_vars.clone()
+    }
+
+    /// Sets the static literal value mappings to the given mapping, overwriting any existing mappings.
+    pub fn set_static_var_mappings(&mut self, static_vars: FxHashMap<VariableId, Literal>) {
+        self.static_vars = static_vars;
+    }
+
+    /// Keeps only the static literal value mappings that are also present in the provided other mapping.
+    pub fn keep_matching_static_var_mappings(
+        &mut self,
+        other_mappings: &FxHashMap<VariableId, Literal>,
+    ) {
+        self.static_vars
+            .retain(|var_id, lit| Some(&*lit) == other_mappings.get(var_id));
     }
 
     /// Gets the value of a hybrid local variable.
@@ -197,11 +214,8 @@ impl Scope {
     }
 
     // Insert a variable into the mutable variables map.
-    pub fn insert_mutable_var(&mut self, var_id: VariableId, mutable_kind: MutableKind) {
-        let Entry::Vacant(vacant) = self.mutable_vars.entry(var_id) else {
-            panic!("mutable variable should not already exist");
-        };
-        vacant.insert(mutable_kind);
+    pub fn insert_static_var_mapping(&mut self, var_id: VariableId, literal: Literal) {
+        self.static_vars.insert(var_id, literal);
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -316,10 +330,4 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Result(Result::Val(_))
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum MutableKind {
-    Static(Literal),
-    Dynamic,
 }

@@ -767,6 +767,7 @@ fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
+                Variable(3, Integer) = Store Variable(2, Integer)
                 Call id(3), args( Qubit(0), )
                 Call id(4), args( Integer(0), Pointer, )
                 Return

@@ -12,10 +12,7 @@ pub(crate) fn register_noisy_simulator_submodule<'a>(
     py: Python<'a>,
     m: &Bound<'a, PyModule>,
 ) -> PyResult<()> {
-    m.add(
-        "NoisySimulatorError",
-        py.get_type_bound::<NoisySimulatorError>(),
-    )?;
+    m.add("NoisySimulatorError", py.get_type::<NoisySimulatorError>())?;
     m.add_class::<Operation>()?;
     m.add_class::<Instrument>()?;
     m.add_class::<DensityMatrixSimulator>()?;

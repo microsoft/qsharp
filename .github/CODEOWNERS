@@ -11,7 +11,7 @@
 /compiler/qsc_rca @idavis @swernli
 /compiler/qsc_rir @idavis @swernli
 /fuzz  @billti @idavis @swernli
-/katas @billti @DmitryVasilevsky @sezna @swernli @tcNickolas
+/katas @billti @DmitryVasilevsky @sezna @swernli
 /jupyterlab @billti @idavis @minestarks
 /language_service @billti @idavis @minestarks @ScottCarda-MS
 /library @DmitryVasilevsky @swernli
@@ -19,7 +19,7 @@
 /pip @billti @idavis @minestarks
 /playground @billti @minestarks
 /resource_estimator @billti @ivanbasov @swernli
-/samples @DmitryVasilevsky @sezna @swernli @tcNickolas
+/samples @DmitryVasilevsky @sezna @swernli
 /vscode @billti @idavis @minestarks @sezna
 /wasm @billti @sezna @swernli
 

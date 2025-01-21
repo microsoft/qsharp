@@ -90,6 +90,7 @@ export function Editor(props: {
   profile: TargetProfile;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
+  setRir: (rir: string[]) => void;
   setQir: (qir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
@@ -144,7 +145,7 @@ export function Editor(props: {
       props.setAst(
         await props.compiler.getAst(
           code,
-          config.languageFeatures ?? [],
+          config.languageFeatures,
           config.profile,
         ),
       );
@@ -153,13 +154,13 @@ export function Editor(props: {
       props.setHir(
         await props.compiler.getHir(
           code,
-          config.languageFeatures ?? [],
+          config.languageFeatures,
           config.profile,
         ),
       );
     }
     const codeGenTimeout = 1000; // ms
-    if (props.activeTab === "qir-tab") {
+    if (props.activeTab === "qir-tab" || props.activeTab === "rir-tab") {
       let timedOut = false;
       const compiler = props.compiler_worker_factory();
       const compilerTimeout = setTimeout(() => {
@@ -168,14 +169,28 @@ export function Editor(props: {
         compiler.terminate();
       }, codeGenTimeout);
       try {
-        const qir = await compiler.getQir(config);
-        clearTimeout(compilerTimeout);
-        props.setQir(qir);
+        if (props.activeTab === "rir-tab") {
+          const ir = await compiler.getRir(config);
+          clearTimeout(compilerTimeout);
+          props.setRir(ir);
+        } else {
+          const ir = await compiler.getQir(config);
+          clearTimeout(compilerTimeout);
+          props.setQir(ir);
+        }
       } catch (e: any) {
         if (timedOut) {
-          props.setQir("timed out");
+          if (props.activeTab === "rir-tab") {
+            props.setRir(["timed out", "timed out"]);
+          } else {
+            props.setQir("timed out");
+          }
         } else {
-          props.setQir(e.toString());
+          if (props.activeTab === "rir-tab") {
+            props.setRir([e.toString(), e.toString()]);
+          } else {
+            props.setQir(e.toString());
+          }
         }
       } finally {
         compiler.terminate();
@@ -235,6 +250,7 @@ export function Editor(props: {
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
+      automaticLayout: true,
     });
 
     editor.current = newEditor;
@@ -398,8 +414,8 @@ export function Editor(props: {
   }
 
   return (
-    <div class="editor-column">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <>
+      <div class="editor-header">
         <div class="file-name">main.qs</div>
         <div class="icon-row">
           <svg
@@ -448,6 +464,7 @@ export function Editor(props: {
             <span>Profile</span>
             <select value={profile} onChange={profileChanged}>
               <option value="unrestricted">Unrestricted</option>
+              <option value="adaptive_rif">Adaptive RIF</option>
               <option value="adaptive_ri">Adaptive RI</option>
               <option value="base">Base</option>
             </select>
@@ -504,6 +521,6 @@ export function Editor(props: {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }

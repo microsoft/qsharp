@@ -2493,3 +2493,156 @@ fn ssa_transform_maps_store_with_variable_from_store_in_conditional_to_phi_node(
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
+
+#[test]
+fn ssa_transform_allows_point_in_time_copy_of_dynamic_variable() {
+    let mut program = new_program();
+    program.callables.insert(
+        CallableId(1),
+        Callable {
+            name: "dynamic_bool".to_string(),
+            input_type: Vec::new(),
+            output_type: Some(Ty::Boolean),
+            body: None,
+            call_type: CallableType::Regular,
+        },
+    );
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(4),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(5),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ]),
+    );
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Variable(1, Boolean) = Store Variable(0, Boolean)
+                    Variable(2, Boolean) = Store Variable(1, Boolean)
+                    Variable(3, Boolean) = LogicalNot Variable(1, Boolean)
+                    Variable(1, Boolean) = Store Variable(3, Boolean)
+                    Variable(4, Boolean) = LogicalNot Variable(2, Boolean)
+                    Variable(5, Boolean) = LogicalNot Variable(1, Boolean)
+                    Return
+            config: Config:
+                capabilities: Base
+            num_qubits: 0
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
+
+    // After
+    transform_program(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Variable(3, Boolean) = LogicalNot Variable(0, Boolean)
+                    Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
+                    Variable(5, Boolean) = LogicalNot Variable(3, Boolean)
+                    Return
+            config: Config:
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
+            num_qubits: 0
+            num_results: 0"#]].assert_eq(&program.to_string());
+}

@@ -645,7 +645,7 @@ impl<'a, F: Clone> FactoryForCycles<'a, F> {
     }
 }
 
-impl<'a, F: Factory + Clone> Ord for FactoryForCycles<'a, F> {
+impl<F: Factory + Clone> Ord for FactoryForCycles<'_, F> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.factory
             .normalized_volume()
@@ -654,17 +654,17 @@ impl<'a, F: Factory + Clone> Ord for FactoryForCycles<'a, F> {
     }
 }
 
-impl<'a, F: Factory + Clone> PartialOrd for FactoryForCycles<'a, F> {
+impl<F: Factory + Clone> PartialOrd for FactoryForCycles<'_, F> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a, F: Factory + Clone> PartialEq for FactoryForCycles<'a, F> {
+impl<F: Factory + Clone> PartialEq for FactoryForCycles<'_, F> {
     fn eq(&self, other: &Self) -> bool {
         (self.factory.normalized_volume(), self.num_cycles)
             == (other.factory.normalized_volume(), other.num_cycles)
     }
 }
 
-impl<'a, F: Factory + Clone> Eq for FactoryForCycles<'a, F> {}
+impl<F: Factory + Clone> Eq for FactoryForCycles<'_, F> {}
