@@ -295,8 +295,8 @@ class DoubleFactorization:
 
         # Compute the eigen decomposition of the lower triangular matrix
         evals, evecs = LA.eigh(matrix, UPLO="L")
-        norm1 = np.linalg.norm(evals, 1)
-        norm2 = np.linalg.norm(evals)
+        norm1 = LA.norm(evals, 1)
+        norm2 = LA.norm(evals)
 
         (rows, cols) = np.shape(evecs)
         evecs_1D = np.reshape(np.transpose(evecs), cols * rows)
