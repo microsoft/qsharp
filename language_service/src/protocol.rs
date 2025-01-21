@@ -37,7 +37,6 @@ pub struct DiagnosticUpdate {
 #[derive(Debug)]
 pub struct TestCallables {
     pub callables: Vec<(String, Location)>,
-    pub version: Option<u32>,
 }
 
 #[derive(Debug)]

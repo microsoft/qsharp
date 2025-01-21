@@ -3,7 +3,14 @@
 
 import { TextDocument, Uri, Range, Location } from "vscode";
 import { Utils } from "vscode-uri";
-import { ILocation, IRange, IWorkspaceEdit, VSDiagnostic } from "qsharp-lang";
+import {
+  getCompilerWorker,
+  ICompilerWorker,
+  ILocation,
+  IRange,
+  IWorkspaceEdit,
+  VSDiagnostic,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
@@ -94,4 +101,12 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
     });
   }
   return vscodeDiagnostic;
+}
+
+export function loadCompilerWorker(extensionUri: string): ICompilerWorker {
+  const compilerWorkerScriptPath = vscode.Uri.joinPath(
+    extensionUri,
+    "./out/compilerWorker.js",
+  ).toString();
+  getCompilerWorker(compilerWorkerScriptPath);
 }

@@ -2542,15 +2542,6 @@ async fn test_case_in_different_files() {
         )
         .await;
 
-    // Trigger a document update for the second test file.
-    updater
-        .update_document(
-            "parent/src/test2.qs",
-            1,
-            "@Test() function Test2() : Unit {}",
-        )
-        .await;
-
     expect![[r#"
         [
             TestCallables {

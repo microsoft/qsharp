@@ -8,7 +8,7 @@ import Measurement.MeasureSignedInteger;
 @Test()
 operation MeasureSignedIntTests() : Unit {
     let testCases = [
-        ("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 6), 11),
+        ("0b0001 == 1", 4, (qs) => X(qs[0]), (qs) => MeasureSignedInteger(qs, 6), 1),
         ("0b1111 == -1", 4, (qs) => { X(qs[0]); X(qs[1]); X(qs[2]); X(qs[3]); }, (qs) => MeasureSignedInteger(qs, 4), -1),
         ("0b01000 == 8", 5, (qs) => X(qs[3]), (qs) => MeasureSignedInteger(qs, 5), 8),
         ("0b11110 == -2", 5, (qs) => {

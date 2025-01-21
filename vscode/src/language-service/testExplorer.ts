@@ -10,7 +10,7 @@ import {
   ProgramConfig,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVsCodeLocation, toVsCodeRange } from "../common";
+import { loadCompilerWorker, toVsCodeLocation, toVsCodeRange } from "../common";
 import { getActiveProgram } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 
@@ -20,18 +20,12 @@ let worker: ICompilerWorker | null = null;
  * @param context The extension context.
  * @returns The compiler worker.
  **/
-function getLocalCompilerWorker(
-  context: vscode.ExtensionContext,
-): ICompilerWorker {
+function getLocalCompilerWorker(extensionUri: string): ICompilerWorker {
   if (worker !== null) {
     return worker;
   }
 
-  const compilerWorkerScriptPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "./out/compilerWorker.js",
-  ).toString();
-  worker = getCompilerWorker(compilerWorkerScriptPath);
+  worker = loadCompilerWorker(extensionUri);
 
   return worker;
 }

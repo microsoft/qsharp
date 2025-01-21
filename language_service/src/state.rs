@@ -10,6 +10,7 @@ use super::protocol::{
 };
 use log::{debug, trace};
 use miette::Diagnostic;
+use qsc::line_column::Encoding;
 use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
@@ -107,6 +108,8 @@ pub(super) struct CompilationStateUpdater<'a> {
     cache: RefCell<PackageCache>,
     /// Functions to interact with the host filesystem for project system operations.
     project_host: Box<dyn JSProjectHost>,
+    /// Encoding for converting between line/column and byte offsets.
+    position_encoding: Encoding,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
@@ -115,6 +118,7 @@ impl<'a> CompilationStateUpdater<'a> {
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
         test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
+        position_encoding: Encoding,
     ) -> Self {
         Self {
             state,
@@ -124,6 +128,7 @@ impl<'a> CompilationStateUpdater<'a> {
             test_callable_receiver: Box::new(test_callable_receiver),
             cache: RefCell::default(),
             project_host: Box::new(project_host),
+            position_encoding,
         }
     }
 
@@ -547,9 +552,8 @@ impl<'a> CompilationStateUpdater<'a> {
                 .map(|(name, span)| {
                     (
                         name.clone(),
-                        // TODO(sezna) verify encoding
                         crate::qsc_utils::into_location(
-                            qsc::line_column::Encoding::Utf16,
+                            self.position_encoding,
                             compilation,
                             *span,
                             compilation.user_package_id,
@@ -557,7 +561,6 @@ impl<'a> CompilationStateUpdater<'a> {
                     )
                 })
                 .collect(),
-            version: None,
         };
 
         (self.test_callable_receiver)(callables);

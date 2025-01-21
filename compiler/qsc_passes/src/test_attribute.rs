@@ -40,7 +40,7 @@ impl<'a> Visitor<'a> for TestAttributeValidator {
             }
             if decl.input.ty != qsc_hir::ty::Ty::UNIT {
                 self.errors
-                    .push(TestAttributeError::CallableHasParameters(decl.name.span));
+                    .push(TestAttributeError::CallableHasParameters(decl.span));
             }
         }
     }
