@@ -44,7 +44,7 @@ pub(crate) mod time {
     ///
     /// This adds the `ns` prefix to all time values and serializes them as a
     /// string.
-    #[allow(clippy::trivially_copy_pass_by_ref)] // forced by serde interface
+    #[allow(clippy::trivially_copy_pass_by_ref, clippy::ref_option)] // forced by serde interface
     pub(crate) fn serialize<S: Serializer>(
         time: &Option<u64>,
         serializer: S,

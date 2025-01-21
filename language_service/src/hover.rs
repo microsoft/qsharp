@@ -113,7 +113,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &LocalKind::TypeParam,
             &code,
             &def_name.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -135,7 +135,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &LocalKind::TypeParam,
             &code,
             &reference.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -257,7 +257,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             &ident.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -287,7 +287,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             local_name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -356,15 +356,13 @@ fn display_local(
     param_kind: &LocalKind,
     markdown: &String,
     local_name: &str,
-    callable_name: &Option<Rc<str>>,
+    callable_name: Option<&str>,
     callable_doc: &str,
 ) -> String {
     match param_kind {
         LocalKind::Param => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("param should have a callable name");
+            let callable_name = callable_name.expect("param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
@@ -372,9 +370,7 @@ fn display_local(
         }
         LocalKind::TypeParam => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("type param should have a callable name");
+            let callable_name = callable_name.expect("type param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("type parameter of `{callable_name}`\n{markdown}",),

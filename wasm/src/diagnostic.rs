@@ -229,7 +229,7 @@ pub fn interpret_errors_into_qsharp_errors(errs: &[interpret::Error]) -> Vec<QSh
             let vsdiagnostic = VSDiagnostic::new(labels, &doc, err);
 
             let stack_trace = if let interpret::Error::Eval(_) = err {
-                err.stack_trace().clone()
+                err.stack_trace()
             } else {
                 None
             };
@@ -237,7 +237,7 @@ pub fn interpret_errors_into_qsharp_errors(errs: &[interpret::Error]) -> Vec<QSh
             QSharpError {
                 document: doc,
                 diagnostic: vsdiagnostic,
-                stack: stack_trace,
+                stack: stack_trace.cloned(),
             }
         })
         .collect()

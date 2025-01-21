@@ -71,7 +71,7 @@ impl Compiler {
         let mut dropped_names = Vec::new();
         if let Some(unit) = store.get(PackageId::CORE) {
             resolve_globals
-                .add_external_package(PackageId::CORE, &unit.package, store, &None)
+                .add_external_package(PackageId::CORE, &unit.package, store, None)
                 .expect("CORE is added before all other packages and can not clobber anything");
             typeck_globals.add_external_package(PackageId::CORE, &unit.package, store);
             dropped_names.extend(unit.dropped_names.iter().cloned());
@@ -83,7 +83,7 @@ impl Compiler {
                 .get(*id)
                 .expect("dependency should be added to package store before compilation");
             if let Err(mut errs) =
-                resolve_globals.add_external_package(*id, &unit.package, store, alias)
+                resolve_globals.add_external_package(*id, &unit.package, store, alias.as_deref())
             {
                 errors.append(&mut errs);
             };

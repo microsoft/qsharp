@@ -71,10 +71,10 @@ use thiserror::Error;
 
 impl Error {
     #[must_use]
-    pub fn stack_trace(&self) -> &Option<String> {
+    pub fn stack_trace(&self) -> Option<&String> {
         match &self {
             Error::Eval(err) => err.stack_trace(),
-            _ => &None,
+            _ => None,
         }
     }
 }

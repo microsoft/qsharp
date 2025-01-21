@@ -124,7 +124,7 @@ struct IdentTy<'a> {
     ty: &'a ast::Ty,
 }
 
-impl<'a> Display for IdentTy<'a> {
+impl Display for IdentTy<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{} : {}", self.ident.name, AstTy { ty: self.ty },)
     }
@@ -136,7 +136,7 @@ struct NameTyId<'a> {
     ty_id: ast::NodeId,
 }
 
-impl<'a> Display for NameTyId<'a> {
+impl Display for NameTyId<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -202,7 +202,7 @@ struct AstCallableDecl<'a> {
     decl: &'a ast::CallableDecl,
 }
 
-impl<'a> Display for AstCallableDecl<'a> {
+impl Display for AstCallableDecl<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let kind = match self.decl.kind {
             ast::CallableKind::Function => "function",
@@ -285,7 +285,7 @@ struct HirPat<'a> {
     pat: &'a hir::Pat,
 }
 
-impl<'a> Display for HirPat<'a> {
+impl Display for HirPat<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &self.pat.kind {
             hir::PatKind::Bind(name) => write!(f, "{} : {}", name.name, self.pat.ty.display()),
@@ -312,7 +312,7 @@ struct AstPat<'a> {
     pat: &'a ast::Pat,
 }
 
-impl<'a> Display for AstPat<'a> {
+impl Display for AstPat<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match &*self.pat.kind {
             ast::PatKind::Bind(ident, anno) => match anno {
@@ -430,7 +430,7 @@ impl<'a> HirUdt<'a> {
     }
 }
 
-impl<'a> Display for HirUdt<'a> {
+impl Display for HirUdt<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if self.is_struct {
             match &self.udt.definition.kind {
@@ -520,7 +520,7 @@ struct TyId<'a> {
     ty_id: ast::NodeId,
 }
 
-impl<'a> Display for TyId<'a> {
+impl Display for TyId<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let Some(ty) = self.lookup.get_ty(self.ty_id) {
             write!(f, "{}", ty.display())
@@ -534,7 +534,7 @@ struct AstTy<'a> {
     ty: &'a ast::Ty,
 }
 
-impl<'a> Display for AstTy<'a> {
+impl Display for AstTy<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.ty.kind.as_ref() {
             ast::TyKind::Array(ty) => write!(f, "{}[]", AstTy { ty }),
@@ -566,7 +566,7 @@ struct FunctorExpr<'a> {
     functors: &'a Option<Box<ast::FunctorExpr>>,
 }
 
-impl<'a> Display for FunctorExpr<'a> {
+impl Display for FunctorExpr<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.functors {
             Some(functors) => {
@@ -582,7 +582,7 @@ struct AstPathKind<'a> {
     path: &'a ast::PathKind,
 }
 
-impl<'a> Display for AstPathKind<'a> {
+impl Display for AstPathKind<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         if let ast::PathKind::Ok(path) = self.path {
             write!(f, "{}", path.full_name())
@@ -596,7 +596,7 @@ struct TyDef<'a> {
     def: &'a ast::TyDef,
 }
 
-impl<'a> Display for TyDef<'a> {
+impl Display for TyDef<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.def.kind.as_ref() {
             ast::TyDefKind::Field(name, ty) => match name {
