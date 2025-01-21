@@ -143,10 +143,6 @@
         }
       }
     },
-    "submenus": [{
-      "label": "Set target profile",
-      "id": "qsharp-vscode.profile.submenu"
-    }],
     "menus": {
       "editor/title/run": [
         {
@@ -160,21 +156,9 @@
           "group": "navigation@2"
         },
         {
-          "submenu": "qsharp-vscode.profile.submenu",
+          "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp",
           "group": "navigation@3"
-        }
-      ],
-      "qsharp-vscode.profile.submenu": [
-        {
-          "command": "qsharp-vscode.setTargetProfile.Unrestricted",
-          "when": "resourceLangId == qsharp",
-          "group": "navigation@4"
-        },
-        {
-          "command": "qsharp-vscode.setTargetProfile.Atom",
-          "when": "resourceLangId == qsharp",
-          "group": "navigation@5"
         }
       ],
       "commandPalette": [
