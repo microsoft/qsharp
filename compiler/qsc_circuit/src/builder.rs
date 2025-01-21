@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use crate::{
     circuit::{Circuit, Operation, Register},
     Config,
@@ -13,6 +16,7 @@ use std::{fmt::Write, mem::take, rc::Rc};
 
 /// Backend implementation that builds a circuit representation.
 pub struct Builder {
+    max_ops_exceeded: bool,
     circuit: Circuit,
     config: Config,
     remapper: Remapper,
@@ -222,6 +226,7 @@ impl Builder {
     #[must_use]
     pub fn new(config: Config) -> Self {
         Builder {
+            max_ops_exceeded: false,
             circuit: Circuit::default(),
             config,
             remapper: Remapper::default(),
@@ -245,6 +250,11 @@ impl Builder {
     }
 
     fn push_gate(&mut self, gate: Operation) {
+        if self.max_ops_exceeded || self.circuit.operations.len() >= self.config.max_operations {
+            // Stop adding gates and leave the circuit as is
+            self.max_ops_exceeded = true;
+            return;
+        }
         self.circuit.operations.push(gate);
     }
 

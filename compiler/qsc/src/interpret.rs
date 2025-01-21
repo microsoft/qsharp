@@ -676,6 +676,7 @@ impl Interpreter {
         } else {
             let mut sim = CircuitBuilder::new(CircuitConfig {
                 base_profile: self.capabilities.is_empty(),
+                max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
             });
 
             self.run_with_sim_no_output(entry_expr, &mut sim)?;
@@ -890,6 +891,7 @@ fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
             // will still respect the selected profile. This also
             // matches the behavior of the simulator.
             base_profile: false,
+            max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
         }),
     )
 }
