@@ -2232,7 +2232,6 @@ async fn test_case_detected() {
                         },
                     ),
                 ],
-                version: None,
             },
         ]
     "#]]
@@ -2270,7 +2269,6 @@ async fn test_case_removed() {
         [
             TestCallables {
                 callables: [],
-                version: None,
             },
         ]
     "#]]
@@ -2337,7 +2335,6 @@ async fn test_case_modified() {
                         },
                     ),
                 ],
-                version: None,
             },
             TestCallables {
                 callables: [
@@ -2358,7 +2355,6 @@ async fn test_case_modified() {
                         },
                     ),
                 ],
-                version: None,
             },
         ]
     "#]]
@@ -2401,34 +2397,32 @@ async fn test_annotation_removed() {
         .await;
 
     expect![[r#"
-            [
-                TestCallables {
-                    callables: [
-                        (
-                            "main.MyTestCase",
-                            Location {
-                                source: "parent/src/main.qs",
-                                range: Range {
-                                    start: Position {
-                                        line: 0,
-                                        column: 0,
-                                    },
-                                    end: Position {
-                                        line: 0,
-                                        column: 39,
-                                    },
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "main.MyTestCase",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 0,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 39,
                                 },
                             },
-                        ),
-                    ],
-                    version: None,
-                },
-                TestCallables {
-                    callables: [],
-                    version: None,
-                },
-            ]
-        "#]]
+                        },
+                    ),
+                ],
+            },
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
 
@@ -2503,7 +2497,6 @@ async fn multiple_tests() {
                         },
                     ),
                 ],
-                version: None,
             },
         ]
     "#]]
@@ -2581,44 +2574,6 @@ async fn test_case_in_different_files() {
                         },
                     ),
                 ],
-                version: None,
-            },
-            TestCallables {
-                callables: [
-                    (
-                        "test1.Test1",
-                        Location {
-                            source: "parent/src/test1.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 34,
-                                },
-                            },
-                        },
-                    ),
-                    (
-                        "test2.Test2",
-                        Location {
-                            source: "parent/src/test2.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 34,
-                                },
-                            },
-                        },
-                    ),
-                ],
-                version: None,
             },
         ]
     "#]]
