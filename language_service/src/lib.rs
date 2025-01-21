@@ -80,6 +80,7 @@ impl LanguageService {
                 diagnostics_receiver,
                 test_callable_receiver,
                 project_host,
+                self.position_encoding,
             ),
             recv,
         };

@@ -12,7 +12,9 @@ use crate::{
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
-use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
+use qsc::{
+    compile, line_column::Encoding, project, target::Profile, LanguageFeatures, PackageType,
+};
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
 use std::{cell::RefCell, fmt::Write, rc::Rc};
 
@@ -2666,6 +2668,7 @@ fn new_updater<'a>(
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),
         },
+        Encoding::Utf16,
     )
 }
 
@@ -2704,6 +2707,7 @@ fn new_updater_with_file_system<'a>(
         diagnostic_receiver,
         test_callable_receiver,
         TestProjectHost { fs: fs.clone() },
+        Encoding::Utf16,
     )
 }
 

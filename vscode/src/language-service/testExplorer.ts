@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import {
-  getCompilerWorker,
   ICompilerWorker,
   ILanguageService,
   ITestDescriptor,

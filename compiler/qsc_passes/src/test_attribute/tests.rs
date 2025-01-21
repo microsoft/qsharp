@@ -45,8 +45,8 @@ fn callable_cant_have_params() {
             [
                 CallableHasParameters(
                     Span {
-                        lo: 43,
-                        hi: 44,
+                        lo: 33,
+                        hi: 71,
                     },
                 ),
             ]

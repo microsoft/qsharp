@@ -12,7 +12,10 @@ function TestPass() : Unit {
     Std.Diagnostics.Fact(true, "This test should pass.");
 }
 
+// Because this function asserts `false`, it will crash and the test will fail.
 @Test()
 function TestFail() : Unit {
     Std.Diagnostics.Fact(false, "This test should fail.");
 }
+
+function Main() : Unit {}
