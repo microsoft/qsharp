@@ -79,6 +79,25 @@ fn callable_cant_have_type_params() {
 }
 
 #[test]
+fn conditionally_compile_out_test() {
+    check(
+        indoc! {"
+        namespace test {
+            @Test()
+            @Config(Base)
+            operation A<'T>() : Unit {
+
+            }
+        }
+        "},
+        &expect![[r#"
+            Package:
+                Item 0 [0-86] (Public):
+                    Namespace (Ident 0 [10-14] "test"): <empty>"#]],
+    );
+}
+
+#[test]
 fn callable_is_valid_test_callable() {
     check(
         indoc! {"
