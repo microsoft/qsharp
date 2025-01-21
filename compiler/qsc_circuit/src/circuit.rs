@@ -84,6 +84,7 @@ pub struct Config {
 }
 
 type ObjectsByColumn = FxHashMap<usize, String>;
+type ColumnWidthsByColumn = FxHashMap<usize, usize>;
 
 struct Row {
     wire: Wire,
@@ -97,61 +98,76 @@ enum Wire {
 }
 
 impl Row {
-    fn add_object(&mut self, column: usize, object: &str) {
+    fn add_object(&mut self, column: usize, column_widths: &ColumnWidthsByColumn, object: &str) {
+        let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+
         match &mut self.wire {
             Wire::Qubit { .. } => {
-                self.add(column, fmt_on_qubit_wire(object));
+                self.add(column, fmt_on_qubit_wire(object, column_width));
             }
             Wire::Classical { .. } => {
-                self.add(column, fmt_on_classical_wire(object));
+                self.add(column, fmt_on_classical_wire(object, column_width));
             }
         };
     }
 
-    fn add_gate(&mut self, column: usize, gate: &str, args: Option<&str>, is_adjoint: bool) {
+    fn add_gate(
+        &mut self,
+        column: usize,
+        column_widths: &ColumnWidthsByColumn,
+        gate: &str,
+        args: Option<&str>,
+        is_adjoint: bool,
+    ) {
         let mut gate_label = String::new();
         gate_label.push_str(gate);
         if is_adjoint {
             gate_label.push('\'');
         }
         if let Some(args) = args {
-            let _ = write!(&mut gate_label, "({args})");
+            let _ = write!(&mut gate_label, "({args})"); // TODO
         }
-        self.add_object(column, &gate_label);
+        self.add_object(column, column_widths, &gate_label);
     }
 
-    fn add_vertical(&mut self, column: usize) {
+    fn add_vertical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
         if !self.objects.contains_key(&column) {
+            let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+
             match self.wire {
-                Wire::Qubit { .. } => self.add(column, QUBIT_WIRE_CROSS),
+                Wire::Qubit { .. } => self.add(column, get_qubit_wire_cross(column_width)),
                 Wire::Classical { start_column } => {
                     if start_column.is_some() {
-                        self.add(column, CLASSICAL_WIRE_CROSS);
+                        self.add(column, get_classical_wire_cross(column_width));
                     } else {
-                        self.add(column, VERTICAL);
+                        self.add(column, get_vertical(column_width));
                     }
                 }
             }
         }
     }
 
-    fn add_dashed_vertical(&mut self, column: usize) {
+    fn add_dashed_vertical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
         if !self.objects.contains_key(&column) {
+            let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+
             match self.wire {
-                Wire::Qubit { .. } => self.add(column, QUBIT_WIRE_DASHED_CROSS),
+                Wire::Qubit { .. } => self.add(column, get_qubit_wire_dashed_cross(column_width)),
                 Wire::Classical { start_column } => {
                     if start_column.is_some() {
-                        self.add(column, CLASSICAL_WIRE_DASHED_CROSS);
+                        self.add(column, get_classical_wire_dashed_cross(column_width));
                     } else {
-                        self.add(column, VERTICAL_DASHED);
+                        self.add(column, get_vertical_dashed(column_width));
                     }
                 }
             }
         }
     }
 
-    fn start_classical(&mut self, column: usize) {
-        self.add(column, CLASSICAL_WIRE_START);
+    fn start_classical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
+        let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+
+        self.add(column, get_classical_wire_start(column_width));
         if let Wire::Classical { start_column } = &mut self.wire {
             start_column.replace(column);
         }
@@ -162,7 +178,12 @@ impl Row {
         self.next_column = column + 1;
     }
 
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, end_column: usize) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+        column_widths: &ColumnWidthsByColumn,
+        end_column: usize,
+    ) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
         let mut s = String::new();
         match &self.wire {
@@ -170,22 +191,24 @@ impl Row {
                 s.write_str(&fmt_qubit_label(*label))?;
                 for column in 1..end_column {
                     let val = self.objects.get(&column);
+                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
                     if let Some(v) = val {
                         s.write_str(v)?;
                     } else {
-                        s.write_str(QUBIT_WIRE)?;
+                        s.write_str(&get_qubit_wire(column_width))?;
                     }
                 }
             }
             Wire::Classical { start_column } => {
                 for column in 0..end_column {
                     let val = self.objects.get(&column);
+                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
                     if let Some(v) = val {
                         s.write_str(v)?;
                     } else if start_column.map_or(false, |s| column > s) {
-                        s.write_str(CLASSICAL_WIRE)?;
+                        s.write_str(&get_classical_wire(column_width))?;
                     } else {
-                        s.write_str(BLANK)?;
+                        s.write_str(&get_blank(column_width))?;
                     }
                 }
             }
@@ -195,33 +218,81 @@ impl Row {
     }
 }
 
-const COLUMN_WIDTH: usize = 7;
-const QUBIT_WIRE: &str = "───────";
-const CLASSICAL_WIRE: &str = "═══════";
-const QUBIT_WIRE_CROSS: &str = "───┼───";
-const CLASSICAL_WIRE_CROSS: &str = "═══╪═══";
-const CLASSICAL_WIRE_START: &str = "   ╘═══";
-const QUBIT_WIRE_DASHED_CROSS: &str = "───┆───";
-const CLASSICAL_WIRE_DASHED_CROSS: &str = "═══┆═══";
-const VERTICAL_DASHED: &str = "   ┆   ";
-const VERTICAL: &str = "   │   ";
-const BLANK: &str = "       ";
+const MIN_COLUMN_WIDTH: usize = 7;
+
+/// "───────"
+fn get_qubit_wire(column_width: usize) -> String {
+    "─".repeat(column_width)
+}
+
+/// "═══════"
+fn get_classical_wire(column_width: usize) -> String {
+    "═".repeat(column_width)
+}
+
+/// "───┼───"
+fn get_qubit_wire_cross(column_width: usize) -> String {
+    let half_width = "─".repeat(column_width / 2);
+    format!("{}┼{}", half_width, half_width)
+}
+
+/// "═══╪═══"
+fn get_classical_wire_cross(column_width: usize) -> String {
+    let half_width = "═".repeat(column_width / 2);
+    format!("{}╪{}", half_width, half_width)
+}
+
+/// "   ╘═══"
+fn get_classical_wire_start(column_width: usize) -> String {
+    let first_half_width = " ".repeat(column_width / 2);
+    let second_half_width = "═".repeat(column_width / 2);
+    format!("{}╘{}", first_half_width, second_half_width)
+}
+
+/// "───┆───"
+fn get_qubit_wire_dashed_cross(column_width: usize) -> String {
+    let half_width = "─".repeat(column_width / 2);
+    format!("{}┆{}", half_width, half_width)
+}
+
+/// "═══┆═══"
+fn get_classical_wire_dashed_cross(column_width: usize) -> String {
+    let half_width = "═".repeat(column_width / 2);
+    format!("{}┆{}", half_width, half_width)
+}
+
+/// "   │   "
+fn get_vertical(column_width: usize) -> String {
+    let half_width = " ".repeat(column_width / 2);
+    format!("{}│{}", half_width, half_width)
+}
+
+/// "   ┆   "
+fn get_vertical_dashed(column_width: usize) -> String {
+    let half_width = " ".repeat(column_width / 2);
+    format!("{}┆{}", half_width, half_width)
+}
+
+/// "       "
+fn get_blank(column_width: usize) -> String {
+    " ".repeat(column_width)
+}
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
 fn fmt_qubit_label(id: usize) -> String {
-    let rest = COLUMN_WIDTH - 2;
+    let rest = MIN_COLUMN_WIDTH - 2;
     format!("q_{id: <rest$}")
 }
 
 /// "── A ──"
-fn fmt_on_qubit_wire(obj: &str) -> String {
-    format!("{:─^COLUMN_WIDTH$}", format!(" {obj} "))
+fn fmt_on_qubit_wire(obj: &str, column_width: usize) -> String {
+    format!("{:─^column_width$}", format!(" {obj} "))
 }
 
 /// "══ A ══"
-fn fmt_on_classical_wire(obj: &str) -> String {
-    format!("{:═^COLUMN_WIDTH$}", format!(" {obj} "))
+fn fmt_on_classical_wire(obj: &str, column_width: usize) -> String {
+    format!("{:═^column_width$}", format!(" {obj} "))
 }
 
 impl Display for Circuit {
@@ -253,6 +324,10 @@ impl Display for Circuit {
             }
         }
 
+        // TODO
+        // To be able to fit long-named operations, we pre-calculate the required width for each column.
+        let column_widths = ColumnWidthsByColumn::default();
+
         for o in &self.operations {
             // Row indexes for the targets for this operation
             let targets = o
@@ -277,6 +352,7 @@ impl Display for Circuit {
             let mut all_rows = targets.clone();
             all_rows.extend(controls.iter());
             all_rows.sort_unstable();
+
             // We'll need to know the entire range of rows for this operation so we can
             // figure out the starting column and also so we can draw any
             // vertical lines that cross wires.
@@ -286,20 +362,25 @@ impl Display for Circuit {
 
             // The starting column - the first available column in all
             // the rows that this operation spans.
-            let mut column = 1;
-            for row in &rows[begin..end] {
-                if row.next_column > column {
-                    column = row.next_column;
-                }
-            }
+            let column = rows[begin..end]
+                .iter()
+                .map(|r| r.next_column)
+                .max()
+                .unwrap_or(1);
 
             // Add the operation to the diagram
             for i in targets {
                 let row = &mut rows[i];
                 if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
-                    row.start_classical(column);
+                    row.start_classical(column, &column_widths);
                 } else {
-                    row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
+                    row.add_gate(
+                        column,
+                        &column_widths,
+                        &o.gate,
+                        o.display_args.as_deref(),
+                        o.is_adjoint,
+                    );
                 };
             }
 
@@ -307,9 +388,9 @@ impl Display for Circuit {
                 for i in controls {
                     let row = &mut rows[i];
                     if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
-                        row.add_object(column, "M");
+                        row.add_object(column, &column_widths, "M");
                     } else {
-                        row.add_object(column, "●");
+                        row.add_object(column, &column_widths, "●");
                     };
                 }
 
@@ -318,13 +399,13 @@ impl Display for Circuit {
                 // (vertical lines may overlap if there are multiple controls/targets,
                 // this is ok in practice)
                 for row in &mut rows[begin..end] {
-                    row.add_vertical(column);
+                    row.add_vertical(column, &column_widths);
                 }
             } else {
                 // No control wire. Draw dashed vertical lines to connect
                 // target wires if there are multiple targets
                 for row in &mut rows[begin..end] {
-                    row.add_dashed_vertical(column);
+                    row.add_dashed_vertical(column, &column_widths);
                 }
             }
         }
@@ -338,7 +419,7 @@ impl Display for Circuit {
 
         // Draw the diagram
         for row in rows {
-            row.fmt(f, end_column)?;
+            row.fmt(f, &column_widths, end_column)?;
         }
 
         Ok(())
