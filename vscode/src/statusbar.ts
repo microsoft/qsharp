@@ -95,7 +95,8 @@ const targetProfiles = [
   { configName: "base", uiText: "Q#: QIR base" },
   { configName: "adaptive_ri", uiText: "Q#: QIR Adaptive RI" },
   { configName: "adaptive_rif", uiText: "Q#: QIR Adaptive RIF" },
-  { configName: "unrestricted", uiText: "Q#: unrestricted" },
+  { configName: "unrestricted", uiText: "Q#: Unrestricted simulation" },
+  { configName: "unrestricted", uiText: "Q#: Atom Hardware" },
 ];
 
 function getTargetProfileSetting(uiText: string): TargetProfile {

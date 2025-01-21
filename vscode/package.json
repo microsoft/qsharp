@@ -143,6 +143,10 @@
         }
       }
     },
+    "submenus": [{
+      "label": "Set target profile",
+      "id": "qsharp-vscode.profile.submenu"
+    }],
     "menus": {
       "editor/title/run": [
         {
@@ -154,6 +158,23 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
+        },
+        {
+          "submenu": "qsharp-vscode.profile.submenu",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@3"
+        }
+      ],
+      "qsharp-vscode.profile.submenu": [
+        {
+          "command": "qsharp-vscode.setTargetProfile.Unrestricted",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@4"
+        },
+        {
+          "command": "qsharp-vscode.setTargetProfile.Atom",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@5"
         }
       ],
       "commandPalette": [
@@ -403,6 +424,15 @@
         "title": "Set the Azure Quantum QIR target profile"
       },
       {
+        "command": "qsharp-vscode.setTargetProfile.Unrestricted",
+        "category": "Q#",
+        "title": "Unrestricted Simulation."
+      },
+      {
+        "command": "qsharp-vscode.setTargetProfile.Atom",
+        "category": "Q#",
+        "title": "Atom Hardware."
+      },      {
         "command": "qsharp-vscode.createNotebook",
         "category": "Q#",
         "title": "Create an Azure Quantum notebook"
