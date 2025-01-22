@@ -159,8 +159,8 @@ class Interpreter:
 
     def run(
         self,
-        entry_expr: str,
-        output_fn: Callable[[Output], None],
+        entry_expr: Optional[str],
+        output_fn: Optional[Callable[[Output], None]],
         noise: Optional[Tuple[float, float, float]],
         callable: Optional[GlobalCallable],
         args: Optional[Any],
@@ -172,8 +172,8 @@ class Interpreter:
         :param output_fn: A callback function that will be called with each output.
         :param noise: A tuple with probabilities of Pauli-X, Pauli-Y, and Pauli-Z errors
             to use in simulation as a parametric Pauli noise.
-        :param callable: The callable to run.
-        :param args: The arguments to pass to the callable.
+        :param callable: The callable to run, if no entry expression is provided.
+        :param args: The arguments to pass to the callable, if any.
 
         :returns values: A result or runtime errors.
 
@@ -207,8 +207,8 @@ class Interpreter:
         Generates QIR from Q# source code. Either an entry expression or a callable with arguments must be provided.
 
         :param entry_expr: The entry expression.
-        :param callable: The callable to generate QIR for.
-        :param args: The arguments to pass to the callable
+        :param callable: The callable to generate QIR for, if no entry expression is provided.
+        :param args: The arguments to pass to the callable, if any.
 
         :returns qir: The QIR string.
         """
@@ -231,9 +231,9 @@ class Interpreter:
         an operation of a lambda expression. The operation must take only
         qubits or arrays of qubits as parameters.
 
-        :param callable: The callable to synthesize the circuit for.
+        :param callable: The callable to synthesize the circuit for, if no entry expression is provided.
 
-        :param args: The arguments to pass to the callable.
+        :param args: The arguments to pass to the callable, if any.
 
         :raises QSharpError: If there is an error synthesizing the circuit.
         """
@@ -250,9 +250,9 @@ class Interpreter:
         Estimates resources for Q# source code.
 
         :param params: The parameters to configure estimation.
-        :param entry_expr: The entry expression.
-        :param callable: The callable to estimate resources for.
-        :param args: The arguments to pass to the callable
+        :param entry_expr: The entry expression to estimate.
+        :param callable: The callable to estimate resources for, if no entry expression is provided.
+        :param args: The arguments to pass to the callable, if any.
 
         :returns resources: The estimated resources.
         """
