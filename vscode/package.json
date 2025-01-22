@@ -405,12 +405,8 @@
       {
         "command": "qsharp-vscode.setTargetProfile",
         "category": "Q#",
-        "title": "Set the Azure Quantum QIR target profile"
-      },
-      {
-        "command": "qsharp-vscode.setTargetProfile.Unrestricted",
-        "category": "Q#",
-        "title": "Unrestricted Simulation."
+        "title": "Set the Azure Quantum QIR target profile",
+        "icon": "$(play-circle)"
       },
       {
         "command": "qsharp-vscode.setTargetProfile.Atom",
