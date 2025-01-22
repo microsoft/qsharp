@@ -3,7 +3,7 @@
 
 use crate::{
     manifest::{GitHubRef, PackageType},
-    Manifest, ManifestDescriptor, PackageRef,
+    Manifest, PackageRef,
 };
 use async_trait::async_trait;
 use futures::FutureExt;
@@ -129,6 +129,11 @@ pub enum Error {
     #[error("Error fetching from GitHub: {0}")]
     #[diagnostic(code("Qsc.Project.GitHub"))]
     GitHub(String),
+
+    #[error("File {relative_path} is not listed in the `files` field of the manifest")]
+    #[diagnostic(help("To avoid unexpected behavior, add this file to the `files` field in the `qsharp.json` manifest"))]
+    #[diagnostic(code("Qsc.Project.DocumentNotInProject"))]
+    DocumentNotInProject { path: String, relative_path: String },
 }
 
 impl Error {
@@ -137,6 +142,7 @@ impl Error {
     pub fn path(&self) -> Option<&String> {
         match self {
             Error::GitHubManifestParse { path, .. }
+            | Error::DocumentNotInProject { path, .. }
             | Error::NoSrcDir { path }
             | Error::ManifestParse { path, .. } => Some(path),
             // Note we don't return the path for `FileSystem` errors,
@@ -182,10 +188,7 @@ pub trait FileSystemAsync {
     ) -> miette::Result<Arc<str>>;
 
     /// Given an initial path, fetch files matching <initial_path>/**/*.qs
-    async fn collect_project_sources(
-        &self,
-        initial_path: &Path,
-    ) -> ProjectResult<Vec<Self::Entry>> {
+    async fn collect_project_sources(&self, initial_path: &Path) -> ProjectResult<Vec<PathBuf>> {
         let listing = self
             .list_directory(initial_path)
             .await
@@ -210,7 +213,7 @@ pub trait FileSystemAsync {
     async fn collect_project_sources_inner(
         &self,
         initial_path: &Path,
-    ) -> ProjectResult<Vec<Self::Entry>> {
+    ) -> ProjectResult<Vec<PathBuf>> {
         let listing = self
             .list_directory(initial_path)
             .await
@@ -221,7 +224,7 @@ pub trait FileSystemAsync {
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
             match item.entry_type() {
-                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
+                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item.path()),
                 Ok(EntryType::Folder) => {
                     files.append(&mut self.collect_project_sources_inner(&item.path()).await?);
                 }
@@ -231,8 +234,64 @@ pub trait FileSystemAsync {
         Ok(files)
     }
 
+    async fn collect_sources_from_files_field(
+        &self,
+        project_path: &Path,
+        manifest: &Manifest,
+    ) -> ProjectResult<Vec<PathBuf>> {
+        let mut v = vec![];
+        for file in &manifest.files {
+            v.push(
+                self.resolve_path(project_path, Path::new(&file))
+                    .await
+                    .map_err(|e| Error::FileSystem {
+                        about_path: project_path.to_string_lossy().to_string(),
+                        error: e.to_string(),
+                    })?,
+            );
+        }
+        Ok(v)
+    }
+
+    /// Compares the list of files in the `src` directory with the list of files
+    /// in the `files` field, and adds errors if any are missing.
+    fn validate_files_list(
+        project_path: &Path,
+        qs_files: &mut Vec<PathBuf>,
+        listed_files: &mut Vec<PathBuf>,
+        errors: &mut Vec<Error>,
+    ) {
+        qs_files.sort();
+        listed_files.sort();
+
+        let mut listed_files = listed_files.iter().peekable();
+
+        for item in qs_files.iter() {
+            while let Some(&next) = listed_files.peek() {
+                if next < item {
+                    listed_files.next();
+                } else {
+                    break;
+                }
+            }
+            if listed_files.peek() != Some(&item) {
+                errors.push(Error::DocumentNotInProject {
+                    path: item.to_string_lossy().to_string(),
+                    relative_path: item
+                        .strip_prefix(project_path)
+                        .unwrap_or(item)
+                        .to_string_lossy()
+                        .to_string(),
+                });
+            }
+        }
+    }
+
     /// Given a directory, loads the project sources
     /// and the sources for all its dependencies.
+    ///
+    /// Any errors that didn't block project load are contained in the
+    /// `errors` field of the returned `Project`.
     async fn load_project(
         &self,
         directory: &Path,
@@ -243,14 +302,14 @@ pub trait FileSystemAsync {
             .await
             .map_err(|e| vec![e])?;
 
-        let root = self
-            .read_local_manifest_and_sources(directory)
-            .await
-            .map_err(|e| vec![e])?;
-
         let mut errors = vec![];
         let mut packages = FxHashMap::default();
         let mut stack = vec![];
+
+        let root = self
+            .read_local_manifest_and_sources(directory, &mut errors)
+            .await
+            .map_err(|e| vec![e])?;
 
         let root_path = directory.to_string_lossy().to_string();
         let root_ref = PackageRef::Path { path: root_path };
@@ -321,41 +380,37 @@ pub trait FileSystemAsync {
 
     /// Load the sources for a single package at the given directory. Also load its
     /// dependency information but don't recurse into dependencies yet.
+    ///
+    /// Any errors that didn't block project load are accumulated into the `errors` vector.
     async fn read_local_manifest_and_sources(
         &self,
         directory: &Path,
+        errors: &mut Vec<Error>,
     ) -> ProjectResult<PackageInfo> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        let manifest = ManifestDescriptor {
-            manifest_dir: directory.to_path_buf(),
-            manifest,
-        };
+        // For local packages, we include all *.qs files under the `src/`
+        // directory, even if a `files` field is present.
+        //
+        // If there are files under `src/` that are missing from the `files` field,
+        // we assume that's user error, and we report it.
+        //
+        // Since the omission is already reported as an error here, we go ahead and include
+        // all the found files in the package sources. This way compilation
+        // can continue as the user probably intended, without compounding errors.
 
-        let project_path = manifest.manifest_dir.clone();
+        let mut all_qs_files = self.collect_project_sources(directory).await?;
 
-        // If the `files` field exists in the manifest, prefer that.
-        // Otherwise, collect all files in the project directory.
-        let qs_files: Vec<PathBuf> = if manifest.manifest.files.is_empty() {
-            let qs_files = self.collect_project_sources(&project_path).await?;
-            qs_files.into_iter().map(|file| file.path()).collect()
-        } else {
-            let mut v = vec![];
-            for file in manifest.manifest.files {
-                v.push(
-                    self.resolve_path(&project_path, Path::new(&file))
-                        .await
-                        .map_err(|e| Error::FileSystem {
-                            about_path: project_path.to_string_lossy().to_string(),
-                            error: e.to_string(),
-                        })?,
-                );
-            }
-            v
-        };
+        let mut listed_files = self
+            .collect_sources_from_files_field(directory, &manifest)
+            .await?;
 
-        let mut sources = Vec::with_capacity(qs_files.len());
-        for path in qs_files {
+        if !listed_files.is_empty() {
+            Self::validate_files_list(directory, &mut all_qs_files, &mut listed_files, errors);
+        }
+
+        let mut sources = Vec::with_capacity(all_qs_files.len());
+        for path in all_qs_files {
             sources.push(self.read_file(&path).await.map_err(|e| Error::FileSystem {
                 about_path: path.to_string_lossy().to_string(),
                 error: e.to_string(),
@@ -367,13 +422,13 @@ pub trait FileSystemAsync {
         // For any local dependencies, convert relative paths to absolute,
         // so that multiple references to the same package, from different packages,
         // get merged correctly.
-        for (alias, mut dep) in manifest.manifest.dependencies {
+        for (alias, mut dep) in manifest.dependencies {
             if let PackageRef::Path { path: dep_path } = &mut dep {
                 *dep_path = self
-                    .resolve_path(&project_path, &PathBuf::from(dep_path.clone()))
+                    .resolve_path(directory, &PathBuf::from(dep_path.clone()))
                     .await
                     .map_err(|e| Error::FileSystem {
-                        about_path: project_path.to_string_lossy().to_string(),
+                        about_path: directory.to_string_lossy().to_string(),
                         error: e.to_string(),
                     })?
                     .to_string_lossy()
@@ -384,9 +439,9 @@ pub trait FileSystemAsync {
 
         Ok(PackageInfo {
             sources,
-            language_features: LanguageFeatures::from_iter(&manifest.manifest.language_features),
+            language_features: LanguageFeatures::from_iter(manifest.language_features),
             dependencies,
-            package_type: manifest.manifest.package_type,
+            package_type: manifest.package_type,
         })
     }
 
@@ -477,6 +532,7 @@ pub trait FileSystemAsync {
         global_cache: &RefCell<PackageCache>,
         key: PackageKey,
         this_pkg: &PackageRef,
+        errors: &mut Vec<Error>,
     ) -> ProjectResult<PackageInfo> {
         match this_pkg {
             PackageRef::GitHub { github } => {
@@ -499,7 +555,7 @@ pub trait FileSystemAsync {
                 // editing experience as intuitive as possible. This may change if we start
                 // hitting perf issues, but careful consideration is needed into when to
                 // invalidate the cache.
-                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path())
+                self.read_local_manifest_and_sources(PathBuf::from(path.clone()).as_path(), errors)
                     .await
             }
         }
@@ -535,7 +591,7 @@ pub trait FileSystemAsync {
             }
 
             let dep_result = self
-                .read_manifest_and_sources(global_cache, dep_key.clone(), &dependency)
+                .read_manifest_and_sources(global_cache, dep_key.clone(), &dependency, errors)
                 .await;
 
             match dep_result {

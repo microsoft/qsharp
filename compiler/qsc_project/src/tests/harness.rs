@@ -66,21 +66,26 @@ fn normalize(project: &mut Project, root_path: &Path) {
             }
             Error::FileSystem {
                 about_path: path,
-                error,
+                error: s,
+            }
+            | Error::DocumentNotInProject {
+                path,
+                relative_path: s,
             } => {
                 let mut str = std::mem::take(path).into();
                 remove_absolute_path_prefix(&mut str, root_path);
                 *path = str.to_string();
-                *error = "REPLACED".to_string();
+                // these strings can contain os-specific paths but they're
+                // not in the format we expect, so just erase them
+                *s = "REPLACED".to_string();
             }
             Error::Circular(s1, s2) | Error::GitHubToLocal(s1, s2) => {
-                // These errors contain absolute paths which don't work well in test output
+                // these strings can contain os-specific paths but they're
+                // not in the format we expect, so just erase them
                 *s1 = "REPLACED".to_string();
                 *s2 = "REPLACED".to_string();
             }
-            Error::GitHub(s) => {
-                *s = "REPLACED".to_string();
-            }
+            Error::GitHub(_) => {}
         }
     }
 }

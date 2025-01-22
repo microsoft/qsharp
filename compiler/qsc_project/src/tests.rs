@@ -426,6 +426,10 @@ fn explicit_files_list() {
                                 "explicit_files_list/src/Main.qs",
                                 "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
                             ),
+                            (
+                                "explicit_files_list/src/NotIncluded.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
                         ],
                         language_features: LanguageFeatures(
                             0,
@@ -436,7 +440,12 @@ fn explicit_files_list() {
                     packages: {},
                 },
                 lints: [],
-                errors: [],
+                errors: [
+                    DocumentNotInProject {
+                        path: "explicit_files_list/src/NotIncluded.qs",
+                        relative_path: "REPLACED",
+                    },
+                ],
             }"#]],
     );
 }
