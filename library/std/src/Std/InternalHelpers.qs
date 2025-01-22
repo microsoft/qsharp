@@ -84,8 +84,8 @@ internal operation CT(control : Qubit, target : Qubit) : Unit is Adj {
     Adjoint Rz(angle, target);
     CNOT(control, target);
     // This decomposition for controlled-T introduces a global phase (due to the unmatched call to Rz from above).
-    // We correct for this global phase in simulation with R(PauliI), which is a no-op on hardware.
-    Adjoint R(PauliI, angle, target);
+    // We correct for this global phase in simulation, which is a no-op on hardware.
+    ApplyGlobalPhase(angle / 2.0);
 }
 
 internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
