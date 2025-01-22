@@ -173,6 +173,7 @@ export function startTestDiscovery(
       deleteItemsNotOfVersion(version, testItem.children, testController);
       if (testMetadata.get(testItem) !== version) {
         items.delete(id);
+      } else {
       }
     }
   }

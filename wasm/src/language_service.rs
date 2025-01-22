@@ -6,6 +6,7 @@ use crate::{
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
     project_system::ProjectHost,
     serializable_type,
+    test_discovery::TestDescriptor,
 };
 use qsc::{
     self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
@@ -69,8 +70,11 @@ impl LanguageService {
             let callables = update
                 .callables
                 .iter()
-                .map(|(name, location)| -> (String, Location) {
-                    (name.clone(), location.clone().into())
+                .map(|(callable_name, location)| -> TestDescriptor {
+                    TestDescriptor {
+                        callable_name: callable_name.into(),
+                        location: location.clone().into(),
+                    }
                 })
                 .collect::<Vec<_>>();
 
