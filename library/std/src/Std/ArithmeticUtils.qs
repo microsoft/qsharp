@@ -310,7 +310,7 @@ operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Q
 /// Computes carries for the look-ahead adder
 operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let n = Length(gs);
-    Fact(Length(ps) + 1 == n, "Register gs must be one qubit longer than register gs.");
+    Fact(Length(ps) + 1 == n, "Register gs must be one qubit longer than register ps.");
 
     let T = Floor(Lg(IntAsDouble(n)));
     use qs = Qubit[n - HammingWeightI(n) - T];
@@ -318,6 +318,8 @@ operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
     let pWorkspace = [ps] + Partitioned(registerPartition, qs);
 
+    // Note that we cannot use gs[0] as a target for ApplyAndAssuming0Target
+    // as it may not be in the 0 state. We use regular CCNOT in GRounds and CRounds.
     within {
         PRounds(pWorkspace);
     } apply {
