@@ -19,7 +19,7 @@ let worker: ICompilerWorker | null = null;
  * @param context The extension context.
  * @returns The compiler worker.
  **/
-function getLocalCompilerWorker(extensionUri: string): ICompilerWorker {
+function getLocalCompilerWorker(extensionUri: vscode.Uri): ICompilerWorker {
   if (worker !== null) {
     return worker;
   }
@@ -48,7 +48,7 @@ export function startTestDiscovery(
     // use the compiler worker to run the test in the interpreter
 
     log.trace("Starting test run, request was", JSON.stringify(request));
-    const worker = getLocalCompilerWorker(context);
+    const worker = getLocalCompilerWorker(context.extensionUri);
 
     const programResult = await getActiveProgram();
     if (!programResult.success) {

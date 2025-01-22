@@ -103,10 +103,10 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
   return vscodeDiagnostic;
 }
 
-export function loadCompilerWorker(extensionUri: string): ICompilerWorker {
+export function loadCompilerWorker(extensionUri: vscode.Uri): ICompilerWorker {
   const compilerWorkerScriptPath = vscode.Uri.joinPath(
     extensionUri,
     "./out/compilerWorker.js",
   ).toString();
-  getCompilerWorker(compilerWorkerScriptPath);
+  return getCompilerWorker(compilerWorkerScriptPath);
 }
