@@ -318,7 +318,7 @@ operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
     let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
     let pWorkspace = [ps] + Partitioned(registerPartition, qs);
 
-    // Note that we cannot use gs[0] as a target for ApplyAndAssuming0Target
+    // Note that we cannot use ApplyAndAssuming0Target targeting gs[0]
     // as it may not be in the 0 state. We use regular CCNOT in GRounds and CRounds.
     within {
         PRounds(pWorkspace);
