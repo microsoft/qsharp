@@ -316,9 +316,7 @@ operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is
                 CNOT(xs[i], ys[i]);
             }
         } apply {
-            if xsLen > 1 {
-                ComputeCarries(ys, zs[0..xsLen]);
-            }
+            ComputeCarries(ys, zs[0..xsLen]);
 
             // compute sum into carries
             for k in 0..xsLen - 1 {
