@@ -501,11 +501,6 @@ html {
 
 /* Space chart */
 
-/* Needed until https://github.com/microsoft/vscode-jupyter/issues/7161 is resolved */
-.cell-output-ipywidget-background {
-  background-color: transparent !important;
-}
-
 #pieChart {
   fill: var(--main-color);
 }
