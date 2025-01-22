@@ -409,10 +409,6 @@
         "icon": "$(play-circle)"
       },
       {
-        "command": "qsharp-vscode.setTargetProfile.Atom",
-        "category": "Q#",
-        "title": "Atom Hardware."
-      },      {
         "command": "qsharp-vscode.createNotebook",
         "category": "Q#",
         "title": "Create an Azure Quantum notebook"
