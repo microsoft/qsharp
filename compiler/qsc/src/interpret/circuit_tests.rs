@@ -776,7 +776,6 @@ fn controlled_operation() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn internal_operation() {
     let mut interpreter = interpreter(
         r"
@@ -793,113 +792,17 @@ fn internal_operation() {
         Profile::Unrestricted,
     );
 
-    let circ_err = interpreter
+    let circ = interpreter
         .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should not fail");
 
     expect![[r#"
-        Circuit {
-            operations: [
-                Operation {
-                    gate: "H",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: [],
-                    targets: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "X",
-                    display_args: None,
-                    is_controlled: true,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 1,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "Measure",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 0,
-                            type: 1,
-                            c_id: Some(
-                                0,
-                            ),
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "Measure",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: [
-                        Register {
-                            q_id: 1,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 1,
-                            type: 1,
-                            c_id: Some(
-                                0,
-                            ),
-                        },
-                    ],
-                    children: [],
-                },
-            ],
-            qubits: [
-                Qubit {
-                    id: 0,
-                    num_children: 1,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 1,
-                },
-            ],
-        }
+        q_0    ── H ──── ● ──── M ──
+                         │      ╘═══
+        q_1    ───────── X ──── M ──
+                                ╘═══
     "#]]
-    .assert_debug_eq(&circ_err);
+    .assert_eq(&circ.to_string());
 }
 
 #[test]
