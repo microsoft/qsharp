@@ -317,7 +317,7 @@ operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is
             }
         } apply {
             if xsLen > 1 {
-                ComputeCarries(Rest(ys), zs[1..xsLen]);
+                ComputeCarries(ys, zs[0..xsLen]);
             }
 
             // compute sum into carries
