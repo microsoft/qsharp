@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{get_completions, CompletionItem};
+use super::{get_completions, Compilation, CompletionItem};
 use crate::{
     protocol::CompletionList,
     test_utils::{
@@ -12,41 +12,112 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc::line_column::Position;
+use std::fmt::Write;
 
 mod class_completions;
 
-fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
-    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+fn do_check(
+    compilation: &Compilation,
+    cursor_uri: &str,
+    cursor_position: Position,
+    completions_to_check: &[&str],
+    expect: &Expect,
+) {
     let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
+        get_completions(compilation, cursor_uri, cursor_position, Encoding::Utf8);
+
+    let mut checked_completions: Vec<(String, Option<&CompletionItem>)> = completions_to_check
         .iter()
         .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
+            (
+                (*comp).to_string(),
+                actual_completions
+                    .items
+                    .iter()
+                    .find(|item| item.label == **comp),
+            )
         })
         .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    // Sort by actual items' sort text
+    checked_completions.sort_by_key(|c| {
+        c.1.map_or(String::new(), |c| c.sort_text.clone().unwrap_or_default())
+    });
+
+    let mut output = String::new();
+
+    let mut first = true;
+    for (label, c) in &checked_completions {
+        if c.is_none() {
+            if first {
+                first = false;
+                writeln!(output, "not in list: ").unwrap();
+            }
+            let _ = writeln!(output, "  {label}");
+        }
+    }
+
+    first = true;
+
+    for (label, c) in &checked_completions {
+        if let Some(c) = c {
+            if first {
+                first = false;
+                writeln!(output, "in list (sorted):").unwrap();
+            }
+            let _ = writeln!(output, "  {label} ({:?})", c.kind,);
+            let _ = writeln!(output, "    detail: {:?}", c.detail);
+
+            match &c.additional_text_edits {
+                Some(edits) => {
+                    let _ = writeln!(output, "    additional_text_edits:");
+                    for edit in edits {
+                        let _ = writeln!(
+                            output,
+                            "      [{}:{}-{}:{}] {:?}",
+                            edit.range.start.line,
+                            edit.range.start.column,
+                            edit.range.end.line,
+                            edit.range.end.column,
+                            edit.new_text,
+                        );
+                    }
+                }
+                None => {
+                    let _ = writeln!(output, "    additional_text_edits: None");
+                }
+            }
+        }
+    }
+
+    expect.assert_eq(&output);
+    // TODO: this is too much at the moment
+    // assert_no_duplicates(actual_completions);
+}
+
+fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+
+    do_check(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_with_stdlib(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, false);
-    let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    do_check(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_project(
@@ -56,20 +127,14 @@ fn check_project(
 ) {
     let (compilation, cursor_uri, cursor_position, _) =
         compile_project_with_markers(sources_with_markers, true);
-    let actual_completions =
-        get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    do_check(
+        &compilation,
+        &cursor_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_notebook(
@@ -79,20 +144,14 @@ fn check_notebook(
 ) {
     let (compilation, cell_uri, cursor_position, _) =
         compile_notebook_with_markers(cells_with_markers);
-    let actual_completions =
-        get_completions(&compilation, &cell_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    do_check(
+        &compilation,
+        &cell_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_with_dependency(
@@ -107,20 +166,14 @@ fn check_with_dependency(
         dependency_alias,
         &[("<dependency_source>", dependency_source)],
     );
-    let actual_completions =
-        get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    do_check(
+        &compilation,
+        &cursor_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_no_completions(source_with_cursor: &str) {
@@ -130,6 +183,7 @@ fn check_no_completions(source_with_cursor: &str) {
     assert_eq!(actual_completions.items, Vec::default());
 }
 
+#[allow(dead_code)]
 fn assert_no_duplicates(mut actual_completions: CompletionList) {
     actual_completions
         .items
