@@ -49,7 +49,7 @@ struct DoubleEquality {
 
 impl HirLintPass for DoubleEquality {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
-        // Ignore the case where the identifier is being compared for equlity with itself,
+        // Ignore the case where the identifier is being compared for equality with itself,
         // Since this is used to check if the double is `NaN`. This will be compiled to
         // fcmp oeq value value
         // in LLVM because we only implemented the ord side of fcmp.
