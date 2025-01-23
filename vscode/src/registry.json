@@ -5,7 +5,7 @@
       "description": "Defines types and functions to work with signed qubit-based integers.",
       "dependency": {
         "github": {
-          "owner": "Microsoft",
+          "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
             { "ref": "546b053", "notes": "latest stable" },
@@ -20,7 +20,7 @@
       "description": "Types and functions for fixed-point arithmetic with qubits.",
       "dependency": {
         "github": {
-          "owner": "Microsoft",
+          "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
             { "ref": "546b053", "notes": "latest stable" },
@@ -35,7 +35,7 @@
       "description": "Defines types and functions to work with rotations.",
       "dependency": {
         "github": {
-          "owner": "Microsoft",
+          "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
             { "ref": "546b053", "notes": "latest stable" },
@@ -50,7 +50,7 @@
       "description": "Utilities for writing and running Q# tests.",
       "dependency": {
         "github": {
-          "owner": "Microsoft",
+          "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
             { "ref": "546b053", "notes": "latest stable" },
