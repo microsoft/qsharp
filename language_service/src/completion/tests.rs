@@ -1780,6 +1780,7 @@ fn package_aliases() {
 }
 
 #[test]
+// #[ignore = "Main and Std show up as namespaces under MyDep, but they shouldn't"]
 fn package_alias_members() {
     check_with_dependency(
         "namespace Test { function Foo() : Unit { MyDep.↘ } }",
@@ -1788,12 +1789,13 @@ fn package_alias_members() {
         namespace Other { export OtherFunc; function OtherFunc() : Unit {} }
         namespace Other.Sub { export OtherFunc; function OtherFunc() : Unit {} }
         ",
-        &["Main", "Other", "MainFunc", "Other.Sub", "Sub"],
+        &["Main", "Other", "MainFunc", "Other.Sub", "Sub", "Std"],
         &expect![[r#"
             not in list: 
               Main
               Other.Sub
               Sub
+              Std
             in list (sorted):
               MainFunc (Function)
                 detail: Some("function MainFunc() : Unit")
@@ -1833,6 +1835,7 @@ fn dependency_namespace_members() {
 }
 
 #[test]
+// #[ignore = "Main shows up as a namespace under MyDep, but it shouldn't"]
 fn package_alias_members_in_open() {
     check_with_dependency(
         "namespace Test { open MyDep.↘  }",
@@ -2510,5 +2513,165 @@ fn in_trailing_comment() {
         "namespace Test {
             import Foo; // Hello there ↘
         }",
+    );
+}
+
+#[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// `Qux` and `Baz` should appear *without* an auto-import edit since they're already in scope.
+#[test]
+fn reexport_item_from_dependency() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            operation Qux() : Unit {}
+            export Qux, Bar.Baz;
+        }
+        ",
+        &["Qux", "Baz", "Bar"],
+        &expect![[r#"
+            not in list: 
+              Bar
+            in list (sorted):
+              Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
+                additional_text_edits: None
+        "#]],
+    );
+}
+
+#[test]
+#[ignore = "`BazAlias` should show up in list without text edits since it's in scope"]
+fn reexport_item_with_alias_from_dependency() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep;
+            operation Foo() : Unit {
+                ↘
+            }
+        }
+        ",
+        "MyDep",
+        "
+        namespace Bar {
+            operation Baz() : Unit {}
+            export Baz;
+        }
+        namespace Main {
+            export Bar.Baz as BazAlias;
+        }
+        ",
+        &["BazAlias"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "BazAlias",
+                        kind: Function,
+                        sort_text: Some(
+                            "0400BazAlias",
+                        ),
+                        detail: Some(
+                            "operation Baz() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+#[ignore = "expect `Bar` and `Qux` but not `Foo`, I think"]
+fn reexport_namespace_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+        namespace Test {
+            open MyDep.Baz.↘
+        }",
+        "MyDep",
+        "namespace Foo.Bar {
+         }
+         namespace Baz {
+            operation Qux() : Unit {}
+            export Qux, Foo.Bar;
+         }",
+        &["Qux", "Bar", "Foo"],
+        &expect![[r#"
+            [
+                None,
+                Some(
+                    CompletionItem {
+                        label: "Bar",
+                        kind: Module,
+                        sort_text: Some(
+                            "0100Bar",
+                        ),
+                        detail: None,
+                        additional_text_edits: None,
+                    },
+                ),
+                None,
+            ]
+        "#]],
+    );
+}
+
+#[ignore = "https://github.com/microsoft/qsharp/issues/1955"]
+// `Baz` should be in the list
+#[test]
+fn reexport_item_from_dependency_qualified() {
+    check_with_dependency(
+        r"
+            namespace Test {
+                operation Test() : Unit {
+                    MyDep.↘
+                }
+            }",
+        "MyDep",
+        "namespace Foo {
+                operation Baz() : Unit {}
+                export Baz;
+             }
+             namespace Main {
+                operation Qux() : Unit {}
+                export Qux, Foo.Baz;
+             }",
+        &["Qux", "Baz"],
+        &expect![[r#"
+            [
+                Some(
+                    CompletionItem {
+                        label: "Qux",
+                        kind: Function,
+                        sort_text: Some(
+                            "0100Qux",
+                        ),
+                        detail: Some(
+                            "operation Qux() : Unit",
+                        ),
+                        additional_text_edits: None,
+                    },
+                ),
+                // THERE SHOULD BE `Baz` HERE
+            ]
+        "#]],
     );
 }
