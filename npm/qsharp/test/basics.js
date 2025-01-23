@@ -511,8 +511,8 @@ test("test callable discovery", async () => {
     gotTests = true;
     assert.equal(event.type, "testCallables");
     assert.equal(event.detail.callables.length, 1);
-    assert.equal(event.detail.callables[0][0], "Sample.main");
-    assert.deepStrictEqual(event.detail.callables[0][1], {
+    assert.equal(event.detail.callables[0].callableName, "Sample.main");
+    assert.deepStrictEqual(event.detail.callables[0].location, {
       source: "test.qs",
       span: {
         end: {
@@ -547,10 +547,10 @@ test("multiple test callable discovery", async () => {
     gotTests = true;
     assert.equal(event.type, "testCallables");
     assert.equal(event.detail.callables.length, 4);
-    assert.equal(event.detail.callables[0][0], "Sample.test1");
-    assert.equal(event.detail.callables[1][0], "Sample.test2");
-    assert.equal(event.detail.callables[2][0], "Sample2.test1");
-    assert.equal(event.detail.callables[3][0], "Sample2.test2");
+    assert.equal(event.detail.callables[0].callableName, "Sample.test1");
+    assert.equal(event.detail.callables[1].callableName, "Sample.test2");
+    assert.equal(event.detail.callables[2].callableName, "Sample2.test1");
+    assert.equal(event.detail.callables[3].callableName, "Sample2.test2");
   });
   await languageService.updateDocument(
     "test.qs",
