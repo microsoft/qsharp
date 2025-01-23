@@ -199,6 +199,7 @@ impl Compiler {
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
+                globals: self.resolver.globals().clone(),
             },
             hir,
         })
@@ -238,6 +239,7 @@ impl Compiler {
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
+                globals: self.resolver.globals().clone(),
             },
             hir,
         })
@@ -253,6 +255,7 @@ impl Compiler {
         unit.ast.names = new.ast.names;
         unit.ast.tys = new.ast.tys;
         unit.ast.locals = new.ast.locals;
+        unit.ast.globals = new.ast.globals;
 
         // Update the HIR
         extend_hir(&mut unit.package, new.hir);
@@ -282,7 +285,7 @@ impl Compiler {
             &*ast,
             // not an ideal clone, but it is once per fragment, and the namespace tree is
             // relatively lightweight
-            self.resolver.namespaces().clone(),
+            self.resolver.globals().namespaces.clone(),
         );
 
         let errors = self

@@ -242,9 +242,9 @@ fn compile(
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.bind_and_resolve_imports_and_exports(&package);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, locals, mut resolve_errors, namespaces) = resolver.into_result();
+    let (names, locals, mut resolve_errors, globals) = resolver.into_result();
     errors.append(&mut resolve_errors);
-    (package, names, locals, errors, namespaces)
+    (package, names, locals, errors, globals.namespaces)
 }
 
 #[test]

@@ -9,7 +9,7 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Locals, Names, Resolver},
+    resolve::{self, GlobalScope, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
 
@@ -62,6 +62,7 @@ pub struct AstPackage {
     pub tys: Table,
     pub names: Names,
     pub locals: Locals,
+    pub globals: GlobalScope,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -395,7 +396,7 @@ pub fn compile_ast(
         names,
         locals,
         errors: name_errors,
-        namespaces,
+        globals,
     } = resolve_all(
         store,
         dependencies,
@@ -407,7 +408,7 @@ pub fn compile_ast(
     let mut lowerer = Lowerer::new();
     let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
-        .lower_package(&ast_package, namespaces);
+        .lower_package(&ast_package, globals.namespaces.clone());
     HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
@@ -427,6 +428,7 @@ pub fn compile_ast(
             tys,
             names,
             locals,
+            globals,
         },
         assigner: hir_assigner,
         sources,
@@ -529,7 +531,7 @@ fn parse_all(
 pub(crate) struct ResolveResult {
     pub names: Names,
     pub locals: Locals,
-    pub namespaces: qsc_data_structures::namespaces::NamespaceTreeRoot,
+    pub globals: GlobalScope,
     pub errors: Vec<resolve::Error>,
 }
 
@@ -570,13 +572,13 @@ fn resolve_all(
 
     // resolve all symbols
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
+    let (names, locals, mut resolver_errors, globals) = resolver.into_result();
     errors.append(&mut resolver_errors);
 
     ResolveResult {
         names,
         locals,
-        namespaces,
+        globals,
         errors,
     }
 }
