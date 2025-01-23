@@ -345,17 +345,16 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
       // Note: At some point we may want to detect/avoid duplicate names, e.g. if the user already
       // references a project via 'foo', and they add a reference to a 'foo' on GitHub or in another dir.
 
-      const projectChoices: Array<{ name: string; ref: LocalProjectRef }> = [];
-
-      projectFiles.forEach((file) => {
-        const dirName = file.path.slice(0, -"/qsharp.json".length);
-        const relPath = getRelativeDirPath(qsharpJsonDir!.path, dirName);
-        projectChoices.push({
-          name: dirName.slice(dirName.lastIndexOf("/") + 1),
+      const projectChoices = projectFiles.map((file) => {
+        // normalize the path using the vscode Uri API
+        const dirUri = vscode.Uri.joinPath(file, "..");
+        const relPath = getRelativeDirPath(qsharpJsonDir!.path, dirUri.path);
+        return {
+          name: dirUri.path.split("/").pop()!,
           ref: {
             path: relPath,
           },
-        });
+        };
       });
 
       projectChoices.forEach(
