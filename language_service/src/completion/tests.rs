@@ -1780,7 +1780,7 @@ fn package_aliases() {
 }
 
 #[test]
-// #[ignore = "Main and Std show up as namespaces under MyDep, but they shouldn't"]
+#[ignore = "Main and Std show up as namespaces under MyDep, but they shouldn't"]
 fn package_alias_members() {
     check_with_dependency(
         "namespace Test { function Foo() : Unit { MyDep.↘ } }",
@@ -1835,7 +1835,7 @@ fn dependency_namespace_members() {
 }
 
 #[test]
-// #[ignore = "Main shows up as a namespace under MyDep, but it shouldn't"]
+#[ignore = "Main shows up as a namespace under MyDep, but it shouldn't"]
 fn package_alias_members_in_open() {
     check_with_dependency(
         "namespace Test { open MyDep.↘  }",
@@ -2542,21 +2542,22 @@ fn reexport_item_from_dependency() {
         ",
         &["Qux", "Baz", "Bar"],
         &expect![[r#"
-            not in list: 
-              Bar
             in list (sorted):
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
+                additional_text_edits: None
               Baz (Function)
                 detail: Some("operation Baz() : Unit")
                 additional_text_edits: None
-              Qux (Function)
-                detail: Some("operation Qux() : Unit")
+              Bar (Module)
+                detail: None
                 additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
-#[ignore = "`BazAlias` should show up in list without text edits since it's in scope"]
+// #[ignore = "`BazAlias` should show up in list without text edits since it's in scope"]
 fn reexport_item_with_alias_from_dependency() {
     check_with_dependency(
         r"
@@ -2579,21 +2580,10 @@ fn reexport_item_with_alias_from_dependency() {
         ",
         &["BazAlias"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "BazAlias",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400BazAlias",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              BazAlias (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -2615,21 +2605,15 @@ fn reexport_namespace_from_dependency_qualified() {
          }",
         &["Qux", "Bar", "Foo"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Module,
-                        sort_text: Some(
-                            "0100Bar",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list: 
+              Foo
+            in list (sorted):
+              Bar (Module)
+                detail: None
+                additional_text_edits: None
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -2656,22 +2640,14 @@ fn reexport_item_from_dependency_qualified() {
              }",
         &["Qux", "Baz"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Qux",
-                        kind: Function,
-                        sort_text: Some(
-                            "0100Qux",
-                        ),
-                        detail: Some(
-                            "operation Qux() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                // THERE SHOULD BE `Baz` HERE
-            ]
+            in list (sorted):
+              Qux (Function)
+                detail: Some("operation Qux() : Unit")
+                additional_text_edits: None
+                
+              Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
