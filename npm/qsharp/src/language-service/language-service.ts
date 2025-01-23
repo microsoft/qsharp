@@ -293,6 +293,7 @@ export class QSharpLanguageService implements ILanguageService {
       event.detail = {
         callables,
       };
+      log.trace("dispatched testCallables event", event);
       this.eventHandler.dispatchEvent(event);
     } catch (e) {
       log.error("Error in onTestCallables", e);

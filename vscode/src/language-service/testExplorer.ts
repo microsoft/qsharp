@@ -128,6 +128,7 @@ export function startTestDiscovery(
       callables: ITestDescriptor[];
     };
   }) {
+    log.trace("received testCallables event", evt);
     let currentVersion = 0;
     for (const [, testItem] of testController.items) {
       currentVersion = (testMetadata.get(testItem) || 0) + 1;
