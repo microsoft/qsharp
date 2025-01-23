@@ -116,7 +116,7 @@ internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coeffi
     let nCoefficients = Length(coefficients);
     Fact(bitsPrecision <= 31, $"Bits of precision {bitsPrecision} unsupported. Max is 31.");
     Fact(nCoefficients > 1, "Cannot prepare state with less than 2 coefficients.");
-    Fact(oneNorm != 0.0, "State must have at least one coefficient > 0");
+    Fact(AbsD(oneNorm) > 0.0, "State must have at least one coefficient > 0");
 
     let barHeight = 2^bitsPrecision - 1;
 
