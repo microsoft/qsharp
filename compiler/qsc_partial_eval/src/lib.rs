@@ -70,6 +70,7 @@ pub fn partially_evaluate(
     partial_evaluator.eval()
 }
 
+/// Partially evaluates a callable with the specified arguments.
 pub fn partially_evaluate_call(
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,

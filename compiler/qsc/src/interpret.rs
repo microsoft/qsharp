@@ -103,6 +103,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
     #[diagnostic(help("provide the name of a callable or a lambda expression"))]
     NotAnOperation,
+    #[error("value is not a global callable")]
+    #[diagnostic(code("Qsc.Interpret.NotACallable"))]
+    NotACallable,
     #[error("partial evaluation error")]
     #[diagnostic(transparent)]
     PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
@@ -684,7 +687,7 @@ impl Interpreter {
         }
 
         let Value::Global(store_item_id, _) = callable else {
-            panic!("value is not a global callable");
+            return Err(vec![Error::NotACallable]);
         };
 
         fir_to_qir_from_callable(

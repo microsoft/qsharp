@@ -38,6 +38,7 @@ pub fn hir_to_qir(
     fir_to_qir(&fir_store, capabilities, compute_properties, entry)
 }
 
+/// converts the given sources to RIR using the given language features.
 pub fn fir_to_rir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
@@ -50,6 +51,7 @@ pub fn fir_to_rir(
     Ok((orig, program))
 }
 
+/// converts the given sources to QIR using the given language features.
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
@@ -61,6 +63,7 @@ pub fn fir_to_qir(
     Ok(ToQir::<String>::to_qir(&program, &program))
 }
 
+/// converts the given callable to QIR using the given arguments and language features.
 pub fn fir_to_qir_from_callable(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
