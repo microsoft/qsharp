@@ -14,7 +14,7 @@ import Std.Arithmetic.*;
 import Std.Arrays.*;
 
 operation Main() : (Int, Int) {
-    let n = 143; // 11*13;
+    let n = 187; // 11*17;
     // You can try these other examples for a lengthier computation.
     // let n = 16837; // = 113*149
     // let n = 22499; // = 149*151
