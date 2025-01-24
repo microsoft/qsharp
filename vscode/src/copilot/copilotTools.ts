@@ -195,7 +195,7 @@ export async function downloadJobResults(
           buckets: buckets,
           shotCount: job.shots,
         });
-        const response = "```widget\nHistogram\n" + histogram;
+        const response = "```widget\nHistogram\n" + histogram + "\n```\n";
 
         toolState.sendMessage({
           payload: {

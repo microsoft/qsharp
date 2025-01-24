@@ -112,47 +112,75 @@ function InputBox(props: {
 }
 
 function ResponseBox(props: { response: string }) {
-  const responseParts: string[] = [];
+  const responseParts = [];
   const response = props.response;
 
-  const widget = response.indexOf("```widget\n");
-  if (widget >= 0) {
-    responseParts.push(response.slice(0, widget));
-    let endWidget = response.indexOf("\n```\n", widget + 9);
-    if (endWidget < 0 || endWidget >= response.length - 4) {
+  console.log(response);
+
+  const beginWidgetMarker = "```widget\n";
+  const endWidgetMarker = "\n```\n";
+
+  const beginWidget = response.indexOf(beginWidgetMarker);
+
+  if (beginWidget >= 0) {
+    const before = response.slice(0, beginWidget);
+    if (before.trim().length > 0) {
+      responseParts.push(
+        <div className="responseBox">
+          <Markdown markdown={before}></Markdown>
+        </div>,
+      );
+    }
+    let endWidget = response.indexOf(
+      endWidgetMarker,
+      beginWidget + beginWidgetMarker.length,
+    );
+
+    if (endWidget <= beginWidget + beginWidgetMarker.length) {
       endWidget = response.length;
-      responseParts.push(response.slice(widget));
-    } else {
-      responseParts.push(response.slice(widget, endWidget + 4));
-      responseParts.push(response.slice(endWidget + 4));
+    }
+
+    const widget = response.slice(
+      beginWidget + beginWidgetMarker.length,
+      endWidget,
+    );
+
+    // the widget
+    if (widget.startsWith("Histogram\n")) {
+      const histo = JSON.parse(widget.slice("Histogram\n".length));
+      if (histo.buckets && typeof histo.shotCount === "number") {
+        const histoMap: Map<string, number> = new Map(histo.buckets);
+        responseParts.push(
+          <div className="histogram-container">
+            <Histogram
+              data={histoMap}
+              filter=""
+              shotCount={histo.shotCount}
+              onFilter={() => undefined}
+              shotsHeader={false}
+            />
+          </div>,
+        );
+      }
+    }
+
+    const after = response.slice(endWidget + endWidgetMarker.length);
+    if (after.trim().length > 0) {
+      responseParts.push(
+        <div className="responseBox">
+          <Markdown markdown={after}></Markdown>
+        </div>,
+      );
     }
   } else {
-    responseParts.push(response);
+    responseParts.push(
+      <div className="responseBox">
+        <Markdown markdown={response}></Markdown>
+      </div>,
+    );
   }
 
-  return (
-    <div class="responseBox">
-      {responseParts.map((part) => {
-        if (part.startsWith("```widget\nHistogram")) {
-          const histo = JSON.parse(part.slice(20));
-          if (histo.buckets && typeof histo.shotCount === "number") {
-            const histoMap: Map<string, number> = new Map(histo.buckets);
-            return (
-              <Histogram
-                data={histoMap}
-                filter=""
-                shotCount={histo.shotCount}
-                onFilter={() => undefined}
-                shotsHeader={false}
-              />
-            );
-          }
-        } else {
-          return <Markdown markdown={part}></Markdown>;
-        }
-      })}
-    </div>
-  );
+  return <>{responseParts}</>;
 }
 
 function RetryButton(props: {

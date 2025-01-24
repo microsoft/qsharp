@@ -110,3 +110,7 @@ pre code {
 .markdown-body {
   background-color: var(--vscode-chat-list-background);
 }
+
+.histogram-container {
+  width: 100%;
+}
