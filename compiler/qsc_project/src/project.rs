@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_linter::LintConfig;
+use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
@@ -33,7 +33,7 @@ pub struct Project {
     /// configuration settings.
     pub package_graph_sources: PackageGraphSources,
     /// Lint configuration for the project, typically comes from the root `qsharp.json`.
-    pub lints: Vec<LintConfig>,
+    pub lints: Vec<LintOrGroupConfig>,
     /// Any errors encountered while loading the project.
     pub errors: Vec<Error>,
 }
