@@ -646,7 +646,7 @@ def circuit(
 
 
 def estimate(
-    entry_expr: Union[str | Callable],
+    entry_expr: Union[str, Callable],
     params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
     *args,
 ) -> EstimatorResult:
