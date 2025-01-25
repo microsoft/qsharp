@@ -118,7 +118,7 @@ impl Row {
             gate_label.push('\'');
         }
         if let Some(args) = args {
-            let _ = write!(&mut gate_label, "({args})"); // TODO
+            let _ = write!(&mut gate_label, "({args})");
         }
 
         self.add_object(column, gate_label.as_str());
@@ -297,7 +297,7 @@ fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: us
 fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
     match circuit_object {
         CircuitObject::WireCross => get_qubit_wire_cross(column_width),
-        CircuitObject::WireStart => get_classical_wire_start(column_width), // TODO!
+        CircuitObject::WireStart => get_blank(column_width), // This would never happen
         CircuitObject::DashedCross => get_qubit_wire_dashed_cross(column_width),
         CircuitObject::Vertical => get_vertical(column_width),
         CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
@@ -417,9 +417,8 @@ impl Display for Circuit {
             .max_by_key(|r| r.next_column)
             .map_or(1, |r| r.next_column);
 
-        // To be able to fit long-named operations, we pre-calculate the required width for each column.
-        // Currently, it's only gates that have long enough names for us to worry about.
-        // let column_widths = ColumnWidthsByColumn::default();
+        // To be able to fit long-named operations, we calculate the required width for each column,
+        // based on the maximum length needed for gates, where a gate X is printed as "- X -".
         let column_widths = (0..end_column)
             .map(|column| {
                 (
@@ -429,7 +428,7 @@ impl Display for Circuit {
                         .filter_map(|object| match object {
                             CircuitObject::Object(string) => {
                                 Some(cmp::max((string.len() + 4) | 1, MIN_COLUMN_WIDTH))
-                            } // Make odd!
+                            }
                             _ => None,
                         })
                         .max()
