@@ -535,9 +535,9 @@ fn custom_intrinsic_apply_idle_noise() {
 
     // ConfigurePauliNoise has no qubit arguments so it shouldn't show up.
     // ApplyIdleNoise is a quantum operation so it shows up.
-    expect![[r"
+    expect![[r#"
         q_0    ─ ApplyIdleNoise ──
-    "]]
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -1005,7 +1005,7 @@ mod debugger_stepping {
         // Note the circuit still looks different than what would be
         // generated in Unrestricted Profile for the same code,
         // due to conditional compilation in the standard library.
-        expect![[r"
+        expect![["
             step:
             step:
             q_0
