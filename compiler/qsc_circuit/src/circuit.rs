@@ -6,7 +6,7 @@ mod tests;
 
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use std::{fmt::Display, fmt::Write, ops::Not, vec};
+use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of <https://github.com/microsoft/quantum-viz.js/wiki/API-schema-reference>
@@ -83,7 +83,7 @@ pub struct Config {
     pub base_profile: bool,
 }
 
-type ObjectsByColumn = FxHashMap<usize, String>;
+type ObjectsByColumn = FxHashMap<usize, CircuitObject>;
 type ColumnWidthsByColumn = FxHashMap<usize, usize>;
 
 struct Row {
@@ -97,28 +97,21 @@ enum Wire {
     Classical { start_column: Option<usize> },
 }
 
-impl Row {
-    fn add_object(&mut self, column: usize, column_widths: &ColumnWidthsByColumn, object: &str) {
-        let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+enum CircuitObject {
+    WireCross,
+    WireStart,
+    DashedCross,
+    Vertical,
+    VerticalDashed,
+    Object(String),
+}
 
-        match &mut self.wire {
-            Wire::Qubit { .. } => {
-                self.add(column, fmt_on_qubit_wire(object, column_width));
-            }
-            Wire::Classical { .. } => {
-                self.add(column, fmt_on_classical_wire(object, column_width));
-            }
-        };
+impl Row {
+    fn add_object(&mut self, column: usize, object: &str) {
+        self.add(column, CircuitObject::Object(object.to_string()));
     }
 
-    fn add_gate(
-        &mut self,
-        column: usize,
-        column_widths: &ColumnWidthsByColumn,
-        gate: &str,
-        args: Option<&str>,
-        is_adjoint: bool,
-    ) {
+    fn add_gate(&mut self, column: usize, gate: &str, args: Option<&str>, is_adjoint: bool) {
         let mut gate_label = String::new();
         gate_label.push_str(gate);
         if is_adjoint {
@@ -127,54 +120,49 @@ impl Row {
         if let Some(args) = args {
             let _ = write!(&mut gate_label, "({args})"); // TODO
         }
-        self.add_object(column, column_widths, &gate_label);
+
+        self.add_object(column, gate_label.as_str());
     }
 
-    fn add_vertical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
+    fn add_vertical(&mut self, column: usize) {
         if !self.objects.contains_key(&column) {
-            let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-
             match self.wire {
-                Wire::Qubit { .. } => self.add(column, get_qubit_wire_cross(column_width)),
+                Wire::Qubit { .. } => self.add(column, CircuitObject::WireCross),
                 Wire::Classical { start_column } => {
                     if start_column.is_some() {
-                        self.add(column, get_classical_wire_cross(column_width));
+                        self.add(column, CircuitObject::WireCross);
                     } else {
-                        self.add(column, get_vertical(column_width));
+                        self.add(column, CircuitObject::Vertical);
                     }
                 }
             }
         }
     }
 
-    fn add_dashed_vertical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
+    fn add_dashed_vertical(&mut self, column: usize) {
         if !self.objects.contains_key(&column) {
-            let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-
             match self.wire {
-                Wire::Qubit { .. } => self.add(column, get_qubit_wire_dashed_cross(column_width)),
+                Wire::Qubit { .. } => self.add(column, CircuitObject::DashedCross),
                 Wire::Classical { start_column } => {
                     if start_column.is_some() {
-                        self.add(column, get_classical_wire_dashed_cross(column_width));
+                        self.add(column, CircuitObject::DashedCross);
                     } else {
-                        self.add(column, get_vertical_dashed(column_width));
+                        self.add(column, CircuitObject::VerticalDashed);
                     }
                 }
             }
         }
     }
 
-    fn start_classical(&mut self, column: usize, column_widths: &ColumnWidthsByColumn) {
-        let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-
-        self.add(column, get_classical_wire_start(column_width));
+    fn start_classical(&mut self, column: usize) {
+        self.add(column, CircuitObject::WireStart);
         if let Wire::Classical { start_column } = &mut self.wire {
             start_column.replace(column);
         }
     }
 
-    fn add(&mut self, column: usize, v: impl Into<String>) {
-        self.objects.insert(column, v.into());
+    fn add(&mut self, column: usize, circuit_object: CircuitObject) {
+        self.objects.insert(column, circuit_object);
         self.next_column = column + 1;
     }
 
@@ -193,7 +181,7 @@ impl Row {
                     let val = self.objects.get(&column);
                     let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
                     if let Some(v) = val {
-                        s.write_str(v)?;
+                        s.write_str(&fmt_qubit_circuit_object(v, column_width))?;
                     } else {
                         s.write_str(&get_qubit_wire(column_width))?;
                     }
@@ -204,7 +192,7 @@ impl Row {
                     let val = self.objects.get(&column);
                     let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
                     if let Some(v) = val {
-                        s.write_str(v)?;
+                        s.write_str(&fmt_classical_circuit_object(v, column_width))?;
                     } else if start_column.map_or(false, |s| column > s) {
                         s.write_str(&get_classical_wire(column_width))?;
                     } else {
@@ -295,6 +283,28 @@ fn fmt_on_classical_wire(obj: &str, column_width: usize) -> String {
     format!("{:═^column_width$}", format!(" {obj} "))
 }
 
+fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
+    match circuit_object {
+        CircuitObject::WireCross => get_classical_wire_cross(column_width),
+        CircuitObject::WireStart => get_classical_wire_start(column_width),
+        CircuitObject::DashedCross => get_classical_wire_dashed_cross(column_width),
+        CircuitObject::Vertical => get_vertical(column_width),
+        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
+        CircuitObject::Object(label) => fmt_on_classical_wire(label.as_str(), column_width),
+    }
+}
+
+fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
+    match circuit_object {
+        CircuitObject::WireCross => get_qubit_wire_cross(column_width),
+        CircuitObject::WireStart => get_classical_wire_start(column_width), // TODO!
+        CircuitObject::DashedCross => get_qubit_wire_dashed_cross(column_width),
+        CircuitObject::Vertical => get_vertical(column_width),
+        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
+        CircuitObject::Object(label) => fmt_on_qubit_wire(label.as_str(), column_width),
+    }
+}
+
 impl Display for Circuit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut rows = vec![];
@@ -323,10 +333,6 @@ impl Display for Circuit {
                 register_to_row.insert((q.id, Some(i)), rows.len() - 1);
             }
         }
-
-        // TODO
-        // To be able to fit long-named operations, we pre-calculate the required width for each column.
-        let column_widths = ColumnWidthsByColumn::default();
 
         for o in &self.operations {
             // Row indexes for the targets for this operation
@@ -372,15 +378,9 @@ impl Display for Circuit {
             for i in targets {
                 let row = &mut rows[i];
                 if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
-                    row.start_classical(column, &column_widths);
+                    row.start_classical(column);
                 } else {
-                    row.add_gate(
-                        column,
-                        &column_widths,
-                        &o.gate,
-                        o.display_args.as_deref(),
-                        o.is_adjoint,
-                    );
+                    row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
                 };
             }
 
@@ -388,9 +388,9 @@ impl Display for Circuit {
                 for i in controls {
                     let row = &mut rows[i];
                     if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
-                        row.add_object(column, &column_widths, "M");
+                        row.add_object(column, "M");
                     } else {
-                        row.add_object(column, &column_widths, "●");
+                        row.add_object(column, "●");
                     };
                 }
 
@@ -399,13 +399,13 @@ impl Display for Circuit {
                 // (vertical lines may overlap if there are multiple controls/targets,
                 // this is ok in practice)
                 for row in &mut rows[begin..end] {
-                    row.add_vertical(column, &column_widths);
+                    row.add_vertical(column);
                 }
             } else {
                 // No control wire. Draw dashed vertical lines to connect
                 // target wires if there are multiple targets
                 for row in &mut rows[begin..end] {
-                    row.add_dashed_vertical(column, &column_widths);
+                    row.add_dashed_vertical(column);
                 }
             }
         }
@@ -416,6 +416,27 @@ impl Display for Circuit {
             .iter()
             .max_by_key(|r| r.next_column)
             .map_or(1, |r| r.next_column);
+
+        // To be able to fit long-named operations, we pre-calculate the required width for each column.
+        // Currently, it's only gates that have long enough names for us to worry about.
+        // let column_widths = ColumnWidthsByColumn::default();
+        let column_widths = (0..end_column)
+            .map(|column| {
+                (
+                    column,
+                    rows.iter()
+                        .filter_map(|row| row.objects.get(&column))
+                        .filter_map(|object| match object {
+                            CircuitObject::Object(string) => {
+                                Some(cmp::max((string.len() + 4) | 1, MIN_COLUMN_WIDTH))
+                            } // Make odd!
+                            _ => None,
+                        })
+                        .max()
+                        .unwrap_or(MIN_COLUMN_WIDTH),
+                )
+            })
+            .collect::<ColumnWidthsByColumn>();
 
         // Draw the diagram
         for row in rows {
