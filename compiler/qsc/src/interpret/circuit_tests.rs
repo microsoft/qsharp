@@ -148,8 +148,6 @@ fn rotation_gate() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // The wire isn't visible here since the gate label is longer
-    // than the static column width, but we can live with it.
     expect![[r"
         q_0    ─ rx(1.5708) ──
     "]]
@@ -494,8 +492,7 @@ fn custom_intrinsic_mixed_args() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // This is one gate that spans ten target wires, even though the
-    // text visualization doesn't convey that clearly.
+    // This is one gate that spans ten target wires.
     expect![[r"
         q_0    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
         q_1    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──

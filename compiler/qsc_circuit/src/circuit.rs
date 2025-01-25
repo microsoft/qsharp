@@ -297,7 +297,7 @@ fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: us
 fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
     match circuit_object {
         CircuitObject::WireCross => get_qubit_wire_cross(column_width),
-        CircuitObject::WireStart => get_blank(column_width), // This would never happen
+        CircuitObject::WireStart => get_blank(column_width), // This should never happen
         CircuitObject::DashedCross => get_qubit_wire_dashed_cross(column_width),
         CircuitObject::Vertical => get_vertical(column_width),
         CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
@@ -427,7 +427,10 @@ impl Display for Circuit {
                         .filter_map(|row| row.objects.get(&column))
                         .filter_map(|object| match object {
                             CircuitObject::Object(string) => {
-                                Some(cmp::max((string.len() + 4) | 1, MIN_COLUMN_WIDTH))
+                                Some(cmp::max(
+                                    (string.len() + 4) | 1, // Column lengths need to be odd numbers
+                                    MIN_COLUMN_WIDTH,
+                                ))
                             }
                             _ => None,
                         })

@@ -221,8 +221,6 @@ fn with_args() {
         }],
     };
 
-    // This looks wonky because the gate label is longer
-    // than the static column width, but we can live with it.
     expect![[r"
         q_0    ─ rx(1.5708) ──
     "]]
@@ -258,8 +256,6 @@ fn two_targets() {
         ],
     };
 
-    // This looks wonky because the gate label is longer
-    // than the static column width, but we can live with it.
     expect![[r"
         q_0    ─ rzz(1.0000) ─
         q_1    ───────┆───────
