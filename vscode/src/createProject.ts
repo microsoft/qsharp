@@ -407,7 +407,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
     edit.replace(
       qsharpJsonUri,
       new vscode.Range(0, 0, qsharpJsonDoc.lineCount, 0),
-      JSON.stringify(manifestObj, null, 2),
+      JSON.stringify(manifestObj, null, 4),
     );
     if (!(await vscode.workspace.applyEdit(edit))) {
       await vscode.window.showErrorMessage(
