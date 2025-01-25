@@ -214,6 +214,19 @@ pub enum CallableType {
     Regular,
 }
 
+impl Display for CallableType {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            Self::Measurement => write!(f, "Measurement")?,
+            Self::Readout => write!(f, "Readout")?,
+            Self::OutputRecording => write!(f, "OutputRecording")?,
+            Self::Regular => write!(f, "Regular")?,
+            Self::Reset => write!(f, "Reset")?,
+        };
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConditionCode {
     Eq,
@@ -238,14 +251,45 @@ impl Display for ConditionCode {
     }
 }
 
-impl Display for CallableType {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FcmpConditionCode {
+    False,
+    OrderedAndEqual,
+    OrderedAndGreaterThan,
+    OrderedAndGreaterThanOrEqual,
+    OrderedAndLessThan,
+    OrderedAndLessThanOrEqual,
+    OrderedAndNotEqual,
+    Ordered,
+    UnorderedOrEqual,
+    UnorderedOrGreaterThan,
+    UnorderedOrGreaterThanOrEqual,
+    UnorderedOrLessThan,
+    UnorderedOrLessThanOrEqual,
+    UnorderedOrNotEqual,
+    Unordered,
+    True,
+}
+
+impl Display for FcmpConditionCode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
-            Self::Measurement => write!(f, "Measurement")?,
-            Self::Readout => write!(f, "Readout")?,
-            Self::OutputRecording => write!(f, "OutputRecording")?,
-            Self::Regular => write!(f, "Regular")?,
-            Self::Reset => write!(f, "Reset")?,
+            Self::False => write!(f, "False")?,
+            Self::OrderedAndEqual => write!(f, "Oeq")?,
+            Self::OrderedAndGreaterThan => write!(f, "Ogt")?,
+            Self::OrderedAndGreaterThanOrEqual => write!(f, "Oge")?,
+            Self::OrderedAndLessThan => write!(f, "Olt")?,
+            Self::OrderedAndLessThanOrEqual => write!(f, "Ole")?,
+            Self::OrderedAndNotEqual => write!(f, "One")?,
+            Self::Ordered => write!(f, "Ord")?,
+            Self::UnorderedOrEqual => write!(f, "Ueq")?,
+            Self::UnorderedOrGreaterThan => write!(f, "Ugt")?,
+            Self::UnorderedOrGreaterThanOrEqual => write!(f, "Uge")?,
+            Self::UnorderedOrLessThan => write!(f, "Ult")?,
+            Self::UnorderedOrLessThanOrEqual => write!(f, "Ule")?,
+            Self::UnorderedOrNotEqual => write!(f, "Une")?,
+            Self::Unordered => write!(f, "Uno")?,
+            Self::True => write!(f, "True")?,
         };
         Ok(())
     }
@@ -264,6 +308,11 @@ pub enum Instruction {
     Srem(Operand, Operand, Variable),
     Shl(Operand, Operand, Variable),
     Ashr(Operand, Operand, Variable),
+    Fadd(Operand, Operand, Variable),
+    Fsub(Operand, Operand, Variable),
+    Fmul(Operand, Operand, Variable),
+    Fdiv(Operand, Operand, Variable),
+    Fcmp(FcmpConditionCode, Operand, Operand, Variable),
     Icmp(ConditionCode, Operand, Operand, Variable),
     LogicalNot(Operand, Variable),
     LogicalAnd(Operand, Operand, Variable),
@@ -328,6 +377,18 @@ impl Display for Instruction {
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "{variable} = {instruction} {value}")?;
+            Ok(())
+        }
+
+        fn write_fcmp_instruction(
+            f: &mut Formatter,
+            condition: FcmpConditionCode,
+            lhs: &Operand,
+            rhs: &Operand,
+            variable: Variable,
+        ) -> fmt::Result {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "{variable} = Fcmp {condition}, {lhs}, {rhs}")?;
             Ok(())
         }
 
@@ -407,6 +468,21 @@ impl Display for Instruction {
             }
             Self::Ashr(lhs, rhs, variable) => {
                 write_binary_instruction(f, "Ashr", lhs, rhs, *variable)?;
+            }
+            Self::Fadd(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Fadd", lhs, rhs, *variable)?;
+            }
+            Self::Fsub(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Fsub", lhs, rhs, *variable)?;
+            }
+            Self::Fmul(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Fmul", lhs, rhs, *variable)?;
+            }
+            Self::Fdiv(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Fdiv", lhs, rhs, *variable)?;
+            }
+            Self::Fcmp(op, lhs, rhs, variable) => {
+                write_fcmp_instruction(f, *op, lhs, rhs, *variable)?;
             }
             Self::Icmp(op, lhs, rhs, variable) => {
                 write_icmp_instruction(f, *op, lhs, rhs, *variable)?;

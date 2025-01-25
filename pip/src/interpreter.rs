@@ -11,16 +11,18 @@ use crate::{
     noisy_simulator::register_noisy_simulator_submodule,
 };
 use miette::{Diagnostic, Report};
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint};
 use num_complex::Complex64;
 use pyo3::{
     create_exception,
     exceptions::{PyException, PyValueError},
     prelude::*,
-    types::{PyComplex, PyDict, PyList, PyTuple, PyType},
+    types::{PyDict, PyList, PyString, PyTuple, PyType},
+    IntoPyObjectExt,
 };
 use qsc::{
-    fir,
+    fir::{self},
+    hir::ty::{Prim, Ty},
     interpret::{
         self,
         output::{Error, Receiver},
@@ -73,11 +75,12 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_class::<Output>()?;
     m.add_class::<StateDumpData>()?;
     m.add_class::<Circuit>()?;
+    m.add_class::<GlobalCallable>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
-    m.add("QSharpError", py.get_type_bound::<QSharpError>())?;
+    m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
     // QASM3 interop
-    m.add("QasmError", py.get_type_bound::<QasmError>())?;
+    m.add("QasmError", py.get_type::<QasmError>())?;
     m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
     m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
@@ -98,12 +101,19 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
-    /// Target supports the Adaptive profile with integer computation and qubit reset capabilities.
+    /// Target supports the Adaptive profile with the integer computation extension.
     ///
     /// This profile includes all of the required Adaptive Profile
-    /// capabilities, as well as the optional integer computation and qubit
-    /// reset capabilities, as defined by the QIR specification.
+    /// capabilities, as well as the optional integer computation
+    /// extension defined by the QIR specification.
     Adaptive_RI,
+    /// Target supports the Adaptive profile with integer & floating-point
+    /// computation extensions.
+    ///
+    /// This profile includes all required Adaptive Profile and `Adaptive_RI`
+    /// capabilities, as well as the optional floating-point computation
+    /// extension defined by the QIR specification.
+    Adaptive_RIF,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
@@ -134,6 +144,7 @@ impl From<Profile> for TargetProfile {
         match profile {
             Profile::Base => TargetProfile::Base,
             Profile::AdaptiveRI => TargetProfile::Adaptive_RI,
+            Profile::AdaptiveRIF => TargetProfile::Adaptive_RIF,
             Profile::Unrestricted => TargetProfile::Unrestricted,
         }
     }
@@ -144,6 +155,7 @@ impl From<TargetProfile> for Profile {
         match profile {
             TargetProfile::Base => Profile::Base,
             TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
+            TargetProfile::Adaptive_RIF => Profile::AdaptiveRIF,
             TargetProfile::Unrestricted => Profile::Unrestricted,
         }
     }
@@ -213,9 +225,12 @@ impl From<ProgramType> for qsc_qasm3::ProgramType {
     }
 }
 
+#[allow(clippy::struct_field_names)]
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
     pub(crate) interpreter: interpret::Interpreter,
+    /// The Python function to call to create a new function wrapping a callable invocation.
+    pub(crate) make_callable: Option<PyObject>,
 }
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
@@ -225,7 +240,7 @@ thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default();
 impl Interpreter {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::needless_pass_by_value)]
-    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None))]
+    #[pyo3(signature = (target_profile, language_features=None, project_root=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, make_callable=None))]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -237,6 +252,7 @@ impl Interpreter {
         list_directory: Option<PyObject>,
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
+        make_callable: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = Into::<Profile>::into(target_profile).into();
 
@@ -278,7 +294,19 @@ impl Interpreter {
             buildable_program.store,
             &buildable_program.user_code_dependencies,
         ) {
-            Ok(interpreter) => Ok(Self { interpreter }),
+            Ok(interpreter) => {
+                if let Some(make_callable) = &make_callable {
+                    // Add any global callables from the user source as Python functions to the environment.
+                    let exported_items = interpreter.user_globals();
+                    for (namespace, name, val) in exported_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(Self {
+                    interpreter,
+                    make_callable,
+                })
+            }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -300,7 +328,19 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.eval_fragments(&mut receiver, input) {
-            Ok(value) => Ok(ValueWrapper(value).into_py(py)),
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -329,8 +369,8 @@ impl Interpreter {
     ///
     /// This circuit will contain the gates that have been applied
     /// in the simulator up to the current point.
-    fn dump_circuit(&mut self, py: Python) -> PyObject {
-        Circuit(self.interpreter.get_circuit()).into_py(py)
+    fn dump_circuit(&mut self, py: Python) -> PyResult<PyObject> {
+        Circuit(self.interpreter.get_circuit()).into_py_any(py)
     }
 
     #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
@@ -352,7 +392,57 @@ impl Interpreter {
         };
 
         match self.interpreter.run(&mut receiver, entry_expr, noise) {
-            Ok(value) => Ok(ValueWrapper(value).into_py(py)),
+            Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
+    #[pyo3(signature=(callable, args=None, callback=None))]
+    fn invoke(
+        &mut self,
+        py: Python,
+        callable: GlobalCallable,
+        args: Option<PyObject>,
+        callback: Option<PyObject>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+        let (input_ty, output_ty) = self
+            .interpreter
+            .global_tys(&callable.0)
+            .ok_or(QSharpError::new_err("callable not found"))?;
+
+        // If the types are not supported, we can't convert the arguments or return value.
+        // Check this before trying to convert the arguments, and return an error if the types are not supported.
+        if let Some(ty) = first_unsupported_interop_ty(&input_ty) {
+            return Err(QSharpError::new_err(format!(
+                "unsupported input type: `{ty}`"
+            )));
+        }
+        if let Some(ty) = first_unsupported_interop_ty(&output_ty) {
+            return Err(QSharpError::new_err(format!(
+                "unsupported output type: `{ty}`"
+            )));
+        }
+
+        // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
+        let args = if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
+            // Special case for unit, where args should be None
+            if args.is_some() {
+                return Err(QSharpError::new_err("expected no arguments"));
+            }
+            Value::unit()
+        } else {
+            let Some(args) = args else {
+                return Err(QSharpError::new_err(format!(
+                    "expected arguments of type `{input_ty}`"
+                )));
+            };
+            // This conversion will produce errors if the types don't match or can't be converted.
+            convert_obj_with_ty(py, &args, &input_ty)?
+        };
+
+        match self.interpreter.invoke(&mut receiver, callable.0, args) {
+            Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -392,7 +482,7 @@ impl Interpreter {
         };
 
         match self.interpreter.circuit(entrypoint, false) {
-            Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
+            Ok(circuit) => Circuit(circuit).into_py_any(py),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -441,7 +531,7 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
-        let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
         let operation_name = crate::interop::get_operation_name(&kwargs)?;
         let seed = crate::interop::get_seed(&kwargs);
@@ -481,16 +571,93 @@ impl Interpreter {
                     .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
                 match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
-                    Ok(result) => Ok(PyList::new_bound(
-                        py,
-                        result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
-                    )
-                    .into_py(py)),
+                    Ok(result) => {
+                        Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into())
+                    }
                     Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
                 }
             }
-            _ => Ok(ValueWrapper(value).into_py(py)),
+            _ => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
         }
+    }
+}
+
+/// Finds any Q# type recursively that does not support interop with Python, meaning our code cannot convert it back and forth
+/// across the interop boundary.
+fn first_unsupported_interop_ty(ty: &Ty) -> Option<&Ty> {
+    match ty {
+        Ty::Prim(prim_ty) => match prim_ty {
+            Prim::Pauli
+            | Prim::BigInt
+            | Prim::Bool
+            | Prim::Double
+            | Prim::Int
+            | Prim::String
+            | Prim::Result => None,
+            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
+                Some(ty)
+            }
+        },
+        Ty::Tuple(tup) => tup
+            .iter()
+            .find(|t| first_unsupported_interop_ty(t).is_some()),
+        Ty::Array(ty) => first_unsupported_interop_ty(ty),
+        _ => Some(ty),
+    }
+}
+
+/// Given a type, convert a Python object into a Q# value of that type. This will recur through tuples and arrays,
+/// and will return an error if the type is not supported or the object cannot be converted.
+fn convert_obj_with_ty(py: Python, obj: &PyObject, ty: &Ty) -> PyResult<Value> {
+    match ty {
+        Ty::Prim(prim_ty) => match prim_ty {
+            Prim::BigInt => Ok(Value::BigInt(obj.extract::<BigInt>(py)?)),
+            Prim::Bool => Ok(Value::Bool(obj.extract::<bool>(py)?)),
+            Prim::Double => Ok(Value::Double(obj.extract::<f64>(py)?)),
+            Prim::Int => Ok(Value::Int(obj.extract::<i64>(py)?)),
+            Prim::String => Ok(Value::String(obj.extract::<String>(py)?.into())),
+            Prim::Result => Ok(Value::Result(qsc::interpret::Result::Val(
+                obj.extract::<Result>(py)? == Result::One,
+            ))),
+            Prim::Pauli => Ok(Value::Pauli(match obj.extract::<Pauli>(py)? {
+                Pauli::I => fir::Pauli::I,
+                Pauli::X => fir::Pauli::X,
+                Pauli::Y => fir::Pauli::Y,
+                Pauli::Z => fir::Pauli::Z,
+            })),
+            Prim::Qubit | Prim::Range | Prim::RangeTo | Prim::RangeFrom | Prim::RangeFull => {
+                unimplemented!("primitive input type: {prim_ty:?}")
+            }
+        },
+        Ty::Tuple(tup) => {
+            if tup.len() == 1 {
+                let value = convert_obj_with_ty(py, obj, &tup[0]);
+                Ok(Value::Tuple(vec![value?].into()))
+            } else {
+                let obj = obj.extract::<Vec<PyObject>>(py)?;
+                if obj.len() != tup.len() {
+                    return Err(QSharpError::new_err(format!(
+                        "mismatched tuple arity: expected {}, got {}",
+                        tup.len(),
+                        obj.len()
+                    )));
+                }
+                let mut values = Vec::with_capacity(obj.len());
+                for (i, ty) in tup.iter().enumerate() {
+                    values.push(convert_obj_with_ty(py, &obj[i], ty)?);
+                }
+                Ok(Value::Tuple(values.into()))
+            }
+        }
+        Ty::Array(ty) => {
+            let obj = obj.extract::<Vec<PyObject>>(py)?;
+            let mut values = Vec::with_capacity(obj.len());
+            for item in &obj {
+                values.push(convert_obj_with_ty(py, item, ty)?);
+            }
+            Ok(Value::Array(values.into()))
+        }
+        _ => unimplemented!("input type: {ty}"),
     }
 }
 
@@ -587,6 +754,18 @@ impl Output {
             DisplayableOutput::Matrix(_) | DisplayableOutput::Message(_) => None,
         }
     }
+
+    fn is_state_dump(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::State(_))
+    }
+
+    fn is_matrix(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::Matrix(_))
+    }
+
+    fn is_message(&self) -> bool {
+        matches!(&self.0, DisplayableOutput::Message(_))
+    }
 }
 
 #[pyclass]
@@ -596,22 +775,8 @@ pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 #[pymethods]
 impl StateDumpData {
     fn get_dict<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyDict>> {
-        PyDict::from_sequence_bound(&PyList::new_bound(
-            py,
-            self.0
-                 .0
-                .iter()
-                .map(|(k, v)| {
-                    PyTuple::new_bound(
-                        py,
-                        &[
-                            k.clone().into_py(py),
-                            PyComplex::from_doubles_bound(py, v.re, v.im).into(),
-                        ],
-                    )
-                })
-                .collect::<Vec<_>>(),
-        ))
+        let dict = rustc_hash::FxHashMap::from_iter(self.0 .0.clone());
+        dict.into_pyobject(py)
     }
 
     #[getter]
@@ -690,40 +855,45 @@ pub(crate) enum Pauli {
 // Mapping of Q# value types to Python value types.
 pub(crate) struct ValueWrapper(pub(crate) Value);
 
-impl IntoPy<PyObject> for ValueWrapper {
-    fn into_py(self, py: Python) -> PyObject {
+impl<'py> IntoPyObject<'py> for ValueWrapper {
+    type Target = PyAny;
+
+    type Output = Bound<'py, Self::Target>;
+
+    type Error = pyo3::PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> std::result::Result<Self::Output, Self::Error> {
         match self.0 {
-            Value::BigInt(val) => val.into_py(py),
-            Value::Int(val) => val.into_py(py),
-            Value::Double(val) => val.into_py(py),
-            Value::Bool(val) => val.into_py(py),
-            Value::String(val) => val.into_py(py),
+            Value::Int(val) => val.into_bound_py_any(py),
+            Value::BigInt(val) => val.into_bound_py_any(py),
+            Value::Double(val) => val.into_bound_py_any(py),
+            Value::Bool(val) => val.into_bound_py_any(py),
+            Value::String(val) => val.into_bound_py_any(py),
             Value::Result(val) => if val.unwrap_bool() {
                 Result::One
             } else {
                 Result::Zero
             }
-            .into_py(py),
+            .into_bound_py_any(py),
             Value::Pauli(val) => match val {
-                fir::Pauli::I => Pauli::I.into_py(py),
-                fir::Pauli::X => Pauli::X.into_py(py),
-                fir::Pauli::Y => Pauli::Y.into_py(py),
-                fir::Pauli::Z => Pauli::Z.into_py(py),
+                fir::Pauli::I => Pauli::I.into_bound_py_any(py),
+                fir::Pauli::X => Pauli::X.into_bound_py_any(py),
+                fir::Pauli::Y => Pauli::Y.into_bound_py_any(py),
+                fir::Pauli::Z => Pauli::Z.into_bound_py_any(py),
             },
             Value::Tuple(val) => {
                 if val.is_empty() {
                     // Special case Value::unit as None
-                    py.None()
+                    Ok(py.None().into_bound(py))
                 } else {
-                    PyTuple::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-                        .into_py(py)
+                    PyTuple::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?
+                        .into_bound_py_any(py)
                 }
             }
             Value::Array(val) => {
-                PyList::new_bound(py, val.iter().map(|v| ValueWrapper(v.clone()).into_py(py)))
-                    .into_py(py)
+                PyList::new(py, val.iter().map(|v| ValueWrapper(v.clone())))?.into_bound_py_any(py)
             }
-            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_py(py),
+            _ => format!("<{}> {}", Value::type_name(&self.0), &self.0).into_bound_py_any(py),
         }
     }
 }
@@ -744,10 +914,11 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
-                    ),
+                    )
+                    .map_err(|_| Error)?,
                 )
                 .map_err(|_| Error)?;
         }
@@ -760,10 +931,11 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
-                    ),
+                    )
+                    .map_err(|_| Error)?,
                 )
                 .map_err(|_| Error)?;
         }
@@ -776,10 +948,11 @@ impl Receiver for OptionalCallbackReceiver<'_> {
             callback
                 .call1(
                     self.py,
-                    PyTuple::new_bound(
+                    PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
-                    ),
+                    )
+                    .map_err(|_| Error)?,
                 )
                 .map_err(|_| Error)?;
         }
@@ -827,4 +1000,48 @@ where
         }
         PyException::new_err(message)
     }
+}
+
+#[pyclass(unsendable)]
+#[derive(Clone)]
+struct GlobalCallable(Value);
+
+impl From<Value> for GlobalCallable {
+    fn from(val: Value) -> Self {
+        match val {
+            val @ Value::Global(..) => GlobalCallable(val),
+            _ => panic!("expected global callable"),
+        }
+    }
+}
+
+impl From<GlobalCallable> for Value {
+    fn from(val: GlobalCallable) -> Self {
+        val.0
+    }
+}
+
+/// Create a Python callable from a Q# callable and adds it to the given environment.
+fn create_py_callable(
+    py: Python,
+    make_callable: &PyObject,
+    namespace: &[Rc<str>],
+    name: &str,
+    val: Value,
+) -> PyResult<()> {
+    if namespace.is_empty() && name == "<lambda>" {
+        // We don't want to bind auto-generated lambda callables.
+        return Ok(());
+    }
+
+    let args = (
+        Py::new(py, GlobalCallable::from(val)).expect("should be able to create callable"), // callable id
+        PyList::new(py, namespace.iter().map(ToString::to_string))?, // namespace as string array
+        PyString::new(py, name),                                     // name of callable
+    );
+
+    // Call into the Python layer to create the function wrapping the callable invocation.
+    make_callable.call1(py, args)?;
+
+    Ok(())
 }

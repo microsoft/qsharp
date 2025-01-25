@@ -283,6 +283,14 @@ html {
   white-space: pre;
 }
 
+.rir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
 .qir-output {
   height: 40vh;
   min-height: 400px;
@@ -492,11 +500,6 @@ html {
 }
 
 /* Space chart */
-
-/* Needed until https://github.com/microsoft/vscode-jupyter/issues/7161 is resolved */
-.cell-output-ipywidget-background {
-  background-color: transparent !important;
-}
 
 #pieChart {
   fill: var(--main-color);

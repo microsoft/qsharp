@@ -12,7 +12,7 @@ use qsc::{
 /// These functions are not part of the QASM3 standard, but are used to implement
 /// utility fuctions that would be cumbersome to implement building the AST
 /// directly.
-
+///
 /// The POW function is used to implement the `pow` modifier in QASM3 for integers.
 const POW: &str = "
 operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj), target : 'T) : Unit is Adj {

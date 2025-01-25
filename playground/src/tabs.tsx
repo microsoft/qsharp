@@ -9,6 +9,7 @@ const tabArray: Array<[ActiveTab, string]> = [
   ["results-tab", "RESULTS"],
   ["ast-tab", "AST"],
   ["hir-tab", "HIR"],
+  ["rir-tab", "RIR"],
   ["qir-tab", "QIR"],
 ];
 
@@ -28,6 +29,21 @@ function HirTab(props: { hir: string; activeTab: ActiveTab }) {
   ) : null;
 }
 
+function RirTab(props: { rir: string[]; activeTab: ActiveTab }) {
+  const raw = props.rir[0];
+  const ssa = props.rir[1];
+  return props.activeTab === "rir-tab" ? (
+    <div>
+      <textarea readonly class="rir-output">
+        {raw}
+      </textarea>
+      <textarea readonly class="rir-output">
+        {ssa}
+      </textarea>
+    </div>
+  ) : null;
+}
+
 function QirTab(props: { qir: string; activeTab: ActiveTab }) {
   return props.activeTab === "qir-tab" ? (
     <textarea readonly class="qir-output">
@@ -43,6 +59,7 @@ export function OutputTabs(props: {
   kataMode?: boolean;
   ast: string;
   hir: string;
+  rir: string[];
   qir: string;
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
@@ -64,6 +81,7 @@ export function OutputTabs(props: {
       <ResultsTab {...props} />
       <AstTab {...props} />
       <HirTab {...props} />
+      <RirTab {...props} />
       <QirTab {...props} />
     </div>
   );

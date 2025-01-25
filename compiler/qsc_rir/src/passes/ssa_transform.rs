@@ -172,7 +172,10 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
         match &mut instr {
             // Track the new value of the variable and omit the store instruction.
             Instruction::Store(operand, var) => {
-                var_map.insert(var.variable_id, *operand);
+                // Note this uses the mapped operand to make sure this variable points to whatever root literal or variable
+                // this operand corresponds to at this point in the block. This makes the new variable respect a point-in-time
+                // copy of the operand.
+                var_map.insert(var.variable_id, operand.mapped(var_map));
                 continue;
             }
 
@@ -181,7 +184,11 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
                 *args = args
                     .iter()
                     .map(|arg| match arg {
-                        Operand::Variable(var) => var.map_to_operand(var_map),
+                        Operand::Variable(var) => {
+                            // If the variable is not in the map, it is not something whose value has been updated via store in this block,
+                            // so just fallback to use the `arg` value directly.
+                            *var_map.get(&var.variable_id).unwrap_or(arg)
+                        }
                         Operand::Literal(_) => *arg,
                     })
                     .collect();
@@ -200,6 +207,11 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
             | Instruction::Srem(lhs, rhs, _)
             | Instruction::Shl(lhs, rhs, _)
             | Instruction::Ashr(lhs, rhs, _)
+            | Instruction::Fadd(lhs, rhs, _)
+            | Instruction::Fsub(lhs, rhs, _)
+            | Instruction::Fmul(lhs, rhs, _)
+            | Instruction::Fdiv(lhs, rhs, _)
+            | Instruction::Fcmp(_, lhs, rhs, _)
             | Instruction::Icmp(_, lhs, rhs, _)
             | Instruction::LogicalAnd(lhs, rhs, _)
             | Instruction::LogicalOr(lhs, rhs, _)

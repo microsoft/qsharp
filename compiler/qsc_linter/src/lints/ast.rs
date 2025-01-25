@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use super::lint;
-use crate::linter::ast::declare_ast_lints;
-use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, Stmt, StmtKind};
+use crate::linter::{ast::declare_ast_lints, Compilation};
+use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind};
 use qsc_data_structures::span::Span;
 
 // Read Me:
@@ -28,10 +28,17 @@ declare_ast_lints! {
     (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
+    (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
+    (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
+}
+
+#[derive(Default)]
+struct DivisionByZero {
+    level: LintLevel,
 }
 
 impl AstLintPass for DivisionByZero {
-    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(0) = **lit {
@@ -40,6 +47,11 @@ impl AstLintPass for DivisionByZero {
             }
         }
     }
+}
+
+#[derive(Default)]
+struct NeedlessParens {
+    level: LintLevel,
 }
 
 impl NeedlessParens {
@@ -82,7 +94,7 @@ impl NeedlessParens {
 }
 
 impl AstLintPass for NeedlessParens {
-    fn check_expr(&self, expr: &Expr, buffer: &mut Vec<Lint>) {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         match &*expr.kind {
             ExprKind::BinOp(_, left, right) => {
                 self.push(expr, left, buffer);
@@ -96,7 +108,7 @@ impl AstLintPass for NeedlessParens {
     }
 
     /// Checks the assignment statements.
-    fn check_stmt(&self, stmt: &Stmt, buffer: &mut Vec<Lint>) {
+    fn check_stmt(&mut self, stmt: &Stmt, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         if let StmtKind::Local(_, _, right) = &*stmt.kind {
             if let ExprKind::Paren(_) = &*right.kind {
                 buffer.push(lint!(
@@ -107,6 +119,11 @@ impl AstLintPass for NeedlessParens {
             }
         }
     }
+}
+
+#[derive(Default)]
+struct RedundantSemicolons {
+    level: LintLevel,
 }
 
 impl RedundantSemicolons {
@@ -124,7 +141,7 @@ impl AstLintPass for RedundantSemicolons {
     /// semicolon is parsed as an Empty statement. If we have multiple empty
     /// statements in a row, we group them as single lint, that spans from
     /// the first redundant semicolon to the last redundant semicolon.
-    fn check_block(&self, block: &Block, buffer: &mut Vec<Lint>) {
+    fn check_block(&mut self, block: &Block, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         // a finite state machine that keeps track of the span of the redundant semicolons
         // None: no redundant semicolons
         // Some(_): one or more redundant semicolons
@@ -164,11 +181,81 @@ fn precedence(expr: &Expr) -> u8 {
     }
 }
 
+#[derive(Default)]
+struct DeprecatedNewtype {
+    level: LintLevel,
+}
+
 /// Creates a lint for deprecated user-defined types declarations using `newtype`.
 impl AstLintPass for DeprecatedNewtype {
-    fn check_item(&self, item: &Item, buffer: &mut Vec<Lint>) {
+    fn check_item(&mut self, item: &Item, buffer: &mut Vec<Lint>, _compilation: Compilation) {
         if let ItemKind::Ty(_, _) = item.kind.as_ref() {
             buffer.push(lint!(self, item.span));
+        }
+    }
+}
+
+fn is_assign(expr: &Expr) -> bool {
+    matches!(
+        expr.kind.as_ref(),
+        ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) | ExprKind::AssignUpdate(_, _, _)
+    )
+}
+
+#[derive(Default)]
+struct DeprecatedSet {
+    level: LintLevel,
+}
+
+impl AstLintPass for DeprecatedSet {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
+        // If the expression is an assignment, check if the `set` keyword is used.
+        if is_assign(expr)
+            && ["set ", "set\n", "set\r\n", "set\t"]
+                .iter()
+                .any(|s| compilation.get_source_code(expr.span).starts_with(s))
+        {
+            // If the `set` keyword is used, push a lint.
+            let span = Span {
+                lo: expr.span.lo,
+                hi: expr.span.lo + 3,
+            };
+            buffer.push(lint!(self, span, vec![(String::new(), span)]));
+        }
+    }
+}
+
+#[derive(Default)]
+struct DiscourageChainAssignment {
+    level: LintLevel,
+    // Keeps track of the expressions that won't create lints because they are part of a chain.
+    repressed_exprs: Vec<NodeId>,
+}
+
+impl AstLintPass for DiscourageChainAssignment {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+        match expr.kind.as_ref() {
+            ExprKind::Assign(_, rhs)
+            | ExprKind::AssignOp(_, _, rhs)
+            | ExprKind::AssignUpdate(_, _, rhs) => {
+                // Check to see if this expressions is part of an existing chain.
+                let should_repress = self
+                    .repressed_exprs
+                    .last()
+                    .map_or_else(|| false, |l| *l == expr.id);
+                if should_repress {
+                    self.repressed_exprs.pop();
+                }
+                if is_assign(rhs) {
+                    // If this is a new chain, push a lint.
+                    if !should_repress {
+                        buffer.push(lint!(self, expr.span));
+                    }
+                    // Add the rhs to the repressed expressions because it is now part of an existing chain.
+                    self.repressed_exprs.push(rhs.id);
+                }
+            }
+            _ => {}
         }
     }
 }

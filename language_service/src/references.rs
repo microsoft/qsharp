@@ -52,6 +52,10 @@ struct NameHandler<'a> {
 }
 
 impl<'a> Handler<'a> for NameHandler<'a> {
+    fn at_attr_ref(&mut self, _: &'a ast::Ident) {
+        // We don't support find all refs for attributes.
+    }
+
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,
@@ -336,7 +340,7 @@ struct FindItemRefs<'a> {
     locations: Vec<Span>,
 }
 
-impl<'a> Visitor<'_> for FindItemRefs<'a> {
+impl Visitor<'_> for FindItemRefs<'_> {
     fn visit_path(&mut self, path: &ast::Path) {
         let res = self.compilation.get_res(path.id);
         if let Some(resolve::Res::Item(item_id, _)) = res {
@@ -360,7 +364,7 @@ impl<'a> Visitor<'_> for FindItemRefs<'a> {
     }
 }
 
-impl<'a> FindItemRefs<'a> {
+impl FindItemRefs<'_> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.item_id.item
             && item_id.package.unwrap_or(self.compilation.user_package_id)
@@ -375,7 +379,7 @@ struct FindFieldRefs<'a> {
     locations: Vec<Span>,
 }
 
-impl<'a> Visitor<'_> for FindFieldRefs<'a> {
+impl Visitor<'_> for FindFieldRefs<'_> {
     fn visit_path(&mut self, path: &ast::Path) {
         if let Some((_, parts)) =
             resolve::path_as_field_accessor(&self.compilation.user_unit().ast.names, path)
@@ -431,7 +435,7 @@ impl<'a> Visitor<'_> for FindFieldRefs<'a> {
     }
 }
 
-impl<'a> FindFieldRefs<'a> {
+impl FindFieldRefs<'_> {
     fn eq(&mut self, item_id: &hir::ItemId) -> bool {
         item_id.item == self.ty_item_id.item
             && item_id.package.unwrap_or(self.compilation.user_package_id)
@@ -507,7 +511,7 @@ struct FindTyParamLocations<'a> {
     locations: Vec<Span>,
 }
 
-impl<'a> Visitor<'_> for FindTyParamLocations<'a> {
+impl Visitor<'_> for FindTyParamLocations<'_> {
     fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
         if self.include_declaration {
             decl.generics.iter().for_each(|p| {

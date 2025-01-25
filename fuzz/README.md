@@ -4,7 +4,7 @@ Based on [Fuzzing with cargo-fuzz](https://rust-fuzz.github.io/book/cargo-fuzz.h
 
 For running locally you need the following steps.
 
-(**On Windows use [WSL](https://learn.microsoft.com/windows/wsl/).** Tested in WSL Ubuntu 20.04)
+(**On Windows use [WSL](https://learn.microsoft.com/windows/wsl/).** Tested in WSL Ubuntu 22.04)
 
 ## Prerequisites
 
@@ -329,7 +329,7 @@ See more in [LibFuzzer Corpus](https://llvm.org/docs/LibFuzzer.html#corpus).
 
 Based on [Code Coverage](https://rust-fuzz.github.io/book/cargo-fuzz/coverage.html#code-coverage).
 
-Tested in WSL Ubuntu 20.04.
+Tested in WSL Ubuntu 22.04.
 
 ### Code Coverage Prerequisites
 

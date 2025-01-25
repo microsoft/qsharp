@@ -7,7 +7,7 @@ use qsc::{
     interpret, LanguageFeatures, PackageStore, PauliNoise, SourceMap, TargetCapabilityFlags,
 };
 
-use crate::_get_qir;
+use crate::get_qir_;
 
 use super::run_internal_with_features;
 
@@ -513,7 +513,7 @@ fn test_doc_gen() {
         } else if !filename.eq("index.md") {
             assert!(std::path::Path::new(&filename)
                 .extension()
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("md")));
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("md")));
             assert!(
                 text.starts_with("---\n"),
                 "file {name} does not start with metadata\ncontents: {text}"
@@ -542,5 +542,5 @@ fn code_with_errors_returns_errors() {
             "[{\"document\":\"test.qs\",\"diagnostic\":{\"range\":{\"start\":{\"line\":4,\"character\":16},\"end\":{\"line\":4,\"character\":19}},\"message\":\"syntax error: expected `;`, found keyword `let`\",\"severity\":\"error\",\"code\":\"Qsc.Parse.Token\"},\"stack\":null}]",
         )
     "#]]
-    .assert_debug_eq(&_get_qir(sources, language_features, capabilities, store, &[]));
+    .assert_debug_eq(&get_qir_(sources, language_features, capabilities, store, &[]));
 }

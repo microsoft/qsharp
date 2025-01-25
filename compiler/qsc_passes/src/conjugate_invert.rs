@@ -67,7 +67,7 @@ struct ConjugateElim<'a> {
     errors: Vec<Error>,
 }
 
-impl<'a> MutVisitor for ConjugateElim<'a> {
+impl MutVisitor for ConjugateElim<'_> {
     fn visit_expr(&mut self, expr: &mut Expr) {
         match take(&mut expr.kind) {
             ExprKind::Conjugate(within, apply) => {

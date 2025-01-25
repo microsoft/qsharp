@@ -29,7 +29,9 @@ use self::convert::TyConversionError;
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
     #[error("unknown attribute {0}")]
-    #[diagnostic(help("supported attributes are: EntryPoint, Config"))]
+    #[diagnostic(help(
+        "supported attributes are: EntryPoint, Config, SimulatableIntrinsic, Measurement, Reset"
+    ))]
     #[diagnostic(code("Qsc.LowerAst.UnknownAttr"))]
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
@@ -140,7 +142,7 @@ impl Lowerer {
         assigner: &'a mut Assigner,
         names: &'a Names,
         tys: &'a typeck::Table,
-    ) -> With {
+    ) -> With<'a> {
         With {
             lowerer: self,
             assigner,

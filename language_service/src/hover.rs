@@ -10,10 +10,12 @@ use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
 use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup};
+use qsc::hir::Attr;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;
 use std::rc::Rc;
+use std::str::FromStr;
 
 pub(crate) fn get_hover(
     compilation: &Compilation,
@@ -43,6 +45,7 @@ enum LocalKind {
     LambdaParam,
     Local,
 }
+
 struct HoverGenerator<'a> {
     position_encoding: Encoding,
     hover: Option<Hover>,
@@ -51,6 +54,18 @@ struct HoverGenerator<'a> {
 }
 
 impl<'a> Handler<'a> for HoverGenerator<'a> {
+    fn at_attr_ref(&mut self, name: &'a ast::Ident) {
+        let description = match Attr::from_str(&name.name) {
+            Ok(attr) => attr.description(),
+            Err(()) => return, // No hover information for unsupported attributes.
+        };
+
+        self.hover = Some(Hover {
+            contents: format!("attribute ```{}```\n\n{}", name.name, description),
+            span: self.range(name.span),
+        });
+    }
+
     fn at_callable_def(
         &mut self,
         context: &LocatorContext<'a>,
@@ -98,7 +113,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &LocalKind::TypeParam,
             &code,
             &def_name.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -120,7 +135,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &LocalKind::TypeParam,
             &code,
             &reference.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -242,7 +257,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             &ident.name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -272,7 +287,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             &kind,
             &code,
             local_name,
-            &callable_name,
+            callable_name.as_deref(),
             &context.current_item_doc,
         );
         self.hover = Some(Hover {
@@ -341,15 +356,13 @@ fn display_local(
     param_kind: &LocalKind,
     markdown: &String,
     local_name: &str,
-    callable_name: &Option<Rc<str>>,
+    callable_name: Option<&str>,
     callable_doc: &str,
 ) -> String {
     match param_kind {
         LocalKind::Param => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("param should have a callable name");
+            let callable_name = callable_name.expect("param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("parameter of `{callable_name}`\n{markdown}",),
@@ -357,9 +370,7 @@ fn display_local(
         }
         LocalKind::TypeParam => {
             let param_doc = parse_doc_for_param(callable_doc, local_name);
-            let callable_name = callable_name
-                .as_ref()
-                .expect("type param should have a callable name");
+            let callable_name = callable_name.expect("type param should have a callable name");
             with_doc(
                 &param_doc,
                 format!("type parameter of `{callable_name}`\n{markdown}",),

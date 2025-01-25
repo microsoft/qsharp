@@ -3,11 +3,11 @@
 import json
 import math
 import numpy as np
+import numpy.linalg as LA
 import numpy.typing as npt
 import qsharp
 from argparse import ArgumentParser
 from dataclasses import dataclass
-from scipy import linalg as LA
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
@@ -294,9 +294,9 @@ class DoubleFactorization:
         matrix[np.tril_indices(dimension, 0)] = vector
 
         # Compute the eigen decomposition of the lower triangular matrix
-        evals, evecs = LA.eigh(matrix, lower=True)
-        norm1 = np.linalg.norm(evals, 1)
-        norm2 = np.linalg.norm(evals)
+        evals, evecs = LA.eigh(matrix, UPLO="L")
+        norm1 = LA.norm(evals, 1)
+        norm2 = LA.norm(evals)
 
         (rows, cols) = np.shape(evecs)
         evecs_1D = np.reshape(np.transpose(evecs), cols * rows)

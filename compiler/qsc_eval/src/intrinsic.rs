@@ -377,49 +377,30 @@ pub fn qubit_relabel(
         return Err(Error::RelabelingMismatch(arg_span));
     }
 
-    let mut map = FxHashMap::default();
-    map.reserve(left.len());
+    // Start with a mapping of each qubit to itself.
+    let mut mappings: FxHashMap<usize, usize> =
+        left.iter().copied().zip(left.iter().copied()).collect();
     for (l, r) in left.into_iter().zip(right.into_iter()) {
+        // Trivial case where the qubit is already mapped to itself in the relabel, which can be short circuited.
         if l == r {
             continue;
         }
-        match (map.contains_key(&l), map.contains_key(&r)) {
-            (false, false) => {
-                // Neither qubit has been relabeled yet.
-                swap(l, r);
-                map.insert(l, r);
-                map.insert(r, l);
-            }
-            (false, true) => {
-                // The right qubit has been relabeled, so we need to swap the left qubit with the
-                // qubit that the right qubit was relabeled to.
-                let mapped = *map
-                    .keys()
-                    .find(|k| map[*k] == r)
-                    .expect("mapped qubit should be present as both key and value");
-                swap(l, mapped);
-                map.insert(l, r);
-                map.insert(mapped, l);
-            }
-            (true, false) => {
-                // The left qubit has been relabeled, so we swap the qubits as normal but
-                // remember the new mapping of the right qubit.
-                let mapped = *map.get(&l).expect("mapped qubit should be present");
-                swap(l, r);
-                map.insert(l, r);
-                map.insert(r, mapped);
-            }
-            (true, true) => {
-                // Both qubits have been relabeled, so we need to swap the mapped right qubit with
-                // the left qubit and remember the new mapping of both qubits.
-                let mapped_l = *map.get(&l).expect("mapped qubit should be present");
-                let mapped_r = *map.get(&r).expect("mapped qubit should be present");
-                if mapped_l != r && mapped_r != l {
-                    swap(mapped_r, l);
-                    map.insert(mapped_r, mapped_l);
-                    map.insert(l, r);
-                }
-            }
+
+        // Check what each label currently maps to.
+        let mapped_l = *mappings.get(&l).expect("mapped qubit should be present");
+        let mapped_r = *mappings.get(&r).expect("mapped qubit should be present");
+
+        // We only need to swap if the label is not pointing to the correct qubit.
+        if mapped_l != r && mapped_r != l {
+            // Do a reverse lookup to find which label is currently mapped to the desired right qubit.
+            // This tells us which label to use in the swap, which we will use in the update of the mappings too.
+            let label_r = *mappings
+                .keys()
+                .find(|k| mappings[*k] == r)
+                .expect("mapped qubit should be present as both key and value");
+            swap(l, label_r);
+            mappings.insert(label_r, mapped_l);
+            mappings.insert(l, mapped_r);
         }
     }
 

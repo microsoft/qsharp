@@ -3,9 +3,9 @@
 
 use expect_test::{expect, Expect};
 
-/// Each file in the samples/algorithms folder is compiled and run as two tests and should
-/// have matching expect strings in this file. If new samples are added, this file will
-/// fail to compile until the new expect strings are added.
+// Each file in the samples/algorithms folder is compiled and run as two tests and should
+// have matching expect strings in this file. If new samples are added, this file will
+// fail to compile until the new expect strings are added.
 pub const BELLSTATE_EXPECT: Expect = expect![[r#"
     Bell state |Φ+〉:
     STATE:
@@ -237,23 +237,43 @@ pub const QUANTUMHELLOWORLD_EXPECT_DEBUG: Expect = expect![[r#"
 pub const RANDOMBIT_EXPECT: Expect = expect!["Zero"];
 pub const RANDOMBIT_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const SHOR_EXPECT: Expect = expect![[r#"
-    *** Factorizing 143, attempt 1.
-    Estimating period of 139.
+    *** Factorizing 187, attempt 1.
+    Estimating period of 182.
     Estimating frequency with bitsPrecision=17.
-    Estimated frequency=30583
-    Found period=30
-    Found factor=13
-    Found factorization 143 = 13 * 11
-    (13, 11)"#]];
+    Estimated frequency=126158
+    Found period=80
+    Found factor=17
+    Found factorization 187 = 17 * 11
+    (17, 11)"#]];
 pub const SHOR_EXPECT_DEBUG: Expect = expect![[r#"
-    *** Factorizing 143, attempt 1.
-    Estimating period of 139.
+    *** Factorizing 187, attempt 1.
+    Estimating period of 182.
     Estimating frequency with bitsPrecision=17.
-    Estimated frequency=30583
-    Found period=30
-    Found factor=13
-    Found factorization 143 = 13 * 11
-    (13, 11)"#]];
+    Estimated frequency=126158
+    Found period=80
+    Found factor=17
+    Found factorization 187 = 17 * 11
+    (17, 11)"#]];
+pub const SIMPLEISING_EXPECT: Expect =
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
+pub const SIMPLEISING_EXPECT_DEBUG: Expect =
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
+pub const SIMPLEVQE_EXPECT: Expect = expect![[r#"
+   Beginning descent from value 0.43300000000000005.
+   Value improved to 0.35300000000000004.
+   Value improved to 0.3454.
+   Value improved to 0.3422.
+   Value improved to 0.3216.
+   Descent done. Attempts: 52, Step: 0.0009765625, Arguments: [1.5, 1.0625], Value: 0.3216.
+   0.3216"#]];
+pub const SIMPLEVQE_EXPECT_DEBUG: Expect = expect![[r#"
+   Beginning descent from value 0.43300000000000005.
+   Value improved to 0.35300000000000004.
+   Value improved to 0.3454.
+   Value improved to 0.3422.
+   Value improved to 0.3216.
+   Descent done. Attempts: 52, Step: 0.0009765625, Arguments: [1.5, 1.0625], Value: 0.3216.
+   0.3216"#]];
 pub const SUPERDENSECODING_EXPECT: Expect = expect!["((false, true), (false, true))"];
 pub const SUPERDENSECODING_EXPECT_DEBUG: Expect = expect!["((false, true), (false, true))"];
 pub const SUPERPOSITION_EXPECT: Expect = expect!["Zero"];

@@ -6,10 +6,10 @@ use std::rc::Rc;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        CallableDecl, CallableKind, Expr, ExprKind, Field, ItemKind, Res, SpecBody, SpecDecl, Stmt,
-        StmtKind,
+        BinOp, CallableDecl, CallableKind, Expr, ExprKind, Field, ItemKind, Res, SpecBody,
+        SpecDecl, Stmt, StmtKind,
     },
-    ty::Ty,
+    ty::{Prim, Ty},
     visit::{self, Visitor},
 };
 
@@ -35,10 +35,40 @@ use super::lint;
 //  For more details on how to add a lint, please refer to the crate-level documentation
 //  in qsc_linter/lib.rs.
 declare_hir_lints! {
+    (DoubleEquality, LintLevel::Warn, "strict comparison of doubles", "consider comparing them with some margin of error"),
     (NeedlessOperation, LintLevel::Allow, "operation does not contain any quantum operations", "this callable can be declared as a function instead"),
     (DeprecatedFunctionConstructor, LintLevel::Allow, "deprecated function constructors", "function constructors for struct types are deprecated, use `new` instead"),
     (DeprecatedWithOperator, LintLevel::Allow, "deprecated `w/` and `w/=` operators for structs", "`w/` and `w/=` operators for structs are deprecated, use `new` instead"),
     (DeprecatedDoubleColonOperator, LintLevel::Allow, "deprecated `::` for field access", "`::` operator is deprecated, use `.` instead"),
+}
+
+#[derive(Default)]
+struct DoubleEquality {
+    level: LintLevel,
+}
+
+impl HirLintPass for DoubleEquality {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+        // Ignore the case where the identifier is being compared for equality with itself,
+        // Since this is used to check if the double is `NaN`. This will be compiled to
+        // fcmp oeq value value
+        // in LLVM because we only implemented the ord side of fcmp.
+        // See https://llvm.org/docs/LangRef.html#id313 for more details.
+        if let ExprKind::BinOp(BinOp::Eq, ref lhs, ref rhs) = expr.kind {
+            if let (ExprKind::Var(lhs_id, _), ExprKind::Var(rhs_id, _)) = (&lhs.kind, &rhs.kind) {
+                if lhs_id == rhs_id {
+                    return;
+                }
+            }
+        }
+
+        if let ExprKind::BinOp(BinOp::Eq | BinOp::Neq, ref lhs, ref rhs) = expr.kind {
+            if matches!(lhs.ty, Ty::Prim(Prim::Double)) && matches!(rhs.ty, Ty::Prim(Prim::Double))
+            {
+                buffer.push(lint!(self, expr.span));
+            }
+        }
+    }
 }
 
 /// Helper to check if an operation has desired operation characteristics
@@ -222,7 +252,7 @@ impl HirLintPass for DeprecatedWithOperator {
                         (compilation.indentation_at_offset(info.span.lo) + 4) as usize;
                     let innermost_expr = compilation.get_source_code(expr.span);
                     let mut new_expr = if info.is_w_eq {
-                        format!("set {} = new {} {{\n", innermost_expr, info.ty_name)
+                        format!("{} = new {} {{\n", innermost_expr, info.ty_name)
                     } else {
                         format!("new {} {{\n", info.ty_name)
                     };

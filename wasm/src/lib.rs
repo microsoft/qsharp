@@ -60,7 +60,7 @@ pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) =
         into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
-    _get_qir(
+    get_qir_(
         source_map,
         language_features,
         capabilities,
@@ -69,7 +69,7 @@ pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     )
 }
 
-pub(crate) fn _get_qir(
+pub(crate) fn get_qir_(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
@@ -218,6 +218,21 @@ pub fn get_hir(
         unit.package
     });
     Ok(package.to_string())
+}
+
+#[wasm_bindgen]
+pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+
+    qsc::codegen::qir::get_rir(
+        source_map,
+        language_features,
+        capabilities,
+        store,
+        &deps[..],
+    )
+    .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
 struct CallbackReceiver<F>
@@ -558,7 +573,7 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "adaptive_ri" | "unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" | "adaptive_rif" | "unrestricted";
 "#;
 
 #[wasm_bindgen(typescript_custom_section)]

@@ -52,13 +52,6 @@ internal operation ControllableGlobalPhase(theta : Double) : Unit is Ctl {
         } else {
             Controlled Rz(ctls[1...], (theta, ctls[0]));
             GlobalPhase(ctls[1...], theta / 2.0);
-            // With a single control qubit, the call to Rz uses no controls and global phase is corrected
-            // by just the call above.
-            // Multi-controlled Rz gates use a decomposition that introduces an additional global
-            // phase, so we need to correct for that here.
-            if Length(ctls) > 1 {
-                GlobalPhase([], -theta / 4.0);
-            }
         }
     }
 }
@@ -90,6 +83,9 @@ internal operation CT(control : Qubit, target : Qubit) : Unit is Adj {
     CNOT(control, target);
     Adjoint Rz(angle, target);
     CNOT(control, target);
+    // This decomposition for controlled-T introduces a global phase (due to the unmatched call to Rz from above).
+    // We correct for this global phase in simulation, which is a no-op on hardware.
+    ApplyGlobalPhase(angle / 2.0);
 }
 
 internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {

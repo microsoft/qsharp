@@ -81,6 +81,18 @@ pub struct Qubit {
 pub struct Config {
     /// Perform Base Profile decompositions
     pub base_profile: bool,
+    /// Maximum number of operations the builder will add to the circuit
+    pub max_operations: usize,
+}
+
+impl Config {
+    /// Set to the current UI limit + 1 so that it still triggers
+    /// the "this circuit has too many gates" warning in the UI.
+    /// (see npm\qsharp\ux\circuit.tsx)
+    ///
+    /// A more refined way to do this might be to communicate the
+    /// "limit exceeded" state up to the UI somehow.
+    pub const DEFAULT_MAX_OPERATIONS: usize = 10001;
 }
 
 type ObjectsByColumn = FxHashMap<usize, String>;

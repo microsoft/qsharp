@@ -27,6 +27,7 @@ import { getRandomGuid } from "./utils";
 import { CopilotWebviewViewProvider } from "./copilot/webviewViewProvider";
 import { CopilotEventHandler } from "./copilot/copilot";
 import { getPauliNoiseModel } from "./config";
+import { qsharpExtensionId } from "./common";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -55,7 +56,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
-    commands.registerCommand("qsharp-vscode.showRe", async () => {
+    commands.registerCommand(`${qsharpExtensionId}.showRe`, async () => {
       clearCommandDiagnostics();
       const associationId = getRandomGuid();
       sendTelemetryEvent(
@@ -283,7 +284,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
-    commands.registerCommand("qsharp-vscode.showHelp", async () => {
+    commands.registerCommand(`${qsharpExtensionId}.showHelp`, async () => {
       const message = {
         command: "help",
       };
@@ -292,7 +293,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
-    commands.registerCommand("qsharp-vscode.showHistogram", async () => {
+    commands.registerCommand(`${qsharpExtensionId}.showHistogram`, async () => {
       clearCommandDiagnostics();
 
       const associationId = getRandomGuid();
@@ -384,7 +385,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand(
-      "qsharp-vscode.showCircuit",
+      `${qsharpExtensionId}.showCircuit`,
       async (operation?: IOperationInfo) => {
         await showCircuitCommand(context.extensionUri, operation);
       },
@@ -392,9 +393,12 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
-    commands.registerCommand("qsharp-vscode.showDocumentation", async () => {
-      await showDocumentationCommand(context.extensionUri);
-    }),
+    commands.registerCommand(
+      `${qsharpExtensionId}.showDocumentation`,
+      async () => {
+        await showDocumentationCommand(context.extensionUri);
+      },
+    ),
   );
 
   context.subscriptions.push(
