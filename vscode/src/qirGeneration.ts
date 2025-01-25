@@ -25,6 +25,16 @@ export class QirGenerationError extends Error {
   }
 }
 
+export async function getQirForVisibleQs(
+  targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+): Promise<string> {
+  const program = await getVisibleProgram();
+  if (!program.success) {
+    throw new QirGenerationError(program.errorMsg);
+  }
+  return getQirForProgram(program.programConfig, targetSupportsAdaptive);
+}
+
 export async function getQirForActiveWindow(
   targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
@@ -32,8 +42,15 @@ export async function getQirForActiveWindow(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
+  return getQirForProgram(program.programConfig, targetSupportsAdaptive);
+}
+
+async function getQirForProgram(
+  config: FullProgramConfig,
+  targetSupportsAdaptive?: boolean,
+): Promise<string> {
+  let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
-  const config = program.programConfig;
   const targetProfile = config.profile;
   const isUnrestricted = targetProfile === "unrestricted";
   const isUnsupportedAdaptiveSubmissionProfile =

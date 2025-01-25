@@ -24,6 +24,6 @@ class QSharpReferenceProvider implements vscode.ReferenceProvider {
       context.includeDeclaration,
     );
     if (!lsReferences) return [];
-    return lsReferences.map(toVsCodeLocation);
+    return lsReferences.map(toVscodeLocation);
   }
 }

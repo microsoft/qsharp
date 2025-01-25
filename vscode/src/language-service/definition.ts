@@ -21,6 +21,6 @@ class QSharpDefinitionProvider implements vscode.DefinitionProvider {
       position,
     );
     if (!definition) return null;
-    return toVsCodeLocation(definition);
+    return toVscodeLocation(definition);
   }
 }
