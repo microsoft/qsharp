@@ -1,6 +1,3 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
 use super::*;
 use expect_test::expect;
 
@@ -264,6 +261,65 @@ fn two_targets() {
         q_0     rzz(1.0000)
         q_1    ───┆───
         q_2     rzz(1.0000)
+    "]]
+    .assert_eq(&c.to_string());
+}
+
+#[test]
+fn long_gate_names() {
+    let c = Circuit {
+        operations: vec![
+            Operation {
+                gate: "rx".to_string(),
+                display_args: Some("3.1416".to_string()),
+                is_controlled: false,
+                is_adjoint: false,
+                is_measurement: false,
+                controls: vec![],
+                targets: vec![Register::quantum(0)],
+                children: vec![],
+            },
+            Operation {
+                gate: "H".to_string(),
+                display_args: None,
+                is_controlled: false,
+                is_adjoint: false,
+                is_measurement: false,
+                controls: vec![],
+                targets: vec![Register::quantum(1)],
+                children: vec![],
+            },
+            Operation {
+                gate: "rx".to_string(),
+                display_args: Some("3.1416".to_string()),
+                is_controlled: false,
+                is_adjoint: false,
+                is_measurement: false,
+                controls: vec![],
+                targets: vec![Register::quantum(2)],
+                children: vec![],
+            },
+        ],
+        qubits: vec![
+            Qubit {
+                id: 0,
+                num_children: 0,
+            },
+            Qubit {
+                id: 1,
+                num_children: 0,
+            },
+            Qubit {
+                id: 2,
+                num_children: 0,
+            },
+        ],
+    };
+
+    expect![[r"
+        q_0     rx(3.1416)
+        q_1    ─── H ───
+        q_2     rx(3.1416)
     "]]
     .assert_eq(&c.to_string());
 }
