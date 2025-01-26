@@ -6,7 +6,7 @@ mod tests;
 
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
+use std::{fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of <https://github.com/microsoft/quantum-viz.js/wiki/API-schema-reference>
@@ -426,16 +426,12 @@ impl Display for Circuit {
                     rows.iter()
                         .filter_map(|row| row.objects.get(&column))
                         .filter_map(|object| match object {
-                            CircuitObject::Object(string) => {
-                                Some(cmp::max(
-                                    (string.len() + 4) | 1, // Column lengths need to be odd numbers
-                                    MIN_COLUMN_WIDTH,
-                                ))
-                            }
+                            CircuitObject::Object(string) => Some((string.len() + 4) | 1), // Column lengths need to be odd numbers
                             _ => None,
                         })
+                        .chain(std::iter::once(MIN_COLUMN_WIDTH))
                         .max()
-                        .unwrap_or(MIN_COLUMN_WIDTH),
+                        .unwrap(),
                 )
             })
             .collect::<ColumnWidthsByColumn>();
