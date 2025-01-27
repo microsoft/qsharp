@@ -6,11 +6,10 @@ import {
   ILanguageService,
   ITestDescriptor,
   log,
-  ProgramConfig,
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { loadCompilerWorker, toVsCodeLocation, toVsCodeRange } from "../common";
-import { getActiveProgram, getProgramForDocument } from "../programConfig";
+import { getProgramForDocument } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 
 interface TestMetadata {
