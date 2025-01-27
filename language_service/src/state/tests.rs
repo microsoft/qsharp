@@ -6,17 +6,21 @@
 
 use super::{CompilationState, CompilationStateUpdater};
 use crate::{
-    protocol::{
-        DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
-    },
+    protocol::{DiagnosticUpdate, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate},
     tests::test_fs::{dir, file, FsNode, TestProjectHost},
 };
 use expect_test::{expect, Expect};
+use miette::Diagnostic;
 use qsc::{
     compile, line_column::Encoding, project, target::Profile, LanguageFeatures, PackageType,
 };
 use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
-use std::{cell::RefCell, fmt::Write, rc::Rc};
+use std::{
+    cell::RefCell,
+    fmt::{Display, Write},
+    rc::Rc,
+    str::from_utf8,
+};
 
 #[tokio::test]
 async fn no_error() {
@@ -32,12 +36,7 @@ async fn no_error() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-        []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
@@ -54,35 +53,11 @@ async fn clear_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [{]
+              ],
+            ]"#]],
     );
 
     updater
@@ -97,16 +72,8 @@ async fn clear_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        2,
-                    ),
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(2) errors: [],
+            ]"#]],
     );
 }
 
@@ -147,62 +114,20 @@ async fn close_last_doc_in_project() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [/]
+              ],
+
+              uri: "project/src/this_file.qs" version: None errors: [],
+            ]"#]],
     );
     updater.close_document("project/src/other_file.qs").await;
 
@@ -214,9 +139,7 @@ async fn close_last_doc_in_project() {
             {}
         "#]],
         &expect![""],
-        &expect![[r#"
-            []
-        "#]],
+        &expect!["[]"],
     );
 }
 
@@ -235,35 +158,11 @@ async fn clear_on_document_close() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Rule(
-                                            "identifier",
-                                            Open(
-                                                Brace,
-                                            ),
-                                            Span {
-                                                lo: 10,
-                                                hi: 11,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [{]
+              ],
+            ]"#]],
     );
 
     updater.close_document("single/foo.qs").await;
@@ -272,14 +171,8 @@ async fn clear_on_document_close() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: None errors: [],
+            ]"#]],
     );
 }
 
@@ -297,33 +190,11 @@ async fn compile_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            Ident,
-                                            Span {
-                                                lo: 0,
-                                                hi: 9,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                syntax error
+                  [single/foo.qs] [badsyntax]
+              ],
+            ]"#]],
     );
 }
 
@@ -348,37 +219,13 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 106,
-                                        hi: 117,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 121,
-                                        hi: 122,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic double value
+                  [single/foo.qs] [set x = 2.0]
+                cannot use a dynamic double value
+                  [single/foo.qs] [x]
+              ],
+            ]"#]],
     );
 }
 
@@ -403,47 +250,15 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 86,
-                                        hi: 103,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 106,
-                                        hi: 117,
-                                    },
-                                ),
-                            ),
-                        ),
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicDouble(
-                                    Span {
-                                        lo: 121,
-                                        hi: 122,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [MResetZ(q) == One]
+                cannot use a dynamic double value
+                  [single/foo.qs] [set x = 2.0]
+                cannot use a dynamic double value
+                  [single/foo.qs] [x]
+              ],
+            ]"#]],
     );
 }
 
@@ -466,12 +281,7 @@ async fn package_type_update_causes_error() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         package_type: Some(PackageType::Exe),
@@ -482,22 +292,10 @@ async fn package_type_update_causes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            EntryPoint(
-                                NotFound,
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                entry point not found
+              ],
+            ]"#]],
     );
 }
 
@@ -525,27 +323,11 @@ async fn target_profile_update_fixes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 62,
-                                        hi: 74,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [M(q) == Zero]
+              ],
+            ]"#]],
     );
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
@@ -557,16 +339,8 @@ async fn target_profile_update_fixes_error() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [],
+            ]"#]],
     );
 }
 
@@ -582,12 +356,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
     ).await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
         target_profile: Some(Profile::Base),
@@ -598,27 +367,11 @@ async fn target_profile_update_causes_error_in_stdlib() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "single/foo.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Pass(
-                            CapabilitiesCk(
-                                UseOfDynamicBool(
-                                    Span {
-                                        lo: 95,
-                                        hi: 136,
-                                    },
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "single/foo.qs" version: Some(1) errors: [
+                cannot use a dynamic bool value
+                  [single/foo.qs] [Microsoft.Quantum.Convert.ResultAsBool(r)]
+              ],
+            ]"#]],
     );
 }
 
@@ -640,12 +393,7 @@ async fn notebook_document_no_errors() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-            []
-        "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
@@ -670,44 +418,13 @@ async fn notebook_document_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 }
 
@@ -733,64 +450,16 @@ async fn notebook_document_lints() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell1",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Lint(
-                            Lint {
-                                span: Span {
-                                    lo: 34,
-                                    hi: 37,
-                                },
-                                level: Warn,
-                                message: "redundant semicolons",
-                                help: "remove the redundant semicolons",
-                                kind: Ast(
-                                    RedundantSemicolons,
-                                ),
-                                code_action_edits: [
-                                    (
-                                        "",
-                                        Span {
-                                            lo: 34,
-                                            hi: 37,
-                                        },
-                                    ),
-                                ],
-                            },
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Lint(
-                            Lint {
-                                span: Span {
-                                    lo: 72,
-                                    hi: 77,
-                                },
-                                level: Error,
-                                message: "attempt to divide by zero",
-                                help: "division by zero will fail at runtime",
-                                kind: Ast(
-                                    DivisionByZero,
-                                ),
-                                code_action_edits: [],
-                            },
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell1" version: Some(1) errors: [
+                redundant semicolons
+                  [cell1] [;;;]
+              ],
+
+              uri: "cell2" version: Some(1) errors: [
+                attempt to divide by zero
+                  [cell2] [5 / 0]
+              ],
+            ]"#]],
     );
 }
 
@@ -816,44 +485,13 @@ async fn notebook_update_remove_cell_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 
     updater
@@ -868,14 +506,8 @@ async fn notebook_update_remove_cell_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: None errors: [],
+            ]"#]],
     );
 }
 
@@ -901,44 +533,13 @@ async fn close_notebook_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 27,
-                                            hi: 30,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 27,
-                                                hi: 32,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: Some(1) errors: [
+                name error
+                  [cell2] [Foo]
+                type error
+                  [cell2] [Foo()]
+              ],
+            ]"#]],
     );
 
     updater.close_notebook_document("notebook.ipynb");
@@ -947,14 +548,8 @@ async fn close_notebook_clears_errors() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell2",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell2" version: None errors: [],
+            ]"#]],
     );
 }
 
@@ -997,12 +592,7 @@ async fn update_notebook_with_valid_dependencies() {
         )
         .await;
 
-    expect_errors(
-        &errors,
-        &expect![[r#"
-        []
-    "#]],
-    );
+    expect_errors(&errors, &expect!["[]"]);
 }
 
 #[tokio::test]
@@ -1048,93 +638,22 @@ async fn update_notebook_reports_errors_from_dependencies() {
         &errors,
         &expect![[r#"
             [
-                (
-                    "cell1",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 5,
-                                            hi: 8,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Foo",
-                                        Span {
-                                            lo: 5,
-                                            hi: 8,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Resolve(
-                                    NotFound(
-                                        "Bar",
-                                        Span {
-                                            lo: 9,
-                                            hi: 12,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        AmbiguousTy(
-                                            Span {
-                                                lo: 9,
-                                                hi: 14,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/file.qs",
-                    None,
-                    [
-                        Frontend(
-                            Error(
-                                Type(
-                                    Error(
-                                        TyMismatch(
-                                            "Unit",
-                                            "Int",
-                                            Span {
-                                                lo: 33,
-                                                hi: 36,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "cell1" version: Some(1) errors: [
+                name error
+                  [cell1] [Foo]
+                name error
+                  [cell1] [Foo]
+                name error
+                  [cell1] [Bar]
+                type error
+                  [cell1] [Bar()]
+              ],
+
+              uri: "project/src/file.qs" version: None errors: [
+                type error
+                  [project/src/file.qs] [Int]
+              ],
+            ]"#]],
     );
 }
 
@@ -1198,32 +717,12 @@ async fn update_notebook_reports_errors_from_dependency_of_dependencies() {
     expect_errors(
         &errors,
         &expect![[r#"
-        [
-            (
-                "project2/src/file.qs",
-                None,
-                [
-                    Frontend(
-                        Error(
-                            Type(
-                                Error(
-                                    TyMismatch(
-                                        "Unit",
-                                        "Int",
-                                        Span {
-                                            lo: 33,
-                                            hi: 36,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ],
-                [],
-            ),
-        ]
-    "#]],
+            [
+              uri: "project2/src/file.qs" version: None errors: [
+                type error
+                  [project2/src/file.qs] [Int]
+              ],
+            ]"#]],
     );
 }
 
@@ -1266,56 +765,220 @@ async fn update_doc_updates_project() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "namespace Foo { we should see this in the source }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "namespace Foo { we should see this in the source }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Close(
-                                                Brace,
-                                            ),
-                                            Ident,
-                                            Span {
-                                                lo: 75,
-                                                hi: 77,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [we]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn file_not_in_files_list() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+
+    // Manifest has a "files" field.
+    // One file is listed in it, the other is not.
+    // This shouldn't block project load, but should generate an error.
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{
+                        "files" : [
+                            "src/explicitly_listed.qs"
+                        ]
+                    }"#,
                 ),
-            ]
+                dir(
+                    "src",
+                    [
+                        file("explicitly_listed.qs", "// CONTENTS"),
+                        file("unlisted.qs", "// CONTENTS"),
+                    ],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Open the file that is listed in the files list
+    updater
+        .update_document("project/src/explicitly_listed.qs", 1, "// CONTENTS")
+        .await;
+
+    // The whole project should be loaded, which should generate
+    // an error about the other file that's unlisted.
+    // They are both in the compilation.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/src/explicitly_listed.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
         "#]],
+        &expect![[r#"
+            project/qsharp.json: [
+              "project/src/explicitly_listed.qs": "// CONTENTS",
+              "project/src/unlisted.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "project/src/unlisted.qs" version: None errors: [
+                File src/unlisted.qs is not listed in the `files` field of the manifest
+              ],
+            ]"#]],
+    );
+
+    // Open the unlisted file as well.
+    updater
+        .update_document("project/src/unlisted.qs", 1, "// CONTENTS")
+        .await;
+
+    // Documents are both open and correctly associated with the project.
+    // The error about the unlisted file persists.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/src/explicitly_listed.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+                "project/src/unlisted.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/qsharp.json: [
+              "project/src/explicitly_listed.qs": "// CONTENTS",
+              "project/src/unlisted.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "project/src/unlisted.qs" version: Some(1) errors: [
+                File src/unlisted.qs is not listed in the `files` field of the manifest
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
+async fn file_not_under_src() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+
+    // One file lives under the 'src' directory, the other does not.
+    // The one that isn't under 'src' should not be associated with the project.
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{
+                        "files" : [
+                            "src/under_src.qs"
+                        ]
+                    }"#,
+                ),
+                file("not_under_src.qs", "// CONTENTS"),
+                dir("src", [file("under_src.qs", "// CONTENTS")]),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
+
+    // Open the file that is not under src.
+    updater
+        .update_document("project/not_under_src.qs", 1, "// CONTENTS")
+        .await;
+
+    // This document is not associated with the manifest,
+    // didn't cause the manifest to be loaded,
+    // and lives in its own project by itself.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/not_under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/not_under_src.qs",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/not_under_src.qs: [
+              "project/not_under_src.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    // Open the file that's properly under the "src" directory.
+    updater
+        .update_document("project/src/under_src.qs", 1, "// CONTENTS")
+        .await;
+
+    // The manifest is loaded, `not_under_src.qs` is still not associated with it.
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "project/not_under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/not_under_src.qs",
+                    latest_str_content: "// CONTENTS",
+                },
+                "project/src/under_src.qs": OpenDocument {
+                    version: 1,
+                    compilation: "project/qsharp.json",
+                    latest_str_content: "// CONTENTS",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            project/not_under_src.qs: [
+              "project/not_under_src.qs": "// CONTENTS",
+            ],
+            project/qsharp.json: [
+              "project/src/under_src.qs": "// CONTENTS",
+            ],
+        "#]],
+        &expect!["[]"],
     );
 }
 
@@ -1361,62 +1024,20 @@ async fn close_doc_prioritizes_fs() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 59,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
         &expect![[r#"
             [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                    [],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                    [],
-                ),
-            ]
-        "#]],
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                syntax error
+                  [project/src/this_file.qs] [/]
+              ],
+
+              uri: "project/src/this_file.qs" version: None errors: [],
+            ]"#]],
     );
 }
 
@@ -1446,24 +1067,10 @@ async fn delete_manifest() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 71,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 
@@ -1489,19 +1096,9 @@ async fn delete_manifest() {
             }
         "#]],
         &expect![[r#"
-            project/src/this_file.qs: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 0,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/src/this_file.qs: [
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 }
@@ -1532,24 +1129,10 @@ async fn delete_manifest_then_close() {
             }
         "#]],
         &expect![[r#"
-            project/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "project/src/other_file.qs",
-                        contents: "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "project/src/this_file.qs",
-                        contents: "// DISK CONTENTS\n namespace Foo { }",
-                        offset: 71,
-                    },
-                ],
-                common_prefix: Some(
-                    "project/src/",
-                ),
-                entry: None,
-            }
+            project/qsharp.json: [
+              "project/src/other_file.qs": "// DISK CONTENTS\n namespace OtherFile { operation Other() : Unit { } }",
+              "project/src/this_file.qs": "// DISK CONTENTS\n namespace Foo { }",
+            ],
         "#]],
     );
 
@@ -1597,24 +1180,10 @@ async fn doc_switches_project() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/src/subdir/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 
@@ -1653,24 +1222,10 @@ async fn doc_switches_project() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 }
@@ -1706,24 +1261,10 @@ async fn doc_switches_project_on_close() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/src/subdir/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/src/subdir/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 
@@ -1755,24 +1296,10 @@ async fn doc_switches_project_on_close() {
             }
         "#]],
         &expect![[r#"
-            nested_projects/qsharp.json: SourceMap {
-                sources: [
-                    Source {
-                        name: "nested_projects/src/subdir/src/a.qs",
-                        contents: "namespace A {}",
-                        offset: 0,
-                    },
-                    Source {
-                        name: "nested_projects/src/subdir/src/b.qs",
-                        contents: "namespace B {}",
-                        offset: 15,
-                    },
-                ],
-                common_prefix: Some(
-                    "nested_projects/src/subdir/src/",
-                ),
-                entry: None,
-            }
+            nested_projects/qsharp.json: [
+              "nested_projects/src/subdir/src/a.qs": "namespace A {}",
+              "nested_projects/src/subdir/src/b.qs": "namespace B {}",
+            ],
         "#]],
     );
 }
@@ -1867,57 +1394,17 @@ async fn lints_update_after_manifest_change() {
         .await;
 
     // Check generated lints.
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
-            [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 71,
-                            hi: 78,
-                        },
-                        level: Error,
-                        message: "unnecessary parentheses",
-                        help: "remove the extra parentheses for clarity",
-                        kind: Ast(
-                            NeedlessParens,
-                        ),
-                        code_action_edits: [
-                            (
-                                "",
-                                Span {
-                                    lo: 71,
-                                    hi: 72,
-                                },
-                            ),
-                            (
-                                "",
-                                Span {
-                                    lo: 77,
-                                    hi: 78,
-                                },
-                            ),
-                        ],
-                    },
-                ),
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 63,
-                            hi: 68,
-                        },
-                        level: Error,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
-            ]"#]],
+        [
+          uri: "project/src/this_file.qs" version: Some(1) errors: [
+            unnecessary parentheses
+              [project/src/this_file.qs] [(2 ^ 4)]
+            attempt to divide by zero
+              [project/src/this_file.qs] [5 / 0]
+          ],
+        ]"#]],
     );
 
     // Modify the manifest.
@@ -1932,56 +1419,16 @@ async fn lints_update_after_manifest_change() {
         .await;
 
     // Check lints again
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
             [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 71,
-                            hi: 78,
-                        },
-                        level: Warn,
-                        message: "unnecessary parentheses",
-                        help: "remove the extra parentheses for clarity",
-                        kind: Ast(
-                            NeedlessParens,
-                        ),
-                        code_action_edits: [
-                            (
-                                "",
-                                Span {
-                                    lo: 71,
-                                    hi: 72,
-                                },
-                            ),
-                            (
-                                "",
-                                Span {
-                                    lo: 77,
-                                    hi: 78,
-                                },
-                            ),
-                        ],
-                    },
-                ),
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 63,
-                            hi: 68,
-                        },
-                        level: Warn,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                unnecessary parentheses
+                  [project/src/this_file.qs] [(2 ^ 4)]
+                attempt to divide by zero
+                  [project/src/this_file.qs] [5 / 0]
+              ],
             ]"#]],
     );
 }
@@ -2008,26 +1455,14 @@ async fn lints_prefer_workspace_over_defaults() {
         .await;
 
     // Check generated lints.
-    let lints: &[compile::ErrorKind] = &received_errors.take()[0].2;
-    check_lints(
-        lints,
+    expect_errors(
+        &received_errors,
         &expect![[r#"
             [
-                Lint(
-                    Lint {
-                        span: Span {
-                            lo: 134,
-                            hi: 139,
-                        },
-                        level: Warn,
-                        message: "attempt to divide by zero",
-                        help: "division by zero will fail at runtime",
-                        kind: Ast(
-                            DivisionByZero,
-                        ),
-                        code_action_edits: [],
-                    },
-                ),
+              uri: "project/src/this_file.qs" version: Some(1) errors: [
+                attempt to divide by zero
+                  [project/src/this_file.qs] [5 / 0]
+              ],
             ]"#]],
     );
 }
@@ -2099,22 +1534,15 @@ async fn missing_dependency_reported() {
         .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
         .await;
 
-    expect![[r#"
-        [
-            (
-                "parent/qsharp.json",
-                None,
-                [],
-                [
-                    FileSystem {
-                        about_path: "child/qsharp.json",
-                        error: "file not found",
-                    },
-                ],
-            ),
-        ]
-    "#]]
-    .assert_debug_eq(&received_errors.borrow());
+    expect_errors(
+        &received_errors,
+        &expect![[r#"
+            [
+              uri: "parent/qsharp.json" version: None errors: [
+                File system error: child/qsharp.json: file not found
+              ],
+            ]"#]],
+    );
 }
 
 #[tokio::test]
@@ -2153,34 +1581,16 @@ async fn error_from_dependency_reported() {
         .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
         .await;
 
-    expect![[r#"
-        [
-            (
-                "child/src/main.qs",
-                None,
-                [
-                    Frontend(
-                        Error(
-                            Parse(
-                                Error(
-                                    Token(
-                                        Eof,
-                                        Ident,
-                                        Span {
-                                            lo: 0,
-                                            hi: 13,
-                                        },
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ],
-                [],
-            ),
-        ]
-    "#]]
-    .assert_debug_eq(&received_errors.borrow());
+    expect_errors(
+        &received_errors,
+        &expect![[r#"
+            [
+              uri: "child/src/main.qs" version: None errors: [
+                syntax error
+                  [child/src/main.qs] [broken_syntax]
+              ],
+            ]"#]],
+    );
 }
 
 #[tokio::test]
@@ -2580,35 +1990,50 @@ async fn test_case_in_different_files() {
     .assert_debug_eq(&test_cases.borrow());
 }
 
-type ErrorInfo = (
-    String,
-    Option<u32>,
-    Vec<compile::ErrorKind>,
-    Vec<project::Error>,
-);
+impl Display for DiagnosticUpdate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let DiagnosticUpdate {
+            uri,
+            version,
+            errors,
+        } = self;
+
+        write!(f, "uri: {uri:?} version: {version:?} errors: [",)?;
+        // Formatting loosely taken from compiler/qsc/src/interpret/tests.rs
+        for error in errors {
+            write!(f, "\n    {error}")?;
+            for label in error.labels().into_iter().flatten() {
+                let span = error
+                    .source_code()
+                    .expect("expected valid source code")
+                    .read_span(label.inner(), 0, 0)
+                    .expect("expected to be able to read span");
+
+                write!(
+                    f,
+                    "\n     {} [{}] [{}]",
+                    label.label().unwrap_or(""),
+                    span.name().expect("expected source file name"),
+                    from_utf8(span.data()).expect("expected valid utf-8 string"),
+                )?;
+            }
+        }
+        if !errors.is_empty() {
+            write!(f, "\n  ")?;
+        }
+        writeln!(f, "],")?;
+
+        Ok(())
+    }
+}
 
 fn new_updater<'a>(
-    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_errors: &'a RefCell<Vec<DiagnosticUpdate>>,
     received_test_cases: &'a RefCell<Vec<TestCallables>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
-        let project_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Project(error) => Some(error.clone()),
-            ErrorKind::Compile(_) => None,
-        });
-        let compile_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Compile(error) => Some(error.error().clone()),
-            ErrorKind::Project(_) => None,
-        });
-
         let mut v = received_errors.borrow_mut();
-
-        v.push((
-            update.uri,
-            update.version,
-            compile_errors.collect(),
-            project_errors.collect(),
-        ));
+        v.push(update);
     };
 
     let test_callable_receiver = move |update: TestCallables| {
@@ -2628,28 +2053,13 @@ fn new_updater<'a>(
 }
 
 fn new_updater_with_file_system<'a>(
-    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    received_errors: &'a RefCell<Vec<DiagnosticUpdate>>,
     received_test_cases: &'a RefCell<Vec<TestCallables>>,
     fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
-        let project_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Project(error) => Some(error.clone()),
-            ErrorKind::Compile(_) => None,
-        });
-        let compile_errors = update.errors.iter().filter_map(|error| match error {
-            ErrorKind::Compile(error) => Some(error.error().clone()),
-            ErrorKind::Project(_) => None,
-        });
-
         let mut v = received_errors.borrow_mut();
-
-        v.push((
-            update.uri,
-            update.version,
-            compile_errors.collect(),
-            project_errors.collect(),
-        ));
+        v.push(update);
     };
 
     let test_callable_receiver = move |update: TestCallables| {
@@ -2666,10 +2076,18 @@ fn new_updater_with_file_system<'a>(
     )
 }
 
-fn expect_errors(errors: &RefCell<Vec<ErrorInfo>>, expected: &Expect) {
-    expected.assert_debug_eq(&errors.borrow());
+fn expect_errors(updates: &RefCell<Vec<DiagnosticUpdate>>, expected: &Expect) {
+    let mut buf = String::new();
+    let _ = buf.write_str("[");
+    for update in updates.borrow().iter() {
+        let _ = write!(buf, "\n  {update}");
+    }
+    let _ = buf.write_str("]");
+
+    expected.assert_eq(&buf);
+
     // reset accumulated errors after each check
-    errors.borrow_mut().clear();
+    updates.borrow_mut().clear();
 }
 
 fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &Expect) {
@@ -2680,7 +2098,11 @@ fn assert_compilation_sources(updater: &CompilationStateUpdater<'_>, expected: &
             .compilations
             .iter()
             .fold(String::new(), |mut output, (name, compilation)| {
-                let _ = writeln!(output, "{}: {:#?}", name, compilation.0.user_unit().sources);
+                let _ = writeln!(output, "{name}: [");
+                for source in compilation.0.user_unit().sources.iter() {
+                    let _ = writeln!(output, "  {:?}: {:?},", source.name, source.contents);
+                }
+                let _ = writeln!(output, "],");
                 output
             });
     expected.assert_eq(&compilation_sources);
@@ -2693,14 +2115,14 @@ fn assert_open_documents(updater: &CompilationStateUpdater<'_>, expected: &Expec
 
 fn check_state_and_errors(
     updater: &CompilationStateUpdater<'_>,
-    received_errors: &RefCell<Vec<ErrorInfo>>,
+    received_diag_updates: &RefCell<Vec<DiagnosticUpdate>>,
     expected_open_documents: &Expect,
     expected_compilation_sources: &Expect,
     expected_errors: &Expect,
 ) {
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
-    expect_errors(received_errors, expected_errors);
+    expect_errors(received_diag_updates, expected_errors);
 }
 
 fn check_state(
@@ -2723,10 +2145,6 @@ async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_conf
     let lints_config = manifest.lints;
 
     expected_config.assert_eq(&format!("{lints_config:#?}"));
-}
-
-fn check_lints(lints: &[compile::ErrorKind], expected_lints: &Expect) {
-    expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
 thread_local! { static TEST_FS: Rc<RefCell<FsNode>> = Rc::new(RefCell::new(test_fs()))}

@@ -250,7 +250,6 @@ export function Editor(props: {
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
-      automaticLayout: true,
     });
 
     editor.current = newEditor;
@@ -414,8 +413,8 @@ export function Editor(props: {
   }
 
   return (
-    <>
-      <div class="editor-header">
+    <div class="editor-column">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="file-name">main.qs</div>
         <div class="icon-row">
           <svg
@@ -521,6 +520,6 @@ export function Editor(props: {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }

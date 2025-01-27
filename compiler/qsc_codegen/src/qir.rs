@@ -8,8 +8,9 @@ mod instruction_tests;
 mod tests;
 
 use qsc_data_structures::target::TargetCapabilityFlags;
+use qsc_eval::val::Value;
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_partial_eval::{partially_evaluate, ProgramEntry};
+use qsc_partial_eval::{partially_evaluate, partially_evaluate_call, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::check_and_transform,
@@ -37,6 +38,7 @@ pub fn hir_to_qir(
     fir_to_qir(&fir_store, capabilities, compute_properties, entry)
 }
 
+/// converts the given sources to RIR using the given language features.
 pub fn fir_to_rir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
@@ -49,6 +51,7 @@ pub fn fir_to_rir(
     Ok((orig, program))
 }
 
+/// converts the given sources to QIR using the given language features.
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
@@ -56,6 +59,25 @@ pub fn fir_to_qir(
     entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
     let mut program = get_rir_from_compilation(fir_store, compute_properties, entry, capabilities)?;
+    check_and_transform(&mut program);
+    Ok(ToQir::<String>::to_qir(&program, &program))
+}
+
+/// converts the given callable to QIR using the given arguments and language features.
+pub fn fir_to_qir_from_callable(
+    fir_store: &qsc_fir::fir::PackageStore,
+    capabilities: TargetCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+    callable: qsc_fir::fir::StoreItemId,
+    args: Value,
+) -> Result<String, qsc_partial_eval::Error> {
+    let compute_properties = compute_properties.unwrap_or_else(|| {
+        let analyzer = qsc_rca::Analyzer::init(fir_store);
+        analyzer.analyze_all()
+    });
+
+    let mut program =
+        partially_evaluate_call(fir_store, &compute_properties, callable, args, capabilities)?;
     check_and_transform(&mut program);
     Ok(ToQir::<String>::to_qir(&program, &program))
 }
