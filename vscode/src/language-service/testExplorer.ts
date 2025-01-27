@@ -48,6 +48,7 @@ export function startTestDiscovery(
     // use the compiler worker to run the test in the interpreter
 
     log.trace("Starting test run, request was", JSON.stringify(request));
+
     const worker = getLocalCompilerWorker(context.extensionUri);
 
     const programResult = await getActiveProgram();
@@ -106,7 +107,6 @@ export function startTestDiscovery(
             msg.detail.value.related[0].location?.source) ||
           null;
 
-        log.info("msg: ", JSON.stringify(msg, null, 2));
         const message: vscode.TestMessage = {
           message: msg.detail.value.message,
           location:
@@ -168,7 +168,9 @@ export function startTestDiscovery(
         let testItem = rover.get(id);
         if (!testItem) {
           testItem = testController.createTestItem(id, part, vscLocation.uri);
-          testItem.range = vscLocation.range;
+          if (i === parts.length - 1) {
+            testItem.range = vscLocation.range;
+          }
           rover.add(testItem);
         }
         testMetadata.set(testItem, currentVersion);
