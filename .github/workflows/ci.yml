@@ -89,7 +89,7 @@ jobs:
     name: Build and test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-14, ubuntu-22.04-arm]
 
     runs-on: ${{matrix.os}}
 
@@ -156,7 +156,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-14]
+        os: [windows-latest, ubuntu-latest, macos-14, ubuntu-22.04-arm]
 
     runs-on: ${{matrix.os}}
 
