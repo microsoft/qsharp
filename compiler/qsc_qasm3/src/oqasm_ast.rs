@@ -375,29 +375,56 @@ struct ClassicalAssignment {
 
 enum ExprKind {
     Identifier(Identifier),
-    UnaryExpr(UnaryOp, Expr),
-    BinaryExpr(BinaryOp, Expr, Expr),
+    UnaryExpr(UnaryExpr),
+    BinaryExpr(BinaryExpr),
     Literal(Literal),
-    FunctionCall {
-        name: Identifier,
-        args: List<Expr>,
-    },
-    Cast {
-        r#type: ClassicalType,
-        arg: Expr,
-    },
+    FunctionCall(FunctionCall),
+    Cast(Cast),
     Concatenation(Concatenation),
-    IndexExpr {
-        collection: Expr,
-        index: IndexElement,
-    },
-    DurationOf {
-        target: List<Stmt>,
-    },
-    SizeOf {
-        target: Expr,
-        value: Union<Identifier, Concatenation>,
-    },
+    IndexExpr(IndexExpr),
+    DurationOf(DurationOf),
+    SizeOf(SizeOf),
+}
+
+struct UnaryExpr {
+    span: Span,
+    op: UnaryOp,
+    expr: Expr,
+}
+
+struct BinaryExpr {
+    span: Span,
+    op: BinaryOp,
+    lhs: Expr,
+    rhs: Expr,
+}
+struct FunctionCall {
+    span: Span,
+    name: Identifier,
+    args: List<Expr>,
+}
+
+struct Cast {
+    span: Span,
+    r#type: ClassicalType,
+    arg: Expr,
+}
+
+struct IndexExpr {
+    span: Span,
+    collection: Expr,
+    index: IndexElement,
+}
+
+struct DurationOf {
+    span: Span,
+    target: List<Stmt>,
+}
+
+struct SizeOf {
+    span: Span,
+    target: Expr,
+    value: Union<Identifier, Concatenation>,
 }
 
 enum UnaryOp {
