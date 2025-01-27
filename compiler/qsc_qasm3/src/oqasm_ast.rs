@@ -5,7 +5,6 @@ use std::convert::Infallible;
 // sample to verify that is actually faster than using Vec<T>.
 /// An alternative to `Vec<T>` that uses less stack space.
 type List<T> = Box<[Box<T>]>;
-type Identifier = String;
 
 enum Union<T1, T2, T3 = Infallible> {
     First(T1),
@@ -59,12 +58,19 @@ struct DiscreteSet {
 }
 
 struct RangeDefinition {
+    span: Span,
     start: Option<Expr>,
     end: Option<Expr>,
     step: Option<Expr>,
 }
 
+struct Identifier {
+    span: Span,
+    name: String,
+}
+
 struct IndexedIdentifier {
+    span: Span,
     name: Identifier,
     indices: List<IndexElement>,
 }
@@ -92,7 +98,12 @@ struct ExternArgument {
     access: Option<AccessControl>,
 }
 
-enum ClassicalType {
+struct ClassicalType {
+    span: Span,
+    kind: ClassicalTypeKind,
+}
+
+enum ClassicalTypeKind {
     Int(IntType),
     UInt(UIntType),
     Float(FloatType),
@@ -100,19 +111,13 @@ enum ClassicalType {
     Angle(AngleType),
     Bit(BitType),
     BoolType,
-    Array {
-        base_type: ArrayBaseType,
-        dimensions: List<Expr>,
-    },
-    ArrayReference {
-        base_type: ArrayBaseType,
-        dimensions: Union<Expr, List<Expr>>,
-    },
+    Array(ArrayType),
+    ArrayReference(ArrayReferenceType),
     Duration,
     Stretch,
 }
 
-enum ArrayBaseType {
+enum ArrayBaseTypeKind {
     Int(IntType),
     UInt(UIntType),
     Float(FloatType),
@@ -146,6 +151,18 @@ struct BitType {
     size: Option<Expr>,
 }
 
+struct ArrayType {
+    span: Span,
+    base_type: ArrayBaseTypeKind,
+    dimensions: List<Expr>,
+}
+
+struct ArrayReferenceType {
+    span: Span,
+    base_type: ArrayBaseTypeKind,
+    dimensions: Union<Expr, List<Expr>>,
+}
+
 enum AccessControl {
     ReadOnly,
     Mutable,
@@ -163,9 +180,9 @@ struct Pragma {
 
 enum StmtKind {
     CompoundStmt(CompoundStmt),
-    Include(String),
-    ExpressionStatement(Expr),
-    QubitDeclaration(Identifier, Option<Expr>),
+    Include(IncludeStmt),
+    ExpressionStmt(Expr),
+    QubitDeclaration(QubitDeclaration),
     QuantumGateDefinition(QuantumGateDefinition),
     ExternDeclaration(ExternDeclaration),
     Quantum(QuantumStmt),
@@ -173,11 +190,11 @@ enum StmtKind {
     ClassicalDeclaration(ClassicalDeclaration),
     IODeclaration(IODeclaration),
     ConstantDeclaration(ConstantDeclaration),
-    CalibrationGrammarDeclaration { name: String },
-    CalibrationStatement { body: String },
+    CalibrationGrammarDeclaration(CalibrationGrammarDeclaration),
+    CalibrationStmt(CalibrationStmt),
     CalibrationDefinition(CalibrationDefinition),
     SubroutineDefinition(SubroutineDefinition),
-    Return(Option<Union<Expr, QuantumMeasurement>>),
+    Return(ReturnStmt),
     Break,
     Continue,
     Branching(BranchingStmt),
@@ -187,9 +204,24 @@ enum StmtKind {
     ClassicalAssignment(ClassicalAssignment),
 }
 
-type CompoundStmt = List<Stmt>;
+struct CompoundStmt {
+    span: Span,
+    statements: List<Stmt>,
+}
+
+struct IncludeStmt {
+    span: Span,
+    filename: String,
+}
+
+struct QubitDeclaration {
+    span: Span,
+    qubit: Identifier,
+    size: Option<Expr>,
+}
 
 struct QuantumGateDefinition {
+    span: Span,
     name: Identifier,
     arguments: Vec<Identifier>,
     qubits: Vec<Identifier>,
@@ -197,12 +229,18 @@ struct QuantumGateDefinition {
 }
 
 struct ExternDeclaration {
+    span: Span,
     name: Identifier,
     arguments: List<ExternArgument>,
     return_type: Option<ClassicalType>,
 }
 
-enum QuantumStmt {
+struct QuantumStmt {
+    span: Span,
+    kind: QuantumStmtKind,
+}
+
+enum QuantumStmtKind {
     Gate(QuantumGate),
     Phase(QuantumPhase),
     Barrier(List<Expr>),
@@ -212,6 +250,7 @@ enum QuantumStmt {
 }
 
 struct QuantumGate {
+    span: Span,
     modifiers: List<QuantumGateModifier>,
     name: Identifier,
     args: List<Expr>,
@@ -220,45 +259,63 @@ struct QuantumGate {
 }
 
 struct QuantumPhase {
+    span: Span,
     modifiers: List<QuantumGateModifier>,
     arg: Expr,
     qubits: List<Union<IndexedIdentifier, Identifier>>,
 }
 
 struct DelayInstruction {
+    span: Span,
     duration: Expr,
     qubits: List<Union<IndexedIdentifier, Identifier>>,
 }
 
 struct BoxStmt {
+    span: Span,
     duration: Option<Expr>,
     body: List<QuantumStmt>,
 }
 
 struct QuantumMeasurementStmt {
+    span: Span,
     measure: QuantumMeasurement,
     target: Option<Box<Union<Identifier, IndexedIdentifier>>>,
 }
 
 struct ClassicalDeclaration {
+    span: Span,
     r#type: ClassicalType,
     identifier: Identifier,
     init_expr: Option<Union<Expr, QuantumMeasurement>>,
 }
 
 struct IODeclaration {
+    span: Span,
     io_identifier: IOKeyword,
     r#type: ClassicalType,
     identifier: Identifier,
 }
 
 struct ConstantDeclaration {
+    span: Span,
     r#type: ClassicalType,
     identifier: Identifier,
     init_expr: Expr,
 }
 
+struct CalibrationGrammarDeclaration {
+    span: Span,
+    name: String,
+}
+
+struct CalibrationStmt {
+    span: Span,
+    body: String,
+}
+
 struct CalibrationDefinition {
+    span: Span,
     name: Identifier,
     args: List<Union<ClassicalArgument, Expr>>,
     qubits: List<Identifier>,
@@ -267,24 +324,33 @@ struct CalibrationDefinition {
 }
 
 struct SubroutineDefinition {
+    span: Span,
     name: Identifier,
     args: List<Union<ClassicalArgument, QuantumArgument>>,
     body: List<Stmt>,
     return_type: Option<ClassicalType>,
 }
 
+struct ReturnStmt {
+    span: Span,
+    expr: Option<Union<Expr, QuantumMeasurement>>,
+}
+
 struct BranchingStmt {
+    span: Span,
     condition: Expr,
     if_block: List<Stmt>,
     else_block: List<Stmt>,
 }
 
 struct WhileLoop {
+    span: Span,
     while_condition: Expr,
     block: List<Stmt>,
 }
 
 struct ForInLoop {
+    span: Span,
     r#type: ClassicalType,
     identifier: Identifier,
     set_declaration: Union<RangeDefinition, DiscreteSet, Expr>,
@@ -292,6 +358,7 @@ struct ForInLoop {
 }
 
 struct SwitchStmt {
+    span: Span,
     target: Expr,
     cases: List<(List<Expr>, CompoundStmt)>,
     /// Note that `None` is quite different to `[]` in this case; the latter is
@@ -301,6 +368,7 @@ struct SwitchStmt {
 }
 
 struct ClassicalAssignment {
+    span: Span,
     lvalue: Union<Identifier, IndexedIdentifier>,
     op: AssignmentOp,
 }
@@ -379,7 +447,12 @@ enum BinaryOp {
     Exp,
 }
 
-enum Literal {
+struct Literal {
+    span: Span,
+    kind: LiteralKind,
+}
+
+enum LiteralKind {
     Integer(i64),
     Float(f64),
     Imaginary(f64),
