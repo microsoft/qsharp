@@ -67,8 +67,9 @@ impl LanguageService {
             let callables = update
                 .callables
                 .iter()
-                .map(|(callable_name, location)| -> TestDescriptor {
+                .map(|(compilation_uri, callable_name, location)| -> TestDescriptor {
                     TestDescriptor {
+                        compilation_uri: compilation_uri.clone(),
                         callable_name: callable_name.into(),
                         location: location.clone().into(),
                     }

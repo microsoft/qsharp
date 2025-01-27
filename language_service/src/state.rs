@@ -159,9 +159,6 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let compilation_uri = project.path.clone();
 
-        // publish test callables only for the latest-updated compilation URI
-        self.publish_test_callables(&compilation_uri);
-
         let prev_compilation_uri = self.with_state_mut(|state| {
             state
                 .open_documents
@@ -186,7 +183,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
         self.insert_buffer_aware_compilation(project);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Attempts to resolve a manifest for the given document uri.
@@ -287,7 +284,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Removes a document from the open documents map. If the
@@ -384,7 +381,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 (compilation, notebook_configuration),
             );
         });
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     pub(super) fn close_notebook_document(&mut self, notebook_uri: &str) {
@@ -402,13 +399,14 @@ impl<'a> CompilationStateUpdater<'a> {
             state.compilations.remove(notebook_uri);
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
+    fn publish_diagnostics_and_test_callables(&mut self) {
+        self.publish_test_callables();
         let last_docs_with_errors = take(&mut self.documents_with_errors);
         let mut docs_with_errors = FxHashSet::default();
 
@@ -515,7 +513,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Borrows the compilation state immutably and invokes `f`.
@@ -546,18 +544,16 @@ impl<'a> CompilationStateUpdater<'a> {
         f(&mut state)
     }
 
-    fn publish_test_callables(&self, compilation_uri: &str) {
+    fn publish_test_callables(&self) {
         self.with_state(|state| {
-            let Some(compilation) = state.compilations.get(compilation_uri).map(|x| &x.0) else {
-                return;
-            };
-
-            let callables = TestCallables {
-                callables: compilation
-                    .test_cases
-                    .iter()
-                    .map(|(name, span)| {
+            // get test callables from each compilation
+            let callables: Vec<_> = state
+                .compilations
+                .iter()
+                .flat_map(|(compilation_uri, (compilation, _))| {
+                    compilation.test_cases.iter().map(move |(name, span)| {
                         (
+                            compilation_uri.to_string(),
                             name.clone(),
                             crate::qsc_utils::into_location(
                                 self.position_encoding,
@@ -567,10 +563,10 @@ impl<'a> CompilationStateUpdater<'a> {
                             ),
                         )
                     })
-                    .collect(),
-            };
+                })
+                .collect();
 
-            (self.test_callable_receiver)(callables);
+            (self.test_callable_receiver)(TestCallables { callables });
         });
     }
 }

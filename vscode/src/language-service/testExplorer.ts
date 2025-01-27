@@ -153,10 +153,10 @@ export function startTestDiscovery(
       currentVersion = (testMetadata.get(testItem) || 0) + 1;
       break;
     }
-
-    for (const { callableName, location } of evt.detail.callables) {
+    
+    for (const { compilationUri, callableName, location } of evt.detail.callables) {
       const vscLocation = toVsCodeLocation(location);
-      const parts = callableName.split(".");
+      const parts = [compilationUri, ...callableName.split(".")];
 
       let rover = testController.items;
       for (let i = 0; i < parts.length; i++) {

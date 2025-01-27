@@ -38,9 +38,12 @@ pub struct DiagnosticUpdate {
 /// i.e. "Main.TestCase". Call it by adding parens to the end, e.g. `Main.TestCase()`
 pub type CallableName = String;
 
+/// A string that represents the originating compilation URI of this callable
+pub type CompilationUri = String;
+
 #[derive(Debug)]
 pub struct TestCallables {
-    pub callables: Vec<(CallableName, Location)>,
+    pub callables: Vec<(CompilationUri, CallableName, Location)>,
 }
 
 #[derive(Debug)]
