@@ -241,12 +241,13 @@ impl Compilation {
 
     pub fn human_readable_project_name(&self) -> Arc<str> {
         match &self.kind {
-            CompilationKind::OpenProject { human_readable_name, .. } => human_readable_name.clone(),
-            CompilationKind::Notebook { project } => {
-                project
-                    .as_ref()
-                    .map_or_else(|| Arc::from("Notebook"), |p| p.name.clone())
-            }
+            CompilationKind::OpenProject {
+                human_readable_name,
+                ..
+            } => human_readable_name.clone(),
+            CompilationKind::Notebook { project } => project
+                .as_ref()
+                .map_or_else(|| Arc::from("Notebook"), |p| p.name.clone()),
         }
     }
 
@@ -352,7 +353,7 @@ impl Compilation {
                 lints_config,
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
-                human_readable_name
+                human_readable_name,
             ),
             CompilationKind::Notebook { ref project } => Self::new_notebook(
                 sources.into_iter(),

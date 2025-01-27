@@ -262,7 +262,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 &configuration.lints_config,
                 loaded_project.package_graph_sources,
                 loaded_project.errors,
-                &loaded_project.name
+                &loaded_project.name,
             );
 
             state

@@ -10,8 +10,12 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { loadCompilerWorker, toVsCodeLocation, toVsCodeRange } from "../common";
-import { getActiveProgram } from "../programConfig";
+import { getActiveProgram, getProgramForDocument } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
+
+interface TestMetadata {
+  compilationUri: vscode.Uri;
+}
 
 let worker: ICompilerWorker | null = null;
 /**
@@ -51,16 +55,10 @@ export function startTestDiscovery(
 
     const worker = getLocalCompilerWorker(context.extensionUri);
 
-    const programResult = await getActiveProgram();
-    if (!programResult.success) {
-      throw new Error(programResult.errorMsg);
-    }
-
-    const program = programResult.programConfig;
     // request.include is an array of test cases to run, and it is only provided if a specific set of tests were selected.
     if (request.include !== undefined) {
       for (const testCase of request.include || []) {
-        await runTestCase(testController, testCase, request, worker, program);
+        await runTestCase(testController, testCase, request, worker);
       }
     } else {
       // alternatively, if there is no include specified, we run all tests that are not in the exclude list
@@ -68,7 +66,7 @@ export function startTestDiscovery(
         if (request.exclude && request.exclude.includes(testCase)) {
           continue;
         }
-        await runTestCase(testController, testCase, request, worker, program);
+        await runTestCase(testController, testCase, request, worker);
       }
     }
   };
@@ -84,12 +82,11 @@ export function startTestDiscovery(
     testCase: vscode.TestItem,
     request: vscode.TestRunRequest,
     worker: ICompilerWorker,
-    program: ProgramConfig,
   ): Promise<void> {
     log.trace("Running Q# test: ", testCase.id);
     if (testCase.children.size > 0) {
       for (const childTestCase of testCase.children) {
-        await runTestCase(ctrl, childTestCase[1], request, worker, program);
+        await runTestCase(ctrl, childTestCase[1], request, worker);
       }
       return;
     }
@@ -123,6 +120,20 @@ export function startTestDiscovery(
     });
 
     const callableExpr = `${testCase.id}()`;
+    const uri = testMetadata.get(testCase)?.compilationUri;
+    if (!uri) {
+      log.error(`No compilation URI for test ${testCase.id}`);
+      run.appendOutput(`No compilation URI for test ${testCase.id}\r\n`);
+      return;
+    }
+    const programResult = await getProgramForDocument(uri);
+
+    log.info(JSON.stringify(programResult, null, 2));
+    if (!programResult.success) {
+      throw new Error(programResult.errorMsg);
+    }
+
+    const program = programResult.programConfig;
 
     try {
       await worker.run(program, callableExpr, 1, evtTarget);
@@ -142,7 +153,8 @@ export function startTestDiscovery(
     false,
   );
 
-  const testMetadata = new WeakMap<vscode.TestItem, number>();
+  const testVersions = new WeakMap<vscode.TestItem, number>();
+  const testMetadata = new WeakMap<vscode.TestItem, TestMetadata>();
   async function onTestCallables(evt: {
     detail: {
       callables: ITestDescriptor[];
@@ -150,11 +162,16 @@ export function startTestDiscovery(
   }) {
     let currentVersion = 0;
     for (const [, testItem] of testController.items) {
-      currentVersion = (testMetadata.get(testItem) || 0) + 1;
+      currentVersion = (testVersions.get(testItem) || 0) + 1;
       break;
     }
-    
-    for (const { compilationUri, callableName, location, humanReadableName } of evt.detail.callables) {
+
+    for (const {
+      compilationUri,
+      callableName,
+      location,
+      humanReadableName,
+    } of evt.detail.callables) {
       const vscLocation = toVsCodeLocation(location);
       const parts = [humanReadableName, ...callableName.split(".")];
 
@@ -168,12 +185,16 @@ export function startTestDiscovery(
         let testItem = rover.get(id);
         if (!testItem) {
           testItem = testController.createTestItem(id, part, vscLocation.uri);
+          // if this is the actual test item, give it a range and a compilation uri
           if (i === parts.length - 1) {
             testItem.range = vscLocation.range;
+            testMetadata.set(testItem, {
+              compilationUri: vscode.Uri.parse(compilationUri),
+            });
           }
           rover.add(testItem);
         }
-        testMetadata.set(testItem, currentVersion);
+        testVersions.set(testItem, currentVersion);
         rover = testItem.children;
       }
     }
@@ -193,7 +214,7 @@ export function startTestDiscovery(
   ) {
     for (const [id, testItem] of items) {
       deleteItemsNotOfVersion(version, testItem.children, testController);
-      if (testMetadata.get(testItem) !== version) {
+      if (testVersions.get(testItem) !== version) {
         items.delete(id);
       }
     }
