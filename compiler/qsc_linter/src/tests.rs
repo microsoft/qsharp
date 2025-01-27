@@ -1,18 +1,38 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints, Compilation},
-    Lint, LintConfig, LintLevel,
-};
+use crate::{run_lints, Lint, LintLevel};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
 };
-use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap};
 use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
+
+#[test]
+fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
+    check(
+        "
+        operation Main() : Unit {}
+        operation LintProblem() : Unit is Adj + Ctl {
+            use q = Qubit();
+            0.0 == 0.0;
+        }",
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "0.0 == 0.0",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
 
 #[test]
 fn daisy_chain_lint() {
@@ -804,22 +824,4 @@ impl SrcLint {
                 .collect(),
         }
     }
-}
-
-fn run_lints(
-    package_store: &PackageStore,
-    compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
-) -> Vec<Lint> {
-    let compilation = Compilation {
-        package_store,
-        compile_unit,
-    };
-
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
-    let mut lints = Vec::new();
-    lints.append(&mut ast_lints);
-    lints.append(&mut hir_lints);
-    lints
 }

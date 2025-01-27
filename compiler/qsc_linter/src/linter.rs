@@ -32,7 +32,13 @@ pub fn run_lints(
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
+    remove_duplicates(&mut lints);
     lints
+}
+
+pub(crate) fn remove_duplicates<T: Eq + std::hash::Hash + Clone>(vec: &mut Vec<T>) {
+    let mut seen = rustc_hash::FxHashSet::default();
+    vec.retain(|x| seen.insert(x.clone()));
 }
 
 #[derive(Clone, Copy)]
@@ -117,6 +123,21 @@ pub struct Lint {
     pub code_action_edits: Vec<(String, Span)>,
 }
 
+impl std::hash::Hash for Lint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.span.hash(state);
+        self.kind.hash(state);
+    }
+}
+
+impl std::cmp::PartialEq for Lint {
+    fn eq(&self, other: &Self) -> bool {
+        self.span == other.span && self.kind == other.kind
+    }
+}
+
+impl std::cmp::Eq for Lint {}
+
 impl std::fmt::Display for Lint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
@@ -188,7 +209,7 @@ pub struct LintConfig {
 }
 
 /// Represents a lint name.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(untagged)]
 pub enum LintKind {
     /// AST lint name.

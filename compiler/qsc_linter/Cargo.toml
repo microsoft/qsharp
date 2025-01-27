@@ -15,6 +15,7 @@ qsc_hir = { path = "../qsc_hir" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_doc_gen = { path = "../qsc_doc_gen" }
+rustc-hash = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
