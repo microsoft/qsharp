@@ -553,7 +553,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 .iter()
                 .flat_map(|(compilation_uri, (compilation, _))| {
                     compilation.test_cases.iter().map(move |(name, span)| {
-                        (
+                        Some((
                             compilation_uri.to_string(),
                             name.clone(),
                             crate::qsc_utils::into_location(
@@ -562,10 +562,13 @@ impl<'a> CompilationStateUpdater<'a> {
                                 *span,
                                 compilation.user_package_id,
                             ),
-                            compilation.human_readable_project_name().to_string(),
-                        )
+                            // notebooks don't have human readable names -- we use this
+                            // to filter them out in the test explorer
+                            compilation.human_readable_project_name()?.to_string(),
+                        ))
                     })
                 })
+                .flatten()
                 .collect();
 
             (self.test_callable_receiver)(TestCallables { callables });

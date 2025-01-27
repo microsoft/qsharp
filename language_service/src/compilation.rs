@@ -239,15 +239,15 @@ impl Compilation {
         }
     }
 
-    pub fn human_readable_project_name(&self) -> Arc<str> {
+    /// Returns a human-readable compilation name if one exists.
+    /// Notebooks don't have human-readable compilation names.
+    pub fn human_readable_project_name(&self) -> Option<Arc<str>> {
         match &self.kind {
             CompilationKind::OpenProject {
                 human_readable_name,
                 ..
-            } => human_readable_name.clone(),
-            CompilationKind::Notebook { project } => project
-                .as_ref()
-                .map_or_else(|| Arc::from("Notebook"), |p| p.name.clone()),
+            } => Some(human_readable_name.clone()),
+            CompilationKind::Notebook { .. } => None,
         }
     }
 
