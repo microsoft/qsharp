@@ -10,6 +10,7 @@ import "./copilot.css";
 import {
   CopilotEvent,
   MessageToCopilot,
+  QuantumChatMessage,
   ServiceTypes,
 } from "../../commonTypes";
 
@@ -180,7 +181,7 @@ function ResponseBox(props: { response: string }) {
     );
   }
 
-  return <>{responseParts}</>;
+  return <div className="response-container">{responseParts}</div>;
 }
 
 function RetryButton(props: {
@@ -189,22 +190,24 @@ function RetryButton(props: {
 }) {
   const serviceDropdown = useRef<HTMLSelectElement>(null);
   return (
-    <div style="margin: 10px 0 10px 32px; text-align: right;">
-      <select ref={serviceDropdown} value={props.service}>
-        <option value="OpenAI">OpenAI</option>
-        <option value="AzureQuantumTest">AzureQuantumTest</option>
-        <option value="AzureQuantumLocal">AzureQuantumLocal</option>
-      </select>
-      <button
-        onClick={() => {
-          const dropdown = serviceDropdown.current!;
-          const selectedService = dropdown.value;
-          props.retryRequest(selectedService as ServiceTypes);
-        }}
-      >
-        Try Again
-      </button>
-    </div>
+    // TODO: comment out for demo
+    <></>
+    // <div style="margin: 10px 0 10px 32px; text-align: right;">
+    //   <select ref={serviceDropdown} value={props.service}>
+    //     <option value="OpenAI">OpenAI</option>
+    //     <option value="AzureQuantumTest">AzureQuantumTest</option>
+    //     <option value="AzureQuantumLocal">AzureQuantumLocal</option>
+    //   </select>
+    //   <button
+    //     onClick={() => {
+    //       const dropdown = serviceDropdown.current!;
+    //       const selectedService = dropdown.value;
+    //       props.retryRequest(selectedService as ServiceTypes);
+    //     }}
+    //   >
+    //     Try Again
+    //   </button>
+    // </div>
   );
 }
 
@@ -264,7 +267,7 @@ type CopilotState = {
   toolInProgress: string | null;
   inProgress: boolean;
   service: ServiceTypes;
-  history: object[];
+  history: QuantumChatMessage[];
 };
 
 function App({ state }: { state: CopilotState }) {
@@ -298,6 +301,10 @@ function App({ state }: { state: CopilotState }) {
     globalState.conversation.push({
       role: "user",
       request: text,
+    });
+    globalState.history.push({
+      role: "user",
+      content: text,
     });
     globalState.inProgress = true;
     render(<App state={state} />, document.body);
@@ -338,7 +345,7 @@ function App({ state }: { state: CopilotState }) {
         </div>
         <InputBox onSubmit={onSubmit} inProgress={state.inProgress} />
         <div>
-          <a
+          {/* <a
             href="#"
             onClick={(e) => {
               e.preventDefault();
@@ -351,7 +358,7 @@ function App({ state }: { state: CopilotState }) {
             }}
           >
             history
-          </a>
+          </a> */}
           <div ref={historyRef} style="display: none;">
             <a
               href="#"
@@ -381,7 +388,7 @@ function App({ state }: { state: CopilotState }) {
           </div>
         </div>
       </div>
-      <div style="height: 30px;">
+      {/* <div style="height: 30px;">
         <div class="toggle-container">
           <div class="radio-group">
             <label>
@@ -416,7 +423,7 @@ function App({ state }: { state: CopilotState }) {
             </label>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
@@ -425,7 +432,8 @@ let globalState: CopilotState = {
   tidbits: [],
   inProgress: false,
   toolInProgress: null,
-  service: "AzureQuantumLocal", // default
+  // service: "AzureQuantumLocal", // default
+  service: "OpenAI", // TODO: default for demo
   conversation: [],
   history: [],
 };
@@ -444,11 +452,7 @@ function FinishedConversation(
 
   for (const message of state.conversation) {
     if (message.role === "assistant") {
-      elements.push(
-        <div className="response-container">
-          <ResponseBox response={message.response} />
-        </div>,
-      );
+      elements.push(<ResponseBox response={message.response} />);
     } else {
       elements.push(
         <div className="request-container">
@@ -459,11 +463,7 @@ function FinishedConversation(
   }
 
   if (state.tidbits.length > 0) {
-    elements.push(
-      <div className="response-container">
-        <ResponseBox response={state.tidbits.join("")} />
-      </div>,
-    );
+    elements.push(<ResponseBox response={state.tidbits.join("")} />);
   }
 
   // insert at lastUserMessage
@@ -510,6 +510,7 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
         role: "assistant",
         response: message.payload.response,
       });
+      globalState.history = message.payload.history;
       break;
     case "copilotToolCall":
       {
@@ -518,25 +519,19 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
       break;
     case "copilotToolCallDone":
       {
-        const toolName = message.payload.toolName;
-        const args = JSON.stringify(message.payload.args, undefined, 2);
-        const result = JSON.stringify(message.payload.result, undefined, 2);
-        globalState.conversation.push({
-          role: "tool",
-          name: toolName,
-          args: args,
-          result: result,
-        });
+        // TODO: comment out for demo since this doesn't look good yet
+
+        // const toolName = message.payload.toolName;
+        // const args = JSON.stringify(message.payload.args, undefined, 2);
+        // const result = JSON.stringify(message.payload.result, undefined, 2);
+        // globalState.conversation.push({
+        //   role: "tool",
+        //   name: toolName,
+        //   args: args,
+        //   result: result,
+        // });
         globalState.history = message.payload.history;
         globalState.toolInProgress = null;
-      }
-      break;
-    case "copilotResponseHistogram":
-      {
-        globalState.conversation.push({
-          role: "assistant",
-          response: message.payload.response,
-        });
       }
       break;
     case "copilotResponseDone":

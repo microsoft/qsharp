@@ -7,13 +7,12 @@ import {
 } from "vscode";
 import { OpenAICopilot } from "./openAiCopilot";
 import { AzureQuantumCopilot } from "./azqCopilot";
+import { ICopilot, CopilotEventHandler, ConversationState } from "./copilot";
 import {
-  ICopilot,
-  CopilotEventHandler,
-  ConversationState,
+  MessageToCopilot,
   QuantumChatMessage,
-} from "./copilot";
-import { MessageToCopilot, ServiceTypes } from "../commonTypes";
+  ServiceTypes,
+} from "../commonTypes";
 
 export class CopilotWebviewViewProvider implements WebviewViewProvider {
   public static readonly viewType = "quantum-copilot";
@@ -36,8 +35,11 @@ export class CopilotWebviewViewProvider implements WebviewViewProvider {
       sendMessage: this._streamCallback,
     };
 
-    this._copilot = new AzureQuantumCopilot("local", this._conversationState);
-    this._serviceType = "AzureQuantumLocal";
+    // this._copilot = new AzureQuantumCopilot("local", this._conversationState);
+    // this._serviceType = "AzureQuantumLocal";
+    // TODO: temporary defaults
+    this._copilot = new OpenAICopilot(this._conversationState);
+    this._serviceType = "OpenAI";
   }
 
   private _copilot: ICopilot;

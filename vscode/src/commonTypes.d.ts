@@ -26,7 +26,10 @@ export type ServiceTypes = "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
  */
 export type CopilotEvent =
   | { kind: "copilotResponseDelta"; payload: { response: string } }
-  | { kind: "copilotResponse"; payload: { response: string } }
+  | {
+      kind: "copilotResponse";
+      payload: { response: string; history: QuantumChatMessage[] };
+    }
   | { kind: "copilotToolCall"; payload: { toolName: string } }
   | {
       kind: "copilotToolCallDone";
@@ -34,13 +37,26 @@ export type CopilotEvent =
         toolName: string;
         args: object;
         result: object;
-        history: object[];
+        history: QuantumChatMessage[];
       };
     }
-  | { kind: "copilotResponseDone"; payload: { history: object[] } }
-  | {
-      kind: "copilotResponseHistogram";
-      payload: {
-        response: string;
-      };
-    };
+  | { kind: "copilotResponseDone"; payload: { history: QuantumChatMessage[] } };
+
+export type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
+
+type UserMessage = {
+  role: "user";
+  content: string;
+};
+
+type AssistantMessage = {
+  role: "assistant";
+  content: string;
+  ToolCalls?: ToolCall[];
+};
+
+type ToolMessage = {
+  role: "tool";
+  content: string;
+  toolCallId?: string;
+};

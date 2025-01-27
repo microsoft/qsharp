@@ -17,11 +17,11 @@ import {
   submitJobWithNameAndShots,
 } from "../azure/workspaceActions.js";
 import { supportsAdaptive } from "../azure/providerProperties.js";
-import { getQirForVisibleQs } from "../qirGeneration.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
 import { ConversationState } from "./copilot.js";
 import { handleGetJobs } from "./toolGetJobs.js";
 import { handleConnectToWorkspace } from "./toolAddWorkspace.js";
+import { getQirForVisibleQs } from "../qirGeneration.js";
 
 // Define the tools and system prompt that the model can use
 
@@ -143,7 +143,7 @@ function tryRenderResults(file: string): [string, number][] | undefined {
 export async function downloadJobResults(
   jobId: string,
   toolState: ConversationState,
-): Promise<string> {
+): Promise<string | { histogram: string; message: string }> {
   const job = await getJob(jobId, toolState);
 
   if (!job) {
@@ -197,13 +197,21 @@ export async function downloadJobResults(
         });
         const response = "```widget\nHistogram\n" + histogram + "\n```\n";
 
+        toolState.messages.push({
+          role: "assistant",
+          content: response,
+        });
         toolState.sendMessage({
           payload: {
             response,
+            history: toolState.messages,
           },
-          kind: "copilotResponseHistogram",
+          kind: "copilotResponse",
         });
-        return "Results rendered successfully.";
+        return {
+          histogram: response,
+          message: "Results were successfully rendered.",
+        };
       }
     }
     return "Failed to get the results file for the job.";

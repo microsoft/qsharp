@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 import { WorkspaceConnection } from "../azure/treeView";
-import { CopilotEvent } from "../commonTypes";
+import { CopilotEvent, QuantumChatMessage } from "../commonTypes";
+import { executeTool } from "./copilotTools";
 
 export type CopilotEventHandler = (event: CopilotEvent) => void;
 
@@ -20,25 +21,6 @@ export type ConversationState = {
   sendMessage: CopilotEventHandler;
 };
 
-export type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
-
-type UserMessage = {
-  role: "user";
-  content: string;
-};
-
-type AssistantMessage = {
-  role: "assistant";
-  content: string;
-  ToolCalls?: ToolCall[];
-};
-
-type ToolMessage = {
-  role: "tool";
-  content: string;
-  toolCallId?: string;
-};
-
 export type ToolCall = {
   /**
    * The name of the function to call
@@ -53,3 +35,90 @@ export type ToolCall = {
    */
   id: string;
 };
+
+export class Copilot {
+  protected messages: QuantumChatMessage[];
+  constructor(protected conversationState: ConversationState) {
+    this.messages = this.conversationState.messages;
+  }
+
+  async converse(question: string): Promise<void> {
+    this.messages.push({ role: "user", content: question });
+
+    const { content, toolCalls } = await this.converseWithCopilot();
+    await this.handleFullResponse(content, toolCalls);
+
+    this.conversationState.sendMessage({
+      kind: "copilotResponseDone",
+      payload: { history: this.messages },
+    });
+  }
+
+  async handleFullResponse(
+    content?: string,
+    toolCalls?: ToolCall[],
+  ): Promise<void> {
+    this.messages.push({
+      role: "assistant",
+      content: content || "",
+      ToolCalls: toolCalls,
+    });
+    if (content) {
+      // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+      let cleanedResponse = content;
+      cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+      cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+
+      this.conversationState.sendMessage({
+        kind: "copilotResponse",
+        payload: { response: cleanedResponse, history: this.messages },
+      });
+    }
+    if (toolCalls) {
+      await this.handleToolCalls(toolCalls);
+      {
+        const { content, toolCalls } = await this.converseWithCopilot();
+        await this.handleFullResponse(content, toolCalls);
+      }
+    }
+  }
+
+  async handleToolCalls(toolCalls: ToolCall[]) {
+    for (const toolCall of toolCalls) {
+      this.conversationState.sendMessage({
+        kind: "copilotToolCall",
+        payload: { toolName: toolCall.name },
+      });
+      const args = JSON.parse(toolCall.arguments);
+      const result = await executeTool(
+        toolCall.name,
+        args,
+        this.conversationState,
+      );
+
+      // Create a message containing the result of the function call
+      const toolMessage: QuantumChatMessage = {
+        role: "tool",
+        content: JSON.stringify(result),
+        toolCallId: toolCall.id,
+      };
+      this.messages.push(toolMessage);
+      this.conversationState.sendMessage({
+        kind: "copilotToolCallDone",
+        payload: {
+          toolName: toolCall.name,
+          args,
+          result,
+          history: this.messages,
+        },
+      });
+    }
+  }
+
+  protected async converseWithCopilot(): Promise<{
+    content?: string;
+    toolCalls?: ToolCall[];
+  }> {
+    throw new Error("Method not implemented.");
+  }
+}

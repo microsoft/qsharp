@@ -6,13 +6,8 @@ import { log } from "qsharp-lang";
 import { getAuthSession, scopes } from "../azure/auth";
 import { EventSourceMessage, fetchEventSource } from "../fetch";
 import { AuthenticationSession } from "vscode";
-import { executeTool } from "./copilotTools";
-import {
-  ConversationState,
-  ICopilot,
-  QuantumChatMessage,
-  ToolCall,
-} from "./copilot";
+import { ConversationState, Copilot, ICopilot, ToolCall } from "./copilot";
+import { QuantumChatMessage } from "../commonTypes";
 
 const chatUrlTest = "https://api.quantum-test.microsoft.com/api/chat/streaming";
 const chatUrlLocal = "https://localhost:7044/api/chat/streaming";
@@ -60,33 +55,17 @@ type QuantumChatRequest = {
   identifier: string;
 };
 
-export class AzureQuantumCopilot implements ICopilot {
+export class AzureQuantumCopilot extends Copilot implements ICopilot {
   conversationId: string;
-  messages: QuantumChatMessage[];
   msaChatSession?: AuthenticationSession;
 
   constructor(
     private env: "local" | "test",
-    private conversationState: ConversationState,
+    conversationState: ConversationState,
   ) {
+    super(conversationState);
     this.conversationId = getRandomGuid();
-    this.messages = this.conversationState.messages;
     log.debug("Starting copilot chat request flow");
-  }
-
-  async converse(question: string): Promise<void> {
-    this.messages.push({
-      role: "user",
-      content: question,
-    });
-
-    const { content, toolCalls } = await this.converseWithCopilot();
-    await this.handleFullResponse(content, toolCalls);
-
-    this.conversationState.sendMessage({
-      kind: "copilotResponseDone",
-      payload: { history: this.messages },
-    });
   }
 
   async getMsaChatSession(): Promise<string> {
@@ -137,75 +116,11 @@ export class AzureQuantumCopilot implements ICopilot {
     });
   }
 
-  /**
-   * @returns {Promise<boolean>} Returns true if there was a tool call made
-   *  should submit another request if there was a tool call
-   */
-  async handleFullResponse(
-    content?: string,
-    toolCalls?: ToolCall[],
-  ): Promise<void> {
-    this.messages.push({
-      role: "assistant",
-      content: content || "",
-      ToolCalls: toolCalls,
-    });
-    if (content) {
-      // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
-      let cleanedResponse = content;
-      cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
-      cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
-
-      this.conversationState.sendMessage({
-        kind: "copilotResponse",
-        payload: { response: cleanedResponse },
-      });
-    }
-    if (toolCalls) {
-      await this.handleToolCalls(toolCalls);
-      {
-        const { content, toolCalls } = await this.converseWithCopilot();
-        await this.handleFullResponse(content, toolCalls);
-      }
-    }
-  }
-
-  async handleToolCalls(toolCalls: ToolCall[]) {
-    for (const toolCall of toolCalls) {
-      this.conversationState.sendMessage({
-        kind: "copilotToolCall",
-        payload: { toolName: toolCall.name },
-      });
-      const args = JSON.parse(toolCall.arguments);
-      const result = await executeTool(
-        toolCall.name,
-        args,
-        this.conversationState,
-      );
-      // Create a message containing the result of the function call
-      const toolMessage: QuantumChatMessage = {
-        role: "tool",
-        content: JSON.stringify(result),
-        toolCallId: toolCall.id,
-      };
-      this.messages.push(toolMessage);
-      this.conversationState.sendMessage({
-        kind: "copilotToolCallDone",
-        payload: {
-          toolName: toolCall.name,
-          args,
-          result,
-          history: this.messages,
-        },
-      });
-    }
-  }
-
   getChatUrl(): string {
     return this.env === "local" ? chatUrlLocal : chatUrlTest;
   }
 
-  async converseWithCopilot(): Promise<{
+  override async converseWithCopilot(): Promise<{
     content?: string;
     toolCalls?: ToolCall[];
   }> {
