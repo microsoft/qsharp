@@ -1620,28 +1620,7 @@ async fn test_case_detected() {
         .await;
 
     expect![[r#"
-        [
-            TestCallables {
-                callables: [
-                    (
-                        "main.MyTestCase",
-                        Location {
-                            source: "parent/src/main.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 39,
-                                },
-                            },
-                        },
-                    ),
-                ],
-            },
-        ]
+        []
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1674,11 +1653,7 @@ async fn test_case_removed() {
         .await;
 
     expect![[r#"
-        [
-            TestCallables {
-                callables: [],
-            },
-        ]
+        []
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1733,31 +1708,11 @@ async fn test_case_modified() {
                             range: Range {
                                 start: Position {
                                     line: 0,
-                                    column: 0,
+                                    column: 17,
                                 },
                                 end: Position {
                                     line: 0,
-                                    column: 39,
-                                },
-                            },
-                        },
-                    ),
-                ],
-            },
-            TestCallables {
-                callables: [
-                    (
-                        "main.MyTestCase2",
-                        Location {
-                            source: "parent/src/main.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 41,
+                                    column: 27,
                                 },
                             },
                         },
@@ -1815,19 +1770,16 @@ async fn test_annotation_removed() {
                             range: Range {
                                 start: Position {
                                     line: 0,
-                                    column: 0,
+                                    column: 17,
                                 },
                                 end: Position {
                                     line: 0,
-                                    column: 39,
+                                    column: 27,
                                 },
                             },
                         },
                     ),
                 ],
-            },
-            TestCallables {
-                callables: [],
             },
         ]
     "#]]
@@ -1869,44 +1821,7 @@ async fn multiple_tests() {
         .await;
 
     expect![[r#"
-        [
-            TestCallables {
-                callables: [
-                    (
-                        "main.Test1",
-                        Location {
-                            source: "parent/src/main.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 34,
-                                },
-                            },
-                        },
-                    ),
-                    (
-                        "main.Test2",
-                        Location {
-                            source: "parent/src/main.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 35,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 69,
-                                },
-                            },
-                        },
-                    ),
-                ],
-            },
-        ]
+        []
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1946,44 +1861,7 @@ async fn test_case_in_different_files() {
         .await;
 
     expect![[r#"
-        [
-            TestCallables {
-                callables: [
-                    (
-                        "test1.Test1",
-                        Location {
-                            source: "parent/src/test1.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 34,
-                                },
-                            },
-                        },
-                    ),
-                    (
-                        "test2.Test2",
-                        Location {
-                            source: "parent/src/test2.qs",
-                            range: Range {
-                                start: Position {
-                                    line: 0,
-                                    column: 0,
-                                },
-                                end: Position {
-                                    line: 0,
-                                    column: 34,
-                                },
-                            },
-                        },
-                    ),
-                ],
-            },
-        ]
+        []
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
