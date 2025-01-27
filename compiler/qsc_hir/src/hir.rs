@@ -301,23 +301,24 @@ impl Package {
                     {
                         return None;
                     }
+
                     // this is indeed a test callable, so let's grab its parent name
-                    let name = match item.parent {
+                    let (name, span) = match item.parent {
                         None => Default::default(),
                         Some(parent_id) => {
                             let parent_item = self
                                 .items
                                 .get(parent_id)
                                 .expect("Parent item did not exist in package");
-                            if let ItemKind::Namespace(ns, _) = &parent_item.kind {
+                            let name = if let ItemKind::Namespace(ns, _) = &parent_item.kind {
                                 format!("{}.{}", ns.name(), callable.name.name)
                             } else {
                                 callable.name.name.to_string()
-                            }
+                            };
+                            let span = callable.name.span;
+                            (name, span)
                         }
                     };
-
-                    let span = item.span;
 
                     Some((name, span))
                 } else {

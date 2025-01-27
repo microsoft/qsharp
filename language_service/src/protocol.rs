@@ -34,9 +34,13 @@ pub struct DiagnosticUpdate {
     pub errors: Vec<ErrorKind>,
 }
 
+/// This is a string that represents the interpreter-ready name of the test callable.
+/// i.e. "Main.TestCase". Call it by adding parens to the end, e.g. `Main.TestCase()`
+pub type CallableName = String;
+
 #[derive(Debug)]
 pub struct TestCallables {
-    pub callables: Vec<(String, Location)>,
+    pub callables: Vec<(CallableName, Location)>,
 }
 
 #[derive(Debug)]

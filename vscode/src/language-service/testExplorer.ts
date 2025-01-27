@@ -56,9 +56,19 @@ export function startTestDiscovery(
     }
 
     const program = programResult.programConfig;
-
-    for (const testCase of request.include || []) {
-      await runTestCase(testController, testCase, request, worker, program);
+    // request.include is an array of test cases to run, and it is only provided if a specific set of tests were selected.
+    if (request.include !== undefined) {
+      for (const testCase of request.include || []) {
+        await runTestCase(testController, testCase, request, worker, program);
+      }
+    } else {
+      // alternatively, if there is no include specified, we run all tests that are not in the exclude list
+      for (const [, testCase] of testController.items) {
+        if (request.exclude && request.exclude.includes(testCase)) {
+          continue;
+        }
+        await runTestCase(testController, testCase, request, worker, program);
+      }
     }
   };
 
@@ -90,12 +100,22 @@ export function startTestDiscovery(
       if (msg.detail.success) {
         run.passed(testCase);
       } else {
+        const failureLocation =
+          msg.detail?.value?.uri ||
+          (msg.detail?.value?.related &&
+            msg.detail.value.related[0].location?.source) ||
+          null;
+
+        log.info("msg: ", JSON.stringify(msg, null, 2));
         const message: vscode.TestMessage = {
           message: msg.detail.value.message,
-          location: {
-            range: toVsCodeRange(msg.detail.value.range),
-            uri: vscode.Uri.parse(msg.detail.value.uri || ""),
-          },
+          location:
+            failureLocation === null
+              ? undefined
+              : {
+                  range: toVsCodeRange(msg.detail.value.range),
+                  uri: vscode.Uri.parse(failureLocation),
+                },
         };
         run.failed(testCase, message);
       }

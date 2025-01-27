@@ -32,13 +32,10 @@ impl LanguageService {
 
     pub fn start_background_work(
         &mut self,
-        diagnostics_callback: DiagnosticsCallback,
+        diagnostics_callback: &DiagnosticsCallback,
         test_callables_callback: &TestCallableCallback,
         host: ProjectHost,
     ) -> js_sys::Promise {
-        let diagnostics_callback =
-            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
-
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")

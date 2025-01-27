@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ITestDescriptor } from "../../lib/node/qsc_wasm.cjs";
 import type {
   ICodeAction,
   ICodeLens,
@@ -17,6 +16,7 @@ import type {
   IWorkspaceEdit,
   LanguageService,
   VSDiagnostic,
+  ITestDescriptor,
 } from "../../lib/web/qsc_wasm.js";
 import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
@@ -275,7 +275,8 @@ export class QSharpLanguageService implements ILanguageService {
     diagnostics: VSDiagnostic[],
   ) {
     try {
-      const event = new Event("diagnostics") as LanguageServiceEvent & Event;
+      const event = new Event("diagnostics") as LanguageServiceDiagnosticEvent &
+        Event;
       event.detail = {
         uri,
         version: version ?? 0,
@@ -289,7 +290,9 @@ export class QSharpLanguageService implements ILanguageService {
 
   async onTestCallables(callables: ITestDescriptor[]) {
     try {
-      const event = new Event("testCallables") as LanguageServiceEvent & Event;
+      const event = new Event(
+        "testCallables",
+      ) as LanguageServiceTestCallablesEvent & Event;
       event.detail = {
         callables,
       };
