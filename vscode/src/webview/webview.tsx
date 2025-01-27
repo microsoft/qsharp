@@ -40,7 +40,6 @@ type HistogramState = {
 
 type EstimatesState = {
   viewType: "estimates";
-  panelId: string;
   estimatesData: {
     calculating: boolean;
     estimates: ReData[];
@@ -55,20 +54,19 @@ type CircuitState = {
 
 type DocumentationState = {
   viewType: "documentation";
-  panelId: string;
   fragmentsToRender: IDocFile[];
   projectName: string;
 };
 
 type State =
   | { viewType: "loading"; panelId: string }
-  | { viewType: "help"; panelId: string }
+  | { viewType: "help" }
   | HistogramState
   | EstimatesState
   | CircuitState
   | DocumentationState;
 const loadingState: State = { viewType: "loading", panelId: "" };
-const helpState: State = { viewType: "help", panelId: "" };
+const helpState: State = { viewType: "help" };
 let state: State = loadingState;
 
 const themeAttribute = "data-vscode-theme-kind";
@@ -154,7 +152,6 @@ function onMessage(event: any) {
       {
         const newState: EstimatesState = {
           viewType: "estimates",
-          panelId: message.panelId,
           estimatesData: {
             calculating: !!message.calculating,
             estimates: [],
@@ -192,7 +189,6 @@ function onMessage(event: any) {
       {
         state = {
           viewType: "documentation",
-          panelId: message.panelId,
           fragmentsToRender: message.fragmentsToRender,
           projectName: message.projectName,
         };

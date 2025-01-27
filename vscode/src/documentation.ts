@@ -14,7 +14,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
 
   // Reveal panel and show 'Loading...' for immediate feedback.
   sendMessageToPanel(
-    { panelType: "documentation", id: "" }, // This is needed to route the message to the proper panel
+    { panelType: "documentation" }, // This is needed to route the message to the proper panel
     true, // Reveal panel
     null, // With no message
   );
@@ -48,7 +48,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   };
 
   sendMessageToPanel(
-    { panelType: "documentation", id: "" }, // This is needed to route the message to the proper panel
+    { panelType: "documentation" }, // This is needed to route the message to the proper panel
     true, // Reveal panel
     message, // And ask it to display documentation
   );
