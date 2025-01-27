@@ -1,3 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#[cfg(test)]
+mod tests;
+
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::{fmt::Display, fmt::Write, ops::Not, vec};
