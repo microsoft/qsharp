@@ -516,12 +516,12 @@ test("test callable discovery", async () => {
       source: "test.qs",
       span: {
         end: {
-          character: 30,
+          character: 18,
           line: 2,
         },
         start: {
-          character: 4,
-          line: 1,
+          character: 14,
+          line: 2,
         },
       },
     });

@@ -1620,7 +1620,30 @@ async fn test_case_detected() {
         .await;
 
     expect![[r#"
-        []
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "parent/qsharp.json",
+                        "main.MyTestCase",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 27,
+                                },
+                            },
+                        },
+                        "parent",
+                    ),
+                ],
+            },
+        ]
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1653,7 +1676,11 @@ async fn test_case_removed() {
         .await;
 
     expect![[r#"
-        []
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1702,6 +1729,7 @@ async fn test_case_modified() {
             TestCallables {
                 callables: [
                     (
+                        "parent/qsharp.json",
                         "main.MyTestCase",
                         Location {
                             source: "parent/src/main.qs",
@@ -1716,6 +1744,29 @@ async fn test_case_modified() {
                                 },
                             },
                         },
+                        "parent",
+                    ),
+                ],
+            },
+            TestCallables {
+                callables: [
+                    (
+                        "parent/qsharp.json",
+                        "main.MyTestCase2",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 28,
+                                },
+                            },
+                        },
+                        "parent",
                     ),
                 ],
             },
@@ -1764,6 +1815,7 @@ async fn test_annotation_removed() {
             TestCallables {
                 callables: [
                     (
+                        "parent/qsharp.json",
                         "main.MyTestCase",
                         Location {
                             source: "parent/src/main.qs",
@@ -1778,8 +1830,12 @@ async fn test_annotation_removed() {
                                 },
                             },
                         },
+                        "parent",
                     ),
                 ],
+            },
+            TestCallables {
+                callables: [],
             },
         ]
     "#]]
@@ -1821,7 +1877,48 @@ async fn multiple_tests() {
         .await;
 
     expect![[r#"
-        []
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "parent/qsharp.json",
+                        "main.Test1",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        "parent",
+                    ),
+                    (
+                        "parent/qsharp.json",
+                        "main.Test2",
+                        Location {
+                            source: "parent/src/main.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 52,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 57,
+                                },
+                            },
+                        },
+                        "parent",
+                    ),
+                ],
+            },
+        ]
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
@@ -1861,7 +1958,48 @@ async fn test_case_in_different_files() {
         .await;
 
     expect![[r#"
-        []
+        [
+            TestCallables {
+                callables: [
+                    (
+                        "parent/qsharp.json",
+                        "test1.Test1",
+                        Location {
+                            source: "parent/src/test1.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        "parent",
+                    ),
+                    (
+                        "parent/qsharp.json",
+                        "test2.Test2",
+                        Location {
+                            source: "parent/src/test2.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 17,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 22,
+                                },
+                            },
+                        },
+                        "parent",
+                    ),
+                ],
+            },
+        ]
     "#]]
     .assert_debug_eq(&test_cases.borrow());
 }
