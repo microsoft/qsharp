@@ -115,6 +115,7 @@ fn expected_word_kinds(
     match &compilation.kind {
         CompilationKind::OpenProject {
             package_graph_sources,
+            ..
         } => possible_words_at_offset_in_source(
             source_contents,
             Some(source_name_relative),

@@ -262,6 +262,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 &configuration.lints_config,
                 loaded_project.package_graph_sources,
                 loaded_project.errors,
+                &loaded_project.name
             );
 
             state
@@ -561,6 +562,7 @@ impl<'a> CompilationStateUpdater<'a> {
                                 *span,
                                 compilation.user_package_id,
                             ),
+                            compilation.human_readable_project_name().to_string(),
                         )
                     })
                 })

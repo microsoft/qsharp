@@ -154,9 +154,9 @@ export function startTestDiscovery(
       break;
     }
     
-    for (const { compilationUri, callableName, location } of evt.detail.callables) {
+    for (const { compilationUri, callableName, location, humanReadableName } of evt.detail.callables) {
       const vscLocation = toVsCodeLocation(location);
-      const parts = [compilationUri, ...callableName.split(".")];
+      const parts = [humanReadableName, ...callableName.split(".")];
 
       let rover = testController.items;
       for (let i = 0; i < parts.length; i++) {

@@ -41,9 +41,12 @@ pub type CallableName = String;
 /// A string that represents the originating compilation URI of this callable
 pub type CompilationUri = String;
 
+/// A human readable name that represents the compilation.
+pub type HumanReadableName = String;
+
 #[derive(Debug)]
 pub struct TestCallables {
-    pub callables: Vec<(CompilationUri, CallableName, Location)>,
+    pub callables: Vec<(CompilationUri, CallableName, Location, HumanReadableName)>,
 }
 
 #[derive(Debug)]

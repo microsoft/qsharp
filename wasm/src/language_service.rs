@@ -67,11 +67,12 @@ impl LanguageService {
             let callables = update
                 .callables
                 .iter()
-                .map(|(compilation_uri, callable_name, location)| -> TestDescriptor {
+                .map(|(compilation_uri, callable_name, location, human_readable_name)| -> TestDescriptor {
                     TestDescriptor {
                         compilation_uri: compilation_uri.clone(),
                         callable_name: callable_name.into(),
                         location: location.clone().into(),
+                        human_readable_name: human_readable_name.clone(),
                     }
                 })
                 .collect::<Vec<_>>();

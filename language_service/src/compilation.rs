@@ -47,6 +47,8 @@ pub(crate) enum CompilationKind {
     /// one or more sources, and a target profile.
     OpenProject {
         package_graph_sources: PackageGraphSources,
+        /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
+        human_readable_name: Arc<str>,
     },
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
@@ -63,6 +65,7 @@ impl Compilation {
         lints_config: &[LintConfig],
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
+        pretty_name: &Arc<str>,
     ) -> Self {
         let mut buildable_program =
             prepare_package_store(target_profile.into(), package_graph_sources.clone());
@@ -110,6 +113,7 @@ impl Compilation {
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
+                human_readable_name: pretty_name.clone(),
             },
             compile_errors,
             project_errors,
@@ -235,6 +239,17 @@ impl Compilation {
         }
     }
 
+    pub fn human_readable_project_name(&self) -> Arc<str> {
+        match &self.kind {
+            CompilationKind::OpenProject { human_readable_name, .. } => human_readable_name.clone(),
+            CompilationKind::Notebook { project } => {
+                project
+                    .as_ref()
+                    .map_or_else(|| Arc::from("Notebook"), |p| p.name.clone())
+            }
+        }
+    }
+
     /// Gets the `CompileUnit` associated with user (non-library) code.
     pub fn user_unit(&self) -> &CompileUnit {
         self.package_store
@@ -329,6 +344,7 @@ impl Compilation {
         let new = match self.kind {
             CompilationKind::OpenProject {
                 ref package_graph_sources,
+                ref human_readable_name,
             } => Self::new(
                 package_type,
                 target_profile,
@@ -336,6 +352,7 @@ impl Compilation {
                 lints_config,
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
+                human_readable_name
             ),
             CompilationKind::Notebook { ref project } => Self::new_notebook(
                 sources.into_iter(),
