@@ -9,7 +9,7 @@ import "highlight.js/styles/default.css";
 import "./copilot.css";
 import {
   CopilotEvent,
-  MessageToCopilot,
+  // MessageToCopilot,
   QuantumChatMessage,
   ServiceTypes,
 } from "../../commonTypes";
@@ -184,11 +184,12 @@ function ResponseBox(props: { response: string }) {
   return <div className="response-container">{responseParts}</div>;
 }
 
-function RetryButton(props: {
-  service: ServiceTypes;
-  retryRequest: (service: ServiceTypes) => void;
-}) {
-  const serviceDropdown = useRef<HTMLSelectElement>(null);
+function RetryButton() {
+  //   props: {
+  //   service: ServiceTypes;
+  //   retryRequest: (service: ServiceTypes) => void;
+  // }
+  // const serviceDropdown = useRef<HTMLSelectElement>(null);
   return (
     // TODO: comment out for demo
     <></>
@@ -271,23 +272,23 @@ type CopilotState = {
 };
 
 function App({ state }: { state: CopilotState }) {
-  function reset(ev: any) {
-    const service = ev.target.value;
+  // function reset(ev: any) {
+  //   const service = ev.target.value;
 
-    sendMessageToExtension({
-      command: "resetCopilot",
-      request: service,
-    });
-    globalState = {
-      tidbits: [],
-      conversation: [],
-      inProgress: false,
-      service,
-      toolInProgress: null,
-      history: [],
-    };
-    render(<App state={globalState} />, document.body);
-  }
+  //   sendMessageToExtension({
+  //     command: "resetCopilot",
+  //     request: service,
+  //   });
+  //   globalState = {
+  //     tidbits: [],
+  //     conversation: [],
+  //     inProgress: false,
+  //     service,
+  //     toolInProgress: null,
+  //     history: [],
+  //   };
+  //   render(<App state={globalState} />, document.body);
+  // }
 
   function onSubmit(text: string) {
     copilotRequest(text);
@@ -310,32 +311,32 @@ function App({ state }: { state: CopilotState }) {
     render(<App state={state} />, document.body);
   }
 
-  function retryRequest(service: ServiceTypes) {
-    vscodeApi.postMessage({
-      command: "retryRequest",
-      service,
-    });
-    globalState.service = service;
-    // pop until the last user message - don't pop the user message
-    while (globalState.conversation.length > 0) {
-      const lastMessage = globalState.conversation.pop();
-      const lastHistoryMessage = globalState.history.pop();
-      if (lastMessage?.role === "user" && lastHistoryMessage) {
-        globalState.conversation.push(lastMessage);
-        globalState.history.push(lastHistoryMessage);
-        break;
-      }
-    }
-    globalState.inProgress = true;
-    render(<App state={state} />, document.body);
-  }
+  // function retryRequest(service: ServiceTypes) {
+  //   vscodeApi.postMessage({
+  //     command: "retryRequest",
+  //     service,
+  //   });
+  //   globalState.service = service;
+  //   // pop until the last user message - don't pop the user message
+  //   while (globalState.conversation.length > 0) {
+  //     const lastMessage = globalState.conversation.pop();
+  //     const lastHistoryMessage = globalState.history.pop();
+  //     if (lastMessage?.role === "user" && lastHistoryMessage) {
+  //       globalState.conversation.push(lastMessage);
+  //       globalState.history.push(lastHistoryMessage);
+  //       break;
+  //     }
+  //   }
+  //   globalState.inProgress = true;
+  //   render(<App state={state} />, document.body);
+  // }
 
   const historyRef = useRef<HTMLDivElement>(null);
 
   return (
     <div style="max-width: 800px; font-size: 0.9em; display: flex; flex-direction: column; height: 100%;">
       <div style="flex: 1;">
-        {FinishedConversation(state, retryRequest)}
+        {FinishedConversation(state /*retryRequest*/)}
         <div
           id="toolStatus"
           style="height: 30px; font-weight: bold; text-align: right; font-size: smaller;"
@@ -428,7 +429,7 @@ function App({ state }: { state: CopilotState }) {
   );
 }
 
-let globalState: CopilotState = {
+const globalState: CopilotState = {
   tidbits: [],
   inProgress: false,
   toolInProgress: null,
@@ -440,7 +441,7 @@ let globalState: CopilotState = {
 
 function FinishedConversation(
   state: CopilotState,
-  retryRequest: (service: ServiceTypes) => void,
+  // retryRequest: (service: ServiceTypes) => void,
 ) {
   const elements = [];
   // oh my god
@@ -472,8 +473,9 @@ function FinishedConversation(
       lastUserMessage + 1,
       0,
       <RetryButton
-        service={state.service}
-        retryRequest={retryRequest}
+      // TODO: just commenting out for demo
+      // service={state.service}
+      // retryRequest={retryRequest}
       ></RetryButton>,
     );
   }
@@ -555,6 +557,6 @@ function onMessage(event: MessageEvent<CopilotEvent>) {
   render(<App state={globalState} />, document.body);
 }
 
-function sendMessageToExtension(message: MessageToCopilot) {
-  vscodeApi.postMessage(message);
-}
+// function sendMessageToExtension(message: MessageToCopilot) {
+//   vscodeApi.postMessage(message);
+// }

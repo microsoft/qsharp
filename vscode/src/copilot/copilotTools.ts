@@ -143,7 +143,7 @@ function tryRenderResults(file: string): [string, number][] | undefined {
 export async function downloadJobResults(
   jobId: string,
   toolState: ConversationState,
-): Promise<string | { histogram: string; message: string }> {
+): Promise<string | { /*histogram: string;*/ message: string }> {
   const job = await getJob(jobId, toolState);
 
   if (!job) {
@@ -197,10 +197,10 @@ export async function downloadJobResults(
         });
         const response = "```widget\nHistogram\n" + histogram + "\n```\n";
 
-        toolState.messages.push({
-          role: "assistant",
-          content: response,
-        });
+        // toolState.messages.push({
+        //   role: "assistant",
+        //   content: response,
+        // });
         toolState.sendMessage({
           payload: {
             response,
@@ -209,7 +209,7 @@ export async function downloadJobResults(
           kind: "copilotResponse",
         });
         return {
-          histogram: response,
+          // histogram: response,
           message: "Results were successfully rendered.",
         };
       }
