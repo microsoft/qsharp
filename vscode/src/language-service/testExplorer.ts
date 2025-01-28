@@ -12,10 +12,6 @@ import { loadCompilerWorker, toVsCodeLocation, toVsCodeRange } from "../common";
 import { getProgramForDocument } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 
-interface TestMetadata {
-  compilationUri: vscode.Uri;
-}
-
 let worker: ICompilerWorker | null = null;
 /**
  * Returns a singleton instance of the compiler worker.
@@ -119,7 +115,7 @@ export function startTestDiscovery(
     });
 
     const callableExpr = `${testCase.id}()`;
-    const uri = testMetadata.get(testCase)?.compilationUri;
+    const uri = testCase.uri;
     if (!uri) {
       log.error(`No compilation URI for test ${testCase.id}`);
       run.appendOutput(`No compilation URI for test ${testCase.id}\r\n`);
@@ -153,7 +149,6 @@ export function startTestDiscovery(
   );
 
   const testVersions = new WeakMap<vscode.TestItem, number>();
-  const testMetadata = new WeakMap<vscode.TestItem, TestMetadata>();
   async function onTestCallables(evt: {
     detail: {
       callables: ITestDescriptor[];
@@ -165,14 +160,10 @@ export function startTestDiscovery(
       break;
     }
 
-    for (const {
-      compilationUri,
-      callableName,
-      location,
-      humanReadableName,
-    } of evt.detail.callables) {
+    for (const { compilationUri, callableName, location, friendlyName } of evt
+      .detail.callables) {
       const vscLocation = toVsCodeLocation(location);
-      const parts = [humanReadableName, ...callableName.split(".")];
+      const parts = [friendlyName, ...callableName.split(".")];
 
       let rover = testController.items;
       for (let i = 0; i < parts.length; i++) {
@@ -187,9 +178,6 @@ export function startTestDiscovery(
           // if this is the actual test item, give it a range and a compilation uri
           if (i === parts.length - 1) {
             testItem.range = vscLocation.range;
-            testMetadata.set(testItem, {
-              compilationUri: vscode.Uri.parse(compilationUri),
-            });
           }
           rover.add(testItem);
         }

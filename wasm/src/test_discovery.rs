@@ -18,7 +18,7 @@ serializable_type! {
         callableName: string;
         location: ILocation;
         compilationUri: string;
-        humanReadableName: string;
+        friendlyName: string;
     }"#,
     ITestDescriptor
 }
