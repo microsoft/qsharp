@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use crate::protocol::TestCallable;
+
 use super::compilation::Compilation;
 use super::protocol::{
     DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
@@ -553,10 +555,10 @@ impl<'a> CompilationStateUpdater<'a> {
                 .iter()
                 .flat_map(|(compilation_uri, (compilation, _))| {
                     compilation.test_cases.iter().map(move |(name, span)| {
-                        Some((
-                            compilation_uri.to_string(),
-                            name.clone(),
-                            crate::qsc_utils::into_location(
+                        Some(TestCallable {
+                            compilation_uri: Arc::from(compilation_uri.as_ref()),
+                            callable_name: Arc::from(name.as_ref()),
+                            location: crate::qsc_utils::into_location(
                                 self.position_encoding,
                                 compilation,
                                 *span,
@@ -564,8 +566,8 @@ impl<'a> CompilationStateUpdater<'a> {
                             ),
                             // notebooks don't have human readable names -- we use this
                             // to filter them out in the test explorer
-                            compilation.human_readable_project_name()?.to_string(),
-                        ))
+                            friendly_name: compilation.friendly_project_name()?,
+                        })
                     })
                 })
                 .flatten()

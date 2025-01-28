@@ -34,19 +34,21 @@ pub struct DiagnosticUpdate {
     pub errors: Vec<ErrorKind>,
 }
 
-/// This is a string that represents the interpreter-ready name of the test callable.
-/// i.e. "Main.TestCase". Call it by adding parens to the end, e.g. `Main.TestCase()`
-pub type CallableName = String;
-
-/// A string that represents the originating compilation URI of this callable
-pub type CompilationUri = String;
-
-/// A human readable name that represents the compilation.
-pub type HumanReadableName = String;
+#[derive(Debug)]
+pub struct TestCallable {
+    /// This is a string that represents the interpreter-ready name of the test callable.
+    /// i.e. "Main.TestCase". Call it by adding parens to the end, e.g. `Main.TestCase()`
+    pub callable_name: Arc<str>,
+    /// A string that represents the originating compilation URI of this callable
+    pub compilation_uri: Arc<str>,
+    pub location: Location,
+    /// A human readable name that represents the compilation.
+    pub friendly_name: Arc<str>,
+}
 
 #[derive(Debug)]
 pub struct TestCallables {
-    pub callables: Vec<(CompilationUri, CallableName, Location, HumanReadableName)>,
+    pub callables: Vec<TestCallable>,
 }
 
 #[derive(Debug)]
@@ -128,6 +130,7 @@ impl PartialEq for CompletionItem {
 impl Eq for CompletionItem {}
 
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 impl Hash for CompletionItem {
     fn hash<H: Hasher>(&self, state: &mut H) {

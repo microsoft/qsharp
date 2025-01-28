@@ -12,7 +12,7 @@ serializable_type! {
         pub callable_name: String,
         pub location: crate::line_column::Location,
         pub compilation_uri: String,
-        pub human_readable_name: String,
+        pub friendly_name: String,
     },
     r#"export interface ITestDescriptor {
         callableName: string;

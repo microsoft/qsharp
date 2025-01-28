@@ -232,7 +232,7 @@ fn compile_project_with_markers_cursor_optional(
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
-                human_readable_name: Arc::from("test project"),
+                friendly_name: Arc::from("test project"),
             },
             compile_errors: errors,
             project_errors: Vec::new(),
