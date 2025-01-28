@@ -953,7 +953,10 @@ export class QscDebugSession extends LoggingDebugSession {
 
   /* Updates the circuit panel if `showCircuit` is true or if panel is already open */
   private async updateCircuit(error?: any) {
-    if (this.config.showCircuit || isPanelOpen("circuit")) {
+    if (
+      this.config.showCircuit ||
+      isPanelOpen("circuit", this.program.projectName)
+    ) {
       // Error returned from the debugger has a message and a stack (which also includes the message).
       // We would ideally retrieve the original runtime error, and format it to be consistent
       // with the other runtime errors that can be shown in the circuit panel, but that will require
