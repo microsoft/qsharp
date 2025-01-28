@@ -1623,10 +1623,10 @@ async fn test_case_detected() {
         [
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "main.MyTestCase",
-                        Location {
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1639,8 +1639,8 @@ async fn test_case_detected() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
         ]
@@ -1728,10 +1728,10 @@ async fn test_case_modified() {
         [
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "main.MyTestCase",
-                        Location {
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1744,16 +1744,16 @@ async fn test_case_modified() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "main.MyTestCase2",
-                        Location {
+                    TestCallable {
+                        callable_name: "main.MyTestCase2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1766,8 +1766,8 @@ async fn test_case_modified() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
         ]
@@ -1814,10 +1814,10 @@ async fn test_annotation_removed() {
         [
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "main.MyTestCase",
-                        Location {
+                    TestCallable {
+                        callable_name: "main.MyTestCase",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1830,8 +1830,8 @@ async fn test_annotation_removed() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
             TestCallables {
@@ -1880,10 +1880,10 @@ async fn multiple_tests() {
         [
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "main.Test1",
-                        Location {
+                    TestCallable {
+                        callable_name: "main.Test1",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1896,12 +1896,12 @@ async fn multiple_tests() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
-                    (
-                        "parent/qsharp.json",
-                        "main.Test2",
-                        Location {
+                        friendly_name: "parent",
+                    },
+                    TestCallable {
+                        callable_name: "main.Test2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/main.qs",
                             range: Range {
                                 start: Position {
@@ -1914,8 +1914,8 @@ async fn multiple_tests() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
         ]
@@ -1961,10 +1961,10 @@ async fn test_case_in_different_files() {
         [
             TestCallables {
                 callables: [
-                    (
-                        "parent/qsharp.json",
-                        "test1.Test1",
-                        Location {
+                    TestCallable {
+                        callable_name: "test1.Test1",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/test1.qs",
                             range: Range {
                                 start: Position {
@@ -1977,12 +1977,12 @@ async fn test_case_in_different_files() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
-                    (
-                        "parent/qsharp.json",
-                        "test2.Test2",
-                        Location {
+                        friendly_name: "parent",
+                    },
+                    TestCallable {
+                        callable_name: "test2.Test2",
+                        compilation_uri: "parent/qsharp.json",
+                        location: Location {
                             source: "parent/src/test2.qs",
                             range: Range {
                                 start: Position {
@@ -1995,8 +1995,8 @@ async fn test_case_in_different_files() {
                                 },
                             },
                         },
-                        "parent",
-                    ),
+                        friendly_name: "parent",
+                    },
                 ],
             },
         ]
