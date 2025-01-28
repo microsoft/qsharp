@@ -46,18 +46,18 @@ function FunctionTestMatrixTests() : Unit {
     Fact(All(result -> result.did_pass, results), "test matrix did not pass all test cases");
 }
 
-function BasicTests() : Unit {
-    let sample_tests = [
+function BasicTests() : (String, () -> Int, Int)[] {
+    return [
         ("Should return 42", TestCaseOne, 43),
         ("Should add one", () -> AddOne(5), 42),
         ("Should add one", () -> AddOne(5), 6)
-    ]
+    ];
 }
 
 @Test()
 function ReturnsFalseForFailingTest() : Unit {
     Fact(
-        not Functions.CheckAllTestCases(SampleTestData()),
+        not Functions.CheckAllTestCases(BasicTests()),
         "Test harness failed to return false for a failing tests."
     );
 }
@@ -72,7 +72,7 @@ function ReturnsTrueForPassingTest() : Unit {
 
 @Test()
 function RunAllTests() : Unit {
-    let run_all_result = Functions.RunAllTestCases(SampleTestData());
+    let run_all_result = Functions.RunAllTestCases(BasicTests());
 
     Fact(
         Length(run_all_result) == 3,
