@@ -162,19 +162,42 @@ export function startTestDiscovery(
     for (const { callableName, location, friendlyName } of evt.detail
       .callables) {
       const vscLocation = toVsCodeLocation(location);
+      // below, we transform `parts` into a tree structure for the test explorer
+      // e.g. if we have the following callables:
+      // - "TestSuite.Test1"
+      // - "TestSuite.Test2"
+      // they will be turned into the parts:
+      // - ["FriendlyName", "TestSuite", "Test1"]
+      // - ["FriendlyName", "TestSuite", "Test2"]
+      // and then into a tree structure:
+      // - FriendlyName
+      //   - TestSuite
+      //     - Test1
+      //     - Test2
       const parts = [friendlyName, ...callableName.split(".")];
 
       let rover = testController.items;
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
+        // the `id` is used to actually call the test item
+        // it is constructed in the test runner via: callableExpr = `${testCase.id}()`;
+        // so it should be the full path to the test item, not including the "friendly name" (since that isn't in the callable expr),
+        // if and only if it is a "leaf" (an actual test case)
+        // note that leaves are test cases and internal nodes are not test cases
+        // in teh above example, TestSuite would have the id `FriendlyName.TestSuite`, and Test1 would have the id `TestSuite.Test1`
         const id =
           i === parts.length - 1
             ? callableName
             : parts.slice(0, i + 1).join(".");
+        // this test item may have already existed from a previous scan, so fetch it
         let testItem = rover.get(id);
+
+        // if it doesn't exist, create it
         if (!testItem) {
           testItem = testController.createTestItem(id, part, vscLocation.uri);
           // if this is the actual test item, give it a range and a compilation uri
+          // this triggers the little "green play button" in the test explorer and in the left
+          // gutter of the editor
           if (i === parts.length - 1) {
             testItem.range = vscLocation.range;
           }
