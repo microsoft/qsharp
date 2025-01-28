@@ -509,3 +509,39 @@ fn aliased_export_via_aliased_import() {
         ),
     ]);
 }
+
+#[test]
+fn udt_reexport() {
+    multiple_package_check(vec![
+        (
+            "A",
+            "struct Foo { content: Bool }
+                export Foo as Bar;",
+        ),
+        (
+            "B",
+            "           @EntryPoint()
+            operation Main() : Unit {
+                let x = new A.A.Bar { content = true };
+            }",
+        ),
+    ]);
+}
+
+#[test]
+fn callable_reexport() {
+    multiple_package_check(vec![
+        (
+            "A",
+            "function Foo() : Unit {  }
+                export Foo as Bar;",
+        ),
+        (
+            "B",
+            "           @EntryPoint()
+            operation Main() : Unit {
+                let x = A.A.Bar();
+            }",
+        ),
+    ]);
+}
