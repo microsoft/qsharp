@@ -48,7 +48,6 @@ impl Display for TokenKind {
         match self {
             TokenKind::Comment(CommentKind::Block) => f.write_str("block comment"),
             TokenKind::Comment(CommentKind::Normal) => f.write_str("comment"),
-            TokenKind::Comment(CommentKind::Doc) => f.write_str("doc comment"),
             TokenKind::Ident => f.write_str("identifier"),
             TokenKind::Number(Number::BigInt(_)) => f.write_str("big integer"),
             TokenKind::Number(Number::Float) => f.write_str("float"),
@@ -163,7 +162,6 @@ enum StringKind {
 pub enum CommentKind {
     Block,
     Normal,
-    Doc,
 }
 
 #[derive(Clone)]
@@ -225,13 +223,7 @@ impl<'a> Lexer<'a> {
 
     fn comment(&mut self, c: char) -> Option<CommentKind> {
         if c == '/' && self.next_if_eq('/') {
-            let kind = if self.first() == Some('/') && self.second() != Some('/') {
-                self.chars.next();
-                CommentKind::Doc
-            } else {
-                CommentKind::Normal
-            };
-
+            let kind = CommentKind::Normal;
             self.eat_while(|c| c != '\n' && c != '\r');
             Some(kind)
         } else if c == '/' && self.next_if_eq('*') {

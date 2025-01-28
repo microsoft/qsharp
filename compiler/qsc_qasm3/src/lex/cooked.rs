@@ -80,128 +80,48 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
-    /// `'T`
-    /// used for generic parameters -- an apostrophe followed by an ident.
-    AposIdent,
-    /// `@`
-    At,
-    /// `!`
-    Bang,
-    /// `|`
-    Bar,
-    /// A big integer literal.
-    BigInt(Radix),
-    /// A closed binary operator followed by an equals token.
-    BinOpEq(ClosedBinOp),
-    /// A closing delimiter.
-    Close(Delim),
-    /// A closed binary operator not followed by an equals token.
-    ClosedBinOp(ClosedBinOp),
-    /// `:`
+    Keyword,
+    Type,
+
+    // Builtin identifiers and operations
+    GPhase,
+    Inv,
+    Pow,
+    Ctrl,
+    NegCtrl,
+    Dim,
+    DurationOf,
+    Delay,
+    Reset,
+    Measure,
+    Barrier,
+
+    Literal,
+
+    // Symbols
+    Open,
+    Close,
+
+    // Punctuation
     Colon,
-    /// `::`
-    ColonColon,
-    /// `,`
-    Comma,
-    /// A doc comment.
-    DocComment,
-    /// `.`
+    Semicolon,
     Dot,
-    /// `..`
-    DotDot,
-    /// `...`
-    DotDotDot,
-    /// End of file.
-    Eof,
-    /// `=`
-    Eq,
-    /// `==`
-    EqEq,
-    /// `=>`
-    FatArrow,
-    /// A floating-point literal.
-    Float,
-    /// `>`
-    Gt,
-    /// `>=`
-    Gte,
-    /// An identifier.
-    Ident,
-    /// An integer literal.
-    Int(Radix),
-    /// A keyword.
-    Keyword(Keyword),
-    /// `<-`
-    LArrow,
-    /// `<`
-    Lt,
-    /// `<=`
-    Lte,
-    /// `!=`
-    Ne,
-    /// An opening delimiter.
-    Open(Delim),
-    /// `++`
-    PlusPlus,
-    /// `->`
-    RArrow,
-    /// `;`
-    Semi,
-    /// A string literal.
-    String(StringToken),
-    /// `~~~`
-    TildeTildeTilde,
-    /// `w/`
-    WSlash,
-    /// `w/=`
-    WSlashEq,
+    Comma,
+
+    // Operators,
+    UnaryOperator,
+    BinaryOperator,
+
+    Identifier,
+    HardwareQubit,
+
+    Whitespace,
+    Comment,
 }
 
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            TokenKind::AposIdent => f.write_str("apostrophe identifier"),
-            TokenKind::At => f.write_str("`@`"),
-            TokenKind::Bang => f.write_str("`!`"),
-            TokenKind::Bar => f.write_str("`|`"),
-            TokenKind::BigInt(_) => f.write_str("big integer"),
-            TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
-            TokenKind::Close(Delim::Brace) => f.write_str("`}`"),
-            TokenKind::Close(Delim::Bracket) => f.write_str("`]`"),
-            TokenKind::Close(Delim::Paren) => f.write_str("`)`"),
-            TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
-            TokenKind::Colon => f.write_str("`:`"),
-            TokenKind::ColonColon => f.write_str("`::`"),
-            TokenKind::Comma => f.write_str("`,`"),
-            TokenKind::DocComment => f.write_str("doc comment"),
-            TokenKind::Dot => f.write_str("`.`"),
-            TokenKind::DotDot => f.write_str("`..`"),
-            TokenKind::DotDotDot => f.write_str("`...`"),
-            TokenKind::Eof => f.write_str("EOF"),
-            TokenKind::Eq => f.write_str("`=`"),
-            TokenKind::EqEq => f.write_str("`==`"),
-            TokenKind::FatArrow => f.write_str("`=>`"),
-            TokenKind::Float => f.write_str("float"),
-            TokenKind::Gt => f.write_str("`>`"),
-            TokenKind::Gte => f.write_str("`>=`"),
-            TokenKind::Ident => f.write_str("identifier"),
-            TokenKind::Int(_) => f.write_str("integer"),
-            TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
-            TokenKind::LArrow => f.write_str("`<-`"),
-            TokenKind::Lt => f.write_str("`<`"),
-            TokenKind::Lte => f.write_str("`<=`"),
-            TokenKind::Ne => f.write_str("`!=`"),
-            TokenKind::Open(Delim::Brace) => f.write_str("`{`"),
-            TokenKind::Open(Delim::Bracket) => f.write_str("`[`"),
-            TokenKind::Open(Delim::Paren) => f.write_str("`(`"),
-            TokenKind::PlusPlus => f.write_str("++"),
-            TokenKind::RArrow => f.write_str("`->`"),
-            TokenKind::Semi => f.write_str("`;`"),
-            TokenKind::String(_) => f.write_str("string"),
-            TokenKind::TildeTildeTilde => f.write_str("`~~~`"),
-            TokenKind::WSlash => f.write_str("`w/`"),
-            TokenKind::WSlashEq => f.write_str("`w/=`"),
-        }
+        todo!()
     }
 }
 
@@ -219,59 +139,19 @@ impl From<Number> for TokenKind {
 /// the domain of the first operand is closed under this operation. These are candidates for
 /// compound assignment operators, like `+=`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum ClosedBinOp {
-    /// `&&&`
-    AmpAmpAmp,
-    /// `and`
-    And,
-    /// `|||`
-    BarBarBar,
-    /// `^`
-    Caret,
-    /// `^^^`
-    CaretCaretCaret,
-    /// `>>>`
-    GtGtGt,
-    /// `<<<`
-    LtLtLt,
-    /// `-`
-    Minus,
-    /// `or`
-    Or,
-    /// `%`
-    Percent,
-    /// `+`
-    Plus,
-    /// `/`
-    Slash,
-    /// `*`
-    Star,
-}
+pub enum ClosedBinOp {}
 
 impl Display for ClosedBinOp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.write_str(match self {
-            ClosedBinOp::AmpAmpAmp => "&&&",
-            ClosedBinOp::And => "and",
-            ClosedBinOp::BarBarBar => "|||",
             ClosedBinOp::Caret => "^",
-            ClosedBinOp::CaretCaretCaret => "^^^",
-            ClosedBinOp::GtGtGt => ">>>",
-            ClosedBinOp::LtLtLt => "<<<",
             ClosedBinOp::Minus => "-",
-            ClosedBinOp::Or => "or",
             ClosedBinOp::Percent => "%",
             ClosedBinOp::Plus => "+",
             ClosedBinOp::Slash => "/",
             ClosedBinOp::Star => "*",
         })
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum StringToken {
-    Normal,
-    Interpolated(InterpolatedStart, InterpolatedEnding),
 }
 
 pub(crate) struct Lexer<'a> {
