@@ -123,7 +123,6 @@ export function startTestDiscovery(
     }
     const programResult = await getProgramForDocument(uri);
 
-    log.info(JSON.stringify(programResult, null, 2));
     if (!programResult.success) {
       throw new Error(programResult.errorMsg);
     }
