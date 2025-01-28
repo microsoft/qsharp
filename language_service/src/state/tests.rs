@@ -2062,7 +2062,7 @@ fn new_updater<'a>(
         TestProjectHost {
             fs: TEST_FS.with(Clone::clone),
         },
-        Encoding::Utf16,
+        Encoding::Utf8,
     )
 }
 
