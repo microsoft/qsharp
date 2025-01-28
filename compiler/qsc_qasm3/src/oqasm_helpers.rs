@@ -3,7 +3,7 @@
 
 use oq3_semantics::types::Type;
 use oq3_syntax::ast::{ArithOp, BinaryOp, Designator, Expr, Literal, LiteralKind};
-use qsc::Span;
+use qsc_data_structures::span::Span;
 
 /// Extracts a Q# ```Span``` from the QASM3 syntax named element
 pub(crate) fn span_for_named_item<T: oq3_syntax::ast::HasName>(value: &T) -> Span {

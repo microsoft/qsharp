@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use oq3_semantics::types::{IsConst, Type};
-use qsc::Span;
+use qsc_data_structures::span::Span;
 use rustc_hash::FxHashMap;
 
 /// We need a symbol table to keep track of the symbols in the program.
