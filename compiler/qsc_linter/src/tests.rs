@@ -762,7 +762,7 @@ fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializat
 fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
-    let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
+    let sources = SourceMap::new([("source.qs".into(), source.into())], None);
     let (unit, _) = qsc::compile::compile(
         &store,
         &[(std, None)],
