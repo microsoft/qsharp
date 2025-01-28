@@ -21,6 +21,20 @@ pub fn run_lints(
     compile_unit: &CompileUnit,
     config: Option<&[LintConfig]>,
 ) -> Vec<Lint> {
+    let mut lints = run_lints_without_deduplication(package_store, compile_unit, config);
+    remove_duplicates(&mut lints);
+    lints
+}
+
+/// This function is used by our unit tests, to make sure lints aren't duplicated under
+/// normal circunstances. The `run_lints` functions deduplicates the lints to take care
+/// of a few special cases where the same expression (referring to the same span in the
+/// source code) appears referenced in multiple places in the HIR.
+pub(crate) fn run_lints_without_deduplication(
+    package_store: &PackageStore,
+    compile_unit: &CompileUnit,
+    config: Option<&[LintConfig]>,
+) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
         compile_unit,
@@ -32,7 +46,6 @@ pub fn run_lints(
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
-    remove_duplicates(&mut lints);
     lints
 }
 

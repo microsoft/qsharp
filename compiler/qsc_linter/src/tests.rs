@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{run_lints, Lint, LintLevel};
+use crate::{
+    linter::{remove_duplicates, run_lints_without_deduplication},
+    Lint, LintLevel,
+};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{
@@ -10,29 +13,6 @@ use qsc_data_structures::{
 use qsc_frontend::compile::{self, PackageStore, SourceMap};
 use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
-
-#[test]
-fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
-    check(
-        "
-        operation Main() : Unit {}
-        operation LintProblem() : Unit is Adj + Ctl {
-            use q = Qubit();
-            0.0 == 0.0;
-        }",
-        &expect![[r#"
-            [
-                SrcLint {
-                    source: "0.0 == 0.0",
-                    level: Warn,
-                    message: "strict comparison of doubles",
-                    help: "consider comparing them with some margin of error",
-                    code_action_edits: [],
-                },
-            ]
-        "#]],
-    );
-}
 
 #[test]
 fn daisy_chain_lint() {
@@ -756,7 +736,30 @@ fn needless_operation_inside_function_call() {
     );
 }
 
-fn check(source: &str, expected: &Expect) {
+#[test]
+fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
+    check_with_deduplication(
+        "
+        operation Main() : Unit {}
+        operation LintProblem() : Unit is Adj + Ctl {
+            use q = Qubit();
+            0.0 == 0.0;
+        }",
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "0.0 == 0.0",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
@@ -773,11 +776,24 @@ fn check(source: &str, expected: &Expect) {
     let id = store.insert(unit);
     let unit = store.get(id).expect("user package should exist");
 
-    let actual: Vec<SrcLint> = run_lints(&store, unit, None)
-        .into_iter()
-        .map(|lint| SrcLint::from(&lint, &source))
-        .collect();
+    run_lints_without_deduplication(&store, unit, None)
+}
 
+fn check(source: &str, expected: &Expect) {
+    let actual: Vec<_> = compile_and_collect_lints(source)
+        .into_iter()
+        .map(|lint| SrcLint::from(&lint, source))
+        .collect();
+    expected.assert_debug_eq(&actual);
+}
+
+fn check_with_deduplication(source: &str, expected: &Expect) {
+    let mut lints = compile_and_collect_lints(source);
+    remove_duplicates(&mut lints);
+    let actual: Vec<_> = lints
+        .into_iter()
+        .map(|lint| SrcLint::from(&lint, source))
+        .collect();
     expected.assert_debug_eq(&actual);
 }
 
