@@ -160,8 +160,8 @@ export function startTestDiscovery(
       break;
     }
 
-    for (const { compilationUri, callableName, location, friendlyName } of evt
-      .detail.callables) {
+    for (const { callableName, location, friendlyName } of evt.detail
+      .callables) {
       const vscLocation = toVsCodeLocation(location);
       const parts = [friendlyName, ...callableName.split(".")];
 
