@@ -4,7 +4,7 @@
 import { ILanguageService, samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
-import { toVscodeRange } from "../common";
+import { toVsCodeRange } from "../common";
 import { EventType, sendTelemetryEvent } from "../telemetry";
 
 export function createCompletionItemProvider(
@@ -84,7 +84,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       item.sortText = c.sortText;
       item.detail = c.detail;
       item.additionalTextEdits = c.additionalTextEdits?.map((edit) => {
-        return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
+        return new vscode.TextEdit(toVsCodeRange(edit.range), edit.newText);
       });
       return item;
     });

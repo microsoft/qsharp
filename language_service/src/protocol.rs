@@ -3,6 +3,7 @@
 
 use miette::Diagnostic;
 use qsc::line_column::Range;
+use qsc::location::Location;
 use qsc::{compile, project};
 use qsc::{linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures, PackageType};
 use thiserror::Error;
@@ -31,6 +32,23 @@ pub struct DiagnosticUpdate {
     pub uri: String,
     pub version: Option<u32>,
     pub errors: Vec<ErrorKind>,
+}
+
+#[derive(Debug)]
+pub struct TestCallable {
+    /// This is a string that represents the interpreter-ready name of the test callable.
+    /// i.e. "Main.TestCase". Call it by adding parens to the end, e.g. `Main.TestCase()`
+    pub callable_name: Arc<str>,
+    /// A string that represents the originating compilation URI of this callable
+    pub compilation_uri: Arc<str>,
+    pub location: Location,
+    /// A human readable name that represents the compilation.
+    pub friendly_name: Arc<str>,
+}
+
+#[derive(Debug)]
+pub struct TestCallables {
+    pub callables: Vec<TestCallable>,
 }
 
 #[derive(Debug)]
@@ -112,6 +130,7 @@ impl PartialEq for CompletionItem {
 impl Eq for CompletionItem {}
 
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 impl Hash for CompletionItem {
     fn hash<H: Hasher>(&self, state: &mut H) {

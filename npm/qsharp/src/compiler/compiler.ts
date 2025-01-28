@@ -123,6 +123,9 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
+      () => {
+        // do nothing; test callables are not reported in checkCode
+      },
       {
         readFile: async () => null,
         listDirectory: async () => [],

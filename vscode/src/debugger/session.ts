@@ -30,7 +30,7 @@ import {
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
-import { basename, isQsharpDocument, toVscodeRange } from "../common";
+import { basename, isQsharpDocument, toVsCodeRange } from "../common";
 import {
   DebugEvent,
   EventType,
@@ -134,7 +134,7 @@ export class QscDebugSession extends LoggingDebugSession {
             ),
           };
           return {
-            range: toVscodeRange(location.range),
+            range: toVsCodeRange(location.range),
             uiLocation,
             breakpoint: this.createBreakpoint(location.id, uiLocation),
           } as IBreakpointLocationData;
