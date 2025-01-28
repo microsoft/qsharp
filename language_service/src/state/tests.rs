@@ -2086,7 +2086,7 @@ fn new_updater_with_file_system<'a>(
         diagnostic_receiver,
         test_callable_receiver,
         TestProjectHost { fs: fs.clone() },
-        Encoding::Utf16,
+        Encoding::Utf8,
     )
 }
 
