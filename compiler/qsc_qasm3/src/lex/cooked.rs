@@ -80,8 +80,8 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
-    Keyword,
-    Type,
+    Keyword(Keyword),
+    Type(Type),
 
     // Builtin identifiers and operations
     GPhase,
@@ -96,11 +96,11 @@ pub enum TokenKind {
     Measure,
     Barrier,
 
-    Literal,
+    Literal(Literal),
 
     // Symbols
-    Open,
-    Close,
+    Open(Delim),
+    Close(Delim),
 
     // Punctuation
     Colon,
@@ -109,8 +109,8 @@ pub enum TokenKind {
     Comma,
 
     // Operators,
-    UnaryOperator,
-    BinaryOperator,
+    UnaryOperator(UnaryOperator),
+    BinaryOperator(BinaryOperator),
 
     Identifier,
     HardwareQubit,
