@@ -11,8 +11,8 @@ execution within Jupyter notebooks.
 from time import monotonic
 from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
-from ._native import QSharpError
-from ._qsharp import get_interpreter
+from _native import QSharpError
+from _qsharp import get_interpreter
 from . import telemetry_events
 import pathlib
 

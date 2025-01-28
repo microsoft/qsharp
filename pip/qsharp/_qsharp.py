@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from . import telemetry_events, code
-from ._native import (
+from _native import (
     Interpreter,
     TargetProfile,
     StateDumpData,
@@ -20,7 +20,6 @@ from typing import (
     TypedDict,
     Union,
     List,
-    overload,
 )
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json

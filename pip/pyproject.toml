@@ -29,3 +29,9 @@ build-backend = "maturin"
 
 [tool.maturin]
 module-name = "qsharp._native"
+
+[tool.pyright]
+include = ["qsharp"]
+exclude = ["**/estimator", "**/__pycache__"]
+reportMissingImports = "error"
+pythonVersion = "3.9"

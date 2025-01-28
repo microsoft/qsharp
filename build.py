@@ -167,6 +167,23 @@ def use_python_env(folder):
     return python_bin
 
 
+def run_pyright(folder: str) -> None:
+    python_bin = use_python_env(folder)
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        f"pyright",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=folder)
+
+    pyright_args = [python_bin, "-m", "pyright"]
+    subprocess.run(pyright_args, check=True, text=True, cwd=folder)
+
+
+run_pyright(pip_src)
+
 if npm_install_needed:
     step_start("Running npm install")
     subprocess.run([npm_cmd, "install"], check=True, text=True, cwd=root_dir)
@@ -217,6 +234,9 @@ if args.check:
             text=True,
             cwd=root_dir,
         )
+
+    run_pyright(pip_src)
+
     step_end()
 
 if build_cli:
