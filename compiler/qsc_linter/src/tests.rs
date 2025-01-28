@@ -760,7 +760,6 @@ fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializat
 }
 
 fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
-    let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
@@ -780,19 +779,21 @@ fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
 }
 
 fn check(source: &str, expected: &Expect) {
-    let actual: Vec<_> = compile_and_collect_lints(source)
+    let source = wrap_in_namespace(source);
+    let actual: Vec<_> = compile_and_collect_lints(&source)
         .into_iter()
-        .map(|lint| SrcLint::from(&lint, source))
+        .map(|lint| SrcLint::from(&lint, &source))
         .collect();
     expected.assert_debug_eq(&actual);
 }
 
 fn check_with_deduplication(source: &str, expected: &Expect) {
-    let mut lints = compile_and_collect_lints(source);
+    let source = wrap_in_namespace(source);
+    let mut lints = compile_and_collect_lints(&source);
     remove_duplicates(&mut lints);
     let actual: Vec<_> = lints
         .into_iter()
-        .map(|lint| SrcLint::from(&lint, source))
+        .map(|lint| SrcLint::from(&lint, &source))
         .collect();
     expected.assert_debug_eq(&actual);
 }
