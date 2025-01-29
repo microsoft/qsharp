@@ -355,7 +355,7 @@ fn float_dot() {
 }
 
 #[test]
-fn dot_dot_int() {
+fn dot_float() {
     check(
         "..0",
         &expect![[r#"
@@ -367,18 +367,10 @@ fn dot_dot_int() {
                     offset: 0,
                 },
                 Token {
-                    kind: Single(
-                        Dot,
+                    kind: Number(
+                        Float,
                     ),
                     offset: 1,
-                },
-                Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
-                    offset: 2,
                 },
             ]
         "#]],
@@ -386,7 +378,7 @@ fn dot_dot_int() {
 }
 
 #[test]
-fn dot_dot_dot_int() {
+fn dot_dot_float() {
     check(
         "...0",
         &expect![[r#"
@@ -404,18 +396,10 @@ fn dot_dot_dot_int() {
                     offset: 1,
                 },
                 Token {
-                    kind: Single(
-                        Dot,
+                    kind: Number(
+                        Float,
                     ),
                     offset: 2,
-                },
-                Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
-                    offset: 3,
                 },
             ]
         "#]],
@@ -549,18 +533,10 @@ fn leading_point() {
         &expect![[r#"
             [
                 Token {
-                    kind: Single(
-                        Dot,
+                    kind: Number(
+                        Float,
                     ),
                     offset: 0,
-                },
-                Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
-                    offset: 1,
                 },
             ]
         "#]],
@@ -655,16 +631,10 @@ fn leading_point_exp() {
         &expect![[r#"
             [
                 Token {
-                    kind: Single(
-                        Dot,
-                    ),
-                    offset: 0,
-                },
-                Token {
                     kind: Number(
                         Float,
                     ),
-                    offset: 1,
+                    offset: 0,
                 },
             ]
         "#]],
@@ -756,18 +726,10 @@ fn float_hexadecimal() {
                     offset: 0,
                 },
                 Token {
-                    kind: Single(
-                        Dot,
+                    kind: Number(
+                        Float,
                     ),
                     offset: 5,
-                },
-                Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
-                    offset: 6,
                 },
             ]
         "#]],

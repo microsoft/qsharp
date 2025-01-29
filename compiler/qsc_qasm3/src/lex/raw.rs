@@ -302,6 +302,17 @@ impl<'a> Lexer<'a> {
         self.leading_zero(c).or_else(|| self.decimal(c))
     }
 
+    fn leading_dot(&mut self, c: char) -> bool {
+        if c == '.' && self.first().is_some_and(|c| char::is_ascii_digit(&c)) {
+            self.next();
+            self.eat_while(|c| c == '_' || c.is_ascii_digit());
+            self.exp();
+            true
+        } else {
+            false
+        }
+    }
+
     fn leading_zero(&mut self, c: char) -> Option<Number> {
         if c != '0' {
             return None;
@@ -429,6 +440,8 @@ impl Iterator for Lexer<'_> {
             ident
         } else if self.hardware_qubit(c) {
             TokenKind::HardwareQubit
+        } else if self.leading_dot(c) {
+            TokenKind::Number(Number::Float)
         } else {
             self.number(c)
                 .map(TokenKind::Number)
