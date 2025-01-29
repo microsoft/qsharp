@@ -228,12 +228,14 @@ fn fmt_qubit_label(id: usize) -> String {
 
 /// "── A ──"
 fn fmt_on_qubit_wire(obj: &str) -> String {
-    format!("{:─^COLUMN_WIDTH$}", format!(" {obj} "))
+    let width = obj.len() + 4;
+    format!("{:─^width$}", format!(" {obj} "))
 }
 
 /// "══ A ══"
 fn fmt_on_classical_wire(obj: &str) -> String {
-    format!("{:═^COLUMN_WIDTH$}", format!(" {obj} "))
+    let width = obj.len() + 4;
+    format!("{:═^width$}", format!(" {obj} "))
 }
 
 impl Display for Circuit {
