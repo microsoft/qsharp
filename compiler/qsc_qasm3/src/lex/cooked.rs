@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 //! The second lexing phase "cooks" a raw token stream, transforming them into tokens that directly
-//! correspond to components in the Q# grammar. Keywords are treated as identifiers, except `and`
-//! and `or`, which are cooked into [`ClosedBinOp`] so that `and=` and `or=` are lexed correctly.
+//! correspond to components in the `OpenQASM` grammar. Keywords are treated as identifiers, except `and`
+//! and `or`, which are cooked into [`BinaryOperator`] so that `and=` and `or=` are lexed correctly.
 //!
 //! Whitespace and comment tokens are discarded; this means that cooked tokens are not necessarily
 //! contiguous, so they include both a starting and ending byte offset.
@@ -16,7 +16,7 @@ mod tests;
 
 use super::{
     raw::{self, Number, Single},
-    Delim, InterpolatedEnding, InterpolatedStart, Radix,
+    Delim, Radix,
 };
 use crate::keyword::Keyword;
 use enum_iterator::Sequence;
@@ -99,24 +99,135 @@ pub enum TokenKind {
     Literal(Literal),
 
     // Symbols
+    /// `{[(`
     Open(Delim),
+    /// `}])`
     Close(Delim),
 
     // Punctuation
+    /// `:`
     Colon,
+    /// `;`
     Semicolon,
+    /// `.`
     Dot,
+    /// `,`
     Comma,
+    /// `++`
+    PlusPlus,
+    /// `->`
+    Arrow,
 
     // Operators,
     UnaryOperator(UnaryOperator),
-    BinaryOperator(BinaryOperator),
+    BinaryOperator(ClosedBinaryOperator),
+    BinaryOperatorEq(ClosedBinaryOperator),
+    ComparisonOperator(ComparisonOperator),
+    Eq,
 
     Identifier,
     HardwareQubit,
 
     Whitespace,
     Comment,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum Type {
+    Input,
+    Output,
+    Const,
+    Readonly,
+    Mutable,
+
+    QReg,
+    Qubit,
+
+    CReg,
+    Bool,
+    Bit,
+    Int,
+    UInt,
+    Float,
+    Angle,
+    Complex,
+    Array,
+    Void,
+
+    Duration,
+    Stretch,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum Literal {
+    Bitstring,
+    Boolean,
+    Float,
+    Imaginary,
+    Integer(Radix),
+    String,
+    Timing,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum UnaryOperator {
+    /// `!`
+    Bang,
+    /// `-`
+    Minus,
+    /// `~`
+    Tilde,
+}
+
+/// A binary operator that returns the same type as the type of its first operand; in other words,
+/// the domain of the first operand is closed under this operation. These are candidates for
+/// compound assignment operators, like `+=`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum ClosedBinaryOperator {
+    /// `&`
+    Amp,
+    /// `|`
+    Bar,
+    /// `^`
+    Caret,
+    /// `>>`
+    GtGt,
+    /// `<<`
+    LtLt,
+    /// `-`
+    Minus,
+    /// `%`
+    Percent,
+    /// `+`
+    Plus,
+    /// `/`
+    Slash,
+    /// `*`
+    Star,
+    /// `**`
+    StarStar,
+    // TODO: missing Tilde according to qasm3Lexer.g4 to be able to express ~=
+    //       But this is this a bug in the official qasm lexer?
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum ComparisonOperator {
+    /// `&&`
+    AmpAmp,
+    /// `!=`
+    BangEq,
+    /// `||`
+    BarBar,
+    /// `==`
+    EqEq,
+    /// `>`
+    Gt,
+    /// `>=`
+    GtEq,
+    /// `<`
+    Lt,
+    /// `<=`
+    LtEq,
 }
 
 impl Display for TokenKind {
@@ -128,29 +239,15 @@ impl Display for TokenKind {
 impl From<Number> for TokenKind {
     fn from(value: Number) -> Self {
         match value {
-            Number::BigInt(radix) => Self::BigInt(radix),
-            Number::Float => Self::Float,
-            Number::Int(radix) => Self::Int(radix),
+            Number::Float => Self::Literal(Literal::Float),
+            Number::Int(radix) => Self::Literal(Literal::Integer(radix)),
         }
     }
 }
 
-/// A binary operator that returns the same type as the type of its first operand; in other words,
-/// the domain of the first operand is closed under this operation. These are candidates for
-/// compound assignment operators, like `+=`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum ClosedBinOp {}
-
-impl Display for ClosedBinOp {
+impl Display for ClosedBinaryOperator {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        f.write_str(match self {
-            ClosedBinOp::Caret => "^",
-            ClosedBinOp::Minus => "-",
-            ClosedBinOp::Percent => "%",
-            ClosedBinOp::Plus => "+",
-            ClosedBinOp::Slash => "/",
-            ClosedBinOp::Star => "*",
-        })
+        todo!()
     }
 }
 
@@ -209,26 +306,21 @@ impl<'a> Lexer<'a> {
         let kind = match token.kind {
             raw::TokenKind::Comment(raw::CommentKind::Block | raw::CommentKind::Normal)
             | raw::TokenKind::Whitespace => Ok(None),
-            raw::TokenKind::Comment(raw::CommentKind::Doc) => Ok(Some(TokenKind::DocComment)),
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 Ok(Some(self.ident(ident)))
             }
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
-                Ok(Some(TokenKind::String(StringToken::Normal)))
+            raw::TokenKind::String(raw::StringToken { terminated: true }) => {
+                Ok(Some(TokenKind::Literal(Literal::String)))
             }
-            raw::TokenKind::String(raw::StringToken::Interpolated(start, Some(ending))) => Ok(
-                Some(TokenKind::String(StringToken::Interpolated(start, ending))),
-            ),
-            raw::TokenKind::String(
-                raw::StringToken::Normal { terminated: false }
-                | raw::StringToken::Interpolated(_, None),
-            ) => Err(Error::UnterminatedString(Span {
-                lo: token.offset,
-                hi: token.offset,
-            })),
+            raw::TokenKind::String(raw::StringToken { terminated: false }) => {
+                Err(Error::UnterminatedString(Span {
+                    lo: token.offset,
+                    hi: token.offset,
+                }))
+            }
             raw::TokenKind::Unknown => {
                 let c = self.input[(token.offset as usize)..]
                     .chars()
@@ -251,149 +343,136 @@ impl<'a> Lexer<'a> {
         }))
     }
 
+    /// Consumes a list of tokens zero or more times.
+    fn kleen_star(&mut self, tokens: &[raw::TokenKind], complete: TokenKind) -> Result<(), Error> {
+        let mut iter = tokens.iter();
+        while self.next_if_eq(*(iter.next().expect("tokens should have at least one token"))) {
+            for token in iter {
+                self.expect(*token, complete)?
+            }
+            iter = tokens.iter();
+        }
+        Ok(())
+    }
+
     #[allow(clippy::too_many_lines)]
     fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
         match single {
             Single::Amp => {
-                let op = ClosedBinOp::AmpAmpAmp;
-                self.expect_single(Single::Amp, TokenKind::ClosedBinOp(op))?;
-                self.expect_single(Single::Amp, TokenKind::ClosedBinOp(op))?;
-                Ok(self.closed_bin_op(op))
+                if self.next_if_eq_single(Single::Amp) {
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::AmpAmp))
+                } else {
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::Amp))
+                }
             }
-            Single::Apos => {
-                self.expect(raw::TokenKind::Ident, TokenKind::AposIdent)?;
-                Ok(TokenKind::AposIdent)
+            Single::At => {
+                let complete = TokenKind::Keyword(Keyword::Annotation);
+                self.expect(raw::TokenKind::Ident, complete)?;
+                self.kleen_star(
+                    &[raw::TokenKind::Single(Single::Dot), raw::TokenKind::Ident],
+                    complete,
+                )?;
+                Ok(TokenKind::Keyword(Keyword::Annotation))
             }
-            Single::At => Ok(TokenKind::At),
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::Ne)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::BangEq))
                 } else {
-                    Ok(TokenKind::Bang)
+                    Ok(TokenKind::UnaryOperator(UnaryOperator::Bang))
                 }
             }
             Single::Bar => {
                 if self.next_if_eq_single(Single::Bar) {
-                    let op = ClosedBinOp::BarBarBar;
-                    self.expect_single(Single::Bar, TokenKind::ClosedBinOp(op))?;
-                    Ok(self.closed_bin_op(op))
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::BarBar))
                 } else {
-                    Ok(TokenKind::Bar)
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::Bar))
                 }
             }
-            Single::Caret => {
-                if self.next_if_eq_single(Single::Caret) {
-                    let op = ClosedBinOp::CaretCaretCaret;
-                    self.expect_single(Single::Caret, TokenKind::ClosedBinOp(op))?;
-                    Ok(self.closed_bin_op(op))
-                } else {
-                    Ok(self.closed_bin_op(ClosedBinOp::Caret))
-                }
-            }
+            Single::Caret => Ok(self.closed_bin_op(ClosedBinaryOperator::Caret)),
             Single::Close(delim) => Ok(TokenKind::Close(delim)),
-            Single::Colon => {
-                if self.next_if_eq_single(Single::Colon) {
-                    Ok(TokenKind::ColonColon)
-                } else {
-                    Ok(TokenKind::Colon)
-                }
-            }
+            Single::Colon => Ok(TokenKind::Colon),
             Single::Comma => Ok(TokenKind::Comma),
-            Single::Dot => {
-                if self.next_if_eq_single(Single::Dot) {
-                    if self.next_if_eq_single(Single::Dot) {
-                        Ok(TokenKind::DotDotDot)
-                    } else {
-                        Ok(TokenKind::DotDot)
-                    }
-                } else {
-                    Ok(TokenKind::Dot)
-                }
-            }
+            Single::Dot => Ok(TokenKind::Dot),
             Single::Eq => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::EqEq)
-                } else if self.next_if_eq_single(Single::Gt) {
-                    Ok(TokenKind::FatArrow)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::EqEq))
                 } else {
                     Ok(TokenKind::Eq)
                 }
             }
             Single::Gt => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::Gte)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::GtEq))
                 } else if self.next_if_eq_single(Single::Gt) {
-                    let op = ClosedBinOp::GtGtGt;
-                    self.expect_single(Single::Gt, TokenKind::ClosedBinOp(op))?;
-                    Ok(self.closed_bin_op(op))
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::GtGt))
                 } else {
-                    Ok(TokenKind::Gt)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::Gt))
                 }
             }
             Single::Lt => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::Lte)
-                } else if self.next_if_eq_single(Single::Minus) {
-                    Ok(TokenKind::LArrow)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::LtEq))
                 } else if self.next_if_eq_single(Single::Lt) {
-                    let op = ClosedBinOp::LtLtLt;
-                    self.expect_single(Single::Lt, TokenKind::ClosedBinOp(op))?;
-                    Ok(self.closed_bin_op(op))
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::LtLt))
                 } else {
-                    Ok(TokenKind::Lt)
+                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::Lt))
                 }
             }
             Single::Minus => {
                 if self.next_if_eq_single(Single::Gt) {
-                    Ok(TokenKind::RArrow)
+                    Ok(TokenKind::Arrow)
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinOp::Minus))
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::Minus))
                 }
             }
             Single::Open(delim) => Ok(TokenKind::Open(delim)),
-            Single::Percent => Ok(self.closed_bin_op(ClosedBinOp::Percent)),
+            Single::Percent => Ok(self.closed_bin_op(ClosedBinaryOperator::Percent)),
             Single::Plus => {
                 if self.next_if_eq_single(Single::Plus) {
                     Ok(TokenKind::PlusPlus)
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinOp::Plus))
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::Plus))
                 }
             }
-            Single::Semi => Ok(TokenKind::Semi),
-            Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
-            Single::Star => Ok(self.closed_bin_op(ClosedBinOp::Star)),
-            Single::Tilde => {
-                let complete = TokenKind::TildeTildeTilde;
-                self.expect_single(Single::Tilde, complete)?;
-                self.expect_single(Single::Tilde, complete)?;
-                Ok(complete)
+            Single::Semi => Ok(TokenKind::Semicolon),
+            Single::Slash => Ok(self.closed_bin_op(ClosedBinaryOperator::Slash)),
+            Single::Star => {
+                if self.next_if_eq_single(Single::Star) {
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::StarStar))
+                } else {
+                    Ok(self.closed_bin_op(ClosedBinaryOperator::Star))
+                }
             }
+            Single::Tilde => Ok(TokenKind::UnaryOperator(UnaryOperator::Tilde)),
         }
     }
 
-    fn closed_bin_op(&mut self, op: ClosedBinOp) -> TokenKind {
+    fn closed_bin_op(&mut self, op: ClosedBinaryOperator) -> TokenKind {
         if self.next_if_eq_single(Single::Eq) {
-            TokenKind::BinOpEq(op)
+            TokenKind::BinaryOperatorEq(op)
         } else {
-            TokenKind::ClosedBinOp(op)
+            TokenKind::BinaryOperator(op)
         }
     }
 
     fn ident(&mut self, ident: &str) -> TokenKind {
         match ident {
-            "and" => self.closed_bin_op(ClosedBinOp::And),
-            "or" => self.closed_bin_op(ClosedBinOp::Or),
-            "w" if self.next_if_eq_single(Single::Slash) => {
-                if self.next_if_eq_single(Single::Eq) {
-                    TokenKind::WSlashEq
-                } else {
-                    TokenKind::WSlash
-                }
-            }
+            "gphase" => TokenKind::GPhase,
+            "inv" => TokenKind::Inv,
+            "pow" => TokenKind::Pow,
+            "ctrl" => TokenKind::Ctrl,
+            "negctrl" => TokenKind::NegCtrl,
+            "dim" => TokenKind::Dim,
+            "durationof" => TokenKind::DurationOf,
+            "delay" => TokenKind::Delay,
+            "reset" => TokenKind::Reset,
+            "measure" => TokenKind::Measure,
+            "barrier" => TokenKind::Barrier,
+            "false" | "true" => TokenKind::Literal(Literal::Boolean),
             ident => ident
                 .parse()
                 .map(TokenKind::Keyword)
-                .unwrap_or(TokenKind::Ident),
+                .unwrap_or(TokenKind::Identifier),
         }
     }
 }

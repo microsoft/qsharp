@@ -480,13 +480,13 @@ struct Literal {
 }
 
 enum LiteralKind {
-    Integer(i64),
+    Array(List<Expr>),
+    Bitstring { value: usize, width: u32 },
+    Boolean(bool),
+    Duration { value: f64, unit: TimeUnit },
     Float(f64),
     Imaginary(f64),
-    Boolean(bool),
-    Bitstring { value: usize, width: u32 },
-    Duration { value: f64, unit: TimeUnit },
-    Array(List<Expr>),
+    Integer(i64),
 }
 
 struct Concatenation {

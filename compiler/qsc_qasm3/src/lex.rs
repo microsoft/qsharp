@@ -6,7 +6,7 @@ pub mod raw;
 
 use enum_iterator::Sequence;
 
-pub(super) use cooked::{ClosedBinOp, Error, Lexer, StringToken, Token, TokenKind};
+pub(super) use cooked::{Error, Lexer, Token, TokenKind};
 
 /// A delimiter token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]

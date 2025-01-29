@@ -55,6 +55,31 @@ impl FromStr for Keyword {
     // can optimize the string comparisons better, and order the cases by
     // frequency in Q# so that fewer comparisons are needed on average.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        match s {
+            "openqasm" => Ok(Self::OpenQASM),
+            "include" => Ok(Self::Include),
+            "defcalgrammar" => Ok(Self::Defcalgrammar),
+            "def" => Ok(Self::Def),
+            "cal" => Ok(Self::Cal),
+            "gate" => Ok(Self::Gate),
+            "extern" => Ok(Self::Extern),
+            "box" => Ok(Self::Box),
+            "let" => Ok(Self::Let),
+            "break" => Ok(Self::Break),
+            "continue" => Ok(Self::Continue),
+            "if" => Ok(Self::If),
+            "else" => Ok(Self::Else),
+            "end" => Ok(Self::End),
+            "return" => Ok(Self::Return),
+            "for" => Ok(Self::For),
+            "while" => Ok(Self::While),
+            "in" => Ok(Self::In),
+            "switch" => Ok(Self::Switch),
+            "case" => Ok(Self::Case),
+            "default" => Ok(Self::Default),
+            "pragma" => Ok(Self::Pragma),
+            "annotation" => Ok(Self::Annotation),
+            _ => Err(()),
+        }
     }
 }

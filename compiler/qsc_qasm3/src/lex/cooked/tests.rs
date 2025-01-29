@@ -13,47 +13,41 @@ fn check(input: &str, expect: &Expect) {
 
 fn op_string(kind: TokenKind) -> Option<String> {
     match kind {
-        TokenKind::AposIdent => Some("'T".to_string()),
-        TokenKind::At => Some("@".to_string()),
-        TokenKind::Bang => Some("!".to_string()),
-        TokenKind::Bar => Some("|".to_string()),
-        TokenKind::BinOpEq(op) => Some(format!("{op}=")),
         TokenKind::Close(Delim::Brace) => Some("}".to_string()),
         TokenKind::Close(Delim::Bracket) => Some("]".to_string()),
         TokenKind::Close(Delim::Paren) => Some(")".to_string()),
-        TokenKind::ClosedBinOp(op) => Some(op.to_string()),
         TokenKind::Colon => Some(":".to_string()),
-        TokenKind::ColonColon => Some("::".to_string()),
         TokenKind::Comma => Some(",".to_string()),
         TokenKind::Dot => Some(".".to_string()),
-        TokenKind::DotDot => Some("..".to_string()),
-        TokenKind::DotDotDot => Some("...".to_string()),
         TokenKind::Eq => Some("=".to_string()),
-        TokenKind::EqEq => Some("==".to_string()),
-        TokenKind::FatArrow => Some("=>".to_string()),
-        TokenKind::Gt => Some(">".to_string()),
-        TokenKind::Gte => Some(">=".to_string()),
-        TokenKind::LArrow => Some("<-".to_string()),
-        TokenKind::Lt => Some("<".to_string()),
-        TokenKind::Lte => Some("<=".to_string()),
-        TokenKind::Ne => Some("!=".to_string()),
         TokenKind::Open(Delim::Brace) => Some("{".to_string()),
         TokenKind::Open(Delim::Bracket) => Some("[".to_string()),
         TokenKind::Open(Delim::Paren) => Some("(".to_string()),
         TokenKind::PlusPlus => Some("++".to_string()),
-        TokenKind::RArrow => Some("->".to_string()),
-        TokenKind::Semi => Some(";".to_string()),
-        TokenKind::TildeTildeTilde => Some("~~~".to_string()),
-        TokenKind::WSlash => Some("w/".to_string()),
-        TokenKind::WSlashEq => Some("w/=".to_string()),
-        TokenKind::BigInt(_)
-        | TokenKind::DocComment
-        | TokenKind::Eof
-        | TokenKind::Float
-        | TokenKind::Ident
-        | TokenKind::Int(_)
-        | TokenKind::Keyword(_)
-        | TokenKind::String(_) => None,
+        TokenKind::Keyword(_) => None,
+        TokenKind::Type(_) => todo!(),
+        TokenKind::GPhase => todo!(),
+        TokenKind::Inv => todo!(),
+        TokenKind::Pow => todo!(),
+        TokenKind::Ctrl => todo!(),
+        TokenKind::NegCtrl => todo!(),
+        TokenKind::Dim => todo!(),
+        TokenKind::DurationOf => todo!(),
+        TokenKind::Delay => todo!(),
+        TokenKind::Reset => todo!(),
+        TokenKind::Measure => todo!(),
+        TokenKind::Barrier => todo!(),
+        TokenKind::Literal(literal) => todo!(),
+        TokenKind::Semicolon => todo!(),
+        TokenKind::Arrow => todo!(),
+        TokenKind::UnaryOperator(unary_operator) => todo!(),
+        TokenKind::BinaryOperator(closed_binary_operator) => todo!(),
+        TokenKind::BinaryOperatorEq(closed_binary_operator) => todo!(),
+        TokenKind::ComparisonOperator(comparison_operator) => todo!(),
+        TokenKind::Identifier => todo!(),
+        TokenKind::HardwareQubit => todo!(),
+        TokenKind::Whitespace => todo!(),
+        TokenKind::Comment => todo!(),
     }
 }
 
@@ -183,20 +177,16 @@ fn amp_multibyte() {
         "&🦀",
         &expect![[r#"
             [
-                Err(
-                    Incomplete(
-                        Single(
+                Ok(
+                    Token {
+                        kind: BinaryOperator(
                             Amp,
                         ),
-                        ClosedBinOp(
-                            AmpAmpAmp,
-                        ),
-                        Unknown,
-                        Span {
-                            lo: 1,
-                            hi: 5,
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
                         },
-                    ),
+                    },
                 ),
                 Err(
                     Unknown(
@@ -213,9 +203,9 @@ fn amp_multibyte() {
 }
 
 #[test]
-fn amp_amp_amp_amp_amp_amp() {
+fn amp_amp_amp_amp() {
     check(
-        "&&&&&&",
+        "&&&&",
         &expect![[r#"
             [
                 Ok(
@@ -234,111 +224,6 @@ fn amp_amp_amp_amp_amp_amp() {
                         kind: ClosedBinOp(
                             AmpAmpAmp,
                         ),
-                        span: Span {
-                            lo: 3,
-                            hi: 6,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn caret_caret() {
-    check(
-        "^^",
-        &expect![[r#"
-            [
-                Err(
-                    IncompleteEof(
-                        Single(
-                            Caret,
-                        ),
-                        ClosedBinOp(
-                            CaretCaretCaret,
-                        ),
-                        Span {
-                            lo: 2,
-                            hi: 2,
-                        },
-                    ),
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn and_ws_eq() {
-    check(
-        "and =",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: ClosedBinOp(
-                            And,
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Eq,
-                        span: Span {
-                            lo: 4,
-                            hi: 5,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn w() {
-    check(
-        "w",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn w_slash_eq_ident() {
-    check(
-        "w/=foo",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: WSlashEq,
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
                         span: Span {
                             lo: 3,
                             hi: 6,

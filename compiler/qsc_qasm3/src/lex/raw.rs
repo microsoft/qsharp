@@ -5,7 +5,7 @@
 //! whitespace, and comments. Keywords are treated as identifiers. The raw token stream is
 //! contiguous: there are no gaps between tokens.
 //!
-//! These are "raw" tokens because single-character operators don't always correspond to Q#
+//! These are "raw" tokens because single-character operators don't always correspond to `OpenQASM`
 //! operators, and whitespace and comments will later be discarded. Raw tokens are the ingredients
 //! that are "cooked" into compound tokens before they can be consumed by the parser.
 //!
@@ -15,7 +15,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::{Delim, InterpolatedEnding, InterpolatedStart, Radix};
+use super::{Delim, Radix};
 use enum_iterator::Sequence;
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -49,7 +49,6 @@ impl Display for TokenKind {
             TokenKind::Comment(CommentKind::Block) => f.write_str("block comment"),
             TokenKind::Comment(CommentKind::Normal) => f.write_str("comment"),
             TokenKind::Ident => f.write_str("identifier"),
-            TokenKind::Number(Number::BigInt(_)) => f.write_str("big integer"),
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
@@ -65,8 +64,6 @@ impl Display for TokenKind {
 pub enum Single {
     /// `&`
     Amp,
-    /// `'`
-    Apos,
     /// `@`
     At,
     /// `!`
@@ -111,7 +108,6 @@ impl Display for Single {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.write_char(match self {
             Single::Amp => '&',
-            Single::Apos => '\'',
             Single::At => '@',
             Single::Bang => '!',
             Single::Bar => '|',
@@ -141,21 +137,13 @@ impl Display for Single {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum Number {
-    BigInt(Radix),
     Float,
     Int(Radix),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum StringToken {
-    Normal { terminated: bool },
-    Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum StringKind {
-    Normal,
-    Interpolated,
+pub struct StringToken {
+    pub terminated: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
@@ -167,7 +155,6 @@ pub enum CommentKind {
 #[derive(Clone)]
 pub struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
-    interpolation: u8,
     starting_offset: u32,
 }
 
@@ -176,7 +163,6 @@ impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
-            interpolation: 0,
             starting_offset: 0,
         }
     }
@@ -185,7 +171,6 @@ impl<'a> Lexer<'a> {
     pub fn new_with_starting_offset(input: &'a str, starting_offset: u32) -> Self {
         Self {
             chars: input.char_indices().peekable(),
-            interpolation: 0,
             starting_offset,
         }
     }
@@ -267,9 +252,7 @@ impl<'a> Lexer<'a> {
         };
 
         self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
-        if self.next_if_eq('L') {
-            Some(Number::BigInt(radix))
-        } else if radix == Radix::Decimal && self.float() {
+        if radix == Radix::Decimal && self.float() {
             Some(Number::Float)
         } else {
             Some(Number::Int(radix))
@@ -285,8 +268,6 @@ impl<'a> Lexer<'a> {
 
         if self.float() {
             Some(Number::Float)
-        } else if self.next_if_eq('L') {
-            Some(Number::BigInt(Radix::Decimal))
         } else {
             Some(Number::Int(Radix::Decimal))
         }
@@ -315,65 +296,20 @@ impl<'a> Lexer<'a> {
     }
 
     fn string(&mut self, c: char) -> Option<TokenKind> {
-        let kind = self.start_string(c)?;
+        if c != '"' {
+            return None;
+        }
 
-        while self.first().is_some_and(|c| !is_string_terminator(kind, c)) {
-            self.eat_while(|c| c != '\\' && !is_string_terminator(kind, c));
+        while self.first().is_some_and(|c| c != '"') {
+            self.eat_while(|c| c != '\\' && c != '"');
             if self.next_if_eq('\\') {
                 self.chars.next();
             }
         }
 
-        Some(TokenKind::String(self.finish_string(c, kind)))
-    }
-
-    fn start_string(&mut self, c: char) -> Option<StringKind> {
-        if c == '$' {
-            if self.next_if_eq('"') {
-                Some(StringKind::Interpolated)
-            } else {
-                None
-            }
-        } else if c == '"' {
-            Some(StringKind::Normal)
-        } else if self.interpolation > 0 && c == '}' {
-            self.interpolation = self
-                .interpolation
-                .checked_sub(1)
-                .expect("interpolation level should have been incremented at left brace");
-            Some(StringKind::Interpolated)
-        } else {
-            None
-        }
-    }
-
-    fn finish_string(&mut self, start: char, kind: StringKind) -> StringToken {
-        match kind {
-            StringKind::Normal => StringToken::Normal {
-                terminated: self.next_if_eq('"'),
-            },
-            StringKind::Interpolated => {
-                let start = if start == '$' {
-                    InterpolatedStart::DollarQuote
-                } else {
-                    InterpolatedStart::RBrace
-                };
-
-                let end = if self.next_if_eq('{') {
-                    self.interpolation = self
-                        .interpolation
-                        .checked_add(1)
-                        .expect("interpolation should not exceed maximum depth");
-                    Some(InterpolatedEnding::LBrace)
-                } else if self.next_if_eq('"') {
-                    Some(InterpolatedEnding::Quote)
-                } else {
-                    None // Unterminated string.
-                };
-
-                StringToken::Interpolated(start, end)
-            }
-        }
+        Some(TokenKind::String(StringToken {
+            terminated: self.next_if_eq('"'),
+        }))
     }
 }
 
@@ -411,7 +347,6 @@ fn single(c: char) -> Option<Single> {
         ':' => Some(Single::Colon),
         '!' => Some(Single::Bang),
         '.' => Some(Single::Dot),
-        '\'' => Some(Single::Apos),
         '(' => Some(Single::Open(Delim::Paren)),
         ')' => Some(Single::Close(Delim::Paren)),
         '[' => Some(Single::Open(Delim::Bracket)),
@@ -432,8 +367,4 @@ fn single(c: char) -> Option<Single> {
         '~' => Some(Single::Tilde),
         _ => None,
     }
-}
-
-fn is_string_terminator(kind: StringKind, c: char) -> bool {
-    c == '"' || kind == StringKind::Interpolated && c == '{'
 }
