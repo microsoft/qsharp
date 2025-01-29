@@ -25,6 +25,7 @@ use qsc_data_structures::span::Span;
 use std::{
     fmt::{self, Display, Formatter},
     iter::Peekable,
+    str::FromStr,
 };
 use thiserror::Error;
 
@@ -127,9 +128,55 @@ pub enum TokenKind {
 
     Identifier,
     HardwareQubit,
+}
 
-    Whitespace,
-    Comment,
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
+            TokenKind::Type(type_) => write!(f, "keyword `{type_}`"),
+            TokenKind::GPhase => write!(f, "gphase"),
+            TokenKind::Inv => write!(f, "inv"),
+            TokenKind::Pow => write!(f, "pow"),
+            TokenKind::Ctrl => write!(f, "ctrl"),
+            TokenKind::NegCtrl => write!(f, "negctrl"),
+            TokenKind::Dim => write!(f, "dim"),
+            TokenKind::DurationOf => write!(f, "durationof"),
+            TokenKind::Delay => write!(f, "delay"),
+            TokenKind::Reset => write!(f, "reset"),
+            TokenKind::Measure => write!(f, "measure"),
+            TokenKind::Barrier => write!(f, "barrier"),
+            TokenKind::Literal(literal) => write!(f, "literal `{literal}`"),
+            TokenKind::Open(Delim::Brace) => write!(f, "`{{`"),
+            TokenKind::Open(Delim::Bracket) => write!(f, "`[`"),
+            TokenKind::Open(Delim::Paren) => write!(f, "`(`"),
+            TokenKind::Close(Delim::Brace) => write!(f, "`}}`"),
+            TokenKind::Close(Delim::Bracket) => write!(f, "`]`"),
+            TokenKind::Close(Delim::Paren) => write!(f, "`)`"),
+            TokenKind::Colon => write!(f, "`:`"),
+            TokenKind::Semicolon => write!(f, "`;`"),
+            TokenKind::Dot => write!(f, "`.`"),
+            TokenKind::Comma => write!(f, "`,`"),
+            TokenKind::PlusPlus => write!(f, "`++`"),
+            TokenKind::Arrow => write!(f, "`->`"),
+            TokenKind::UnaryOperator(op) => write!(f, "`{op}`"),
+            TokenKind::BinaryOperator(op) => write!(f, "`{op}`"),
+            TokenKind::BinaryOperatorEq(op) => write!(f, "`{op}=`"),
+            TokenKind::ComparisonOperator(op) => write!(f, "`{op}`"),
+            TokenKind::Eq => write!(f, "`=`"),
+            TokenKind::Identifier => write!(f, "identifier"),
+            TokenKind::HardwareQubit => write!(f, "hardware bit"),
+        }
+    }
+}
+
+impl From<Number> for TokenKind {
+    fn from(value: Number) -> Self {
+        match value {
+            Number::Float => Self::Literal(Literal::Float),
+            Number::Int(radix) => Self::Literal(Literal::Integer(radix)),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
@@ -158,6 +205,61 @@ pub enum Type {
     Stretch,
 }
 
+impl Display for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Type::Input => "input",
+            Type::Output => "output",
+            Type::Const => "const",
+            Type::Readonly => "readonly",
+            Type::Mutable => "mutable",
+            Type::QReg => "qreg",
+            Type::Qubit => "qubit",
+            Type::CReg => "creg",
+            Type::Bool => "bool",
+            Type::Bit => "bit",
+            Type::Int => "int",
+            Type::UInt => "uint",
+            Type::Float => "float",
+            Type::Angle => "angle",
+            Type::Complex => "complex",
+            Type::Array => "array",
+            Type::Void => "void",
+            Type::Duration => "duration",
+            Type::Stretch => "stretch",
+        })
+    }
+}
+
+impl FromStr for Type {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "input" => Ok(Type::Input),
+            "output" => Ok(Type::Output),
+            "const" => Ok(Type::Const),
+            "readonly" => Ok(Type::Readonly),
+            "mutable" => Ok(Type::Mutable),
+            "qreg" => Ok(Type::QReg),
+            "qubit" => Ok(Type::Qubit),
+            "creg" => Ok(Type::CReg),
+            "bool" => Ok(Type::Bool),
+            "bit" => Ok(Type::Bit),
+            "int" => Ok(Type::Int),
+            "uint" => Ok(Type::UInt),
+            "float" => Ok(Type::Float),
+            "angle" => Ok(Type::Angle),
+            "complex" => Ok(Type::Complex),
+            "array" => Ok(Type::Array),
+            "void" => Ok(Type::Void),
+            "duration" => Ok(Type::Duration),
+            "stretch" => Ok(Type::Stretch),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum Literal {
     Bitstring,
@@ -166,7 +268,35 @@ pub enum Literal {
     Imaginary,
     Integer(Radix),
     String,
-    Timing,
+    Timing(TimingLiteralKind),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Literal::Bitstring => "bitstring",
+            Literal::Boolean => "boolean",
+            Literal::Float => "float",
+            Literal::Imaginary => "imaginary",
+            Literal::Integer(_) => "integer",
+            Literal::String => "string",
+            Literal::Timing(_) => "timing",
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum TimingLiteralKind {
+    /// Timing literal: TODO: what is this?
+    Dt,
+    /// Timing literal: Nanoseconds.
+    Ns,
+    /// Timing literal: Microseconds.
+    Us,
+    /// Timing literal: Milliseconds.
+    Ms,
+    /// Timing literal: Seconds.
+    S,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
@@ -177,6 +307,16 @@ pub enum UnaryOperator {
     Minus,
     /// `~`
     Tilde,
+}
+
+impl Display for UnaryOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            UnaryOperator::Bang => "!",
+            UnaryOperator::Minus => "-",
+            UnaryOperator::Tilde => "~",
+        })
+    }
 }
 
 /// A binary operator that returns the same type as the type of its first operand; in other words,
@@ -210,6 +350,24 @@ pub enum ClosedBinaryOperator {
     //       But this is this a bug in the official qasm lexer?
 }
 
+impl Display for ClosedBinaryOperator {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str(match self {
+            ClosedBinaryOperator::Amp => "&",
+            ClosedBinaryOperator::Bar => "|",
+            ClosedBinaryOperator::Caret => "^",
+            ClosedBinaryOperator::GtGt => ">>",
+            ClosedBinaryOperator::LtLt => "<<",
+            ClosedBinaryOperator::Minus => "-",
+            ClosedBinaryOperator::Percent => "%",
+            ClosedBinaryOperator::Plus => "+",
+            ClosedBinaryOperator::Slash => "/",
+            ClosedBinaryOperator::Star => "*",
+            ClosedBinaryOperator::StarStar => "**",
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum ComparisonOperator {
     /// `&&`
@@ -230,24 +388,18 @@ pub enum ComparisonOperator {
     LtEq,
 }
 
-impl Display for TokenKind {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        todo!()
-    }
-}
-
-impl From<Number> for TokenKind {
-    fn from(value: Number) -> Self {
-        match value {
-            Number::Float => Self::Literal(Literal::Float),
-            Number::Int(radix) => Self::Literal(Literal::Integer(radix)),
-        }
-    }
-}
-
-impl Display for ClosedBinaryOperator {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        todo!()
+impl Display for ComparisonOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ComparisonOperator::AmpAmp => "&&",
+            ComparisonOperator::BangEq => "!=",
+            ComparisonOperator::BarBar => "||",
+            ComparisonOperator::EqEq => "==",
+            ComparisonOperator::Gt => ">",
+            ComparisonOperator::GtEq => ">=",
+            ComparisonOperator::Lt => "<",
+            ComparisonOperator::LtEq => "<=",
+        })
     }
 }
 
@@ -302,25 +454,86 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Returns the first token ahead of the cursor without consuming it. This operation is fast,
+    /// but if you know you want to consume the token if it matches, use [`next_if_eq`] instead.
+    fn first(&mut self) -> Option<raw::TokenKind> {
+        self.tokens.peek().map(|i| i.kind)
+    }
+
+    /// Returns the second token ahead of the cursor without consuming it. This is slower
+    /// than [`first`] and should be avoided when possible.
+    fn second(&self) -> Option<raw::TokenKind> {
+        let mut tokens = self.tokens.clone();
+        tokens.next();
+        tokens.next().map(|i| i.kind)
+    }
+
+    /// Consumes a list of tokens zero or more times.
+    fn kleen_star(&mut self, tokens: &[raw::TokenKind], complete: TokenKind) -> Result<(), Error> {
+        let mut iter = tokens.iter();
+        while self.next_if_eq(*(iter.next().expect("tokens should have at least one token"))) {
+            for token in iter {
+                self.expect(*token, complete)?
+            }
+            iter = tokens.iter();
+        }
+        Ok(())
+    }
+
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let kind = match token.kind {
-            raw::TokenKind::Comment(raw::CommentKind::Block | raw::CommentKind::Normal)
-            | raw::TokenKind::Whitespace => Ok(None),
-            raw::TokenKind::Ident => {
-                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
-                Ok(Some(self.ident(ident)))
+            raw::TokenKind::Bitstring { terminated: true } => {
+                Ok(Some(TokenKind::Literal(Literal::Bitstring)))
             }
-            raw::TokenKind::Number(number) => Ok(Some(number.into())),
-            raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String(raw::StringToken { terminated: true }) => {
-                Ok(Some(TokenKind::Literal(Literal::String)))
-            }
-            raw::TokenKind::String(raw::StringToken { terminated: false }) => {
+            raw::TokenKind::Bitstring { terminated: false } => {
                 Err(Error::UnterminatedString(Span {
                     lo: token.offset,
                     hi: token.offset,
                 }))
             }
+            raw::TokenKind::Comment(_) | raw::TokenKind::Newline | raw::TokenKind::Whitespace => {
+                Ok(None)
+            }
+            raw::TokenKind::Ident => {
+                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
+                Ok(Some(self.ident(ident)))
+            }
+            raw::TokenKind::HardwareQubit => Ok(Some(TokenKind::HardwareQubit)),
+            raw::TokenKind::LiteralFragment(_) => {
+                // if a literal fragment does not appear after a decimal
+                // or a float, treat it as an identifier.
+                Ok(Some(TokenKind::Identifier))
+            }
+            raw::TokenKind::Number(number) => {
+                // after reading a decimal number or a float there could be a whitespace
+                // followed by a fragment, which will change the type of the literal.
+                if let (
+                    Some(raw::TokenKind::Whitespace),
+                    Some(raw::TokenKind::LiteralFragment(fragment)),
+                ) = (self.first(), self.second())
+                {
+                    use self::Literal::{Imaginary, Timing};
+                    use TokenKind::Literal;
+                    Ok(Some(match fragment {
+                        raw::LiteralFragmentKind::Imag => Literal(Imaginary),
+                        raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
+                        raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
+                        raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
+                        raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
+                        raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
+                    }))
+                } else {
+                    Ok(Some(number.into()))
+                }
+            }
+            raw::TokenKind::Single(single) => self.single(single).map(Some),
+            raw::TokenKind::String { terminated: true } => {
+                Ok(Some(TokenKind::Literal(Literal::String)))
+            }
+            raw::TokenKind::String { terminated: false } => Err(Error::UnterminatedString(Span {
+                lo: token.offset,
+                hi: token.offset,
+            })),
             raw::TokenKind::Unknown => {
                 let c = self.input[(token.offset as usize)..]
                     .chars()
@@ -343,18 +556,6 @@ impl<'a> Lexer<'a> {
         }))
     }
 
-    /// Consumes a list of tokens zero or more times.
-    fn kleen_star(&mut self, tokens: &[raw::TokenKind], complete: TokenKind) -> Result<(), Error> {
-        let mut iter = tokens.iter();
-        while self.next_if_eq(*(iter.next().expect("tokens should have at least one token"))) {
-            for token in iter {
-                self.expect(*token, complete)?
-            }
-            iter = tokens.iter();
-        }
-        Ok(())
-    }
-
     #[allow(clippy::too_many_lines)]
     fn single(&mut self, single: Single) -> Result<TokenKind, Error> {
         match single {
@@ -372,7 +573,7 @@ impl<'a> Lexer<'a> {
                     &[raw::TokenKind::Single(Single::Dot), raw::TokenKind::Ident],
                     complete,
                 )?;
-                Ok(TokenKind::Keyword(Keyword::Annotation))
+                Ok(complete)
             }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
@@ -469,10 +670,15 @@ impl<'a> Lexer<'a> {
             "measure" => TokenKind::Measure,
             "barrier" => TokenKind::Barrier,
             "false" | "true" => TokenKind::Literal(Literal::Boolean),
-            ident => ident
-                .parse()
-                .map(TokenKind::Keyword)
-                .unwrap_or(TokenKind::Identifier),
+            ident => {
+                if let Ok(keyword) = ident.parse::<Keyword>() {
+                    TokenKind::Keyword(keyword)
+                } else if let Ok(type_) = ident.parse::<Type>() {
+                    TokenKind::Type(type_)
+                } else {
+                    TokenKind::Identifier
+                }
+            }
         }
     }
 }

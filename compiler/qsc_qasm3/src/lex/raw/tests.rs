@@ -105,7 +105,7 @@ fn comment() {
                     offset: 0,
                 },
                 Token {
-                    kind: Whitespace,
+                    kind: Newline,
                     offset: 9,
                 },
                 Token {
@@ -147,7 +147,7 @@ fn comment_four_slashes() {
                     offset: 0,
                 },
                 Token {
-                    kind: Whitespace,
+                    kind: Newline,
                     offset: 11,
                 },
                 Token {
@@ -166,11 +166,9 @@ fn string() {
         &expect![[r#"
             [
                 Token {
-                    kind: String(
-                        StringToken {
-                            terminated: true,
-                        },
-                    ),
+                    kind: String {
+                        terminated: true,
+                    },
                     offset: 0,
                 },
             ]
@@ -185,11 +183,9 @@ fn string_escape_quote() {
         &expect![[r#"
             [
                 Token {
-                    kind: String(
-                        StringToken {
-                            terminated: true,
-                        },
-                    ),
+                    kind: String {
+                        terminated: true,
+                    },
                     offset: 0,
                 },
             ]
@@ -204,11 +200,9 @@ fn string_missing_ending() {
         &expect![[r#"
             [
                 Token {
-                    kind: String(
-                        StringToken {
-                            terminated: false,
-                        },
-                    ),
+                    kind: String {
+                        terminated: false,
+                    },
                     offset: 0,
                 },
             ]
@@ -338,24 +332,16 @@ fn number_underscore_prefix() {
 }
 
 #[test]
-fn int_dot_dot() {
+fn float_dot() {
     check(
         "0..",
         &expect![[r#"
             [
                 Token {
                     kind: Number(
-                        Int(
-                            Decimal,
-                        ),
+                        Float,
                     ),
                     offset: 0,
-                },
-                Token {
-                    kind: Single(
-                        Dot,
-                    ),
-                    offset: 1,
                 },
                 Token {
                     kind: Single(

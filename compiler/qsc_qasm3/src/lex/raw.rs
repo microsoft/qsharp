@@ -34,11 +34,15 @@ pub struct Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
+    Bitstring { terminated: bool },
     Comment(CommentKind),
+    HardwareQubit,
     Ident,
+    LiteralFragment(LiteralFragmentKind),
+    Newline,
     Number(Number),
     Single(Single),
-    String(StringToken),
+    String { terminated: bool },
     Unknown,
     Whitespace,
 }
@@ -46,13 +50,17 @@ pub enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            TokenKind::Bitstring { .. } => f.write_str("bitstring"),
             TokenKind::Comment(CommentKind::Block) => f.write_str("block comment"),
             TokenKind::Comment(CommentKind::Normal) => f.write_str("comment"),
+            TokenKind::HardwareQubit => f.write_str("hardware qubit"),
             TokenKind::Ident => f.write_str("identifier"),
+            TokenKind::LiteralFragment(_) => f.write_str("literal fragment"),
+            TokenKind::Newline => f.write_str("newline"),
             TokenKind::Number(Number::Float) => f.write_str("float"),
             TokenKind::Number(Number::Int(_)) => f.write_str("integer"),
             TokenKind::Single(single) => write!(f, "`{single}`"),
-            TokenKind::String(_) => f.write_str("string"),
+            TokenKind::String { .. } => f.write_str("string"),
             TokenKind::Unknown => f.write_str("unknown"),
             TokenKind::Whitespace => f.write_str("whitespace"),
         }
@@ -152,6 +160,22 @@ pub enum CommentKind {
     Normal,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
+pub enum LiteralFragmentKind {
+    /// Imaginary literal fragment.
+    Imag,
+    /// Timing literal: TODO: what is this?
+    Dt,
+    /// Timing literal: Nanoseconds.
+    Ns,
+    /// Timing literal: Microseconds.
+    Us,
+    /// Timing literal: Milliseconds.
+    Ms,
+    /// Timing literal: Seconds.
+    S,
+}
+
 #[derive(Clone)]
 pub struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
@@ -179,8 +203,16 @@ impl<'a> Lexer<'a> {
         self.chars.next_if(|i| i.1 == c).is_some()
     }
 
-    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
-        while self.chars.next_if(|i| f(i.1)).is_some() {}
+    /// Consumes the characters while they satisfy `f`. Returns the last character eaten, if any.
+    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) -> Option<char> {
+        let mut last_eaten = None;
+        loop {
+            let c = self.chars.next_if(|i| f(i.1));
+            if c.is_none() {
+                return last_eaten.map(|(_, c)| c);
+            }
+            last_eaten = c;
+        }
     }
 
     /// Returns the first character ahead of the cursor without consuming it. This operation is fast,
@@ -197,9 +229,18 @@ impl<'a> Lexer<'a> {
         chars.next().map(|i| i.1)
     }
 
+    fn newline(&mut self, c: char) -> bool {
+        if is_newline(c) {
+            self.eat_while(is_newline);
+            true
+        } else {
+            false
+        }
+    }
+
     fn whitespace(&mut self, c: char) -> bool {
-        if c.is_whitespace() {
-            self.eat_while(char::is_whitespace);
+        if is_whitespace(c) {
+            self.eat_while(is_whitespace);
             true
         } else {
             false
@@ -208,9 +249,8 @@ impl<'a> Lexer<'a> {
 
     fn comment(&mut self, c: char) -> Option<CommentKind> {
         if c == '/' && self.next_if_eq('/') {
-            let kind = CommentKind::Normal;
-            self.eat_while(|c| c != '\n' && c != '\r');
-            Some(kind)
+            self.eat_while(|c| !is_newline(c));
+            Some(CommentKind::Normal)
         } else if c == '/' && self.next_if_eq('*') {
             loop {
                 let (_, c) = self.chars.next()?;
@@ -223,12 +263,38 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn ident(&mut self, c: char) -> bool {
+    fn ident(&mut self, c: char) -> Option<TokenKind> {
+        let first = self.first();
+        let second = self.second();
+
+        // Check for some special literal fragments.
+        // fragment TimeUnit: 'dt' | 'ns' | 'us' | 'µs' | 'ms' | 's';
+        if c == 's' && first.is_some_and(|c1| c1 != '_' && !char::is_alphanumeric(c1)) {
+            return Some(TokenKind::LiteralFragment(LiteralFragmentKind::S));
+        }
+
+        if let (Some(c1), Some(c2)) = (first, second) {
+            if c2 != '_' || !c2.is_alphanumeric() {
+                match (c, c1) {
+                    ('i', 'm') => {
+                        return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Imag))
+                    }
+                    ('d', 't') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Dt)),
+                    ('n', 's') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ns)),
+                    ('u' | 'µ', 's') => {
+                        return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Us))
+                    }
+                    ('m', 's') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ms)),
+                    _ => (),
+                }
+            }
+        }
+
         if c == '_' || c.is_alphabetic() {
             self.eat_while(|c| c == '_' || c.is_alphanumeric());
-            true
+            Some(TokenKind::Ident)
         } else {
-            false
+            None
         }
     }
 
@@ -275,7 +341,7 @@ impl<'a> Lexer<'a> {
 
     fn float(&mut self) -> bool {
         // Watch out for ranges: `0..` should be an integer followed by two dots.
-        if self.first() == Some('.') && self.second() != Some('.') {
+        if self.first() == Some('.') {
             self.chars.next();
             self.eat_while(|c| c == '_' || c.is_ascii_digit());
             self.exp();
@@ -295,21 +361,56 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn string(&mut self, c: char) -> Option<TokenKind> {
-        if c != '"' {
+    fn string(&mut self, string_start: char) -> Option<TokenKind> {
+        if string_start != '"' && string_start != '\'' {
             return None;
         }
 
-        while self.first().is_some_and(|c| c != '"') {
-            self.eat_while(|c| c != '\\' && c != '"');
+        if let Some(bitstring) = self.bitstring() {
+            // consume the closing '"'
+            self.next();
+            return Some(bitstring);
+        }
+
+        while self.first().is_some_and(|c| c != string_start) {
+            self.eat_while(|c| c != '\\' && c != string_start);
             if self.next_if_eq('\\') {
                 self.chars.next();
             }
         }
 
-        Some(TokenKind::String(StringToken {
-            terminated: self.next_if_eq('"'),
-        }))
+        Some(TokenKind::String {
+            terminated: self.next_if_eq(string_start),
+        })
+    }
+
+    fn bitstring(&mut self) -> Option<TokenKind> {
+        const STRING_START: char = '"';
+
+        // A bitstring must have at least one character.
+        if matches!(self.first(), None | Some(STRING_START)) {
+            return None;
+        }
+
+        // A bitstring must end in a 0 or a 1.
+        if let Some('_') = self.eat_while(is_bitstring_char) {
+            return None;
+        }
+
+        match self.first() {
+            None => Some(TokenKind::Bitstring { terminated: false }),
+            Some(STRING_START) => Some(TokenKind::Bitstring { terminated: true }),
+            _ => None,
+        }
+    }
+
+    fn hardware_qubit(&mut self, c: char) -> bool {
+        if c == '$' {
+            self.eat_while(|c| c.is_ascii_digit());
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -322,8 +423,12 @@ impl Iterator for Lexer<'_> {
             TokenKind::Comment(kind)
         } else if self.whitespace(c) {
             TokenKind::Whitespace
-        } else if self.ident(c) {
-            TokenKind::Ident
+        } else if self.newline(c) {
+            TokenKind::Newline
+        } else if let Some(ident) = self.ident(c) {
+            ident
+        } else if self.hardware_qubit(c) {
+            TokenKind::HardwareQubit
         } else {
             self.number(c)
                 .map(TokenKind::Number)
@@ -367,4 +472,16 @@ fn single(c: char) -> Option<Single> {
         '~' => Some(Single::Tilde),
         _ => None,
     }
+}
+
+fn is_bitstring_char(c: char) -> bool {
+    c == '0' || c == '1' || c == '_'
+}
+
+fn is_newline(c: char) -> bool {
+    c == '\n' || c == '\r'
+}
+
+fn is_whitespace(c: char) -> bool {
+    !is_newline(c) && c.is_whitespace()
 }

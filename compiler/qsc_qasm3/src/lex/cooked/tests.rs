@@ -46,8 +46,6 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::ComparisonOperator(comparison_operator) => todo!(),
         TokenKind::Identifier => todo!(),
         TokenKind::HardwareQubit => todo!(),
-        TokenKind::Whitespace => todo!(),
-        TokenKind::Comment => todo!(),
     }
 }
 
