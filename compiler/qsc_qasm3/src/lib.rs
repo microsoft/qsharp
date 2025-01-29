@@ -8,7 +8,6 @@ pub use compile::qasm_to_program;
 pub mod io;
 mod keyword;
 mod lex;
-mod oqasm_ast;
 mod oqasm_helpers;
 mod oqasm_types;
 pub mod parse;
