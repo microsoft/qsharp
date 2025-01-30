@@ -20,32 +20,36 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Comma => Some(",".to_string()),
         TokenKind::Dot => Some(".".to_string()),
         TokenKind::Eq => Some("=".to_string()),
+        TokenKind::Bang => Some("!".to_string()),
+        TokenKind::Tilde => Some("~".to_string()),
         TokenKind::Open(Delim::Brace) => Some("{".to_string()),
         TokenKind::Open(Delim::Bracket) => Some("[".to_string()),
         TokenKind::Open(Delim::Paren) => Some("(".to_string()),
         TokenKind::PlusPlus => Some("++".to_string()),
-        TokenKind::Keyword(_) => None,
-        TokenKind::Type(_) => todo!(),
-        TokenKind::GPhase => todo!(),
-        TokenKind::Inv => todo!(),
-        TokenKind::Pow => todo!(),
-        TokenKind::Ctrl => todo!(),
-        TokenKind::NegCtrl => todo!(),
-        TokenKind::Dim => todo!(),
-        TokenKind::DurationOf => todo!(),
-        TokenKind::Delay => todo!(),
-        TokenKind::Reset => todo!(),
-        TokenKind::Measure => todo!(),
-        TokenKind::Barrier => todo!(),
-        TokenKind::Literal(literal) => todo!(),
-        TokenKind::Semicolon => todo!(),
-        TokenKind::Arrow => todo!(),
-        TokenKind::UnaryOperator(unary_operator) => todo!(),
-        TokenKind::BinaryOperator(closed_binary_operator) => todo!(),
-        TokenKind::BinaryOperatorEq(closed_binary_operator) => todo!(),
-        TokenKind::ComparisonOperator(comparison_operator) => todo!(),
-        TokenKind::Identifier => todo!(),
-        TokenKind::HardwareQubit => todo!(),
+        TokenKind::Keyword(keyword) => Some(keyword.to_string()),
+        TokenKind::Type(type_) => Some(type_.to_string()),
+        TokenKind::GPhase => Some("gphase".to_string()),
+        TokenKind::Inv => Some("inv".to_string()),
+        TokenKind::Pow => Some("pow".to_string()),
+        TokenKind::Ctrl => Some("ctrl".to_string()),
+        TokenKind::NegCtrl => Some("negctrl".to_string()),
+        TokenKind::Dim => Some("dim".to_string()),
+        TokenKind::DurationOf => Some("durationof".to_string()),
+        TokenKind::Delay => Some("delay".to_string()),
+        TokenKind::Reset => Some("reset".to_string()),
+        TokenKind::Measure => Some("measure".to_string()),
+        TokenKind::Barrier => Some("barrier".to_string()),
+        TokenKind::Semicolon => Some(";".to_string()),
+        TokenKind::Arrow => Some("->".to_string()),
+        TokenKind::ClosedBinaryOp(op) => Some(op.to_string()),
+        TokenKind::BinaryOperatorEq(
+            super::ClosedBinaryOp::AmpAmp | super::ClosedBinaryOp::BarBar,
+        )
+        | TokenKind::Literal(_) => None,
+        TokenKind::BinaryOperatorEq(op) => Some(format!("{op}=")),
+        TokenKind::ComparisonOperator(op) => Some(op.to_string()),
+        TokenKind::Identifier => Some("foo".to_string()),
+        TokenKind::HardwareQubit => Some("$1".to_string()),
     }
 }
 
@@ -86,19 +90,16 @@ fn amp() {
         "&",
         &expect![[r#"
             [
-                Err(
-                    IncompleteEof(
-                        Single(
+                Ok(
+                    Token {
+                        kind: BinaryOperator(
                             Amp,
                         ),
-                        ClosedBinOp(
-                            AmpAmpAmp,
-                        ),
-                        Span {
-                            lo: 1,
+                        span: Span {
+                            lo: 0,
                             hi: 1,
                         },
-                    ),
+                    },
                 ),
             ]
         "#]],
@@ -111,19 +112,16 @@ fn amp_amp() {
         "&&",
         &expect![[r#"
             [
-                Err(
-                    IncompleteEof(
-                        Single(
-                            Amp,
+                Ok(
+                    Token {
+                        kind: ClosedBinaryOp(
+                            AmpAmp,
                         ),
-                        ClosedBinOp(
-                            AmpAmpAmp,
-                        ),
-                        Span {
-                            lo: 2,
+                        span: Span {
+                            lo: 0,
                             hi: 2,
                         },
-                    ),
+                    },
                 ),
             ]
         "#]],
