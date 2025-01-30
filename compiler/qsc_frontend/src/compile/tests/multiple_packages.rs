@@ -81,7 +81,7 @@ fn multiple_package_multiple_source_check(
         let sources = SourceMap::new(
             sources.iter().map(|(name, source)| {
                 (
-                    Arc::from(format!("{}/{}.qs", package_name, name)),
+                    Arc::from(format!("{package_name}/{name}.qs")),
                     Arc::from(*source),
                 )
             }),
