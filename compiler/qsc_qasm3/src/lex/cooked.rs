@@ -459,7 +459,7 @@ impl<'a> Lexer<'a> {
         let mut iter = tokens.iter();
         while self.next_if_eq(*(iter.next().expect("tokens should have at least one token"))) {
             for token in iter {
-                self.expect(*token, complete)?
+                self.expect(*token, complete)?;
             }
             iter = tokens.iter();
         }
@@ -482,7 +482,7 @@ impl<'a> Lexer<'a> {
             }
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
-                Ok(Some(self.ident(ident)))
+                Ok(Some(Self::ident(ident)))
             }
             raw::TokenKind::HardwareQubit => Ok(Some(TokenKind::HardwareQubit)),
             raw::TokenKind::LiteralFragment(_) => {
@@ -650,7 +650,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn ident(&mut self, ident: &str) -> TokenKind {
+    fn ident(ident: &str) -> TokenKind {
         match ident {
             "gphase" => TokenKind::GPhase,
             "inv" => TokenKind::Inv,

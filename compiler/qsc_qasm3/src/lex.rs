@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+#![allow(unused)]
 
 pub mod cooked;
 pub mod raw;
-
 use enum_iterator::Sequence;
 
 pub(super) use cooked::{Error, Lexer, Token, TokenKind};
