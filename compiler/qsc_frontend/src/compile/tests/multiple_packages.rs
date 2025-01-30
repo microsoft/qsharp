@@ -61,6 +61,8 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     }
 }
 
+/// This can be used to test multiple packages which internally have multiple source files, as opposed to the more simple `multiple_package_check`
+/// which only allows one source file per package (for easy and quick test creation).
 fn multiple_package_multiple_source_check(
     packages: Vec<(&str, Vec<(&str, &str)>)>,
     expect: Option<&Expect>,
