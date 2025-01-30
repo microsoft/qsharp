@@ -735,3 +735,143 @@ fn float_hexadecimal() {
         "#]],
     );
 }
+
+#[test]
+fn fragments() {
+    check(
+        "im dt ns us µs ms s",
+        &expect![[r#"
+            [
+                Token {
+                    kind: LiteralFragment(
+                        Imag,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 2,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        Dt,
+                    ),
+                    offset: 3,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 5,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        Ns,
+                    ),
+                    offset: 6,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 8,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        Us,
+                    ),
+                    offset: 9,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 11,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        Us,
+                    ),
+                    offset: 12,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 15,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        Ms,
+                    ),
+                    offset: 16,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 18,
+                },
+                Token {
+                    kind: LiteralFragment(
+                        S,
+                    ),
+                    offset: 19,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn identifiers_with_fragment_prefixes() {
+    check(
+        "imx dtx nsx usx µsx msx sx",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Ident,
+                    offset: 0,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 3,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 4,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 7,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 8,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 11,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 12,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 15,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 16,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 20,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 21,
+                },
+                Token {
+                    kind: Whitespace,
+                    offset: 24,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 25,
+                },
+            ]
+        "#]],
+    );
+}

@@ -268,24 +268,27 @@ impl<'a> Lexer<'a> {
         let second = self.second();
 
         // Check for some special literal fragments.
-        // fragment TimeUnit: 'dt' | 'ns' | 'us' | 'µs' | 'ms' | 's';
-        if c == 's' && first.is_some_and(|c1| c1 != '_' && !char::is_alphanumeric(c1)) {
+        if c == 's'
+            && (first.is_none() || first.is_some_and(|c1| c1 != '_' && !c1.is_alphanumeric()))
+        {
             return Some(TokenKind::LiteralFragment(LiteralFragmentKind::S));
         }
 
-        if let (Some(c1), Some(c2)) = (first, second) {
-            if c2 != '_' || !c2.is_alphanumeric() {
-                match (c, c1) {
-                    ('i', 'm') => {
-                        return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Imag))
-                    }
-                    ('d', 't') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Dt)),
-                    ('n', 's') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ns)),
-                    ('u' | 'µ', 's') => {
-                        return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Us))
-                    }
-                    ('m', 's') => return Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ms)),
-                    _ => (),
+        if let Some(c1) = first {
+            if second.is_none() || second.is_some_and(|c1| c1 != '_' && !c1.is_alphanumeric()) {
+                let fragment = match (c, c1) {
+                    ('i', 'm') => Some(TokenKind::LiteralFragment(LiteralFragmentKind::Imag)),
+                    ('d', 't') => Some(TokenKind::LiteralFragment(LiteralFragmentKind::Dt)),
+                    ('n', 's') => Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ns)),
+                    ('u' | 'µ', 's') => Some(TokenKind::LiteralFragment(LiteralFragmentKind::Us)),
+                    ('m', 's') => Some(TokenKind::LiteralFragment(LiteralFragmentKind::Ms)),
+                    _ => None,
+                };
+
+                if fragment.is_some() {
+                    // consume `first` before returning.
+                    self.next();
+                    return fragment;
                 }
             }
         }
