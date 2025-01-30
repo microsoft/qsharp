@@ -164,7 +164,8 @@ pub enum CommentKind {
 pub enum LiteralFragmentKind {
     /// Imaginary literal fragment.
     Imag,
-    /// Timing literal: TODO: what is this?
+    /// Timing literal: Backend-dependent unit.
+    /// Equivalent to the duration of one waveform sample on the backend.
     Dt,
     /// Timing literal: Nanoseconds.
     Ns,

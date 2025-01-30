@@ -287,7 +287,8 @@ impl Display for Literal {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TimingLiteralKind {
-    /// Timing literal: TODO: what is this?
+    /// Timing literal: Backend-dependent unit.
+    /// Equivalent to the duration of one waveform sample on the backend.
     Dt,
     /// Timing literal: Nanoseconds.
     Ns,
@@ -346,7 +347,7 @@ pub enum ClosedBinaryOperator {
     Star,
     /// `**`
     StarStar,
-    // TODO: missing Tilde according to qasm3Lexer.g4 to be able to express ~=
+    // Note: Missing Tilde according to qasm3Lexer.g4 to be able to express ~=
     //       But this is this a bug in the official qasm lexer?
 }
 
