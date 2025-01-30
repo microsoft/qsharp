@@ -41,13 +41,11 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Barrier => Some("barrier".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
-        TokenKind::ClosedBinaryOp(op) => Some(op.to_string()),
-        TokenKind::BinaryOperatorEq(
-            super::ClosedBinaryOp::AmpAmp | super::ClosedBinaryOp::BarBar,
-        )
+        TokenKind::ClosedBinOp(op) => Some(op.to_string()),
+        TokenKind::BinOpEq(super::ClosedBinOp::AmpAmp | super::ClosedBinOp::BarBar)
         | TokenKind::Literal(_) => None,
-        TokenKind::BinaryOperatorEq(op) => Some(format!("{op}=")),
-        TokenKind::ComparisonOperator(op) => Some(op.to_string()),
+        TokenKind::BinOpEq(op) => Some(format!("{op}=")),
+        TokenKind::ComparisonOp(op) => Some(op.to_string()),
         TokenKind::Identifier => Some("foo".to_string()),
         TokenKind::HardwareQubit => Some("$1".to_string()),
     }
@@ -92,7 +90,7 @@ fn amp() {
             [
                 Ok(
                     Token {
-                        kind: BinaryOperator(
+                        kind: ClosedBinOp(
                             Amp,
                         ),
                         span: Span {
@@ -114,7 +112,7 @@ fn amp_amp() {
             [
                 Ok(
                     Token {
-                        kind: ClosedBinaryOp(
+                        kind: ClosedBinOp(
                             AmpAmp,
                         ),
                         span: Span {
@@ -134,22 +132,16 @@ fn amp_plus() {
         "&+",
         &expect![[r#"
             [
-                Err(
-                    Incomplete(
-                        Single(
+                Ok(
+                    Token {
+                        kind: ClosedBinOp(
                             Amp,
                         ),
-                        ClosedBinOp(
-                            AmpAmpAmp,
-                        ),
-                        Single(
-                            Plus,
-                        ),
-                        Span {
-                            lo: 1,
-                            hi: 2,
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
                         },
-                    ),
+                    },
                 ),
                 Ok(
                     Token {
@@ -175,7 +167,7 @@ fn amp_multibyte() {
             [
                 Ok(
                     Token {
-                        kind: BinaryOperator(
+                        kind: ClosedBinOp(
                             Amp,
                         ),
                         span: Span {
@@ -207,22 +199,22 @@ fn amp_amp_amp_amp() {
                 Ok(
                     Token {
                         kind: ClosedBinOp(
-                            AmpAmpAmp,
+                            AmpAmp,
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 3,
+                            hi: 2,
                         },
                     },
                 ),
                 Ok(
                     Token {
                         kind: ClosedBinOp(
-                            AmpAmpAmp,
+                            AmpAmp,
                         ),
                         span: Span {
-                            lo: 3,
-                            hi: 6,
+                            lo: 2,
+                            hi: 4,
                         },
                     },
                 ),
@@ -239,8 +231,10 @@ fn int() {
             [
                 Ok(
                     Token {
-                        kind: Int(
-                            Decimal,
+                        kind: Literal(
+                            Integer(
+                                Decimal,
+                            ),
                         ),
                         span: Span {
                             lo: 0,
@@ -272,8 +266,10 @@ fn negative_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int(
-                            Decimal,
+                        kind: Literal(
+                            Integer(
+                                Decimal,
+                            ),
                         ),
                         span: Span {
                             lo: 1,
@@ -305,8 +301,10 @@ fn positive_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int(
-                            Decimal,
+                        kind: Literal(
+                            Integer(
+                                Decimal,
+                            ),
                         ),
                         span: Span {
                             lo: 1,
@@ -320,19 +318,19 @@ fn positive_int() {
 }
 
 #[test]
-fn bigint() {
+fn imag() {
     check(
-        "123L",
+        "123im",
         &expect![[r#"
             [
                 Ok(
                     Token {
-                        kind: BigInt(
-                            Decimal,
+                        kind: Literal(
+                            Imaginary,
                         ),
                         span: Span {
                             lo: 0,
-                            hi: 4,
+                            hi: 5,
                         },
                     },
                 ),
@@ -342,9 +340,31 @@ fn bigint() {
 }
 
 #[test]
-fn negative_bigint() {
+fn imag_with_whitespace() {
     check(
-        "-123L",
+        "123 im",
+        &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        Imaginary,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 6,
+                    },
+                },
+            ),
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn negative_imag() {
+    check(
+        "-123im",
         &expect![[r#"
             [
                 Ok(
@@ -360,12 +380,12 @@ fn negative_bigint() {
                 ),
                 Ok(
                     Token {
-                        kind: BigInt(
-                            Decimal,
+                        kind: Literal(
+                            Imaginary,
                         ),
                         span: Span {
                             lo: 1,
-                            hi: 5,
+                            hi: 6,
                         },
                     },
                 ),
@@ -375,9 +395,9 @@ fn negative_bigint() {
 }
 
 #[test]
-fn positive_bigint() {
+fn positive_imag() {
     check(
-        "+123L",
+        "+123im",
         &expect![[r#"
             [
                 Ok(
@@ -393,12 +413,12 @@ fn positive_bigint() {
                 ),
                 Ok(
                     Token {
-                        kind: BigInt(
-                            Decimal,
+                        kind: Literal(
+                            Imaginary,
                         ),
                         span: Span {
                             lo: 1,
-                            hi: 5,
+                            hi: 6,
                         },
                     },
                 ),
@@ -415,7 +435,9 @@ fn float() {
             [
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 4,
@@ -446,7 +468,9 @@ fn negative_float() {
                 ),
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 5,
@@ -477,7 +501,9 @@ fn positive_float() {
                 ),
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 1,
                             hi: 5,
@@ -497,20 +523,11 @@ fn leading_point() {
             [
                 Ok(
                     Token {
-                        kind: Dot,
-                        span: Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
+                        kind: Literal(
+                            Float,
                         ),
                         span: Span {
-                            lo: 1,
+                            lo: 0,
                             hi: 2,
                         },
                     },
@@ -528,7 +545,9 @@ fn trailing_point() {
             [
                 Ok(
                     Token {
-                        kind: Float,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 2,
@@ -545,30 +564,65 @@ fn leading_zero_float() {
     check(
         "0.42",
         &expect![[r#"
-        [
-            Ok(
-                Token {
-                    kind: Float,
-                    span: Span {
-                        lo: 0,
-                        hi: 4,
+            [
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Float,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
                     },
-                },
-            ),
-        ]
-    "#]],
+                ),
+            ]
+        "#]],
     );
 }
 
 #[test]
-fn dot_dot_int() {
+fn dot_float() {
     check(
         "..1",
         &expect![[r#"
             [
                 Ok(
                     Token {
-                        kind: DotDot,
+                        kind: Dot,
+                        span: Span {
+                            lo: 0,
+                            hi: 1,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Float,
+                        ),
+                        span: Span {
+                            lo: 1,
+                            hi: 3,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn float_dot() {
+    check(
+        "1..",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 0,
                             hi: 2,
@@ -577,9 +631,7 @@ fn dot_dot_int() {
                 ),
                 Ok(
                     Token {
-                        kind: Int(
-                            Decimal,
-                        ),
+                        kind: Dot,
                         span: Span {
                             lo: 2,
                             hi: 3,
@@ -592,47 +644,14 @@ fn dot_dot_int() {
 }
 
 #[test]
-fn dot_dot_dot_int() {
+fn dot_dot_int_dot_dot() {
     check(
-        "...1",
+        "..1..",
         &expect![[r#"
             [
                 Ok(
                     Token {
-                        kind: DotDotDot,
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 4,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn int_dot_dot() {
-    check(
-        "1..",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
-                        ),
+                        kind: Dot,
                         span: Span {
                             lo: 0,
                             hi: 1,
@@ -641,81 +660,21 @@ fn int_dot_dot() {
                 ),
                 Ok(
                     Token {
-                        kind: DotDot,
-                        span: Span {
-                            lo: 1,
-                            hi: 3,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn int_dot_dot_dot() {
-    check(
-        "1...",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
+                        kind: Literal(
+                            Float,
                         ),
-                        span: Span {
-                            lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: DotDotDot,
                         span: Span {
                             lo: 1,
                             hi: 4,
                         },
                     },
                 ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn dot_dot_dot_int_dot_dot_dot() {
-    check(
-        "...1...",
-        &expect![[r#"
-            [
                 Ok(
                     Token {
-                        kind: DotDotDot,
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 4,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: DotDotDot,
+                        kind: Dot,
                         span: Span {
                             lo: 4,
-                            hi: 7,
+                            hi: 5,
                         },
                     },
                 ),
@@ -732,18 +691,11 @@ fn two_points_with_leading() {
             [
                 Ok(
                     Token {
-                        kind: Dot,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Float,
-                        span: Span {
-                            lo: 1,
                             hi: 4,
                         },
                     },
@@ -761,18 +713,11 @@ fn leading_point_exp() {
             [
                 Ok(
                     Token {
-                        kind: Dot,
+                        kind: Literal(
+                            Float,
+                        ),
                         span: Span {
                             lo: 0,
-                            hi: 1,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Float,
-                        span: Span {
-                            lo: 1,
                             hi: 4,
                         },
                     },
@@ -790,7 +735,7 @@ fn ident() {
             [
                 Ok(
                     Token {
-                        kind: Ident,
+                        kind: Identifier,
                         span: Span {
                             lo: 0,
                             hi: 3,
@@ -810,8 +755,8 @@ fn string() {
             [
                 Ok(
                     Token {
-                        kind: String(
-                            Normal,
+                        kind: Literal(
+                            String,
                         ),
                         span: Span {
                             lo: 0,
@@ -832,8 +777,8 @@ fn string_empty() {
             [
                 Ok(
                     Token {
-                        kind: String(
-                            Normal,
+                        kind: Literal(
+                            String,
                         ),
                         span: Span {
                             lo: 0,
@@ -866,590 +811,17 @@ fn string_missing_ending() {
 }
 
 #[test]
-fn interpolated_string_missing_ending() {
+fn hardware_qubit() {
     check(
-        r#"$"string"#,
-        &expect![[r#"
-            [
-                Err(
-                    UnterminatedString(
-                        Span {
-                            lo: 0,
-                            hi: 0,
-                        },
-                    ),
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string() {
-    check(
-        r#"$"string""#,
+        r"$12",
         &expect![[r#"
             [
                 Ok(
                     Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 9,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_braced() {
-    check(
-        r#"$"{x}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
+                        kind: HardwareQubit,
                         span: Span {
                             lo: 0,
                             hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 3,
-                            hi: 4,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 6,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_escape_brace() {
-    check(
-        r#"$"\{""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 5,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_unclosed_brace() {
-    check(
-        r#"$"{"#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_unclosed_brace_quote() {
-    check(
-        r#"$"{""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Err(
-                    UnterminatedString(
-                        Span {
-                            lo: 3,
-                            hi: 3,
-                        },
-                    ),
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_unopened_brace() {
-    check(
-        r#"$"}"#,
-        &expect![[r#"
-            [
-                Err(
-                    UnterminatedString(
-                        Span {
-                            lo: 0,
-                            hi: 0,
-                        },
-                    ),
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_unopened_brace_quote() {
-    check(
-        r#"$"}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 4,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_braced_index() {
-    check(
-        r#"$"{xs[0]}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 3,
-                            hi: 5,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Open(
-                            Bracket,
-                        ),
-                        span: Span {
-                            lo: 5,
-                            hi: 6,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Int(
-                            Decimal,
-                        ),
-                        span: Span {
-                            lo: 6,
-                            hi: 7,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Close(
-                            Bracket,
-                        ),
-                        span: Span {
-                            lo: 7,
-                            hi: 8,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 8,
-                            hi: 10,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_two_braced() {
-    check(
-        r#"$"{x} {y}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 3,
-                            hi: 4,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 4,
-                            hi: 7,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 7,
-                            hi: 8,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 8,
-                            hi: 10,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn interpolated_string_braced_normal_string() {
-    check(
-        r#"$"{"{}"}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Normal,
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 7,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 7,
-                            hi: 9,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn nested_interpolated_string() {
-    check(
-        r#"$"{$"{x}"}""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 3,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 3,
-                            hi: 6,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 6,
-                            hi: 7,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 7,
-                            hi: 9,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 9,
-                            hi: 11,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn nested_interpolated_string_with_exprs() {
-    check(
-        r#"$"foo {x + $"bar {y}"} baz""#,
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 0,
-                            hi: 7,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 7,
-                            hi: 8,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: ClosedBinOp(
-                            Plus,
-                        ),
-                        span: Span {
-                            lo: 9,
-                            hi: 10,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                DollarQuote,
-                                LBrace,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 11,
-                            hi: 18,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 18,
-                            hi: 19,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 19,
-                            hi: 21,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: String(
-                            Interpolated(
-                                RBrace,
-                                Quote,
-                            ),
-                        ),
-                        span: Span {
-                            lo: 21,
-                            hi: 27,
                         },
                     },
                 ),
@@ -1495,7 +867,7 @@ fn comment() {
             [
                 Ok(
                     Token {
-                        kind: Ident,
+                        kind: Identifier,
                         span: Span {
                             lo: 10,
                             hi: 11,
@@ -1508,23 +880,14 @@ fn comment() {
 }
 
 #[test]
-fn doc_comment() {
+fn block_comment() {
     check(
-        "///comment\nx",
+        "/*comment*/x",
         &expect![[r#"
             [
                 Ok(
                     Token {
-                        kind: DocComment,
-                        span: Span {
-                            lo: 0,
-                            hi: 10,
-                        },
-                    },
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
+                        kind: Identifier,
                         span: Span {
                             lo: 11,
                             hi: 12,
@@ -1544,164 +907,10 @@ fn comment_four_slashes() {
             [
                 Ok(
                     Token {
-                        kind: Ident,
+                        kind: Identifier,
                         span: Span {
                             lo: 12,
                             hi: 13,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn unfinished_generic() {
-    check(
-        "'  T",
-        &expect![[r#"
-            [
-                Err(
-                    Incomplete(
-                        Ident,
-                        AposIdent,
-                        Whitespace,
-                        Span {
-                            lo: 1,
-                            hi: 3,
-                        },
-                    ),
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 3,
-                            hi: 4,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-#[test]
-fn unfinished_generic_2() {
-    check(
-        "'// test
-         T",
-        &expect![[r#"
-            [
-                Err(
-                    Incomplete(
-                        Ident,
-                        AposIdent,
-                        Comment(
-                            Normal,
-                        ),
-                        Span {
-                            lo: 1,
-                            hi: 8,
-                        },
-                    ),
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 18,
-                            hi: 19,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn unfinished_generic_3() {
-    check(
-        "'    T",
-        &expect![[r#"
-            [
-                Err(
-                    Incomplete(
-                        Ident,
-                        AposIdent,
-                        Whitespace,
-                        Span {
-                            lo: 1,
-                            hi: 5,
-                        },
-                    ),
-                ),
-                Ok(
-                    Token {
-                        kind: Ident,
-                        span: Span {
-                            lo: 5,
-                            hi: 6,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-#[test]
-fn correct_generic() {
-    check(
-        "'T",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: AposIdent,
-                        span: Span {
-                            lo: 0,
-                            hi: 2,
-                        },
-                    },
-                ),
-            ]
-        "#]],
-    );
-}
-#[test]
-fn generic_missing_ident() {
-    check(
-        "'",
-        &expect![[r#"
-            [
-                Err(
-                    IncompleteEof(
-                        Ident,
-                        AposIdent,
-                        Span {
-                            lo: 1,
-                            hi: 1,
-                        },
-                    ),
-                ),
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn generic_underscore_name() {
-    check(
-        "'_",
-        &expect![[r#"
-            [
-                Ok(
-                    Token {
-                        kind: AposIdent,
-                        span: Span {
-                            lo: 0,
-                            hi: 2,
                         },
                     },
                 ),

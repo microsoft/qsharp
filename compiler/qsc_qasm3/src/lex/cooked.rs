@@ -120,9 +120,9 @@ pub enum TokenKind {
     Arrow,
 
     // Operators,
-    ClosedBinaryOp(ClosedBinaryOp),
-    BinaryOperatorEq(ClosedBinaryOp),
-    ComparisonOperator(ComparisonOperator),
+    ClosedBinOp(ClosedBinOp),
+    BinOpEq(ClosedBinOp),
+    ComparisonOp(ComparisonOp),
     /// `=`
     Eq,
     /// `!`
@@ -163,9 +163,9 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
-            TokenKind::ClosedBinaryOp(op) => write!(f, "`{op}`"),
-            TokenKind::BinaryOperatorEq(op) => write!(f, "`{op}=`"),
-            TokenKind::ComparisonOperator(op) => write!(f, "`{op}`"),
+            TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
+            TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
+            TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
             TokenKind::Eq => write!(f, "`=`"),
             TokenKind::Bang => write!(f, "`!`"),
             TokenKind::Tilde => write!(f, "`~`"),
@@ -309,7 +309,7 @@ pub enum TimingLiteralKind {
 /// the domain of the first operand is closed under this operation. These are candidates for
 /// compound assignment operators, like `+=`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum ClosedBinaryOp {
+pub enum ClosedBinOp {
     /// `&`
     Amp,
     /// `&&`
@@ -340,28 +340,28 @@ pub enum ClosedBinaryOp {
     //       But this is this a bug in the official qasm lexer?
 }
 
-impl Display for ClosedBinaryOp {
+impl Display for ClosedBinOp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         f.write_str(match self {
-            ClosedBinaryOp::Amp => "&",
-            ClosedBinaryOp::AmpAmp => "&&",
-            ClosedBinaryOp::Bar => "|",
-            ClosedBinaryOp::BarBar => "||",
-            ClosedBinaryOp::Caret => "^",
-            ClosedBinaryOp::GtGt => ">>",
-            ClosedBinaryOp::LtLt => "<<",
-            ClosedBinaryOp::Minus => "-",
-            ClosedBinaryOp::Percent => "%",
-            ClosedBinaryOp::Plus => "+",
-            ClosedBinaryOp::Slash => "/",
-            ClosedBinaryOp::Star => "*",
-            ClosedBinaryOp::StarStar => "**",
+            ClosedBinOp::Amp => "&",
+            ClosedBinOp::AmpAmp => "&&",
+            ClosedBinOp::Bar => "|",
+            ClosedBinOp::BarBar => "||",
+            ClosedBinOp::Caret => "^",
+            ClosedBinOp::GtGt => ">>",
+            ClosedBinOp::LtLt => "<<",
+            ClosedBinOp::Minus => "-",
+            ClosedBinOp::Percent => "%",
+            ClosedBinOp::Plus => "+",
+            ClosedBinOp::Slash => "/",
+            ClosedBinOp::Star => "*",
+            ClosedBinOp::StarStar => "**",
         })
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub enum ComparisonOperator {
+pub enum ComparisonOp {
     /// `!=`
     BangEq,
     /// `==`
@@ -376,15 +376,15 @@ pub enum ComparisonOperator {
     LtEq,
 }
 
-impl Display for ComparisonOperator {
+impl Display for ComparisonOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            ComparisonOperator::BangEq => "!=",
-            ComparisonOperator::EqEq => "==",
-            ComparisonOperator::Gt => ">",
-            ComparisonOperator::GtEq => ">=",
-            ComparisonOperator::Lt => "<",
-            ComparisonOperator::LtEq => "<=",
+            ComparisonOp::BangEq => "!=",
+            ComparisonOp::EqEq => "==",
+            ComparisonOp::Gt => ">",
+            ComparisonOp::GtEq => ">=",
+            ComparisonOp::Lt => "<",
+            ComparisonOp::LtEq => "<=",
         })
     }
 }
@@ -493,23 +493,31 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => {
                 // after reading a decimal number or a float there could be a whitespace
                 // followed by a fragment, which will change the type of the literal.
-                if let (
-                    Some(raw::TokenKind::Whitespace),
-                    Some(raw::TokenKind::LiteralFragment(fragment)),
-                ) = (self.first(), self.second())
-                {
-                    use self::Literal::{Imaginary, Timing};
-                    use TokenKind::Literal;
-                    Ok(Some(match fragment {
-                        raw::LiteralFragmentKind::Imag => Literal(Imaginary),
-                        raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
-                        raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
-                        raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
-                        raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
-                        raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
-                    }))
-                } else {
-                    Ok(Some(number.into()))
+                match (self.first(), self.second()) {
+                    (Some(raw::TokenKind::LiteralFragment(fragment)), _)
+                    | (
+                        Some(raw::TokenKind::Whitespace),
+                        Some(raw::TokenKind::LiteralFragment(fragment)),
+                    ) => {
+                        use self::Literal::{Imaginary, Timing};
+                        use TokenKind::Literal;
+
+                        // if first() was a whitespace, we need to consume an extra token
+                        if self.first() == Some(raw::TokenKind::Whitespace) {
+                            self.next();
+                        }
+                        self.next();
+
+                        Ok(Some(match fragment {
+                            raw::LiteralFragmentKind::Imag => Literal(Imaginary),
+                            raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
+                            raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
+                            raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
+                            raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
+                            raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
+                        }))
+                    }
+                    _ => Ok(Some(number.into())),
                 }
             }
             raw::TokenKind::Single(single) => self.single(single).map(Some),
@@ -547,9 +555,9 @@ impl<'a> Lexer<'a> {
         match single {
             Single::Amp => {
                 if self.next_if_eq_single(Single::Amp) {
-                    Ok(TokenKind::ClosedBinaryOp(ClosedBinaryOp::AmpAmp))
+                    Ok(TokenKind::ClosedBinOp(ClosedBinOp::AmpAmp))
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::Amp))
+                    Ok(self.closed_bin_op(ClosedBinOp::Amp))
                 }
             }
             Single::At => {
@@ -563,82 +571,82 @@ impl<'a> Lexer<'a> {
             }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::BangEq))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::BangEq))
                 } else {
                     Ok(TokenKind::Bang)
                 }
             }
             Single::Bar => {
                 if self.next_if_eq_single(Single::Bar) {
-                    Ok(TokenKind::ClosedBinaryOp(ClosedBinaryOp::BarBar))
+                    Ok(TokenKind::ClosedBinOp(ClosedBinOp::BarBar))
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::Bar))
+                    Ok(self.closed_bin_op(ClosedBinOp::Bar))
                 }
             }
-            Single::Caret => Ok(self.closed_bin_op(ClosedBinaryOp::Caret)),
+            Single::Caret => Ok(self.closed_bin_op(ClosedBinOp::Caret)),
             Single::Close(delim) => Ok(TokenKind::Close(delim)),
             Single::Colon => Ok(TokenKind::Colon),
             Single::Comma => Ok(TokenKind::Comma),
             Single::Dot => Ok(TokenKind::Dot),
             Single::Eq => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::EqEq))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::EqEq))
                 } else {
                     Ok(TokenKind::Eq)
                 }
             }
             Single::Gt => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::GtEq))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::GtEq))
                 } else if self.next_if_eq_single(Single::Gt) {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::GtGt))
+                    Ok(self.closed_bin_op(ClosedBinOp::GtGt))
                 } else {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::Gt))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::Gt))
                 }
             }
             Single::Lt => {
                 if self.next_if_eq_single(Single::Eq) {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::LtEq))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::LtEq))
                 } else if self.next_if_eq_single(Single::Lt) {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::LtLt))
+                    Ok(self.closed_bin_op(ClosedBinOp::LtLt))
                 } else {
-                    Ok(TokenKind::ComparisonOperator(ComparisonOperator::Lt))
+                    Ok(TokenKind::ComparisonOp(ComparisonOp::Lt))
                 }
             }
             Single::Minus => {
                 if self.next_if_eq_single(Single::Gt) {
                     Ok(TokenKind::Arrow)
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::Minus))
+                    Ok(self.closed_bin_op(ClosedBinOp::Minus))
                 }
             }
             Single::Open(delim) => Ok(TokenKind::Open(delim)),
-            Single::Percent => Ok(self.closed_bin_op(ClosedBinaryOp::Percent)),
+            Single::Percent => Ok(self.closed_bin_op(ClosedBinOp::Percent)),
             Single::Plus => {
                 if self.next_if_eq_single(Single::Plus) {
                     Ok(TokenKind::PlusPlus)
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::Plus))
+                    Ok(self.closed_bin_op(ClosedBinOp::Plus))
                 }
             }
             Single::Semi => Ok(TokenKind::Semicolon),
-            Single::Slash => Ok(self.closed_bin_op(ClosedBinaryOp::Slash)),
+            Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
             Single::Star => {
                 if self.next_if_eq_single(Single::Star) {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::StarStar))
+                    Ok(self.closed_bin_op(ClosedBinOp::StarStar))
                 } else {
-                    Ok(self.closed_bin_op(ClosedBinaryOp::Star))
+                    Ok(self.closed_bin_op(ClosedBinOp::Star))
                 }
             }
             Single::Tilde => Ok(TokenKind::Tilde),
         }
     }
 
-    fn closed_bin_op(&mut self, op: ClosedBinaryOp) -> TokenKind {
+    fn closed_bin_op(&mut self, op: ClosedBinOp) -> TokenKind {
         if self.next_if_eq_single(Single::Eq) {
-            TokenKind::BinaryOperatorEq(op)
+            TokenKind::BinOpEq(op)
         } else {
-            TokenKind::ClosedBinaryOp(op)
+            TokenKind::ClosedBinOp(op)
         }
     }
 
