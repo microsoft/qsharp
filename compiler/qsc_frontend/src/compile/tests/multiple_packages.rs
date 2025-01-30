@@ -61,6 +61,52 @@ fn multiple_package_check_inner(packages: Vec<(&str, &str)>, expect: Option<&Exp
     }
 }
 
+fn multiple_package_multiple_source_check(
+    packages: Vec<(&str, Vec<(&str, &str)>)>,
+    expect: Option<&Expect>,
+) {
+    let mut store = PackageStore::new(core());
+    let mut prev_id_and_name: Option<(PackageId, &str)> = None;
+    let num_packages = packages.len();
+    for (ix, (package_name, sources)) in packages.into_iter().enumerate() {
+        let is_last = ix == num_packages - 1;
+        let deps = if let Some((prev_id, prev_name)) = prev_id_and_name {
+            vec![(prev_id, Some(Arc::from(prev_name)))]
+        } else {
+            vec![]
+        };
+
+        let sources = SourceMap::new(
+            sources.iter().map(|(name, source)| {
+                (
+                    Arc::from(format!("{}/{}.qs", package_name, name)),
+                    Arc::from(*source),
+                )
+            }),
+            None,
+        );
+
+        let unit = compile(
+            &store,
+            &deps[..],
+            sources,
+            TargetCapabilityFlags::all(),
+            LanguageFeatures::default(),
+        );
+
+        match (is_last, &expect) {
+            (true, Some(expect)) => {
+                expect.assert_eq(&format!("{:#?}", unit.errors));
+            }
+            _ => {
+                assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+            }
+        }
+
+        prev_id_and_name = Some((store.insert(unit), package_name));
+    }
+}
+
 #[test]
 fn namespace_named_main_doesnt_create_main_namespace() {
     multiple_package_check_expect_err(
@@ -511,21 +557,30 @@ fn aliased_export_via_aliased_import() {
 }
 
 #[test]
-fn udt_reexport() {
-    multiple_package_check(vec![
-        (
-            "A",
-            "struct Foo { content: Bool }
-                export Foo as Bar;",
-        ),
-        (
-            "B",
-            "           @EntryPoint()
+fn udt_reexport_with_alias() {
+    multiple_package_multiple_source_check(
+        vec![
+            (
+                "A",
+                vec![
+                    ("FileOne", "struct Foo { content: Bool }"),
+                    ("FileTwo", "export FileOne.Foo as Bar;"),
+                ],
+            ),
+            ("B", vec![("FileThree", "export A.FileTwo.Bar as Baz;")]),
+            (
+                "C",
+                vec![(
+                    "FileFour",
+                    "@EntryPoint()
             operation Main() : Unit {
-                let x = new A.A.Bar { content = true };
+                let x = new B.FileThree.Baz { content = true };
             }",
-        ),
-    ]);
+                )],
+            ),
+        ],
+        Some(&expect!["[]"]),
+    );
 }
 
 #[test]
