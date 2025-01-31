@@ -21,7 +21,6 @@ thiserror = { workspace = true }
 oq3_source_file = { workspace = true }
 oq3_syntax = { workspace = true }
 oq3_parser = { workspace = true }
-# oq3_lexer = { workspace = true }
 oq3_semantics = { workspace = true }
 
 [dev-dependencies]
