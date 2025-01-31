@@ -522,7 +522,7 @@ fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut 
                 "| [{}](xref:Qdk.{}) | {} |",
                 item.name,
                 item.fully_qualified_name(),
-                item.summary
+                item.summary.replace('|', "\\|")
             )
         })
         .collect::<Vec<_>>()
@@ -698,8 +698,7 @@ fn get_metadata(
 
     let summary = parse_doc_for_summary(&item.doc)
         .replace("\r\n", " ")
-        .replace('\n', " ")
-        .replace('|', "\\|");
+        .replace('\n', " ");
 
     Some(Metadata {
         uid: format!("Qdk.{ns}.{name}"),

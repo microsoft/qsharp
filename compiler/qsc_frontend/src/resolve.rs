@@ -1676,10 +1676,10 @@ impl GlobalTable {
                                 .insert_or_find_namespace(ns.iter().map(|s| s.name.clone()));
                         }
                         hir::ItemKind::Ty(..) => {
-                            self.scope
-                                .tys
-                                .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
+                            self.scope.tys.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")

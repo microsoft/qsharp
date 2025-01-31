@@ -36,6 +36,7 @@ mod line_column;
 mod logging;
 mod project_system;
 mod serializable_type;
+mod test_discovery;
 
 #[cfg(test)]
 mod tests;

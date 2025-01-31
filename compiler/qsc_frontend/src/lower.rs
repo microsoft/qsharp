@@ -443,6 +443,18 @@ impl With<'_> {
                     None
                 }
             },
+            Ok(hir::Attr::Test) => {
+                // verify that no args are passed to the attribute
+                match &*attr.arg.kind {
+                    ast::ExprKind::Tuple(args) if args.is_empty() => {}
+                    _ => {
+                        self.lowerer
+                            .errors
+                            .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
+                    }
+                }
+                Some(hir::Attr::Test)
+            }
             Err(()) => {
                 self.lowerer.errors.push(Error::UnknownAttr(
                     attr.name.name.to_string(),

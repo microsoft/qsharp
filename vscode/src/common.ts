@@ -3,7 +3,14 @@
 
 import { TextDocument, Uri, Range, Location } from "vscode";
 import { Utils } from "vscode-uri";
-import { ILocation, IRange, IWorkspaceEdit, VSDiagnostic } from "qsharp-lang";
+import {
+  getCompilerWorker,
+  ICompilerWorker,
+  ILocation,
+  IRange,
+  IWorkspaceEdit,
+  VSDiagnostic,
+} from "qsharp-lang";
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
@@ -32,7 +39,7 @@ export function basename(path: string): string | undefined {
   return path.replace(/\/+$/, "").split("/").pop();
 }
 
-export function toVscodeRange(range: IRange): Range {
+export function toVsCodeRange(range: IRange): Range {
   return new Range(
     range.start.line,
     range.start.character,
@@ -41,18 +48,18 @@ export function toVscodeRange(range: IRange): Range {
   );
 }
 
-export function toVscodeLocation(location: ILocation): any {
-  return new Location(Uri.parse(location.source), toVscodeRange(location.span));
+export function toVsCodeLocation(location: ILocation): Location {
+  return new Location(Uri.parse(location.source), toVsCodeRange(location.span));
 }
 
-export function toVscodeWorkspaceEdit(
+export function toVsCodeWorkspaceEdit(
   iWorkspaceEdit: IWorkspaceEdit,
 ): vscode.WorkspaceEdit {
   const workspaceEdit = new vscode.WorkspaceEdit();
   for (const [source, edits] of iWorkspaceEdit.changes) {
     const uri = vscode.Uri.parse(source, true);
     const vsEdits = edits.map((edit) => {
-      return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
+      return new vscode.TextEdit(toVsCodeRange(edit.range), edit.newText);
     });
     workspaceEdit.set(uri, vsEdits);
   }
@@ -73,7 +80,7 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
       break;
   }
   const vscodeDiagnostic = new vscode.Diagnostic(
-    toVscodeRange(d.range),
+    toVsCodeRange(d.range),
     d.message,
     severity,
   );
@@ -88,10 +95,18 @@ export function toVsCodeDiagnostic(d: VSDiagnostic): vscode.Diagnostic {
   if (d.related) {
     vscodeDiagnostic.relatedInformation = d.related.map((r) => {
       return new vscode.DiagnosticRelatedInformation(
-        toVscodeLocation(r.location),
+        toVsCodeLocation(r.location),
         r.message,
       );
     });
   }
   return vscodeDiagnostic;
+}
+
+export function loadCompilerWorker(extensionUri: vscode.Uri): ICompilerWorker {
+  const compilerWorkerScriptPath = vscode.Uri.joinPath(
+    extensionUri,
+    "./out/compilerWorker.js",
+  ).toString();
+  return getCompilerWorker(compilerWorkerScriptPath);
 }

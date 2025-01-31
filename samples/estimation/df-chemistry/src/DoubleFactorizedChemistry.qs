@@ -341,7 +341,7 @@ internal function AllEigenVectorsAsBitString(eigenVectors : Double[][], precisio
         for index in 0..Length(eigenVector) - 2 {
             // We apply MinD, such that rounding errors do not lead to
             // an argument for ArcCos which is larger than 1.0. (p. 52, eq. 56)
-            let theta = sins == 0.0 ? 0.0 | 0.5 * ArcCos(MinD(eigenVector[index] / sins, 1.0));
+            let theta = not (AbsD(sins) > 0.0) ? 0.0 | 0.5 * ArcCos(MinD(eigenVector[index] / sins, 1.0));
 
             // all angles as bit string
             let factor = theta / tau;
@@ -357,5 +357,5 @@ internal function AllEigenVectorsAsBitString(eigenVectors : Double[][], precisio
 }
 
 internal function IsNaN(value : Double) : Bool {
-    value != value
+    not (value == value)
 }

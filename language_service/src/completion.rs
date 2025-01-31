@@ -115,6 +115,7 @@ fn expected_word_kinds(
     match &compilation.kind {
         CompilationKind::OpenProject {
             package_graph_sources,
+            ..
         } => possible_words_at_offset_in_source(
             source_contents,
             Some(source_name_relative),
@@ -165,6 +166,7 @@ fn collect_hardcoded_words(expected: WordKinds) -> Vec<Completion> {
                     ),
                     Completion::new("Measurement".to_string(), CompletionItemKind::Interface),
                     Completion::new("Reset".to_string(), CompletionItemKind::Interface),
+                    Completion::new("Test".to_string(), CompletionItemKind::Interface),
                 ]);
             }
             HardcodedIdentKind::Size => {

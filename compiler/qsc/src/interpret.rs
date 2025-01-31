@@ -42,7 +42,7 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::qir::fir_to_qir;
+use qsc_codegen::qir::{fir_to_qir, fir_to_qir_from_callable};
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
@@ -103,6 +103,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
     #[diagnostic(help("provide the name of a callable or a lambda expression"))]
     NotAnOperation,
+    #[error("value is not a global callable")]
+    #[diagnostic(code("Qsc.Interpret.NotACallable"))]
+    NotACallable,
     #[error("partial evaluation error")]
     #[diagnostic(transparent)]
     PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
@@ -563,6 +566,39 @@ impl Interpreter {
         })
     }
 
+    // Invokes the given callable with the given arguments using the current environment and compilation but with a fresh
+    // simulator configured with the given noise, if any.
+    pub fn invoke_with_noise(
+        &mut self,
+        receiver: &mut impl Receiver,
+        callable: Value,
+        args: Value,
+        noise: Option<PauliNoise>,
+    ) -> InterpretResult {
+        let mut sim = match noise {
+            Some(noise) => SparseSim::new_with_noise(&noise),
+            None => SparseSim::new(),
+        };
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut self.env,
+            &mut sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
+    }
+
     /// Runs the given entry expression on a new instance of the environment and simulator,
     /// but using the current compilation.
     pub fn run(
@@ -639,6 +675,45 @@ impl Interpreter {
         })
     }
 
+    /// Performs QIR codegen using the given callable with the given arguments on a new instance of the environment
+    /// and simulator but using the current compilation.
+    pub fn qirgen_from_callable(
+        &mut self,
+        callable: &Value,
+        args: Value,
+    ) -> std::result::Result<String, Vec<Error>> {
+        if self.capabilities == TargetCapabilityFlags::all() {
+            return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+        }
+
+        let Value::Global(store_item_id, _) = callable else {
+            return Err(vec![Error::NotACallable]);
+        };
+
+        fir_to_qir_from_callable(
+            &self.fir_store,
+            self.capabilities,
+            None,
+            *store_item_id,
+            args,
+        )
+        .map_err(|e| {
+            let hir_package_id = match e.span() {
+                Some(span) => span.package,
+                None => map_fir_package_to_hir(self.package),
+            };
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(hir_package_id)
+                .expect("package should exist in the package store");
+            vec![Error::PartialEvaluation(WithSource::from_map(
+                &source_package.sources,
+                e,
+            ))]
+        })
+    }
+
     /// Generates a circuit representation for the program.
     ///
     /// `entry` can be the current entrypoint, an entry expression, or any operation
@@ -656,29 +731,47 @@ impl Interpreter {
         entry: CircuitEntryPoint,
         simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let entry_expr = match entry {
+        let (entry_expr, invoke_params) = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
                 let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
                 let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
                     .map_err(|e| vec![e.into()])?;
-                Some(expr)
+                (Some(expr), None)
             }
-            CircuitEntryPoint::EntryExpr(expr) => Some(expr),
-            CircuitEntryPoint::EntryPoint => None,
+            CircuitEntryPoint::EntryExpr(expr) => (Some(expr), None),
+            CircuitEntryPoint::Callable(call_val, args_val) => (None, Some((call_val, args_val))),
+            CircuitEntryPoint::EntryPoint => (None, None),
         };
 
         let circuit = if simulate {
             let mut sim = sim_circuit_backend();
 
-            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+            match invoke_params {
+                Some((callable, args)) => {
+                    let mut sink = std::io::sink();
+                    let mut out = GenericReceiver::new(&mut sink);
+
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                }
+                None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
+            };
 
             sim.chained.finish()
         } else {
             let mut sim = CircuitBuilder::new(CircuitConfig {
                 base_profile: self.capabilities.is_empty(),
+                max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
             });
 
-            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+            match invoke_params {
+                Some((callable, args)) => {
+                    let mut sink = std::io::sink();
+                    let mut out = GenericReceiver::new(&mut sink);
+
+                    self.invoke_with_sim(&mut sim, &mut out, callable, args)?
+                }
+                None => self.run_with_sim_no_output(entry_expr, &mut sim)?,
+            };
 
             sim.finish()
         };
@@ -756,6 +849,35 @@ impl Interpreter {
             sim,
             &mut out,
         )
+    }
+
+    /// Invokes the given callable with the given arguments on the given simulator with a new instance of the environment
+    /// but using the current compilation.
+    pub fn invoke_with_sim(
+        &mut self,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+        receiver: &mut impl Receiver,
+        callable: Value,
+        args: Value,
+    ) -> InterpretResult {
+        qsc_eval::invoke(
+            self.package,
+            self.classical_seed,
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            receiver,
+            callable,
+            args,
+        )
+        .map_err(|(error, call_stack)| {
+            eval_error(
+                self.compiler.package_store(),
+                &self.fir_store,
+                call_stack,
+                error,
+            )
+        })
     }
 
     fn compile_entry_expr(
@@ -890,6 +1012,7 @@ fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
             // will still respect the selected profile. This also
             // matches the behavior of the simulator.
             base_profile: false,
+            max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
         }),
     )
 }
@@ -902,6 +1025,8 @@ pub enum CircuitEntryPoint {
     Operation(String),
     /// An explicitly provided entry expression.
     EntryExpr(String),
+    /// A global callable with arguments.
+    Callable(Value, Value),
     /// The entry point for the current package.
     EntryPoint,
 }

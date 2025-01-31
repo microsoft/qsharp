@@ -362,3 +362,6 @@ pub const CLASSCONSTRAINTS_EXPECT_DEBUG: Expect = expect![[r#"
     false
     true
     ()"#]];
+
+pub const TESTATTRIBUTE_EXPECT: Expect = expect!["()"];
+pub const TESTATTRIBUTE_EXPECT_DEBUG: Expect = expect!["()"];

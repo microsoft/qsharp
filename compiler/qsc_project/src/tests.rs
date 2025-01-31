@@ -426,6 +426,10 @@ fn explicit_files_list() {
                                 "explicit_files_list/src/Main.qs",
                                 "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
                             ),
+                            (
+                                "explicit_files_list/src/Other.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
                         ],
                         language_features: LanguageFeatures(
                             0,
@@ -437,6 +441,45 @@ fn explicit_files_list() {
                 },
                 lints: [],
                 errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn explicit_files_list_missing_entry() {
+    check(
+        &"explicit_files_list_missing_entry".into(),
+        &expect![[r#"
+            Project {
+                name: "explicit_files_list_missing_entry",
+                path: "explicit_files_list_missing_entry/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "explicit_files_list_missing_entry/src/Main.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
+                            (
+                                "explicit_files_list_missing_entry/src/NotIncluded.qs",
+                                "namespace Dependency {\n    function LibraryFn() : Unit {\n    }\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                        package_type: None,
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [
+                    DocumentNotInProject {
+                        path: "explicit_files_list_missing_entry/src/NotIncluded.qs",
+                        relative_path: "REPLACED",
+                    },
+                ],
             }"#]],
     );
 }
