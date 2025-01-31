@@ -23,6 +23,17 @@ use std::{
     str::CharIndices,
 };
 
+/// An enum used internally by the raw lexer to signal whether
+/// a token was partially parsed or if it wasn't parsed at all.
+enum LexError<T> {
+    /// An incomplete token was parsed, e.g., a string missing
+    /// the closing quote or a number ending in an underscore.
+    Incomplete(T),
+    /// The token wasn't parsed and no characters were consumed
+    /// when trying to parse the token.
+    None,
+}
+
 /// A raw token.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Token {
@@ -200,6 +211,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn next_if(&mut self, f: impl FnOnce(char) -> bool) -> bool {
+        self.chars.next_if(|i| f(i.1)).is_some()
+    }
+
     fn next_if_eq(&mut self, c: char) -> bool {
         self.chars.next_if(|i| i.1 == c).is_some()
     }
@@ -265,16 +280,15 @@ impl<'a> Lexer<'a> {
     }
 
     fn ident(&mut self, c: char) -> Option<TokenKind> {
-        let first = self.first();
-        let second = self.second();
-
         // Check for some special literal fragments.
+        let first = self.first();
         if c == 's'
             && (first.is_none() || first.is_some_and(|c1| c1 != '_' && !c1.is_alphanumeric()))
         {
             return Some(TokenKind::LiteralFragment(LiteralFragmentKind::S));
         }
 
+        let second = self.second();
         if let Some(c1) = first {
             if second.is_none() || second.is_some_and(|c1| c1 != '_' && !c1.is_alphanumeric()) {
                 let fragment = match (c, c1) {
@@ -288,7 +302,7 @@ impl<'a> Lexer<'a> {
 
                 if fragment.is_some() {
                     // consume `first` before returning.
-                    self.next();
+                    self.chars.next();
                     return fragment;
                 }
             }
@@ -302,24 +316,84 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn number(&mut self, c: char) -> Option<Number> {
-        self.leading_zero(c).or_else(|| self.decimal(c))
-    }
+    fn leading_underscore(&mut self) -> TokenKind {
+        self.eat_while(|c| c == '_');
 
-    fn leading_dot(&mut self, c: char) -> bool {
-        if c == '.' && self.first().is_some_and(|c| char::is_ascii_digit(&c)) {
-            self.next();
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            true
-        } else {
-            false
+        match self.chars.next() {
+            None => TokenKind::Ident,
+            Some((_, c)) => {
+                if c.is_alphabetic() {
+                    TokenKind::Ident
+                } else if c.is_ascii() {
+                    match self.number(c) {
+                        Ok(number) => match number {
+                            Number::Float | Number::Int(Radix::Decimal) => {
+                                TokenKind::Number(number)
+                            }
+                            // Binary, Octal, and Hexadecimal literals can't be prefixed by underscores
+                            // Therefore if you read something like `___0b11`, it is an identifier.
+                            // Therefore, we read the rest of it and return `TokenKind::Ident`.
+                            Number::Int(_) => {
+                                self.eat_while(|c| c == '_' || c.is_alphanumeric());
+                                TokenKind::Ident
+                            }
+                        },
+                        Err(LexError::None) => {
+                            unreachable!("the first character is a number, this case is impossible")
+                        }
+                        Err(LexError::Incomplete(_)) => TokenKind::Unknown,
+                    }
+                } else {
+                    TokenKind::Unknown
+                }
+            }
         }
     }
 
-    fn leading_zero(&mut self, c: char) -> Option<Number> {
+    fn number(&mut self, c: char) -> Result<Number, LexError<Number>> {
+        self.leading_zero(c)
+            .or_else(|_| self.leading_dot(c))
+            .or_else(|_| self.decimal_or_float(c))
+    }
+
+    fn leading_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
+        let first = self.first();
+        if c == '.' && first.is_some_and(|c| c == '_' || c.is_ascii_digit()) {
+            self.chars.next();
+            let c1 = first.expect("first.is_some_and() succeeded");
+            self.decimal(c1)?;
+            match self.exp() {
+                Ok(()) | Err(LexError::None) => Ok(Number::Float),
+                Err(_) => Err(LexError::Incomplete(Number::Float)),
+            }
+        } else {
+            Err(LexError::None)
+        }
+    }
+
+    fn mid_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
+        if c == '.' {
+            match self.first() {
+                Some(c1) if c1 == '_' || c1.is_ascii_digit() => {
+                    self.chars.next();
+                    match self.decimal(c1) {
+                        Err(LexError::Incomplete(_)) => Err(LexError::Incomplete(Number::Float)),
+                        Ok(_) | Err(LexError::None) => match self.exp() {
+                            Ok(()) | Err(LexError::None) => Ok(Number::Float),
+                            Err(_) => Err(LexError::Incomplete(Number::Float)),
+                        },
+                    }
+                }
+                None | Some(_) => Ok(Number::Float),
+            }
+        } else {
+            Err(LexError::None)
+        }
+    }
+
+    fn leading_zero(&mut self, c: char) -> Result<Number, LexError<Number>> {
         if c != '0' {
-            return None;
+            return Err(LexError::None);
         }
 
         let radix = if self.next_if_eq('b') || self.next_if_eq('B') {
@@ -332,47 +406,75 @@ impl<'a> Lexer<'a> {
             Radix::Decimal
         };
 
-        self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
-        if radix == Radix::Decimal && self.float() {
-            Some(Number::Float)
-        } else {
-            Some(Number::Int(radix))
+        let last_eaten = self.eat_while(|c| c == '_' || c.is_digit(radix.into()));
+
+        match radix {
+            Radix::Binary | Radix::Octal | Radix::Hexadecimal => match last_eaten {
+                None | Some('_') => Err(LexError::Incomplete(Number::Int(radix))),
+                _ => Ok(Number::Int(radix)),
+            },
+            Radix::Decimal => match self.first() {
+                Some(c1 @ '.') => {
+                    self.chars.next();
+                    self.mid_dot(c1)
+                }
+                None | Some(_) => Ok(Number::Int(Radix::Decimal)),
+            },
         }
     }
 
-    fn decimal(&mut self, c: char) -> Option<Number> {
-        if !c.is_ascii_digit() {
-            return None;
+    /// Parses a decimal integer.
+    /// TODO: add .g4 pattern
+    fn decimal(&mut self, c: char) -> Result<Number, LexError<Number>> {
+        if c != '_' && !c.is_ascii_digit() {
+            return Err(LexError::None);
         }
 
-        self.eat_while(|c| c == '_' || c.is_ascii_digit());
+        let last_eaten = self.eat_while(|c| c == '_' || c.is_ascii_digit());
 
-        if self.float() {
-            Some(Number::Float)
-        } else {
-            Some(Number::Int(Radix::Decimal))
-        }
-    }
-
-    fn float(&mut self) -> bool {
-        // Watch out for ranges: `0..` should be an integer followed by two dots.
-        if self.first() == Some('.') {
-            self.chars.next();
-            self.eat_while(|c| c == '_' || c.is_ascii_digit());
-            self.exp();
-            true
-        } else {
-            self.exp()
+        match last_eaten {
+            None if c == '_' => Err(LexError::None),
+            Some('_') => Err(LexError::Incomplete(Number::Int(Radix::Decimal))),
+            _ => Ok(Number::Int(Radix::Decimal)),
         }
     }
 
-    fn exp(&mut self) -> bool {
-        if self.next_if_eq('e') || self.next_if_eq('E') {
+    fn decimal_or_float(&mut self, c: char) -> Result<Number, LexError<Number>> {
+        self.decimal(c)?;
+        match self.first() {
+            None => Ok(Number::Int(Radix::Decimal)),
+            Some(first @ '.') => {
+                self.chars.next();
+                self.mid_dot(first)
+            }
+            _ => match self.exp() {
+                Ok(()) => Ok(Number::Float),
+                Err(LexError::None) => Ok(Number::Int(Radix::Decimal)),
+                Err(_) => Err(LexError::Incomplete(Number::Float)),
+            },
+        }
+    }
+
+    /// Parses an exponent.
+    fn exp(&mut self) -> Result<(), LexError<Number>> {
+        if self.next_if(|c| c == 'e' || c == 'E') {
+            // Optionally there could be a + or - sign.
             self.chars.next_if(|i| i.1 == '+' || i.1 == '-');
-            self.eat_while(|c| c.is_ascii_digit());
-            true
+
+            // If the next character isn't a digit or an
+            // underscore we issue an error without consuming it.
+            let first = self.first().ok_or(LexError::Incomplete(Number::Float))?;
+            if first != '_' && !first.is_ascii_digit() {
+                Err(LexError::Incomplete(Number::Float))
+            } else {
+                self.chars.next();
+                match self.decimal(first) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(LexError::Incomplete(Number::Float)),
+                }
+            }
         } else {
-            false
+            Err(LexError::None)
         }
     }
 
@@ -383,7 +485,7 @@ impl<'a> Lexer<'a> {
 
         if let Some(bitstring) = self.bitstring() {
             // consume the closing '"'
-            self.next();
+            self.chars.next();
             return Some(bitstring);
         }
 
@@ -421,8 +523,7 @@ impl<'a> Lexer<'a> {
 
     fn hardware_qubit(&mut self, c: char) -> bool {
         if c == '$' {
-            self.eat_while(|c| c.is_ascii_digit());
-            true
+            self.eat_while(|c| c.is_ascii_digit()).is_some()
         } else {
             false
         }
@@ -440,18 +541,21 @@ impl Iterator for Lexer<'_> {
             TokenKind::Whitespace
         } else if self.newline(c) {
             TokenKind::Newline
+        } else if c == '_' {
+            self.leading_underscore()
         } else if let Some(ident) = self.ident(c) {
             ident
         } else if self.hardware_qubit(c) {
             TokenKind::HardwareQubit
-        } else if self.leading_dot(c) {
-            TokenKind::Number(Number::Float)
         } else {
-            self.number(c)
-                .map(TokenKind::Number)
-                .or_else(|| self.string(c))
-                .or_else(|| single(c).map(TokenKind::Single))
-                .unwrap_or(TokenKind::Unknown)
+            match self.number(c) {
+                Ok(number) => TokenKind::Number(number),
+                Err(LexError::Incomplete(_)) => TokenKind::Unknown,
+                Err(LexError::None) => self
+                    .string(c)
+                    .or_else(|| single(c).map(TokenKind::Single))
+                    .unwrap_or(TokenKind::Unknown),
+            }
         };
         let offset: u32 = offset.try_into().expect("offset should fit into u32");
         Some(Token {

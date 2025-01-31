@@ -665,6 +665,15 @@ fn dot_dot_int_dot_dot() {
                         ),
                         span: Span {
                             lo: 1,
+                            hi: 3,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Dot,
+                        span: Span {
+                            lo: 3,
                             hi: 4,
                         },
                     },
@@ -696,6 +705,17 @@ fn two_points_with_leading() {
                         ),
                         span: Span {
                             lo: 0,
+                            hi: 2,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Float,
+                        ),
+                        span: Span {
+                            lo: 2,
                             hi: 4,
                         },
                     },

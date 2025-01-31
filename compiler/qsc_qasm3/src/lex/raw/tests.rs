@@ -323,7 +323,11 @@ fn number_underscore_prefix() {
         &expect![[r#"
             [
                 Token {
-                    kind: Ident,
+                    kind: Number(
+                        Int(
+                            Decimal,
+                        ),
+                    ),
                     offset: 0,
                 },
             ]
@@ -348,6 +352,46 @@ fn float_dot() {
                         Dot,
                     ),
                     offset: 2,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn float_dot2() {
+    check(
+        ".0.",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Dot,
+                    ),
+                    offset: 2,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_dot_float() {
+    check(
+        ".0",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
                 },
             ]
         "#]],
@@ -870,6 +914,220 @@ fn identifiers_with_fragment_prefixes() {
                 Token {
                     kind: Ident,
                     offset: 25,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_underscores_decimal() {
+    check(
+        "___3",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Int(
+                            Decimal,
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_underscores_float() {
+    check(
+        "___3.",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_underscores_binary() {
+    check(
+        "___0b11",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Ident,
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_underscores_binary_extended() {
+    check(
+        "___0b11abc",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Ident,
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn leading_underscores_identifier() {
+    check(
+        "___a",
+        &expect![[r#"
+        [
+            Token {
+                kind: Ident,
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn hardware_qubit() {
+    check(
+        "$12",
+        &expect![[r#"
+        [
+            Token {
+                kind: HardwareQubit,
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn hardware_qubit_dot() {
+    check(
+        "$2.",
+        &expect![[r#"
+            [
+                Token {
+                    kind: HardwareQubit,
+                    offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Dot,
+                    ),
+                    offset: 2,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn incomplete_hardware_qubit() {
+    check(
+        "$",
+        &expect![[r#"
+        [
+            Token {
+                kind: Unknown,
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn incomplete_hardware_qubit_identifier() {
+    check(
+        "$a",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Unknown,
+                    offset: 0,
+                },
+                Token {
+                    kind: Ident,
+                    offset: 1,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn incomplete_hardware_qubit_float() {
+    check(
+        "$.2",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Unknown,
+                    offset: 0,
+                },
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 1,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn hardware_qubit_with_underscore_at_end() {
+    check(
+        "$12_",
+        &expect![[r#"
+        [
+            Token {
+                kind: HardwareQubit,
+                offset: 0,
+            },
+            Token {
+                kind: Ident,
+                offset: 3,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn hardware_qubit_with_underscore_in_the_middle() {
+    check(
+        "$12_3",
+        &expect![[r#"
+            [
+                Token {
+                    kind: HardwareQubit,
+                    offset: 0,
+                },
+                Token {
+                    kind: Number(
+                        Int(
+                            Decimal,
+                        ),
+                    ),
+                    offset: 3,
                 },
             ]
         "#]],
