@@ -317,25 +317,6 @@ fn number_seps() {
 }
 
 #[test]
-fn number_underscore_prefix() {
-    check(
-        "_123_456",
-        &expect![[r#"
-            [
-                Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
-                    offset: 0,
-                },
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn float_dot() {
     check(
         "0..",
@@ -921,17 +902,13 @@ fn identifiers_with_fragment_prefixes() {
 }
 
 #[test]
-fn leading_underscores_decimal() {
+fn leading_underscores_digit() {
     check(
         "___3",
         &expect![[r#"
             [
                 Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
+                    kind: Ident,
                     offset: 0,
                 },
             ]
@@ -940,16 +917,20 @@ fn leading_underscores_decimal() {
 }
 
 #[test]
-fn leading_underscores_float() {
+fn leading_underscores_ident_dot() {
     check(
         "___3.",
         &expect![[r#"
             [
                 Token {
-                    kind: Number(
-                        Float,
-                    ),
+                    kind: Ident,
                     offset: 0,
+                },
+                Token {
+                    kind: Single(
+                        Dot,
+                    ),
+                    offset: 4,
                 },
             ]
         "#]],
@@ -1122,11 +1103,7 @@ fn hardware_qubit_with_underscore_in_the_middle() {
                     offset: 0,
                 },
                 Token {
-                    kind: Number(
-                        Int(
-                            Decimal,
-                        ),
-                    ),
+                    kind: Ident,
                     offset: 3,
                 },
             ]

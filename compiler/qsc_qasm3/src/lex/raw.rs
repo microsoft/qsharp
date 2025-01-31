@@ -318,47 +318,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Qasm allows identifiers, decimal integers, and floats to start with
-    /// an underscore, so we need this rule to disambiguate those cases.
-    fn leading_underscore(&mut self) -> TokenKind {
-        // First we eat through all the underscores.
-        self.eat_while(|c| c == '_');
-
-        // Then we check the first character following the underscores.
-        match self.chars.next() {
-            // If we hit the EOF, it is an identifier, since we had at least one underscore.
-            None => TokenKind::Ident,
-            Some((_, c)) => {
-                // If it is alphabetic, it is an identifier. We read the rest of it and return.
-                if c.is_alphabetic() {
-                    self.eat_while(|c| c == '_' || c.is_alphanumeric());
-                    TokenKind::Ident
-                } else if c.is_ascii_digit() {
-                    match self.number(c) {
-                        Ok(number) => match number {
-                            Number::Float | Number::Int(Radix::Decimal) => {
-                                TokenKind::Number(number)
-                            }
-                            // Binary, Octal, and Hexadecimal literals can't be prefixed by underscores
-                            // Therefore if you read something like `___0b11`, it is an identifier.
-                            // Therefore, we read the rest of it and return `TokenKind::Ident`.
-                            Number::Int(_) => {
-                                self.eat_while(|c| c == '_' || c.is_alphanumeric());
-                                TokenKind::Ident
-                            }
-                        },
-                        Err(LexError::None) => {
-                            unreachable!("the first character is a number, this case is impossible")
-                        }
-                        Err(LexError::Incomplete(_)) => TokenKind::Unknown,
-                    }
-                } else {
-                    TokenKind::Unknown
-                }
-            }
-        }
-    }
-
     fn number(&mut self, c: char) -> Result<Number, LexError<Number>> {
         self.leading_zero(c)
             .or_else(|_| self.leading_dot(c))
@@ -443,8 +402,10 @@ impl<'a> Lexer<'a> {
 
     /// This rule parses a decimal integer.
     /// Numbers in QASM aren't allowed to end in an underscore.
+    /// The rule in the .g4 file is
+    /// `DecimalIntegerLiteral: ([0-9] '_'?)* [0-9];`
     fn decimal(&mut self, c: char) -> Result<Number, LexError<Number>> {
-        if c != '_' && !c.is_ascii_digit() {
+        if !c.is_ascii_digit() {
             return Err(LexError::None);
         }
 
@@ -575,8 +536,6 @@ impl Iterator for Lexer<'_> {
             TokenKind::Whitespace
         } else if self.newline(c) {
             TokenKind::Newline
-        } else if c == '_' {
-            self.leading_underscore()
         } else if let Some(ident) = self.ident(c) {
             ident
         } else if self.hardware_qubit(c) {
