@@ -9,7 +9,6 @@ use std::{
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
 pub enum Keyword {
-    Annotation,
     Box,
     Break,
     Cal,
@@ -37,7 +36,6 @@ pub enum Keyword {
 impl Keyword {
     pub(super) fn as_str(self) -> &'static str {
         match self {
-            Keyword::Annotation => "annotation",
             Keyword::Box => "box",
             Keyword::Break => "break",
             Keyword::Cal => "cal",
@@ -78,7 +76,6 @@ impl FromStr for Keyword {
     // frequency in Q# so that fewer comparisons are needed on average.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "annotation" => Ok(Self::Annotation),
             "box" => Ok(Self::Box),
             "break" => Ok(Self::Break),
             "cal" => Ok(Self::Cal),

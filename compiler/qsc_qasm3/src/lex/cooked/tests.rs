@@ -43,7 +43,8 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Arrow => Some("->".to_string()),
         TokenKind::ClosedBinOp(op) => Some(op.to_string()),
         TokenKind::BinOpEq(super::ClosedBinOp::AmpAmp | super::ClosedBinOp::BarBar)
-        | TokenKind::Literal(_) => None,
+        | TokenKind::Literal(_)
+        | TokenKind::Annotation => None,
         TokenKind::BinOpEq(op) => Some(format!("{op}=")),
         TokenKind::ComparisonOp(op) => Some(op.to_string()),
         TokenKind::Identifier => Some("foo".to_string()),

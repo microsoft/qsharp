@@ -81,6 +81,7 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
+    Annotation,
     Keyword(Keyword),
     Type(Type),
 
@@ -137,6 +138,7 @@ pub enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
+            TokenKind::Annotation => write!(f, "annotation"),
             TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
             TokenKind::Type(type_) => write!(f, "keyword `{type_}`"),
             TokenKind::GPhase => write!(f, "gphase"),
@@ -561,7 +563,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::At => {
-                let complete = TokenKind::Keyword(Keyword::Annotation);
+                let complete = TokenKind::Annotation;
                 self.expect(raw::TokenKind::Ident, complete)?;
                 self.kleen_star(
                     &[raw::TokenKind::Single(Single::Dot), raw::TokenKind::Ident],
