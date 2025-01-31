@@ -417,6 +417,16 @@ impl<'a> CompilationStateUpdater<'a> {
             for (compilation_uri, compilation) in &state.compilations {
                 trace!("publishing diagnostics for {compilation_uri}");
 
+                if compilation_uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                    // If the compilation URI is a GitHub virtual document URI,
+                    // that's a signal that this is a source file from a GitHub package
+                    // that is open in the editor.
+                    // We can't discover the manifest and load the project for these files.
+                    // So they end up in their own single-file compilation.
+                    // Don't publish diagnostics for these, as they will contain spurious errors.
+                    continue;
+                }
+
                 for (uri, errors) in map_errors_to_docs(
                     compilation_uri,
                     &compilation.0.compile_errors,
@@ -428,12 +438,6 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
-                        continue;
-                    }
-                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
-                        // Don't publish diagnostics for GitHub URIs.
-                        // This is temporary workaround to avoid spurious errors when a document
-                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 
