@@ -5,7 +5,8 @@ use crate::io::SourceResolver;
 use crate::oqasm_helpers::text_range_to_span;
 use oq3_syntax::SyntaxNode;
 use oq3_syntax::{ast::Stmt, ParseOrErrors, SourceFile};
-use qsc::{error::WithSource, SourceMap};
+use qsc_frontend::compile::SourceMap;
+use qsc_frontend::error::WithSource;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 

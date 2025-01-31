@@ -184,12 +184,12 @@ pub(crate) enum OutputSemantics {
     ResourceEstimation,
 }
 
-impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
+impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
     fn from(output_semantics: OutputSemantics) -> Self {
         match output_semantics {
-            OutputSemantics::Qiskit => qsc_qasm3::OutputSemantics::Qiskit,
-            OutputSemantics::OpenQasm => qsc_qasm3::OutputSemantics::OpenQasm,
-            OutputSemantics::ResourceEstimation => qsc_qasm3::OutputSemantics::ResourceEstimation,
+            OutputSemantics::Qiskit => qsc::qasm3::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc::qasm3::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc::qasm3::OutputSemantics::ResourceEstimation,
         }
     }
 }
@@ -215,12 +215,12 @@ pub enum ProgramType {
     Fragments,
 }
 
-impl From<ProgramType> for qsc_qasm3::ProgramType {
+impl From<ProgramType> for qsc::qasm3::ProgramType {
     fn from(output_semantics: ProgramType) -> Self {
         match output_semantics {
-            ProgramType::File => qsc_qasm3::ProgramType::File,
-            ProgramType::Operation => qsc_qasm3::ProgramType::Operation,
-            ProgramType::Fragments => qsc_qasm3::ProgramType::Fragments,
+            ProgramType::File => qsc::qasm3::ProgramType::File,
+            ProgramType::Operation => qsc::qasm3::ProgramType::Operation,
+            ProgramType::Fragments => qsc::qasm3::ProgramType::Fragments,
         }
     }
 }

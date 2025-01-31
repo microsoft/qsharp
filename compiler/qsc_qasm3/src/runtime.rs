@@ -3,10 +3,8 @@
 
 use bitflags::bitflags;
 
-use qsc::{
-    ast::{Stmt, TopLevelNode},
-    LanguageFeatures,
-};
+use qsc_ast::ast::{Stmt, TopLevelNode};
+use qsc_data_structures::language_features::LanguageFeatures;
 
 /// Runtime functions that are used in the generated AST.
 /// These functions are not part of the QASM3 standard, but are used to implement
@@ -200,7 +198,7 @@ pub(crate) fn get_result_array_as_int_be_decl() -> Stmt {
 }
 
 fn parse_stmt(name: &str) -> Stmt {
-    let (nodes, errors) = qsc::parse::top_level_nodes(name, LanguageFeatures::default());
+    let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
     assert!(errors.is_empty(), "Failed to parse POW: {errors:?}");
     assert!(
         nodes.len() == 1,

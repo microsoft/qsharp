@@ -19,7 +19,9 @@ pub(crate) mod tests;
 use std::{fmt::Write, sync::Arc};
 
 use miette::Diagnostic;
-use qsc::Span;
+use qsc_ast::ast::Package;
+use qsc_data_structures::span::Span;
+use qsc_frontend::{compile::SourceMap, error::WithSource};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
@@ -457,8 +459,6 @@ pub enum ProgramType {
     /// This is also useful for testing individual statements compilation.
     Fragments,
 }
-
-use qsc::{ast::Package, error::WithSource, SourceMap};
 
 /// Represents the signature of an operation.
 /// This is used to create a function signature for the

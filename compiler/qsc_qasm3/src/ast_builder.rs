@@ -5,14 +5,12 @@ use std::rc::Rc;
 
 use num_bigint::BigInt;
 
-use qsc::{
-    ast::{
-        self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item,
-        Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
-        QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
-    },
-    Span,
+use qsc_ast::ast::{
+    self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item, Lit,
+    Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource, Stmt,
+    StmtKind, TopLevelNode, Ty, TyKind,
 };
+use qsc_data_structures::span::Span;
 
 use crate::{
     runtime::RuntimeFunctions,
@@ -203,7 +201,7 @@ where
     }
 }
 
-pub(crate) fn build_lit_result_expr(value: qsc::ast::Result, span: Span) -> Expr {
+pub(crate) fn build_lit_result_expr(value: qsc_ast::ast::Result, span: Span) -> Expr {
     Expr {
         id: NodeId::default(),
         span,
@@ -231,7 +229,7 @@ pub(crate) fn build_lit_result_array_expr_from_bitstring<S: AsRef<str>>(
     build_lit_result_array_expr(values, span)
 }
 
-pub(crate) fn build_lit_result_array_expr(values: Vec<qsc::ast::Result>, span: Span) -> Expr {
+pub(crate) fn build_lit_result_array_expr(values: Vec<qsc_ast::ast::Result>, span: Span) -> Expr {
     let exprs: Vec<_> = values
         .into_iter()
         .map(|v| build_lit_result_expr(v, Span::default()))
@@ -239,7 +237,7 @@ pub(crate) fn build_lit_result_array_expr(values: Vec<qsc::ast::Result>, span: S
     build_expr_array_expr(exprs, span)
 }
 
-pub(crate) fn build_expr_array_expr(values: Vec<qsc::ast::Expr>, span: Span) -> Expr {
+pub(crate) fn build_expr_array_expr(values: Vec<qsc_ast::ast::Expr>, span: Span) -> Expr {
     let exprs: Vec<_> = values.into_iter().map(Box::new).collect();
     Expr {
         id: NodeId::default(),
@@ -314,7 +312,7 @@ pub(crate) fn build_binary_expr(
     }
 }
 
-pub(crate) fn is_complex_binop_supported(op: qsc::ast::BinOp) -> bool {
+pub(crate) fn is_complex_binop_supported(op: qsc_ast::ast::BinOp) -> bool {
     matches!(
         op,
         ast::BinOp::Add | ast::BinOp::Sub | ast::BinOp::Mul | ast::BinOp::Div | ast::BinOp::Exp
@@ -1005,7 +1003,7 @@ pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
     ns: S,
     entry: ast::Item,
 ) -> TopLevelNode {
-    TopLevelNode::Namespace(qsc::ast::Namespace {
+    TopLevelNode::Namespace(qsc_ast::ast::Namespace {
         id: NodeId::default(),
         span: whole_span,
         name: [Ident {
@@ -1031,10 +1029,10 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
     // as an entry point. We will get a Q# compilation error if we
     // attribute an operation with EntryPoint and it has input parameters.
     if input_pats.is_empty() {
-        attrs.push(Box::new(qsc::ast::Attr {
+        attrs.push(Box::new(qsc_ast::ast::Attr {
             id: NodeId::default(),
             span: Span::default(),
-            name: Box::new(qsc::ast::Ident {
+            name: Box::new(qsc_ast::ast::Ident {
                 name: Rc::from("EntryPoint"),
                 ..Default::default()
             }),
@@ -1044,15 +1042,15 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
     let input_pats = input_pats.into_iter().map(Box::new).collect::<Vec<_>>();
     let input = match input_pats.len() {
         0 => Box::new(Pat {
-            kind: Box::new(qsc::ast::PatKind::Tuple(input_pats.into_boxed_slice())),
+            kind: Box::new(qsc_ast::ast::PatKind::Tuple(input_pats.into_boxed_slice())),
             ..Default::default()
         }),
         1 => Box::new(Pat {
-            kind: Box::new(qsc::ast::PatKind::Paren(input_pats[0].clone())),
+            kind: Box::new(qsc_ast::ast::PatKind::Paren(input_pats[0].clone())),
             ..Default::default()
         }),
-        _ => Box::new(qsc::ast::Pat {
-            kind: Box::new(qsc::ast::PatKind::Tuple(input_pats.into_boxed_slice())),
+        _ => Box::new(qsc_ast::ast::Pat {
+            kind: Box::new(qsc_ast::ast::PatKind::Tuple(input_pats.into_boxed_slice())),
             ..Default::default()
         }),
     };
@@ -1062,17 +1060,17 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
         .map(Box::new)
         .collect::<Vec<_>>()
         .into_boxed_slice();
-    qsc::ast::Item {
+    qsc_ast::ast::Item {
         id: NodeId::default(),
         span: whole_span,
         doc: "".into(),
         attrs: attrs.into_boxed_slice(),
-        kind: Box::new(qsc::ast::ItemKind::Callable(Box::new(
-            qsc::ast::CallableDecl {
+        kind: Box::new(qsc_ast::ast::ItemKind::Callable(Box::new(
+            qsc_ast::ast::CallableDecl {
                 id: NodeId::default(),
                 span: whole_span,
-                kind: qsc::ast::CallableKind::Operation,
-                name: Box::new(qsc::ast::Ident {
+                kind: qsc_ast::ast::CallableKind::Operation,
+                name: Box::new(qsc_ast::ast::Ident {
                     name: Rc::from(name.as_ref()),
                     ..Default::default()
                 }),
@@ -1080,20 +1078,22 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
                 input,
                 output: Box::new(output_ty),
                 functors: None,
-                body: Box::new(qsc::ast::CallableBody::Block(Box::new(qsc::ast::Block {
-                    id: NodeId::default(),
-                    span: whole_span,
-                    stmts,
-                }))),
+                body: Box::new(qsc_ast::ast::CallableBody::Block(Box::new(
+                    qsc_ast::ast::Block {
+                        id: NodeId::default(),
+                        span: whole_span,
+                        stmts,
+                    },
+                ))),
             },
         ))),
     }
 }
 
 pub(crate) fn build_arg_pat(name: String, span: Span, ty: Ty) -> Pat {
-    qsc::ast::Pat {
-        kind: Box::new(qsc::ast::PatKind::Bind(
-            Box::new(qsc::ast::Ident {
+    qsc_ast::ast::Pat {
+        kind: Box::new(qsc_ast::ast::PatKind::Bind(
+            Box::new(qsc_ast::ast::Ident {
                 name: Rc::from(name),
                 span,
                 ..Default::default()
