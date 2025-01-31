@@ -989,7 +989,7 @@ fn leading_underscores_binary_extended() {
 #[test]
 fn leading_underscores_identifier() {
     check(
-        "___a",
+        "___abc",
         &expect![[r#"
         [
             Token {

@@ -281,6 +281,8 @@ impl<'a> Lexer<'a> {
 
     fn ident(&mut self, c: char) -> Option<TokenKind> {
         // Check for some special literal fragments.
+        // We need to check that the character following the fragment isn't an
+        // underscore or an alphanumeric character, else it is an identifier.
         let first = self.first();
         if c == 's'
             && (first.is_none() || first.is_some_and(|c1| c1 != '_' && !c1.is_alphanumeric()))
@@ -301,7 +303,7 @@ impl<'a> Lexer<'a> {
                 };
 
                 if fragment.is_some() {
-                    // consume `first` before returning.
+                    // Consume `first` before returning.
                     self.chars.next();
                     return fragment;
                 }
@@ -316,15 +318,22 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Qasm allows identifiers, decimal integers, and floats to start with
+    /// an underscore, so we need this rule to disambiguate those cases.
     fn leading_underscore(&mut self) -> TokenKind {
+        // First we eat through all the underscores.
         self.eat_while(|c| c == '_');
 
+        // Then we check the first character following the underscores.
         match self.chars.next() {
+            // If we hit the EOF, it is an identifier, since we had at least one underscore.
             None => TokenKind::Ident,
             Some((_, c)) => {
+                // If it is alphabetic, it is an identifier. We read the rest of it and return.
                 if c.is_alphabetic() {
+                    self.eat_while(|c| c == '_' || c.is_alphanumeric());
                     TokenKind::Ident
-                } else if c.is_ascii() {
+                } else if c.is_ascii_digit() {
                     match self.number(c) {
                         Ok(number) => match number {
                             Number::Float | Number::Int(Radix::Decimal) => {
@@ -356,6 +365,9 @@ impl<'a> Lexer<'a> {
             .or_else(|_| self.decimal_or_float(c))
     }
 
+    /// This rule allows us to differentiate a leading dot from a mid dot.
+    /// A float starting with a leading dot must contain at least one digit
+    /// after the dot.
     fn leading_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
         let first = self.first();
         if c == '.' && first.is_some_and(|c| c == '_' || c.is_ascii_digit()) {
@@ -371,6 +383,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// A float with a middle dot could optionally contain numbers after the dot.
+    /// This rule is necessary to differentiate from the floats with a leading dot,
+    /// which must have digits after the dot.
     fn mid_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
         if c == '.' {
             match self.first() {
@@ -391,6 +406,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// This rule parses binary, octal, hexadecimal numbers, or decimal/floats
+    /// if the next character isn't a radix specifier.
+    /// Numbers in Qasm aren't allowed to end in an underscore.
     fn leading_zero(&mut self, c: char) -> Result<Number, LexError<Number>> {
         if c != '0' {
             return Err(LexError::None);
@@ -423,8 +441,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Parses a decimal integer.
-    /// TODO: add .g4 pattern
+    /// This rule parses a decimal integer.
+    /// Numbers in QASM aren't allowed to end in an underscore.
     fn decimal(&mut self, c: char) -> Result<Number, LexError<Number>> {
         if c != '_' && !c.is_ascii_digit() {
             return Err(LexError::None);
@@ -439,6 +457,8 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// This rule disambiguates between a decimal integer and a float with a
+    /// mid dot, like `12.3`.
     fn decimal_or_float(&mut self, c: char) -> Result<Number, LexError<Number>> {
         self.decimal(c)?;
         match self.first() {
@@ -455,7 +475,11 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Parses an exponent.
+    /// Parses an exponent. Errors if the exponent was missing or incomplete.
+    /// The rule `decimal_or_float` uses the `LexError::None` variant of the error
+    /// to classify the token as an integer.
+    /// The `leading_dot` and `mid_dot` rules use the `LexError::None` variant to
+    /// classify the token as a float.
     fn exp(&mut self) -> Result<(), LexError<Number>> {
         if self.next_if(|c| c == 'e' || c == 'E') {
             // Optionally there could be a + or - sign.
@@ -478,13 +502,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Tries to parse a string or a bitstring. QASM strings can be enclosed
+    /// by double quotes or single quotes. Bitstrings can only be enclosed by
+    /// double quotes and contain 0s and 1s.
     fn string(&mut self, string_start: char) -> Option<TokenKind> {
         if string_start != '"' && string_start != '\'' {
             return None;
         }
 
         if let Some(bitstring) = self.bitstring() {
-            // consume the closing '"'
+            // Try consuming the closing '"'.
             self.chars.next();
             return Some(bitstring);
         }
@@ -501,6 +528,8 @@ impl<'a> Lexer<'a> {
         })
     }
 
+    /// Parses the body of a bitstring. Bitstrings can only contain 0s and 1s.
+    /// Returns `None` if it finds an invalid character.
     fn bitstring(&mut self) -> Option<TokenKind> {
         const STRING_START: char = '"';
 
@@ -514,13 +543,18 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
+        // Check the next character to determine if the bitstring is valid and closed,
+        // valid and open because we reached the EOF, or invalid, in which case we
+        // will treat it as a regular string.
         match self.first() {
-            None => Some(TokenKind::Bitstring { terminated: false }),
             Some(STRING_START) => Some(TokenKind::Bitstring { terminated: true }),
+            None => Some(TokenKind::Bitstring { terminated: false }),
             _ => None,
         }
     }
 
+    /// Tries parsing a hardware qubit literal, consisting of a `$` sign followed by
+    /// ASCII digits.
     fn hardware_qubit(&mut self, c: char) -> bool {
         if c == '$' {
             self.eat_while(|c| c.is_ascii_digit()).is_some()
