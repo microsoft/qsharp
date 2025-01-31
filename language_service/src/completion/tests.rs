@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{get_completions, CompletionItem};
+use super::{get_completions, Compilation, CompletionItem};
 use crate::{
     protocol::CompletionList,
     test_utils::{
@@ -12,41 +12,112 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc::line_column::Position;
+use std::fmt::Write;
 
 mod class_completions;
 
-fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
-    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+fn check(
+    compilation: &Compilation,
+    cursor_uri: &str,
+    cursor_position: Position,
+    completions_to_check: &[&str],
+    expect: &Expect,
+) {
     let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
+        get_completions(compilation, cursor_uri, cursor_position, Encoding::Utf8);
+
+    let mut checked_completions: Vec<(String, Option<&CompletionItem>)> = completions_to_check
         .iter()
         .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
+            (
+                (*comp).to_string(),
+                actual_completions
+                    .items
+                    .iter()
+                    .find(|item| item.label == **comp),
+            )
         })
         .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    // Sort by actual items' sort text
+    checked_completions.sort_by_key(|c| {
+        c.1.map_or(String::new(), |c| c.sort_text.clone().unwrap_or_default())
+    });
+
+    let mut output = String::new();
+
+    let mut first = true;
+    for (label, c) in &checked_completions {
+        if c.is_none() {
+            if first {
+                first = false;
+                writeln!(output, "not in list:").unwrap();
+            }
+            let _ = writeln!(output, "  {label}");
+        }
+    }
+
+    first = true;
+
+    for (label, c) in &checked_completions {
+        if let Some(c) = c {
+            if first {
+                first = false;
+                writeln!(output, "in list (sorted):").unwrap();
+            }
+            let _ = writeln!(output, "  {label} ({:?})", c.kind,);
+            let _ = writeln!(output, "    detail: {:?}", c.detail);
+
+            match &c.additional_text_edits {
+                Some(edits) => {
+                    let _ = writeln!(output, "    additional_text_edits:");
+                    for edit in edits {
+                        let _ = writeln!(
+                            output,
+                            "      [{}:{}-{}:{}] {:?}",
+                            edit.range.start.line,
+                            edit.range.start.column,
+                            edit.range.end.line,
+                            edit.range.end.column,
+                            edit.new_text,
+                        );
+                    }
+                }
+                None => {
+                    let _ = writeln!(output, "    additional_text_edits: None");
+                }
+            }
+        }
+    }
+
+    expect.assert_eq(&output);
+    // TODO: this is too much at the moment
+    // assert_no_duplicates(actual_completions);
+}
+
+fn check_single(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
+    let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
+
+    check(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_with_stdlib(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, false);
-    let actual_completions =
-        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
+    check(
+        &compilation,
+        "<source>",
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_project(
@@ -56,20 +127,14 @@ fn check_project(
 ) {
     let (compilation, cursor_uri, cursor_position, _) =
         compile_project_with_markers(sources_with_markers, true);
-    let actual_completions =
-        get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    check(
+        &compilation,
+        &cursor_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_notebook(
@@ -79,20 +144,14 @@ fn check_notebook(
 ) {
     let (compilation, cell_uri, cursor_position, _) =
         compile_notebook_with_markers(cells_with_markers);
-    let actual_completions =
-        get_completions(&compilation, &cell_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    check(
+        &compilation,
+        &cell_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_with_dependency(
@@ -107,20 +166,14 @@ fn check_with_dependency(
         dependency_alias,
         &[("<dependency_source>", dependency_source)],
     );
-    let actual_completions =
-        get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
-    let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
-        .iter()
-        .map(|comp| {
-            actual_completions
-                .items
-                .iter()
-                .find(|item| item.label == **comp)
-        })
-        .collect();
 
-    expect.assert_debug_eq(&checked_completions);
-    assert_no_duplicates(actual_completions);
+    check(
+        &compilation,
+        &cursor_uri,
+        cursor_position,
+        completions_to_check,
+        expect,
+    );
 }
 
 fn check_no_completions(source_with_cursor: &str) {
@@ -130,6 +183,7 @@ fn check_no_completions(source_with_cursor: &str) {
     assert_eq!(actual_completions.items, Vec::default());
 }
 
+#[allow(dead_code)]
 fn assert_no_duplicates(mut actual_completions: CompletionList) {
     actual_completions
         .items
@@ -151,34 +205,26 @@ fn assert_no_duplicates(mut actual_completions: CompletionList) {
 
 #[test]
 fn ignore_unstable_namespace() {
-    check(
+    check_single(
         r#"
         namespace Test {
             open ↘
         }"#,
         &["FakeStdLib", "Microsoft.Quantum.Unstable"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0100FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Microsoft.Quantum.Unstable
+            in list (sorted):
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn ignore_unstable_callable() {
-    check(
+    check_single(
         r#"
         namespace Test {
             import Microsoft.Quantum.Unstable.*;
@@ -188,45 +234,20 @@ fn ignore_unstable_callable() {
         }"#,
         &["Fake", "UnstableFake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              UnstableFake
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [2:12-2:12] "import FakeStdLib.Fake;\n            "
         "#]],
     );
 }
 
 #[test]
 fn ignore_internal_callable() {
-    check(
+    check_single(
         r#"
         namespace Test {
             internal operation Foo() : Unit {}
@@ -240,71 +261,26 @@ fn ignore_internal_callable() {
         }"#,
         &["Fake", "Foo", "Baz", "Hidden"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Hidden
+            in list (sorted):
+              Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits: None
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [2:12-2:12] "import FakeStdLib.Fake;\n            "
         "#]],
     );
 }
 
 #[test]
 fn in_block_contains_std_functions_from_open_namespace() {
-    check(
+    check_single(
         r#"
     namespace Test {
         open FakeStdLib;
@@ -314,47 +290,16 @@ fn in_block_contains_std_functions_from_open_namespace() {
     }"#,
         &["Fake", "FakeWithParam", "FakeCtlAdj"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeWithParam",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400FakeWithParam",
-                        ),
-                        detail: Some(
-                            "operation FakeWithParam(x : Int) : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeCtlAdj",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400FakeCtlAdj",
-                        ),
-                        detail: Some(
-                            "operation FakeCtlAdj() : Unit is Adj + Ctl",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
+              FakeCtlAdj (Function)
+                detail: Some("operation FakeCtlAdj() : Unit is Adj + Ctl")
+                additional_text_edits: None
+              FakeWithParam (Function)
+                detail: Some("operation FakeWithParam(x : Int) : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -362,7 +307,7 @@ fn in_block_contains_std_functions_from_open_namespace() {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn in_block_contains_std_functions() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         operation Foo() : Unit {
@@ -371,102 +316,26 @@ fn in_block_contains_std_functions() {
     }"#},
         &["Fake", "FakeWithParam", "FakeCtlAdj"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n    ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeWithParam",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401FakeWithParam",
-                        ),
-                        detail: Some(
-                            "operation FakeWithParam(x : Int) : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.FakeWithParam;\n    ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeCtlAdj",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401FakeCtlAdj",
-                        ),
-                        detail: Some(
-                            "operation FakeCtlAdj() : Unit is Adj + Ctl",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.FakeCtlAdj;\n    ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [1:4-1:4] "import FakeStdLib.Fake;\n    "
+              FakeCtlAdj (Function)
+                detail: Some("operation FakeCtlAdj() : Unit is Adj + Ctl")
+                additional_text_edits:
+                  [1:4-1:4] "import FakeStdLib.FakeCtlAdj;\n    "
+              FakeWithParam (Function)
+                detail: Some("operation FakeWithParam(x : Int) : Unit")
+                additional_text_edits:
+                  [1:4-1:4] "import FakeStdLib.FakeWithParam;\n    "
         "#]],
     );
 }
 
 #[test]
 fn in_block_contains_newtypes() {
-    check(
+    check_single(
         r#"
     namespace Test {
         newtype Custom = String;
@@ -476,57 +345,21 @@ fn in_block_contains_newtypes() {
     }"#,
         &["Custom", "Udt"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Custom",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0400Custom",
-                        ),
-                        detail: Some(
-                            "newtype Custom = String",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0501Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Udt;\n        ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 8,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 8,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Custom (Interface)
+                detail: Some("newtype Custom = String")
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits:
+                  [2:8-2:8] "import FakeStdLib.Udt;\n        "
         "#]],
     );
 }
 
 #[test]
 fn types_only_in_signature() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Foo(foo: ↘) : Unit {
@@ -536,38 +369,22 @@ fn types_only_in_signature() {
     }"#,
         &["Int", "String", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Int",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200Int",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "String",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200String",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Bar
+            in list (sorted):
+              Int (Interface)
+                detail: None
+                additional_text_edits: None
+              String (Interface)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn in_block_no_auto_open() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         open FakeStdLib;
@@ -577,28 +394,17 @@ fn in_block_no_auto_open() {
     }"#},
         &["Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn in_block_with_alias() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         open FakeStdLib as Alias;
@@ -608,28 +414,17 @@ fn in_block_with_alias() {
     }"#},
         &["Alias.Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Alias.Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Alias.Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Alias.Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn members_of_aliased_namespace() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         open FakeStdLib as Alias;
@@ -639,42 +434,24 @@ fn members_of_aliased_namespace() {
     }"#},
         &["Fake", "Alias.Fake", "Library", "Alias.Library", "Foo"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              Alias.Fake
+              Alias.Library
+              Foo
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn aliased_exact_import() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         import FakeStdLib.Fake as Alias;
@@ -684,23 +461,13 @@ fn aliased_exact_import() {
     }"#},
         &["Fake", "Alias.Fake", "Alias"],
         &expect![[r#"
-            [
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Alias",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Alias",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+              Alias.Fake
+            in list (sorted):
+              Alias (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -719,21 +486,10 @@ fn open_from_dependency() {
         "namespace Dependency { operation Baz() : Unit {} export Baz; }",
         &["Baz"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -754,36 +510,16 @@ fn open_with_alias_from_dependency() {
         "namespace Dependency { operation Baz() : Unit {} export Baz; }",
         &["Alias.Baz", "Baz", "Alias1.Bar", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Alias.Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Alias.Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Alias1.Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Alias1.Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Baz
+              Bar
+            in list (sorted):
+              Alias1.Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits: None
+              Alias.Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -804,36 +540,16 @@ fn import_ns_with_alias_from_dependency() {
         "namespace Dependency { operation Baz() : Unit {} export Baz; }",
         &["Alias.Baz", "Baz", "Alias1.Bar", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Alias.Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Alias.Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Alias1.Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Alias1.Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Baz
+              Bar
+            in list (sorted):
+              Alias1.Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits: None
+              Alias.Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -852,28 +568,17 @@ fn exact_import_from_dependency() {
         "namespace Dependency { operation Baz() : Unit {} export Baz; }",
         &["Baz"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Baz",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Baz",
-                        ),
-                        detail: Some(
-                            "operation Baz() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Baz (Function)
+                detail: Some("operation Baz() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn in_block_from_other_namespace() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         operation Bar() : Unit {
@@ -887,37 +592,11 @@ fn in_block_from_other_namespace() {
     }"#},
         &["Foo"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0301Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import Other.Foo;\n    ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits:
+                  [1:4-1:4] "import Other.Foo;\n    "
         "#]],
     );
 }
@@ -939,44 +618,18 @@ fn auto_open_multiple_files() {
         ],
         &["FooOperation"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "FooOperation",
-                        kind: Function,
-                        sort_text: Some(
-                            "0301FooOperation",
-                        ),
-                        detail: Some(
-                            "operation FooOperation() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import Foo.FooOperation;\n ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 16,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 16,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              FooOperation (Function)
+                detail: Some("operation FooOperation() : Unit")
+                additional_text_edits:
+                  [0:16-0:16] "import Foo.FooOperation;\n "
         "#]],
     );
 }
 
 #[test]
 fn in_block_nested_op() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         operation Bar() : Unit {
@@ -986,28 +639,17 @@ fn in_block_nested_op() {
     }"#},
         &["Foo"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0100Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn in_block_hidden_nested_op() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         operation Baz() : Unit {
@@ -1019,16 +661,15 @@ fn in_block_hidden_nested_op() {
     }"#},
         &["Bar"],
         &expect![[r#"
-            [
-                None,
-            ]
+            not in list:
+              Bar
         "#]],
     );
 }
 
 #[test]
 fn in_namespace_contains_open() {
-    check(
+    check_single(
         indoc! {r#"
     namespace Test {
         ↘
@@ -1037,52 +678,34 @@ fn in_namespace_contains_open() {
     }"#},
         &["open"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "open",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000open",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              open (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn top_level_contains_namespace() {
-    check(
+    check_single(
         indoc! {r#"
         namespace Test {}
         ↘
         "#},
         &["namespace"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "namespace",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000namespace",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              namespace (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn attributes() {
-    check(
+    check_single(
         indoc! {r#"
         namespace Test {
             @↘
@@ -1090,26 +713,17 @@ fn attributes() {
         "#},
         &["EntryPoint"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "EntryPoint",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0000EntryPoint",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              EntryPoint (Interface)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn stdlib_udt() {
-    check(
+    check_single(
         indoc! {r#"
         namespace Test {
             operation Foo() : Unit {
@@ -1118,37 +732,11 @@ fn stdlib_udt() {
         "#},
         &["TakesUdt"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "TakesUdt",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401TakesUdt",
-                        ),
-                        detail: Some(
-                            "function TakesUdt(input : Udt) : Udt",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.TakesUdt;\n    ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 4,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              TakesUdt (Function)
+                detail: Some("function TakesUdt(input : Udt) : Udt")
+                additional_text_edits:
+                  [1:4-1:4] "import FakeStdLib.TakesUdt;\n    "
         "#]],
     );
 }
@@ -1164,70 +752,20 @@ fn notebook_top_level() {
         )],
         &["operation", "namespace", "let", "Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "operation",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000operation",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "namespace",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000namespace",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "let",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000let",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              let (Keyword)
+                detail: None
+                additional_text_edits: None
+              namespace (Keyword)
+                detail: None
+                additional_text_edits: None
+              operation (Keyword)
+                detail: None
+                additional_text_edits: None
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [0:0-0:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
@@ -1243,37 +781,11 @@ fn notebook_top_level_global() {
         )],
         &["Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [0:0-0:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
@@ -1291,21 +803,10 @@ fn notebook_top_level_namespace_already_open_for_global() {
         )],
         &["Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -1322,48 +823,14 @@ fn notebook_block() {
         )],
         &["Fake", "let"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "let",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000let",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              let (Keyword)
+                detail: None
+                additional_text_edits: None
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [0:0-0:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
@@ -1389,37 +856,11 @@ fn notebook_auto_open_start_of_cell_empty() {
         ],
         &["Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [1:0-1:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
@@ -1446,37 +887,11 @@ fn notebook_auto_open_start_of_cell() {
         ],
         &["Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [1:0-1:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
@@ -1494,57 +909,21 @@ fn notebook_last_expr() {
         )],
         &["Foo", "Fake"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0100Foo",
-                        ),
-                        detail: Some(
-                            "function Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Fake;\n",
-                                    range: Range {
-                                        start: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                        end: Position {
-                                            line: 1,
-                                            column: 0,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Function)
+                detail: Some("function Foo() : Unit")
+                additional_text_edits: None
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits:
+                  [1:0-1:0] "import FakeStdLib.Fake;\n"
         "#]],
     );
 }
 
 #[test]
 fn local_vars() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Foo() : Unit {
@@ -1555,29 +934,19 @@ fn local_vars() {
     }"#,
         &["foo", "bar"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "bar : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              foo
+            in list (sorted):
+              bar (Variable)
+                detail: Some("bar : Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn local_items() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Baz() : Unit {
@@ -1589,54 +958,23 @@ fn local_items() {
     }"#,
         &["Foo", "Bar", "Custom"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0100Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0100Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Custom",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0100Custom",
-                        ),
-                        detail: Some(
-                            "newtype Custom = String",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits: None
+              Custom (Interface)
+                detail: Some("newtype Custom = String")
+                additional_text_edits: None
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn type_params() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Foo<'T>() : Unit {
@@ -1645,27 +983,19 @@ fn type_params() {
     }"#,
         &["'T", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Bar
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn scoped_local_vars() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Foo() : Unit {
@@ -1677,16 +1007,15 @@ fn scoped_local_vars() {
     }"#,
         &["foo"],
         &expect![[r#"
-            [
-                None,
-            ]
+            not in list:
+              foo
         "#]],
     );
 }
 
 #[test]
 fn callable_params() {
-    check(
+    check_single(
         r#"
     namespace Test {
         newtype Custom = String;
@@ -1698,41 +1027,20 @@ fn callable_params() {
     }"#,
         &["foo", "bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "foo",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100foo",
-                        ),
-                        detail: Some(
-                            "foo : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "bar : Custom",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              bar (Variable)
+                detail: Some("bar : Custom")
+                additional_text_edits: None
+              foo (Variable)
+                detail: Some("foo : Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn local_var_in_callable_parent_scope() {
-    check(
+    check_single(
         r#"
     namespace Test {
         operation Foo(foo: Int) : Unit {
@@ -1745,23 +1053,13 @@ fn local_var_in_callable_parent_scope() {
     }"#,
         &["foo", "bar", "baz"],
         &expect![[r#"
-            [
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "baz",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100baz",
-                        ),
-                        detail: Some(
-                            "baz : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              foo
+              bar
+            in list (sorted):
+              baz (Variable)
+                detail: Some("baz : Int")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -1769,7 +1067,7 @@ fn local_var_in_callable_parent_scope() {
 #[test]
 #[ignore = "completion list ignores shadowing rules for open statements"]
 fn local_var_and_open_shadowing_rules() {
-    check(
+    check_single(
         r#"
         namespace Foo {
             operation Bar() : Unit {
@@ -1813,7 +1111,7 @@ fn local_var_and_open_shadowing_rules() {
 // no additional text edits for Foo or Bar because FooNs is already glob imported
 #[test]
 fn dont_import_if_already_glob_imported() {
-    check(
+    check_single(
         r#"
         namespace FooNs {
             operation Foo() : Unit {
@@ -1829,34 +1127,13 @@ fn dont_import_if_already_glob_imported() {
         }"#,
         &["Foo", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits: None
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -1864,7 +1141,7 @@ fn dont_import_if_already_glob_imported() {
 // expect an auto-import for `Foo.Bar`, separate from the preexisting glob import `Foo.Bar.*`
 #[test]
 fn glob_import_item_with_same_name() {
-    check(
+    check_single(
         r#"
         namespace Foo {
             operation Bar() : Unit {
@@ -1882,37 +1159,11 @@ fn glob_import_item_with_same_name() {
         }"#,
         &["Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0301Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import Foo.Bar;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 10,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 10,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits:
+                  [10:12-10:12] "import Foo.Bar;\n            "
         "#]],
     );
 }
@@ -1921,7 +1172,7 @@ fn glob_import_item_with_same_name() {
 // but additional text edits for Bar because Bar is not directly imported
 #[test]
 fn dont_import_if_already_directly_imported() {
-    check(
+    check_single(
         r#"
         namespace FooNs {
             operation Foo() : Unit { }
@@ -1936,50 +1187,14 @@ fn dont_import_if_already_directly_imported() {
         }"#,
         &["Foo", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Foo",
-                        ),
-                        detail: Some(
-                            "operation Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Function,
-                        sort_text: Some(
-                            "0301Bar",
-                        ),
-                        detail: Some(
-                            "operation Bar() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FooNs.Bar;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 7,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 7,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Function)
+                detail: Some("operation Foo() : Unit")
+                additional_text_edits: None
+              Bar (Function)
+                detail: Some("operation Bar() : Unit")
+                additional_text_edits:
+                  [7:12-7:12] "import FooNs.Bar;\n            "
         "#]],
     );
 }
@@ -1995,37 +1210,11 @@ fn auto_import_from_qir_runtime() {
         }"#,
         &["AllocateQubitArray"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "AllocateQubitArray",
-                        kind: Function,
-                        sort_text: Some(
-                            "0201AllocateQubitArray",
-                        ),
-                        detail: Some(
-                            "operation AllocateQubitArray(size : Int) : Qubit[]",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import QIR.Runtime.AllocateQubitArray;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              AllocateQubitArray (Function)
+                detail: Some("operation AllocateQubitArray(size : Int) : Qubit[]")
+                additional_text_edits:
+                  [2:12-2:12] "import QIR.Runtime.AllocateQubitArray;\n            "
         "#]],
     );
 }
@@ -2042,21 +1231,10 @@ fn dont_generate_import_for_core_prelude() {
         &["Length"],
         // additional text edits should be None because Length is in the core prelude
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Length",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200Length",
-                        ),
-                        detail: Some(
-                            "function Length<'T>(a : 'T[]) : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Length (Function)
+                detail: Some("function Length<'T>(a : 'T[]) : Int")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -2074,28 +1252,17 @@ fn dont_generate_import_for_stdlib_prelude() {
         // additional text edits should be None because MResetZ is in Std.Measurement, which
         // is in the prelude.
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MResetZ",
-                        kind: Function,
-                        sort_text: Some(
-                            "0400MResetZ",
-                        ),
-                        detail: Some(
-                            "operation MResetZ(target : Qubit) : Result",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              MResetZ (Function)
+                detail: Some("operation MResetZ(target : Qubit) : Result")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn callable_from_same_file() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function MyCallable() : Unit {}
@@ -2105,28 +1272,17 @@ fn callable_from_same_file() {
         }"#,
         &["MyCallable"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MyCallable",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300MyCallable",
-                        ),
-                        detail: Some(
-                            "function MyCallable() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              MyCallable (Function)
+                detail: Some("function MyCallable() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn member_completion() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function MyCallable() : Unit {}
@@ -2141,28 +1297,17 @@ fn member_completion() {
         "#,
         &["MyCallable"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MyCallable",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200MyCallable",
-                        ),
-                        detail: Some(
-                            "function MyCallable() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              MyCallable (Function)
+                detail: Some("function MyCallable() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn member_completion_in_imported_namespace() {
-    check(
+    check_single(
         r#"
         namespace Test.Foo {
             function MyCallable() : Unit {}
@@ -2182,39 +1327,20 @@ fn member_completion_in_imported_namespace() {
         "#,
         &["MyCallable", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MyCallable",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200MyCallable",
-                        ),
-                        detail: Some(
-                            "function MyCallable() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Module,
-                        sort_text: Some(
-                            "0500Bar",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              MyCallable (Function)
+                detail: Some("function MyCallable() : Unit")
+                additional_text_edits: None
+              Bar (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn namespace_completion() {
-    check(
+    check_single(
         r#"
         namespace Test.Foo {
             function MyCallable() : Unit {}
@@ -2229,26 +1355,17 @@ fn namespace_completion() {
         "#,
         &["Foo"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Module,
-                        sort_text: Some(
-                            "0500Foo",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn nested_namespace() {
-    check(
+    check_single(
         r#"
         namespace Test.Foo {
             function MyCallable() : Unit {}
@@ -2261,29 +1378,19 @@ fn nested_namespace() {
         }"#,
         &["MyCallable", "MyCallable2"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MyCallable",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200MyCallable",
-                        ),
-                        detail: Some(
-                            "function MyCallable() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              MyCallable2
+            in list (sorted):
+              MyCallable (Function)
+                detail: Some("function MyCallable() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn std_member() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function MyCallable2() : Unit {
@@ -2292,93 +1399,58 @@ fn std_member() {
         }"#,
         &["Fake", "Library"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Fake",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300Fake",
-                        ),
-                        detail: Some(
-                            "operation Fake() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Fake (Function)
+                detail: Some("operation Fake() : Unit")
+                additional_text_edits: None
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn open_namespace() {
-    check(
+    check_single(
         r#"
         namespace Test {
             open FakeStdLib.↘;
         }"#,
         &["Fake", "Library"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0300Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+            in list (sorted):
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn open_namespace_no_semi() {
-    check(
+    check_single(
         r#"
         namespace Test {
             open FakeStdLib.↘
         }"#,
         &["Fake", "Library"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0300Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+            in list (sorted):
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn open_namespace_no_semi_followed_by_decl() {
-    check(
+    check_single(
         r#"
         namespace Test {
             open FakeStdLib.↘
@@ -2386,27 +1458,19 @@ fn open_namespace_no_semi_followed_by_decl() {
         }"#,
         &["Fake", "Library"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0300Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+            in list (sorted):
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn open_namespace_partial_path_part() {
-    check(
+    check_single(
         r#"
         namespace Test {
             open FakeStdLib.↘F
@@ -2414,27 +1478,19 @@ fn open_namespace_partial_path_part() {
         }"#,
         &["Fake", "Library"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0300Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+            in list (sorted):
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn let_stmt_type() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2443,68 +1499,27 @@ fn let_stmt_type() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0501Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Udt;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Qubit",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200Qubit",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Int",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200Int",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              Main
+              FakeWithParam
+            in list (sorted):
+              Int (Interface)
+                detail: None
+                additional_text_edits: None
+              Qubit (Interface)
+                detail: None
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits:
+                  [2:12-2:12] "import FakeStdLib.Udt;\n            "
         "#]],
     );
 }
 
 #[test]
 fn let_stmt_type_before_next_stmt() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2515,68 +1530,27 @@ fn let_stmt_type_before_next_stmt() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0501Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Udt;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Qubit",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200Qubit",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Int",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0200Int",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              Main
+              FakeWithParam
+            in list (sorted):
+              Int (Interface)
+                detail: None
+                additional_text_edits: None
+              Qubit (Interface)
+                detail: None
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits:
+                  [2:12-2:12] "import FakeStdLib.Udt;\n            "
         "#]],
     );
 }
 
 #[test]
 fn type_position_namespace() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2585,62 +1559,42 @@ fn type_position_namespace() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-                None,
-                None,
-            ]
+            not in list:
+              Qubit
+              Int
+              Main
+              FakeWithParam
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn udt_base_type_part() {
-    check(
+    check_single(
         r#"
         namespace Test {
             newtype Foo = FakeStdLib.↘
         }"#,
         &["Udt", "Qubit", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              Qubit
+              FakeWithParam
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn struct_init() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2649,48 +1603,23 @@ fn struct_init() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0301Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import FakeStdLib.Udt;\n            ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                        end: Position {
-                                            line: 2,
-                                            column: 12,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                None,
-                None,
-                None,
-                None,
-            ]
+            not in list:
+              Qubit
+              Int
+              Main
+              FakeWithParam
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits:
+                  [2:12-2:12] "import FakeStdLib.Udt;\n            "
         "#]],
     );
 }
 
 #[test]
 fn struct_init_path_part() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2699,32 +1628,22 @@ fn struct_init_path_part() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-                None,
-                None,
-            ]
+            not in list:
+              Qubit
+              Int
+              Main
+              FakeWithParam
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn struct_init_path_part_in_field_assigment() {
-    check(
+    check_single(
         r#"
         namespace Test {
             function Main() : Unit {
@@ -2733,42 +1652,22 @@ fn struct_init_path_part_in_field_assigment() {
         }"#,
         &["Udt", "Qubit", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "FakeWithParam",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300FakeWithParam",
-                        ),
-                        detail: Some(
-                            "operation FakeWithParam(x : Int) : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Qubit
+            in list (sorted):
+              FakeWithParam (Function)
+                detail: Some("operation FakeWithParam(x : Int) : Unit")
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn export_path() {
-    check(
+    check_single(
         r#"
         namespace Test {
             export ↘ ;
@@ -2777,43 +1676,25 @@ fn export_path() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam", "FakeStdLib"],
         &expect![[r#"
-            [
-                None,
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Main",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200Main",
-                        ),
-                        detail: Some(
-                            "function Main() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0400FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Udt
+              Qubit
+              Int
+              FakeWithParam
+            in list (sorted):
+              Main (Function)
+                detail: Some("function Main() : Unit")
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn export_path_part() {
-    check(
+    check_single(
         r#"
         namespace Test {
             export FakeStdLib.↘ ;
@@ -2822,45 +1703,25 @@ fn export_path_part() {
         }"#,
         &["Udt", "Qubit", "Int", "Main", "FakeWithParam", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "FakeWithParam",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300FakeWithParam",
-                        ),
-                        detail: Some(
-                            "operation FakeWithParam(x : Int) : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Qubit
+              Int
+              Main
+              FakeStdLib
+            in list (sorted):
+              FakeWithParam (Function)
+                detail: Some("operation FakeWithParam(x : Int) : Unit")
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn partially_typed_name() {
-    check(
+    check_single(
         r#"
         namespace Test {
             export Fo↘
@@ -2869,21 +1730,10 @@ fn partially_typed_name() {
         }"#,
         &["Foo"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Foo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0200Foo",
-                        ),
-                        detail: Some(
-                            "function Foo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Foo (Function)
+                detail: Some("function Foo() : Unit")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -2898,66 +1748,15 @@ fn from_dependency_main() {
         ",
         &["MainFunc", "OtherFunc"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MainFunc",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401MainFunc",
-                        ),
-                        detail: Some(
-                            "function MainFunc() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import MyDep.MainFunc;\n ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 17,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 17,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "OtherFunc",
-                        kind: Function,
-                        sort_text: Some(
-                            "0401OtherFunc",
-                        ),
-                        detail: Some(
-                            "function OtherFunc() : Unit",
-                        ),
-                        additional_text_edits: Some(
-                            [
-                                TextEdit {
-                                    new_text: "import MyDep.Other.OtherFunc;\n ",
-                                    range: Range {
-                                        start: Position {
-                                            line: 0,
-                                            column: 17,
-                                        },
-                                        end: Position {
-                                            line: 0,
-                                            column: 17,
-                                        },
-                                    },
-                                },
-                            ],
-                        ),
-                    },
-                ),
-            ]
+            in list (sorted):
+              MainFunc (Function)
+                detail: Some("function MainFunc() : Unit")
+                additional_text_edits:
+                  [0:17-0:17] "import MyDep.MainFunc;\n "
+              OtherFunc (Function)
+                detail: Some("function OtherFunc() : Unit")
+                additional_text_edits:
+                  [0:17-0:17] "import MyDep.Other.OtherFunc;\n "
         "#]],
     );
 }
@@ -2970,20 +1769,12 @@ fn package_aliases() {
         "namespace Main { export MainFunc; function MainFunc() : Unit {} }",
         &["MyDep", "Main"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "MyDep",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600MyDep",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              Main
+            in list (sorted):
+              MyDep (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -2999,35 +1790,17 @@ fn package_alias_members() {
         ",
         &["Main", "Other", "MainFunc", "Other.Sub", "Sub"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Other",
-                        kind: Module,
-                        sort_text: Some(
-                            "0700Other",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "MainFunc",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300MainFunc",
-                        ),
-                        detail: Some(
-                            "function MainFunc() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              Main
+              Other.Sub
+              Sub
+            in list (sorted):
+              MainFunc (Function)
+                detail: Some("function MainFunc() : Unit")
+                additional_text_edits: None
+              Other (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3043,36 +1816,18 @@ fn dependency_namespace_members() {
         ",
         &["Main", "Other", "MainFunc", "Other.Sub", "Sub", "OtherFunc"],
         &expect![[r#"
-            [
-                None,
-                None,
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Sub",
-                        kind: Module,
-                        sort_text: Some(
-                            "0700Sub",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "OtherFunc",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300OtherFunc",
-                        ),
-                        detail: Some(
-                            "function OtherFunc() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Main
+              Other
+              MainFunc
+              Other.Sub
+            in list (sorted):
+              OtherFunc (Function)
+                detail: Some("function OtherFunc() : Unit")
+                additional_text_edits: None
+              Sub (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3088,23 +1843,15 @@ fn package_alias_members_in_open() {
         ",
         &["Main", "Other", "MainFunc", "Other.Sub", "Sub"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "Other",
-                        kind: Module,
-                        sort_text: Some(
-                            "0300Other",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-                None,
-            ]
+            not in list:
+              Main
+              MainFunc
+              Other.Sub
+              Sub
+            in list (sorted):
+              Other (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3132,32 +1879,13 @@ fn member_completion_in_imported_namespace_from_dependency() {
         ",
         &["CallableInFoo", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "CallableInFoo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300CallableInFoo",
-                        ),
-                        detail: Some(
-                            "function CallableInFoo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Module,
-                        sort_text: Some(
-                            "0700Bar",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              CallableInFoo (Function)
+                detail: Some("function CallableInFoo() : Unit")
+                additional_text_edits: None
+              Bar (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3185,32 +1913,13 @@ fn aliased_namespace_in_dependency() {
         ",
         &["CallableInFoo", "Bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "CallableInFoo",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300CallableInFoo",
-                        ),
-                        detail: Some(
-                            "function CallableInFoo() : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Bar",
-                        kind: Module,
-                        sort_text: Some(
-                            "0700Bar",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              CallableInFoo (Function)
+                detail: Some("function CallableInFoo() : Unit")
+                additional_text_edits: None
+              Bar (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3238,17 +1947,16 @@ fn open_does_not_match_pkg_alias() {
         ",
         &["CallableInFoo", "Bar"],
         &expect![[r#"
-            [
-                None,
-                None,
-            ]
+            not in list:
+              CallableInFoo
+              Bar
         "#]],
     );
 }
 
 #[test]
 fn field_access_expr() {
-    check(
+    check_single(
         "namespace Test {
         struct Foo {
             bar : Int,
@@ -3260,57 +1968,27 @@ fn field_access_expr() {
     }",
         &["bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              bar (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn input_type_missing() {
-    check(
+    check_single(
         "namespace Test { function Foo(x : FakeStdLib.↘ ) : Unit { body intrinsic; } }",
         &["Udt", "Library"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3326,53 +2004,25 @@ fn notebook_top_level_path_part() {
         )],
         &["Udt", "Library", "FakeStdLib", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                Some(
-                    CompletionItem {
-                        label: "FakeWithParam",
-                        kind: Function,
-                        sort_text: Some(
-                            "0300FakeWithParam",
-                        ),
-                        detail: Some(
-                            "operation FakeWithParam(x : Int) : Unit",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              FakeStdLib
+            in list (sorted):
+              FakeWithParam (Function)
+                detail: Some("operation FakeWithParam(x : Int) : Unit")
+                additional_text_edits: None
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_access_path() {
-    check(
+    check_single(
         "namespace Test {
         struct Foo {
             bar : Int,
@@ -3385,21 +2035,10 @@ fn field_access_path() {
     }",
         &["bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              bar (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3415,153 +2054,83 @@ fn notebook_top_level_path_part_in_type() {
         )],
         &["Udt", "Library", "FakeStdLib", "FakeWithParam"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Library",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600Library",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-                None,
-            ]
+            not in list:
+              FakeStdLib
+              FakeWithParam
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
+              Library (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn prefix_ops() {
-    check(
+    check_single(
         "namespace Test { function Main() : Unit { let x = ↘ ; } }",
         &["and", "or", "not", "Adjoint"],
         &expect![[r#"
-            [
-                None,
-                None,
-                Some(
-                    CompletionItem {
-                        label: "not",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000not",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "Adjoint",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000Adjoint",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              and
+              or
+            in list (sorted):
+              Adjoint (Keyword)
+                detail: None
+                additional_text_edits: None
+              not (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn binary_ops() {
-    check(
+    check_single(
         "namespace Test { function Main() : Unit { let x = 1 ↘ ; } }",
         &["and", "or", "not"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "and",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000and",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "or",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000or",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              not
+            in list (sorted):
+              and (Keyword)
+                detail: None
+                additional_text_edits: None
+              or (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn array_size() {
-    check(
+    check_single(
         "namespace Test { function Main() : Unit { let x = [0, ↘] ; } }",
         &["size"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "size",
-                        kind: Keyword,
-                        sort_text: Some(
-                            "0000size",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              size (Keyword)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn path_segment_partial_ident_is_keyword() {
-    check(
+    check_single(
         "namespace Test { import FakeStdLib.struct↘ }",
         &["StructFn"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "StructFn",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300StructFn",
-                        ),
-                        detail: Some(
-                            "struct StructFn { inner : (Int -> Int) }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              StructFn (Interface)
+                detail: Some("struct StructFn { inner : (Int -> Int) }")
+                additional_text_edits: None
         "#]],
     );
 }
@@ -3571,13 +2140,12 @@ fn path_segment_followed_by_wslash() {
     // `w/` is a single token, so it gets tricky
     // to separate out the `w` and treat it as an identifier.
     // We're just not going to worry about doing anything clever here.
-    check(
+    check_single(
         "namespace Test { import FakeStdLib.w↘/ }",
         &["StructFn"],
         &expect![[r#"
-            [
-                None,
-            ]
+            not in list:
+              StructFn
         "#]],
     );
 }
@@ -3586,70 +2154,47 @@ fn path_segment_followed_by_wslash() {
 fn path_segment_followed_by_op_token() {
     // Invoking in the middle of a multi-character op token
     // shouldn't break anything.
-    check(
+    check_single(
         "namespace Test { import FakeStdLib.<↘<< }",
         &["StructFn"],
         &expect![[r#"
-            [
-                None,
-            ]
+            not in list:
+              StructFn
         "#]],
     );
 }
 
 #[test]
 fn path_segment_before_glob() {
-    check(
+    check_single(
         "namespace Test { import FakeStdLib.↘* }",
         &["StructFn"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "StructFn",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300StructFn",
-                        ),
-                        detail: Some(
-                            "struct StructFn { inner : (Int -> Int) }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              StructFn (Interface)
+                detail: Some("struct StructFn { inner : (Int -> Int) }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn path_segment_before_glob_with_alias() {
-    check(
+    check_single(
         "namespace Test { import FakeStdLib.↘* as Alias }",
         &["StructFn"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "StructFn",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300StructFn",
-                        ),
-                        detail: Some(
-                            "struct StructFn { inner : (Int -> Int) }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              StructFn (Interface)
+                detail: Some("struct StructFn { inner : (Int -> Int) }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_in_initializer() {
-    check(
+    check_single(
         "namespace Test {
         struct Foo {
             bar : Int,
@@ -3661,28 +2206,17 @@ fn field_in_initializer() {
     }",
         &["bar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              bar (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn stdlib_struct_field_init() {
-    check(
+    check_single(
         "namespace Test {
             import FakeStdLib.FakeStruct as StructAlias;
             function Main() : Unit {
@@ -3691,28 +2225,17 @@ fn stdlib_struct_field_init() {
         }",
         &["x"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "x",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100x",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              x (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn newtype_named_field() {
-    check(
+    check_single(
         "namespace Test {
             newtype Foo = (field : Int);
             function Main() : Unit {
@@ -3721,28 +2244,17 @@ fn newtype_named_field() {
         }",
         &["field"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "field",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100field",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              field (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_access_path_chained() {
-    check(
+    check_single(
         "namespace Test {
             newtype Foo = ( fieldFoo : Int );
             struct Bar { fieldBar : Foo );
@@ -3753,29 +2265,19 @@ fn field_access_path_chained() {
         }",
         &["fieldFoo", "fieldBar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "fieldFoo",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100fieldFoo",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              fieldBar
+            in list (sorted):
+              fieldFoo (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_access_expr_chained() {
-    check(
+    check_single(
         "namespace Test {
             newtype Foo = ( fieldFoo : Int );
             struct Bar { fieldBar : Foo );
@@ -3785,29 +2287,19 @@ fn field_access_expr_chained() {
         }",
         &["fieldFoo", "fieldBar"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "fieldFoo",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100fieldFoo",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-                None,
-            ]
+            not in list:
+              fieldBar
+            in list (sorted):
+              fieldFoo (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_assignment_rhs() {
-    check(
+    check_single(
         "namespace Test {
         struct Foo {
             bar : Int,
@@ -3820,29 +2312,19 @@ fn field_assignment_rhs() {
     }",
         &["bar", "var"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "var",
-                        kind: Variable,
-                        sort_text: Some(
-                            "0100var",
-                        ),
-                        detail: Some(
-                            "var : Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              bar
+            in list (sorted):
+              var (Variable)
+                detail: Some("var : Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn field_access_local_shadows_global() {
-    check(
+    check_single(
         "namespace Test {
         struct Foo {
             bar : Int,
@@ -3855,229 +2337,123 @@ fn field_access_local_shadows_global() {
     }",
         &["Fake", "bar"],
         &expect![[r#"
-            [
-                None,
-                Some(
-                    CompletionItem {
-                        label: "bar",
-                        kind: Field,
-                        sort_text: Some(
-                            "0100bar",
-                        ),
-                        detail: Some(
-                            "Int",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            not in list:
+              Fake
+            in list (sorted):
+              bar (Field)
+                detail: Some("Int")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn ty_param_in_signature() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test<'T>(x: ↘) : Unit {}
         }",
         &["'T", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn ty_param_in_return_type() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test<'T>(x: 'T) : ↘ {}
         }",
         &["'T", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn path_segment_in_return_type() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test(x: 'T) : FakeStdLib.↘ {}
         }",
         &["Udt"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "Udt",
-                        kind: Interface,
-                        sort_text: Some(
-                            "0300Udt",
-                        ),
-                        detail: Some(
-                            "struct Udt { x : Int, y : Int }",
-                        ),
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              Udt (Interface)
+                detail: Some("struct Udt { x : Int, y : Int }")
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn return_type_in_partial_callable_signature() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test<'T>() : ↘
         }",
         &["'T", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn arg_type_in_partial_callable_signature() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test<'T>(x: ↘)
         }",
         &["'T", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
 
 #[test]
 fn incomplete_return_type_in_partial_callable_signature() {
-    check(
+    check_single(
         r"namespace Test {
             operation Test<'T>() : () => ↘
         }",
         &["'T", "FakeStdLib"],
         &expect![[r#"
-            [
-                Some(
-                    CompletionItem {
-                        label: "'T",
-                        kind: TypeParameter,
-                        sort_text: Some(
-                            "0100'T",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-                Some(
-                    CompletionItem {
-                        label: "FakeStdLib",
-                        kind: Module,
-                        sort_text: Some(
-                            "0600FakeStdLib",
-                        ),
-                        detail: None,
-                        additional_text_edits: None,
-                    },
-                ),
-            ]
+            in list (sorted):
+              'T (TypeParameter)
+                detail: None
+                additional_text_edits: None
+              FakeStdLib (Module)
+                detail: None
+                additional_text_edits: None
         "#]],
     );
 }
