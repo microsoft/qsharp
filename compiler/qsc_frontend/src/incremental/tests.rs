@@ -572,6 +572,42 @@ fn combined_import_export() {
     );
 }
 
+#[ignore = "not working yet"]
+#[test]
+fn reexport_operation() {
+    multi_package_test(
+        vec![(
+            "PackageA.qs",
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit {}
+                }
+
+                namespace Main {
+                    export Foo.Bar;
+                    export Foo.Bar as Baz;
+                }
+            "},
+        )],
+        vec![(
+            "PackageB.qs",
+            indoc! {"
+                function Main() : Unit {
+                    A.Bar();
+                    A.Baz();
+                }
+            "},
+        )],
+        &[("A", "PackageA")],
+        indoc! {"
+            function Main() : Unit {
+                // A.Bar();
+                // A.Baz();
+            }
+        "},
+    );
+}
+
 #[test]
 fn reexport_operation_from_a_dependency() {
     multi_package_test(
