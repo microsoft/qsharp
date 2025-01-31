@@ -1592,6 +1592,57 @@ async fn error_from_dependency_reported() {
 }
 
 #[tokio::test]
+async fn single_github_source_no_errors() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document("qsharp-github-source:foo/bar/Main.qs", 1, "badsyntax")
+        .await;
+
+    updater
+        .update_document("/foo/bar/Main.qs", 1, "badsyntax")
+        .await;
+
+    // Same error exists in both files, but the github one should not be reported
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "qsharp-github-source:foo/bar/Main.qs": OpenDocument {
+                    version: 1,
+                    compilation: "qsharp-github-source:foo/bar/Main.qs",
+                    latest_str_content: "badsyntax",
+                },
+                "/foo/bar/Main.qs": OpenDocument {
+                    version: 1,
+                    compilation: "/foo/bar/Main.qs",
+                    latest_str_content: "badsyntax",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            qsharp-github-source:foo/bar/Main.qs: [
+              "qsharp-github-source:foo/bar/Main.qs": "badsyntax",
+            ],
+            /foo/bar/Main.qs: [
+              "/foo/bar/Main.qs": "badsyntax",
+            ],
+        "#]],
+        &expect![[r#"
+            [
+              uri: "/foo/bar/Main.qs" version: Some(1) errors: [
+                syntax error
+                  [/foo/bar/Main.qs] [badsyntax]
+              ],
+            ]"#]],
+    );
+}
+
+#[tokio::test]
 async fn test_case_detected() {
     let fs = FsNode::Dir(
         [dir(
