@@ -110,6 +110,8 @@ enum Wire {
 }
 
 enum CircuitObject {
+    Blank,
+    Wire,
     WireCross,
     WireStart,
     DashedCross,
@@ -192,24 +194,22 @@ impl Row {
                 for column in 1..end_column {
                     let val = self.objects.get(&column);
                     let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-                    if let Some(v) = val {
-                        s.write_str(&fmt_qubit_circuit_object(v, column_width))?;
-                    } else {
-                        s.write_str(&get_qubit_wire(column_width))?;
-                    }
+                    let object = val.unwrap_or(&CircuitObject::Wire);
+
+                    s.write_str(&fmt_qubit_circuit_object(object, column_width))?;
                 }
             }
             Wire::Classical { start_column } => {
                 for column in 0..end_column {
                     let val = self.objects.get(&column);
                     let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-                    if let Some(v) = val {
-                        s.write_str(&fmt_classical_circuit_object(v, column_width))?;
-                    } else if start_column.map_or(false, |s| column > s) {
-                        s.write_str(&get_classical_wire(column_width))?;
-                    } else {
-                        s.write_str(&get_blank(column_width))?;
-                    }
+                    let object = match (val, start_column) {
+                        (Some(v), _) => v,
+                        (None, Some(s)) if column > *s => &CircuitObject::Wire,
+                        _ => &CircuitObject::Blank,
+                    };
+
+                    s.write_str(&fmt_classical_circuit_object(object, column_width))?;
                 }
             }
         }
@@ -220,63 +220,23 @@ impl Row {
 
 const MIN_COLUMN_WIDTH: usize = 7;
 
-/// "───────"
-fn get_qubit_wire(column_width: usize) -> String {
-    "─".repeat(column_width)
+fn expand_template(template: &[char; 3], column_width: usize) -> String {
+    let left = template[0].to_string().repeat(column_width / 2);
+    let right = template[2].to_string().repeat(column_width / 2);
+
+    format!("{left}{}{right}", template[1])
 }
 
-/// "═══════"
-fn get_classical_wire(column_width: usize) -> String {
-    "═".repeat(column_width)
-}
-
-/// "───┼───"
-fn get_qubit_wire_cross(column_width: usize) -> String {
-    let half_width = "─".repeat(column_width / 2);
-    format!("{}┼{}", half_width, half_width)
-}
-
-/// "═══╪═══"
-fn get_classical_wire_cross(column_width: usize) -> String {
-    let half_width = "═".repeat(column_width / 2);
-    format!("{}╪{}", half_width, half_width)
-}
-
-/// "   ╘═══"
-fn get_classical_wire_start(column_width: usize) -> String {
-    let first_half_width = " ".repeat(column_width / 2);
-    let second_half_width = "═".repeat(column_width / 2);
-    format!("{}╘{}", first_half_width, second_half_width)
-}
-
-/// "───┆───"
-fn get_qubit_wire_dashed_cross(column_width: usize) -> String {
-    let half_width = "─".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "═══┆═══"
-fn get_classical_wire_dashed_cross(column_width: usize) -> String {
-    let half_width = "═".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "   │   "
-fn get_vertical(column_width: usize) -> String {
-    let half_width = " ".repeat(column_width / 2);
-    format!("{}│{}", half_width, half_width)
-}
-
-/// "   ┆   "
-fn get_vertical_dashed(column_width: usize) -> String {
-    let half_width = " ".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "       "
-fn get_blank(column_width: usize) -> String {
-    " ".repeat(column_width)
-}
+const QUBIT_WIRE: [char; 3] = ['─', '─', '─']; // -> "───────"
+const CLASSICAL_WIRE: [char; 3] = ['═', '═', '═']; // -> "═══════"
+const QUBIT_WIRE_CROSS: [char; 3] = ['─', '┼', '─']; // -> "───┼───"
+const CLASSICAL_WIRE_CROSS: [char; 3] = ['═', '╪', '═']; // -> "═══╪═══"
+const CLASSICAL_WIRE_START: [char; 3] = [' ', '╘', '═']; // -> "   ╘═══"
+const QUBIT_WIRE_DASHED_CROSS: [char; 3] = ['─', '┆', '─']; // -> "───┆───"
+const CLASSICAL_WIRE_DASHED_CROSS: [char; 3] = ['═', '┆', '═']; // -> "═══┆═══"
+const VERTICAL_DASHED: [char; 3] = [' ', '┆', ' ']; // -> "   │   "
+const VERTICAL: [char; 3] = [' ', '│', ' ']; // -> "   ┆   "
+const BLANK: [char; 3] = [' ', ' ', ' ']; // -> "       "
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
@@ -296,25 +256,41 @@ fn fmt_on_classical_wire(obj: &str, column_width: usize) -> String {
 }
 
 fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    match circuit_object {
-        CircuitObject::WireCross => get_classical_wire_cross(column_width),
-        CircuitObject::WireStart => get_classical_wire_start(column_width),
-        CircuitObject::DashedCross => get_classical_wire_dashed_cross(column_width),
-        CircuitObject::Vertical => get_vertical(column_width),
-        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
-        CircuitObject::Object(label) => fmt_on_classical_wire(label.as_str(), column_width),
+    if let CircuitObject::Object(label) = circuit_object {
+        return fmt_on_classical_wire(label.as_str(), column_width);
     }
+
+    let template = match circuit_object {
+        CircuitObject::Blank => BLANK,
+        CircuitObject::Wire => CLASSICAL_WIRE,
+        CircuitObject::WireCross => CLASSICAL_WIRE_CROSS,
+        CircuitObject::WireStart => CLASSICAL_WIRE_START,
+        CircuitObject::DashedCross => CLASSICAL_WIRE_DASHED_CROSS,
+        CircuitObject::Vertical => VERTICAL,
+        CircuitObject::VerticalDashed => VERTICAL_DASHED,
+        CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+    };
+
+    expand_template(&template, column_width)
 }
 
 fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    match circuit_object {
-        CircuitObject::WireCross => get_qubit_wire_cross(column_width),
-        CircuitObject::WireStart => get_blank(column_width), // This should never happen
-        CircuitObject::DashedCross => get_qubit_wire_dashed_cross(column_width),
-        CircuitObject::Vertical => get_vertical(column_width),
-        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
-        CircuitObject::Object(label) => fmt_on_qubit_wire(label.as_str(), column_width),
+    if let CircuitObject::Object(label) = circuit_object {
+        return fmt_on_qubit_wire(label.as_str(), column_width);
     }
+
+    let template = match circuit_object {
+        CircuitObject::Blank => BLANK,
+        CircuitObject::Wire => QUBIT_WIRE,
+        CircuitObject::WireCross => QUBIT_WIRE_CROSS,
+        CircuitObject::WireStart => BLANK, // This should never happen
+        CircuitObject::DashedCross => QUBIT_WIRE_DASHED_CROSS,
+        CircuitObject::Vertical => VERTICAL,
+        CircuitObject::VerticalDashed => VERTICAL_DASHED,
+        CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+    };
+
+    expand_template(&template, column_width)
 }
 
 impl Display for Circuit {
