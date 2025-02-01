@@ -96,7 +96,7 @@ impl Config {
 }
 
 type ObjectsByColumn = FxHashMap<usize, CircuitObject>;
-type ColumnWidthsByColumn = FxHashMap<usize, usize>;
+type ColumnWidthsByColumn = FxHashMap<usize, ColumnRenderer>;
 
 struct Row {
     wire: Wire,
@@ -183,33 +183,39 @@ impl Row {
     fn fmt(
         &self,
         f: &mut std::fmt::Formatter<'_>,
-        column_widths: &ColumnWidthsByColumn,
+        column_renderers: &ColumnWidthsByColumn,
         end_column: usize,
     ) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
+        let default_renderer = ColumnRenderer {
+            column_width: MIN_COLUMN_WIDTH,
+        };
+
         let mut s = String::new();
         match &self.wire {
             Wire::Qubit { q_id: label } => {
                 s.write_str(&fmt_qubit_label(*label))?;
                 for column in 1..end_column {
                     let val = self.objects.get(&column);
-                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+                    let renderer = column_renderers.get(&column).unwrap_or(&default_renderer);
+
                     let object = val.unwrap_or(&CircuitObject::Wire);
 
-                    s.write_str(&fmt_qubit_circuit_object(object, column_width))?;
+                    s.write_str(&renderer.fmt_qubit_circuit_object(object))?;
                 }
             }
             Wire::Classical { start_column } => {
                 for column in 0..end_column {
                     let val = self.objects.get(&column);
-                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
+                    let renderer = column_renderers.get(&column).unwrap_or(&default_renderer);
+
                     let object = match (val, start_column) {
                         (Some(v), _) => v,
                         (None, Some(s)) if column > *s => &CircuitObject::Wire,
                         _ => &CircuitObject::Blank,
                     };
 
-                    s.write_str(&fmt_classical_circuit_object(object, column_width))?;
+                    s.write_str(&renderer.fmt_classical_circuit_object(object))?;
                 }
             }
         }
@@ -220,23 +226,16 @@ impl Row {
 
 const MIN_COLUMN_WIDTH: usize = 7;
 
-fn expand_template(template: &[char; 3], column_width: usize) -> String {
-    let left = template[0].to_string().repeat(column_width / 2);
-    let right = template[2].to_string().repeat(column_width / 2);
-
-    format!("{left}{}{right}", template[1])
-}
-
-const QUBIT_WIRE: [char; 3] = ['─', '─', '─']; // -> "───────"
-const CLASSICAL_WIRE: [char; 3] = ['═', '═', '═']; // -> "═══════"
-const QUBIT_WIRE_CROSS: [char; 3] = ['─', '┼', '─']; // -> "───┼───"
-const CLASSICAL_WIRE_CROSS: [char; 3] = ['═', '╪', '═']; // -> "═══╪═══"
-const CLASSICAL_WIRE_START: [char; 3] = [' ', '╘', '═']; // -> "   ╘═══"
-const QUBIT_WIRE_DASHED_CROSS: [char; 3] = ['─', '┆', '─']; // -> "───┆───"
-const CLASSICAL_WIRE_DASHED_CROSS: [char; 3] = ['═', '┆', '═']; // -> "═══┆═══"
-const VERTICAL_DASHED: [char; 3] = [' ', '┆', ' ']; // -> "   │   "
-const VERTICAL: [char; 3] = [' ', '│', ' ']; // -> "   ┆   "
-const BLANK: [char; 3] = [' ', ' ', ' ']; // -> "       "
+const QUBIT_WIRE: [char; 3] = ['─', '─', '─']; // "───────"
+const CLASSICAL_WIRE: [char; 3] = ['═', '═', '═']; // "═══════"
+const QUBIT_WIRE_CROSS: [char; 3] = ['─', '┼', '─']; // "───┼───"
+const CLASSICAL_WIRE_CROSS: [char; 3] = ['═', '╪', '═']; // "═══╪═══"
+const CLASSICAL_WIRE_START: [char; 3] = [' ', '╘', '═']; // "   ╘═══"
+const QUBIT_WIRE_DASHED_CROSS: [char; 3] = ['─', '┆', '─']; // "───┆───"
+const CLASSICAL_WIRE_DASHED_CROSS: [char; 3] = ['═', '┆', '═']; // "═══┆═══"
+const VERTICAL_DASHED: [char; 3] = [' ', '┆', ' ']; // "   │   "
+const VERTICAL: [char; 3] = [' ', '│', ' ']; // "   ┆   "
+const BLANK: [char; 3] = [' ', ' ', ' ']; // "       "
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
@@ -245,52 +244,68 @@ fn fmt_qubit_label(id: usize) -> String {
     format!("q_{id: <rest$}")
 }
 
-/// "── A ──"
-fn fmt_on_qubit_wire(obj: &str, column_width: usize) -> String {
-    format!("{:─^column_width$}", format!(" {obj} "))
+struct ColumnRenderer {
+    column_width: usize,
 }
 
-/// "══ A ══"
-fn fmt_on_classical_wire(obj: &str, column_width: usize) -> String {
-    format!("{:═^column_width$}", format!(" {obj} "))
-}
-
-fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    if let CircuitObject::Object(label) = circuit_object {
-        return fmt_on_classical_wire(label.as_str(), column_width);
+impl ColumnRenderer {
+    /// "── A ──"
+    fn fmt_on_qubit_wire(&self, obj: &str) -> String {
+        let column_width = self.column_width;
+        format!("{:─^column_width$}", format!(" {obj} "))
     }
 
-    let template = match circuit_object {
-        CircuitObject::Blank => BLANK,
-        CircuitObject::Wire => CLASSICAL_WIRE,
-        CircuitObject::WireCross => CLASSICAL_WIRE_CROSS,
-        CircuitObject::WireStart => CLASSICAL_WIRE_START,
-        CircuitObject::DashedCross => CLASSICAL_WIRE_DASHED_CROSS,
-        CircuitObject::Vertical => VERTICAL,
-        CircuitObject::VerticalDashed => VERTICAL_DASHED,
-        CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
-    };
-
-    expand_template(&template, column_width)
-}
-
-fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    if let CircuitObject::Object(label) = circuit_object {
-        return fmt_on_qubit_wire(label.as_str(), column_width);
+    /// "══ A ══"
+    fn fmt_on_classical_wire(&self, obj: &str) -> String {
+        let column_width = self.column_width;
+        format!("{:═^column_width$}", format!(" {obj} "))
     }
 
-    let template = match circuit_object {
-        CircuitObject::Blank => BLANK,
-        CircuitObject::Wire => QUBIT_WIRE,
-        CircuitObject::WireCross => QUBIT_WIRE_CROSS,
-        CircuitObject::WireStart => BLANK, // This should never happen
-        CircuitObject::DashedCross => QUBIT_WIRE_DASHED_CROSS,
-        CircuitObject::Vertical => VERTICAL,
-        CircuitObject::VerticalDashed => VERTICAL_DASHED,
-        CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
-    };
+    fn expand_template(&self, template: &[char; 3]) -> String {
+        let half_width = self.column_width / 2;
+        let left = template[0].to_string().repeat(half_width);
+        let right = template[2].to_string().repeat(half_width);
 
-    expand_template(&template, column_width)
+        format!("{left}{}{right}", template[1])
+    }
+
+    fn fmt_classical_circuit_object(&self, circuit_object: &CircuitObject) -> String {
+        if let CircuitObject::Object(label) = circuit_object {
+            return self.fmt_on_classical_wire(label.as_str());
+        }
+
+        let template = match circuit_object {
+            CircuitObject::Blank => BLANK,
+            CircuitObject::Wire => CLASSICAL_WIRE,
+            CircuitObject::WireCross => CLASSICAL_WIRE_CROSS,
+            CircuitObject::WireStart => CLASSICAL_WIRE_START,
+            CircuitObject::DashedCross => CLASSICAL_WIRE_DASHED_CROSS,
+            CircuitObject::Vertical => VERTICAL,
+            CircuitObject::VerticalDashed => VERTICAL_DASHED,
+            CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+        };
+
+        self.expand_template(&template)
+    }
+
+    fn fmt_qubit_circuit_object(&self, circuit_object: &CircuitObject) -> String {
+        if let CircuitObject::Object(label) = circuit_object {
+            return self.fmt_on_qubit_wire(label.as_str());
+        }
+
+        let template = match circuit_object {
+            CircuitObject::Blank => BLANK,
+            CircuitObject::Wire => QUBIT_WIRE,
+            CircuitObject::WireCross => QUBIT_WIRE_CROSS,
+            CircuitObject::WireStart => BLANK, // This should never happen
+            CircuitObject::DashedCross => QUBIT_WIRE_DASHED_CROSS,
+            CircuitObject::Vertical => VERTICAL,
+            CircuitObject::VerticalDashed => VERTICAL_DASHED,
+            CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+        };
+
+        self.expand_template(&template)
+    }
 }
 
 impl Display for Circuit {
@@ -407,26 +422,29 @@ impl Display for Circuit {
 
         // To be able to fit long-named operations, we calculate the required width for each column,
         // based on the maximum length needed for gates, where a gate X is printed as "- X -".
-        let column_widths = (0..end_column)
+        let column_renderers = (0..end_column)
             .map(|column| {
                 (
                     column,
-                    rows.iter()
-                        .filter_map(|row| row.objects.get(&column))
-                        .filter_map(|object| match object {
-                            CircuitObject::Object(string) => Some((string.len() + 4) | 1), // Column lengths need to be odd numbers
-                            _ => None,
-                        })
-                        .chain(std::iter::once(MIN_COLUMN_WIDTH))
-                        .max()
-                        .unwrap(),
+                    ColumnRenderer {
+                        column_width: rows
+                            .iter()
+                            .filter_map(|row| row.objects.get(&column))
+                            .filter_map(|object| match object {
+                                CircuitObject::Object(string) => Some((string.len() + 4) | 1), // Column lengths need to be odd numbers
+                                _ => None,
+                            })
+                            .chain(std::iter::once(MIN_COLUMN_WIDTH))
+                            .max()
+                            .unwrap(),
+                    },
                 )
             })
             .collect::<ColumnWidthsByColumn>();
 
         // Draw the diagram
         for row in rows {
-            row.fmt(f, &column_widths, end_column)?;
+            row.fmt(f, &column_renderers, end_column)?;
         }
 
         Ok(())
