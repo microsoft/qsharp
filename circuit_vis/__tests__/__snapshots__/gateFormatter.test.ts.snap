@@ -1,0 +1,2991 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Testing _classicalControlled No htmlClass 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  />
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="180"
+    y2="180"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="175"
+    y2="180"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="160"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="160"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="80"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled change padding 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  />
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="180"
+    y2="180"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="175"
+    y2="180"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="160"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="160"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="140"
+    stroke-dasharray="8, 8"
+    width="100"
+    x="110"
+    y="0"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled multiple 'zero'/'one' children 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="190"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="210"
+            y="40"
+          >
+            Z
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="100"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="120"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="100"
+    y2="100"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="95"
+    y2="100"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="80"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="80"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="140"
+    stroke-dasharray="8, 8"
+    width="120"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled nested children 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  />
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="classically-controlled-group classically-controlled-unknown"
+    >
+      <g
+        class="gates-zero"
+      />
+      <g
+        class="gates-one"
+      >
+        <g
+          class="gate"
+        >
+          <line
+            x1="180"
+            x2="180"
+            y1="40"
+            y2="100"
+          />
+          <circle
+            class="control-dot"
+            cx="180"
+            cy="100"
+            r="5"
+          />
+          <g
+            class="oplus"
+          >
+            <circle
+              cx="180"
+              cy="40"
+              r="15"
+            />
+            <line
+              x1="180"
+              x2="180"
+              y1="25"
+              y2="55"
+            />
+            <line
+              x1="165"
+              x2="195"
+              y1="40"
+              y2="40"
+            />
+          </g>
+        </g>
+      </g>
+      <line
+        class="classical-line"
+        stroke-dasharray="8, 8"
+        x1="165"
+        x2="190"
+        y1="240"
+        y2="240"
+      />
+      <line
+        class="classical-line"
+        stroke-dasharray="8, 8"
+        x1="165"
+        x2="165"
+        y1="235"
+        y2="240"
+      />
+      <g
+        class="classically-controlled-btn"
+      >
+        <circle
+          cx="165"
+          cy="220"
+          r="15"
+        />
+        <text
+          font-size="14"
+          x="165"
+          y="220"
+        >
+          ?
+        </text>
+      </g>
+      <rect
+        class="classical-container"
+        fill-opacity="0"
+        height="120"
+        stroke-dasharray="8, 8"
+        width="20"
+        x="190"
+        y="10"
+      />
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="180"
+    y2="180"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="175"
+    y2="180"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="160"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="160"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="100"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled one 'one' child 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  />
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="100"
+    y2="100"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="95"
+    y2="100"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="80"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="80"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="NaN"
+    stroke-dasharray="8, 8"
+    width="60"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled one 'zero' child 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g
+    class="gates-one"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="100"
+    y2="100"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="95"
+    y2="100"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="80"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="80"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="NaN"
+    stroke-dasharray="8, 8"
+    width="60"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _classicalControlled one 'zero'/'one' child 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <g
+    class="gates-zero"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g
+    class="gates-one"
+  >
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="100"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="120"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="100"
+    y2="100"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="95"
+    y2="100"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="80"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="80"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="140"
+    stroke-dasharray="8, 8"
+    width="60"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _controlledGate CNOT gate 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g
+    class="oplus"
+  >
+    <circle
+      cx="80"
+      cy="100"
+      r="15"
+    />
+    <line
+      x1="80"
+      x2="80"
+      y1="85"
+      y2="115"
+    />
+    <line
+      x1="65"
+      x2="95"
+      y1="100"
+      y2="100"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate CNOT gate 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g
+    class="oplus"
+  >
+    <circle
+      cx="80"
+      cy="40"
+      r="15"
+    />
+    <line
+      x1="80"
+      x2="80"
+      y1="25"
+      y2="55"
+    />
+    <line
+      x1="65"
+      x2="95"
+      y1="40"
+      y2="40"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 1 control + 1 target 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="80"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="100"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 1 control + 1 target 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 1 control + 2 targets 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="70"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 1 control + 2 targets 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="45"
+        x="57.5"
+        y="80"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="130"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 1 control + 2 targets 3`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        Foo
+      </text>
+    </g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="140"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="160"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 2 controls + 2 targets 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="220"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="220"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="70"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 2 controls + 2 targets 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="220"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="45"
+        x="57.5"
+        y="140"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="190"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 2 controls + 2 targets 3`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="220"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        Foo
+      </text>
+    </g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="200"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="220"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with 2 controls + 2 targets 4`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="220"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="220"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        Foo
+      </text>
+    </g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="140"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="160"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with multiple controls + 1 target 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="140"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="160"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with multiple controls + 1 target 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate Controlled U gate with multiple controls + 1 target 3`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="45"
+        x="57.5"
+        y="80"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="100"
+      >
+        Foo
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate SWAP gate 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="92"
+      y2="108"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="108"
+      y2="92"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="152"
+      y2="168"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="168"
+      y2="152"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate SWAP gate 2`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="160"
+    r="5"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="92"
+      y2="108"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="108"
+      y2="92"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _controlledGate SWAP gate 3`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="100"
+    r="5"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="152"
+      y2="168"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="168"
+      y2="152"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _createGate Expanded gate 1`] = `
+<g
+  class="gate"
+  data-a="1"
+  data-b="2"
+  data-expanded="true"
+>
+  <line />
+  <g
+    class="gate-control gate-collapse"
+  >
+    <circle
+      cx="2.5"
+      cy="Infinity"
+      r="10"
+    />
+    <path
+      d="M-4.5,Infinity h14"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate CNOT gate 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g
+    class="oplus"
+  >
+    <circle
+      cx="80"
+      cy="100"
+      r="15"
+    />
+    <line
+      x1="80"
+      x2="80"
+      y1="85"
+      y2="115"
+    />
+    <line
+      x1="65"
+      x2="95"
+      y1="100"
+      y2="100"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate classically controlled gate 1`] = `
+<g
+  class="classically-controlled-group classically-controlled-unknown"
+>
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="120"
+    y1="180"
+    y2="180"
+  />
+  <line
+    class="classical-line"
+    stroke-dasharray="8, 8"
+    x1="95"
+    x2="95"
+    y1="175"
+    y2="180"
+  />
+  <g
+    class="classically-controlled-btn"
+  >
+    <circle
+      cx="95"
+      cy="160"
+      r="15"
+    />
+    <text
+      font-size="14"
+      x="95"
+      y="160"
+    >
+      ?
+    </text>
+  </g>
+  <rect
+    class="classical-container"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="0"
+    x="120"
+    y="10"
+  />
+</g>
+`;
+
+exports[`Testing _formatGate controlled swap gate 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="92"
+      y2="108"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="108"
+      y2="92"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="152"
+      y2="168"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="168"
+      y2="152"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate controlled unitary gate 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="40"
+        x="60"
+        y="80"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="100"
+      >
+        U
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate controlled unitary gate with arguments 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <circle
+    class="control-dot"
+    cx="80"
+    cy="40"
+    r="5"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="77"
+        x="41.5"
+        y="80"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="93"
+      >
+        U
+      </text>
+      <text
+        font-size="12"
+        x="80"
+        y="108"
+      >
+        ('foo', 'bar')
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate gate with metadata 1`] = `
+<g
+  class="gate"
+  data-a="1"
+  data-b="2"
+>
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="40"
+        x="60"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        H
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate measure gate 1`] = `
+<g
+  class="gate"
+>
+  <g>
+    <rect
+      class="gate-measure"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <path
+      class="arc-measure"
+      d="M 95 42 A 15 12 0 0 0 65 42"
+    />
+    <line
+      x1="80"
+      x2="92"
+      y1="48"
+      y2="28"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate multi-qubit unitary gate 1`] = `
+<g
+  class="gate"
+>
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="40"
+        x="60"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="70"
+      >
+        U
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate multi-qubit unitary gate with arguments 1`] = `
+<g
+  class="gate"
+>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="100"
+        width="77"
+        x="41.5"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="63"
+      >
+        U
+      </text>
+      <text
+        font-size="12"
+        x="80"
+        y="78"
+      >
+        ('foo', 'bar')
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate single-qubit unitary gate 1`] = `
+<g
+  class="gate"
+>
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="40"
+        x="60"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="40"
+      >
+        H
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate single-qubit unitary gate with arguments 1`] = `
+<g
+  class="gate"
+>
+  <g>
+    <g>
+      <rect
+        class="gate-unitary"
+        height="40"
+        width="52"
+        x="54"
+        y="20"
+      />
+      <text
+        font-size="14"
+        x="80"
+        y="33"
+      >
+        Ry
+      </text>
+      <text
+        font-size="12"
+        x="80"
+        y="48"
+      >
+        (0.25)
+      </text>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _formatGate swap gate 1`] = `
+<g
+  class="gate"
+>
+  <g>
+    <rect
+      class="gate-swap"
+      height="120"
+      width="120"
+      x="60"
+      y="20"
+    />
+    <g>
+      <line
+        x1="72"
+        x2="88"
+        y1="32"
+        y2="48"
+      />
+      <line
+        x1="72"
+        x2="88"
+        y1="48"
+        y2="32"
+      />
+    </g>
+    <g>
+      <line
+        x1="72"
+        x2="88"
+        y1="92"
+        y2="108"
+      />
+      <line
+        x1="72"
+        x2="88"
+        y1="108"
+        y2="92"
+      />
+    </g>
+    <line
+      x1="80"
+      x2="80"
+      y1="40"
+      y2="100"
+    />
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations children on consecutive registers 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="80"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="80"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="100"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations children on non-consecutive registers 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="180"
+    stroke-dasharray="8, 8"
+    width="80"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="140"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="160"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations children on same register 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="60"
+    stroke-dasharray="8, 8"
+    width="140"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="150"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="170"
+            y="40"
+          >
+            Z
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations multiple children 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="140"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="150"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="170"
+            y="40"
+          >
+            Z
+          </text>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="80"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="100"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations nested children 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="120"
+    stroke-dasharray="8, 8"
+    width="160"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <rect
+        class="gate-unitary"
+        fill-opacity="0"
+        height="56"
+        stroke-dasharray="8, 8"
+        width="136"
+        x="74"
+        y="12"
+      />
+      <g>
+        <g
+          class="gate"
+        >
+          <g>
+            <g>
+              <rect
+                class="gate-unitary"
+                height="40"
+                width="40"
+                x="100"
+                y="20"
+              />
+              <text
+                font-size="14"
+                x="120"
+                y="40"
+              >
+                X
+              </text>
+            </g>
+          </g>
+        </g>
+        <g
+          class="gate"
+        >
+          <g>
+            <g>
+              <rect
+                class="gate-unitary"
+                height="40"
+                width="40"
+                x="160"
+                y="20"
+              />
+              <text
+                font-size="14"
+                x="180"
+                y="40"
+              >
+                Z
+              </text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="130"
+            y="80"
+          />
+          <text
+            font-size="14"
+            x="150"
+            y="100"
+          >
+            H
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _groupedOperations one child 1`] = `
+<g
+  class="gate"
+>
+  <rect
+    class="gate-unitary"
+    fill-opacity="0"
+    height="60"
+    stroke-dasharray="8, 8"
+    width="80"
+    x="60"
+    y="10"
+  />
+  <g>
+    <g
+      class="gate"
+    >
+      <g>
+        <g>
+          <rect
+            class="gate-unitary"
+            height="40"
+            width="40"
+            x="90"
+            y="20"
+          />
+          <text
+            font-size="14"
+            x="110"
+            y="40"
+          >
+            X
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing _measure 1 qubit + 1 classical registers 1`] = `
+<g>
+  <rect
+    class="gate-measure"
+    height="40"
+    width="40"
+    x="60"
+    y="20"
+  />
+  <path
+    class="arc-measure"
+    d="M 95 42 A 15 12 0 0 0 65 42"
+  />
+  <line
+    x1="80"
+    x2="92"
+    y1="48"
+    y2="28"
+  />
+</g>
+`;
+
+exports[`Testing _measure 2 qubit + 1 classical registers 1`] = `
+<g>
+  <rect
+    class="gate-measure"
+    height="40"
+    width="40"
+    x="60"
+    y="20"
+  />
+  <path
+    class="arc-measure"
+    d="M 95 42 A 15 12 0 0 0 65 42"
+  />
+  <line
+    x1="80"
+    x2="92"
+    y1="48"
+    y2="28"
+  />
+</g>
+`;
+
+exports[`Testing _measure 2 qubit + 2 classical registers 1`] = `
+<g>
+  <rect
+    class="gate-measure"
+    height="40"
+    width="40"
+    x="60"
+    y="20"
+  />
+  <path
+    class="arc-measure"
+    d="M 95 42 A 15 12 0 0 0 65 42"
+  />
+  <line
+    x1="80"
+    x2="92"
+    y1="48"
+    y2="28"
+  />
+</g>
+`;
+
+exports[`Testing _measure 2 qubit + 2 classical registers 2`] = `
+<g>
+  <rect
+    class="gate-measure"
+    height="40"
+    width="40"
+    x="60"
+    y="80"
+  />
+  <path
+    class="arc-measure"
+    d="M 95 102 A 15 12 0 0 0 65 102"
+  />
+  <line
+    x1="80"
+    x2="92"
+    y1="108"
+    y2="88"
+  />
+</g>
+`;
+
+exports[`Testing _swap Adjacent swap 1`] = `
+<g>
+  <rect
+    class="gate-swap"
+    height="120"
+    width="120"
+    x="60"
+    y="20"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="92"
+      y2="108"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="108"
+      y2="92"
+    />
+  </g>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="100"
+  />
+</g>
+`;
+
+exports[`Testing _swap Adjacent swap 2`] = `
+<g>
+  <rect
+    class="gate-swap"
+    height="120"
+    width="120"
+    x="60"
+    y="20"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="92"
+      y2="108"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="108"
+      y2="92"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <line
+    x1="80"
+    x2="80"
+    y1="100"
+    y2="40"
+  />
+</g>
+`;
+
+exports[`Testing _swap Non-adjacent swap 1`] = `
+<g>
+  <rect
+    class="gate-swap"
+    height="180"
+    width="120"
+    x="60"
+    y="20"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="152"
+      y2="168"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="168"
+      y2="152"
+    />
+  </g>
+  <line
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+</g>
+`;
+
+exports[`Testing _swap Non-adjacent swap 2`] = `
+<g>
+  <rect
+    class="gate-swap"
+    height="180"
+    width="120"
+    x="60"
+    y="20"
+  />
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="152"
+      y2="168"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="168"
+      y2="152"
+    />
+  </g>
+  <g>
+    <line
+      x1="72"
+      x2="88"
+      y1="32"
+      y2="48"
+    />
+    <line
+      x1="72"
+      x2="88"
+      y1="48"
+      y2="32"
+    />
+  </g>
+  <line
+    x1="80"
+    x2="80"
+    y1="160"
+    y2="40"
+  />
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on consecutive registers 1`] = `
+<g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="100"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="70"
+    >
+      ZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on consecutive registers 2`] = `
+<g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="160"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="100"
+    >
+      ZZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on non-consecutive registers 1`] = `
+<g>
+  <line
+    stroke-dasharray="8, 8"
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="160"
+  />
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="40"
+    >
+      ZZ
+    </text>
+  </g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="140"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="160"
+    >
+      ZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on non-consecutive registers 2`] = `
+<g>
+  <line
+    stroke-dasharray="8, 8"
+    x1="80"
+    x2="80"
+    y1="40"
+    y2="220"
+  />
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="40"
+    >
+      ZZZ
+    </text>
+  </g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="100"
+      width="40"
+      x="60"
+      y="140"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="190"
+    >
+      ZZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on non-consecutive registers 3`] = `
+<g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="40"
+    >
+      ZZ
+    </text>
+  </g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="140"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="160"
+    >
+      ZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Multiqubit unitary on non-consecutive registers 4`] = `
+<g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="40"
+    >
+      ZZZ
+    </text>
+  </g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="100"
+      width="40"
+      x="60"
+      y="140"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="190"
+    >
+      ZZZ
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _unitary Single qubit unitary 1`] = `
+<g>
+  <g>
+    <rect
+      class="gate-unitary"
+      height="40"
+      width="40"
+      x="60"
+      y="20"
+    />
+    <text
+      font-size="14"
+      x="80"
+      y="40"
+    >
+      H
+    </text>
+  </g>
+</g>
+`;
+
+exports[`Testing _zoomButton Expanded gate 1`] = `null`;
+
+exports[`Testing _zoomButton Expanded with children gate 1`] = `null`;
+
+exports[`Testing _zoomButton Non-expanded with children gate 1`] = `null`;
+
+exports[`Testing _zoomButton Non-expanded with no children gate 1`] = `null`;
+
+exports[`Testing formatGates Multiple gates 1`] = `
+<g>
+  <g
+    class="gate"
+  >
+    <line
+      x1="80"
+      x2="80"
+      y1="40"
+      y2="100"
+    />
+    <circle
+      class="control-dot"
+      cx="80"
+      cy="100"
+      r="5"
+    />
+    <g
+      class="oplus"
+    >
+      <circle
+        cx="80"
+        cy="40"
+        r="15"
+      />
+      <line
+        x1="80"
+        x2="80"
+        y1="25"
+        y2="55"
+      />
+      <line
+        x1="65"
+        x2="95"
+        y1="40"
+        y2="40"
+      />
+    </g>
+  </g>
+  <g
+    class="gate"
+  >
+    <line
+      x1="80"
+      x2="80"
+      y1="100"
+      y2="160"
+    />
+    <circle
+      class="control-dot"
+      cx="80"
+      cy="100"
+      r="5"
+    />
+    <g>
+      <g>
+        <rect
+          class="gate-unitary"
+          height="40"
+          width="40"
+          x="60"
+          y="140"
+        />
+        <text
+          font-size="14"
+          x="80"
+          y="160"
+        >
+          X
+        </text>
+      </g>
+    </g>
+  </g>
+  <g
+    class="gate"
+  >
+    <g>
+      <g>
+        <rect
+          class="gate-unitary"
+          height="40"
+          width="40"
+          x="60"
+          y="140"
+        />
+        <text
+          font-size="14"
+          x="80"
+          y="160"
+        >
+          X
+        </text>
+      </g>
+    </g>
+  </g>
+  <g
+    class="gate"
+  >
+    <g>
+      <rect
+        class="gate-measure"
+        height="40"
+        width="40"
+        x="60"
+        y="20"
+      />
+      <path
+        class="arc-measure"
+        d="M 95 42 A 15 12 0 0 0 65 42"
+      />
+      <line
+        x1="80"
+        x2="92"
+        y1="48"
+        y2="28"
+      />
+    </g>
+  </g>
+</g>
+`;
+
+exports[`Testing formatGates Single gate 1`] = `
+<g>
+  <g
+    class="gate"
+  >
+    <line
+      x1="80"
+      x2="80"
+      y1="40"
+      y2="100"
+    />
+    <circle
+      class="control-dot"
+      cx="80"
+      cy="40"
+      r="5"
+    />
+    <g
+      class="oplus"
+    >
+      <circle
+        cx="80"
+        cy="100"
+        r="15"
+      />
+      <line
+        x1="80"
+        x2="80"
+        y1="85"
+        y2="115"
+      />
+      <line
+        x1="65"
+        x2="95"
+        y1="100"
+        y2="100"
+      />
+    </g>
+  </g>
+</g>
+`;
