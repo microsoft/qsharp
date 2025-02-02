@@ -119,6 +119,7 @@ pub enum TokenKind {
     PlusPlus,
     /// `->`
     Arrow,
+    At,
 
     // Operators,
     ClosedBinOp(ClosedBinOp),
@@ -133,6 +134,8 @@ pub enum TokenKind {
 
     Identifier,
     HardwareQubit,
+    /// End of file.
+    Eof,
 }
 
 impl Display for TokenKind {
@@ -165,6 +168,7 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
+            TokenKind::At => write!(f, "`@`"),
             TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
             TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
             TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
@@ -173,6 +177,7 @@ impl Display for TokenKind {
             TokenKind::Tilde => write!(f, "`~`"),
             TokenKind::Identifier => write!(f, "identifier"),
             TokenKind::HardwareQubit => write!(f, "hardware bit"),
+            TokenKind::Eof => f.write_str("EOF"),
         }
     }
 }
@@ -562,15 +567,7 @@ impl<'a> Lexer<'a> {
                     Ok(self.closed_bin_op(ClosedBinOp::Amp))
                 }
             }
-            Single::At => {
-                let complete = TokenKind::Annotation;
-                self.expect(raw::TokenKind::Ident, complete)?;
-                self.kleen_star(
-                    &[raw::TokenKind::Single(Single::Dot), raw::TokenKind::Ident],
-                    complete,
-                )?;
-                Ok(complete)
-            }
+            Single::At => Ok(TokenKind::At),
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::ComparisonOp(ComparisonOp::BangEq))

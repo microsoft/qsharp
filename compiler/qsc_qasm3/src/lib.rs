@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 mod angle;
+mod ast;
 mod ast_builder;
 mod compile;
 pub use compile::qasm_to_program;
@@ -11,6 +12,7 @@ mod lex;
 mod oqasm_helpers;
 mod oqasm_types;
 pub mod parse;
+pub mod parser;
 mod runtime;
 mod symbols;
 mod types;

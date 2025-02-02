@@ -49,6 +49,8 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::ComparisonOp(op) => Some(op.to_string()),
         TokenKind::Identifier => Some("foo".to_string()),
         TokenKind::HardwareQubit => Some("$1".to_string()),
+        TokenKind::At => Some("@".to_string()),
+        TokenKind::Eof => Some("EOF".to_string()),
     }
 }
 
