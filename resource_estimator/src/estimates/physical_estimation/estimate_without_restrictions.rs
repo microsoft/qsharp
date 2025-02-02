@@ -107,7 +107,10 @@ impl<
                 ));
             }
 
-            num_cycles = max_allowed_num_cycles_for_code_parameter + 1;
+            num_cycles = std::cmp::max(
+                max_allowed_num_cycles_for_code_parameter + 1,
+                num_cycles + 1,
+            );
         }
     }
 
