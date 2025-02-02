@@ -187,9 +187,7 @@ impl Row {
         end_column: usize,
     ) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
-        let default_renderer = ColumnRenderer {
-            column_width: MIN_COLUMN_WIDTH,
-        };
+        let default_renderer = ColumnRenderer::default();
 
         let mut s = String::new();
         match &self.wire {
@@ -248,7 +246,23 @@ struct ColumnRenderer {
     column_width: usize,
 }
 
+impl Default for ColumnRenderer {
+    fn default() -> Self {
+        Self {
+            column_width: MIN_COLUMN_WIDTH,
+        }
+    }
+}
+
 impl ColumnRenderer {
+    fn new(column_width: usize) -> Self {
+        // Column widths should be odd numbers for the renderer to work well
+        let odd_column_width = column_width | 1;
+        Self {
+            column_width: odd_column_width,
+        }
+    }
+
     /// "── A ──"
     fn fmt_on_qubit_wire(&self, obj: &str) -> String {
         let column_width = self.column_width;
@@ -426,18 +440,17 @@ impl Display for Circuit {
             .map(|column| {
                 (
                     column,
-                    ColumnRenderer {
-                        column_width: rows
-                            .iter()
+                    ColumnRenderer::new(
+                        rows.iter()
                             .filter_map(|row| row.objects.get(&column))
                             .filter_map(|object| match object {
-                                CircuitObject::Object(string) => Some((string.len() + 4) | 1), // Column lengths need to be odd numbers
+                                CircuitObject::Object(string) => Some(string.len() + 4),
                                 _ => None,
                             })
                             .chain(std::iter::once(MIN_COLUMN_WIDTH))
                             .max()
                             .unwrap(),
-                    },
+                    ),
                 )
             })
             .collect::<ColumnWidthsByColumn>();
