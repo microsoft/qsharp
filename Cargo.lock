@@ -1476,11 +1476,11 @@ version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
  "difference",
+ "enum-iterator",
  "expect-test",
  "indoc",
  "miette",
  "num-bigint",
- "oq3_lexer",
  "oq3_parser",
  "oq3_semantics",
  "oq3_source_file",
