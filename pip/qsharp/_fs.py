@@ -56,7 +56,9 @@ def list_directory(dir_path: str) -> List[Dict[str, str]]:
             ),
         }
 
-    return list(map(map_dir, os.listdir(dir_path)))
+    res = list(map(map_dir, os.listdir(dir_path)))
+    print(f"list_directory({dir_path}) -> {res}")
+    return res
 
 
 def resolve(base: str, path: str) -> str:

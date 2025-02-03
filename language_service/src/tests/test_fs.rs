@@ -85,18 +85,36 @@ impl FsNode {
 
     pub fn resolve_path(base: &str, path: &str) -> String {
         let mut parts = base.split('/').collect::<Vec<_>>();
+        parts.extend(path.split('/'));
 
-        for part in path.split('/') {
+        let mut norm = vec![];
+        for part in parts {
+            if part == "." && !norm.is_empty() {
+                continue;
+            }
+
             if part == ".." {
-                match parts.pop() {
+                match norm.pop() {
                     Some(_) => continue,
                     None => panic!("path traversal outside of root"),
                 }
             }
-            parts.push(part);
+
+            norm.push(part);
         }
 
-        parts.join("/")
+        // "."
+        if let Some((&".", rest)) = norm.split_first() {
+            if !rest.is_empty() {
+                norm = rest.to_vec();
+            }
+        }
+
+        if norm.is_empty() {
+            "/".into()
+        } else {
+            norm.join("/")
+        }
     }
 
     pub fn find_manifest_directory(&self, file: &str) -> Option<PathBuf> {

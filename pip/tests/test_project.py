@@ -74,6 +74,40 @@ def test_github_dependency(qsharp) -> None:
     assert result == 12
 
 
+def test_with_files(qsharp) -> None:
+    qsharp.init(project_root="/with_files")
+    result = qsharp.eval("Test.ReturnsFour()")
+    assert result == 4
+
+
+def test_relative_project_root(qsharp) -> None:
+    chdir_memfs("/")
+    qsharp.init(project_root="with_files")
+    result = qsharp.eval("Test.ReturnsFour()")
+    assert result == 4
+
+
+def test_relative_project_root_with_dot(qsharp) -> None:
+    chdir_memfs("/with_files")
+    qsharp.init(project_root=".")
+    result = qsharp.eval("Test.ReturnsFour()")
+    assert result == 4
+
+
+# def test_project_root_parent(qsharp) -> None:
+#     chdir_memfs("/with_files/src")
+#     qsharp.init(project_root="..")
+#     result = qsharp.eval("Test.ReturnsFour()")
+#     assert result == 4
+
+
+# def test_project_root_with_dotdot(qsharp) -> None:
+#     chdir_memfs("/with_files")
+#     qsharp.init(project_root="../with_files")
+#     result = qsharp.eval("Test.ReturnsFour()")
+#     assert result == 4
+
+
 memfs = {
     "": {
         "good": {
@@ -81,6 +115,15 @@ memfs = {
                 "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
             },
             "qsharp.json": "{}",
+        },
+        "with_files": {
+            "src": {
+                "test.qs": "namespace Test { operation ReturnsFour() : Int { 4 } export ReturnsFour; }",
+            },
+            "qsharp.json": """
+                {
+                    "files": ["src/test.qs"]
+                }""",
         },
         "bad_qsharp_json": {"qsharp.json": "BAD_JSON_CONTENTS"},
         "unreadable_qsharp_json": {
@@ -143,40 +186,76 @@ memfs = {
         },
     }
 }
+memfs_cwd_path = "/"
+memfs_cwd = memfs[""]
 
 
 def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
+    if (
+        owner == "test-owner"
+        and repo == "test-repo"
+        and ref == "12345"
+        and path == "/qsharp.json"
+    ):
         return """{ "files" : ["src/test.qs"] }"""
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
+    if (
+        owner == "test-owner"
+        and repo == "test-repo"
+        and ref == "12345"
+        and path == "/src/test.qs"
+    ):
         return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
     raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
 
 
+def chdir_memfs(path):
+    global memfs_cwd_path
+    global memfs_cwd
+    print(f"chdir {path} cwd: {memfs_cwd_path}")
+    memfs_cwd_path = resolve_memfs(memfs_cwd_path, path)
+    memfs_cwd = memfs[""]
+    for part in memfs_cwd_path.split("/"):
+        print(f"part: {part}")
+        if part == "." or part == "":
+            continue
+        if part in memfs_cwd:
+            memfs_cwd = memfs_cwd[part]
+        else:
+            raise Exception(f"Directory not found: {path}")
+    print(f"chdir {path} -> {memfs_cwd_path}")
+
 
 def read_file_memfs(path):
     global memfs
-    item = memfs
+    global memfs_cwd
+    item = memfs_cwd
+    print(f"read_file {path} cwd: {memfs_cwd_path}")
     for part in path.split("/"):
+        if part == "." or part == "":
+            continue
         if part in item:
             if isinstance(item[part], OSError):
                 raise item[part]
             else:
                 item = item[part]
         else:
-            raise Exception("File not found: " + path)
+            raise Exception(f"File not found: {path} cwd: {memfs_cwd_path}")
 
+    print(f"read_file {path} -> {item}")
     return (path, item)
 
 
 def list_directory_memfs(dir_path):
     global memfs
-    item = memfs
+    global memfs_cwd
+    item = memfs_cwd
     for part in dir_path.split("/"):
+        if part == "." or part == "":
+            continue
         if part in item:
             item = item[part]
         else:
-            raise Exception("Directory not found: " + dir_path)
+            raise Exception(f"Directory not found: {dir_path} cwd: {memfs_cwd_path}")
 
     contents = list(
         map(
@@ -189,36 +268,61 @@ def list_directory_memfs(dir_path):
         )
     )
 
+    print(f"list_directory({dir_path}) -> {contents}")
     return contents
 
 
 def exists_memfs(path):
     global memfs
-    parts = path.split("/")
-    item = memfs
-    for part in parts:
+    global memfs_cwd
+    item = memfs_cwd
+    print(f"exists {path} cwd: {memfs_cwd_path} cur: {item}")
+    for part in path.split("/"):
+        print(f"part: {part}")
+        if part == "." or part == "":
+            continue
         if part in item:
             item = item[part]
         else:
+            print(f"exists {path} -> False")
             return False
 
+    print(f"exists {path} -> True")
     return True
 
 
 # The below functions force the use of `/` separators in the unit tests
 # so that they function on Windows consistently with other platforms.
 def join_memfs(path, *paths):
-    return "/".join([path, *paths])
+    if path.endswith("/"):
+        path = path[:-1]
+    res = "/".join([path, *paths])
+    return res
 
 
 def resolve_memfs(base, path):
+    print(f"resolve_memfs({base}, {path})")
+    if base.endswith("/"):
+        base = base[:-1]
+    if path.startswith("/"):
+        print("Returning path")
+        return path
+    absolute = base.startswith("/")
     parts = f"{base}/{path}".split("/")
     new_parts = []
     for part in parts:
         if part == ".":
             continue
-        if part == "..":
+        if part == ".." and len(new_parts) > 0 and new_parts[-1] != "..":
             new_parts.pop()
             continue
         new_parts.append(part)
-    return "/".join(new_parts)
+
+    if len(new_parts) == 0:
+        res = "/" if absolute else "."
+        print(f"Returning {res}")
+        return res
+
+    res = "/".join(new_parts)
+    print(f"Returning {res}")
+    return res
