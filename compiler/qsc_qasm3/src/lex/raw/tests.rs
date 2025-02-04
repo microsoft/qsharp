@@ -168,23 +168,7 @@ fn string() {
                 Token {
                     kind: String {
                         terminated: true,
-                    },
-                    offset: 0,
-                },
-            ]
-        "#]],
-    );
-}
-
-#[test]
-fn string_escape_quote() {
-    check(
-        r#""str\"ing""#,
-        &expect![[r#"
-            [
-                Token {
-                    kind: String {
-                        terminated: true,
+                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -202,11 +186,120 @@ fn string_missing_ending() {
                 Token {
                     kind: String {
                         terminated: false,
+                        invalid_escape: false,
                     },
                     offset: 0,
                 },
             ]
         "#]],
+    );
+}
+
+#[test]
+fn string_escape_quote() {
+    check(
+        r#""\"""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: false,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn string_escape_single_quote() {
+    check(
+        r#""\'""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: false,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn string_escape_newline() {
+    check(
+        r#""\n""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                        invalid_escape: false,
+                    },
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_escape_return() {
+    check(
+        r#""\r""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                        invalid_escape: false,
+                    },
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_escape_tab() {
+    check(
+        r#""\t""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                        invalid_escape: false,
+                    },
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_invalid_escape() {
+    check(
+        r#""\s""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: true,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
     );
 }
 
@@ -533,6 +626,23 @@ fn float() {
 }
 
 #[test]
+fn incomplete_exponent_lexed_as_float() {
+    check(
+        "1.e",
+        &expect![[r#"
+        [
+            Token {
+                kind: Number(
+                    Float,
+                ),
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
 fn leading_zero() {
     check(
         "0123",
@@ -667,6 +777,36 @@ fn leading_point_exp() {
 }
 
 #[test]
+fn incomplete_exp() {
+    check(
+        "0e",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+    check(
+        "1e",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn leading_zero_point() {
     check(
         "0.25",
@@ -724,11 +864,15 @@ fn unknown() {
         &expect![[r#"
             [
                 Token {
-                    kind: Unknown,
+                    kind: Single(
+                        Sharp,
+                    ),
                     offset: 0,
                 },
                 Token {
-                    kind: Unknown,
+                    kind: Single(
+                        Sharp,
+                    ),
                     offset: 1,
                 },
             ]

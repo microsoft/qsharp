@@ -90,7 +90,7 @@ fn default(span: Span) -> Box<Stmt> {
 fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Annotation);
-    token(s, TokenKind::At)?;
+    token(s, TokenKind::Annotation)?;
     // parse name
     // parse value
     recovering_semi(s);

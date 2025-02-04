@@ -43,12 +43,12 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::ClosedBinOp(op) => Some(op.to_string()),
         TokenKind::BinOpEq(super::ClosedBinOp::AmpAmp | super::ClosedBinOp::BarBar)
         | TokenKind::Literal(_)
-        | TokenKind::Annotation => None,
+        | TokenKind::Annotation
+        | TokenKind::Pragma => None,
         TokenKind::BinOpEq(op) => Some(format!("{op}=")),
         TokenKind::ComparisonOp(op) => Some(op.to_string()),
         TokenKind::Identifier => Some("foo".to_string()),
         TokenKind::HardwareQubit => Some("$1".to_string()),
-        TokenKind::At => Some("@".to_string()),
         TokenKind::Eof => Some("EOF".to_string()),
     }
 }
@@ -834,6 +834,129 @@ fn string_missing_ending() {
 }
 
 #[test]
+fn string_escape_quote() {
+    check(r#""\"""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_single_quote() {
+    check(r#""\'""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_newline() {
+    check(r#""\n""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_return() {
+    check(r#""\"""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_tab() {
+    check(r#""\t""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_invalid_escape() {
+    check(
+        r#""foo\abar" a"#,
+        &expect![[r#"
+            [
+                Err(
+                    InvalidEscapeSequence(
+                        Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Identifier,
+                        span: Span {
+                            lo: 11,
+                            hi: 12,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn hardware_qubit() {
     check(
         r"$12",
@@ -860,19 +983,24 @@ fn unknown() {
         &expect![[r#"
             [
                 Err(
-                    Unknown(
-                        '#',
+                    Incomplete(
+                        Ident,
+                        Pragma,
+                        Single(
+                            Sharp,
+                        ),
                         Span {
-                            lo: 0,
-                            hi: 1,
+                            lo: 1,
+                            hi: 2,
                         },
                     ),
                 ),
                 Err(
-                    Unknown(
-                        '#',
+                    IncompleteEof(
+                        Ident,
+                        Pragma,
                         Span {
-                            lo: 1,
+                            lo: 2,
                             hi: 2,
                         },
                     ),
@@ -934,6 +1062,106 @@ fn comment_four_slashes() {
                         span: Span {
                             lo: 12,
                             hi: 13,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn annotation() {
+    check(
+        "@foo.bar 1 2 3;",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Annotation,
+                        span: Span {
+                            lo: 0,
+                            hi: 15,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn pragma() {
+    check(
+        "pragma",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn pragma_ident() {
+    check(
+        "pragma foo",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn sharp_pragma() {
+    check(
+        "#pragma",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 7,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn sharp_pragma_ident() {
+    check(
+        "#pragma foo",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 11,
                         },
                     },
                 ),

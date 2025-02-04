@@ -49,6 +49,10 @@ pub enum Error {
     #[diagnostic(code("Qasm3.Lex.UnterminatedString"))]
     UnterminatedString(#[label] Span),
 
+    #[error("string literal with an invalid escape sequence")]
+    #[diagnostic(code("Qasm3.Lex.InvalidEscapeSequence"))]
+    InvalidEscapeSequence(#[label] Span),
+
     #[error("unrecognized character `{0}`")]
     #[diagnostic(code("Qasm3.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
@@ -64,6 +68,7 @@ impl Error {
                 Self::IncompleteEof(expected, token, span + offset)
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
+            Self::InvalidEscapeSequence(span) => Self::InvalidEscapeSequence(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
         }
     }
@@ -73,6 +78,7 @@ impl Error {
             Error::Incomplete(_, _, _, s)
             | Error::IncompleteEof(_, _, s)
             | Error::UnterminatedString(s)
+            | Error::InvalidEscapeSequence(s)
             | Error::Unknown(_, s) => s,
         }
     }
@@ -82,6 +88,7 @@ impl Error {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
     Annotation,
+    Pragma,
     Keyword(Keyword),
     Type(Type),
 
@@ -118,7 +125,6 @@ pub enum TokenKind {
     PlusPlus,
     /// `->`
     Arrow,
-    At,
 
     // Operators,
     ClosedBinOp(ClosedBinOp),
@@ -141,6 +147,7 @@ impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             TokenKind::Annotation => write!(f, "annotation"),
+            TokenKind::Pragma => write!(f, "pragma"),
             TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
             TokenKind::Type(type_) => write!(f, "keyword `{type_}`"),
             TokenKind::GPhase => write!(f, "gphase"),
@@ -166,7 +173,6 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
-            TokenKind::At => write!(f, "`@`"),
             TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
             TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
             TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
@@ -457,6 +463,23 @@ impl<'a> Lexer<'a> {
         tokens.next().map(|i| i.kind)
     }
 
+    /// Consumes the characters while they satisfy `f`. Returns the last character eaten, if any.
+    fn eat_while(&mut self, mut f: impl FnMut(raw::TokenKind) -> bool) -> Option<raw::TokenKind> {
+        let mut last_eaten: Option<raw::Token> = None;
+        loop {
+            let t = self.tokens.next_if(|t| f(t.kind));
+            if t.is_none() {
+                return last_eaten.map(|t| t.kind);
+            }
+            last_eaten = t;
+        }
+    }
+
+    fn eat_to_end_of_line(&mut self) {
+        self.eat_while(|t| t != raw::TokenKind::Newline);
+        self.next_if_eq(raw::TokenKind::Newline);
+    }
+
     /// Consumes a list of tokens zero or more times.
     fn kleen_star(&mut self, tokens: &[raw::TokenKind], complete: TokenKind) -> Result<(), Error> {
         let mut iter = tokens.iter();
@@ -469,6 +492,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let kind = match token.kind {
             raw::TokenKind::Bitstring { terminated: true } => {
@@ -485,7 +509,13 @@ impl<'a> Lexer<'a> {
             }
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
-                Ok(Some(Self::ident(ident)))
+                let cooked_ident = Self::ident(ident);
+                if matches!(cooked_ident, TokenKind::Keyword(Keyword::Pragma)) {
+                    self.eat_to_end_of_line();
+                    Ok(Some(TokenKind::Pragma))
+                } else {
+                    Ok(Some(cooked_ident))
+                }
             }
             raw::TokenKind::HardwareQubit => Ok(Some(TokenKind::HardwareQubit)),
             raw::TokenKind::LiteralFragment(_) => {
@@ -523,13 +553,44 @@ impl<'a> Lexer<'a> {
                     _ => Ok(Some(number.into())),
                 }
             }
-            raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String { terminated: true } => {
-                Ok(Some(TokenKind::Literal(Literal::String)))
+            raw::TokenKind::Single(Single::Sharp) => {
+                let complete = TokenKind::Pragma;
+                self.expect(raw::TokenKind::Ident, complete)?;
+                let ident = &self.input[(token.offset as usize + 1)..(self.offset() as usize)];
+                if matches!(Self::ident(ident), TokenKind::Keyword(Keyword::Pragma)) {
+                    self.eat_to_end_of_line();
+                    Ok(Some(complete))
+                } else {
+                    let span = Span {
+                        lo: token.offset,
+                        hi: self.offset(),
+                    };
+                    Err(Error::Incomplete(
+                        raw::TokenKind::Ident,
+                        complete,
+                        raw::TokenKind::Ident,
+                        span,
+                    ))
+                }
             }
-            raw::TokenKind::String { terminated: false } => Err(Error::UnterminatedString(Span {
+            raw::TokenKind::Single(single) => self.single(single).map(Some),
+            raw::TokenKind::String {
+                terminated: true,
+                invalid_escape: false,
+            } => Ok(Some(TokenKind::Literal(Literal::String))),
+            raw::TokenKind::String {
+                terminated: false,
+                invalid_escape: _,
+            } => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
                 hi: token.offset,
+            })),
+            raw::TokenKind::String {
+                terminated: true,
+                invalid_escape: true,
+            } => Err(Error::InvalidEscapeSequence(Span {
+                lo: token.offset,
+                hi: self.offset(),
             })),
             raw::TokenKind::Unknown => {
                 let c = self.input[(token.offset as usize)..]
@@ -563,7 +624,13 @@ impl<'a> Lexer<'a> {
                     Ok(self.closed_bin_op(ClosedBinOp::Amp))
                 }
             }
-            Single::At => Ok(TokenKind::At),
+            Single::At => {
+                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
+                let complete = TokenKind::Annotation;
+                self.expect(raw::TokenKind::Ident, complete);
+                self.eat_to_end_of_line();
+                Ok(complete)
+            }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::ComparisonOp(ComparisonOp::BangEq))
@@ -625,6 +692,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::Semi => Ok(TokenKind::Semicolon),
+            Single::Sharp => unreachable!(),
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
             Single::Star => {
                 if self.next_if_eq_single(Single::Star) {
