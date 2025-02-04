@@ -319,9 +319,19 @@ impl<'a> Lexer<'a> {
     }
 
     fn number(&mut self, c: char) -> Result<Number, LexError<Number>> {
-        self.leading_zero(c)
-            .or_else(|_| self.leading_dot(c))
-            .or_else(|_| self.decimal_or_float(c))
+        match self.leading_zero(c) {
+            Ok(number) => return Ok(number),
+            Err(LexError::Incomplete(number)) => return Err(LexError::Incomplete(number)),
+            Err(LexError::None) => (),
+        }
+
+        match self.leading_dot(c) {
+            Ok(number) => return Ok(number),
+            Err(LexError::Incomplete(number)) => return Err(LexError::Incomplete(number)),
+            Err(LexError::None) => (),
+        }
+
+        self.decimal_or_float(c)
     }
 
     /// This rule allows us to differentiate a leading dot from a mid dot.
@@ -395,6 +405,11 @@ impl<'a> Lexer<'a> {
                     self.chars.next();
                     self.mid_dot(c1)
                 }
+                Some('e') => match self.exp() {
+                    Ok(()) => Ok(Number::Float),
+                    Err(LexError::None) => unreachable!(),
+                    Err(_) => Err(LexError::Incomplete(Number::Float)),
+                },
                 None | Some(_) => Ok(Number::Int(Radix::Decimal)),
             },
         }
@@ -446,17 +461,17 @@ impl<'a> Lexer<'a> {
             // Optionally there could be a + or - sign.
             self.chars.next_if(|i| i.1 == '+' || i.1 == '-');
 
-            // If the next character isn't a digit or an
-            // underscore we issue an error without consuming it.
+            // If the next character isn't a digit issue
+            // we issue an error without consuming it.
             let first = self.first().ok_or(LexError::Incomplete(Number::Float))?;
-            if first != '_' && !first.is_ascii_digit() {
-                Err(LexError::Incomplete(Number::Float))
-            } else {
+            if first.is_ascii_digit() {
                 self.chars.next();
                 match self.decimal(first) {
                     Ok(_) => Ok(()),
                     Err(_) => Err(LexError::Incomplete(Number::Float)),
                 }
+            } else {
+                Err(LexError::Incomplete(Number::Float))
             }
         } else {
             Err(LexError::None)

@@ -667,6 +667,26 @@ fn leading_point_exp() {
 }
 
 #[test]
+fn incomplete_exp() {
+    check("0e", &expect![[r#"
+        [
+            Token {
+                kind: Unknown,
+                offset: 0,
+            },
+        ]
+    "#]]);
+    check("1e", &expect![[r#"
+        [
+            Token {
+                kind: Unknown,
+                offset: 0,
+            },
+        ]
+    "#]]);
+}
+
+#[test]
 fn leading_zero_point() {
     check(
         "0.25",
