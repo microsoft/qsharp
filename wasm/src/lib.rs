@@ -558,7 +558,7 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
 
     let mut result: Vec<IDocFile> = vec![];
 
-    for (name, metadata, contents) in docs {
+    for (name, metadata, contents) in docs.files {
         result.push(
             DocFile {
                 filename: name.to_string(),

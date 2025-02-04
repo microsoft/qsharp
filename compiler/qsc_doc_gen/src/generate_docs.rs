@@ -10,7 +10,7 @@ use crate::table_of_contents::table_of_contents;
 use qsc_ast::ast;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
-use qsc_frontend::compile::{self, compile, Dependencies, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, Dependencies, Error, PackageStore, SourceMap};
 use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
@@ -22,6 +22,11 @@ use std::sync::Arc;
 // Name, Metadata, Content
 type Files = Vec<(Rc<str>, Rc<str>, Rc<str>)>;
 type FilesWithMetadata = Vec<(Rc<str>, Rc<Metadata>, Rc<str>)>;
+
+pub struct Documentation {
+    pub files: Files,
+    pub errors: Vec<Error>,
+}
 
 // Namespace -> metadata for items
 type ToC = FxHashMap<Rc<str>, Vec<Rc<Metadata>>>;
@@ -162,6 +167,8 @@ struct Compilation {
     current_package_id: Option<PackageId>,
     /// Aliases for packages.
     dependencies: FxHashMap<PackageId, Arc<str>>,
+    // Compilation errors
+    errors: Vec<Error>,
 }
 
 impl Compilation {
@@ -177,6 +184,7 @@ impl Compilation {
 
         let mut current_package_id: Option<PackageId> = None;
         let mut package_aliases: FxHashMap<PackageId, Arc<str>> = FxHashMap::default();
+        let compilation_errors: Vec<Error>;
 
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
@@ -187,21 +195,19 @@ impl Compilation {
                     actual_capabilities,
                     actual_language_features,
                 );
-                // We ignore errors here (unit.errors vector) and use whatever
-                // documentation we can produce. In future we may consider
-                // displaying the fact of error presence on documentation page.
+                compilation_errors = unit.errors.clone();
 
                 for (package_id, package_alias) in dependencies {
                     if let Some(package_alias) = package_alias {
                         package_aliases.insert(*package_id, package_alias.clone());
                     }
                 }
-
                 current_package_id = Some(package_store.insert(unit));
                 package_store
             } else {
                 let mut package_store = PackageStore::new(compile::core());
                 let std_unit = compile::std(&package_store, actual_capabilities);
+                compilation_errors = std_unit.errors.clone();
                 package_store.insert(std_unit);
                 package_store
             };
@@ -210,6 +216,7 @@ impl Compilation {
             package_store,
             current_package_id,
             dependencies: package_aliases,
+            errors: compilation_errors,
         }
     }
 }
@@ -288,7 +295,7 @@ pub fn generate_docs(
     additional_sources: Option<(PackageStore, &Dependencies, SourceMap)>,
     capabilities: Option<TargetCapabilityFlags>,
     language_features: Option<LanguageFeatures>,
-) -> Files {
+) -> Documentation {
     // Capabilities should default to all capabilities for documentation generation.
     let capabilities = Some(capabilities.unwrap_or(TargetCapabilityFlags::all()));
     let compilation = Compilation::new(additional_sources, capabilities, language_features);
@@ -299,6 +306,7 @@ pub fn generate_docs(
     };
 
     let mut toc: ToC = FxHashMap::default();
+    //let mut compilation_errors: Vec<Error>;
 
     for (package_id, unit) in &compilation.package_store {
         let is_current_package = compilation.current_package_id == Some(package_id);
@@ -367,7 +375,10 @@ pub fn generate_docs(
 
     generate_toc(&mut toc, &mut result);
 
-    result
+    Documentation {
+        files: result,
+        errors: compilation.errors,
+    }
 }
 
 fn generate_doc_for_item<'a>(

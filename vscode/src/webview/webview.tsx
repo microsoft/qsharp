@@ -56,6 +56,7 @@ type DocumentationState = {
   viewType: "documentation";
   fragmentsToRender: IDocFile[];
   projectName: string;
+  errorHtml: string;
 };
 
 type State =
@@ -191,6 +192,7 @@ function onMessage(event: any) {
           viewType: "documentation",
           fragmentsToRender: message.fragmentsToRender,
           projectName: message.projectName,
+          errorHtml: message.errorHtml,
         };
       }
       break;
@@ -269,6 +271,7 @@ function App({ state }: { state: State }) {
         <DocumentationView
           fragmentsToRender={state.fragmentsToRender}
           projectName={state.projectName}
+          errorHtml={state.errorHtml}
         />
       );
     default:

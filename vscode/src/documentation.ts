@@ -45,6 +45,8 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
     fragmentsToRender: documentation,
     projectName,
+    // TODO: Collect error from getDocumentation and pass it here.
+    //errorHtml: " --- ERROROROROROROR!!!! ---",
   };
 
   sendMessageToPanel(

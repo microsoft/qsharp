@@ -6,7 +6,7 @@ use expect_test::expect;
 
 #[test]
 fn generates_standard_item() {
-    let files = generate_docs(None, None, None);
+    let files = generate_docs(None, None, None).files;
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Std.Core/Length.md")
@@ -55,7 +55,7 @@ fn generates_standard_item() {
 
 #[test]
 fn generates_unrestricted_item() {
-    let files = generate_docs(None, None, None);
+    let files = generate_docs(None, None, None).files;
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Std.Diagnostics/CheckZero.md")
@@ -107,7 +107,7 @@ fn generates_unrestricted_item() {
 
 #[test]
 fn redirect_generation() {
-    let files = generate_docs(None, None, None);
+    let files = generate_docs(None, None, None).files;
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Microsoft.Quantum.Core/Length.md")
@@ -139,7 +139,7 @@ fn redirect_generation() {
 
 #[test]
 fn index_file_generation() {
-    let files = generate_docs(None, None, None);
+    let files = generate_docs(None, None, None).files;
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "Std.Core/index.md")
@@ -171,7 +171,7 @@ fn index_file_generation() {
 
 #[test]
 fn top_index_file_generation() {
-    let files = generate_docs(None, None, None);
+    let files = generate_docs(None, None, None).files;
     let (_, metadata, contents) = files
         .iter()
         .find(|(file_name, _, _)| &**file_name == "index.md")

@@ -371,9 +371,20 @@ function DocsPage(props: { fragmentsToRender: ItemDocs[] }) {
 export function DocumentationView(props: {
   fragmentsToRender: IDocFile[];
   projectName: string;
+  errorHtml?: string;
 }) {
-  const docs: ItemDocs[] = [];
+  if (props.errorHtml !== undefined) {
+    return (
+      <div>
+        <p>
+          Documentation could not be generated for the project. See the error(s) below.
+        </p>
+        <div dangerouslySetInnerHTML={{ __html: props.errorHtml }}></div>
+      </div>
+    );
+  }
 
+  const docs: ItemDocs[] = [];
   props.fragmentsToRender.forEach((doc) => {
     if (!doc.metadata) {
       return;
