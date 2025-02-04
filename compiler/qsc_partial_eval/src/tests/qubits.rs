@@ -360,3 +360,23 @@ fn qubit_double_release_triggers_runtime_error() {
         ]],
     );
 }
+
+#[test]
+fn qubit_relabel_in_dynamic_block_triggers_capability_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        operation Main() : Result {
+            use qs = Qubit[2];
+            if M(qs[0]) == One {
+                Relabel(qs, Std.Arrays.Reversed(qs));
+            }
+            MResetZ(qs[1])
+        }
+        "#,
+    });
+
+    assert_error(
+        &error,
+        &expect!["CapabilityError(UseOfDynamicQubit(Span { lo: 59760, hi: 59773 }))"],
+    );
+}
