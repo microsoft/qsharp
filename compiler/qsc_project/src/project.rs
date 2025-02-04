@@ -202,12 +202,32 @@ pub trait FileSystemAsync {
             };
             entry_type == EntryType::Folder && x.entry_name() == "src"
         }) {
-            self.collect_project_sources_inner(&src_dir.path()).await
-        } else {
-            Err(Error::NoSrcDir {
-                path: initial_path.to_string_lossy().to_string(),
-            })
+            let paths = self.collect_project_sources_inner(&src_dir.path()).await?;
+            let mut resolved_paths = vec![];
+            for p in paths {
+                // The paths that come back from `list_directory` contain the project
+                // directory, but are not normalized (i.e. they may contain extra '..' or '.' components)
+
+                // Strip the project directory prefix
+                let relative_to_project = p
+                    .strip_prefix(initial_path)
+                    .expect("path should be under initial path");
+
+                // Normalize
+                resolved_paths.push(
+                    self.resolve_path(initial_path, relative_to_project)
+                        .await
+                        .map_err(|e| Error::FileSystem {
+                            about_path: p.to_string_lossy().to_string(),
+                            error: e.to_string(),
+                        })?,
+                );
+            }
+            return Ok(resolved_paths);
         }
+        Err(Error::NoSrcDir {
+            path: initial_path.to_string_lossy().to_string(),
+        })
     }
 
     async fn collect_project_sources_inner(
