@@ -1748,7 +1748,7 @@ impl Display for Lit {
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
     Array(List<ExprStmt>),
-    Bitstring(BigInt),
+    Bitstring(BigInt, usize),
     Bool(bool),
     Duration { value: f64, unit: TimeUnit },
     Float(f64),
@@ -1770,8 +1770,8 @@ impl Display for LiteralKind {
                 }
                 Ok(())
             }
-            LiteralKind::Bitstring(value) => {
-                write!(f, "Bitstring({})", value.to_str_radix(2))
+            LiteralKind::Bitstring(value, width) => {
+                write!(f, "Bitstring({:0>width$})", value.to_str_radix(2))
             }
             LiteralKind::Bool(b) => write!(f, "Bool({b})"),
             LiteralKind::Duration { value, unit } => {

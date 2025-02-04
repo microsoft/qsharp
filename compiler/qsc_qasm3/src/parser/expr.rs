@@ -186,12 +186,19 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 span: token.span,
             })),
             Literal::Bitstring => {
-                let value = BigInt::from_str_radix(shorten(1, 1, lexeme), 2)
+                let lexeme = shorten(1, 1, lexeme);
+                let width = lexeme
+                    .to_string()
+                    .chars()
+                    .filter(|c| *c == '0' || *c == '1')
+                    .count();
+                // parse it to validate the bitstring
+                let value = BigInt::from_str_radix(lexeme, 2)
                     .map_err(|_| Error::new(ErrorKind::Lit("bitstring", token.span)))?;
 
                 Ok(Some(Lit {
                     span: token.span,
-                    kind: LiteralKind::Bitstring(value),
+                    kind: LiteralKind::Bitstring(value, width),
                 }))
             }
             Literal::Imaginary => {

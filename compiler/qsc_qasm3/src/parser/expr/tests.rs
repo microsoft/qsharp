@@ -509,6 +509,15 @@ fn lit_bitstring() {
 }
 
 #[test]
+fn lit_bitstring_preserves_leading_zeroes() {
+    check(
+        expr,
+        r#""00011000""#,
+        &expect!["Expr [0-10]: Lit: Bitstring(00011000)"],
+    );
+}
+
+#[test]
 fn lit_bitstring_separators() {
     check(
         expr,
