@@ -4695,3 +4695,22 @@ fn field_access_not_ident() {
         "##]],
     );
 }
+
+#[test]
+// ref issue #2153
+fn struct_syntax_single_field() {
+    check(
+        indoc! {"
+            namespace A {
+                struct B { C : Int }
+                function Foo() : Unit {
+                    let b = B(5);
+
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+        "##]],
+    );
+}

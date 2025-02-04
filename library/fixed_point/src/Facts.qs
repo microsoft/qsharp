@@ -1,10 +1,9 @@
-import Std.Arrays.Unzipped;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 import Types.FixedPoint;
 import Std.Diagnostics.Fact;
-import Std.Arrays.IsEmpty, Std.Arrays.Rest;
+import Std.Arrays.IsEmpty, Std.Arrays.Rest, Std.Arrays.Unzipped;
 
 /// # Summary
 /// Asserts that a quantum fixed-point number is
