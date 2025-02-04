@@ -168,6 +168,7 @@ fn string() {
                 Token {
                     kind: String {
                         terminated: true,
+                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -185,6 +186,7 @@ fn string_escape_quote() {
                 Token {
                     kind: String {
                         terminated: true,
+                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -202,6 +204,7 @@ fn string_missing_ending() {
                 Token {
                     kind: String {
                         terminated: false,
+                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -533,6 +536,24 @@ fn float() {
 }
 
 #[test]
+fn incomplete_exponent_lexed_as_float() {
+    check("1.e", &expect![[r#"
+        [
+            Token {
+                kind: Number(
+                    Float,
+                ),
+                offset: 0,
+            },
+            Token {
+                kind: Ident,
+                offset: 2,
+            },
+        ]
+    "#]]);
+}
+
+#[test]
 fn leading_zero() {
     check(
         "0123",
@@ -668,22 +689,28 @@ fn leading_point_exp() {
 
 #[test]
 fn incomplete_exp() {
-    check("0e", &expect![[r#"
+    check(
+        "0e",
+        &expect![[r#"
         [
             Token {
                 kind: Unknown,
                 offset: 0,
             },
         ]
-    "#]]);
-    check("1e", &expect![[r#"
+    "#]],
+    );
+    check(
+        "1e",
+        &expect![[r#"
         [
             Token {
                 kind: Unknown,
                 offset: 0,
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]

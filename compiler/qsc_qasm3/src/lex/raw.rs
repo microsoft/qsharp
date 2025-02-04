@@ -476,7 +476,7 @@ impl<'a> Lexer<'a> {
                     Err(_) => Err(LexError::Incomplete(Number::Float)),
                 }
             } else {
-                Err(LexError::Incomplete(Number::Float))
+                Ok(())
             }
         } else {
             Err(LexError::None)
