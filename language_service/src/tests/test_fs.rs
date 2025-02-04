@@ -103,14 +103,17 @@ impl FsNode {
         let mut curr = Some(self);
         let mut curr_path = String::new();
         let mut last_manifest_dir = None;
-        let mut last_manifest = None;
 
+        // Traverse the path, keeping track of the last directory containing a
+        // manifest file. If we find a directory containing a manifest file and
+        // the next part of the path is "src", that's our manifest directory.
         for part in file.split('/') {
-            curr = curr.and_then(|node| match node {
+            curr = curr.and_then(|curr| match curr {
                 FsNode::Dir(dir) => {
-                    if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
-                        last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
-                        last_manifest = Some(manifest);
+                    if let Some(FsNode::File(_)) = dir.get("qsharp.json") {
+                        if part == "src" {
+                            last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                        }
                     }
                     curr_path = format!("{curr_path}{part}/");
                     dir.get(part)

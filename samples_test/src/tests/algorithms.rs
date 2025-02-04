@@ -237,23 +237,23 @@ pub const QUANTUMHELLOWORLD_EXPECT_DEBUG: Expect = expect![[r#"
 pub const RANDOMBIT_EXPECT: Expect = expect!["Zero"];
 pub const RANDOMBIT_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const SHOR_EXPECT: Expect = expect![[r#"
-    *** Factorizing 143, attempt 1.
-    Estimating period of 139.
+    *** Factorizing 187, attempt 1.
+    Estimating period of 182.
     Estimating frequency with bitsPrecision=17.
-    Estimated frequency=30583
-    Found period=30
-    Found factor=13
-    Found factorization 143 = 13 * 11
-    (13, 11)"#]];
+    Estimated frequency=126158
+    Found period=80
+    Found factor=17
+    Found factorization 187 = 17 * 11
+    (17, 11)"#]];
 pub const SHOR_EXPECT_DEBUG: Expect = expect![[r#"
-    *** Factorizing 143, attempt 1.
-    Estimating period of 139.
+    *** Factorizing 187, attempt 1.
+    Estimating period of 182.
     Estimating frequency with bitsPrecision=17.
-    Estimated frequency=30583
-    Found period=30
-    Found factor=13
-    Found factorization 143 = 13 * 11
-    (13, 11)"#]];
+    Estimated frequency=126158
+    Found period=80
+    Found factor=17
+    Found factorization 187 = 17 * 11
+    (17, 11)"#]];
 pub const SIMPLEISING_EXPECT: Expect =
     expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
 pub const SIMPLEISING_EXPECT_DEBUG: Expect =

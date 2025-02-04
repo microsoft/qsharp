@@ -34,7 +34,7 @@ use qsc::{
     LanguageFeatures, PackageType, SourceMap,
 };
 
-use resource_estimator::{self as re, estimate_expr};
+use resource_estimator::{self as re, estimate_call, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc, str::FromStr};
 
 /// If the classes are not Send, the Python interpreter
@@ -184,12 +184,12 @@ pub(crate) enum OutputSemantics {
     ResourceEstimation,
 }
 
-impl From<OutputSemantics> for qsc_qasm3::OutputSemantics {
+impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
     fn from(output_semantics: OutputSemantics) -> Self {
         match output_semantics {
-            OutputSemantics::Qiskit => qsc_qasm3::OutputSemantics::Qiskit,
-            OutputSemantics::OpenQasm => qsc_qasm3::OutputSemantics::OpenQasm,
-            OutputSemantics::ResourceEstimation => qsc_qasm3::OutputSemantics::ResourceEstimation,
+            OutputSemantics::Qiskit => qsc::qasm3::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc::qasm3::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc::qasm3::OutputSemantics::ResourceEstimation,
         }
     }
 }
@@ -215,12 +215,12 @@ pub enum ProgramType {
     Fragments,
 }
 
-impl From<ProgramType> for qsc_qasm3::ProgramType {
+impl From<ProgramType> for qsc::qasm3::ProgramType {
     fn from(output_semantics: ProgramType) -> Self {
         match output_semantics {
-            ProgramType::File => qsc_qasm3::ProgramType::File,
-            ProgramType::Operation => qsc_qasm3::ProgramType::Operation,
-            ProgramType::Fragments => qsc_qasm3::ProgramType::Fragments,
+            ProgramType::File => qsc::qasm3::ProgramType::File,
+            ProgramType::Operation => qsc::qasm3::ProgramType::Operation,
+            ProgramType::Fragments => qsc::qasm3::ProgramType::Fragments,
         }
     }
 }
@@ -373,13 +373,15 @@ impl Interpreter {
         Circuit(self.interpreter.get_circuit()).into_py_any(py)
     }
 
-    #[pyo3(signature=(entry_expr=None, callback=None, noise=None))]
+    #[pyo3(signature=(entry_expr=None, callback=None, noise=None, callable=None, args=None))]
     fn run(
         &mut self,
         py: Python,
         entry_expr: Option<&str>,
         callback: Option<PyObject>,
         noise: Option<(f64, f64, f64)>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
 
@@ -391,7 +393,20 @@ impl Interpreter {
             },
         };
 
-        match self.interpreter.run(&mut receiver, entry_expr, noise) {
+        let result = match callable {
+            Some(callable) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                self.interpreter
+                    .invoke_with_noise(&mut receiver, callable.0, args, noise)
+            }
+            _ => self.interpreter.run(&mut receiver, entry_expr, noise),
+        };
+
+        match result {
             Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -411,35 +426,7 @@ impl Interpreter {
             .global_tys(&callable.0)
             .ok_or(QSharpError::new_err("callable not found"))?;
 
-        // If the types are not supported, we can't convert the arguments or return value.
-        // Check this before trying to convert the arguments, and return an error if the types are not supported.
-        if let Some(ty) = first_unsupported_interop_ty(&input_ty) {
-            return Err(QSharpError::new_err(format!(
-                "unsupported input type: `{ty}`"
-            )));
-        }
-        if let Some(ty) = first_unsupported_interop_ty(&output_ty) {
-            return Err(QSharpError::new_err(format!(
-                "unsupported output type: `{ty}`"
-            )));
-        }
-
-        // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
-        let args = if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
-            // Special case for unit, where args should be None
-            if args.is_some() {
-                return Err(QSharpError::new_err("expected no arguments"));
-            }
-            Value::unit()
-        } else {
-            let Some(args) = args else {
-                return Err(QSharpError::new_err(format!(
-                    "expected arguments of type `{input_ty}`"
-                )));
-            };
-            // This conversion will produce errors if the types don't match or can't be converted.
-            convert_obj_with_ty(py, &args, &input_ty)?
-        };
+        let args = args_to_values(py, args, &input_ty, &output_ty)?;
 
         match self.interpreter.invoke(&mut receiver, callable.0, args) {
             Ok(value) => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
@@ -447,10 +434,33 @@ impl Interpreter {
         }
     }
 
-    fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
-        match self.interpreter.qirgen(entry_expr) {
-            Ok(qir) => Ok(qir),
-            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+    #[pyo3(signature=(entry_expr=None, callable=None, args=None))]
+    fn qir(
+        &mut self,
+        py: Python,
+        entry_expr: Option<&str>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
+    ) -> PyResult<String> {
+        if let Some(entry_expr) = entry_expr {
+            match self.interpreter.qirgen(entry_expr) {
+                Ok(qir) => Ok(qir),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            }
+        } else {
+            let callable = callable.ok_or_else(|| {
+                QSharpError::new_err("either entry_expr or callable must be specified")
+            })?;
+            let (input_ty, output_ty) = self
+                .interpreter
+                .global_tys(&callable.0)
+                .ok_or(QSharpError::new_err("callable not found"))?;
+
+            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            match self.interpreter.qirgen_from_callable(&callable.0, args) {
+                Ok(qir) => Ok(qir),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            }
         }
     }
 
@@ -463,17 +473,31 @@ impl Interpreter {
     /// an operation of a lambda expression. The operation must take only
     /// qubits or arrays of qubits as parameters.
     ///
+    /// :param callable: A callable to synthesize.
+    ///
+    /// :param args: The arguments to pass to the callable.
+    ///
     /// :raises QSharpError: If there is an error synthesizing the circuit.
-    #[pyo3(signature=(entry_expr=None, operation=None))]
+    #[pyo3(signature=(entry_expr=None, operation=None, callable=None, args=None))]
     fn circuit(
         &mut self,
         py: Python,
         entry_expr: Option<String>,
         operation: Option<String>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
     ) -> PyResult<PyObject> {
-        let entrypoint = match (entry_expr, operation) {
-            (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
-            (None, Some(operation)) => CircuitEntryPoint::Operation(operation),
+        let entrypoint = match (entry_expr, operation, callable) {
+            (Some(entry_expr), None, None) => CircuitEntryPoint::EntryExpr(entry_expr),
+            (None, Some(operation), None) => CircuitEntryPoint::Operation(operation),
+            (None, None, Some(callable)) => {
+                let (input_ty, output_ty) = self
+                    .interpreter
+                    .global_tys(&callable.0)
+                    .ok_or(QSharpError::new_err("callable not found"))?;
+                let args = args_to_values(py, args, &input_ty, &output_ty)?;
+                CircuitEntryPoint::Callable(callable.0, args)
+            }
             _ => {
                 return Err(PyException::new_err(
                     "either entry_expr or operation must be specified",
@@ -487,8 +511,29 @@ impl Interpreter {
         }
     }
 
-    fn estimate(&mut self, _py: Python, entry_expr: &str, job_params: &str) -> PyResult<String> {
-        match estimate_expr(&mut self.interpreter, entry_expr, job_params) {
+    #[pyo3(signature=(job_params, entry_expr=None, callable=None, args=None))]
+    fn estimate(
+        &mut self,
+        py: Python,
+        job_params: &str,
+        entry_expr: Option<&str>,
+        callable: Option<GlobalCallable>,
+        args: Option<PyObject>,
+    ) -> PyResult<String> {
+        let results = if let Some(entry_expr) = entry_expr {
+            estimate_expr(&mut self.interpreter, entry_expr, job_params)
+        } else {
+            let callable = callable.ok_or_else(|| {
+                QSharpError::new_err("either entry_expr or callable must be specified")
+            })?;
+            let (input_ty, output_ty) = self
+                .interpreter
+                .global_tys(&callable.0)
+                .ok_or(QSharpError::new_err("callable not found"))?;
+            let args = args_to_values(py, args, &input_ty, &output_ty)?;
+            estimate_call(&mut self.interpreter, callable.0, args, job_params)
+        };
+        match results {
             Ok(estimate) => Ok(estimate),
             Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
                 Err(QSharpError::new_err(format_errors(
@@ -579,6 +624,43 @@ impl Interpreter {
             }
             _ => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
         }
+    }
+}
+
+fn args_to_values(
+    py: Python,
+    args: Option<PyObject>,
+    input_ty: &Ty,
+    output_ty: &Ty,
+) -> PyResult<Value> {
+    // If the types are not supported, we can't convert the arguments or return value.
+    // Check this before trying to convert the arguments, and return an error if the types are not supported.
+    if let Some(ty) = first_unsupported_interop_ty(input_ty) {
+        return Err(QSharpError::new_err(format!(
+            "unsupported input type: `{ty}`"
+        )));
+    }
+    if let Some(ty) = first_unsupported_interop_ty(output_ty) {
+        return Err(QSharpError::new_err(format!(
+            "unsupported output type: `{ty}`"
+        )));
+    }
+
+    // Conver the Python arguments to Q# values, treating None as an empty tuple aka `Unit`.
+    if matches!(&input_ty, Ty::Tuple(tup) if tup.is_empty()) {
+        // Special case for unit, where args should be None
+        if args.is_some() {
+            return Err(QSharpError::new_err("expected no arguments"));
+        }
+        Ok(Value::unit())
+    } else {
+        let Some(args) = args else {
+            return Err(QSharpError::new_err(format!(
+                "expected arguments of type `{input_ty}`"
+            )));
+        };
+        // This conversion will produce errors if the types don't match or can't be converted.
+        Ok(convert_obj_with_ty(py, &args, input_ty)?)
     }
 }
 

@@ -170,10 +170,12 @@ function Unrenderable(props: { qubits: number; operations: number }) {
         <p>No circuit to display. No qubits have been allocated.</p>
       </div>
     ) : props.operations > MAX_OPERATIONS ? (
+      // Don't show the real number of operations here, as that number is
+      // *already* truncated by the underlying circuit builder.
       <div>
         <p>
-          This circuit has too many gates to display. It has {props.operations}{" "}
-          gates, but the maximum supported is {MAX_OPERATIONS}.
+          This circuit has too many gates to display. The maximum supported
+          number of gates is {MAX_OPERATIONS}.
         </p>
       </div>
     ) : props.qubits > MAX_QUBITS ? (

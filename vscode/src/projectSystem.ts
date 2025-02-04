@@ -24,6 +24,14 @@ async function findManifestDocument(
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
+  // if this document is itself a manifest file, then we've found it
+  if (currentDocumentUri.path.endsWith("qsharp.json")) {
+    return {
+      directory: Utils.dirname(currentDocumentUri),
+      manifest: currentDocumentUri,
+    };
+  }
+
   // Untitled documents don't have a file location, thus can't have a manifest
   if (currentDocumentUri.scheme === "untitled") return null;
 

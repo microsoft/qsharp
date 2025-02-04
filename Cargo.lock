@@ -1208,6 +1208,7 @@ dependencies = [
  "qsc_partial_eval",
  "qsc_passes",
  "qsc_project",
+ "qsc_qasm3",
  "qsc_rca",
  "rustc-hash",
  "thiserror",
@@ -1379,6 +1380,7 @@ dependencies = [
  "qsc_hir",
  "qsc_parse",
  "qsc_passes",
+ "rustc-hash",
  "serde",
  "serde_json",
  "thiserror",
@@ -1484,6 +1486,10 @@ dependencies = [
  "oq3_source_file",
  "oq3_syntax",
  "qsc",
+ "qsc_ast",
+ "qsc_data_structures",
+ "qsc_frontend",
+ "qsc_parse",
  "qsc_qasm3",
  "rustc-hash",
  "thiserror",
@@ -1557,7 +1563,6 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
- "qsc_qasm3",
  "resource_estimator",
  "rustc-hash",
  "serde_json",
@@ -1587,7 +1592,7 @@ dependencies = [
 [[package]]
 name = "quantum-sparse-sim"
 version = "0.7.5"
-source = "git+https://github.com/qir-alliance/qir-runner?rev=562e2c11ad685dd01bfc1ae975e00d4133615995#562e2c11ad685dd01bfc1ae975e00d4133615995"
+source = "git+https://github.com/qir-alliance/qir-runner?rev=c84d511f074cd93f3f800fde9e7a6296045f3aea#c84d511f074cd93f3f800fde9e7a6296045f3aea"
 dependencies = [
  "ndarray",
  "num-bigint",

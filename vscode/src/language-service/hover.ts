@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "../common";
+import { toVsCodeRange } from "../common";
 
 export function createHoverProvider(languageService: ILanguageService) {
   return new QSharpHoverProvider(languageService);
@@ -21,7 +21,7 @@ class QSharpHoverProvider implements vscode.HoverProvider {
       hover &&
       new vscode.Hover(
         new vscode.MarkdownString(hover.contents),
-        toVscodeRange(hover.span),
+        toVsCodeRange(hover.span),
       )
     );
   }
