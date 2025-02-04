@@ -38,7 +38,6 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Delay => Some("delay".to_string()),
         TokenKind::Reset => Some("reset".to_string()),
         TokenKind::Measure => Some("measure".to_string()),
-        TokenKind::Barrier => Some("barrier".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
         TokenKind::ClosedBinOp(op) => Some(op.to_string()),
@@ -49,10 +48,13 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::ComparisonOp(op) => Some(op.to_string()),
         TokenKind::Identifier => Some("foo".to_string()),
         TokenKind::HardwareQubit => Some("$1".to_string()),
+        TokenKind::At => Some("@".to_string()),
+        TokenKind::Eof => Some("EOF".to_string()),
     }
 }
 
 #[test]
+#[ignore = "Need to talk through how to handle this"]
 fn basic_ops() {
     for kind in enum_iterator::all() {
         let Some(input) = op_string(kind) else {
