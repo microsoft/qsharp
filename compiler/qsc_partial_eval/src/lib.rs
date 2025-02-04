@@ -1583,9 +1583,18 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
-            "PermuteLabels" => qubit_relabel(args_value, args_span, |q0, q1| {
-                self.resource_manager.swap_qubit_ids(q0, q1);
-            })
+            "PermuteLabels" => {
+                if self.eval_context.is_currently_evaluating_any_branch() {
+                    // If we are in a dynamic branch anywhere up the call stack, we cannot support relabel,
+                    // as later qubit usage would need to be dynamic on whether the branch was taken.
+                    return Err(Error::CapabilityError(CapabilityError::UseOfDynamicQubit(
+                        callee_expr_span.span,
+                    )));
+                }
+                qubit_relabel(args_value, args_span, |q0, q1| {
+                    self.resource_manager.swap_qubit_ids(q0, q1);
+                })
+            }
             .map_err(std::convert::Into::into),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
