@@ -18,6 +18,7 @@ const buildOptions = {
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger/debug-service-worker.ts"),
     join(thisDir, "src", "webview/webview.tsx"),
+    join(thisDir, "src", "copilot/webview/copilot.tsx"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,
@@ -84,6 +85,14 @@ export function copyKatex(destDir) {
   copyFileSync(
     join(libsDir, `github-markdown-css/github-markdown-dark.css`),
     join(katexDest, "github-markdown-dark.css"),
+  );
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.css"),
+    join(katexDest, "codicon.css"),
+  );
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.ttf"),
+    join(katexDest, "codicon.ttf"),
   );
 
   const fontsDir = join(katexBase, "fonts");

@@ -282,18 +282,34 @@
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "quantum-copilot-container",
+          "title": "Azure Quantum Copilot",
+          "icon": "resources/Q-vector-1024x1024.svg"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
           "id": "quantum-workspaces",
           "name": "Quantum Workspaces"
         }
+      ],
+      "quantum-copilot-container": [
+        {
+          "id": "quantum-copilot",
+          "type": "webview",
+          "name": "Azure Quantum Copilot"
+        }
       ]
     },
     "viewsWelcome": [
       {
         "view": "quantum-workspaces",
-        "contents": "Connect to Azure Quantum\n[Add an existing workspace](command:qsharp-vscode.workspacesAdd)\nNote: For the first workspace added there may be several consent prompts to grant VS Code access.\nFor more information about the QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation)."
+        "contents": "Connect to Azure Quantum\n[Connect to an existing workspace](command:qsharp-vscode.workspacesAdd)\nNote: For the first workspace added there may be several consent prompts to grant VS Code access.\nFor more information about the QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation)."
       }
     ],
     "commands": [
@@ -517,9 +533,11 @@
     "pretest": "npm exec --no playwright install chromium && node ./test/buildTests.mjs",
     "tsc:check:main": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
     "tsc:check:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json",
-    "tsc:check": "npm run tsc:check:main && npm run tsc:check:view",
+    "tsc:check:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json",
+    "tsc:check": "npm run tsc:check:main && npm run tsc:check:view && npm run tsc:check:copilotView",
     "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json --watch --preserveWatchOutput",
-    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput"
+    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput",
+    "tsc:watch:copilotView": "node ../node_modules/typescript/bin/tsc -p ./src/copilot/webview/tsconfig.json --watch --preserveWatchOutput"
   },
   "repository": {
     "type": "git",

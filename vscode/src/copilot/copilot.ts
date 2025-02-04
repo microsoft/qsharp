@@ -1,0 +1,251 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+import { log } from "qsharp-lang";
+import {
+  ChatElement,
+  CopilotUpdate,
+  QuantumChatMessage,
+  ServiceType,
+  Status,
+  ToolCall,
+} from "./shared";
+import { AzureQuantumChatBackend as AzureQuantumChatService } from "./azqChatService.js";
+import { executeTool, ToolState } from "./tools.js";
+
+export class Copilot {
+  private service: IChatService;
+  private messages: ChatElement[] = [];
+  private workspaceState: ToolState = {};
+
+  constructor(
+    private serviceType: ServiceType,
+    private onUpdate: CopilotUpdateHandler,
+  ) {
+    this.service = createService(serviceType);
+  }
+
+  /**
+   * Post a user message and wait for the assistant response.
+   *
+   * This essentially corresponds to submitting a user message through the UI.
+   *
+   * Updates will be posted via the `onUpdate` handler until the assistant
+   * response is received, all the tool calls handled, and the chat is ready
+   * for the next user message.
+   */
+  async postUserMessage(userMessage: string): Promise<void> {
+    // Check the tip of the chat history to see if the last message was from the user.
+    // If it was,
+    //   - we may be in an error state (e.g. service error) or
+    //   - there may be a double submission (should be mitigated by the UI).
+    // Either way, remove the last message.
+    if (
+      this.messages.length > 0 &&
+      this.messages[this.messages.length - 1].role === "user"
+    ) {
+      this.messages.pop();
+    }
+    this.messages.push({ role: "user", content: userMessage });
+
+    await this.completeChat();
+  }
+
+  /**
+   * Reinitialize the chat with a new history, optionally changing the
+   * service backend.
+   *
+   * If the last message was from the user, an assistant response will
+   * be requested as well.
+   *
+   * This is useful for when the user wants to retry sending a message,
+   * start the chat over, or try with a different service backend
+   * (useful for debugging).
+   */
+  async restartChat(history: ChatElement[], service?: ServiceType) {
+    this.serviceType = service ?? this.serviceType;
+    this.service = createService(this.serviceType);
+
+    this.messages = history;
+    this.sendFullUpdate({ status: "ready" });
+
+    if (this.messages.length > 0) {
+      const lastMessage = this.messages[this.messages.length - 1];
+      if (lastMessage.role === "user") {
+        await this.completeChat();
+      }
+    }
+  }
+
+  /**
+   * Does a full "round" of chat completion requests. This may correspond
+   * to multiple API requests.
+   *
+   * What this means is that if the assistant comes back with a
+   * tool call request, we will execute the tool calls and make a request again,
+   * and so on and so forth until the assistant provides a response
+   * that doesn't require any tool calls.
+   *
+   * After a chat is "complete", the last message in the chat history
+   * should be an assistant response.
+   */
+  private async completeChat() {
+    let content, toolCalls;
+
+    this.sendFullUpdate({ status: "waitingAssistantResponse" });
+
+    // "Widget" messages are visible to the client only and not
+    // sent to the service.
+    const messages = this.messages.filter((m) => m.role !== "widget");
+
+    try {
+      ({ content, toolCalls } = await this.service.requestChatCompletion(
+        messages,
+        this.sendDelta.bind(this),
+      ));
+    } catch (e) {
+      // Service request failed
+      log.error("Chat request failed", e);
+      this.sendStatusUpdateOnly({ status: "assistantConnectionError" });
+      return;
+    }
+
+    this.messages.push({
+      role: "assistant",
+      content: cleanContent(content),
+      ToolCalls: toolCalls,
+    });
+
+    if (content) {
+      this.sendFullUpdate({ status: "ready" });
+    }
+
+    if (toolCalls) {
+      await this.executeToolCalls(toolCalls);
+
+      // Tail recursion
+      await this.completeChat();
+    }
+  }
+
+  /**
+   * Execute tool calls using the local tool handlers.
+   */
+  async executeToolCalls(toolCalls: ToolCall[]) {
+    for (const toolCall of toolCalls) {
+      this.sendStatusUpdateOnly({
+        status: "executingTool",
+        toolName: toolCall.name,
+      });
+
+      const toolResult = await executeTool(
+        toolCall.name,
+        toolCall.arguments,
+        this.workspaceState,
+      );
+
+      // If the tool response contains a widget,
+      // add that to the chat history as a special "widget" message.
+      if ("widgetData" in toolResult && toolResult.widgetData) {
+        this.messages.push({
+          role: "widget",
+          widgetData: toolResult.widgetData,
+        });
+
+        // Don't include the widget data in the tool response
+        delete toolResult.widgetData;
+      }
+
+      this.messages.push({
+        role: "tool",
+        content: JSON.stringify(toolResult),
+        toolCallId: toolCall.id,
+      });
+      this.sendFullUpdate({ status: "ready" });
+    }
+  }
+
+  /**
+   * Notify listener (the UI) of a state update. Includes the full state.
+   */
+  private sendFullUpdate(status: Status) {
+    this.onUpdate({
+      kind: "updateChat",
+      payload: {
+        history: this.messages,
+        status,
+        service: this.serviceType!,
+        serviceOptions: serviceTypes,
+      },
+    });
+  }
+
+  /**
+   * Notify listener of a change in the status only.
+   */
+  private sendStatusUpdateOnly(status: Status) {
+    this.onUpdate({
+      kind: "updateStatus",
+      payload: { status },
+    });
+  }
+
+  /**
+   * Notify listener of a message delta.
+   *
+   * Deltas are just chunks of a streaming assistant response.
+   * After deltas have been sent, the UI can expect to receive
+   * an update with the full assistant response.
+   */
+  private sendDelta(delta: string) {
+    this.onUpdate({
+      kind: "appendDelta",
+      payload: {
+        delta: cleanContent(delta),
+        status: { status: "waitingAssistantResponse" },
+      },
+    });
+  }
+}
+
+export type CopilotUpdateHandler = (event: CopilotUpdate) => void;
+
+/**
+ * An abstraction for the various service backend options.
+ */
+export interface IChatService {
+  /**
+   * Post one chat request.
+   */
+  requestChatCompletion(
+    messages: QuantumChatMessage[],
+    onDelta: (delta: string) => void,
+  ): Promise<{
+    content?: string;
+    toolCalls?: ToolCall[];
+  }>;
+}
+
+function cleanContent(content: string | undefined) {
+  // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+  let cleanedResponse = content;
+  if (cleanedResponse) {
+    cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
+    cleanedResponse = cleanedResponse.replace(/(\\\[)|(\\\])/g, "$$");
+  }
+  return cleanedResponse || "";
+}
+
+function createService(serviceType: ServiceType): IChatService {
+  switch (serviceType) {
+    case "AzureQuantumLocal":
+      return new AzureQuantumChatService("local");
+    case "AzureQuantumTest":
+      return new AzureQuantumChatService("test");
+  }
+}
+
+export const serviceTypes: ServiceType[] = [
+  "AzureQuantumLocal",
+  "AzureQuantumTest",
+];

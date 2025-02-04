@@ -131,6 +131,8 @@ export type Job = {
     | "Finishing"
     | "Cancelled";
   outputDataUri?: string;
+  count: number;
+  shots: number;
   creationTime: string;
   beginExecutionTime?: string;
   endExecutionTime?: string;
