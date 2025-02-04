@@ -834,6 +834,34 @@ fn string_missing_ending() {
 }
 
 #[test]
+fn string_invalid_escape() {
+    check(
+        r#""foo\abar" a"#,
+        &expect![[r#"
+            [
+                Err(
+                    InvalidEscapeSequence(
+                        Span {
+                            lo: 0,
+                            hi: 0,
+                        },
+                    ),
+                ),
+                Ok(
+                    Token {
+                        kind: Identifier,
+                        span: Span {
+                            lo: 11,
+                            hi: 12,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn hardware_qubit() {
     check(
         r"$12",

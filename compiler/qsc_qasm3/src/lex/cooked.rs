@@ -49,6 +49,10 @@ pub enum Error {
     #[diagnostic(code("Qasm3.Lex.UnterminatedString"))]
     UnterminatedString(#[label] Span),
 
+    #[error("string literal with an invalid escape sequence")]
+    #[diagnostic(code("Qasm3.Lex.InvalidEscapeSequence"))]
+    InvalidEscapeSequence(#[label] Span),
+
     #[error("unrecognized character `{0}`")]
     #[diagnostic(code("Qasm3.Lex.UnknownChar"))]
     Unknown(char, #[label] Span),
@@ -64,6 +68,7 @@ impl Error {
                 Self::IncompleteEof(expected, token, span + offset)
             }
             Self::UnterminatedString(span) => Self::UnterminatedString(span + offset),
+            Self::InvalidEscapeSequence(span) => Self::InvalidEscapeSequence(span + offset),
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
         }
     }
@@ -73,6 +78,7 @@ impl Error {
             Error::Incomplete(_, _, _, s)
             | Error::IncompleteEof(_, _, s)
             | Error::UnterminatedString(s)
+            | Error::InvalidEscapeSequence(s)
             | Error::Unknown(_, s) => s,
         }
     }
@@ -526,12 +532,23 @@ impl<'a> Lexer<'a> {
                 }
             }
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String { terminated: true } => {
-                Ok(Some(TokenKind::Literal(Literal::String)))
-            }
-            raw::TokenKind::String { terminated: false } => Err(Error::UnterminatedString(Span {
+            raw::TokenKind::String {
+                terminated: true,
+                invalid_escape: false,
+            } => Ok(Some(TokenKind::Literal(Literal::String))),
+            raw::TokenKind::String {
+                terminated: false,
+                invalid_escape: _,
+            } => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
                 hi: token.offset,
+            })),
+            raw::TokenKind::String {
+                terminated: true,
+                invalid_escape: true,
+            } => Err(Error::InvalidEscapeSequence(Span {
+                lo: token.offset,
+                hi: self.offset(),
             })),
             raw::TokenKind::Unknown => {
                 let c = self.input[(token.offset as usize)..]

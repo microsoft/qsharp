@@ -45,7 +45,9 @@ pub struct Token {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
-    Bitstring { terminated: bool },
+    Bitstring {
+        terminated: bool,
+    },
     Comment(CommentKind),
     HardwareQubit,
     Ident,
@@ -53,7 +55,10 @@ pub enum TokenKind {
     Newline,
     Number(Number),
     Single(Single),
-    String { terminated: bool },
+    String {
+        terminated: bool,
+        invalid_escape: bool,
+    },
     Unknown,
     Whitespace,
 }
@@ -492,15 +497,21 @@ impl<'a> Lexer<'a> {
             return Some(bitstring);
         }
 
+        let mut invalid_escape = false;
+
         while self.first().is_some_and(|c| c != string_start) {
             self.eat_while(|c| c != '\\' && c != string_start);
             if self.next_if_eq('\\') {
-                self.chars.next();
+                match self.chars.next() {
+                    None | Some((_, '\\' | '\"' | '\'' | '\n' | '\r' | '\t')) => (),
+                    Some(_) => invalid_escape = true,
+                }
             }
         }
 
         Some(TokenKind::String {
             terminated: self.next_if_eq(string_start),
+            invalid_escape,
         })
     }
 
