@@ -7,8 +7,14 @@
 //! Expression parsing makes use of Pratt parsing (or “top-down operator-precedence parsing”) to handle
 //! relative precedence of operators.
 
+#[cfg(test)]
+pub(crate) mod tests;
+
+use num_bigint::BigInt;
+use num_traits::Num;
+
 use crate::{
-    ast::{BinOp, Expr, Lit, LiteralKind, StmtKind, UnOp, Version},
+    ast::{BinOp, Expr, ExprKind, Lit, LiteralKind, StmtKind, UnOp, Version},
     keyword::Keyword,
     lex::{cooked::Literal, ClosedBinOp, Radix, Token, TokenKind},
     parser::{
@@ -60,12 +66,8 @@ enum Assoc {
 
 const RANGE_PRECEDENCE: u8 = 1;
 
-pub(super) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
-    Err(Error::new(ErrorKind::Rule(
-        "expression",
-        s.peek().kind,
-        s.peek().span,
-    )))
+pub(crate) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
+    expr_base(s)
 }
 
 pub(super) fn expr_eof(s: &mut ParserContext) -> Result<Box<Expr>> {
@@ -92,6 +94,24 @@ pub(super) fn is_stmt_final(kind: &StmtKind) -> bool {
             | StmtKind::Switch(_)
             | StmtKind::WhileLoop(_)
     )
+}
+
+fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
+    let lo = s.peek().span.lo;
+    let kind = if let Some(l) = lit(s)? {
+        Ok(Box::new(ExprKind::Lit(l)))
+    } else {
+        Err(Error::new(ErrorKind::Rule(
+            "expression",
+            s.peek().kind,
+            s.peek().span,
+        )))
+    }?;
+
+    Ok(Box::new(Expr {
+        span: s.span(lo),
+        kind,
+    }))
 }
 
 pub(super) fn lit(s: &mut ParserContext) -> Result<Option<Lit>> {
@@ -136,12 +156,20 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
         TokenKind::Literal(literal) => match literal {
             Literal::Integer(radix) => {
                 let offset = if radix == Radix::Decimal { 0 } else { 2 };
-                let value = lit_int(&lexeme[offset..], radix.into())
-                    .ok_or(Error::new(ErrorKind::Lit("integer", token.span)))?;
-                Ok(Some(Lit {
-                    kind: LiteralKind::Integer(value),
-                    span: token.span,
-                }))
+                let value = lit_int(&lexeme[offset..], radix.into());
+                if let Some(value) = value {
+                    Ok(Some(Lit {
+                        kind: LiteralKind::Int(value),
+                        span: token.span,
+                    }))
+                } else if let Some(value) = lit_bigint(&lexeme[offset..], radix.into()) {
+                    Ok(Some(Lit {
+                        kind: LiteralKind::BigInt(value),
+                        span: token.span,
+                    }))
+                } else {
+                    Err(Error::new(ErrorKind::Lit("integer", token.span)))
+                }
             }
             Literal::Float => {
                 let lexeme = lexeme.replace('_', "");
@@ -153,25 +181,45 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                     span: token.span,
                 }))
             }
+            Literal::String => Ok(Some(Lit {
+                kind: LiteralKind::String(lexeme.into()),
+                span: token.span,
+            })),
+            Literal::Bitstring => {
+                let value = BigInt::from_str_radix(shorten(1, 1, lexeme), 2)
+                    .map_err(|_| Error::new(ErrorKind::Lit("bitstring", token.span)))?;
 
-            Literal::String => {
-                let lit = shorten(1, 1, lexeme);
                 Ok(Some(Lit {
-                    kind: LiteralKind::String(lit.into()),
+                    span: token.span,
+                    kind: LiteralKind::Bitstring(value),
+                }))
+            }
+            Literal::Imaginary => {
+                let lexeme = lexeme
+                    .chars()
+                    .filter(|x| *x != '_')
+                    .take_while(|x| x.is_numeric() || *x == '.')
+                    .collect::<String>();
+
+                let value = lexeme
+                    .parse()
+                    .map_err(|_| Error::new(ErrorKind::Lit("imaginary", token.span)))?;
+                Ok(Some(Lit {
+                    kind: LiteralKind::Imaginary(value),
                     span: token.span,
                 }))
             }
-            Literal::Bitstring => todo!("bitstring literal"),
-            Literal::Boolean => todo!("boolean literal"),
-            Literal::Imaginary => todo!("imaginary literal"),
-            Literal::Timing(_timing_literal_kind) => todo!("timing literal"),
+            Literal::Timing(_timing_literal_kind) => Err(Error::new(ErrorKind::Lit(
+                "unimplemented: timing literal",
+                token.span,
+            ))),
         },
         TokenKind::Keyword(Keyword::True) => Ok(Some(Lit {
-            kind: LiteralKind::Boolean(true),
+            kind: LiteralKind::Bool(true),
             span: token.span,
         })),
         TokenKind::Keyword(Keyword::False) => Ok(Some(Lit {
-            kind: LiteralKind::Boolean(false),
+            kind: LiteralKind::Bool(false),
             span: token.span,
         })),
         _ => Ok(None),
@@ -252,6 +300,15 @@ fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
             Some((new_value, new_place, overflow))
         })
         .map(|(value, _, _)| value)
+}
+
+fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
+    // from_str_radix does removes underscores as long as the lexeme
+    // doesn't start with an underscore.
+    match BigInt::from_str_radix(lexeme, radix) {
+        Ok(value) => Some(value),
+        Err(_) => None,
+    }
 }
 
 fn prefix_op(name: OpName) -> Option<PrefixOp> {

@@ -1,17 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+pub(crate) mod tests;
+
 use qsc_data_structures::span::Span;
 
 use super::{
     completion::WordKinds,
     error::{Error, ErrorKind},
     expr::{self},
-    prim::{barrier, many, opt, recovering, recovering_semi, recovering_token},
+    prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token},
     Result,
 };
 use crate::{
-    ast::{Annotation, Block, IncludeStmt, LiteralKind, PathKind, Pragma, Stmt, StmtKind},
+    ast::{
+        Annotation, Block, ExprStmt, IncludeStmt, LiteralKind, PathKind, Pragma, QubitDeclaration,
+        Stmt, StmtKind,
+    },
     lex::{cooked::Literal, Delim, TokenKind},
 };
 
@@ -37,6 +43,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         }
     } else if let Some(v) = opt(s, parse_include)? {
         Box::new(v)
+    } else if let Some(decl) = opt(s, parse_quantum_decl)? {
+        Box::new(decl)
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -128,5 +136,31 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
         span: s.span(lo),
         name: Box::new(PathKind::default()),
         value: None,
+    })
+}
+
+fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Qubit);
+    token(s, TokenKind::Keyword(crate::keyword::Keyword::Qubit))?;
+    let size = opt(s, designator)?;
+    let name = prim::ident(s)?;
+
+    recovering_semi(s);
+    Ok(StmtKind::QuantumDecl(QubitDeclaration {
+        span: s.span(lo),
+        qubit: *name,
+        size,
+    }))
+}
+
+fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let expr = expr::expr(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(ExprStmt {
+        span: s.span(lo),
+        expr,
     })
 }

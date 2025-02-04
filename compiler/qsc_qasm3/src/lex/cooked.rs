@@ -273,7 +273,6 @@ impl FromStr for Type {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum Literal {
     Bitstring,
-    Boolean,
     Float,
     Imaginary,
     Integer(Radix),
@@ -285,7 +284,6 @@ impl Display for Literal {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Literal::Bitstring => "bitstring",
-            Literal::Boolean => "boolean",
             Literal::Float => "float",
             Literal::Imaginary => "imaginary",
             Literal::Integer(_) => "integer",
@@ -659,7 +657,6 @@ impl<'a> Lexer<'a> {
             "delay" => TokenKind::Delay,
             "reset" => TokenKind::Reset,
             "measure" => TokenKind::Measure,
-            "false" | "true" => TokenKind::Literal(Literal::Boolean),
             ident => {
                 if let Ok(keyword) = ident.parse::<Keyword>() {
                     TokenKind::Keyword(keyword)
