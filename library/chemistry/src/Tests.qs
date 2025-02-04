@@ -21,7 +21,7 @@ import Std.Math.ComplexPolar;
 import Std.Math.Lg;
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation PrepareSparseMultiConfigurationalState0Test() : Unit {
     let nQubits = 6;
     let expectedResult = 39;
@@ -100,7 +100,7 @@ operation OptimizedBEOperatorZeroTestHelper(pauliBasis : Pauli, targetRegisterSi
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation OptimizedBEOperatorZeroTest() : Unit {
     let paulis = [PauliX, PauliY];
     let targetRegisterSize = 7;
@@ -199,7 +199,7 @@ operation OptimizedBEOperatorPlusTestHelper(pauliBasis : Pauli, targetRegisterSi
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation OptimizedBEOperatorPlusTest() : Unit {
 
     let paulis = [PauliX, PauliY];
@@ -216,7 +216,7 @@ operation OptimizedBEOperatorPlusTest() : Unit {
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation SelectZTest() : Unit {
     let targetRegisterSize = 7;
     let indexRegisterSize = Ceiling(Lg(IntAsDouble(targetRegisterSize)));
@@ -255,7 +255,7 @@ function JordanWignerClusterOperatorPQRSTermSignsTestHelper(idx : Int) : (Int[],
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 function JordanWignerClusterOperatorPQRSTermSignsTest() : Unit {
     for idx in 0..7 {
         let (testCase, expectedSigns, expectedGlobalSign) = JordanWignerClusterOperatorPQRSTermSignsTestHelper(idx);
@@ -297,7 +297,7 @@ operation JordanWignerUCCTermTestHelper(nQubits : Int, excitations : Int[], term
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation JordanWignerUCCSTermTest() : Unit {
     // test using Exp(2.0 (a^\dag_1 a_3 - h.c.))
     let term0 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [1, 3] }];
@@ -311,7 +311,7 @@ operation JordanWignerUCCSTermTest() : Unit {
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation JordanWignerUCCDTermPQRSTest() : Unit {
     // test using Exp(2.0 (a^\dag_0 a^\dag_1 a_3 a_4 - h.c.))
     let term0 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [0, 1, 2, 4] }];
@@ -347,7 +347,7 @@ operation JordanWignerUCCDTermPRQSTest() : Unit {
 }
 
 @Config(Unrestricted)
-// @Test()
+@Test()
 operation JordanWignerUCCDTermPRSQTest() : Unit {
     let term3 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [0, 4, 2, 3] }];
     let state3 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
