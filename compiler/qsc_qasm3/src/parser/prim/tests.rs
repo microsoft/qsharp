@@ -188,7 +188,7 @@ fn opt_fail_no_consume() {
 fn opt_fail_consume() {
     check_opt(
         |s| opt(s, path),
-        "Foo.#",
+        "Foo.$",
         &expect![[r#"
             Err IncompletePath [0-5]:
                 Ident [0-3] "Foo"
@@ -197,7 +197,7 @@ fn opt_fail_consume() {
                 Error(
                     Lex(
                         Unknown(
-                            '#',
+                            '$',
                             Span {
                                 lo: 4,
                                 hi: 5,
