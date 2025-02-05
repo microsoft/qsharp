@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Register } from "./register";
+import { Register } from "./register.js";
 
 /**
  * Circuit to be visualized.

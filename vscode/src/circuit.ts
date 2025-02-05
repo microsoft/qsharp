@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
+import type { CircuitData } from "qsharp-lang";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
   ICompilerWorker,

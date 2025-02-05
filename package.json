@@ -3,8 +3,7 @@
   "workspaces": [
     "./npm/qsharp",
     "./playground",
-    "./vscode",
-    "./circuit_vis"
+    "./vscode"
   ],
   "license": "MIT",
   "engines": {

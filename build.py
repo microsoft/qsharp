@@ -117,7 +117,6 @@ wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
 npm_src = os.path.join(root_dir, "npm", "qsharp")
-circuit_vis_src = os.path.join(root_dir, "circuit_vis")
 play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
 widgets_src = os.path.join(root_dir, "widgets")
@@ -397,16 +396,6 @@ if build_wasm:
     subprocess.run(
         wasm_pack_args + node_build_args, check=True, text=True, cwd=wasm_src
     )
-    step_end()
-
-if build_npm:
-    step_start("Building the circuit_vis package")
-
-    npm_args = [npm_cmd, "install"]
-    subprocess.run(npm_args, check=True, text=True, cwd=circuit_vis_src)
-
-    npm_args = [npm_cmd, "run", "build:prod"]
-    subprocess.run(npm_args, check=True, text=True, cwd=circuit_vis_src)
     step_end()
 
 if build_npm:
