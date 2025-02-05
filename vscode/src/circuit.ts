@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import type { CircuitData } from "qsharp-lang";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
+  type CircuitData,
   ICompilerWorker,
   IOperationInfo,
   IQSharpError,

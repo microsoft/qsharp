@@ -1,1 +1,1 @@
-This directory contains shared modules to be referenced from both `src/` and `ux/`.
+This directory contains shared modules to be referenced from both `qsharp/src/` and `qsharp/ux/`.

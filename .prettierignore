@@ -9,8 +9,6 @@ __pycache__/
 .vscode-test-web/
 .venv/
 /allocator/
-/circuit_vis/lib/
-/circuit_vis/dist/
 /compiler/
 /jupyterlab/lib/
 /jupyterlab/qsharp-jupyterlab/labextension/
