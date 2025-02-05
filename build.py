@@ -69,10 +69,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--ci-bench",
-    action=argparse.BooleanOptionalAction,
-    default=False,
-    help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
+        "--ci-bench",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the benchmarking script that is run in CI (default is --no-ci-bench)",
 )
 
 args = parser.parse_args()
@@ -303,45 +303,24 @@ def run_python_integration_tests(cwd, interpreter):
 def run_ci_historic_benchmark():
     branch = "main"
     output = subprocess.check_output(
-        [
-            "git",
-            "rev-list",
-            "--since=1 week ago",
-            "--pretty=format:%ad__%h",
-            "--date=short",
-            branch,
-        ]
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
     ).decode("utf-8")
-    print("\n".join([line for i, line in enumerate(output.split("\n")) if i % 2 == 1]))
+    print('\n'.join([line for i, line in enumerate(output.split('\n')) if i % 2 == 1]))
 
     output = subprocess.check_output(
-        [
-            "git",
-            "rev-list",
-            "--since=1 week ago",
-            "--pretty=format:%ad__%h",
-            "--date=short",
-            branch,
-        ]
+        ["git", "rev-list", "--since=1 week ago", "--pretty=format:%ad__%h", "--date=short", branch]
     ).decode("utf-8")
-    date_and_commits = [line for i, line in enumerate(output.split("\n")) if i % 2 == 1]
+    date_and_commits = [line for i, line in enumerate(output.split('\n')) if i % 2 == 1]
 
     for date_and_commit in date_and_commits:
         print("benching commit", date_and_commit)
         result = subprocess.run(
-            [
-                "cargo",
-                "criterion",
-                "--message-format=json",
-                "--history-id",
-                date_and_commit,
-            ],
+            ["cargo", "criterion", "--message-format=json", "--history-id", date_and_commit],
             capture_output=True,
-            text=True,
+            text=True
         )
         with open(f"{date_and_commit}.json", "w") as f:
             f.write(result.stdout)
-
 
 if build_pip:
     step_start("Building the pip package")
@@ -377,6 +356,23 @@ if build_pip:
 
         step_end()
 
+
+if build_widgets:
+    step_start("Building the Python widgets")
+
+    widgets_build_args = [
+        sys.executable,
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--wheel-dir",
+        wheels_dir,
+        widgets_src,
+    ]
+    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
+
+    step_end()
 
 if build_wasm:
     step_start("Building the wasm crate")
@@ -424,23 +420,6 @@ if build_npm:
         print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
         subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
-    step_end()
-
-if build_widgets:
-    step_start("Building the Python widgets")
-
-    widgets_build_args = [
-        sys.executable,
-        "-m",
-        "pip",
-        "wheel",
-        "--no-deps",
-        "--wheel-dir",
-        wheels_dir,
-        widgets_src,
-    ]
-    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
-
     step_end()
 
 if build_play:
