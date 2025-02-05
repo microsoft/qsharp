@@ -88,6 +88,7 @@ impl Error {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
     Annotation,
+    Pragma,
     Keyword(Keyword),
     Type(Type),
 
@@ -124,7 +125,6 @@ pub enum TokenKind {
     PlusPlus,
     /// `->`
     Arrow,
-    At,
 
     // Operators,
     ClosedBinOp(ClosedBinOp),
@@ -147,6 +147,7 @@ impl Display for TokenKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             TokenKind::Annotation => write!(f, "annotation"),
+            TokenKind::Pragma => write!(f, "pragma"),
             TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
             TokenKind::Type(type_) => write!(f, "keyword `{type_}`"),
             TokenKind::GPhase => write!(f, "gphase"),
@@ -172,7 +173,6 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
-            TokenKind::At => write!(f, "`@`"),
             TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
             TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
             TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
@@ -465,6 +465,23 @@ impl<'a> Lexer<'a> {
         tokens.next().map(|i| i.kind)
     }
 
+    /// Consumes the characters while they satisfy `f`. Returns the last character eaten, if any.
+    fn eat_while(&mut self, mut f: impl FnMut(raw::TokenKind) -> bool) -> Option<raw::TokenKind> {
+        let mut last_eaten: Option<raw::Token> = None;
+        loop {
+            let t = self.tokens.next_if(|t| f(t.kind));
+            if t.is_none() {
+                return last_eaten.map(|t| t.kind);
+            }
+            last_eaten = t;
+        }
+    }
+
+    fn eat_to_end_of_line(&mut self) {
+        self.eat_while(|t| t != raw::TokenKind::Newline);
+        self.next_if_eq(raw::TokenKind::Newline);
+    }
+
     /// Consumes a list of tokens zero or more times.
     fn kleen_star(&mut self, tokens: &[raw::TokenKind], complete: TokenKind) -> Result<(), Error> {
         let mut iter = tokens.iter();
@@ -531,6 +548,26 @@ impl<'a> Lexer<'a> {
                     _ => Ok(Some(number.into())),
                 }
             }
+            raw::TokenKind::Single(Single::Sharp) => {
+                let complete = TokenKind::Pragma;
+                self.expect(raw::TokenKind::Ident, complete)?;
+                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
+                if matches!(Self::ident(ident), TokenKind::Keyword(Keyword::Pragma)) {
+                    self.eat_to_end_of_line();
+                    Ok(Some(complete))
+                } else {
+                    let span = Span {
+                        lo: token.offset,
+                        hi: self.offset(),
+                    };
+                    Err(Error::Incomplete(
+                        raw::TokenKind::Ident,
+                        complete,
+                        raw::TokenKind::Ident,
+                        span,
+                    ))
+                }
+            }
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String {
                 terminated: true,
@@ -582,7 +619,13 @@ impl<'a> Lexer<'a> {
                     Ok(self.closed_bin_op(ClosedBinOp::Amp))
                 }
             }
-            Single::At => Ok(TokenKind::At),
+            Single::At => {
+                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
+                let complete = TokenKind::Annotation;
+                self.expect(raw::TokenKind::Ident, complete);
+                self.eat_to_end_of_line();
+                Ok(complete)
+            }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
                     Ok(TokenKind::ComparisonOp(ComparisonOp::BangEq))
@@ -644,6 +687,7 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::Semi => Ok(TokenKind::Semicolon),
+            Single::Sharp => unreachable!(),
             Single::Slash => Ok(self.closed_bin_op(ClosedBinOp::Slash)),
             Single::Star => {
                 if self.next_if_eq_single(Single::Star) {

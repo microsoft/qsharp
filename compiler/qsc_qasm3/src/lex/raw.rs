@@ -25,10 +25,11 @@ use std::{
 
 /// An enum used internally by the raw lexer to signal whether
 /// a token was partially parsed or if it wasn't parsed at all.
-enum LexError<T> {
-    /// An incomplete token was parsed, e.g., a string missing
-    /// the closing quote or a number ending in an underscore.
-    Incomplete(T),
+enum NumberLexError {
+    /// A number ending in an underscore.
+    EndsInUnderscore,
+    /// An incomplete binary, octal, or hex numer.
+    Incomplete,
     /// The token wasn't parsed and no characters were consumed
     /// when trying to parse the token.
     None,
@@ -120,6 +121,8 @@ pub enum Single {
     Plus,
     /// `;`
     Semi,
+    /// `#` Used for pragmas.
+    Sharp,
     /// `/`
     Slash,
     /// `*`
@@ -152,6 +155,7 @@ impl Display for Single {
             Single::Percent => '%',
             Single::Plus => '+',
             Single::Semi => ';',
+            Single::Sharp => '#',
             Single::Slash => '/',
             Single::Star => '*',
             Single::Tilde => '~',
@@ -323,17 +327,17 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn number(&mut self, c: char) -> Result<Number, LexError<Number>> {
+    fn number(&mut self, c: char) -> Result<Number, NumberLexError> {
         match self.leading_zero(c) {
             Ok(number) => return Ok(number),
-            Err(LexError::Incomplete(number)) => return Err(LexError::Incomplete(number)),
-            Err(LexError::None) => (),
+            Err(NumberLexError::None) => (),
+            Err(err) => return Err(err),
         }
 
         match self.leading_dot(c) {
             Ok(number) => return Ok(number),
-            Err(LexError::Incomplete(number)) => return Err(LexError::Incomplete(number)),
-            Err(LexError::None) => (),
+            Err(NumberLexError::None) => (),
+            Err(err) => return Err(err),
         }
 
         self.decimal_or_float(c)
@@ -342,50 +346,55 @@ impl<'a> Lexer<'a> {
     /// This rule allows us to differentiate a leading dot from a mid dot.
     /// A float starting with a leading dot must contain at least one digit
     /// after the dot.
-    fn leading_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
-        let first = self.first();
-        if c == '.' && first.is_some_and(|c| c == '_' || c.is_ascii_digit()) {
-            self.chars.next();
-            let c1 = first.expect("first.is_some_and() succeeded");
+    fn leading_dot(&mut self, c: char) -> Result<Number, NumberLexError> {
+        if c == '.' && self.first().is_some_and(|c| c.is_ascii_digit()) {
+            let (_, c1) = self.chars.next().expect("first.is_some_and() succeeded");
             self.decimal(c1)?;
             match self.exp() {
-                Ok(()) | Err(LexError::None) => Ok(Number::Float),
-                Err(_) => Err(LexError::Incomplete(Number::Float)),
+                Ok(()) | Err(NumberLexError::None) => Ok(Number::Float),
+                Err(err) => Err(err),
             }
         } else {
-            Err(LexError::None)
+            Err(NumberLexError::None)
         }
     }
 
     /// A float with a middle dot could optionally contain numbers after the dot.
     /// This rule is necessary to differentiate from the floats with a leading dot,
     /// which must have digits after the dot.
-    fn mid_dot(&mut self, c: char) -> Result<Number, LexError<Number>> {
+    fn mid_dot(&mut self, c: char) -> Result<Number, NumberLexError> {
         if c == '.' {
             match self.first() {
-                Some(c1) if c1 == '_' || c1.is_ascii_digit() => {
+                Some(c1) if c1.is_ascii_digit() => {
                     self.chars.next();
                     match self.decimal(c1) {
-                        Err(LexError::Incomplete(_)) => Err(LexError::Incomplete(Number::Float)),
-                        Ok(_) | Err(LexError::None) => match self.exp() {
-                            Ok(()) | Err(LexError::None) => Ok(Number::Float),
-                            Err(_) => Err(LexError::Incomplete(Number::Float)),
+                        Err(NumberLexError::EndsInUnderscore) => {
+                            Err(NumberLexError::EndsInUnderscore)
+                        }
+                        Ok(_) | Err(NumberLexError::None) => match self.exp() {
+                            Ok(()) | Err(NumberLexError::None) => Ok(Number::Float),
+                            Err(_) => Err(NumberLexError::EndsInUnderscore),
                         },
+                        Err(NumberLexError::Incomplete) => unreachable!(),
                     }
                 }
+                Some('e') => match self.exp() {
+                    Ok(()) => Ok(Number::Float),
+                    Err(_) => todo!(),
+                },
                 None | Some(_) => Ok(Number::Float),
             }
         } else {
-            Err(LexError::None)
+            Err(NumberLexError::None)
         }
     }
 
     /// This rule parses binary, octal, hexadecimal numbers, or decimal/floats
     /// if the next character isn't a radix specifier.
     /// Numbers in Qasm aren't allowed to end in an underscore.
-    fn leading_zero(&mut self, c: char) -> Result<Number, LexError<Number>> {
+    fn leading_zero(&mut self, c: char) -> Result<Number, NumberLexError> {
         if c != '0' {
-            return Err(LexError::None);
+            return Err(NumberLexError::None);
         }
 
         let radix = if self.next_if_eq('b') || self.next_if_eq('B') {
@@ -402,7 +411,8 @@ impl<'a> Lexer<'a> {
 
         match radix {
             Radix::Binary | Radix::Octal | Radix::Hexadecimal => match last_eaten {
-                None | Some('_') => Err(LexError::Incomplete(Number::Int(radix))),
+                None => Err(NumberLexError::Incomplete),
+                Some('_') => Err(NumberLexError::EndsInUnderscore),
                 _ => Ok(Number::Int(radix)),
             },
             Radix::Decimal => match self.first() {
@@ -412,8 +422,8 @@ impl<'a> Lexer<'a> {
                 }
                 Some('e') => match self.exp() {
                     Ok(()) => Ok(Number::Float),
-                    Err(LexError::None) => unreachable!(),
-                    Err(_) => Err(LexError::Incomplete(Number::Float)),
+                    Err(NumberLexError::None) => unreachable!(),
+                    Err(_) => Err(NumberLexError::EndsInUnderscore),
                 },
                 None | Some(_) => Ok(Number::Int(Radix::Decimal)),
             },
@@ -424,23 +434,23 @@ impl<'a> Lexer<'a> {
     /// Numbers in QASM aren't allowed to end in an underscore.
     /// The rule in the .g4 file is
     /// `DecimalIntegerLiteral: ([0-9] '_'?)* [0-9];`
-    fn decimal(&mut self, c: char) -> Result<Number, LexError<Number>> {
+    fn decimal(&mut self, c: char) -> Result<Number, NumberLexError> {
         if !c.is_ascii_digit() {
-            return Err(LexError::None);
+            return Err(NumberLexError::None);
         }
 
         let last_eaten = self.eat_while(|c| c == '_' || c.is_ascii_digit());
 
         match last_eaten {
-            None if c == '_' => Err(LexError::None),
-            Some('_') => Err(LexError::Incomplete(Number::Int(Radix::Decimal))),
+            None if c == '_' => Err(NumberLexError::None),
+            Some('_') => Err(NumberLexError::EndsInUnderscore),
             _ => Ok(Number::Int(Radix::Decimal)),
         }
     }
 
     /// This rule disambiguates between a decimal integer and a float with a
     /// mid dot, like `12.3`.
-    fn decimal_or_float(&mut self, c: char) -> Result<Number, LexError<Number>> {
+    fn decimal_or_float(&mut self, c: char) -> Result<Number, NumberLexError> {
         self.decimal(c)?;
         match self.first() {
             None => Ok(Number::Int(Radix::Decimal)),
@@ -450,36 +460,42 @@ impl<'a> Lexer<'a> {
             }
             _ => match self.exp() {
                 Ok(()) => Ok(Number::Float),
-                Err(LexError::None) => Ok(Number::Int(Radix::Decimal)),
-                Err(_) => Err(LexError::Incomplete(Number::Float)),
+                Err(NumberLexError::None) => Ok(Number::Int(Radix::Decimal)),
+                Err(NumberLexError::EndsInUnderscore) => Err(NumberLexError::EndsInUnderscore),
+                Err(NumberLexError::Incomplete) => unreachable!(),
             },
         }
     }
 
-    /// Parses an exponent. Errors if the exponent was missing or incomplete.
+    /// Parses an exponent. Errors if the exponent is an invalid decimal.
     /// The rule `decimal_or_float` uses the `LexError::None` variant of the error
     /// to classify the token as an integer.
     /// The `leading_dot` and `mid_dot` rules use the `LexError::None` variant to
     /// classify the token as a float.
-    fn exp(&mut self) -> Result<(), LexError<Number>> {
+    fn exp(&mut self) -> Result<(), NumberLexError> {
         if self.next_if(|c| c == 'e' || c == 'E') {
             // Optionally there could be a + or - sign.
             self.chars.next_if(|i| i.1 == '+' || i.1 == '-');
 
-            // If the next character isn't a digit issue
+            // If we reached the end of file, we return a valid float.
+            let Some(first) = self.first() else {
+                return Ok(());
+            };
+
+            // If the next character isn't a digit
             // we issue an error without consuming it.
-            let first = self.first().ok_or(LexError::Incomplete(Number::Float))?;
             if first.is_ascii_digit() {
                 self.chars.next();
                 match self.decimal(first) {
                     Ok(_) => Ok(()),
-                    Err(_) => Err(LexError::Incomplete(Number::Float)),
+                    Err(NumberLexError::EndsInUnderscore) => Err(NumberLexError::EndsInUnderscore),
+                    Err(NumberLexError::None | NumberLexError::Incomplete) => unreachable!(),
                 }
             } else {
                 Ok(())
             }
         } else {
-            Err(LexError::None)
+            Err(NumberLexError::None)
         }
     }
 
@@ -569,8 +585,10 @@ impl Iterator for Lexer<'_> {
         } else {
             match self.number(c) {
                 Ok(number) => TokenKind::Number(number),
-                Err(LexError::Incomplete(_)) => TokenKind::Unknown,
-                Err(LexError::None) => self
+                Err(NumberLexError::EndsInUnderscore | NumberLexError::Incomplete) => {
+                    TokenKind::Unknown
+                }
+                Err(NumberLexError::None) => self
                     .string(c)
                     .or_else(|| single(c).map(TokenKind::Single))
                     .unwrap_or(TokenKind::Unknown),
@@ -610,6 +628,7 @@ fn single(c: char) -> Option<Single> {
         '>' => Some(Single::Gt),
         '|' => Some(Single::Bar),
         '~' => Some(Single::Tilde),
+        '#' => Some(Single::Sharp),
         _ => None,
     }
 }

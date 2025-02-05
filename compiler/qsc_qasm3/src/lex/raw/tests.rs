@@ -537,7 +537,9 @@ fn float() {
 
 #[test]
 fn incomplete_exponent_lexed_as_float() {
-    check("1.e", &expect![[r#"
+    check(
+        "1.e",
+        &expect![[r#"
         [
             Token {
                 kind: Number(
@@ -545,12 +547,9 @@ fn incomplete_exponent_lexed_as_float() {
                 ),
                 offset: 0,
             },
-            Token {
-                kind: Ident,
-                offset: 2,
-            },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -692,24 +691,28 @@ fn incomplete_exp() {
     check(
         "0e",
         &expect![[r#"
-        [
-            Token {
-                kind: Unknown,
-                offset: 0,
-            },
-        ]
-    "#]],
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
     );
     check(
         "1e",
         &expect![[r#"
-        [
-            Token {
-                kind: Unknown,
-                offset: 0,
-            },
-        ]
-    "#]],
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
     );
 }
 
