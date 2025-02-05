@@ -168,7 +168,6 @@ fn string() {
                 Token {
                     kind: String {
                         terminated: true,
-                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -186,7 +185,6 @@ fn string_missing_ending() {
                 Token {
                     kind: String {
                         terminated: false,
-                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -200,16 +198,15 @@ fn string_escape_quote() {
     check(
         r#""\"""#,
         &expect![[r#"
-        [
-            Token {
-                kind: String {
-                    terminated: true,
-                    invalid_escape: false,
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                    },
+                    offset: 0,
                 },
-                offset: 0,
-            },
-        ]
-    "#]],
+            ]
+        "#]],
     );
 }
 
@@ -218,16 +215,15 @@ fn string_escape_single_quote() {
     check(
         r#""\'""#,
         &expect![[r#"
-        [
-            Token {
-                kind: String {
-                    terminated: true,
-                    invalid_escape: false,
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                    },
+                    offset: 0,
                 },
-                offset: 0,
-            },
-        ]
-    "#]],
+            ]
+        "#]],
     );
 }
 
@@ -240,7 +236,6 @@ fn string_escape_newline() {
                 Token {
                     kind: String {
                         terminated: true,
-                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -258,7 +253,6 @@ fn string_escape_return() {
                 Token {
                     kind: String {
                         terminated: true,
-                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -276,7 +270,6 @@ fn string_escape_tab() {
                 Token {
                     kind: String {
                         terminated: true,
-                        invalid_escape: false,
                     },
                     offset: 0,
                 },
@@ -290,16 +283,15 @@ fn string_invalid_escape() {
     check(
         r#""\s""#,
         &expect![[r#"
-        [
-            Token {
-                kind: String {
-                    terminated: true,
-                    invalid_escape: true,
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                    },
+                    offset: 0,
                 },
-                offset: 0,
-            },
-        ]
-    "#]],
+            ]
+        "#]],
     );
 }
 

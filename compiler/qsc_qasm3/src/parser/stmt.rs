@@ -9,14 +9,14 @@ use qsc_data_structures::span::Span;
 use super::{
     completion::WordKinds,
     error::{Error, ErrorKind},
-    expr::{self},
+    expr::{self, designator},
     prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token},
     Result,
 };
 use crate::{
     ast::{
-        Annotation, Block, ExprStmt, IncludeStmt, LiteralKind, PathKind, Pragma, QubitDeclaration,
-        Stmt, StmtKind,
+        Annotation, Block, IncludeStmt, LiteralKind, PathKind, Pragma, QubitDeclaration, Stmt,
+        StmtKind,
     },
     lex::{cooked::Literal, Delim, TokenKind},
 };
@@ -152,15 +152,4 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
         qubit: *name,
         size,
     }))
-}
-
-fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
-    let lo = s.peek().span.lo;
-    token(s, TokenKind::Open(Delim::Bracket))?;
-    let expr = expr::expr(s)?;
-    token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(ExprStmt {
-        span: s.span(lo),
-        expr,
-    })
 }

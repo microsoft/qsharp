@@ -19,15 +19,15 @@ fn quantum_decl() {
 fn quantum_decl_missing_name() {
     check(
         parse,
-        "qubit",
+        "qubit;",
         &expect![[r#"
             Error(
                 Rule(
                     "identifier",
                     Semicolon,
                     Span {
-                        lo: 6,
-                        hi: 7,
+                        lo: 5,
+                        hi: 6,
                     },
                 ),
             )
@@ -42,7 +42,7 @@ fn quantum_decl_with_designator() {
         "qubit[5] qubits;",
         &expect![[r#"
             Stmt [0-16]
-            StmtKind: QubitDeclaration [0-16]: Ident [9-15] "qubits", ExprStmt [5-8]: Expr [6-7]: Literal Lit [6-7]: Integer: 5"#]],
+            StmtKind: QubitDeclaration [0-16]: Ident [9-15] "qubits", ExprStmt [5-8]: Expr [6-7]: Lit: Int(5)"#]],
     );
 }
 
@@ -57,8 +57,8 @@ fn quantum_decl_with_designator_missing_name() {
                     "identifier",
                     Eof,
                     Span {
-                        lo: 9,
-                        hi: 9,
+                        lo: 8,
+                        hi: 8,
                     },
                 ),
             )

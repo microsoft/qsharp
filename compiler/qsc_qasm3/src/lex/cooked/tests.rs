@@ -835,7 +835,9 @@ fn string_missing_ending() {
 
 #[test]
 fn string_escape_quote() {
-    check(r#""\"""#, &expect![[r#"
+    check(
+        r#""\"""#,
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -849,12 +851,15 @@ fn string_escape_quote() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn string_escape_single_quote() {
-    check(r#""\'""#, &expect![[r#"
+    check(
+        r#""\'""#,
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -868,12 +873,15 @@ fn string_escape_single_quote() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn string_escape_newline() {
-    check(r#""\n""#, &expect![[r#"
+    check(
+        r#""\n""#,
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -887,12 +895,15 @@ fn string_escape_newline() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn string_escape_return() {
-    check(r#""\"""#, &expect![[r#"
+    check(
+        r#""\"""#,
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -906,12 +917,15 @@ fn string_escape_return() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn string_escape_tab() {
-    check(r#""\t""#, &expect![[r#"
+    check(
+        r#""\t""#,
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -925,7 +939,8 @@ fn string_escape_tab() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -934,13 +949,16 @@ fn string_invalid_escape() {
         r#""foo\abar" a"#,
         &expect![[r#"
             [
-                Err(
-                    InvalidEscapeSequence(
-                        Span {
+                Ok(
+                    Token {
+                        kind: Literal(
+                            String,
+                        ),
+                        span: Span {
                             lo: 0,
                             hi: 10,
                         },
-                    ),
+                    },
                 ),
                 Ok(
                     Token {

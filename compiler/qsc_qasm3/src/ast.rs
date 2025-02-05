@@ -1766,22 +1766,22 @@ impl Display for LiteralKind {
                 write!(indent, "Array:")?;
                 indent = set_indentation(indent, 1);
                 for expr in exprs {
-                    write!(indent, "\n{expr}")?;
+                    write!(indent, "\n{expr:?}")?;
                 }
                 Ok(())
             }
             LiteralKind::Bitstring(value, width) => {
-                write!(f, "Bitstring({:0>width$})", value.to_str_radix(2))
+                write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
-            LiteralKind::Bool(b) => write!(f, "Bool({b})"),
+            LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Duration { value, unit } => {
-                write!(f, "Duration({value}, {unit})")
+                write!(f, "Duration({value:?}, {unit:?})")
             }
-            LiteralKind::Float(value) => write!(f, "Float({value})"),
-            LiteralKind::Imaginary(value) => write!(f, "Imaginary({value})"),
-            LiteralKind::Int(i) => write!(f, "Int({i})"),
-            LiteralKind::BigInt(i) => write!(f, "BigInt({i})"),
-            LiteralKind::String(s) => write!(f, "String({s})"),
+            LiteralKind::Float(value) => write!(f, "Float({value:?})"),
+            LiteralKind::Imaginary(value) => write!(f, "Imaginary({value:?})"),
+            LiteralKind::Int(i) => write!(f, "Int({i:?})"),
+            LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
+            LiteralKind::String(s) => write!(f, "String({s:?})"),
         }
     }
 }

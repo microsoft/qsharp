@@ -12,11 +12,12 @@ pub(crate) mod tests;
 
 use num_bigint::BigInt;
 use num_traits::Num;
+use qsc_data_structures::span::Span;
 
 use crate::{
-    ast::{BinOp, Expr, ExprKind, Lit, LiteralKind, StmtKind, UnOp, Version},
+    ast::{BinOp, Expr, ExprKind, ExprStmt, Lit, LiteralKind, UnOp, Version},
     keyword::Keyword,
-    lex::{cooked::Literal, ClosedBinOp, Radix, Token, TokenKind},
+    lex::{cooked::Literal, ClosedBinOp, Delim, Radix, Token, TokenKind},
     parser::{
         completion::WordKinds,
         prim::{shorten, token},
@@ -66,34 +67,17 @@ enum Assoc {
 
 const RANGE_PRECEDENCE: u8 = 1;
 
-pub(crate) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
-    expr_base(s)
+pub(super) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
+    expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_eof(s: &mut ParserContext) -> Result<Box<Expr>> {
-    let expr = expr(s)?;
-    token(s, TokenKind::Eof)?;
-    Ok(expr)
+pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Box<Expr>> {
+    expr_op(s, OpContext::Stmt)
 }
 
-/// Returns true if the expression kind is statement-final. When a statement-final expression occurs
-/// at the top level of an expression statement, it indicates the end of the statement, and any
-/// operators following it will not be parsed as part of the expression. Statement-final expressions
-/// in a top level position also do not require a semicolon when they are followed by another
-/// statement.
-pub(super) fn is_stmt_final(kind: &StmtKind) -> bool {
-    matches!(
-        kind,
-        StmtKind::Block(_)
-            | StmtKind::Box(_)
-            | StmtKind::Cal(_)
-            | StmtKind::DefCal(_)
-            | StmtKind::Def(_)
-            | StmtKind::If(_)
-            | StmtKind::For(_)
-            | StmtKind::Switch(_)
-            | StmtKind::WhileLoop(_)
-    )
+fn expr_op(s: &mut ParserContext, _context: OpContext) -> Result<Box<Expr>> {
+    let lhs = expr_base(s)?;
+    Ok(lhs)
 }
 
 fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
@@ -181,10 +165,23 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                     span: token.span,
                 }))
             }
-            Literal::String => Ok(Some(Lit {
-                kind: LiteralKind::String(lexeme.into()),
-                span: token.span,
-            })),
+            Literal::String => {
+                let lexeme = shorten(1, 1, lexeme);
+                let string = unescape(lexeme).map_err(|index| {
+                    let ch = lexeme[index + 1..]
+                        .chars()
+                        .next()
+                        .expect("character should be found at index");
+                    let index: u32 = index.try_into().expect("index should fit into u32");
+                    let lo = token.span.lo + index + 2;
+                    let span = Span { lo, hi: lo + 1 };
+                    Error::new(ErrorKind::Escape(ch, span))
+                })?;
+                Ok(Some(Lit {
+                    kind: LiteralKind::String(string.into()),
+                    span: token.span,
+                }))
+            }
             Literal::Bitstring => {
                 let lexeme = shorten(1, 1, lexeme);
                 let width = lexeme
@@ -353,4 +350,38 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
         ClosedBinOp::Slash => BinOp::Div,
         ClosedBinOp::Star => BinOp::Mul,
     }
+}
+
+fn unescape(s: &str) -> std::result::Result<String, usize> {
+    let mut chars = s.char_indices();
+    let mut buf = String::with_capacity(s.len());
+    while let Some((index, ch)) = chars.next() {
+        buf.push(if ch == '\\' {
+            let escape = chars.next().expect("escape should not be empty").1;
+            match escape {
+                '\\' => '\\',
+                '\'' => '\'',
+                '"' => '"',
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                _ => return Err(index),
+            }
+        } else {
+            ch
+        });
+    }
+
+    Ok(buf)
+}
+
+pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let expr = expr(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(ExprStmt {
+        span: s.span(lo),
+        expr,
+    })
 }

@@ -95,6 +95,7 @@ fn lit_int_too_big_binary_promotes_to_bigint() {
 // of i64::MIN. This will wrap to a negative value, and then negate of i64::MIN is i64::MIN, so
 // the correct value is achieved at runtime.
 #[test]
+#[ignore = "Re-enable when we support unary ops"]
 fn lit_int_min() {
     check(
         expr,
@@ -186,7 +187,7 @@ fn lit_float_leading_dot() {
 
 #[test]
 fn lit_float_trailing_dot() {
-    check(expr, "1.", &expect!["Expr [0-2]: Lit: Float(1)"]);
+    check(expr, "1.", &expect!["Expr [0-2]: Lit: Float(1.0)"]);
 }
 
 #[test]
@@ -299,6 +300,7 @@ fn lit_float_trailing_exp_dot() {
 }
 
 #[test]
+#[ignore = "Re-enable when we support more than literals"]
 fn lit_int_hexadecimal_dot() {
     check(
         expr,
@@ -339,7 +341,7 @@ fn lit_string_single_quote() {
     check(
         expr,
         r#"'foo'"#,
-        &expect![[r#"Expr [0-5]: Lit: String('foo')"#]],
+        &expect![[r#"Expr [0-5]: Lit: String("foo")"#]],
     );
 }
 
@@ -357,7 +359,7 @@ fn lit_string_single_quote_escape_double_quote() {
     check(
         expr,
         r#"'foo\"bar'"#,
-        &expect![[r#"Expr [0-10]: Lit: String('foo\"bar')"#]],
+        &expect![[r#"Expr [0-10]: Lit: String("foo\"bar")"#]],
     );
 }
 
@@ -375,7 +377,7 @@ fn lit_string_single_quote_escape_backslash() {
     check(
         expr,
         r#"'\\'"#,
-        &expect![[r#"Expr [0-4]: Lit: String('\\')"#]],
+        &expect![[r#"Expr [0-4]: Lit: String("\\")"#]],
     );
 }
 
@@ -393,7 +395,7 @@ fn lit_string_single_quote_escape_newline() {
     check(
         expr,
         r#"'\n'"#,
-        &expect![[r#"Expr [0-4]: Lit: String('\n')"#]],
+        &expect![[r#"Expr [0-4]: Lit: String("\n")"#]],
     );
 }
 
@@ -411,7 +413,7 @@ fn lit_string_single_quote_escape_carriage_return() {
     check(
         expr,
         r#"'\r'"#,
-        &expect![[r#"Expr [0-4]: Lit: String('\r')"#]],
+        &expect![[r#"Expr [0-4]: Lit: String("\r")"#]],
     );
 }
 
@@ -429,7 +431,7 @@ fn lit_string_single_quote_escape_tab() {
     check(
         expr,
         r#"'\t'"#,
-        &expect![[r#"Expr [0-4]: Lit: String('\t')"#]],
+        &expect![[r#"Expr [0-4]: Lit: String("\t")"#]],
     );
 }
 
@@ -504,7 +506,7 @@ fn lit_bitstring() {
     check(
         expr,
         r#""101010101""#,
-        &expect!["Expr [0-11]: Lit: Bitstring(101010101)"],
+        &expect![[r#"Expr [0-11]: Lit: Bitstring("101010101")"#]],
     );
 }
 
@@ -513,7 +515,7 @@ fn lit_bitstring_preserves_leading_zeroes() {
     check(
         expr,
         r#""00011000""#,
-        &expect!["Expr [0-10]: Lit: Bitstring(00011000)"],
+        &expect![[r#"Expr [0-10]: Lit: Bitstring("00011000")"#]],
     );
 }
 
@@ -522,7 +524,7 @@ fn lit_bitstring_separators() {
     check(
         expr,
         r#""10_10_10_101""#,
-        &expect!["Expr [0-14]: Lit: Bitstring(101010101)"],
+        &expect![[r#"Expr [0-14]: Lit: Bitstring("101010101")"#]],
     );
 }
 
@@ -586,7 +588,7 @@ fn lit_int_imag_with_spacing() {
     check(
         expr,
         r#"10  im"#,
-        &expect!["Expr [0-6]: Lit: Imaginary(10)"],
+        &expect!["Expr [0-6]: Lit: Imaginary(10.0)"],
     );
 }
 
@@ -597,7 +599,7 @@ fn lit_float_imag_leading_dot() {
 
 #[test]
 fn lit_float_imag_trailing_dot() {
-    check(expr, "1.im", &expect!["Expr [0-4]: Lit: Imaginary(1)"]);
+    check(expr, "1.im", &expect!["Expr [0-4]: Lit: Imaginary(1.0)"]);
 }
 
 #[test]

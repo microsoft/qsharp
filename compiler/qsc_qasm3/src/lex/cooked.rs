@@ -574,23 +574,12 @@ impl<'a> Lexer<'a> {
                 }
             }
             raw::TokenKind::Single(single) => self.single(single).map(Some),
-            raw::TokenKind::String {
-                terminated: true,
-                invalid_escape: false,
-            } => Ok(Some(TokenKind::Literal(Literal::String))),
-            raw::TokenKind::String {
-                terminated: false,
-                invalid_escape: _,
-            } => Err(Error::UnterminatedString(Span {
+            raw::TokenKind::String { terminated: true } => {
+                Ok(Some(TokenKind::Literal(Literal::String)))
+            }
+            raw::TokenKind::String { terminated: false } => Err(Error::UnterminatedString(Span {
                 lo: token.offset,
                 hi: token.offset,
-            })),
-            raw::TokenKind::String {
-                terminated: true,
-                invalid_escape: true,
-            } => Err(Error::InvalidEscapeSequence(Span {
-                lo: token.offset,
-                hi: self.offset(),
             })),
             raw::TokenKind::Unknown => {
                 let c = self.input[(token.offset as usize)..]
