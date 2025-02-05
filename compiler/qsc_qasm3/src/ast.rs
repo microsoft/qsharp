@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use indenter::{indented, Indented};
+use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
     fmt::{self, Display, Formatter, Write},
@@ -1037,7 +1038,7 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Identifier,
+    pub qubit: Ident,
     pub size: Option<ExprStmt>,
 }
 
@@ -1571,7 +1572,7 @@ pub enum ExprKind {
     Ident(Ident),
     UnaryExpr(UnaryExpr),
     BinaryExpr(BinaryExpr),
-    Literal(Lit),
+    Lit(Lit),
     FunctionCall(FunctionCall),
     Cast(Cast),
     Concatenation(Concatenation),
@@ -1583,14 +1584,14 @@ impl Display for ExprKind {
         let indent = set_indentation(indented(f), 0);
         match self {
             ExprKind::Err => write!(f, "Err"),
-            ExprKind::Ident(id) => write!(f, "Ident {id}"),
-            ExprKind::UnaryExpr(expr) => write!(f, "UnaryExpr {expr}"),
+            ExprKind::Ident(id) => write!(f, "{id}"),
+            ExprKind::UnaryExpr(expr) => write!(f, "{expr}"),
             ExprKind::BinaryExpr(expr) => display_bin_op(indent, expr),
-            ExprKind::Literal(lit) => write!(f, "Literal {lit}"),
-            ExprKind::FunctionCall(call) => write!(f, "FunctionCall {call}"),
-            ExprKind::Cast(cast) => write!(f, "Cast {cast}"),
-            ExprKind::Concatenation(concat) => write!(f, "Concatenation {concat}"),
-            ExprKind::IndexExpr(index) => write!(f, "IndexExpr {index}"),
+            ExprKind::Lit(lit) => write!(f, "{lit}"),
+            ExprKind::FunctionCall(call) => write!(f, "{call}"),
+            ExprKind::Cast(cast) => write!(f, "{cast}"),
+            ExprKind::Concatenation(concat) => write!(f, "{concat}"),
+            ExprKind::IndexExpr(index) => write!(f, "{index}"),
         }
     }
 }
@@ -1740,19 +1741,20 @@ pub struct Lit {
 
 impl Display for Lit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Lit {}: {}", self.span, self.kind)
+        write!(f, "Lit: {}", self.kind)
     }
 }
 
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
     Array(List<ExprStmt>),
-    Bitstring { value: usize, width: u32 },
-    Boolean(bool),
+    Bitstring(BigInt, usize),
+    Bool(bool),
     Duration { value: f64, unit: TimeUnit },
     Float(f64),
     Imaginary(f64),
-    Integer(i64),
+    Int(i64),
+    BigInt(BigInt),
     String(Rc<str>),
 }
 
@@ -1764,21 +1766,22 @@ impl Display for LiteralKind {
                 write!(indent, "Array:")?;
                 indent = set_indentation(indent, 1);
                 for expr in exprs {
-                    write!(indent, "\n{expr}")?;
+                    write!(indent, "\n{expr:?}")?;
                 }
                 Ok(())
             }
-            LiteralKind::Bitstring { value, width } => {
-                write!(f, "Bitstring: {value} (width {width})")
+            LiteralKind::Bitstring(value, width) => {
+                write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
-            LiteralKind::Boolean(b) => write!(f, "Boolean: {b}"),
+            LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Duration { value, unit } => {
-                write!(f, "Duration: {value} {unit}")
+                write!(f, "Duration({value:?}, {unit:?})")
             }
-            LiteralKind::Float(value) => write!(f, "Float: {value}"),
-            LiteralKind::Imaginary(value) => write!(f, "Imaginary: {value} im"),
-            LiteralKind::Integer(i) => write!(f, "Integer: {i}"),
-            LiteralKind::String(s) => write!(f, "String: {s}"),
+            LiteralKind::Float(value) => write!(f, "Float({value:?})"),
+            LiteralKind::Imaginary(value) => write!(f, "Imaginary({value:?})"),
+            LiteralKind::Int(i) => write!(f, "Int({i:?})"),
+            LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
+            LiteralKind::String(s) => write!(f, "String({s:?})"),
         }
     }
 }
