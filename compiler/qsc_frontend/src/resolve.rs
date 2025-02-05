@@ -26,7 +26,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cmp::Ordering, sync::Arc};
+use std::cmp::Ordering;
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
@@ -276,7 +276,10 @@ pub struct Locals {
 }
 
 impl Locals {
-    fn get_scopes<'a>(&'a self, scope_chain: &'a [ScopeId]) -> impl Iterator<Item = &Scope> + 'a {
+    fn get_scopes<'a>(
+        &'a self,
+        scope_chain: &'a [ScopeId],
+    ) -> impl Iterator<Item = &'a Scope> + 'a {
         // reverse to go from innermost -> outermost
         scope_chain.iter().rev().map(|id| {
             self.scopes
@@ -503,7 +506,7 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
             // the below line ensures that this namespace opens itself, in case
             // we are re-opening a namespace. This is important, as without this,
             // a re-opened namespace would only have knowledge of its scopes.
-            visitor.resolver.bind_open(&namespace.name, &None, root_id);
+            visitor.resolver.bind_open(&namespace.name, None, root_id);
             for item in &namespace.items {
                 match &*item.kind {
                     ItemKind::ImportOrExport(decl) => {
@@ -525,7 +528,9 @@ impl AstVisitor<'_> for ExportImportVisitor<'_> {
                         // namespace A { callable foo() { open B; export { SomethingFromB }; } }
                         //                                        ^^^^^^ export from non-namespace scope is not allowed
                         // ```
-                        visitor.resolver.bind_open(path.as_ref(), alias, ns);
+                        visitor
+                            .resolver
+                            .bind_open(path.as_ref(), alias.as_deref(), ns);
                     }
                     _ => ast_visit::walk_item(visitor, item),
                 }
@@ -644,7 +649,7 @@ impl Resolver {
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
             name,
-            &None,
+            None,
         ) {
             Ok(res) => {
                 self.check_item_status(&res, name.name.to_string(), name.span);
@@ -670,7 +675,7 @@ impl Resolver {
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
                         first,
-                        &None,
+                        None,
                     ) {
                         Ok(res) if matches!(res, Res::Local(_)) => {
                             // The path is a field accessor.
@@ -701,7 +706,7 @@ impl Resolver {
                 &self.globals,
                 self.locals.get_scopes(&self.curr_scope_chain),
                 first,
-                &None,
+                None,
             ) {
                 Ok(res) if matches!(res, Res::Local(_)) => {
                     // The path is a field accessor.
@@ -721,7 +726,7 @@ impl Resolver {
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
             name,
-            segments,
+            segments.as_deref(),
         ) {
             Ok(res) => {
                 self.check_item_status(&res, path.name.name.to_string(), path.span);
@@ -788,7 +793,7 @@ impl Resolver {
     fn bind_open(
         &mut self,
         name: &impl Idents,
-        alias: &Option<Box<Ident>>,
+        alias: Option<&Ident>,
         current_namespace: NamespaceId,
     ) {
         let (_current_ns_name, current_namespace) = self
@@ -838,7 +843,7 @@ impl Resolver {
                 if let PathKind::Ok(path) = name {
                     self.bind_open(
                         path.as_ref(),
-                        alias,
+                        alias.as_deref(),
                         namespace.unwrap_or_else(|| self.globals.namespaces.root_id()),
                     );
                 }
@@ -1163,7 +1168,7 @@ impl Resolver {
             return;
         };
         if !is_export {
-            self.bind_open(path.as_ref(), &None, ns);
+            self.bind_open(path.as_ref(), None, ns);
         }
     }
 
@@ -1238,7 +1243,7 @@ impl Resolver {
                     .insert_with_id(current_namespace, ns, &alias.name)?;
             } else {
                 // for imports, we just bind the namespace as an open
-                self.bind_open(path.as_ref(), &alias, ns);
+                self.bind_open(path.as_ref(), alias.as_deref(), ns);
             }
         } else {
             self.errors.push(err.clone());
@@ -1356,7 +1361,8 @@ impl AstVisitor<'_> for With<'_> {
                     .unwrap_or_else(|| self.resolver.globals.namespaces.root_id());
                 // Only locally scoped opens are handled here.
                 // There is only a namespace parent scope if we aren't executing incremental fragments.
-                self.resolver.bind_open(path.as_ref(), alias, namespace);
+                self.resolver
+                    .bind_open(path.as_ref(), alias.as_deref(), namespace);
             }
             _ => ast_visit::walk_item(self, item),
         }
@@ -1576,13 +1582,11 @@ impl GlobalTable {
         id: PackageId,
         package: &hir::Package,
         store: &crate::compile::PackageStore,
-        alias: &Option<Arc<str>>,
+        alias: Option<&str>,
     ) -> Result<(), Vec<Error>> {
         // if there is a package-level alias defined, use that for the root namespace.
         let root = match alias {
-            Some(alias) => self
-                .scope
-                .insert_or_find_namespace(vec![Rc::from(&**alias)]),
+            Some(alias) => self.scope.insert_or_find_namespace(vec![Rc::from(alias)]),
             // otherwise, these namespaces will be inserted into the root of the local package
             // without any alias.
             None => self.scope.namespaces.root_id(),
@@ -1672,10 +1676,14 @@ impl GlobalTable {
                                 .insert_or_find_namespace(ns.iter().map(|s| s.name.clone()));
                         }
                         hir::ItemKind::Ty(..) => {
-                            self.scope
-                                .tys
-                                .get_mut_or_default(namespace)
-                                .insert(global.name.clone(), Res::ExportedItem(item_id, None));
+                            self.scope.tys.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
+                            self.scope.terms.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")
@@ -1761,7 +1769,7 @@ fn is_field_update<'a>(
             {
                 let name = &path.name;
                 let namespace = &path.segments;
-                resolve(NameKind::Term, globals, scopes, name, namespace)
+                resolve(NameKind::Term, globals, scopes, name, namespace.as_deref())
             },
             Ok(Res::Local(_))
         ),
@@ -1980,7 +1988,7 @@ fn resolve<'a>(
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Box<[Ident]>>,
+    provided_namespace_name: Option<&[Ident]>,
 ) -> Result<Res, Error> {
     if let Some(value) = check_all_scopes(
         kind,
@@ -2069,7 +2077,7 @@ fn check_all_scopes<'a>(
     kind: NameKind,
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Box<[Ident]>>,
+    provided_namespace_name: Option<&[Ident]>,
     scopes: impl Iterator<Item = &'a Scope>,
 ) -> Option<Result<Res, Error>> {
     let mut vars = true;
@@ -2113,7 +2121,7 @@ fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<Box<[Ident]>>,
+    provided_namespace_name: Option<&[Ident]>,
     vars: &mut bool,
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
@@ -2205,7 +2213,7 @@ fn ambiguous_symbol_error(
 fn find_symbol_in_namespaces<T, O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_namespace_name: &Option<Box<[Ident]>>,
+    provided_namespace_name: Option<&[Ident]>,
     provided_symbol_name: &Ident,
     namespaces_to_search: T,
     aliases: &FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
@@ -2231,7 +2239,7 @@ where
             find_symbol_in_namespace(
                 kind,
                 globals,
-                &provided_namespace_name.as_ref().map(|x| &x[1..]),
+                provided_namespace_name.as_ref().map(|x| &x[1..]),
                 provided_symbol_name,
                 &mut candidates,
                 open.0,
@@ -2274,7 +2282,7 @@ where
 fn find_symbol_in_namespace<O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_namespace_name: &Option<impl Idents>,
+    provided_namespace_name: Option<&[Ident]>,
     provided_symbol_name: &Ident,
     candidates: &mut FxHashMap<Res, O>,
     candidate_namespace_id: NamespaceId,

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use oq3_semantics::types::{IsConst, Type};
-use qsc::Span;
+use qsc_data_structures::span::Span;
 use rustc_hash::FxHashMap;
 
 /// We need a symbol table to keep track of the symbols in the program.
@@ -10,9 +10,8 @@ use rustc_hash::FxHashMap;
 /// means that we need to keep track of the input and output symbols in the
 /// program. Additionally, we need to keep track of the types of the symbols
 /// in the program for type checking.
-/// Q# and QASM have different type systems, so we track the QASM semantic
-/// type in addition to the corresponding Q# type.
-
+/// Q# and QASM have different type systems, so we track the QASM semantic.
+///
 /// A symbol ID is a unique identifier for a symbol in the symbol table.
 /// This is used to look up symbols in the symbol table.
 /// Every symbol in the symbol table has a unique ID.

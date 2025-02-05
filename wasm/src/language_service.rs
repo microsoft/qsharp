@@ -6,12 +6,13 @@ use crate::{
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
     project_system::ProjectHost,
     serializable_type,
+    test_discovery::TestDescriptor,
 };
 use qsc::{
     self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
 };
 use qsc_project::Manifest;
-use qsls::protocol::DiagnosticUpdate;
+use qsls::protocol::{DiagnosticUpdate, TestCallable, TestCallables};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -31,12 +32,10 @@ impl LanguageService {
 
     pub fn start_background_work(
         &mut self,
-        diagnostics_callback: DiagnosticsCallback,
+        diagnostics_callback: &DiagnosticsCallback,
+        test_callables_callback: &TestCallableCallback,
         host: ProjectHost,
     ) -> js_sys::Promise {
-        let diagnostics_callback =
-            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
-
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
@@ -58,7 +57,45 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self.0.create_update_worker(diagnostics_callback, host);
+
+        let test_callables_callback = test_callables_callback
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let test_callables_callback = move |update: TestCallables| {
+            let callables = update
+                .callables
+                .iter()
+                .map(
+                    |TestCallable {
+                         compilation_uri,
+                         callable_name,
+                         location,
+                         friendly_name,
+                     }|
+                     -> TestDescriptor {
+                        TestDescriptor {
+                            compilation_uri: compilation_uri.to_string(),
+                            callable_name: callable_name.to_string(),
+                            location: location.clone().into(),
+                            friendly_name: friendly_name.to_string(),
+                        }
+                    },
+                )
+                .collect::<Vec<_>>();
+
+            let _ = test_callables_callback
+                .call1(
+                    &JsValue::NULL,
+                    &serde_wasm_bindgen::to_value(&callables)
+                        .expect("conversion to TestCallables should succeed"),
+                )
+                .expect("callback should succeed");
+        };
+        let mut worker =
+            self.0
+                .create_update_worker(diagnostics_callback, test_callables_callback, host);
 
         future_to_promise(async move {
             worker.run().await;
@@ -586,4 +623,10 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(callables: ITestDescriptor[]) => void")]
+    pub type TestCallableCallback;
 }

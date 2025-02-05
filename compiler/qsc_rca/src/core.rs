@@ -694,9 +694,8 @@ impl<'a> Analyzer<'a> {
         // runtime features are aggregated.
         let is_any_sub_expr_dynamic = condition_expr_compute_kind.is_dynamic()
             || body_expr_compute_kind.is_dynamic()
-            || otherwise_expr_id.map_or(false, |e| {
-                application_instance.get_expr_compute_kind(e).is_dynamic()
-            });
+            || otherwise_expr_id
+                .is_some_and(|e| application_instance.get_expr_compute_kind(e).is_dynamic());
         if is_any_sub_expr_dynamic {
             let dynamic_value_kind = if matches!(expr_type, Ty::Array(..)) {
                 // An array coming from a dynamic conditional should be treated as dynamic in length

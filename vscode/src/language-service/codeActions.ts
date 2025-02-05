@@ -3,7 +3,7 @@
 
 import { ILanguageService, ICodeAction } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeWorkspaceEdit } from "../common";
+import { toVsCodeWorkspaceEdit } from "../common";
 
 export function createCodeActionsProvider(languageService: ILanguageService) {
   return new QSharpCodeActionProvider(languageService);
@@ -31,7 +31,7 @@ function toCodeAction(iCodeAction: ICodeAction): vscode.CodeAction {
     toCodeActionKind(iCodeAction.kind),
   );
   if (iCodeAction.edit) {
-    codeAction.edit = toVscodeWorkspaceEdit(iCodeAction.edit);
+    codeAction.edit = toVsCodeWorkspaceEdit(iCodeAction.edit);
   }
   codeAction.isPreferred = iCodeAction.isPreferred;
   return codeAction;

@@ -4,7 +4,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use oq3_semantics::types::ArrayDims;
-use qsc::Span;
+use qsc_data_structures::span::Span;
 use rustc_hash::FxHashMap;
 
 thread_local! {
@@ -73,7 +73,7 @@ pub(crate) fn get_qsharp_gate_name<S: AsRef<str>>(gate_name: S) -> Option<&'stat
 #[derive(Debug, Clone, PartialEq)]
 pub struct QasmTypedExpr {
     pub ty: oq3_semantics::types::Type,
-    pub expr: qsc::ast::Expr,
+    pub expr: qsc_ast::ast::Expr,
 }
 
 #[derive(Clone, Debug, PartialEq)]

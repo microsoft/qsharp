@@ -136,7 +136,7 @@ impl PackageIter<'_> {
     }
 }
 
-impl<'a> Iterator for PackageIter<'a> {
+impl Iterator for PackageIter<'_> {
     type Item = Global;
 
     fn next(&mut self) -> Option<Self::Item> {

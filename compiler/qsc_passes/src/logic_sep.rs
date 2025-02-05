@@ -115,7 +115,7 @@ impl SepCheck {
         prior: bool,
         cond: &Expr,
         then_expr: &Expr,
-        else_expr: &Option<Box<Expr>>,
+        else_expr: Option<&Expr>,
     ) -> bool {
         self.op_call_allowed = false;
         self.visit_expr(cond);
@@ -172,7 +172,7 @@ impl SepCheck {
                 self.handle_block(loop_block)
             }
             ExprKind::If(cond, then_expr, else_expr) => {
-                self.handle_if_expr(prior, cond, then_expr, else_expr)
+                self.handle_if_expr(prior, cond, then_expr, else_expr.as_deref())
             }
 
             ExprKind::Array(_)

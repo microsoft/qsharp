@@ -16,6 +16,7 @@ import type {
   IWorkspaceEdit,
   LanguageService,
   VSDiagnostic,
+  ITestDescriptor,
 } from "../../lib/web/qsc_wasm.js";
 import { IProjectHost } from "../browser.js";
 import { log } from "../log.js";
@@ -26,8 +27,7 @@ import {
 } from "../workers/common.js";
 type QscWasm = typeof import("../../lib/web/qsc_wasm.js");
 
-// Only one event type for now
-export type LanguageServiceEvent = {
+export type LanguageServiceDiagnosticEvent = {
   type: "diagnostics";
   detail: {
     uri: string;
@@ -35,6 +35,17 @@ export type LanguageServiceEvent = {
     diagnostics: VSDiagnostic[];
   };
 };
+
+export type LanguageServiceTestCallablesEvent = {
+  type: "testCallables";
+  detail: {
+    callables: ITestDescriptor[];
+  };
+};
+
+export type LanguageServiceEvent =
+  | LanguageServiceDiagnosticEvent
+  | LanguageServiceTestCallablesEvent;
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
@@ -127,6 +138,7 @@ export class QSharpLanguageService implements ILanguageService {
 
     this.backgroundWork = this.languageService.start_background_work(
       this.onDiagnostics.bind(this),
+      this.onTestCallables.bind(this),
       host,
     );
   }
@@ -263,7 +275,8 @@ export class QSharpLanguageService implements ILanguageService {
     diagnostics: VSDiagnostic[],
   ) {
     try {
-      const event = new Event("diagnostics") as LanguageServiceEvent & Event;
+      const event = new Event("diagnostics") as LanguageServiceDiagnosticEvent &
+        Event;
       event.detail = {
         uri,
         version: version ?? 0,
@@ -272,6 +285,20 @@ export class QSharpLanguageService implements ILanguageService {
       this.eventHandler.dispatchEvent(event);
     } catch (e) {
       log.error("Error in onDiagnostics", e);
+    }
+  }
+
+  async onTestCallables(callables: ITestDescriptor[]) {
+    try {
+      const event = new Event(
+        "testCallables",
+      ) as LanguageServiceTestCallablesEvent & Event;
+      event.detail = {
+        callables,
+      };
+      this.eventHandler.dispatchEvent(event);
+    } catch (e) {
+      log.error("Error in onTestCallables", e);
     }
   }
 }
@@ -283,7 +310,7 @@ export class QSharpLanguageService implements ILanguageService {
  */
 export const languageServiceProtocol: ServiceProtocol<
   ILanguageService,
-  LanguageServiceEvent
+  LanguageServiceDiagnosticEvent
 > = {
   class: QSharpLanguageService,
   methods: {

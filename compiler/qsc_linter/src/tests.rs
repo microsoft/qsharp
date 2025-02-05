@@ -2,15 +2,15 @@
 // Licensed under the MIT License.
 
 use crate::{
-    linter::{ast::run_ast_lints, hir::run_hir_lints, Compilation},
-    Lint, LintConfig, LintLevel,
+    linter::{remove_duplicates, run_lints_without_deduplication},
+    Lint, LintLevel,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{
     language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
 };
-use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, PackageStore, SourceMap};
 use qsc_hir::hir::CallableKind;
 use qsc_passes::PackageType;
 
@@ -207,6 +207,58 @@ fn division_by_zero() {
                     level: Error,
                     message: "attempt to divide by zero",
                     help: "division by zero will fail at runtime",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn double_equality() {
+    check(
+        &wrap_in_callable("1.0 == 1.01;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "1.0 == 1.01",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn check_double_equality_with_itself_is_allowed_for_nan_check() {
+    check(
+        &wrap_in_callable(
+            r#"
+            let a = 1.0;
+            let is_nan = not (a == a);
+        "#,
+            CallableKind::Function,
+        ),
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn double_inequality() {
+    check(
+        &wrap_in_callable("1.0 != 1.01;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "1.0 != 1.01",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
                     code_action_edits: [],
                 },
             ]
@@ -684,11 +736,33 @@ fn needless_operation_inside_function_call() {
     );
 }
 
-fn check(source: &str, expected: &Expect) {
-    let source = wrap_in_namespace(source);
+#[test]
+fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
+    check_with_deduplication(
+        "
+        operation Main() : Unit {}
+        operation LintProblem() : Unit is Adj + Ctl {
+            use q = Qubit();
+            0.0 == 0.0;
+        }",
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "0.0 == 0.0",
+                    level: Warn,
+                    message: "strict comparison of doubles",
+                    help: "consider comparing them with some margin of error",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
-    let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
+    let sources = SourceMap::new([("source.qs".into(), source.into())], None);
     let (unit, _) = qsc::compile::compile(
         &store,
         &[(std, None)],
@@ -701,11 +775,26 @@ fn check(source: &str, expected: &Expect) {
     let id = store.insert(unit);
     let unit = store.get(id).expect("user package should exist");
 
-    let actual: Vec<SrcLint> = run_lints(&store, unit, None)
+    run_lints_without_deduplication(&store, unit, None)
+}
+
+fn check(source: &str, expected: &Expect) {
+    let source = wrap_in_namespace(source);
+    let actual: Vec<_> = compile_and_collect_lints(&source)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
+    expected.assert_debug_eq(&actual);
+}
 
+fn check_with_deduplication(source: &str, expected: &Expect) {
+    let source = wrap_in_namespace(source);
+    let mut lints = compile_and_collect_lints(&source);
+    remove_duplicates(&mut lints);
+    let actual: Vec<_> = lints
+        .into_iter()
+        .map(|lint| SrcLint::from(&lint, &source))
+        .collect();
     expected.assert_debug_eq(&actual);
 }
 
@@ -752,22 +841,4 @@ impl SrcLint {
                 .collect(),
         }
     }
-}
-
-fn run_lints(
-    package_store: &PackageStore,
-    compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
-) -> Vec<Lint> {
-    let compilation = Compilation {
-        package_store,
-        compile_unit,
-    };
-
-    let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config, compilation);
-    let mut hir_lints = run_hir_lints(&compile_unit.package, config, compilation);
-    let mut lints = Vec::new();
-    lints.append(&mut ast_lints);
-    lints.append(&mut hir_lints);
-    lints
 }

@@ -543,8 +543,7 @@ fn resolve_all(
     let mut globals = resolve::GlobalTable::new();
     let mut errors = Vec::new();
     if let Some(unit) = store.get(PackageId::CORE) {
-        if let Err(errs) =
-            globals.add_external_package(PackageId::CORE, &unit.package, store, &None)
+        if let Err(errs) = globals.add_external_package(PackageId::CORE, &unit.package, store, None)
         {
             errors.extend(errs);
         }
@@ -555,7 +554,8 @@ fn resolve_all(
         let unit = store
             .get(*id)
             .expect("dependency should be in package store before compilation");
-        if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias) {
+        if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias.as_deref())
+        {
             errors.extend(errs);
         };
         dropped_names.extend(unit.dropped_names.iter().cloned());

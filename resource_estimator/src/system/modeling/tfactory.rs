@@ -26,7 +26,7 @@ pub enum TFactoryQubit<'a> {
     Physical(&'a PhysicalQubit),
 }
 
-impl<'a> TFactoryQubit<'a> {
+impl TFactoryQubit<'_> {
     pub fn physical_qubits(&self) -> u64 {
         match self {
             Self::Logical(qubit) => qubit.physical_qubits(),
@@ -286,7 +286,7 @@ pub struct TFactoryDistillationUnit<'a> {
     qubit_t_error_rate: f64,
 }
 
-impl<'a> fmt::Debug for TFactoryDistillationUnit<'a> {
+impl fmt::Debug for TFactoryDistillationUnit<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TFactoryDistillationUnit")
             .field("unit_type", &self.unit_type.to_string())

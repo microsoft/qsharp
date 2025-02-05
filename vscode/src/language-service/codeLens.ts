@@ -7,7 +7,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { toVscodeRange } from "../common";
+import { toVsCodeRange } from "../common";
 
 export function createCodeLensProvider(languageService: ILanguageService) {
   return new QSharpCodeLensProvider(languageService);
@@ -71,7 +71,7 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
   }
 
-  return new vscode.CodeLens(toVscodeRange(cl.range), {
+  return new vscode.CodeLens(toVsCodeRange(cl.range), {
     title,
     command,
     arguments: args,

@@ -52,9 +52,9 @@ use oq3_syntax::ast::{
 };
 use oq3_syntax::SyntaxNode;
 use oq3_syntax::{AstNode, HasTextName};
-use qsc::ast;
-use qsc::Span;
-use qsc::{error::WithSource, SourceMap};
+use qsc_ast::ast;
+use qsc_data_structures::span::Span;
+use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{parse::QasmSource, QasmCompileUnit};
 

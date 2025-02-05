@@ -3,7 +3,7 @@
 
 use oq3_semantics::types::Type;
 use oq3_syntax::ast::{ArithOp, BinaryOp, Designator, Expr, Literal, LiteralKind};
-use qsc::Span;
+use qsc_data_structures::span::Span;
 
 /// Extracts a Q# ```Span``` from the QASM3 syntax named element
 pub(crate) fn span_for_named_item<T: oq3_syntax::ast::HasName>(value: &T) -> Span {
@@ -41,7 +41,6 @@ pub(crate) fn span_for_syntax_token(token: &oq3_syntax::SyntaxToken) -> Span {
 /// panic if the value is too large to fit in the target type.
 ///
 /// Values may be truncated or rounded as necessary.
-
 pub(crate) fn safe_u128_to_f64(value: u128) -> Option<f64> {
     if value <= u128::from(i64::MAX as u64) {
         let value = i64::try_from(value).ok()?;

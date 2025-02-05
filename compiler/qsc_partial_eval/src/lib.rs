@@ -70,6 +70,23 @@ pub fn partially_evaluate(
     partial_evaluator.eval()
 }
 
+/// Partially evaluates a callable with the specified arguments.
+pub fn partially_evaluate_call(
+    package_store: &PackageStore,
+    compute_properties: &PackageStoreComputeProperties,
+    callable: StoreItemId,
+    args: Value,
+    capabilities: TargetCapabilityFlags,
+) -> Result<Program, Error> {
+    let partial_evaluator = PartialEvaluator::new_from_package_id(
+        package_store,
+        compute_properties,
+        callable.package,
+        capabilities,
+    );
+    partial_evaluator.invoke(callable, args)
+}
+
 /// A partial evaluation error.
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
@@ -141,7 +158,7 @@ struct PartialEvaluator<'a> {
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
-    entry: &'a ProgramEntry,
+    entry: Option<&'a ProgramEntry>,
 }
 
 impl<'a> PartialEvaluator<'a> {
@@ -150,6 +167,37 @@ impl<'a> PartialEvaluator<'a> {
         compute_properties: &'a PackageStoreComputeProperties,
         entry: &'a ProgramEntry,
         capabilities: TargetCapabilityFlags,
+    ) -> Self {
+        Self::new_internal(
+            package_store,
+            compute_properties,
+            capabilities,
+            Some(entry),
+            None,
+        )
+    }
+
+    fn new_from_package_id(
+        package_store: &'a PackageStore,
+        compute_properties: &'a PackageStoreComputeProperties,
+        package_id: PackageId,
+        capabilities: TargetCapabilityFlags,
+    ) -> Self {
+        Self::new_internal(
+            package_store,
+            compute_properties,
+            capabilities,
+            None,
+            Some(package_id),
+        )
+    }
+
+    fn new_internal(
+        package_store: &'a PackageStore,
+        compute_properties: &'a PackageStoreComputeProperties,
+        capabilities: TargetCapabilityFlags,
+        entry: Option<&'a ProgramEntry>,
+        package_id: Option<PackageId>,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
@@ -169,7 +217,15 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
+        let context = EvaluationContext::new(
+            package_id.unwrap_or_else(|| {
+                entry
+                    .expect("program entry should be provided when package id is None")
+                    .expr
+                    .package
+            }),
+            entry_block_id,
+        );
         Self {
             package_store,
             compute_properties,
@@ -307,7 +363,12 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn entry_expr_output_span(&self) -> PackageSpan {
-        let expr = self.get_expr(self.entry.expr.expr);
+        let expr = self.get_expr(
+            self.entry
+                .expect("should have entry when getting entry expr span")
+                .expr
+                .expr,
+        );
         let local_span = match &expr.kind {
             // Special handling for compiler generated entry expressions that come from the `@EntryPoint`
             // attributed callable.
@@ -316,22 +377,27 @@ impl<'a> PartialEvaluator<'a> {
             }
             _ => expr.span,
         };
-        let hir_package_id = map_fir_package_to_hir(self.entry.expr.package);
+        let hir_package_id = map_fir_package_to_hir(
+            self.entry
+                .expect("should have entry when getting entry expr span")
+                .expr
+                .package,
+        );
         PackageSpan {
             package: hir_package_id,
             span: local_span,
         }
     }
 
-    fn eval(mut self) -> Result<Program, Error> {
-        // Evaluate the entry-point expression.
-        let ret_val = self.try_eval_expr(self.entry.expr.expr)?.into_value();
+    fn extract_program(
+        mut self,
+        ret_val: Value,
+        output_ty: &Ty,
+        output_span: PackageSpan,
+    ) -> Result<Program, Error> {
         let output_recording: Vec<Instruction> = self
-            .generate_output_recording_instructions(
-                ret_val,
-                &self.get_expr(self.entry.expr.expr).ty,
-            )
-            .map_err(|()| Error::OutputResultLiteral(self.entry_expr_output_span()))?;
+            .generate_output_recording_instructions(ret_val, output_ty)
+            .map_err(|()| Error::OutputResultLiteral(output_span))?;
 
         // Insert the return expression and return the generated program.
         let current_block = self.get_current_rir_block_mut();
@@ -351,6 +417,50 @@ impl<'a> PartialEvaluator<'a> {
             .expect("results count should fit into a u32");
 
         Ok(self.program)
+    }
+
+    fn eval(mut self) -> Result<Program, Error> {
+        // Evaluate the entry-point expression.
+        let ret_val = self
+            .try_eval_expr(
+                self.entry
+                    .expect("should have program entry on call to eval")
+                    .expr
+                    .expr,
+            )?
+            .into_value();
+        let output_ty = &self
+            .get_expr(
+                self.entry
+                    .expect("should have program entry on call to eval")
+                    .expr
+                    .expr,
+            )
+            .ty;
+        let output_span = self.entry_expr_output_span();
+        self.extract_program(ret_val, output_ty, output_span)
+    }
+
+    fn invoke(mut self, callable: StoreItemId, args: Value) -> Result<Program, Error> {
+        // Evaluate the callalbe.
+        let ret_val = self.eval_global_call(callable, args)?.into_value();
+        let global = self
+            .package_store
+            .get_global(callable)
+            .expect("global not present");
+        let Global::Callable(callable_decl) = global else {
+            // Instruction generation for UDTs is not supported.
+            panic!("global is not a callable");
+        };
+        let output_ty = &callable_decl.output;
+        self.extract_program(
+            ret_val,
+            output_ty,
+            PackageSpan {
+                package: map_fir_package_to_hir(callable.package),
+                span: callable_decl.span,
+            },
+        )
     }
 
     fn eval_array_update_index(
@@ -1361,6 +1471,53 @@ impl<'a> PartialEvaluator<'a> {
         Ok(EvalControlFlow::Continue(value))
     }
 
+    fn eval_global_call(
+        &mut self,
+        store_item_id: StoreItemId,
+        args: Value,
+    ) -> Result<EvalControlFlow, Error> {
+        let global = self
+            .package_store
+            .get_global(store_item_id)
+            .expect("global not present");
+        let Global::Callable(callable_decl) = global else {
+            // Instruction generation for UDTs is not supported.
+            panic!("global is not a callable");
+        };
+
+        // Set up the scope for the call, which allows additional error checking if the callable was
+        // previously unresolved.
+        let spec_decl = if let CallableImpl::Spec(spec_impl) = &callable_decl.implementation {
+            get_spec_decl(spec_impl, FunctorApp::default())
+        } else {
+            panic!("global call to intrinsic function not supported");
+        };
+
+        let (args, ctls_arg) = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args,
+            None,
+            None,
+            None,
+        )?;
+        let call_scope = Scope::new(
+            store_item_id.package,
+            Some((store_item_id.item, FunctorApp::default())),
+            args,
+            ctls_arg,
+        );
+
+        // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
+        // with an implementation.
+        let value = self.eval_expr_call_to_spec(
+            call_scope,
+            store_item_id,
+            FunctorApp::default(),
+            spec_decl,
+        )?;
+        Ok(EvalControlFlow::Continue(value))
+    }
+
     fn try_eval_callee_and_args(
         &mut self,
         callee_expr_id: ExprId,
@@ -1426,9 +1583,18 @@ impl<'a> PartialEvaluator<'a> {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
             "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
-            "PermuteLabels" => qubit_relabel(args_value, args_span, |q0, q1| {
-                self.resource_manager.swap_qubit_ids(q0, q1);
-            })
+            "PermuteLabels" => {
+                if self.eval_context.is_currently_evaluating_any_branch() {
+                    // If we are in a dynamic branch anywhere up the call stack, we cannot support relabel,
+                    // as later qubit usage would need to be dynamic on whether the branch was taken.
+                    return Err(Error::CapabilityError(CapabilityError::UseOfDynamicQubit(
+                        callee_expr_span.span,
+                    )));
+                }
+                qubit_relabel(args_value, args_span, |q0, q1| {
+                    self.resource_manager.swap_qubit_ids(q0, q1);
+                })
+            }
             .map_err(std::convert::Into::into),
             "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::m_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
@@ -2321,7 +2487,10 @@ impl<'a> PartialEvaluator<'a> {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {
-            &self.entry.exec_graph
+            &self
+                .entry
+                .expect("entry expression must be present when not in scope")
+                .exec_graph
         }
     }
 

@@ -37,6 +37,7 @@ pub(crate) struct Compilation {
     pub compile_errors: Vec<compile::Error>,
     pub kind: CompilationKind,
     pub dependencies: FxHashMap<PackageId, Option<PackageAlias>>,
+    pub test_cases: Vec<(String, Span)>,
 }
 
 #[derive(Debug)]
@@ -46,6 +47,8 @@ pub(crate) enum CompilationKind {
     /// one or more sources, and a target profile.
     OpenProject {
         package_graph_sources: PackageGraphSources,
+        /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
+        friendly_name: Arc<str>,
     },
     /// A Q# notebook. In a notebook compilation, the user package
     /// contains multiple `Source`s, with each source corresponding
@@ -62,6 +65,7 @@ impl Compilation {
         lints_config: &[LintConfig],
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
     ) -> Self {
         let mut buildable_program =
             prepare_package_store(target_profile.into(), package_graph_sources.clone());
@@ -102,15 +106,19 @@ impl Compilation {
 
         run_linter_passes(&mut compile_errors, &package_store, unit, lints_config);
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
+                friendly_name: friendly_name.clone(),
             },
             compile_errors,
             project_errors,
             dependencies: user_code_dependencies.into_iter().collect(),
+            test_cases,
         }
     }
 
@@ -218,13 +226,25 @@ impl Compilation {
             .chain(once((source_package_id, None)))
             .collect();
 
+        let test_cases = unit.package.get_test_callables();
+
         Self {
             package_store,
             user_package_id: package_id,
             compile_errors: errors,
             project_errors: project.as_ref().map_or_else(Vec::new, |p| p.errors.clone()),
             kind: CompilationKind::Notebook { project },
+            test_cases,
             dependencies,
+        }
+    }
+
+    /// Returns a human-readable compilation name if one exists.
+    /// Notebooks don't have human-readable compilation names.
+    pub fn friendly_project_name(&self) -> Option<Arc<str>> {
+        match &self.kind {
+            CompilationKind::OpenProject { friendly_name, .. } => Some(friendly_name.clone()),
+            CompilationKind::Notebook { .. } => None,
         }
     }
 
@@ -322,6 +342,7 @@ impl Compilation {
         let new = match self.kind {
             CompilationKind::OpenProject {
                 ref package_graph_sources,
+                ref friendly_name,
             } => Self::new(
                 package_type,
                 target_profile,
@@ -329,6 +350,7 @@ impl Compilation {
                 lints_config,
                 package_graph_sources.clone(),
                 Vec::new(), // project errors will stay the same
+                friendly_name,
             ),
             CompilationKind::Notebook { ref project } => Self::new_notebook(
                 sources.into_iter(),
