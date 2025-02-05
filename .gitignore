@@ -20,5 +20,3 @@ __pycache__/
 .pytest_cache/
 .idea/
 *.so
-/circuit_vis/dist
-/circuit_vis/lib
