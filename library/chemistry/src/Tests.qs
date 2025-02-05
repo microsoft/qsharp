@@ -30,7 +30,7 @@ operation PrepareUniformSuperpositionTest() : Unit {
     use qs = Qubit[NBits];
     for NStates in 1..2^NBits-1 {
         PrepareUniformSuperposition(NStates, qs);
-        let t = Std.Math.Sqrt(1.0/IntAsDouble(NStates));
+        let t = Std.Math.Sqrt(1.0 / IntAsDouble(NStates));
         Adjoint Std.StatePreparation.PreparePureStateD(Repeated(t, NStates), Reversed(qs));
         Fact(CheckAllZero(qs), "All Z");
         ResetAll(qs);

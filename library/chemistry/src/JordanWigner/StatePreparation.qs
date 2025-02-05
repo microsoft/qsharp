@@ -26,7 +26,8 @@ operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits 
     //    Default = 0, Single_Configurational = 1, Sparse_Multi_Configurational = 2, Unitary_Coupled_Cluster = 3
     //}
 
-    if stateType == 2 { // Sparse_Multi_Configurational
+    if stateType == 2 {
+        // Sparse_Multi_Configurational
         if IsEmpty(terms) {
             // Do nothing, as there are no terms to prepare.
         } elif Length(terms) == 1 {
@@ -35,7 +36,8 @@ operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits 
         } else {
             PrepareSparseMultiConfigurationalState(qs => I(qs[0]), terms, qubits);
         }
-    } elif stateType == 3 { // Unitary_Coupled_Cluster
+    } elif stateType == 3 {
+        // Unitary_Coupled_Cluster
         let nTerms = Length(terms);
         let trotterStepSize = 1.0;
 
@@ -44,7 +46,7 @@ operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits 
 
         PrepareUnitaryCoupledClusterState(referenceState, terms[...nTerms - 2], trotterStepSize, qubits);
     } else {
-        fail("Unsupported input state.");
+        fail ("Unsupported input state.");
     }
 }
 
