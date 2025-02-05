@@ -15,8 +15,8 @@ import functools
 python_ver = (3, 11)  # Python support for Windows on ARM64 requires v3.11 or later
 rust_ver = (1, 84)  # Ensure Rust version 1.84 or later is installed
 node_ver = (
-    22,
-    13,
+    20,
+    18,
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
 rust_fmt_ver = (1, 8, 0)  # Current version when Rust 1.84 shipped
