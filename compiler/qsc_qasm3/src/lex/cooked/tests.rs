@@ -834,6 +834,101 @@ fn string_missing_ending() {
 }
 
 #[test]
+fn string_escape_quote() {
+    check(r#""\"""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_single_quote() {
+    check(r#""\'""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_newline() {
+    check(r#""\n""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_return() {
+    check(r#""\"""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn string_escape_tab() {
+    check(r#""\t""#, &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Literal(
+                        String,
+                    ),
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
 fn string_invalid_escape() {
     check(
         r#""foo\abar" a"#,

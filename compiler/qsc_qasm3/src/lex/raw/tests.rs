@@ -178,9 +178,63 @@ fn string() {
 }
 
 #[test]
+fn string_missing_ending() {
+    check(
+        r#""string"#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String {
+                        terminated: false,
+                        invalid_escape: false,
+                    },
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn string_escape_quote() {
     check(
-        r#""str\"ing""#,
+        r#""\"""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: false,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn string_escape_single_quote() {
+    check(
+        r#""\'""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: false,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
+    );
+}
+
+#[test]
+fn string_escape_newline() {
+    check(
+        r#""\n""#,
         &expect![[r#"
             [
                 Token {
@@ -196,20 +250,56 @@ fn string_escape_quote() {
 }
 
 #[test]
-fn string_missing_ending() {
+fn string_escape_return() {
     check(
-        r#""string"#,
+        r#""\r""#,
         &expect![[r#"
             [
                 Token {
                     kind: String {
-                        terminated: false,
+                        terminated: true,
                         invalid_escape: false,
                     },
                     offset: 0,
                 },
             ]
         "#]],
+    );
+}
+
+#[test]
+fn string_escape_tab() {
+    check(
+        r#""\t""#,
+        &expect![[r#"
+            [
+                Token {
+                    kind: String {
+                        terminated: true,
+                        invalid_escape: false,
+                    },
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn string_invalid_escape() {
+    check(
+        r#""\s""#,
+        &expect![[r#"
+        [
+            Token {
+                kind: String {
+                    terminated: true,
+                    invalid_escape: true,
+                },
+                offset: 0,
+            },
+        ]
+    "#]],
     );
 }
 

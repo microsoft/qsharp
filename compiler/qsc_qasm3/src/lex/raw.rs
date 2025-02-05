@@ -519,7 +519,7 @@ impl<'a> Lexer<'a> {
             self.eat_while(|c| c != '\\' && c != string_start);
             if self.next_if_eq('\\') {
                 match self.chars.next() {
-                    None | Some((_, '\\' | '\"' | '\'' | '\n' | '\r' | '\t')) => (),
+                    None | Some((_, '\\' | '"' | '\'' | 'n' | 'r' | 't')) => (),
                     Some(_) => invalid_escape = true,
                 }
             }
