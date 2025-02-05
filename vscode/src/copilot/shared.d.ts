@@ -15,7 +15,7 @@ export type CopilotCommand =
       service?: ServiceType;
     };
 
-export type ServiceType = "AzureQuantumLocal" | "AzureQuantumTest";
+export type ServiceType = "AzureQuantumLocal" | "AzureQuantumTest" | "OpenAI";
 
 /**
  * Events that get sent across the webview <-> extension boundary

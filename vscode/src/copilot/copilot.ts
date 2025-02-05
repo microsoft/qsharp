@@ -11,6 +11,7 @@ import {
   ToolCall,
 } from "./shared";
 import { AzureQuantumChatBackend as AzureQuantumChatService } from "./azqChatService.js";
+import { OpenAiChatBackend as OpenAiChatService } from "./openAiChatService.js";
 import { executeTool, ToolState } from "./tools.js";
 
 export class Copilot {
@@ -242,10 +243,13 @@ function createService(serviceType: ServiceType): IChatService {
       return new AzureQuantumChatService("local");
     case "AzureQuantumTest":
       return new AzureQuantumChatService("test");
+    case "OpenAI":
+      return new OpenAiChatService();
   }
 }
 
 export const serviceTypes: ServiceType[] = [
   "AzureQuantumLocal",
   "AzureQuantumTest",
+  "OpenAI",
 ];
