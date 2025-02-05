@@ -843,7 +843,7 @@ fn string_invalid_escape() {
                     InvalidEscapeSequence(
                         Span {
                             lo: 0,
-                            hi: 0,
+                            hi: 10,
                         },
                     ),
                 ),
@@ -888,19 +888,24 @@ fn unknown() {
         &expect![[r#"
             [
                 Err(
-                    Unknown(
-                        '#',
+                    Incomplete(
+                        Ident,
+                        Pragma,
+                        Single(
+                            Sharp,
+                        ),
                         Span {
-                            lo: 0,
-                            hi: 1,
+                            lo: 1,
+                            hi: 2,
                         },
                     ),
                 ),
                 Err(
-                    Unknown(
-                        '#',
+                    IncompleteEof(
+                        Ident,
+                        Pragma,
                         Span {
-                            lo: 1,
+                            lo: 2,
                             hi: 2,
                         },
                     ),
@@ -962,6 +967,106 @@ fn comment_four_slashes() {
                         span: Span {
                             lo: 12,
                             hi: 13,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn annotation() {
+    check(
+        "@foo.bar 1 2 3;",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Annotation,
+                        span: Span {
+                            lo: 0,
+                            hi: 15,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn pragma() {
+    check(
+        "pragma",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn pragma_ident() {
+    check(
+        "pragma foo",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn sharp_pragma() {
+    check(
+        "#pragma",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 7,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn sharp_pragma_ident() {
+    check(
+        "#pragma foo",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Pragma,
+                        span: Span {
+                            lo: 0,
+                            hi: 11,
                         },
                     },
                 ),

@@ -774,11 +774,15 @@ fn unknown() {
         &expect![[r#"
             [
                 Token {
-                    kind: Unknown,
+                    kind: Single(
+                        Sharp,
+                    ),
                     offset: 0,
                 },
                 Token {
-                    kind: Unknown,
+                    kind: Single(
+                        Sharp,
+                    ),
                     offset: 1,
                 },
             ]

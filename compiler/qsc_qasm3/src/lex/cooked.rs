@@ -494,6 +494,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     fn cook(&mut self, token: &raw::Token) -> Result<Option<Token>, Error> {
         let kind = match token.kind {
             raw::TokenKind::Bitstring { terminated: true } => {
@@ -510,7 +511,13 @@ impl<'a> Lexer<'a> {
             }
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
-                Ok(Some(Self::ident(ident)))
+                let cooked_ident = Self::ident(ident);
+                if matches!(cooked_ident, TokenKind::Keyword(Keyword::Pragma)) {
+                    self.eat_to_end_of_line();
+                    Ok(Some(TokenKind::Pragma))
+                } else {
+                    Ok(Some(cooked_ident))
+                }
             }
             raw::TokenKind::HardwareQubit => Ok(Some(TokenKind::HardwareQubit)),
             raw::TokenKind::LiteralFragment(_) => {
@@ -551,7 +558,7 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Single(Single::Sharp) => {
                 let complete = TokenKind::Pragma;
                 self.expect(raw::TokenKind::Ident, complete)?;
-                let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
+                let ident = &self.input[(token.offset as usize + 1)..(self.offset() as usize)];
                 if matches!(Self::ident(ident), TokenKind::Keyword(Keyword::Pragma)) {
                     self.eat_to_end_of_line();
                     Ok(Some(complete))
