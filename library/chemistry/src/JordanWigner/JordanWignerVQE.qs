@@ -92,7 +92,7 @@ operation EstimateFrequency(preparation : (Qubit[] => Unit), measurement : (Qubi
 
         // NB: We absolutely must reset here, since preparation()
         //     and measurement() can each use randomness internally.
-        ApplyToEach(Reset, register);
+        ResetAll(register);
     }
 
     return IntAsDouble(nUp) / IntAsDouble(nMeasurements);

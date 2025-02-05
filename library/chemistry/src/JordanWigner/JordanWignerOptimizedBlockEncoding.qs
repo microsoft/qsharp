@@ -19,22 +19,15 @@ export
 import JordanWigner.OptimizedBEOperator.JordanWignerSelect;
 import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitCount;
 import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitManager;
-import JordanWigner.StatePreparation.PrepareArbitraryStateD;
 import JordanWigner.Utils.JWOptimizedHTerms;
 import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 import JordanWigner.Utils.RangeAsIntArray;
-import Std.Arithmetic.MAJ;
-import Std.Arrays.Head;
-import Std.Arrays.IndexRange;
-import Std.Arrays.Mapped;
-import Std.Arrays.Most;
-import Std.Arrays.Partitioned;
-import Std.Arrays.Rest;
-import Std.Arrays.Subarray;
-import Std.Arrays.Tail;
-import Std.Convert.IntAsDouble;
-import Std.Diagnostics.Fact;
+import Std.Arrays.*;
 import Std.Math.*;
+import Std.Convert.IntAsDouble;
+import Std.Arithmetic.ApplyIfGreaterLE;
+import Std.StatePreparation.PreparePureStateD;
+import Std.Diagnostics.Fact;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 import Utils.HTermToGenIdx;
@@ -623,7 +616,7 @@ operation PrepareQuantumROMState(
     MultiplexOperationsFromGenerator(unitaryGenerator, indexRegister, (keepCoeffRegister, altIndexRegister, dataRegister, altDataRegister));
 
     // Perform comparison
-    CompareUsingRippleCarry(uniformKeepCoeffRegister, keepCoeffRegister, flagQubit);
+    ApplyIfGreaterLE(X, uniformKeepCoeffRegister, keepCoeffRegister, flagQubit);
 
     let indexRegisterSize = Length(indexRegister);
 
@@ -828,61 +821,12 @@ operation PrepareUniformSuperpositionOracle(nIndices : Int, nQubits : Int, idxFl
         within {
             ApplyXorInPlace(nIndices - 1, compareQubits);
         } apply {
-            CompareUsingRippleCarry(targetQubits, compareQubits, auxillaryQubits[0]);
+            ApplyIfGreaterLE(X, targetQubits, compareQubits, auxillaryQubits[0]);
             X(auxillaryQubits[0]);
         }
     }
     Ry(2.0 * theta, auxillaryQubits[1]);
     (Controlled X)(auxillaryQubits, flagQubit);
-}
-
-/// # Summary
-/// This operation tests if an integer represented by a register of qubits
-/// is greater than another integer, applying an XOR of the result onto an
-/// output qubit.
-///
-/// # Description
-/// Given two integers `x` and `y` stored in equal-size qubit registers,
-/// this operation checks if they satisfy `x > y`. If true, 1 is
-/// XORed into an output qubit. Otherwise, 0 is XORed into an output qubit.
-/// In other words, this operation can be represented by the unitary
-/// $$
-/// \begin{align}
-///     U\ket{x}\ket{y}\ket{z} = \ket{x}\ket{y}\ket{z\oplus (x>y)}.
-/// \end{align}
-/// $$
-///
-/// # Input
-/// ## x
-/// First number to be compared stored in `LittleEndian` format in a qubit register.
-/// ## y
-/// Second number to be compared stored in `LittleEndian` format in a qubit register.
-/// ## output
-/// Qubit that stores the result of the comparison $x>y$.
-///
-/// # References
-/// - [A new quantum ripple-carry addition circuit](https://arxiv.org/abs/quant-ph/0410184)
-///   Steven A. Cuccaro, Thomas G. Draper, Samuel A. Kutin, David Petrie Moulton
-operation CompareUsingRippleCarry(x : Qubit[], y : Qubit[], output : Qubit) : Unit is Adj + Ctl {
-    if (Length(x) != Length(y)) {
-        fail "Size of integer registers must be equal.";
-    }
-
-    use auxiliary = Qubit();
-    within {
-        let nQubitsX = Length(x);
-
-        // Take 2's complement
-        ApplyToEachCA(X, x + [auxiliary]);
-
-        MAJ(y[0], auxiliary, x[0]);
-        for i in IndexRange(Most(x)) {
-            MAJ(Most(x)[i], Rest(y)[i], Rest(x)[i])
-        }
-    } apply {
-        X(output);
-        CNOT(Tail(x), output);
-    }
 }
 
 // Classical processing
@@ -893,7 +837,7 @@ function QuantumROMDiscretization(bitsPrecision : Int, coefficients : Double[]) 
     let nCoefficients = Length(coefficients);
     Fact(bitsPrecision <= 31, $"Bits of precision {bitsPrecision} unsupported. Max is 31.");
     Fact(nCoefficients > 1, "Cannot prepare state with less than 2 coefficients.");
-    Fact(oneNorm != 0.0, "State must have at least one coefficient > 0");
+    Fact(oneNorm >= 0.0, "State must have at least one coefficient > 0");
 
     let barHeight = 2^bitsPrecision - 1;
 
@@ -1103,7 +1047,7 @@ operation WriteQuantumROMBitString(idx : Int, keepCoeff : Int[], altIndex : Int[
 /// and constructing a multiply-controlled unitary `PrepareArbitraryStateD` and `MultiplexOperationsFromGenerator`.
 function PauliBlockEncoding(generatorSystem : GeneratorSystem) : (Double, (Qubit[], Qubit[]) => Unit is Adj + Ctl) {
     let multiplexer = unitaryGenerator -> MultiplexOperationsFromGenerator(unitaryGenerator, _, _);
-    return PauliBlockEncodingInner(generatorSystem, coeff -> (qs => PrepareArbitraryStateD(coeff, qs)), multiplexer);
+    return PauliBlockEncodingInner(generatorSystem, coeff -> (qs => PreparePureStateD(coeff, Reversed(qs))), multiplexer);
 }
 
 /// # Summary

@@ -36,8 +36,8 @@ import Utils.IsNotZero;
 /// # Output
 /// `GeneratorIndex[]` expressing Z term as Pauli terms.
 function ZTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
-    let ((idxTermType, coeff), idxFermions) = term!;
-    return [new GeneratorIndex { Term = ([3], coeff), Subsystem = idxFermions }];
+    let (_, coeff) = term.Term;
+    return [new GeneratorIndex { Term = ([3], coeff), Subsystem = term.Subsystem }];
 }
 
 /// # Summary
@@ -51,8 +51,8 @@ function ZTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
 /// # Output
 /// `GeneratorIndex[]` expressing ZZ term as Pauli terms.
 function ZZTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
-    let ((idxTermType, coeff), idxFermions) = term!;
-    return [new GeneratorIndex { Term = ([3, 3], coeff), Subsystem = idxFermions }];
+    let (_, coeff) = term.Term;
+    return [new GeneratorIndex { Term = ([3, 3], coeff), Subsystem = term.Subsystem }];
 }
 
 /// # Summary
@@ -66,10 +66,10 @@ function ZZTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
 /// # Output
 /// `GeneratorIndex[]` expressing PQ term as Pauli terms.
 function PQTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
     let newCoeff = [coeff[0]];
-    let qubitPidx = idxFermions[0];
-    let qubitQidx = idxFermions[1];
+    let qubitPidx = term.Subsystem[0];
+    let qubitQidx = term.Subsystem[1];
     let qubitIndices = RangeAsIntArray(qubitPidx..qubitQidx);
     return [
         new GeneratorIndex { Term = (([1] + Repeated(3, Length(qubitIndices) - 2)) + [1], newCoeff), Subsystem = qubitIndices },
@@ -88,15 +88,15 @@ function PQTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
 /// # Output
 /// `GeneratorIndex[]` expressing PQ or PQQR term as Pauli terms.
 function PQandPQQRTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
     let newCoeff = [coeff[0]];
 
-    if Length(idxFermions) == 2 {
+    if Length(term.Subsystem) == 2 {
         return PQTermToPauliGenIdx(term);
     } else {
-        let qubitPidx = idxFermions[0];
-        let qubitQidx = idxFermions[1];
-        let qubitRidx = idxFermions[3];
+        let qubitPidx = term.Subsystem[0];
+        let qubitQidx = term.Subsystem[1];
+        let qubitRidx = term.Subsystem[3];
 
         if (qubitPidx < qubitQidx and qubitQidx < qubitRidx) {
 
@@ -129,9 +129,9 @@ function PQandPQQRTermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
 /// # Output
 /// `GeneratorIndex[]` expressing PQRS term as Pauli terms.
 function V0123TermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
-    let ((idxTermType, v0123), idxFermions) = term!;
-    let qubitsPQ = idxFermions[0..1];
-    let qubitsRS = idxFermions[2..3];
+    let (_, v0123) = term.Term;
+    let qubitsPQ = term.Subsystem[0..1];
+    let qubitsRS = term.Subsystem[2..3];
     let qubitsPQJW = RangeAsIntArray(qubitsPQ[0] + 1..qubitsPQ[1] - 1);
     let qubitsRSJW = RangeAsIntArray(qubitsRS[0] + 1..qubitsRS[1] - 1);
     let ops = [[1, 1, 1, 1], [1, 1, 2, 2], [1, 2, 1, 2], [2, 1, 1, 2], [2, 2, 2, 2], [2, 2, 1, 1], [2, 1, 2, 1], [1, 2, 2, 1]];

@@ -13,7 +13,6 @@ import JordanWigner.StatePreparation.PrepareTrialState;
 import JordanWigner.Utils.JordanWignerEncodingData;
 import JordanWigner.Utils.JordanWignerInputState;
 import JordanWigner.Utils.JWOptimizedHTerms;
-import Std.Arrays.ForEach;
 
 /// # Summary
 /// Estimates the energy of the molecule by summing the energy contributed by the individual Jordan-Wigner terms.
