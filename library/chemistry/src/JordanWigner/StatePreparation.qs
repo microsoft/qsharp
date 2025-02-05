@@ -125,55 +125,6 @@ operation PrepareSparseMultiConfigurationalState(
 }
 
 /// # Summary
-/// Given a set of coefficients and a little-endian encoded quantum register,
-/// prepares an state on that register described by the given coefficients.
-///
-/// # Description
-/// This operation prepares an arbitrary quantum
-/// state $\ket{\psi}$ with positive coefficients $\alpha_j\ge 0$ from
-/// the $n$-qubit computational basis state $\ket{0...0}$.
-///
-/// The action of U on the all-zeros state is given by
-/// $$
-/// \begin{align}
-///     U \ket{0\cdots 0} = \ket{\psi} = \frac{\sum_{j=0}^{2^n-1}\alpha_j \ket{j}}{\sqrt{\sum_{j=0}^{2^n-1}|\alpha_j|^2}}.
-/// \end{align}
-/// $$
-///
-/// # Input
-/// ## coefficients
-/// Array of up to $2^n$ real coefficients. The $j$th coefficient
-/// indexes the number state $\ket{j}$ encoded in little-endian format.
-///
-/// ## qubits
-/// Qubit register encoding number states in little-endian format. This is
-/// expected to be initialized in the computational basis state
-/// $\ket{0...0}$.
-///
-/// # Remarks
-/// Negative input coefficients $\alpha_j < 0$ will be treated as though
-/// positive with value $|\alpha_j|$. `coefficients` will be padded with
-/// elements $\alpha_j = 0.0$ if fewer than $2^n$ are specified.
-///
-/// # Example
-/// The following snippet prepares the quantum state $\ket{\psi}=\sqrt{1/8}\ket{0}+\sqrt{7/8}\ket{2}$
-/// in the qubit register `qubitsLE`.
-/// ```qsharp
-/// let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
-/// use qubits = Qubit[2];
-/// let qubitsLE = LittleEndian(qubits);
-/// PrepareArbitraryStateD(amplitudes, qubitsLE);
-/// ```
-///
-/// # References
-/// - [Synthesis of Quantum Logic Circuits](https://arxiv.org/abs/quant-ph/0406176)
-///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
-//Remove
-operation PrepareArbitraryStateD_Removed(coefficients : Double[], qubits : Qubit[]) : Unit is Adj + Ctl {
-    PreparePureStateD(coefficients, Reversed(qubits));
-}
-
-/// # Summary
 /// Unitary coupled-cluster state preparation of trial state
 ///
 /// # Input
