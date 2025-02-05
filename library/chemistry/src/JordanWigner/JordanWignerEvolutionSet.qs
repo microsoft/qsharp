@@ -6,7 +6,6 @@ export
     JordanWignerFermionEvolutionSet;
 
 import JordanWigner.Utils.JWOptimizedHTerms;
-import Std.Arrays.Fold;
 import Std.Arrays.IndexRange;
 import Std.Arrays.Subarray;
 import Utils.GeneratorIndex;
@@ -40,9 +39,9 @@ import Utils.IsNotZero;
 /// ## qubits
 /// Qubits of Hamiltonian.
 operation ApplyJordanWignerZTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
     let angle = (1.0 * coeff[0]) * stepSize;
-    let qubit = qubits[idxFermions[0]];
+    let qubit = qubits[term.Subsystem[0]];
     Exp([PauliZ], angle, [qubit]);
 }
 
@@ -58,9 +57,9 @@ operation ApplyJordanWignerZTerm(term : GeneratorIndex, stepSize : Double, qubit
 /// ## qubits
 /// Qubits of Hamiltonian.
 operation ApplyJordanWignerZZTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
     let angle = (1.0 * coeff[0]) * stepSize;
-    let qubitsZZ = Subarray(idxFermions[0..1], qubits);
+    let qubitsZZ = Subarray(term.Subsystem[0..1], qubits);
     Exp([PauliZ, PauliZ], angle, qubitsZZ);
 }
 
@@ -190,46 +189,16 @@ function JordanWignerGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSystem
 /// A `GeneratorSystem` representing a system that is the sum of the
 /// input generator systems.
 function AddGeneratorSystems(generatorSystemA : GeneratorSystem, generatorSystemB : GeneratorSystem) : GeneratorSystem {
-    let nTermsA = GetGeneratorSystemNTerms(generatorSystemA);
-    let nTermsB = GetGeneratorSystemNTerms(generatorSystemB);
-    let generatorIndexFunctionA = GetGeneratorSystemFunction(generatorSystemA);
-    let generatorIndexFunctionB = GetGeneratorSystemFunction(generatorSystemB);
+    let nTermsA = generatorSystemA.NumEntries;
+    let nTermsB = generatorSystemB.NumEntries;
     let generatorIndexFunction = idx -> {
         if idx < nTermsA {
-            return generatorIndexFunctionA(idx);
+            return generatorSystemA.EntryAt(idx);
         } else {
-            return generatorIndexFunctionB(idx - nTermsA);
+            return generatorSystemB.EntryAt(idx - nTermsA);
         }
     };
     return new GeneratorSystem { NumEntries = nTermsA + nTermsB, EntryAt = generatorIndexFunction };
-}
-
-/// # Summary
-/// Retrieves the number of terms in a `GeneratorSystem`.
-///
-/// # Input
-/// ## generatorSystem
-/// The `GeneratorSystem` of interest.
-///
-/// # Output
-/// The number of terms in a `GeneratorSystem`.
-function GetGeneratorSystemNTerms(generatorSystem : GeneratorSystem) : Int {
-    let (nTerms, generatorIndexFunction) = generatorSystem!;
-    return nTerms;
-}
-
-/// # Summary
-/// Retrieves the `GeneratorIndex` function in a `GeneratorSystem`.
-///
-/// # Input
-/// ## generatorSystem
-/// The `GeneratorSystem` of interest.
-///
-/// # Output
-/// An function that indexes each `GeneratorIndex` term in a Hamiltonian.
-function GetGeneratorSystemFunction(generatorSystem : GeneratorSystem) : (Int -> GeneratorIndex) {
-    let (nTerms, generatorIndexFunction) = generatorSystem!;
-    return generatorIndexFunction;
 }
 
 /// # Summary

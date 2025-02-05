@@ -12,7 +12,6 @@ import JordanWigner.JordanWignerEvolutionSet.JordanWignerGeneratorSystem;
 import JordanWigner.JordanWignerOptimizedBlockEncoding.JordanWignerOptimizedBlockEncoding;
 import JordanWigner.JordanWignerOptimizedBlockEncoding.PauliBlockEncoding;
 import JordanWigner.JordanWignerOptimizedBlockEncoding.QuantumWalkByQubitization;
-import JordanWigner.StatePreparation.PrepareArbitraryStateD;
 import JordanWigner.Utils.JordanWignerEncodingData;
 import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 import JordanWigner.Utils.TrotterSimulationAlgorithm;
@@ -20,7 +19,6 @@ import Std.Convert.IntAsDouble;
 import Std.Math.Ceiling;
 import Std.Math.Lg;
 import Utils.EvolutionGenerator;
-import Utils.GeneratorSystem;
 
 // Convenience functions for performing simulation.
 
@@ -28,7 +26,7 @@ import Utils.GeneratorSystem;
 /// Returns Trotter step operation and the parameters necessary to run it.
 ///
 /// # Input
-/// ## qSharpData
+/// ## jwHamiltonian
 /// Hamiltonian described by `JordanWignerEncodingData` format.
 /// ## trotterStepSize
 /// Step size of Trotter integrator.
@@ -39,24 +37,22 @@ import Utils.GeneratorSystem;
 /// A tuple where: `Int` is the number of qubits allocated,
 /// `Double` is `1.0/trotterStepSize`, and the operation
 /// is the Trotter step.
-function TrotterStepOracle(qSharpData : JordanWignerEncodingData, trotterStepSize : Double, trotterOrder : Int) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
-    let (nSpinOrbitals, data, statePrepData, energyShift) = qSharpData!;
-    let generatorSystem = JordanWignerGeneratorSystem(data);
+function TrotterStepOracle(jwHamiltonian : JordanWignerEncodingData, trotterStepSize : Double, trotterOrder : Int) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
+    let generatorSystem = JordanWignerGeneratorSystem(jwHamiltonian.Terms);
     let evolutionGenerator = new EvolutionGenerator { EvolutionSet = JordanWignerFermionEvolutionSet(), System = generatorSystem };
     let simulationAlgorithm = TrotterSimulationAlgorithm(trotterStepSize, trotterOrder);
     let oracle = simulationAlgorithm(trotterStepSize, evolutionGenerator, _);
-    let nTargetRegisterQubits = nSpinOrbitals;
+    let nTargetRegisterQubits = jwHamiltonian.NumQubits;
     let rescaleFactor = 1.0 / trotterStepSize;
     return (nTargetRegisterQubits, (rescaleFactor, oracle));
 }
 
 
-function QubitizationOracleSeperatedRegisters(qSharpData : JordanWignerEncodingData) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
-    let (nSpinOrbitals, data, statePrepData, energyShift) = qSharpData!;
-    let generatorSystem = JordanWignerBlockEncodingGeneratorSystem(data);
+function QubitizationOracleSeperatedRegisters(jwHamiltonian : JordanWignerEncodingData) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
+    let generatorSystem = JordanWignerBlockEncodingGeneratorSystem(jwHamiltonian.Terms);
     let (nTerms, genIdxFunction) = generatorSystem!;
     let (oneNorm, blockEncodingReflection) = PauliBlockEncoding(generatorSystem);
-    let nTargetRegisterQubits = nSpinOrbitals;
+    let nTargetRegisterQubits = jwHamiltonian.NumQubits;
     let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(nTerms)));
     return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
 }
@@ -65,15 +61,15 @@ function QubitizationOracleSeperatedRegisters(qSharpData : JordanWignerEncodingD
 /// Returns Qubitization operation and the parameters necessary to run it.
 ///
 /// # Input
-/// ## qSharpData
+/// ## jwHamiltonian
 /// Hamiltonian described by `JordanWignerEncodingData` format.
 ///
 /// # Output
 /// A tuple where: `Int` is the number of qubits allocated,
 /// `Double` is the one-norm of Hamiltonian coefficients, and the operation
 /// is the Quantum walk created by Qubitization.
-function QubitizationOracle(qSharpData : JordanWignerEncodingData) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = QubitizationOracleSeperatedRegisters(qSharpData);
+function QubitizationOracle(jwHamiltonian : JordanWignerEncodingData) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
+    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = QubitizationOracleSeperatedRegisters(jwHamiltonian);
     let nQubits = nCtrlRegisterQubits + nTargetRegisterQubits;
     return (nQubits, (oneNorm, MergeTwoRegisters(oracle, nTargetRegisterQubits, _)));
 }
@@ -84,9 +80,8 @@ operation MergeTwoRegisters(oracle : ((Qubit[], Qubit[]) => Unit is Adj + Ctl), 
 }
 
 
-function OptimizedQubitizationOracleSeperatedRegisters(qSharpData : JordanWignerEncodingData, targetError : Double) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
-    let (nSpinOrbitals, data, statePrepData, energyShift) = qSharpData!;
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection)) = JordanWignerOptimizedBlockEncoding(targetError, data, nSpinOrbitals);
+function OptimizedQubitizationOracleSeperatedRegisters(jwHamiltonian : JordanWignerEncodingData, targetError : Double) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
+    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection)) = JordanWignerOptimizedBlockEncoding(targetError, jwHamiltonian.Terms, jwHamiltonian.NumQubits);
     return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
 }
 
@@ -96,7 +91,7 @@ function OptimizedQubitizationOracleSeperatedRegisters(qSharpData : JordanWigner
 /// and the parameters necessary to run it.
 ///
 /// # Input
-/// ## qSharpData
+/// ## jwHamiltonian
 /// Hamiltonian described by `JordanWignerEncodingData` format.
 /// ## targetError
 /// Error of auxillary state preparation step.
@@ -105,8 +100,8 @@ function OptimizedQubitizationOracleSeperatedRegisters(qSharpData : JordanWigner
 /// A tuple where: `Int` is the number of qubits allocated,
 /// `Double` is the one-norm of Hamiltonian coefficients, and the operation
 /// is the Quantum walk created by Qubitization.
-function OptimizedQubitizationOracle(qSharpData : JordanWignerEncodingData, targetError : Double) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = OptimizedQubitizationOracleSeperatedRegisters(qSharpData, targetError);
+function OptimizedQubitizationOracle(jwHamiltonian : JordanWignerEncodingData, targetError : Double) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
+    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = OptimizedQubitizationOracleSeperatedRegisters(jwHamiltonian, targetError);
     let nQubits = nCtrlRegisterQubits + nTargetRegisterQubits;
     return (nQubits, (oneNorm, MergeTwoRegisters(oracle, nTargetRegisterQubits, _)));
 }

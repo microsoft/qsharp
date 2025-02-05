@@ -1,10 +1,11 @@
+import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+import JordanWigner.JordanWignerOptimizedBlockEncoding.PrepareUniformSuperposition;
 import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorPQRSTermSigns;
 import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
 import JordanWigner.OptimizedBEOperator.SelectZ;
-import JordanWigner.StatePreparation.PrepareArbitraryStateCP;
 import JordanWigner.StatePreparation.PrepareSparseMultiConfigurationalState;
 import JordanWigner.StatePreparation.PrepareUnitaryCoupledClusterState;
 import JordanWigner.Utils.JordanWignerInputState;
@@ -19,6 +20,22 @@ import Std.Math.Ceiling;
 import Std.Math.Complex;
 import Std.Math.ComplexPolar;
 import Std.Math.Lg;
+import Std.Arrays.Reversed;
+import Std.Math.Sqrt;
+
+@Config(Unrestricted)
+@Test()
+operation PrepareUniformSuperpositionTest() : Unit {
+    let NBits = 4;
+    use qs = Qubit[NBits];
+    for NStates in 1..2^NBits-1 {
+        PrepareUniformSuperposition(NStates, qs);
+        let t = Std.Math.Sqrt(1.0/IntAsDouble(NStates));
+        Adjoint Std.StatePreparation.PreparePureStateD(Repeated(t, NStates), Reversed(qs));
+        Fact(CheckAllZero(qs), "All Z");
+        ResetAll(qs);
+    }
+}
 
 @Config(Unrestricted)
 @Test()
@@ -291,7 +308,7 @@ operation JordanWignerUCCTermTestHelper(nQubits : Int, excitations : Int[], term
     }
     PrepareUnitaryCoupledClusterState(qs => I(qs[0]), term, 1.0, qubits);
     DumpRegister(qubits);
-    Adjoint PrepareArbitraryStateCP(DoublesToComplexPolar(result), qubits);
+    Adjoint ApproximatelyPreparePureStateCP(0.0, DoublesToComplexPolar(result), Reversed(qubits));
     Fact(CheckAllZero(qubits), "Expected qubits to all be in ground state.");
     ResetAll(qubits);
 }
