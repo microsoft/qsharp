@@ -36,7 +36,7 @@ fn begin_document() {
         "|OPENQASM 3;",
         &expect![[r"
             WordKinds(
-                Annotation | Include | OpenQASM | Pragma,
+                Annotation | Include | OpenQASM | Pragma | Qubit,
             )
         "]],
     );
@@ -48,7 +48,7 @@ fn end_of_version() {
         "OPENQASM 3;|",
         &expect![[r"
             WordKinds(
-                Annotation | Include | Pragma,
+                Annotation | Include | Pragma | Qubit,
             )
         "]],
     );
