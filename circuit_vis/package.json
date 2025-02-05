@@ -17,15 +17,6 @@
     "lib",
     "dist"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/microsoft/quantum-viz.js"
-  },
-  "keywords": [
-    "quantum",
-    "circuits",
-    "visualization"
-  ],
   "author": "Microsoft Quantum",
   "license": "MIT",
   "homepage": "https://github.com/microsoft/quantum-viz.js#readme"

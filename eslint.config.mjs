@@ -13,7 +13,6 @@ export default tseslint.config(
   {
     ignores: [
       "circuit_vis/lib/",
-      "circuit_vis/coverage/",
       "circuit_vis/dist/",
       "circuit_vis/*.config.js",
       "target/",
