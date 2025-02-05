@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::{fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
-/// Implementation of `Circuit` type at npm/qsharp/shared/circuit.ts
+/// Implementation of `CircuitData` type from `qsharp-lang` npm package.
 #[derive(Clone, Serialize, Default, Debug, PartialEq)]
 pub struct Circuit {
     pub operations: Vec<Operation>,
