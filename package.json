@@ -24,7 +24,7 @@
     "@types/chai": "^4.3.8",
     "@types/markdown-it": "^14.1.1",
     "@types/mocha": "^10.0.2",
-    "@types/node": "^20.18",
+    "@types/node": "^20.17",
     "@types/vscode": "^1.83.0",
     "@types/vscode-webview": "^1.57.3",
     "@vscode/debugadapter": "^1.63.0",
