@@ -15,7 +15,7 @@ use num_traits::Num;
 use qsc_data_structures::span::Span;
 
 use crate::{
-    ast::{BinOp, Expr, ExprKind, ExprStmt, Lit, LiteralKind, UnOp, Version},
+    ast::{BinOp, Expr, ExprKind, ExprStmt, Lit, LiteralKind, UnOp, ValueExpression, Version},
     keyword::Keyword,
     lex::{cooked::Literal, ClosedBinOp, Delim, Radix, Token, TokenKind},
     parser::{
@@ -384,4 +384,19 @@ pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
         span: s.span(lo),
         expr,
     })
+}
+
+pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
+    let lo = s.peek().span.lo;
+    let expr = expr_stmt(s)?;
+    let stmt = ExprStmt {
+        span: s.span(lo),
+        expr,
+    };
+    // todo: measurement
+    Ok(Box::new(ValueExpression::Expr(stmt)))
+}
+
+pub(crate) fn expr_list(_s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
+    todo!("expr_list")
 }

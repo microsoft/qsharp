@@ -62,10 +62,11 @@ pub struct Stmt {
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Stmt {}", self.span)?;
+        indent = set_indentation(indent, 1);
         for annotation in &self.annotations {
             write!(indent, "\n{annotation}")?;
         }
-        write!(indent, "Stmt {}", self.span)?;
         write!(indent, "\n{}", self.kind)?;
         Ok(())
     }
@@ -74,15 +75,19 @@ impl Display for Stmt {
 #[derive(Clone, Debug)]
 pub struct Annotation {
     pub span: Span,
-    pub name: Box<PathKind>,
+    pub identifier: Rc<str>,
     pub value: Option<Rc<str>>,
 }
 impl Display for Annotation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(value) = &self.value {
-            write!(f, "Annotation {}: {}, {}", self.span, self.name, value)
+            write!(
+                f,
+                "Annotation {}: ({}, {})",
+                self.span, self.identifier, value
+            )
         } else {
-            write!(f, "Annotation {}: {}", self.span, self.name)
+            write!(f, "Annotation {}: ({})", self.span, self.identifier)
         }
     }
 }
@@ -712,7 +717,7 @@ impl Display for QuantumMeasurement {
 #[derive(Clone, Debug)]
 pub struct ClassicalArgument {
     pub span: Span,
-    pub r#type: ClassicalType,
+    pub r#type: ScalarType,
     pub name: Identifier,
     pub access: Option<AccessControl>,
 }
@@ -738,7 +743,7 @@ impl Display for ClassicalArgument {
 #[derive(Clone, Debug)]
 pub struct ExternArgument {
     pub span: Span,
-    pub r#type: ClassicalType,
+    pub r#type: ScalarType,
     pub access: Option<AccessControl>,
 }
 
@@ -757,46 +762,42 @@ impl Display for ExternArgument {
 }
 
 #[derive(Clone, Debug)]
-pub struct ClassicalType {
+pub struct ScalarType {
     pub span: Span,
-    pub kind: ClassicalTypeKind,
+    pub kind: ScalarTypeKind,
 }
 
-impl Display for ClassicalType {
+impl Display for ScalarType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "ClassicalType {}: {}", self.span, self.kind)
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum ClassicalTypeKind {
+pub enum ScalarTypeKind {
+    Bit(BitType),
     Int(IntType),
     UInt(UIntType),
     Float(FloatType),
     Complex(ComplexType),
     Angle(AngleType),
-    Bit(BitType),
     BoolType,
-    Array(ArrayType),
-    ArrayReference(ArrayReferenceType),
     Duration,
     Stretch,
 }
 
-impl Display for ClassicalTypeKind {
+impl Display for ScalarTypeKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ClassicalTypeKind::Int(int) => write!(f, "ClassicalTypeKind {int}"),
-            ClassicalTypeKind::UInt(uint) => write!(f, "ClassicalTypeKind {uint}"),
-            ClassicalTypeKind::Float(float) => write!(f, "ClassicalTypeKind {float}"),
-            ClassicalTypeKind::Complex(complex) => write!(f, "ClassicalTypeKind {complex}"),
-            ClassicalTypeKind::Angle(angle) => write!(f, "ClassicalTypeKind {angle}"),
-            ClassicalTypeKind::Bit(bit) => write!(f, "ClassicalTypeKind {bit}"),
-            ClassicalTypeKind::BoolType => write!(f, "ClassicalTypeKind BoolType"),
-            ClassicalTypeKind::Array(array) => write!(f, "ClassicalTypeKind {array}"),
-            ClassicalTypeKind::ArrayReference(array) => write!(f, "ClassicalTypeKind {array}"),
-            ClassicalTypeKind::Duration => write!(f, "ClassicalTypeKind Duration"),
-            ClassicalTypeKind::Stretch => write!(f, "ClassicalTypeKind Stretch"),
+            ScalarTypeKind::Int(int) => write!(f, "{int}"),
+            ScalarTypeKind::UInt(uint) => write!(f, "{uint}"),
+            ScalarTypeKind::Float(float) => write!(f, "{float}"),
+            ScalarTypeKind::Complex(complex) => write!(f, "{complex}"),
+            ScalarTypeKind::Angle(angle) => write!(f, "{angle}"),
+            ScalarTypeKind::Bit(bit) => write!(f, "{bit}"),
+            ScalarTypeKind::BoolType => write!(f, "BoolType"),
+            ScalarTypeKind::Duration => write!(f, "Duration"),
+            ScalarTypeKind::Stretch => write!(f, "Stretch"),
         }
     }
 }
@@ -808,8 +809,8 @@ pub enum ArrayBaseTypeKind {
     Float(FloatType),
     Complex(ComplexType),
     Angle(AngleType),
-    Bit(BitType),
     BoolType,
+    Duration,
 }
 
 impl Display for ArrayBaseTypeKind {
@@ -820,7 +821,7 @@ impl Display for ArrayBaseTypeKind {
             ArrayBaseTypeKind::Float(float) => write!(f, "ArrayBaseTypeKind {float}"),
             ArrayBaseTypeKind::Complex(complex) => write!(f, "ArrayBaseTypeKind {complex}"),
             ArrayBaseTypeKind::Angle(angle) => write!(f, "ArrayBaseTypeKind {angle}"),
-            ArrayBaseTypeKind::Bit(bit) => write!(f, "ArrayBaseTypeKind {bit}"),
+            ArrayBaseTypeKind::Duration => write!(f, "ArrayBaseTypeKind DurationType"),
             ArrayBaseTypeKind::BoolType => write!(f, "ArrayBaseTypeKind BoolType"),
         }
     }
@@ -835,9 +836,9 @@ pub struct IntType {
 impl Display for IntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(size) = &self.size {
-            write!(f, "IntType {}: {}", self.span, size)
+            write!(f, "IntType[{}]: {}", size, self.span)
         } else {
-            write!(f, "IntType")
+            write!(f, "IntType {}", self.span)
         }
     }
 }
@@ -851,9 +852,9 @@ pub struct UIntType {
 impl Display for UIntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(size) = &self.size {
-            write!(f, "UIntType {}: {}", self.span, size)
+            write!(f, "UIntType[{}]: {}", size, self.span)
         } else {
-            write!(f, "UIntType")
+            write!(f, "UIntType {}", self.span)
         }
     }
 }
@@ -867,9 +868,9 @@ pub struct FloatType {
 impl Display for FloatType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(size) = &self.size {
-            write!(f, "FloatType {}: {}", self.span, size)
+            write!(f, "FloatType[{}]: {}", size, self.span)
         } else {
-            write!(f, "FloatType")
+            write!(f, "FloatType {}", self.span)
         }
     }
 }
@@ -883,9 +884,9 @@ pub struct ComplexType {
 impl Display for ComplexType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(size) = &self.base_size {
-            write!(f, "ComplexType {}: {}", self.span, size)
+            write!(f, "ComplexType[float[{}]]: {}", size, self.span)
         } else {
-            write!(f, "ComplexType")
+            write!(f, "ComplexType {}", self.span)
         }
     }
 }
@@ -901,7 +902,7 @@ impl Display for AngleType {
         if let Some(size) = &self.size {
             write!(f, "AngleType {}: {}", self.span, size)
         } else {
-            write!(f, "AngleType")
+            write!(f, "AngleType {}", self.span)
         }
     }
 }
@@ -923,10 +924,27 @@ impl Display for BitType {
 }
 
 #[derive(Clone, Debug)]
+pub enum TypeDef {
+    Scalar(ScalarType),
+    Array(ArrayType),
+    ArrayReference(ArrayReferenceType),
+}
+
+impl Display for TypeDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeDef::Scalar(scalar) => write!(f, "{scalar}"),
+            TypeDef::Array(array) => write!(f, "{array}"),
+            TypeDef::ArrayReference(array) => write!(f, "{array}"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ArrayType {
     pub span: Span,
     pub base_type: ArrayBaseTypeKind,
-    pub dimensions: List<ExprStmt>,
+    pub dimensions: List<Expr>,
 }
 
 impl Display for ArrayType {
@@ -992,16 +1010,16 @@ impl Display for QuantumArgument {
 #[derive(Clone, Debug)]
 pub struct Pragma {
     pub span: Span,
-    pub name: Box<PathKind>,
+    pub identifier: Rc<str>,
     pub value: Option<Rc<str>>,
 }
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(value) = &self.value {
-            write!(f, "Pragma {}: {}, {}", self.span, self.name, value)
+            write!(f, "Pragma {}: ({}, {})", self.span, self.identifier, value)
         } else {
-            write!(f, "Pragma {}: {}", self.span, self.name)
+            write!(f, "Pragma {}: ({})", self.span, self.identifier)
         }
     }
 }
@@ -1087,7 +1105,7 @@ pub struct ExternDecl {
     pub span: Span,
     pub name: Identifier,
     pub arguments: List<ExternArgument>,
-    pub return_type: Option<ClassicalType>,
+    pub return_type: Option<ScalarType>,
 }
 
 impl Display for ExternDecl {
@@ -1245,8 +1263,8 @@ impl Display for MeasureStmt {
 #[derive(Clone, Debug)]
 pub struct ClassicalDeclarationStmt {
     pub span: Span,
-    pub r#type: ClassicalType,
-    pub identifier: Identifier,
+    pub r#type: TypeDef,
+    pub identifier: Box<Ident>,
     pub init_expr: Option<Box<ValueExpression>>,
 }
 
@@ -1287,8 +1305,8 @@ impl Display for ValueExpression {
 pub struct IODeclaration {
     pub span: Span,
     pub io_identifier: IOKeyword,
-    pub r#type: ClassicalType,
-    pub identifier: Identifier,
+    pub r#type: TypeDef,
+    pub identifier: Box<Ident>,
 }
 
 impl Display for IODeclaration {
@@ -1303,10 +1321,10 @@ impl Display for IODeclaration {
 
 #[derive(Clone, Debug)]
 pub struct ConstantDeclaration {
-    span: Span,
-    r#type: ClassicalType,
-    identifier: Identifier,
-    init_expr: ExprStmt,
+    pub span: Span,
+    pub r#type: TypeDef,
+    pub identifier: Box<Ident>,
+    pub init_expr: Box<ExprStmt>,
 }
 
 impl Display for ConstantDeclaration {
@@ -1353,7 +1371,7 @@ pub struct CalibrationDefinition {
     name: Identifier,
     args: List<CalibrationArgument>,
     qubits: List<Identifier>,
-    return_type: Option<ClassicalType>,
+    return_type: Option<ScalarType>,
     body: String,
 }
 
@@ -1395,7 +1413,7 @@ pub struct DefStmt {
     name: Identifier,
     args: List<Box<Operand>>,
     body: List<Box<Stmt>>,
-    return_type: Option<ClassicalType>,
+    return_type: Option<ScalarType>,
 }
 
 impl Display for DefStmt {
@@ -1489,7 +1507,7 @@ impl Display for WhileLoop {
 #[derive(Clone, Debug)]
 pub struct ForStmt {
     span: Span,
-    r#type: ClassicalType,
+    r#type: ScalarType,
     identifier: Identifier,
     set_declaration: Box<EnumerableSet>,
     block: List<Stmt>,
@@ -1647,7 +1665,7 @@ impl Display for FunctionCall {
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
-    pub r#type: ClassicalType,
+    pub r#type: ScalarType,
     pub arg: ExprStmt,
 }
 
