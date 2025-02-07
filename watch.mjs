@@ -54,7 +54,7 @@ function buildRust() {
       (release ? "(release)" : "(debug)"),
   );
 
-  // Debug build takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
+  // Dev build takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
   // Build only web and not node targets to half time.
   const buildDir = join(
     thisDir,
