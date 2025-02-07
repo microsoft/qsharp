@@ -4,21 +4,28 @@
 #[cfg(test)]
 pub(crate) mod tests;
 
+use std::rc::Rc;
+
 use qsc_data_structures::span::Span;
 
 use super::{
     completion::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator},
-    prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token},
+    prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, shorten},
     Result,
 };
 use crate::{
     ast::{
-        Annotation, Block, IncludeStmt, LiteralKind, PathKind, Pragma, QubitDeclaration, Stmt,
-        StmtKind,
+        AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
+        ClassicalDeclarationStmt, ComplexType, ConstantDeclaration, ExprStmt, FloatType,
+        IODeclaration, IOKeyword, IncludeStmt, IntType, LiteralKind, Pragma, QubitDeclaration,
+        ScalarType, ScalarTypeKind, Stmt, StmtKind, TypeDef, UIntType,
     },
-    lex::{cooked::Literal, Delim, TokenKind},
+    lex::{
+        cooked::{Literal, Type},
+        Delim, TokenKind,
+    },
 };
 
 use super::{prim::token, ParserContext};
@@ -43,7 +50,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         }
     } else if let Some(v) = opt(s, parse_include)? {
         Box::new(v)
-    } else if let Some(decl) = opt(s, parse_quantum_decl)? {
+    } else if let Some(decl) = opt(s, parse_local)? {
         Box::new(decl)
     } else {
         return Err(Error::new(ErrorKind::Rule(
@@ -87,17 +94,54 @@ fn default(span: Span) -> Box<Stmt> {
     })
 }
 
-fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
+pub fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Annotation);
-    token(s, TokenKind::Annotation)?;
-    // parse name
-    // parse value
-    recovering_semi(s);
+
+    let token = s.peek();
+    let pat = &['\t', ' '];
+    let parts: Vec<&str> = if token.kind == TokenKind::Annotation {
+        let lexeme = s.read();
+        s.advance();
+        // remove @
+        // split lexeme at first space/tab collecting each side
+        shorten(1, 0, lexeme).splitn(2, pat).collect()
+    } else {
+        return Err(Error::new(ErrorKind::Rule(
+            "annotation",
+            token.kind,
+            token.span,
+        )));
+    };
+
+    let identifier = parts.first().map_or_else(
+        || {
+            Err(Error::new(ErrorKind::Rule(
+                "annotation",
+                token.kind,
+                token.span,
+            )))
+        },
+        |s| Ok(Into::<Rc<str>>::into(*s)),
+    )?;
+
+    if identifier.is_empty() {
+        s.push_error(Error::new(ErrorKind::Rule(
+            "annotation missing identifier",
+            token.kind,
+            token.span,
+        )));
+    }
+
+    // remove any leading whitespace from the value side
+    let value = parts
+        .get(1)
+        .map(|s| Into::<Rc<str>>::into(s.trim_start_matches(pat)));
+
     Ok(Box::new(Annotation {
         span: s.span(lo),
-        name: Box::new(PathKind::default()),
-        value: None,
+        identifier,
+        value,
     }))
 }
 
@@ -128,15 +172,64 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
 fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Pragma);
-    token(s, TokenKind::Keyword(crate::keyword::Keyword::Pragma))?;
-    // parse name
-    // parse value
+
+    let token = s.peek();
+
+    let parts: Vec<&str> = if token.kind == TokenKind::Pragma {
+        let lexeme = s.read();
+        s.advance();
+        // remove pragma keyword and any leading whitespace
+        // split lexeme at first space/tab collecting each side
+        let pat = &['\t', ' '];
+        shorten(6, 0, lexeme)
+            .trim_start_matches(pat)
+            .splitn(2, pat)
+            .collect()
+    } else {
+        return Err(Error::new(ErrorKind::Rule(
+            "pragma", token.kind, token.span,
+        )));
+    };
+
+    let identifier = parts.first().map_or_else(
+        || {
+            Err(Error::new(ErrorKind::Rule(
+                "pragma", token.kind, token.span,
+            )))
+        },
+        |s| Ok(Into::<Rc<str>>::into(*s)),
+    )?;
+
+    if identifier.is_empty() {
+        s.push_error(Error::new(ErrorKind::Rule(
+            "pragma missing identifier",
+            token.kind,
+            token.span,
+        )));
+    }
+    let value = parts.get(1).map(|s| Into::<Rc<str>>::into(*s));
 
     Ok(Pragma {
         span: s.span(lo),
-        name: Box::new(PathKind::default()),
-        value: None,
+        identifier,
+        value,
     })
+}
+
+fn parse_local(s: &mut ParserContext) -> Result<StmtKind> {
+    if let Some(decl) = opt(s, parse_classical_decl)? {
+        Ok(decl)
+    } else if let Some(decl) = opt(s, parse_quantum_decl)? {
+        Ok(decl)
+    } else if let Some(decl) = opt(s, parse_io_decl)? {
+        Ok(decl)
+    } else {
+        Err(Error::new(ErrorKind::Rule(
+            "local declaration",
+            s.peek().kind,
+            s.peek().span,
+        )))
+    }
 }
 
 fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
@@ -152,4 +245,360 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
         qubit: *name,
         size,
     }))
+}
+
+fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+
+    let kind = if token(s, TokenKind::Keyword(crate::keyword::Keyword::Input)).is_ok() {
+        IOKeyword::Input
+    } else if token(s, TokenKind::Keyword(crate::keyword::Keyword::Output)).is_ok() {
+        IOKeyword::Output
+    } else {
+        let token = s.peek();
+        return Err(Error::new(ErrorKind::Rule(
+            "io declaration",
+            token.kind,
+            token.span,
+        )));
+    };
+
+    let ty = scalar_or_array_type(s)?;
+
+    let identifier = prim::ident(s)?;
+    recovering_semi(s);
+    let decl = IODeclaration {
+        span: s.span(lo),
+        io_identifier: kind,
+        r#type: ty,
+        identifier,
+    };
+    Ok(StmtKind::IODeclaration(decl))
+}
+
+fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
+    if let Ok(v) = scalar_type(s) {
+        return Ok(TypeDef::Scalar(v));
+    }
+    if let Ok(v) = array_type(s) {
+        return Ok(TypeDef::Array(v));
+    }
+    Err(Error::new(ErrorKind::Rule(
+        "scalar or array type",
+        s.peek().kind,
+        s.peek().span,
+    )))
+}
+
+fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+    let is_const = if s.peek().kind == TokenKind::Keyword(crate::keyword::Keyword::Const) {
+        s.advance();
+        true
+    } else {
+        false
+    };
+    let ty = scalar_or_array_type(s)?;
+
+    let identifier = prim::ident(s)?;
+
+    let stmt = if is_const {
+        token(s, TokenKind::Eq)?;
+        let init_expr = expr::expr(s)?;
+        recovering_semi(s);
+        let decl = ConstantDeclaration {
+            span: s.span(lo),
+            r#type: ty,
+            identifier,
+            init_expr: Box::new(ExprStmt {
+                span: init_expr.span,
+                expr: init_expr,
+            }),
+        };
+        StmtKind::ConstDecl(decl)
+    } else {
+        let init_expr = if s.peek().kind == TokenKind::Eq {
+            s.advance();
+            Some(expr::value_expr(s)?)
+        } else {
+            None
+        };
+        recovering_semi(s);
+        let decl = ClassicalDeclarationStmt {
+            span: s.span(lo),
+            r#type: ty,
+            identifier,
+            init_expr,
+        };
+        StmtKind::ClassicalDecl(decl)
+    };
+
+    Ok(stmt)
+}
+
+pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Array))?;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let kind = array_base_type(s)?;
+    token(s, TokenKind::Comma)?;
+    let expr_list = expr::expr_list(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+
+    Ok(ArrayType {
+        base_type: kind,
+        span: s.span(lo),
+        dimensions: expr_list
+            .into_iter()
+            .map(Box::new)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
+    })
+}
+
+pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    if let Ok(v) = array_angle_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_bool_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_int_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_uint_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_float_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_complex_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = array_duration_type(s) {
+        return Ok(v);
+    }
+
+    Err(Error::new(ErrorKind::Rule(
+        "array type",
+        s.peek().kind,
+        s.peek().span,
+    )))
+}
+
+pub(super) fn scalar_type(s: &mut ParserContext) -> Result<ScalarType> {
+    if let Ok(v) = scalar_bit_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_angle_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_bool_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_int_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_uint_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_float_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_complex_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_duration_type(s) {
+        return Ok(v);
+    }
+    if let Ok(v) = scalar_stretch_type(s) {
+        return Ok(v);
+    }
+    Err(Error::new(ErrorKind::Rule(
+        "scalar type",
+        s.peek().kind,
+        s.peek().span,
+    )))
+}
+
+fn scalar_bit_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Bit))?;
+    let size = opt(s, designator)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Bit(BitType {
+            size,
+            span: s.span(lo),
+        }),
+    })
+}
+
+fn scalar_int_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    let ty = int_type(s)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Int(ty),
+    })
+}
+
+fn array_int_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::Int))?;
+    let ty = int_type(s)?;
+    Ok(ArrayBaseTypeKind::Int(ty))
+}
+
+fn int_type(s: &mut ParserContext) -> Result<IntType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Int))?;
+    let size = opt(s, designator)?;
+    Ok(IntType {
+        size,
+        span: s.span(lo),
+    })
+}
+fn scalar_uint_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    let ty = uint_type(s)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::UInt(ty),
+    })
+}
+
+fn array_uint_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::UInt))?;
+    let ty = uint_type(s)?;
+    Ok(ArrayBaseTypeKind::UInt(ty))
+}
+
+fn uint_type(s: &mut ParserContext) -> Result<UIntType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::UInt))?;
+    let size = opt(s, designator)?;
+    Ok(UIntType {
+        size,
+        span: s.span(lo),
+    })
+}
+
+fn scalar_float_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    let ty = float_type(s)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Float(ty),
+    })
+}
+
+fn array_float_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::Float))?;
+    let ty = float_type(s)?;
+    Ok(ArrayBaseTypeKind::Float(ty))
+}
+
+fn float_type(s: &mut ParserContext) -> Result<FloatType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Float))?;
+    let size = opt(s, designator)?;
+    Ok(FloatType {
+        span: s.span(lo),
+        size,
+    })
+}
+
+fn scalar_angle_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    let ty = angle_type(s)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Angle(ty),
+    })
+}
+
+fn array_angle_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::Angle))?;
+    let ty = angle_type(s)?;
+    Ok(ArrayBaseTypeKind::Angle(ty))
+}
+
+fn angle_type(s: &mut ParserContext) -> Result<AngleType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Angle))?;
+    let size = opt(s, designator)?;
+    Ok(AngleType {
+        size,
+        span: s.span(lo),
+    })
+}
+
+fn scalar_bool_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Bool))?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::BoolType,
+    })
+}
+
+fn array_bool_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::Bool))?;
+    Ok(ArrayBaseTypeKind::BoolType)
+}
+
+fn scalar_duration_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Duration))?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Duration,
+    })
+}
+
+fn array_duration_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    token(s, TokenKind::Type(Type::Duration))?;
+    Ok(ArrayBaseTypeKind::Duration)
+}
+
+fn scalar_stretch_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Stretch))?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Stretch,
+    })
+}
+
+pub(super) fn scalar_complex_type(s: &mut ParserContext) -> Result<ScalarType> {
+    let lo = s.peek().span.lo;
+
+    let ty = complex_type(s)?;
+    Ok(ScalarType {
+        span: s.span(lo),
+        kind: ScalarTypeKind::Complex(ty),
+    })
+}
+
+pub(super) fn array_complex_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    let ty = complex_type(s)?;
+    Ok(ArrayBaseTypeKind::Complex(ty))
+}
+
+pub(super) fn complex_type(s: &mut ParserContext) -> Result<ComplexType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Complex))?;
+
+    let subty = opt(s, complex_subtype)?;
+    Ok(ComplexType {
+        base_size: subty,
+        span: s.span(lo),
+    })
+}
+
+pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let ty = float_type(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(ty)
 }
