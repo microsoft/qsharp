@@ -36,7 +36,8 @@ jobs:
         target_name: [qsharp, qasm3]
 
     runs-on: ${{ matrix.os }}
-
+    permissions:
+      issues: write
     steps:
       - name: Install and Configure Tools
         run: |
