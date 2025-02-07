@@ -34,11 +34,11 @@ fn check_valid_words_no_source_name(input: &str, expect: &expect_test::Expect) {
 fn begin_document() {
     check_valid_words(
         "|OPENQASM 3;",
-        &expect![[r"
+        &expect![[r#"
             WordKinds(
-                Annotation | Include | OpenQASM | Pragma | Qubit,
+                Annotation | Include | Input | OpenQASM | Output | Pragma | Qubit,
             )
-        "]],
+        "#]],
     );
 }
 
@@ -46,10 +46,10 @@ fn begin_document() {
 fn end_of_version() {
     check_valid_words(
         "OPENQASM 3;|",
-        &expect![[r"
+        &expect![[r#"
             WordKinds(
-                Annotation | Include | Pragma | Qubit,
+                Annotation | Include | Input | Output | Pragma | Qubit,
             )
-        "]],
+        "#]],
     );
 }
