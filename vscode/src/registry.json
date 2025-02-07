@@ -1,14 +1,26 @@
 {
   "knownPackages": [
     {
+      "name": "Chemistry",
+      "description": "A collection of Chemistry algorithms and utilities",
+      "dependency": {
+        "github": {
+          "owner": "microsoft",
+          "repo": "qsharp",
+          "refs": [{ "ref": "main", "notes": "nightly, unstable" }],
+          "path": "library/chemistry"
+        }
+      }
+    },
+    {
       "name": "Signed",
-      "description": "Defines types and functions to work with signed qubit-based integers.",
+      "description": "Defines types and functions to work with signed qubit-based integers",
       "dependency": {
         "github": {
           "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
-            { "ref": "bd5a09c", "notes": "latest stable" },
+            { "ref": "v1.13", "notes": "latest stable" },
             { "ref": "main", "notes": "nightly, unstable" }
           ],
           "path": "library/signed"
@@ -17,13 +29,13 @@
     },
     {
       "name": "FixedPoint",
-      "description": "Types and functions for fixed-point arithmetic with qubits.",
+      "description": "Types and functions for fixed-point arithmetic with qubits",
       "dependency": {
         "github": {
           "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
-            { "ref": "bd5a09c", "notes": "latest stable" },
+            { "ref": "v1.13", "notes": "latest stable" },
             { "ref": "main", "notes": "nightly, unstable" }
           ],
           "path": "library/fixed_point"
@@ -32,13 +44,13 @@
     },
     {
       "name": "Rotations",
-      "description": "Defines types and functions to work with rotations.",
+      "description": "Defines types and functions to work with rotations",
       "dependency": {
         "github": {
           "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
-            { "ref": "bd5a09c", "notes": "latest stable" },
+            { "ref": "v1.13", "notes": "latest stable" },
             { "ref": "main", "notes": "nightly, unstable" }
           ],
           "path": "library/rotations"
@@ -47,13 +59,13 @@
     },
     {
       "name": "Qtest",
-      "description": "Utilities for writing and running Q# tests.",
+      "description": "Utilities for writing and running Q# tests",
       "dependency": {
         "github": {
           "owner": "microsoft",
           "repo": "qsharp",
           "refs": [
-            { "ref": "bd5a09c", "notes": "latest stable" },
+            { "ref": "v1.13", "notes": "latest stable" },
             { "ref": "main", "notes": "nightly, unstable" }
           ],
           "path": "library/qtest"
