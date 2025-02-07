@@ -615,3 +615,217 @@ fn lit_float_imag_underscore() {
 fn lit_float_imag_leading_zero() {
     check(expr, "0.23im", &expect!["Expr [0-6]: Lit: Imaginary(0.23)"]);
 }
+
+#[test]
+fn pratt_parsing_mul_add() {
+    check(
+        expr,
+        "1 + 2 * 3",
+        &expect![[r#"
+            Expr [0-9]: BinOp (Add):
+                Expr [0-1]: Lit: Int(1)
+                Expr [4-9]: BinOp (Mul):
+                    Expr [4-5]: Lit: Int(2)
+                    Expr [8-9]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn pratt_parsing_parens() {
+    check(
+        expr,
+        "(1 + 2) * 3",
+        &expect![[r#"
+        Expr [0-11]: BinOp (Mul):
+            Expr [0-7]: Expr [1-6]: BinOp (Add):
+                Expr [1-2]: Lit: Int(1)
+                Expr [5-6]: Lit: Int(2)
+            Expr [10-11]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn funcall() {
+    check(
+        expr,
+        "square(2)",
+        &expect![[r#"
+            Expr [0-9]: FunctionCall [0-9]: Ident [0-6] "square"
+                Expr [7-8]: Lit: Int(2)"#]],
+    );
+}
+
+#[test]
+fn funcall_multiple_args() {
+    check(
+        expr,
+        "square(2, 3)",
+        &expect![[r#"
+            Expr [0-12]: FunctionCall [0-12]: Ident [0-6] "square"
+                Expr [7-8]: Lit: Int(2)
+                Expr [10-11]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn funcall_multiple_args_trailing_comma() {
+    check(
+        expr,
+        "square(2, 3,)",
+        &expect![[r#"
+            Expr [0-13]: FunctionCall [0-13]: Ident [0-6] "square"
+                Expr [7-8]: Lit: Int(2)
+                Expr [10-11]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn cast() {
+    check(
+        expr,
+        "float(2)",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "expression",
+                    Type(
+                        Float,
+                    ),
+                    Span {
+                        lo: 0,
+                        hi: 5,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn index_expr() {
+    check(
+        expr,
+        "foo[1]",
+        &expect![[r#"
+            Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                IndexSetItem Expr [4-5]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn index_set() {
+    check(
+        expr,
+        "foo[{1, 4, 5}]",
+        &expect![[r#"
+            Expr [0-14]: IndexExpr [3-14]: Expr [0-3]: Ident [0-3] "foo", IndexElement DiscreteSet [4-13]:
+                Expr [5-6]: Lit: Int(1)
+                Expr [8-9]: Lit: Int(4)
+                Expr [11-12]: Lit: Int(5)"#]],
+    );
+}
+
+#[test]
+fn index_multiple_ranges() {
+    check(
+        expr,
+        "foo[1:5, 3:7, 4:8]",
+        &expect![[r#"
+            Expr [0-18]: IndexExpr [3-18]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-7]
+                    Expr [4-5]: Lit: Int(1)
+                    <no step>
+                    Expr [6-7]: Lit: Int(5)
+                Range: [9-12]
+                    Expr [9-10]: Lit: Int(3)
+                    <no step>
+                    Expr [11-12]: Lit: Int(7)
+                Range: [14-17]
+                    Expr [14-15]: Lit: Int(4)
+                    <no step>
+                    Expr [16-17]: Lit: Int(8)"#]],
+    );
+}
+
+#[test]
+fn index_range() {
+    check(
+        expr,
+        "foo[1:5:2]",
+        &expect![[r#"
+            Expr [0-10]: IndexExpr [3-10]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-9]
+                    Expr [4-5]: Lit: Int(1)
+                    Expr [8-9]: Lit: Int(2)
+                    Expr [6-7]: Lit: Int(5)"#]],
+    );
+}
+
+#[test]
+fn index_full_range() {
+    check(
+        expr,
+        "foo[:]",
+        &expect![[r#"
+            Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-5]
+                    <no start>
+                    <no step>
+                    <no end>"#]],
+    );
+}
+
+#[test]
+fn index_range_start() {
+    check(
+        expr,
+        "foo[1:]",
+        &expect![[r#"
+            Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-6]
+                    Expr [4-5]: Lit: Int(1)
+                    <no step>
+                    <no end>"#]],
+    );
+}
+
+#[test]
+fn index_range_end() {
+    check(
+        expr,
+        "foo[:5]",
+        &expect![[r#"
+            Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-6]
+                    <no start>
+                    <no step>
+                    Expr [5-6]: Lit: Int(5)"#]],
+    );
+}
+
+#[test]
+fn index_range_step() {
+    check(
+        expr,
+        "foo[::2]",
+        &expect![[r#"
+            Expr [0-8]: IndexExpr [3-8]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
+                Range: [4-7]
+                    <no start>
+                    Expr [6-7]: Lit: Int(2)
+                    <no end>"#]],
+    );
+}
+
+#[test]
+fn set_expr() {
+    check(
+        super::set_expr,
+        "{2, 3, 4}",
+        &expect![[r#"
+        DiscreteSet [0-9]:
+            Expr [1-2]: Lit: Int(2)
+            Expr [4-5]: Lit: Int(3)
+            Expr [7-8]: Lit: Int(4)"#]],
+    );
+}
