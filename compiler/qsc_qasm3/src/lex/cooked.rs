@@ -477,7 +477,6 @@ impl<'a> Lexer<'a> {
 
     fn eat_to_end_of_line(&mut self) {
         self.eat_while(|t| t != raw::TokenKind::Newline);
-        self.next_if_eq(raw::TokenKind::Newline);
     }
 
     /// Consumes a list of tokens zero or more times.
