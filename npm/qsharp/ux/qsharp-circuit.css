@@ -192,3 +192,33 @@
   opacity: 1;
   transition: opacity 1s;
 }
+
+text {
+  user-select: none;
+  pointer-events: none;
+}
+.dropzone-layer {
+  display: none;
+}
+.dropzone {
+  fill-opacity: 0%;
+  stroke-opacity: 0%;
+}
+.dropzone:hover {
+  fill: #ec7063;
+  fill-opacity: 50%;
+}
+.grab {
+  cursor: grab;
+}
+.moving {
+  cursor: move;
+}
+.copying {
+  cursor: copy;
+}
+
+.panel {
+  display: flex;
+  flex-direction: row;
+}

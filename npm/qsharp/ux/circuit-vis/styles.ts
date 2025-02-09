@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import {
+  gateHeight,
+  minGateWidth,
+  panelMinHeight,
+  panelWidth,
+} from "./constants";
+
 /**
  * Provides configuration for CSS styles of visualization.
  */
@@ -95,7 +102,9 @@ export const style = (customStyle: StyleConfig = {}): string => {
 
   return `${_defaultGates(styleConfig)}
     ${_classicallyControlledGates(styleConfig)}
-    ${_expandCollapse}`;
+    ${_expandCollapse}
+    ${_draggable}
+    ${_panel}`;
 };
 
 const _defaultGates = (styleConfig: StyleConfig): string => `
@@ -234,3 +243,80 @@ const _expandCollapse = `
         opacity: 1;
         transition: opacity 1s;
     }`;
+
+const _draggable = `
+    text {
+        user-select: none;
+        pointer-events: none;
+    }
+    .dropzone-layer {
+        display: none;
+    }
+    .dropzone {
+        fill-opacity: 0%;
+        stroke-opacity: 0%;
+    }
+    .dropzone:hover {
+        fill: #EC7063;
+        fill-opacity: 50%;
+    }
+    .grab {
+        cursor: grab;
+    }
+    .moving {
+        cursor: move;
+    }
+    .copying {
+        cursor: copy;
+    }
+    `;
+
+const _panel = `
+    .container {
+        display: flex;
+    }
+    .edit-panel {
+        display: flex;
+        flex-direction: column;
+    }
+    .title {
+        margin: 0 0 4px;
+        font-size: 1.2rem;
+        user-select: none;
+    }
+    .block {
+        display: block;
+    }
+    .target-input, .controls-input, .parameters-input {
+        margin-bottom: 8px;
+    }
+    .add-panel-gate {
+        width: 40px;
+        height: 40px;
+        border: 1px solid black;
+    }
+    .add-panel-svg {
+        width: ${panelWidth}px;
+        min-height: ${panelMinHeight}px;
+    }
+    .ghost {
+        width: ${minGateWidth}px;
+        height: ${gateHeight}px;
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+    }
+    .qubit-line-control {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .add-qubit-line, .remove-qubit-line {
+        border-radius: 4px;
+        padding: 8px 16px;
+        margin: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+`;

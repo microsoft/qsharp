@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { log } from "qsharp-lang";
-// import { CircuitProps, CircuitData } from "qsharp-lang/ux";
 import * as vscode from "vscode";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
@@ -23,7 +21,8 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
-    token: vscode.CancellationToken,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _token: vscode.CancellationToken,
   ): Promise<void> {
     log.info("Resolving CircuitEditorProvider");
     console.log("Resolving CircuitEditorProvider");
@@ -33,6 +32,20 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       enableScripts: true,
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+
+    webviewPanel.webview.onDidReceiveMessage((e) => {
+      switch (e.command) {
+        case "alert":
+          vscode.window.showErrorMessage(e.text);
+          return;
+        case "update":
+          this.updateTextDocument(document, e.text);
+          return;
+        case "read":
+          updateWebview();
+          return;
+      }
+    });
 
     const updateWebview = () => {
       const circuit = this.getDocumentAsJson(document);
@@ -168,7 +181,12 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   /**
    * Write out the json to a given document.
    */
-  private updateTextDocument(document: vscode.TextDocument, json: any) {
+  private updateTextDocument(document: vscode.TextDocument, circuit: string) {
+    // Short-circuit if there are no changes to be made.
+    if (circuit == document.getText()) {
+      return;
+    }
+
     const edit = new vscode.WorkspaceEdit();
 
     // Just replace the entire document every time for this example extension.
@@ -176,7 +194,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     edit.replace(
       document.uri,
       new vscode.Range(0, 0, document.lineCount, 0),
-      JSON.stringify(json, null, 2),
+      circuit,
     );
 
     return vscode.workspace.applyEdit(edit);

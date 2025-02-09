@@ -51,7 +51,7 @@ pub fn build_qsharp(circuit: Circuit) -> String {
 
     let return_type = "Unit";
 
-    let mut qsharp_str = format!("operation PreparePsiMinus({parameters}) : {return_type} {{\n");
+    let mut qsharp_str = format!("operation PrepareBellState({parameters}) : {return_type} {{\n");
     indentation_level += 1;
 
     for op in circuit.operations {
