@@ -6,7 +6,7 @@ mod tests;
 
 use rustc_hash::FxHashMap;
 use serde::Serialize;
-use std::{fmt::Display, fmt::Write, ops::Not, vec};
+use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of <https://github.com/microsoft/quantum-viz.js/wiki/API-schema-reference>
@@ -340,7 +340,18 @@ impl Display for Circuit {
 
             register_to_row.insert((q.id, None), rows.len() - 1);
 
-            for i in 0..q.num_children {
+            // If this qubit has no children, but it is in a multi-qubit operation with
+            // the next qubit, we will want to add one classical row for clarity.
+            let extra_row = self
+                .operations
+                .iter()
+                .filter(|o| {
+                    o.targets.iter().any(|t| t.q_id == q.id)
+                        && o.targets.iter().any(|t| t.q_id == q.id + 1)
+                })
+                .count();
+
+            for i in 0..(cmp::max(q.num_children, extra_row)) {
                 rows.push(Row {
                     wire: Wire::Classical { start_column: None },
                     objects: FxHashMap::default(),
