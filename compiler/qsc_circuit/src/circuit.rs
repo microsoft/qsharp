@@ -4,9 +4,9 @@
 #[cfg(test)]
 mod tests;
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
-use std::{fmt::Display, fmt::Write, ops::Not, vec};
+use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of <https://github.com/microsoft/quantum-viz.js/wiki/API-schema-reference>
@@ -330,6 +330,26 @@ impl Display for Circuit {
         // to row in the diagram
         let mut register_to_row = FxHashMap::default();
 
+        // Keep track of which qubits have the qubit after them in the same multi-qubit operation.
+        let mut consequtive_qubits = FxHashSet::default();
+
+        for operation in self.operations.iter() {
+            for target in operation.targets.iter() {
+                let qubit = target.q_id;
+
+                if consequtive_qubits.contains(&qubit) {
+                    continue;
+                }
+
+                let next_qubit = qubit + 1;
+
+                // Check if the next qubit is also in this operation.
+                if operation.targets.iter().any(|t| t.q_id == next_qubit) {
+                    consequtive_qubits.insert(qubit);
+                }
+            }
+        }
+
         // Initialize all qubit and classical wires
         for q in &self.qubits {
             rows.push(Row {
@@ -340,7 +360,15 @@ impl Display for Circuit {
 
             register_to_row.insert((q.id, None), rows.len() - 1);
 
-            for i in 0..q.num_children {
+            // If this qubit has no children, but it is in a multi-qubit operation with
+            // the next qubit, we add one classical row for clarity.
+            let extra_rows = if consequtive_qubits.contains(&q.id) {
+                cmp::max(1, q.num_children)
+            } else {
+                q.num_children
+            };
+
+            for i in 0..extra_rows {
                 rows.push(Row {
                     wire: Wire::Classical { start_column: None },
                     objects: FxHashMap::default(),
