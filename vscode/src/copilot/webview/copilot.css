@@ -4,12 +4,28 @@
 body {
   padding: 12px;
   height: 100%;
-  /*  match the native vscode chat colors */
+  /*  match the native vscode chat style */
+  font-family:
+    Segoe WPC,
+    Segoe UI,
+    sans-serif;
+  font-size: 13px;
   background-color: var(--vscode-chat-list-background);
 }
 
 html {
   height: 100%;
+}
+
+h1 {
+  /* match the native vscode chat style */
+  font-size: 24px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.welcome-message {
+  text-align: center;
 }
 
 .app {
@@ -75,7 +91,7 @@ html {
 
 .user-message,
 .assistant-message {
-  padding: 16px;
+  padding: 0 16px;
   margin-bottom: 16px;
   border: 1px solid #ccc;
   border-radius: 0.5em;

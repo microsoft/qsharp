@@ -64,15 +64,18 @@ function App({ model }: { model: ChatViewModel }) {
           <ChatHistory model={model} />
         ) : (
           <Markdown
-            markdown={`# Azure Quantum Copilot
+            className="welcome-message"
+            markdown={`# Azure Quantum<br/>Copilot
 
-Welcome! I'm here to assist you with your Azure Quantum workspace and help you explore Q# programming.
+I'm here to assist you with your Azure Quantum workspace and help you explore Q# programming.
 
 Try:
 
-- "Can you submit this Q# program to Azure Quantum for execution?"
-- "What are the currently available hardware providers for my workspace?"
-- "Can you show the results from my last job?"
+_Can you submit this Q# program to Azure Quantum for execution?_
+
+_What are the currently available hardware providers for my workspace?_
+
+_Can you show the results from my last job?_
 
 Azure Quantum Copilot is powered by AI, so mistakes are possible. Review the output carefully before use.`}
           ></Markdown>
