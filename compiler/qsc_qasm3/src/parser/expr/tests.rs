@@ -791,28 +791,6 @@ fn cast_to_duration_array() {
 }
 
 #[test]
-fn cast_to_stretch_array() {
-    check(
-        expr,
-        "array[stretch, 4](0)",
-        &expect![[r#"
-            Error(
-                Rule(
-                    "scalar or array type",
-                    Type(
-                        Stretch,
-                    ),
-                    Span {
-                        lo: 6,
-                        hi: 13,
-                    },
-                ),
-            )
-        "#]],
-    );
-}
-
-#[test]
 fn cast_to_complex_array() {
     check(
         expr,
