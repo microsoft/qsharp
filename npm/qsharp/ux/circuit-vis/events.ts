@@ -75,48 +75,6 @@ class CircuitEvents {
     return wireData;
   }
 
-  /**
-   * Create a dropzone element that spans the length of the wire
-   */
-  createWireDropzone(wireY: number): SVGElement {
-    const wireIndex = this.wireData.indexOf(wireY);
-    const svgWidth = Number(this.circuitSvg.getAttribute("width"));
-    const paddingY = 20;
-
-    const dropzone = box(
-      0,
-      wireY - paddingY,
-      svgWidth,
-      paddingY * 2,
-      "dropzone-full-wire",
-    );
-    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
-
-    dropzone.addEventListener("click", () => {
-      if (this.selectedOperation != null) {
-        if (!this.selectedOperation.controls) {
-          this.selectedOperation.controls = [];
-        }
-        const existingControl = this.selectedOperation.controls.find(
-          (control) => control.qId === wireIndex,
-        );
-        if (!existingControl) {
-          this.selectedOperation.controls.push({
-            qId: wireIndex,
-            type: 0,
-          });
-          this.selectedOperation.controls.sort((a, b) => a.qId - b.qId);
-          this.selectedOperation.isControlled = true;
-          this.renderFn();
-        }
-        this.selectedOperation = null;
-        this.container.classList.remove("adding-control");
-      }
-    });
-
-    return dropzone;
-  }
-
   /***************************
    * Events Adding Functions *
    ***************************/
@@ -197,30 +155,6 @@ class CircuitEvents {
     });
   }
 
-  _startAddingControl(elem: SVGGraphicsElement) {
-    const selectedLocation = elem.getAttribute("data-location");
-    if (selectedLocation) {
-      this.selectedOperation = this._findOperation(selectedLocation);
-      this.container.classList.add("adding-control");
-
-      // Create dropzones for each wire that isn't already a target or control
-      this.wireData.forEach((wireY) => {
-        const wireIndex = this.wireData.indexOf(wireY);
-        const isTarget = this.selectedOperation?.targets.some(
-          (target) => target.qId === wireIndex,
-        );
-        const isControl = this.selectedOperation?.controls?.some(
-          (control) => control.qId === wireIndex,
-        );
-
-        if (!isTarget && !isControl) {
-          const dropzone = this.createWireDropzone(wireY);
-          this.circuitSvg.appendChild(dropzone);
-        }
-      });
-    }
-  }
-
   /**
    * Add events for circuit objects in the circuit
    */
@@ -266,11 +200,13 @@ class CircuitEvents {
         contextMenu.style.top = `${ev.clientY}px`;
         contextMenu.style.left = `${ev.clientX}px`;
 
+        const selectedLocation = elem.getAttribute("data-location");
+        const selectedOperation = this._findOperation(selectedLocation);
+
         const deleteOption = document.createElement("div");
         deleteOption.classList.add("context-menu-option");
         deleteOption.textContent = "Delete";
         deleteOption.addEventListener("click", () => {
-          const selectedLocation = elem.getAttribute("data-location");
           if (selectedLocation) {
             this._removeOperation(selectedLocation);
             this.renderFn();
@@ -282,12 +218,29 @@ class CircuitEvents {
         addControlOption.classList.add("context-menu-option");
         addControlOption.textContent = "Add control";
         addControlOption.addEventListener("click", () => {
-          this._startAddingControl(elem);
+          if (selectedOperation) {
+            this._startAddingControl(selectedOperation);
+          }
           document.body.removeChild(contextMenu);
         });
 
         contextMenu.appendChild(deleteOption);
         contextMenu.appendChild(addControlOption);
+
+        if (
+          selectedOperation?.controls &&
+          selectedOperation.controls.length > 0
+        ) {
+          const removeControlOption = document.createElement("div");
+          removeControlOption.classList.add("context-menu-option");
+          removeControlOption.textContent = "Remove control";
+          removeControlOption.addEventListener("click", () => {
+            this._startRemovingControl(selectedOperation);
+            document.body.removeChild(contextMenu);
+          });
+          contextMenu.appendChild(removeControlOption);
+        }
+
         document.body.appendChild(contextMenu);
 
         document.addEventListener(
@@ -301,49 +254,6 @@ class CircuitEvents {
         );
       });
     });
-  }
-
-  createGhostElement(ev: MouseEvent) {
-    const ghost = this.movingControl
-      ? controlDot(0, 0)
-      : (() => {
-          const ghostMetadata = toMetadata(this.selectedOperation!, 0, 0);
-          return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
-        })();
-
-    // const ghost = _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
-
-    // Generate svg element to wrap around ghost element
-    const svgElem = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "svg",
-    );
-    svgElem.append(ghost);
-
-    // Generate div element to wrap around svg element
-    const divElem = document.createElement("div");
-    divElem.classList.add("ghost");
-    divElem.appendChild(svgElem);
-
-    if (this.container) {
-      this.container.appendChild(divElem);
-
-      // Now that the element is appended to the DOM, get its dimensions
-      const ghostRect = ghost.getBoundingClientRect();
-      const ghostWidth = ghostRect.width;
-      const ghostHeight = ghostRect.height;
-
-      const updateDivLeftTop = (ev: MouseEvent) => {
-        divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
-        divElem.style.top = `${ev.clientY + window.scrollY - ghostHeight / 2}px`;
-      };
-
-      updateDivLeftTop(ev);
-
-      this.container.addEventListener("mousemove", updateDivLeftTop);
-    } else {
-      console.error("container not found");
-    }
   }
 
   /**
@@ -738,6 +648,55 @@ class CircuitEvents {
   };
 
   /**
+   * Add a control to the specified operation on the given wire index
+   *
+   * @param op - The operation to which the control will be added
+   * @param wireIndex - The index of the wire where the control will be added
+   */
+  addControl(op: Operation, wireIndex: number) {
+    if (!op.controls) {
+      op.controls = [];
+    }
+    const existingControl = op.controls.find(
+      (control) => control.qId === wireIndex,
+    );
+    if (!existingControl) {
+      op.controls.push({
+        qId: wireIndex,
+        type: 0,
+      });
+      op.controls.sort((a, b) => a.qId - b.qId);
+      op.isControlled = true;
+      this.renderFn();
+    }
+    this.selectedOperation = null;
+    this.container.classList.remove("adding-control");
+  }
+
+  /**
+   * Remove a control from the specified operation on the given wire index
+   *
+   * @param op - The operation from which the control will be removed
+   * @param wireIndex - The index of the wire where the control will be removed
+   */
+  removeControl(op: Operation, wireIndex: number) {
+    if (op.controls) {
+      const controlIndex = op.controls.findIndex(
+        (control) => control.qId === wireIndex,
+      );
+      if (controlIndex !== -1) {
+        op.controls.splice(controlIndex, 1);
+        if (op.controls.length === 0) {
+          op.isControlled = false;
+        }
+        this.renderFn();
+      }
+    }
+    this.selectedOperation = null;
+    this.container.classList.remove("removing-control");
+  }
+
+  /**
    * Move an operation vertically by changing its controls and targets
    */
   // ToDo: this should be repurposed to move a multi-target operation to a different wire
@@ -755,6 +714,120 @@ class CircuitEvents {
   /*****************
    *     Misc.     *
    *****************/
+
+  /**
+   * Start the process of adding a control to the selected operation.
+   * This function creates dropzones for each wire that isn't already a target or control.
+   *
+   * @param selectedOperation - The operation to which the control will be added.
+   */
+  _startAddingControl(selectedOperation: Operation) {
+    this.selectedOperation = selectedOperation;
+    this.container.classList.add("adding-control");
+
+    // Create dropzones for each wire that isn't already a target or control
+    for (let wireIndex = 0; wireIndex < this.wireData.length; wireIndex++) {
+      const isTarget = this.selectedOperation?.targets.some(
+        (target) => target.qId === wireIndex,
+      );
+      const isControl = this.selectedOperation?.controls?.some(
+        (control) => control.qId === wireIndex,
+      );
+
+      if (!isTarget && !isControl) {
+        const dropzone = this._createWireDropzone(wireIndex);
+        dropzone.addEventListener("click", () => {
+          if (this.selectedOperation != null) {
+            this.addControl(this.selectedOperation, wireIndex);
+          }
+        });
+        this.circuitSvg.appendChild(dropzone);
+      }
+    }
+  }
+
+  /**
+   * Start the process of removing a control from the selected operation.
+   * This function creates dropzones only for wires that the selected operation has a control.
+   *
+   * @param selectedOperation - The operation from which the control will be removed.
+   */
+  _startRemovingControl(selectedOperation: Operation) {
+    this.selectedOperation = selectedOperation;
+    this.container.classList.add("removing-control");
+
+    // Create dropzones only for wires that the selectedOperation has a control
+    this.selectedOperation.controls?.forEach((control) => {
+      const dropzone = this._createWireDropzone(control.qId);
+      dropzone.addEventListener("click", () => {
+        if (this.selectedOperation != null) {
+          this.removeControl(this.selectedOperation, control.qId);
+        }
+      });
+      this.circuitSvg.appendChild(dropzone);
+    });
+  }
+
+  createGhostElement(ev: MouseEvent) {
+    const ghost = this.movingControl
+      ? controlDot(0, 0)
+      : (() => {
+          const ghostMetadata = toMetadata(this.selectedOperation!, 0, 0);
+          return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
+        })();
+
+    // Generate svg element to wrap around ghost element
+    const svgElem = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    );
+    svgElem.append(ghost);
+
+    // Generate div element to wrap around svg element
+    const divElem = document.createElement("div");
+    divElem.classList.add("ghost");
+    divElem.appendChild(svgElem);
+
+    if (this.container) {
+      this.container.appendChild(divElem);
+
+      // Now that the element is appended to the DOM, get its dimensions
+      const ghostRect = ghost.getBoundingClientRect();
+      const ghostWidth = ghostRect.width;
+      const ghostHeight = ghostRect.height;
+
+      const updateDivLeftTop = (ev: MouseEvent) => {
+        divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
+        divElem.style.top = `${ev.clientY + window.scrollY - ghostHeight / 2}px`;
+      };
+
+      updateDivLeftTop(ev);
+
+      this.container.addEventListener("mousemove", updateDivLeftTop);
+    } else {
+      console.error("container not found");
+    }
+  }
+
+  /**
+   * Create a dropzone element that spans the length of the wire
+   */
+  _createWireDropzone(wireIndex: number): SVGElement {
+    const wireY = this.wireData[wireIndex];
+    const svgWidth = Number(this.circuitSvg.getAttribute("width"));
+    const paddingY = 20;
+
+    const dropzone = box(
+      0,
+      wireY - paddingY,
+      svgWidth,
+      paddingY * 2,
+      "dropzone-full-wire",
+    );
+    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
+
+    return dropzone;
+  }
 
   /**
    * Gets the location of an operation, if it has one
