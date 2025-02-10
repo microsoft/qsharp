@@ -14,6 +14,7 @@ import {
   setRenderer,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
+import "./widgets.css";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
