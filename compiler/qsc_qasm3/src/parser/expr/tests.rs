@@ -681,28 +681,171 @@ fn funcall_multiple_args_trailing_comma() {
 }
 
 #[test]
-fn cast() {
+fn cast_to_bit() {
     check(
         expr,
-        "float(0)",
+        "bit(0)",
         &expect![[r#"
-        Expr [0-8]: Cast [0-8]:
-            ClassicalType [0-5]: FloatType [0-5]
-            Expr [0-8]: Paren:
-                Expr [6-7]: Lit: Int(0)"#]],
+            Expr [0-6]: Cast [0-6]:
+                ClassicalType [0-3]: BitType
+                Expr [0-6]: Paren:
+                    Expr [4-5]: Lit: Int(0)"#]],
     );
 }
 
 #[test]
-fn cast_with_designator() {
+fn cast_to_bit_with_designator() {
     check(
         expr,
-        "float[13](0)",
+        "bit[4](0)",
+        &expect![[r#"
+            Expr [0-9]: Cast [0-9]:
+                ClassicalType [0-6]: BitType [0-6]: ExprStmt [3-6]: Expr [4-5]: Lit: Int(4)
+                Expr [0-9]: Paren:
+                    Expr [7-8]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_int() {
+    check(
+        expr,
+        "int(0)",
+        &expect![[r#"
+            Expr [0-6]: Cast [0-6]:
+                ClassicalType [0-3]: IntType [0-3]
+                Expr [0-6]: Paren:
+                    Expr [4-5]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_int_with_designator() {
+    check(
+        expr,
+        "int[64](0)",
+        &expect![[r#"
+            Expr [0-10]: Cast [0-10]:
+                ClassicalType [0-7]: IntType[ExprStmt [3-7]: Expr [4-6]: Lit: Int(64)]: [0-7]
+                Expr [0-10]: Paren:
+                    Expr [8-9]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_uint() {
+    check(
+        expr,
+        "uint(0)",
+        &expect![[r#"
+            Expr [0-7]: Cast [0-7]:
+                ClassicalType [0-4]: UIntType [0-4]
+                Expr [0-7]: Paren:
+                    Expr [5-6]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_uint_with_designator() {
+    check(
+        expr,
+        "uint[64](0)",
+        &expect![[r#"
+            Expr [0-11]: Cast [0-11]:
+                ClassicalType [0-8]: UIntType[ExprStmt [4-8]: Expr [5-7]: Lit: Int(64)]: [0-8]
+                Expr [0-11]: Paren:
+                    Expr [9-10]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_float() {
+    check(
+        expr,
+        "float(0)",
+        &expect![[r#"
+            Expr [0-8]: Cast [0-8]:
+                ClassicalType [0-5]: FloatType [0-5]
+                Expr [0-8]: Paren:
+                    Expr [6-7]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_float_with_designator() {
+    check(
+        expr,
+        "float[64](0)",
         &expect![[r#"
             Expr [0-12]: Cast [0-12]:
-                ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(13)]: [0-9]
+                ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(64)]: [0-9]
                 Expr [0-12]: Paren:
                     Expr [10-11]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_complex() {
+    check(
+        expr,
+        "complex[float](0)",
+        &expect![[r#"
+            Expr [0-17]: Cast [0-17]:
+                ClassicalType [0-14]: ComplexType[float[FloatType [8-13]]]: [0-14]
+                Expr [0-17]: Paren:
+                    Expr [15-16]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_complex_with_designator() {
+    check(
+        expr,
+        "complex[float[64]](0)",
+        &expect![[r#"
+            Expr [0-21]: Cast [0-21]:
+                ClassicalType [0-18]: ComplexType[float[FloatType[ExprStmt [13-17]: Expr [14-16]: Lit: Int(64)]: [8-17]]]: [0-18]
+                Expr [0-21]: Paren:
+                    Expr [19-20]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_bool() {
+    check(
+        expr,
+        "bool(0)",
+        &expect![[r#"
+            Expr [0-7]: Cast [0-7]:
+                ClassicalType [0-4]: BoolType
+                Expr [0-7]: Paren:
+                    Expr [5-6]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_duration() {
+    check(
+        expr,
+        "duration(0)",
+        &expect![[r#"
+            Expr [0-11]: Cast [0-11]:
+                ClassicalType [0-8]: Duration
+                Expr [0-11]: Paren:
+                    Expr [9-10]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_stretch() {
+    check(
+        expr,
+        "stretch(0)",
+        &expect![[r#"
+            Expr [0-10]: Cast [0-10]:
+                ClassicalType [0-7]: Stretch
+                Expr [0-10]: Paren:
+                    Expr [8-9]: Lit: Int(0)"#]],
     );
 }
 
