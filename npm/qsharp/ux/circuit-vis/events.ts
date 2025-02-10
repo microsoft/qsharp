@@ -209,8 +209,8 @@ class CircuitEvents {
       contextMenu.style.top = `${ev.clientY}px`;
       contextMenu.style.left = `${ev.clientX}px`;
 
-      const deleteOption = this.createContextMenuItem("Delete", () => {
-        this._removeOperation(selectedLocation);
+      const adjointOption = this.createContextMenuItem("Toggle Adjoint", () => {
+        selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
         this.renderFn();
       });
 
@@ -228,29 +228,47 @@ class CircuitEvents {
         );
       }
 
-      const promptOption = this.createContextMenuItem("Edit Argument", () => {
-        this._createCustomPrompt(
-          "Argument for Gate:",
-          (userInput) => {
-            if (userInput !== null) {
-              if (userInput == "") {
-                selectedOperation.displayArgs = undefined;
-              } else {
-                selectedOperation.displayArgs = userInput;
+      const promptArgOption = this.createContextMenuItem(
+        "Edit Argument",
+        () => {
+          this._createCustomPrompt(
+            "Argument for Gate:",
+            (userInput) => {
+              if (userInput !== null) {
+                if (userInput == "") {
+                  selectedOperation.displayArgs = undefined;
+                } else {
+                  selectedOperation.displayArgs = userInput;
+                }
               }
-            }
-            this.renderFn();
-          },
-          selectedOperation.displayArgs,
-        );
+              this.renderFn();
+            },
+            selectedOperation.displayArgs,
+          );
+        },
+      );
+
+      const deleteOption = this.createContextMenuItem("Delete", () => {
+        this._removeOperation(selectedLocation);
+        this.renderFn();
       });
 
-      contextMenu.appendChild(deleteOption);
-      contextMenu.appendChild(addControlOption);
-      if (removeControlOption) {
-        contextMenu.appendChild(removeControlOption);
+      if (!selectedOperation.isMeasurement) {
+        // Note: X has a special symbol that doesn't allow for adjoint or args.
+        // In the future, we may want to create context menus off of host elements rather
+        // than gate elements. Then we can generalize this exception.
+        if (selectedOperation.gate != "X") {
+          contextMenu.appendChild(adjointOption);
+        }
+        contextMenu.appendChild(addControlOption);
+        if (removeControlOption) {
+          contextMenu.appendChild(removeControlOption);
+        }
+        if (selectedOperation.gate != "X") {
+          contextMenu.appendChild(promptArgOption);
+        }
       }
-      contextMenu.appendChild(promptOption);
+      contextMenu.appendChild(deleteOption);
       document.body.appendChild(contextMenu);
 
       document.addEventListener(
