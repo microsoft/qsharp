@@ -110,6 +110,7 @@ pre code {
   padding: 8px;
   margin: 8px 0;
   overflow: auto;
+  white-space: pre-wrap;
 }
 
 .retry-button {
