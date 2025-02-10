@@ -105,7 +105,8 @@ export const style = (customStyle: StyleConfig = {}): string => {
     ${_expandCollapse}
     ${_draggable}
     ${_panel}
-    ${_contextMenu}`;
+    ${_contextMenu}
+    ${_customPromptOverlay}`;
 };
 
 const _defaultGates = (styleConfig: StyleConfig): string => `
@@ -351,3 +352,46 @@ const _contextMenu = `
         background-color: #f0f0f0;
     }
   `;
+
+const _customPromptOverlay = `
+    .custom-prompt-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .custom-prompt-container {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .custom-prompt-message {
+        margin-bottom: 10px;
+    }
+
+    .custom-prompt-input {
+        width: 100%;
+        padding: 5px;
+        margin-bottom: 10px;
+    }
+
+    .custom-prompt-buttons {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .custom-prompt-button {
+        padding: 5px 10px;
+        margin: 0 5px;
+    }
+    `;

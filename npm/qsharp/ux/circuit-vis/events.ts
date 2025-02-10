@@ -186,74 +186,147 @@ class CircuitEvents {
         }
       });
 
-      elem?.addEventListener("contextmenu", (ev: MouseEvent) => {
-        ev.preventDefault();
+      this._addContextMenuToGateElem(elem);
+    });
+  }
 
-        // Remove any existing context menu
-        const existingContextMenu = document.querySelector(".context-menu");
-        if (existingContextMenu) {
-          document.body.removeChild(existingContextMenu);
-        }
+  _addContextMenuToGateElem(elem: SVGGraphicsElement) {
+    elem?.addEventListener("contextmenu", (ev: MouseEvent) => {
+      ev.preventDefault();
 
-        const contextMenu = document.createElement("div");
-        contextMenu.classList.add("context-menu");
-        contextMenu.style.top = `${ev.clientY}px`;
-        contextMenu.style.left = `${ev.clientX}px`;
+      // Remove any existing context menu
+      const existingContextMenu = document.querySelector(".context-menu");
+      if (existingContextMenu) {
+        document.body.removeChild(existingContextMenu);
+      }
 
-        const selectedLocation = elem.getAttribute("data-location");
-        const selectedOperation = this._findOperation(selectedLocation);
+      const selectedLocation = elem.getAttribute("data-location");
+      const selectedOperation = this._findOperation(selectedLocation);
+      if (!selectedOperation || !selectedLocation) return;
 
-        const deleteOption = document.createElement("div");
-        deleteOption.classList.add("context-menu-option");
-        deleteOption.textContent = "Delete";
-        deleteOption.addEventListener("click", () => {
-          if (selectedLocation) {
-            this._removeOperation(selectedLocation);
-            this.renderFn();
-          }
-          document.body.removeChild(contextMenu);
-        });
+      const contextMenu = document.createElement("div");
+      contextMenu.classList.add("context-menu");
+      contextMenu.style.top = `${ev.clientY}px`;
+      contextMenu.style.left = `${ev.clientX}px`;
 
-        const addControlOption = document.createElement("div");
-        addControlOption.classList.add("context-menu-option");
-        addControlOption.textContent = "Add control";
-        addControlOption.addEventListener("click", () => {
-          if (selectedOperation) {
-            this._startAddingControl(selectedOperation);
-          }
-          document.body.removeChild(contextMenu);
-        });
+      const deleteOption = this.createContextMenuItem("Delete", () => {
+        this._removeOperation(selectedLocation);
+        this.renderFn();
+      });
 
-        contextMenu.appendChild(deleteOption);
-        contextMenu.appendChild(addControlOption);
+      const addControlOption = this.createContextMenuItem("Add control", () => {
+        this._startAddingControl(selectedOperation);
+      });
 
-        if (
-          selectedOperation?.controls &&
-          selectedOperation.controls.length > 0
-        ) {
-          const removeControlOption = document.createElement("div");
-          removeControlOption.classList.add("context-menu-option");
-          removeControlOption.textContent = "Remove control";
-          removeControlOption.addEventListener("click", () => {
-            this._startRemovingControl(selectedOperation);
-            document.body.removeChild(contextMenu);
-          });
-          contextMenu.appendChild(removeControlOption);
-        }
-
-        document.body.appendChild(contextMenu);
-
-        document.addEventListener(
-          "click",
+      let removeControlOption: HTMLDivElement | null = null;
+      if (selectedOperation.controls && selectedOperation.controls.length > 0) {
+        removeControlOption = this.createContextMenuItem(
+          "Remove control",
           () => {
-            if (document.body.contains(contextMenu)) {
-              document.body.removeChild(contextMenu);
-            }
+            this._startRemovingControl(selectedOperation);
           },
-          { once: true },
+        );
+      }
+
+      const promptOption = this.createContextMenuItem("Edit Argument", () => {
+        this._createCustomPrompt(
+          "Argument for Gate:",
+          (userInput) => {
+            if (userInput !== null) {
+              if (userInput == "") {
+                selectedOperation.displayArgs = undefined;
+              } else {
+                selectedOperation.displayArgs = userInput;
+              }
+            }
+            this.renderFn();
+          },
+          selectedOperation.displayArgs,
         );
       });
+
+      contextMenu.appendChild(deleteOption);
+      contextMenu.appendChild(addControlOption);
+      if (removeControlOption) {
+        contextMenu.appendChild(removeControlOption);
+      }
+      contextMenu.appendChild(promptOption);
+      document.body.appendChild(contextMenu);
+
+      document.addEventListener(
+        "click",
+        () => {
+          if (document.body.contains(contextMenu)) {
+            document.body.removeChild(contextMenu);
+          }
+        },
+        { once: true },
+      );
     });
+  }
+
+  /**
+   * Create a custom prompt element
+   * @param message - The message to display in the prompt
+   * @param callback - The callback function to handle the user input
+   * @param defaultValue - The default value to display in the input element
+   */
+  _createCustomPrompt(
+    message: string,
+    callback: (input: string | null) => void,
+    defaultValue: string = "",
+  ) {
+    // Create the prompt overlay
+    const overlay = document.createElement("div");
+    overlay.classList.add("custom-prompt-overlay");
+
+    // Create the prompt container
+    const promptContainer = document.createElement("div");
+    promptContainer.classList.add("custom-prompt-container");
+
+    // Create the message element
+    const messageElem = document.createElement("div");
+    messageElem.classList.add("custom-prompt-message");
+    messageElem.textContent = message;
+
+    // Create the input element
+    const inputElem = document.createElement("input");
+    inputElem.classList.add("custom-prompt-input");
+    inputElem.type = "text";
+    inputElem.value = defaultValue;
+
+    // Create the buttons container
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.classList.add("custom-prompt-buttons");
+
+    // Create the OK button
+    const okButton = document.createElement("button");
+    okButton.classList.add("custom-prompt-button");
+    okButton.textContent = "OK";
+    okButton.addEventListener("click", () => {
+      callback(inputElem.value);
+      document.body.removeChild(overlay);
+    });
+
+    // Create the Cancel button
+    const cancelButton = document.createElement("button");
+    cancelButton.classList.add("custom-prompt-button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.addEventListener("click", () => {
+      callback(null);
+      document.body.removeChild(overlay);
+    });
+
+    // Append elements to the prompt container
+    buttonsContainer.appendChild(okButton);
+    buttonsContainer.appendChild(cancelButton);
+    promptContainer.appendChild(messageElem);
+    promptContainer.appendChild(inputElem);
+    promptContainer.appendChild(buttonsContainer);
+    overlay.appendChild(promptContainer);
+
+    // Append the overlay to the body
+    document.body.appendChild(overlay);
   }
 
   /**
@@ -714,6 +787,20 @@ class CircuitEvents {
   /*****************
    *     Misc.     *
    *****************/
+
+  /**
+   * Create a context menu item
+   * @param text - The text to display in the menu item
+   * @param onClick - The function to call when the menu item is clicked
+   * @returns The created menu item element
+   */
+  createContextMenuItem(text: string, onClick: () => void): HTMLDivElement {
+    const menuItem = document.createElement("div");
+    menuItem.classList.add("context-menu-option");
+    menuItem.textContent = text;
+    menuItem.addEventListener("click", onClick);
+    return menuItem;
+  }
 
   /**
    * Start the process of adding a control to the selected operation.
