@@ -13,6 +13,9 @@ import { AzureQuantumChatBackend as AzureQuantumChatService } from "./azqChatSer
 import { executeTool, ToolState } from "./tools.js";
 import { getDefaultConfig, getServices, ServiceConfig } from "./config";
 import { OpenAIChatService } from "./openAiChatService";
+import { getRandomGuid } from "../utils";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import { knownToolNameOrDefault } from "./azqTools";
 
 export class Copilot {
   private service: IChatService;
@@ -20,6 +23,7 @@ export class Copilot {
   private workspaceState: ToolState = {};
   private serviceOptions: ServiceConfig[];
   private serviceConfigName: string;
+  private conversationId: string = getRandomGuid();
 
   constructor(private onUpdate: CopilotUpdateHandler) {
     this.serviceOptions = getServices();
@@ -67,6 +71,7 @@ export class Copilot {
   async restartChat(history: ChatElement[], service?: string) {
     this.serviceConfigName = service ?? this.serviceConfigName;
     this.service = this.createService(this.serviceConfigName);
+    this.conversationId = getRandomGuid();
 
     this.messages = history;
     this.sendFullUpdate({ status: "ready" });
@@ -92,13 +97,70 @@ export class Copilot {
    * should be an assistant response.
    */
   private async completeChat() {
-    let content, toolCalls;
+    const associationId = getRandomGuid();
+    sendTelemetryEvent(
+      EventType.ChatTurnStart,
+      {
+        conversationId: this.conversationId,
+        associationId,
+        serviceUrlHash: await this.service.getAnonymizedEnpdoint(),
+      },
+      {
+        conversationMessages: this.messages.length,
+      },
+    );
+    const startMs = performance.now();
+    const allToolCalls: string[] = [];
 
+    // Loop getting assistant responses and executing tool calls
+    // until the assistant response doesn't require any tool calls.
+
+    let result = await this.requestAssistantResponse();
+
+    while (!result.done) {
+      await this.executeToolCalls(result.toolCalls);
+
+      // don't include arguments in telemetry
+      allToolCalls.push(
+        ...result.toolCalls.map((tc) => knownToolNameOrDefault(tc.name)),
+      );
+
+      result = await this.requestAssistantResponse();
+    }
+
+    sendTelemetryEvent(
+      EventType.ChatTurnEnd,
+      {
+        associationId,
+        flowStatus: result.success
+          ? UserFlowStatus.Succeeded
+          : UserFlowStatus.Failed,
+        toolCalls: JSON.stringify(allToolCalls),
+      },
+      {
+        timeToCompleteMs: performance.now() - startMs,
+      },
+    );
+  }
+
+  /**
+   * Makes one API call to get an assistant response, communicating
+   * status updates and deltas to the UI.
+   */
+  async requestAssistantResponse(): Promise<
+    | {
+        done: true;
+        success: boolean;
+      }
+    | { done: false; toolCalls: ToolCall[] }
+  > {
     this.sendFullUpdate({ status: "waitingAssistantResponse" });
 
     // "Widget" messages are visible to the client only and not
     // sent to the service.
     const messages = this.messages.filter((m) => m.role !== "widget");
+
+    let content, toolCalls;
 
     try {
       ({ content, toolCalls } = await this.service.requestChatCompletion(
@@ -109,7 +171,7 @@ export class Copilot {
       // Service request failed
       log.error("Chat request failed", e);
       this.sendStatusUpdateOnly({ status: "assistantConnectionError" });
-      return;
+      return { done: true, success: false };
     }
 
     this.messages.push({
@@ -123,11 +185,10 @@ export class Copilot {
     }
 
     if (toolCalls) {
-      await this.executeToolCalls(toolCalls);
-
-      // Tail recursion
-      await this.completeChat();
+      return { done: false, toolCalls };
     }
+
+    return { done: true, success: true };
   }
 
   /**
@@ -243,6 +304,12 @@ export interface IChatService {
     content?: string;
     toolCalls?: ToolCall[];
   }>;
+
+  /**
+   * Get a unique, anonymous, endpoint identifier,
+   * used in telemetry to differentiate various service APIs we may use.
+   */
+  getAnonymizedEnpdoint(): Promise<string>;
 }
 
 function cleanContent(content: string | undefined) {

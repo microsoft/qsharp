@@ -16,15 +16,31 @@ const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
  * Implements interaction with the Azure Quantum chat api.
  */
 export class AzureQuantumChatBackend implements IChatService {
-  private conversationId: string;
+  private conversationId: string = getRandomGuid();
   private msaChatSession?: AuthenticationSession;
   private chatEndpointUrl: string;
+  private chatEndpointUrlHash: string | undefined;
   private msaAuth: boolean;
 
   constructor(config: AzureQuantumServiceConfig) {
     this.chatEndpointUrl = config.chatEndpointUrl;
     this.msaAuth = config.msaAuth;
-    this.conversationId = getRandomGuid();
+  }
+
+  async getAnonymizedEnpdoint(): Promise<string> {
+    // Don't send service URL directly since that may be configured by the user.
+    if (this.chatEndpointUrlHash) {
+      return this.chatEndpointUrlHash;
+    }
+    const hashBuffer = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(this.chatEndpointUrl),
+    );
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    this.chatEndpointUrlHash = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return this.chatEndpointUrlHash;
   }
 
   async requestChatCompletion(

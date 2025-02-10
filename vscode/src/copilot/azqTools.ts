@@ -46,6 +46,15 @@ export const azqToolDefinitions: {
 };
 
 /**
+ * Filters out unknown tool names that may come back from the service.
+ */
+export function knownToolNameOrDefault(toolName: string): string {
+  return Object.keys(azqToolDefinitions).indexOf(toolName) !== -1
+    ? toolName
+    : "unknown";
+}
+
+/**
  * Gets the first available workspace connection, or throws if there are none.
  */
 async function getFirstWorkspace(): Promise<WorkspaceConnection> {

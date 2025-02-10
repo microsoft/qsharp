@@ -18,6 +18,10 @@ export class OpenAIChatService implements IChatService {
     this.systemPrompt = config.systemPrompt;
   }
 
+  async getAnonymizedEnpdoint(): Promise<string> {
+    return "openai";
+  }
+
   async requestChatCompletion(
     messages: QuantumChatMessage[],
     handleResponseDelta: (delta: string) => void,
