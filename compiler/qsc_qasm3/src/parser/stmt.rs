@@ -357,9 +357,6 @@ pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
 }
 
 pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    if let Ok(v) = array_bit_type(s) {
-        return Ok(v);
-    }
     if let Ok(v) = array_angle_type(s) {
         return Ok(v);
     }
@@ -435,21 +432,6 @@ fn scalar_bit_type(s: &mut ParserContext) -> Result<ScalarType> {
             span: s.span(lo),
         }),
     })
-}
-
-fn bit_type(s: &mut ParserContext) -> Result<BitType> {
-    let lo = s.peek().span.lo;
-    token(s, TokenKind::Type(Type::Bit))?;
-    let size = opt(s, designator)?;
-    Ok(BitType {
-        size,
-        span: s.span(lo),
-    })
-}
-
-fn array_bit_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    let ty = bit_type(s)?;
-    Ok(ArrayBaseTypeKind::Bit(ty))
 }
 
 fn scalar_int_type(s: &mut ParserContext) -> Result<ScalarType> {

@@ -707,20 +707,6 @@ fn cast_with_designator() {
 }
 
 #[test]
-fn cast_to_bit_array() {
-    check(
-        expr,
-        "array[bit[64], 4](0)",
-        &expect![[r#"
-            Expr [0-20]: Cast [0-20]:
-                ArrayType [0-17]: ArrayBaseTypeKind BitType [6-13]: ExprStmt [9-13]: Expr [10-12]: Lit: Int(64)
-                Expr [15-16]: Lit: Int(4)
-                Expr [0-20]: Paren:
-                    Expr [18-19]: Lit: Int(0)"#]],
-    );
-}
-
-#[test]
 fn cast_to_int_array() {
     check(
         expr,
