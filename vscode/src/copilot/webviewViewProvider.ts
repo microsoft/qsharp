@@ -72,6 +72,7 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
       const copilotCss = getUri(["out", "copilot", "webview", "copilot.css"]);
       const katexCss = getUri(["out", "katex", "katex.min.css"]);
       const codiconCss = getUri(["out", "katex", "codicon.css"]);
+      const hljsCss = getUri(["out", "katex", "hljs-light.css"]);
 
       webviewView.webview.html = `<!DOCTYPE html>
         <html lang="en">
@@ -79,6 +80,7 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
         <link rel="stylesheet" href="${katexCss}" />
         <link rel="stylesheet" href="${copilotCss}" />
         <link rel="stylesheet" href="${codiconCss}" />
+        <link rel="stylesheet" href="${hljsCss}" />
         </head>
         <body>
         <script src="${copilotJs}"></script>

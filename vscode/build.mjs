@@ -77,7 +77,7 @@ export function copyKatex(destDir) {
     join(katexDest, "katex.min.css"),
   );
 
-  // Also copy the GitHub markdown CSS
+  // github markdown css
   copyFileSync(
     join(libsDir, `github-markdown-css/github-markdown-light.css`),
     join(katexDest, "github-markdown-light.css"),
@@ -86,6 +86,18 @@ export function copyKatex(destDir) {
     join(libsDir, `github-markdown-css/github-markdown-dark.css`),
     join(katexDest, "github-markdown-dark.css"),
   );
+
+  // highlight.js css
+  copyFileSync(
+    join(libsDir, `highlight.js/styles/default.css`),
+    join(katexDest, "hljs-light.css"),
+  );
+  copyFileSync(
+    join(libsDir, `highlight.js/styles/dark.css`),
+    join(katexDest, "hljs-dark.css"),
+  );
+
+  // vscode codicons
   copyFileSync(
     join(libsDir, "@vscode", "codicons", "dist", "codicon.css"),
     join(katexDest, "codicon.css"),

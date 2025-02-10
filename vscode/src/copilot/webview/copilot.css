@@ -61,6 +61,8 @@ h1 {
   vertical-align: middle;
   cursor: text;
   resize: none;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
 }
 
 .input-textarea:focus {
