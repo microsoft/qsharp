@@ -6,9 +6,9 @@ import { Operation, Qubit } from "./circuit";
 import { Register } from "./register";
 import { Sqore } from "./sqore";
 import isEqual from "lodash/isEqual";
-import { defaultGateDictionary, toMetadata } from "./panel";
 import { _formatGate } from "./formatters/gateFormatter";
-import { controlDot } from "./formatters/formatUtils";
+import { box, controlDot } from "./formatters/formatUtils";
+import { defaultGateDictionary, toMetadata } from "./panel";
 
 const extensionEvents = (
   container: HTMLElement,
@@ -73,6 +73,48 @@ class CircuitEvents {
       return Number(lineElem.getAttribute("y1"));
     });
     return wireData;
+  }
+
+  /**
+   * Create a dropzone element that spans the length of the wire
+   */
+  createWireDropzone(wireY: number): SVGElement {
+    const wireIndex = this.wireData.indexOf(wireY);
+    const svgWidth = Number(this.circuitSvg.getAttribute("width"));
+    const paddingY = 20;
+
+    const dropzone = box(
+      0,
+      wireY - paddingY,
+      svgWidth,
+      paddingY * 2,
+      "dropzone-full-wire",
+    );
+    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
+
+    dropzone.addEventListener("click", () => {
+      if (this.selectedOperation != null) {
+        if (!this.selectedOperation.controls) {
+          this.selectedOperation.controls = [];
+        }
+        const existingControl = this.selectedOperation.controls.find(
+          (control) => control.qId === wireIndex,
+        );
+        if (!existingControl) {
+          this.selectedOperation.controls.push({
+            qId: wireIndex,
+            type: 0,
+          });
+          this.selectedOperation.controls.sort((a, b) => a.qId - b.qId);
+          this.selectedOperation.isControlled = true;
+          this.renderFn();
+        }
+        this.selectedOperation = null;
+        this.container.classList.remove("adding-control");
+      }
+    });
+
+    return dropzone;
   }
 
   /***************************
@@ -143,7 +185,8 @@ class CircuitEvents {
   _addHostElementsEvents() {
     const elems = this._hostElems();
     elems.forEach((elem) => {
-      elem.addEventListener("mousedown", () => {
+      elem.addEventListener("mousedown", (ev: MouseEvent) => {
+        if (ev.button !== 0) return;
         if (elem.classList.contains("control-dot")) {
           this.movingControl = true;
         }
@@ -154,6 +197,30 @@ class CircuitEvents {
     });
   }
 
+  _startAddingControl(elem: SVGGraphicsElement) {
+    const selectedLocation = elem.getAttribute("data-location");
+    if (selectedLocation) {
+      this.selectedOperation = this._findOperation(selectedLocation);
+      this.container.classList.add("adding-control");
+
+      // Create dropzones for each wire that isn't already a target or control
+      this.wireData.forEach((wireY) => {
+        const wireIndex = this.wireData.indexOf(wireY);
+        const isTarget = this.selectedOperation?.targets.some(
+          (target) => target.qId === wireIndex,
+        );
+        const isControl = this.selectedOperation?.controls?.some(
+          (control) => control.qId === wireIndex,
+        );
+
+        if (!isTarget && !isControl) {
+          const dropzone = this.createWireDropzone(wireY);
+          this.circuitSvg.appendChild(dropzone);
+        }
+      });
+    }
+  }
+
   /**
    * Add events for circuit objects in the circuit
    */
@@ -161,6 +228,7 @@ class CircuitEvents {
     const elems = this._gateElems();
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
+        if (ev.button !== 0) return;
         ev.stopPropagation();
         if (elem.getAttribute("data-expanded") !== "true") {
           const selectedLocation = elem.getAttribute("data-location");
@@ -182,6 +250,55 @@ class CircuitEvents {
           this.container.classList.add("moving");
           this.dropzoneLayer.style.display = "block";
         }
+      });
+
+      elem?.addEventListener("contextmenu", (ev: MouseEvent) => {
+        ev.preventDefault();
+
+        // Remove any existing context menu
+        const existingContextMenu = document.querySelector(".context-menu");
+        if (existingContextMenu) {
+          document.body.removeChild(existingContextMenu);
+        }
+
+        const contextMenu = document.createElement("div");
+        contextMenu.classList.add("context-menu");
+        contextMenu.style.top = `${ev.clientY}px`;
+        contextMenu.style.left = `${ev.clientX}px`;
+
+        const deleteOption = document.createElement("div");
+        deleteOption.classList.add("context-menu-option");
+        deleteOption.textContent = "Delete";
+        deleteOption.addEventListener("click", () => {
+          const selectedLocation = elem.getAttribute("data-location");
+          if (selectedLocation) {
+            this._removeOperation(selectedLocation);
+            this.renderFn();
+          }
+          document.body.removeChild(contextMenu);
+        });
+
+        const addControlOption = document.createElement("div");
+        addControlOption.classList.add("context-menu-option");
+        addControlOption.textContent = "Add control";
+        addControlOption.addEventListener("click", () => {
+          this._startAddingControl(elem);
+          document.body.removeChild(contextMenu);
+        });
+
+        contextMenu.appendChild(deleteOption);
+        contextMenu.appendChild(addControlOption);
+        document.body.appendChild(contextMenu);
+
+        document.addEventListener(
+          "click",
+          () => {
+            if (document.body.contains(contextMenu)) {
+              document.body.removeChild(contextMenu);
+            }
+          },
+          { once: true },
+        );
       });
     });
   }
@@ -236,6 +353,7 @@ class CircuitEvents {
     const elems = this._toolboxElems();
     elems.forEach((elem) => {
       elem.addEventListener("mousedown", (ev: MouseEvent) => {
+        if (ev.button !== 0) return;
         this.container.classList.add("moving");
         this.dropzoneLayer.style.display = "block";
         const type = elem.getAttribute("data-type");
@@ -250,7 +368,6 @@ class CircuitEvents {
    * Add events for dropzone elements
    */
   _addDropzoneElementsEvents() {
-    // Dropzone element events
     const dropzoneElems =
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {

@@ -104,7 +104,8 @@ export const style = (customStyle: StyleConfig = {}): string => {
     ${_classicallyControlledGates(styleConfig)}
     ${_expandCollapse}
     ${_draggable}
-    ${_panel}`;
+    ${_panel}
+    ${_contextMenu}`;
 };
 
 const _defaultGates = (styleConfig: StyleConfig): string => `
@@ -260,6 +261,14 @@ const _draggable = `
         fill: #EC7063;
         fill-opacity: 50%;
     }
+    .dropzone-full-wire {
+        fill-opacity: 0%;
+        stroke-opacity: 0%;
+    }
+    .dropzone-full-wire:hover {
+        fill: #EC7063;
+        fill-opacity: 50%;
+    }
     .grab {
         cursor: grab;
     }
@@ -320,3 +329,25 @@ const _panel = `
         font-size: 14px;
     }
 `;
+
+const _contextMenu = `
+    .context-menu {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        padding: 5px 0;
+        border-radius: 4px;
+    }
+
+    .context-menu-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .context-menu-option:hover {
+        background-color: #f0f0f0;
+    }
+  `;

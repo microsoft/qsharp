@@ -6,6 +6,12 @@
       "isControlled": true,
       "controls": [{ "qId": 0, "type": 0 }],
       "targets": [{ "qId": 1, "type": 0 }]
+    },
+    {
+      "gate": "S",
+      "isControlled": true,
+      "controls": [{ "qId": 0, "type": 0 }],
+      "targets": [{ "qId": 1, "type": 0 }]
     }
   ],
   "qubits": [
