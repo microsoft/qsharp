@@ -636,11 +636,12 @@ fn pratt_parsing_parens() {
         expr,
         "(1 + 2) * 3",
         &expect![[r#"
-        Expr [0-11]: BinOp (Mul):
-            Expr [0-7]: Expr [1-6]: BinOp (Add):
-                Expr [1-2]: Lit: Int(1)
-                Expr [5-6]: Lit: Int(2)
-            Expr [10-11]: Lit: Int(3)"#]],
+            Expr [0-11]: BinOp (Mul):
+                Expr [0-7]: Paren:
+                    Expr [1-6]: BinOp (Add):
+                        Expr [1-2]: Lit: Int(1)
+                        Expr [5-6]: Lit: Int(2)
+                Expr [10-11]: Lit: Int(3)"#]],
     );
 }
 
@@ -681,7 +682,15 @@ fn funcall_multiple_args_trailing_comma() {
 
 #[test]
 fn cast() {
-    check(expr, "float(2)", &expect!["Expr [0-8]: Cast [0-8]: ClassicalType [0-5]: FloatType [0-5], Expr [0-8]: Expr [6-7]: Lit: Int(2)"]);
+    check(
+        expr,
+        "float(2)",
+        &expect![[r#"
+        Expr [0-8]: Cast [0-8]:
+            ClassicalType [0-5]: FloatType [0-5]
+            Expr [0-8]: Paren:
+                Expr [6-7]: Lit: Int(2)"#]],
+    );
 }
 
 #[test]
@@ -689,7 +698,11 @@ fn cast_with_designator() {
     check(
         expr,
         "float[13](2)",
-        &expect!["Expr [0-12]: Cast [0-12]: ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(13)]: [0-9], Expr [0-12]: Expr [10-11]: Lit: Int(2)"],
+        &expect![[r#"
+            Expr [0-12]: Cast [0-12]:
+                ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(13)]: [0-9]
+                Expr [0-12]: Paren:
+                    Expr [10-11]: Lit: Int(2)"#]],
     );
 }
 

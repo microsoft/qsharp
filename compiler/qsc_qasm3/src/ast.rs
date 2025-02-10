@@ -1610,12 +1610,12 @@ impl Display for ExprKind {
             ExprKind::BinaryOp(expr) => display_bin_op(indent, expr),
             ExprKind::Lit(lit) => write!(f, "{lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
-            ExprKind::Cast(cast) => write!(f, "{cast}"),
+            ExprKind::Cast(cast) => display_cast(indent, cast),
             ExprKind::Concatenation(concat) => write!(f, "{concat}"),
             ExprKind::IndexExpr(index) => write!(f, "{index}"),
             ExprKind::Assign(expr) => write!(f, "{expr}"),
             ExprKind::AssignOp(expr) => write!(f, "{expr}"),
-            ExprKind::Paren(expr) => write!(f, "{expr}"),
+            ExprKind::Paren(expr) => display_paren(indent, expr),
         }
     }
 }
@@ -1991,6 +1991,20 @@ fn display_un_op(mut indent: Indented<Formatter>, op: UnaryOp, expr: &Expr) -> f
     write!(indent, "UnOp ({op}):")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
+    Ok(())
+}
+
+fn display_paren(mut indent: Indented<Formatter>, expr: &Expr) -> fmt::Result {
+    write!(indent, "Paren:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{expr}")?;
+    Ok(())
+}
+fn display_cast(mut indent: Indented<Formatter>, cast: &Cast) -> fmt::Result {
+    let Cast { span, r#type, arg } = cast;
+    write!(indent, "Cast {span}:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{type}\n{arg}")?;
     Ok(())
 }
 
