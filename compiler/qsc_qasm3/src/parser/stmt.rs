@@ -276,7 +276,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::IODeclaration(decl))
 }
 
-fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
+pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     if let Ok(v) = scalar_type(s) {
         return Ok(TypeDef::Scalar(v));
     }

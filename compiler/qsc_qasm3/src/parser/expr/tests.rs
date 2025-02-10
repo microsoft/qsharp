@@ -681,15 +681,29 @@ fn funcall_multiple_args_trailing_comma() {
 
 #[test]
 fn cast() {
+    check(expr, "float(2)", &expect!["Expr [0-8]: Cast [0-8]: ClassicalType [0-5]: FloatType [0-5], Expr [0-8]: Expr [6-7]: Lit: Int(2)"]);
+}
+
+#[test]
+fn cast_with_designator() {
     check(
         expr,
-        "float(2)",
+        "float[13](2)",
+        &expect!["Expr [0-12]: Cast [0-12]: ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(13)]: [0-9], Expr [0-12]: Expr [10-11]: Lit: Int(2)"],
+    );
+}
+
+#[test]
+fn cast_to_array() {
+    check(
+        expr,
+        "array[float[64], 4](2)",
         &expect![[r#"
             Error(
                 Rule(
                     "expression",
-                    Type(
-                        Float,
+                    Keyword(
+                        Array,
                     ),
                     Span {
                         lo: 0,

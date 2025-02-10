@@ -37,6 +37,7 @@ use crate::parser::Result;
 use super::{
     error::{Error, ErrorKind},
     prim::{ident, opt, seq, FinalSep},
+    stmt::scalar_or_array_type,
 };
 
 struct PrefixOp {
@@ -53,7 +54,7 @@ enum OpKind {
     Assign,
     AssignBinary(BinOp),
     Binary(BinOp, Assoc),
-    CastOrFuncall,
+    Funcall,
     Index,
 }
 
@@ -129,17 +130,11 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
                 Box::new(ExprKind::BinaryOp(BinaryOpExpr { op: kind, lhs, rhs }))
             }
-            OpKind::CastOrFuncall => {
-                if let Some(r#type) = type_from_expr(&lhs) {
-                    Box::new(cast_op(s, r#type)?)
-                } else if let ExprKind::Ident(ident) = *lhs.kind {
+            OpKind::Funcall => {
+                if let ExprKind::Ident(ident) = *lhs.kind {
                     Box::new(funcall(s, ident)?)
                 } else {
-                    return Err(Error::new(ErrorKind::Convert(
-                        "identifier",
-                        "TODO: other",
-                        lhs.span,
-                    )));
+                    return Err(Error::new(ErrorKind::Convert("identifier", "", lhs.span)));
                 }
             }
             OpKind::Index => Box::new(index_expr(s, lhs)?),
@@ -163,17 +158,38 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
         })
     } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         paren_expr(s, lo)
-    } else if let Ok(id) = ident(s) {
-        Ok(Expr {
-            span: s.span(lo),
-            kind: Box::new(ExprKind::Ident(*id)),
-        })
     } else {
-        Err(Error::new(ErrorKind::Rule(
-            "expression",
-            s.peek().kind,
-            s.peek().span,
-        )))
+        match opt(s, scalar_or_array_type) {
+            Err(err) => Err(err),
+            Ok(Some(r#type)) => {
+                // If we have a type, we expect to see a
+                // parenthesized expression next.
+                token(s, TokenKind::Open(Delim::Paren))?;
+                let arg = paren_expr(s, lo)?;
+                Ok(Expr {
+                    span: s.span(lo),
+                    kind: Box::new(ExprKind::Cast(Cast {
+                        span: s.span(lo),
+                        r#type,
+                        arg,
+                    })),
+                })
+            }
+            Ok(None) => {
+                if let Ok(id) = ident(s) {
+                    Ok(Expr {
+                        span: s.span(lo),
+                        kind: Box::new(ExprKind::Ident(*id)),
+                    })
+                } else {
+                    Err(Error::new(ErrorKind::Rule(
+                        "expression",
+                        s.peek().kind,
+                        s.peek().span,
+                    )))
+                }
+            }
+        }
     }
 }
 
@@ -403,7 +419,7 @@ fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
     } else {
         return Err(Error::new(ErrorKind::Convert(
             "parenthesized expression",
-            "tuple",
+            "expression list",
             s.span(lo),
         )));
     };
@@ -589,7 +605,7 @@ fn infix_op(name: OpName) -> Option<InfixOp> {
             ComparisonOp::EqEq => left_assoc(BinOp::Eq, 6),
         },
         TokenKind::Open(Delim::Paren) => Some(InfixOp {
-            kind: OpKind::CastOrFuncall,
+            kind: OpKind::Funcall,
             precedence: 13,
         }),
         TokenKind::Open(Delim::Bracket) => Some(InfixOp {
