@@ -300,6 +300,7 @@
       ],
       "quantum-copilot-container": [
         {
+          "when": "config.Q#.chat.enabled",
           "id": "quantum-copilot",
           "type": "webview",
           "name": "Azure Quantum Copilot"

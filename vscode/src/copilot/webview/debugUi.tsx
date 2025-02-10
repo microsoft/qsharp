@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ChatElement, ServiceType } from "../shared";
+import { ChatElement } from "../shared";
 import { useRef, useState } from "preact/hooks";
 import { Markdown } from "qsharp-lang/ux";
 
@@ -12,9 +12,9 @@ import { Markdown } from "qsharp-lang/ux";
  */
 export function RetryButton(props: {
   history: ChatElement[];
-  serviceOptions: ServiceType[];
-  selectedService?: ServiceType;
-  restartChat: (history: ChatElement[], service: ServiceType) => void;
+  serviceOptions: string[];
+  selectedService?: string;
+  restartChat: (history: ChatElement[], service: string) => void;
 }) {
   const serviceDropdown = useRef<HTMLSelectElement>(null);
   return (
@@ -27,7 +27,7 @@ export function RetryButton(props: {
       <button
         onClick={() => {
           const selectedService = serviceDropdown.current!.value;
-          props.restartChat(props.history, selectedService as ServiceType);
+          props.restartChat(props.history, selectedService);
         }}
       >
         Retry
@@ -105,9 +105,9 @@ function lookupToolCall(
  */
 export function ShowPayload(props: {
   history: ChatElement[];
-  service?: ServiceType;
-  serviceOptions: ServiceType[];
-  restartChat: (history: ChatElement[], service: ServiceType) => void;
+  service?: string;
+  serviceOptions: string[];
+  restartChat: (history: ChatElement[], service: string) => void;
 }) {
   const payloadRef = useRef<HTMLDivElement>(null);
   const messages = props.history.filter((m) => m.role !== "widget");
@@ -160,9 +160,9 @@ export function ShowPayload(props: {
  * Radio buttons to switch to a different service backend for testing.
  */
 export function ServiceSelector(props: {
-  service?: ServiceType;
-  serviceOptions: ServiceType[];
-  restartChat: (history: ChatElement[], service: ServiceType) => void;
+  service?: string;
+  serviceOptions: string[];
+  restartChat: (history: ChatElement[], service: string) => void;
 }) {
   return (
     <div className="service-radio-group">

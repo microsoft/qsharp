@@ -6,23 +6,25 @@ import {
   ChatElement,
   CopilotUpdate,
   QuantumChatMessage,
-  ServiceType,
   Status,
   ToolCall,
 } from "./shared";
 import { AzureQuantumChatBackend as AzureQuantumChatService } from "./azqChatService.js";
 import { executeTool, ToolState } from "./tools.js";
+import { getDefaultConfig, getServices, ServiceConfig } from "./config";
+import { OpenAIChatService } from "./openAiChatService";
 
 export class Copilot {
   private service: IChatService;
   private messages: ChatElement[] = [];
   private workspaceState: ToolState = {};
+  private serviceOptions: ServiceConfig[];
+  private serviceConfigName: string;
 
-  constructor(
-    private serviceType: ServiceType,
-    private onUpdate: CopilotUpdateHandler,
-  ) {
-    this.service = createService(serviceType);
+  constructor(private onUpdate: CopilotUpdateHandler) {
+    this.serviceOptions = getServices();
+    this.serviceConfigName = getDefaultConfig().name;
+    this.service = this.createService(this.serviceConfigName);
   }
 
   /**
@@ -62,9 +64,9 @@ export class Copilot {
    * start the chat over, or try with a different service backend
    * (useful for debugging).
    */
-  async restartChat(history: ChatElement[], service?: ServiceType) {
-    this.serviceType = service ?? this.serviceType;
-    this.service = createService(this.serviceType);
+  async restartChat(history: ChatElement[], service?: string) {
+    this.serviceConfigName = service ?? this.serviceConfigName;
+    this.service = this.createService(this.serviceConfigName);
 
     this.messages = history;
     this.sendFullUpdate({ status: "ready" });
@@ -174,8 +176,8 @@ export class Copilot {
       payload: {
         history: this.messages,
         status,
-        service: this.serviceType!,
-        serviceOptions: serviceTypes,
+        service: this.serviceConfigName!,
+        serviceOptions: this.serviceOptions.map((s) => s.name),
       },
     });
   }
@@ -206,6 +208,23 @@ export class Copilot {
       },
     });
   }
+
+  createService(serviceName: string): IChatService {
+    const service = this.serviceOptions.find((s) => s.name === serviceName);
+    if (!service) {
+      log.error(`Service ${serviceName} not found in configuration`);
+      throw new Error(`Service ${serviceName} not found in configuration`);
+    }
+
+    switch (service.type) {
+      case "AzureQuantum":
+        return new AzureQuantumChatService(service);
+      case "OpenAI":
+        return new OpenAIChatService(service);
+      default:
+        throw new Error('Unknown service type, try "OpenAI" or "AzureQuantum"');
+    }
+  }
 }
 
 export type CopilotUpdateHandler = (event: CopilotUpdate) => void;
@@ -227,7 +246,7 @@ export interface IChatService {
 }
 
 function cleanContent(content: string | undefined) {
-  // TODO: Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
+  // Even with instructions in the context, Copilot keeps using \( and \) for LaTeX
   let cleanedResponse = content;
   if (cleanedResponse) {
     cleanedResponse = cleanedResponse.replace(/(\\\()|(\\\))/g, "$");
@@ -235,17 +254,3 @@ function cleanContent(content: string | undefined) {
   }
   return cleanedResponse || "";
 }
-
-function createService(serviceType: ServiceType): IChatService {
-  switch (serviceType) {
-    case "AzureQuantumLocal":
-      return new AzureQuantumChatService("local");
-    case "AzureQuantumTest":
-      return new AzureQuantumChatService("test");
-  }
-}
-
-export const serviceTypes: ServiceType[] = [
-  "AzureQuantumLocal",
-  "AzureQuantumTest",
-];

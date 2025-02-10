@@ -8,9 +8,8 @@ import { QuantumChatMessage, ToolCall } from "./shared";
 import { fetchEventSource } from "../fetch";
 import { getRandomGuid } from "../utils";
 import { IChatService } from "./copilot";
+import { AzureQuantumServiceConfig } from "./config";
 
-const chatUrlTest = "https://api.quantum-test.microsoft.com/api/chat/streaming";
-const chatUrlLocal = "https://localhost:7044/api/chat/streaming";
 const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 
 /**
@@ -19,8 +18,12 @@ const chatApp = "652066ed-7ea8-4625-a1e9-5bac6600bf06";
 export class AzureQuantumChatBackend implements IChatService {
   private conversationId: string;
   private msaChatSession?: AuthenticationSession;
+  private chatEndpointUrl: string;
+  private msaAuth: boolean;
 
-  constructor(private env: "local" | "test") {
+  constructor(config: AzureQuantumServiceConfig) {
+    this.chatEndpointUrl = config.chatEndpointUrl;
+    this.msaAuth = config.msaAuth;
     this.conversationId = getRandomGuid();
   }
 
@@ -31,8 +34,7 @@ export class AzureQuantumChatBackend implements IChatService {
     content?: string;
     toolCalls?: ToolCall[];
   }> {
-    const token =
-      this.env === "local" ? "XXXX" : await this.getMsaChatSession();
+    const token = this.msaAuth ? await this.getMsaChatSession() : "XXXX";
 
     const payload: QuantumChatRequest = {
       conversationId: this.conversationId,
@@ -56,7 +58,7 @@ export class AzureQuantumChatBackend implements IChatService {
       let content: string | undefined = undefined;
       let toolCalls: ToolCall[] | undefined = undefined;
 
-      await fetchEventSource(this.getChatUrl(), {
+      await fetchEventSource(this.chatEndpointUrl, {
         ...options,
         onMessage: (ev) => {
           if (!JSON.parse(ev.data).Delta) {
@@ -91,10 +93,6 @@ export class AzureQuantumChatBackend implements IChatService {
       log.error("ChatAPI fetch failed with error: ", error);
       throw error;
     }
-  }
-
-  private getChatUrl(): string {
-    return this.env === "local" ? chatUrlLocal : chatUrlTest;
   }
 
   private async getMsaChatSession(): Promise<string> {

@@ -12,7 +12,6 @@ import {
   CopilotCommand,
   CopilotUpdate,
   HistogramData,
-  ServiceType,
   Status,
 } from "../shared";
 import "./copilot.css";
@@ -290,14 +289,14 @@ type ChatViewModel = {
   status: Status;
 
   /**
-   * Service backend options.
+   * Available service backends defined in the configuration.
    */
-  serviceOptions: ServiceType[];
+  serviceOptions: string[];
 
   /**
    * Service backend in use.
    */
-  service?: ServiceType;
+  service?: string;
 
   /**
    * Any in progress assistant response.
@@ -320,7 +319,7 @@ function submitUserMessage(content: string) {
  * Copilot command to restart the chat with a new history.
  * The service backend can be changed here as well.
  */
-function restartChat(history: ChatElement[], service?: ServiceType) {
+function restartChat(history: ChatElement[], service?: string) {
   postMessageToExtension({
     command: "restartChat",
     history,

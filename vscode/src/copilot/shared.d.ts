@@ -15,8 +15,6 @@ export type CopilotCommand =
       service?: ServiceType;
     };
 
-export type ServiceType = "AzureQuantumLocal" | "AzureQuantumTest";
-
 /**
  * Events that get sent across the webview <-> extension boundary
  * for the copilot feature.
