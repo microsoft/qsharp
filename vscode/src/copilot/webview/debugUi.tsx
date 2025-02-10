@@ -15,6 +15,7 @@ export function RetryButton(props: {
   serviceOptions: string[];
   selectedService?: string;
   restartChat: (history: ChatElement[], service: string) => void;
+  disabled: boolean;
 }) {
   const serviceDropdown = useRef<HTMLSelectElement>(null);
   return (
@@ -29,6 +30,7 @@ export function RetryButton(props: {
           const selectedService = serviceDropdown.current!.value;
           props.restartChat(props.history, selectedService);
         }}
+        disabled={props.disabled}
       >
         Retry
       </button>

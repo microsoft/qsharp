@@ -132,6 +132,10 @@ function ChatHistory({ model }: { model: ChatViewModel }) {
               serviceOptions={model.serviceOptions}
               selectedService={model.service}
               restartChat={restartChat}
+              disabled={
+                model.status.status !== "ready" &&
+                model.status.status !== "assistantConnectionError"
+              }
             ></RetryButton>,
           );
         }
