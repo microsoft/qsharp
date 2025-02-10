@@ -9,7 +9,6 @@ use std::{
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
 pub enum Keyword {
-    Array,
     Barrier,
     Box,
     Break,
@@ -58,7 +57,6 @@ pub enum Keyword {
 impl Keyword {
     pub(super) fn as_str(self) -> &'static str {
         match self {
-            Keyword::Array => "array",
             Keyword::Barrier => "barrier",
             Keyword::Box => "box",
             Keyword::Break => "break",
@@ -120,7 +118,6 @@ impl FromStr for Keyword {
     // frequency in Q# so that fewer comparisons are needed on average.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "array" => Ok(Self::Array),
             "barrier" => Ok(Self::Barrier),
             "box" => Ok(Self::Box),
             "break" => Ok(Self::Break),

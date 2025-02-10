@@ -684,12 +684,12 @@ fn funcall_multiple_args_trailing_comma() {
 fn cast() {
     check(
         expr,
-        "float(2)",
+        "float(0)",
         &expect![[r#"
         Expr [0-8]: Cast [0-8]:
             ClassicalType [0-5]: FloatType [0-5]
             Expr [0-8]: Paren:
-                Expr [6-7]: Lit: Int(2)"#]],
+                Expr [6-7]: Lit: Int(0)"#]],
     );
 }
 
@@ -697,34 +697,146 @@ fn cast() {
 fn cast_with_designator() {
     check(
         expr,
-        "float[13](2)",
+        "float[13](0)",
         &expect![[r#"
             Expr [0-12]: Cast [0-12]:
                 ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(13)]: [0-9]
                 Expr [0-12]: Paren:
-                    Expr [10-11]: Lit: Int(2)"#]],
+                    Expr [10-11]: Lit: Int(0)"#]],
     );
 }
 
 #[test]
-fn cast_to_array() {
+fn cast_to_bit_array() {
     check(
         expr,
-        "array[float[64], 4](2)",
+        "array[bit[64], 4](0)",
+        &expect![[r#"
+            Expr [0-20]: Cast [0-20]:
+                ArrayType [0-17]: ArrayBaseTypeKind BitType [6-13]: ExprStmt [9-13]: Expr [10-12]: Lit: Int(64)
+                Expr [15-16]: Lit: Int(4)
+                Expr [0-20]: Paren:
+                    Expr [18-19]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_int_array() {
+    check(
+        expr,
+        "array[int[64], 4](0)",
+        &expect![[r#"
+            Expr [0-20]: Cast [0-20]:
+                ArrayType [0-17]: ArrayBaseTypeKind IntType[ExprStmt [9-13]: Expr [10-12]: Lit: Int(64)]: [6-13]
+                Expr [15-16]: Lit: Int(4)
+                Expr [0-20]: Paren:
+                    Expr [18-19]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_uint_array() {
+    check(
+        expr,
+        "array[uint[64], 4](0)",
+        &expect![[r#"
+            Expr [0-21]: Cast [0-21]:
+                ArrayType [0-18]: ArrayBaseTypeKind UIntType[ExprStmt [10-14]: Expr [11-13]: Lit: Int(64)]: [6-14]
+                Expr [16-17]: Lit: Int(4)
+                Expr [0-21]: Paren:
+                    Expr [19-20]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_float_array() {
+    check(
+        expr,
+        "array[float[64], 4](0)",
+        &expect![[r#"
+            Expr [0-22]: Cast [0-22]:
+                ArrayType [0-19]: ArrayBaseTypeKind FloatType[ExprStmt [11-15]: Expr [12-14]: Lit: Int(64)]: [6-15]
+                Expr [17-18]: Lit: Int(4)
+                Expr [0-22]: Paren:
+                    Expr [20-21]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_angle_array() {
+    check(
+        expr,
+        "array[angle[64], 4](0)",
+        &expect![[r#"
+            Expr [0-22]: Cast [0-22]:
+                ArrayType [0-19]: ArrayBaseTypeKind AngleType [6-15]: ExprStmt [11-15]: Expr [12-14]: Lit: Int(64)
+                Expr [17-18]: Lit: Int(4)
+                Expr [0-22]: Paren:
+                    Expr [20-21]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_bool_array() {
+    check(
+        expr,
+        "array[bool, 4](0)",
+        &expect![[r#"
+            Expr [0-17]: Cast [0-17]:
+                ArrayType [0-14]: ArrayBaseTypeKind BoolType
+                Expr [12-13]: Lit: Int(4)
+                Expr [0-17]: Paren:
+                    Expr [15-16]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_duration_array() {
+    check(
+        expr,
+        "array[duration, 4](0)",
+        &expect![[r#"
+            Expr [0-21]: Cast [0-21]:
+                ArrayType [0-18]: ArrayBaseTypeKind DurationType
+                Expr [16-17]: Lit: Int(4)
+                Expr [0-21]: Paren:
+                    Expr [19-20]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn cast_to_stretch_array() {
+    check(
+        expr,
+        "array[stretch, 4](0)",
         &expect![[r#"
             Error(
                 Rule(
-                    "expression",
-                    Keyword(
-                        Array,
+                    "scalar or array type",
+                    Type(
+                        Stretch,
                     ),
                     Span {
-                        lo: 0,
-                        hi: 5,
+                        lo: 6,
+                        hi: 13,
                     },
                 ),
             )
         "#]],
+    );
+}
+
+#[test]
+fn cast_to_complex_array() {
+    check(
+        expr,
+        "array[complex[float[32]], 4](0)",
+        &expect![[r#"
+            Expr [0-31]: Cast [0-31]:
+                ArrayType [0-28]: ArrayBaseTypeKind ComplexType[float[FloatType[ExprStmt [19-23]: Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24]
+                Expr [26-27]: Lit: Int(4)
+                Expr [0-31]: Paren:
+                    Expr [29-30]: Lit: Int(0)"#]],
     );
 }
 

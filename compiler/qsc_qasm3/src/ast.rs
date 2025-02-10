@@ -804,6 +804,7 @@ impl Display for ScalarTypeKind {
 
 #[derive(Clone, Debug)]
 pub enum ArrayBaseTypeKind {
+    Bit(BitType),
     Int(IntType),
     UInt(UIntType),
     Float(FloatType),
@@ -816,6 +817,7 @@ pub enum ArrayBaseTypeKind {
 impl Display for ArrayBaseTypeKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            ArrayBaseTypeKind::Bit(bit) => write!(f, "ArrayBaseTypeKind {bit}"),
             ArrayBaseTypeKind::Int(int) => write!(f, "ArrayBaseTypeKind {int}"),
             ArrayBaseTypeKind::UInt(uint) => write!(f, "ArrayBaseTypeKind {uint}"),
             ArrayBaseTypeKind::Float(float) => write!(f, "ArrayBaseTypeKind {float}"),

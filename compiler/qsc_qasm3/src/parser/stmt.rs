@@ -357,6 +357,9 @@ pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
 }
 
 pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    if let Ok(v) = array_bit_type(s) {
+        return Ok(v);
+    }
     if let Ok(v) = array_angle_type(s) {
         return Ok(v);
     }
@@ -434,6 +437,21 @@ fn scalar_bit_type(s: &mut ParserContext) -> Result<ScalarType> {
     })
 }
 
+fn bit_type(s: &mut ParserContext) -> Result<BitType> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Type(Type::Bit))?;
+    let size = opt(s, designator)?;
+    Ok(BitType {
+        size,
+        span: s.span(lo),
+    })
+}
+
+fn array_bit_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
+    let ty = bit_type(s)?;
+    Ok(ArrayBaseTypeKind::Bit(ty))
+}
+
 fn scalar_int_type(s: &mut ParserContext) -> Result<ScalarType> {
     let lo = s.peek().span.lo;
     let ty = int_type(s)?;
@@ -444,7 +462,6 @@ fn scalar_int_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_int_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Int))?;
     let ty = int_type(s)?;
     Ok(ArrayBaseTypeKind::Int(ty))
 }
@@ -468,7 +485,6 @@ fn scalar_uint_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_uint_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::UInt))?;
     let ty = uint_type(s)?;
     Ok(ArrayBaseTypeKind::UInt(ty))
 }
@@ -493,7 +509,6 @@ fn scalar_float_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_float_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Float))?;
     let ty = float_type(s)?;
     Ok(ArrayBaseTypeKind::Float(ty))
 }
@@ -518,7 +533,6 @@ fn scalar_angle_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_angle_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Angle))?;
     let ty = angle_type(s)?;
     Ok(ArrayBaseTypeKind::Angle(ty))
 }
