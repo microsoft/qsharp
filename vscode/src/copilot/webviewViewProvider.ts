@@ -60,20 +60,20 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
       localResourceRoots: [this.extensionUri],
     };
 
-    // try {
-    this.copilot = new Copilot(this._streamCallback);
+    try {
+      this.copilot = new Copilot(this._streamCallback);
 
-    const getUri = (pathList: string[]) =>
-      webviewView.webview.asWebviewUri(
-        Uri.joinPath(this.extensionUri, ...pathList),
-      );
+      const getUri = (pathList: string[]) =>
+        webviewView.webview.asWebviewUri(
+          Uri.joinPath(this.extensionUri, ...pathList),
+        );
 
-    const copilotJs = getUri(["out", "copilot", "webview", "copilot.js"]);
-    const copilotCss = getUri(["out", "copilot", "webview", "copilot.css"]);
-    const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const codiconCss = getUri(["out", "katex", "codicon.css"]);
+      const copilotJs = getUri(["out", "copilot", "webview", "copilot.js"]);
+      const copilotCss = getUri(["out", "copilot", "webview", "copilot.css"]);
+      const katexCss = getUri(["out", "katex", "katex.min.css"]);
+      const codiconCss = getUri(["out", "katex", "codicon.css"]);
 
-    webviewView.webview.html = `<!DOCTYPE html>
+      webviewView.webview.html = `<!DOCTYPE html>
         <html lang="en">
         <head>
         <link rel="stylesheet" href="${katexCss}" />
@@ -85,16 +85,16 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
         </body>
         </html>`;
 
-    webviewView.webview.onDidReceiveMessage(
-      this.handleMessageFromWebview.bind(this),
-    );
-    // } catch (e) {
-    //   log.error("Error loading Copilot: ", e);
-    //   webviewView.webview.html = `<!DOCTYPE html>
-    //     <html lang="en">
-    //     <body>Error loading Copilot: ${e}</body>
-    //     </html>`;
-    // }
+      webviewView.webview.onDidReceiveMessage(
+        this.handleMessageFromWebview.bind(this),
+      );
+    } catch (e) {
+      log.error("Error loading Copilot: ", e);
+      webviewView.webview.html = `<!DOCTYPE html>
+        <html lang="en">
+        <body>Error loading Copilot: ${e}</body>
+        </html>`;
+    }
   }
 
   handleMessageFromWebview(message: CopilotCommand) {

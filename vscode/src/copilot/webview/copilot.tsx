@@ -342,7 +342,6 @@ document.addEventListener("DOMContentLoaded", loaded);
 window.addEventListener("message", onMessage);
 
 function loaded() {
-  console.log("Loaded");
   restartChat([], undefined);
 }
 
@@ -350,7 +349,6 @@ function loaded() {
  * Handles updates to the copilot state.
  */
 function onMessage(event: MessageEvent<CopilotUpdate>) {
-  console.log("Received message: ", event.data);
   const message = event.data;
   switch (message.kind) {
     case "appendDelta":
