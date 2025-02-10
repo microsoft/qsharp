@@ -25,8 +25,13 @@ export type CopilotUpdate =
       payload: {
         history: ChatElement[];
         status: Status;
-        serviceOptions: ServiceType[];
-        service: ServiceType;
+        debugUi:
+          | {
+              show: true;
+              serviceOptions: ServiceType[];
+              service: ServiceType;
+            }
+          | { show: false };
       };
     }
   | { kind: "updateStatus"; payload: { status: Status } }

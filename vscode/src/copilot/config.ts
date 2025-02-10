@@ -54,3 +54,13 @@ export function getDefaultConfig(): ServiceConfig {
   }
   return config;
 }
+
+/**
+ * Enables UI elements that aren't included in the product
+ * but are helpful for debugging service interactions.
+ */
+export function getShowDebugUiConfig(): boolean {
+  return vscode.workspace
+    .getConfiguration("Q#")
+    .get<boolean>("chat.showDebugUi", false);
+}

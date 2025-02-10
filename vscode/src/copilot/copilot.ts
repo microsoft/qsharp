@@ -11,7 +11,12 @@ import {
 } from "./shared";
 import { AzureQuantumChatBackend as AzureQuantumChatService } from "./azqChatService.js";
 import { executeTool, ToolState } from "./tools.js";
-import { getDefaultConfig, getServices, ServiceConfig } from "./config";
+import {
+  getDefaultConfig,
+  getServices,
+  ServiceConfig,
+  getShowDebugUiConfig,
+} from "./config";
 import { OpenAIChatService } from "./openAiChatService";
 import { getRandomGuid } from "../utils";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
@@ -237,8 +242,13 @@ export class Copilot {
       payload: {
         history: this.messages,
         status,
-        service: this.serviceConfigName!,
-        serviceOptions: this.serviceOptions.map((s) => s.name),
+        debugUi: getShowDebugUiConfig()
+          ? {
+              show: true,
+              service: this.serviceConfigName!,
+              serviceOptions: this.serviceOptions.map((s) => s.name),
+            }
+          : { show: false },
       },
     });
   }

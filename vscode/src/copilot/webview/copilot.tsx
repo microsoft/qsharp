@@ -29,12 +29,6 @@ import {
 } from "./debugUi";
 import hlsjQsharp from "./hlsj-qsharp";
 
-/**
- * Enables UI elements that aren't included in the product
- * but are helpful for debugging service interactions.
- */
-const enableDebugUi = true;
-
 const vscodeApi = acquireVsCodeApi();
 
 hljs.registerLanguage("qsharp", hlsjQsharp);
@@ -88,17 +82,17 @@ Azure Quantum Copilot is powered by AI, so mistakes are possible. Review the out
           }
         />
       </div>
-      {enableDebugUi ? (
+      {model.debugUi.show ? (
         <>
           <ShowPayload
             history={model.history}
-            service={model.service}
-            serviceOptions={model.serviceOptions}
+            service={model.debugUi.service}
+            serviceOptions={model.debugUi.serviceOptions}
             restartChat={restartChat}
           />
           <ServiceSelector
-            service={model.service}
-            serviceOptions={model.serviceOptions}
+            service={model.debugUi.service}
+            serviceOptions={model.debugUi.serviceOptions}
             restartChat={restartChat}
           />
         </>
@@ -125,12 +119,12 @@ function ChatHistory({ model }: { model: ChatViewModel }) {
         break;
       case "user":
         elements.push(<UserMessage content={message.content} />);
-        if (enableDebugUi) {
+        if (model.debugUi.show) {
           elements.push(
             <RetryButton
               history={model.history.slice(0, i + 1)}
-              serviceOptions={model.serviceOptions}
-              selectedService={model.service}
+              serviceOptions={model.debugUi.serviceOptions}
+              selectedService={model.debugUi.service}
               restartChat={restartChat}
               disabled={
                 model.status.status !== "ready" &&
@@ -142,7 +136,7 @@ function ChatHistory({ model }: { model: ChatViewModel }) {
 
         break;
       case "tool":
-        if (enableDebugUi) {
+        if (model.debugUi.show) {
           elements.push(
             <ToolMessage
               id={message.toolCallId}
@@ -296,19 +290,30 @@ type ChatViewModel = {
   status: Status;
 
   /**
-   * Available service backends defined in the configuration.
-   */
-  serviceOptions: string[];
-
-  /**
-   * Service backend in use.
-   */
-  service?: string;
-
-  /**
    * Any in progress assistant response.
    */
   inProgressResponse: string;
+
+  /**
+   * Debug controls to be used in development.
+   */
+  debugUi:
+    | {
+        show: true;
+
+        /**
+         * Available service backends defined in the configuration.
+         */
+        serviceOptions: string[];
+
+        /**
+         * Service backend in use.
+         */
+        service?: string;
+      }
+    | {
+        show: false;
+      };
 };
 
 /**
@@ -341,8 +346,7 @@ const model: ChatViewModel = {
   history: [],
   inProgressResponse: "",
   status: { status: "ready" },
-  service: undefined,
-  serviceOptions: [],
+  debugUi: { show: false },
 };
 
 document.addEventListener("DOMContentLoaded", loaded);
@@ -369,8 +373,7 @@ function onMessage(event: MessageEvent<CopilotUpdate>) {
       model.inProgressResponse = "";
       model.history = message.payload.history;
       model.status = message.payload.status;
-      model.service = message.payload.service;
-      model.serviceOptions = message.payload.serviceOptions;
+      model.debugUi = message.payload.debugUi;
       break;
     default:
       console.error("Unknown message kind: ", (message as any).kind);
