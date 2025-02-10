@@ -434,16 +434,11 @@ fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
     let lo = ident.span.lo;
     let (args, _) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
-
     Ok(ExprKind::FunctionCall(FunctionCall {
         span: s.span(lo),
         name: ast::Identifier::Ident(Box::new(ident)),
         args: args.into_iter().map(Box::new).collect(),
     }))
-}
-
-fn type_from_expr(_expr: &Expr) -> Option<TypeDef> {
-    None
 }
 
 fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
@@ -679,6 +674,6 @@ pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> 
     Ok(Box::new(ValueExpression::Expr(stmt)))
 }
 
-pub(crate) fn expr_list(_s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
-    todo!("expr_list")
+pub(crate) fn expr_list(s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
+    seq(s, expr).map(|pair| pair.0)
 }
