@@ -106,7 +106,6 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
 
     let min_precedence = match context {
         OpContext::Precedence(p) => p,
-        // OpContext::Stmt if is_stmt_final(&lhs.kind) => return Ok(lhs),
         OpContext::Stmt => 0,
     };
 
