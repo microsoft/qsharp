@@ -373,9 +373,13 @@ impl<'a> Lexer<'a> {
                         Err(NumberLexError::Incomplete) => unreachable!(),
                     }
                 }
-                Some('e') => match self.exp() {
+                Some('e' | 'E') => match self.exp() {
                     Ok(()) => Ok(Number::Float),
-                    Err(_) => todo!(),
+                    Err(NumberLexError::None) => unreachable!("we know there is an `e`"),
+                    Err(NumberLexError::Incomplete) => {
+                        unreachable!("this only applies when lexing binary, octal, or hex")
+                    }
+                    Err(err) => Err(err),
                 },
                 None | Some(_) => Ok(Number::Float),
             }
@@ -415,7 +419,7 @@ impl<'a> Lexer<'a> {
                     self.chars.next();
                     self.mid_dot(c1)
                 }
-                Some('e') => match self.exp() {
+                Some('e' | 'E') => match self.exp() {
                     Ok(()) => Ok(Number::Float),
                     Err(NumberLexError::None) => unreachable!(),
                     Err(_) => Err(NumberLexError::EndsInUnderscore),
