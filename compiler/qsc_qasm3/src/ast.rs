@@ -204,7 +204,7 @@ impl Display for MeasureExpr {
     }
 }
 /// A binary operator.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum BinOp {
     /// Addition: `+`.
     Add,
@@ -273,8 +273,8 @@ impl Display for BinOp {
 }
 
 /// A unary operator.
-#[derive(Clone, Debug)]
-pub enum UnOp {
+#[derive(Clone, Copy, Debug)]
+pub enum UnaryOp {
     /// Negation: `-`.
     Neg,
     /// Bitwise NOT: `~`.
@@ -283,12 +283,12 @@ pub enum UnOp {
     NotL,
 }
 
-impl Display for UnOp {
+impl Display for UnaryOp {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            UnOp::Neg => write!(f, "Neg"),
-            UnOp::NotB => write!(f, "NotB"),
-            UnOp::NotL => write!(f, "NotL"),
+            UnaryOp::Neg => write!(f, "Neg"),
+            UnaryOp::NotB => write!(f, "NotB"),
+            UnaryOp::NotL => write!(f, "NotL"),
         }
     }
 }
@@ -637,7 +637,7 @@ impl Display for AliasStmt {
 #[derive(Clone, Debug)]
 pub struct ExprStmt {
     pub span: Span,
-    pub expr: Box<Expr>,
+    pub expr: Expr,
 }
 
 impl Display for ExprStmt {
@@ -667,7 +667,7 @@ impl Display for Expr {
 #[derive(Clone, Debug)]
 pub struct DiscreteSet {
     pub span: Span,
-    pub values: List<ExprStmt>,
+    pub values: Box<[Expr]>,
 }
 
 impl Display for DiscreteSet {
@@ -685,9 +685,9 @@ impl Display for DiscreteSet {
 #[derive(Clone, Debug)]
 pub struct RangeDefinition {
     pub span: Span,
-    pub start: Option<ExprStmt>,
-    pub end: Option<ExprStmt>,
-    pub step: Option<ExprStmt>,
+    pub start: Option<Expr>,
+    pub end: Option<Expr>,
+    pub step: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1584,17 +1584,20 @@ impl Display for ClassicalAssignment {
 
 #[derive(Clone, Debug, Default)]
 pub enum ExprKind {
+    Assign(AssignExpr),
+    AssignOp(AssignOpExpr),
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
     Ident(Ident),
-    UnaryExpr(UnaryExpr),
-    BinaryExpr(BinaryExpr),
+    UnaryOp(UnaryOpExpr),
+    BinaryOp(BinaryOpExpr),
     Lit(Lit),
     FunctionCall(FunctionCall),
     Cast(Cast),
     Concatenation(Concatenation),
     IndexExpr(IndexExpr),
+    Paren(Expr),
 }
 
 impl Display for ExprKind {
@@ -1603,25 +1606,54 @@ impl Display for ExprKind {
         match self {
             ExprKind::Err => write!(f, "Err"),
             ExprKind::Ident(id) => write!(f, "{id}"),
-            ExprKind::UnaryExpr(expr) => write!(f, "{expr}"),
-            ExprKind::BinaryExpr(expr) => display_bin_op(indent, expr),
+            ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
+            ExprKind::BinaryOp(expr) => display_bin_op(indent, expr),
             ExprKind::Lit(lit) => write!(f, "{lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
-            ExprKind::Cast(cast) => write!(f, "{cast}"),
+            ExprKind::Cast(cast) => display_cast(indent, cast),
             ExprKind::Concatenation(concat) => write!(f, "{concat}"),
             ExprKind::IndexExpr(index) => write!(f, "{index}"),
+            ExprKind::Assign(expr) => write!(f, "{expr}"),
+            ExprKind::AssignOp(expr) => write!(f, "{expr}"),
+            ExprKind::Paren(expr) => display_paren(indent, expr),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct UnaryExpr {
-    pub span: Span,
-    pub op: UnaryOp,
-    pub expr: Box<Expr>,
+pub struct AssignExpr {
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
-impl Display for UnaryExpr {
+impl Display for AssignExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let indent = set_indentation(indented(f), 0);
+        display_assign(indent, &self.lhs, &self.rhs)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AssignOpExpr {
+    pub op: BinOp,
+    pub lhs: Expr,
+    pub rhs: Expr,
+}
+
+impl Display for AssignOpExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let indent = set_indentation(indented(f), 0);
+        display_assign_op(indent, self.op, &self.lhs, &self.rhs)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct UnaryOpExpr {
+    pub op: UnaryOp,
+    pub expr: Expr,
+}
+
+impl Display for UnaryOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let indent = set_indentation(indented(f), 0);
         display_un_op(indent, self.op, &self.expr)
@@ -1629,14 +1661,13 @@ impl Display for UnaryExpr {
 }
 
 #[derive(Clone, Debug)]
-pub struct BinaryExpr {
-    pub span: Span,
-    pub op: BinaryOp,
-    pub lhs: ExprStmt,
-    pub rhs: ExprStmt,
+pub struct BinaryOpExpr {
+    pub op: BinOp,
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
-impl Display for BinaryExpr {
+impl Display for BinaryOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let indent = set_indentation(indented(f), 0);
         display_bin_op(indent, self)
@@ -1647,7 +1678,7 @@ impl Display for BinaryExpr {
 pub struct FunctionCall {
     pub span: Span,
     pub name: Identifier,
-    pub args: List<ExprStmt>,
+    pub args: List<Expr>,
 }
 
 impl Display for FunctionCall {
@@ -1665,8 +1696,8 @@ impl Display for FunctionCall {
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
-    pub r#type: ScalarType,
-    pub arg: ExprStmt,
+    pub r#type: TypeDef,
+    pub arg: Expr,
 }
 
 impl Display for Cast {
@@ -1678,7 +1709,7 @@ impl Display for Cast {
 #[derive(Clone, Debug)]
 pub struct IndexExpr {
     pub span: Span,
-    pub collection: ExprStmt,
+    pub collection: Expr,
     pub index: IndexElement,
 }
 
@@ -1690,65 +1721,6 @@ impl Display for IndexExpr {
             self.span, self.collection, self.index
         )
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum UnaryOp {
-    NegB,
-    NegL,
-    NegN,
-}
-
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            UnaryOp::NegB => write!(f, "NegB"),
-            UnaryOp::NegL => write!(f, "NegL"),
-            UnaryOp::NegN => write!(f, "NegN"),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum BinaryOp {
-    /// `>`
-    Gt,
-    /// `<`
-    Lt,
-    /// `>=`
-    Gte,
-    /// `<=`
-    Lte,
-    /// `==`
-    Eq,
-    /// `!=`
-    Neq,
-    /// `&&`
-    AndL,
-    /// `||`
-    OrL,
-    /// `|`
-    OrB,
-    /// `^`
-    XorB,
-    /// `&`
-    AndB,
-    /// `<<`
-    ShL,
-    /// `>>`
-    ShR,
-    /// `+`
-    Add,
-    /// `-`
-    Sub,
-    /// `*`
-    Mul,
-    /// `/`
-    Div,
-    /// `%`
-    Mod,
-    /// `**`
-    Exp,
 }
 
 #[derive(Clone, Debug)]
@@ -1860,10 +1832,19 @@ impl Display for IndexElement {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum IndexSetItem {
     RangeDefinition(RangeDefinition),
-    Expr(ExprStmt),
+    Expr(Expr),
+    #[default]
+    Err,
+}
+
+/// This is needed to able to use `IndexSetItem` in the `seq` combinator.
+impl WithSpan for IndexSetItem {
+    fn with_span(self, _span: Span) -> Self {
+        self
+    }
 }
 
 impl Display for IndexSetItem {
@@ -1872,13 +1853,14 @@ impl Display for IndexSetItem {
         match self {
             IndexSetItem::RangeDefinition(range) => display_range(indent, range),
             IndexSetItem::Expr(expr) => write!(f, "IndexSetItem {expr}"),
+            IndexSetItem::Err => write!(f, "Err"),
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub enum AssignmentOp {
-    BinaryOp(BinaryOp),
+    BinaryOp(BinOp),
     /// `OpenQASM3` has the `~=` assignment operator.
     /// This enum variant is meant to capture that.
     UnaryOp(UnaryOp),
@@ -1986,7 +1968,7 @@ fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fm
 
 fn display_assign_op(
     mut indent: Indented<Formatter>,
-    op: BinaryOp,
+    op: BinOp,
     lhs: &Expr,
     rhs: &Expr,
 ) -> fmt::Result {
@@ -1997,7 +1979,7 @@ fn display_assign_op(
     Ok(())
 }
 
-fn display_bin_op(mut indent: Indented<Formatter>, expr: &BinaryExpr) -> fmt::Result {
+fn display_bin_op(mut indent: Indented<Formatter>, expr: &BinaryOpExpr) -> fmt::Result {
     write!(indent, "BinOp ({:?}):", expr.op)?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{}", expr.lhs)?;
@@ -2009,6 +1991,20 @@ fn display_un_op(mut indent: Indented<Formatter>, op: UnaryOp, expr: &Expr) -> f
     write!(indent, "UnOp ({op}):")?;
     indent = set_indentation(indent, 1);
     write!(indent, "\n{expr}")?;
+    Ok(())
+}
+
+fn display_paren(mut indent: Indented<Formatter>, expr: &Expr) -> fmt::Result {
+    write!(indent, "Paren:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{expr}")?;
+    Ok(())
+}
+fn display_cast(mut indent: Indented<Formatter>, cast: &Cast) -> fmt::Result {
+    let Cast { span, r#type, arg } = cast;
+    write!(indent, "Cast {span}:")?;
+    indent = set_indentation(indent, 1);
+    write!(indent, "\n{type}\n{arg}")?;
     Ok(())
 }
 
