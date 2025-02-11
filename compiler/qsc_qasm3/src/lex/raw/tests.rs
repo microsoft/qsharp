@@ -799,6 +799,34 @@ fn incomplete_exp() {
 }
 
 #[test]
+fn incomplete_exp2() {
+    check(
+        "0.e3_",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Unknown,
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+    check(
+        "1e",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn leading_zero_point() {
     check(
         "0.25",
