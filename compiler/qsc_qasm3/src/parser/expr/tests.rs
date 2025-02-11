@@ -1142,7 +1142,7 @@ fn set_expr() {
 }
 
 #[test]
-fn assignment_1() {
+fn assignment_and_unop() {
     check(
         crate::parser::stmt::parse,
         "bool c = a && !b;",
@@ -1156,7 +1156,7 @@ fn assignment_1() {
 }
 
 #[test]
-fn assignment_2() {
+fn assignment_unop_and() {
     check(
         crate::parser::stmt::parse,
         "bool d = !a && b;",
