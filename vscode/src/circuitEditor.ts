@@ -66,31 +66,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       webviewPanel.webview.postMessage(message);
     };
 
-    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
-      (e) => {
-        if (e.document.uri.toString() === document.uri.toString()) {
-          updateWebview();
-        }
-      },
-    );
-
-    // Make sure we get rid of the listener when our editor is closed.
-    webviewPanel.onDidDispose(() => {
-      changeDocumentSubscription.dispose();
-    });
-
-    webviewPanel.webview.onDidReceiveMessage((e) => {
-      if (e.type === "add") {
-        const edit = new vscode.WorkspaceEdit();
-        edit.insert(
-          document.uri,
-          new vscode.Position(0, 0),
-          "Hello from circuitEditor.ts!\n",
-        );
-        vscode.workspace.applyEdit(edit);
-      }
-    });
-
     updateWebview();
   }
 

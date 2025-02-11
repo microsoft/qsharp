@@ -64,7 +64,7 @@ function ZoomableCircuit(props: {
         props.circuit,
         container,
         props.isEditable,
-        // props.editCallback,
+        props.editCallback,
       );
       // Calculate the initial zoom level based on the container width
       const initialZoom = calculateZoomToFit(container, svg as SVGElement);
@@ -145,7 +145,6 @@ function ZoomableCircuit(props: {
     circuit: qviz.Circuit,
     container: HTMLDivElement,
     isEditable: boolean,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     editCallback?: (circuit: qviz.Circuit) => void,
   ) {
     if (isEditable) {
