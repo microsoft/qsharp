@@ -440,8 +440,25 @@ export class Sqore {
       _sqore: Sqore,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _useRefresh: () => void,
-    ) => callback(this.circuit);
+    ) => callback(this.minimizeCiruit(this.circuit));
     this.extensions = [...this.extensions, extensionOnCircuitChange];
     return this;
   }
+
+  // Note: I'm unsure that this is the right place in code to do this.
+
+  // Minimize the circuit to remove dataAttributes
+  minimizeCiruit(circuit: Circuit): Circuit {
+    const minimizedCircuit: Circuit = JSON.parse(JSON.stringify(circuit));
+    minimizedCircuit.operations.forEach(this.minimizeOperation);
+    return minimizedCircuit;
+  }
+
+  // Minimize the operation to remove dataAttributes
+  minimizeOperation = (operation: Operation): void => {
+    if (operation.children !== undefined) {
+      operation.children.forEach(this.minimizeOperation);
+    }
+    operation.dataAttributes = undefined;
+  };
 }
