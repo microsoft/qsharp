@@ -82,12 +82,12 @@ pub(crate) fn get_qir_(
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(program: ProgramConfig, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) = into_qsc_args(program, None)
-        .map_err(|mut e| {
-        // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
-        qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
-    })?;
+pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
+    let (source_map, capabilities, language_features, store, deps) =
+        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+            // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
+            qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
+        })?;
 
     let mut interpreter = interpret::Interpreter::new(
         source_map,

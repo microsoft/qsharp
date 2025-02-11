@@ -47,6 +47,11 @@ pub enum Error {
 #[must_use]
 pub fn qubit_param_info(item: &Item) -> Option<(Vec<u32>, u32)> {
     if let ItemKind::Callable(decl) = &item.kind {
+        if decl.input.ty == Ty::UNIT {
+            // Support no parameters by allocating 0 qubits.
+            return Some((vec![], 0));
+        }
+
         let (qubit_param_dimensions, total_num_qubits) = get_qubit_param_info(&decl.input.ty);
 
         if !qubit_param_dimensions.is_empty() {

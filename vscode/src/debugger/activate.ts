@@ -70,10 +70,32 @@ function registerCommands(context: vscode.ExtensionContext) {
           { noDebug: true },
         ),
     ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.runExpression`,
+      (expr: string) =>
+        startDebugging(
+          undefined,
+          {
+            name: "Run Expression",
+            stopOnEntry: false,
+            entry: expr,
+          },
+          { noDebug: true },
+        ),
+    ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.debugExpression`,
+      (expr: string) =>
+        startDebugging(undefined, {
+          name: "Debug Expression",
+          stopOnEntry: true,
+          entry: expr,
+        }),
+    ),
   );
 
   function startDebugging(
-    resource: vscode.Uri,
+    resource: vscode.Uri | undefined,
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
@@ -147,6 +169,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.shots = 1;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
         config.stopOnEntry = !config.noDebug;
+        config.entry = config.entry ?? "";
       }
     }
 

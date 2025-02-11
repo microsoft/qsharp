@@ -58,12 +58,23 @@ fn one_entrypoint() {
                 (
                     0,
                     [
-                        Run,
-                        Histogram,
-                        Estimate,
-                        Debug,
+                        Run(
+                            "Test.Test()",
+                        ),
+                        Histogram(
+                            "Test.Test()",
+                        ),
+                        Estimate(
+                            "Test.Test()",
+                        ),
+                        Debug(
+                            "Test.Test()",
+                        ),
                         Circuit(
-                            None,
+                            OperationInfo {
+                                operation: "Test.Test",
+                                total_num_qubits: 0,
+                            },
                         ),
                     ],
                 ),
@@ -78,15 +89,62 @@ fn two_entrypoints() {
         r#"
         namespace Test {
             @EntryPoint()
-            operation Main() : Unit{
-            }
+            ◉operation Main() : Unit{
+            }◉
 
             @EntryPoint()
-            operation Foo() : Unit{
-            }
+            ◉operation Foo() : Unit{
+            }◉
         }"#,
         &expect![[r#"
-            []
+            [
+                (
+                    0,
+                    [
+                        Run(
+                            "Test.Main()",
+                        ),
+                        Histogram(
+                            "Test.Main()",
+                        ),
+                        Estimate(
+                            "Test.Main()",
+                        ),
+                        Debug(
+                            "Test.Main()",
+                        ),
+                        Circuit(
+                            OperationInfo {
+                                operation: "Test.Main",
+                                total_num_qubits: 0,
+                            },
+                        ),
+                    ],
+                ),
+                (
+                    1,
+                    [
+                        Run(
+                            "Test.Foo()",
+                        ),
+                        Histogram(
+                            "Test.Foo()",
+                        ),
+                        Estimate(
+                            "Test.Foo()",
+                        ),
+                        Debug(
+                            "Test.Foo()",
+                        ),
+                        Circuit(
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 0,
+                            },
+                        ),
+                    ],
+                ),
+            ]
         "#]],
     );
 }
@@ -99,20 +157,54 @@ fn main_function() {
             ◉operation Main() : Unit {
             }◉
 
-            operation Foo() : Unit{
-            }
+            ◉operation Foo() : Unit{
+            }◉
         }"#,
         &expect![[r#"
             [
                 (
                     0,
                     [
-                        Run,
-                        Histogram,
-                        Estimate,
-                        Debug,
+                        Run(
+                            "Test.Main()",
+                        ),
+                        Histogram(
+                            "Test.Main()",
+                        ),
+                        Estimate(
+                            "Test.Main()",
+                        ),
+                        Debug(
+                            "Test.Main()",
+                        ),
                         Circuit(
-                            None,
+                            OperationInfo {
+                                operation: "Test.Main",
+                                total_num_qubits: 0,
+                            },
+                        ),
+                    ],
+                ),
+                (
+                    1,
+                    [
+                        Run(
+                            "Test.Foo()",
+                        ),
+                        Histogram(
+                            "Test.Foo()",
+                        ),
+                        Estimate(
+                            "Test.Foo()",
+                        ),
+                        Debug(
+                            "Test.Foo()",
+                        ),
+                        Circuit(
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 0,
+                            },
                         ),
                     ],
                 ),
@@ -153,12 +245,10 @@ fn qubit_operation_circuit() {
                     0,
                     [
                         Circuit(
-                            Some(
-                                OperationInfo {
-                                    operation: "Test.Foo",
-                                    total_num_qubits: 1,
-                                },
-                            ),
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 1,
+                            },
                         ),
                     ],
                 ),
@@ -181,12 +271,10 @@ fn qubit_arrays_operation_circuit() {
                     0,
                     [
                         Circuit(
-                            Some(
-                                OperationInfo {
-                                    operation: "Test.Foo",
-                                    total_num_qubits: 7,
-                                },
-                            ),
+                            OperationInfo {
+                                operation: "Test.Foo",
+                                total_num_qubits: 7,
+                            },
                         ),
                     ],
                 ),

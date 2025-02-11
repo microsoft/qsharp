@@ -338,16 +338,24 @@ impl LanguageService {
             .map(|lens| {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
-                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
-                    qsls::protocol::CodeLensCommand::Debug => ("debug", None),
-                    qsls::protocol::CodeLensCommand::Run => ("run", None),
-                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
-                    qsls::protocol::CodeLensCommand::Circuit(args) => (
+                    qsls::protocol::CodeLensCommand::Histogram(expr) => {
+                        ("histogram", Some(CodeLensArg::Expr(expr)))
+                    }
+                    qsls::protocol::CodeLensCommand::Debug(expr) => {
+                        ("debug", Some(CodeLensArg::Expr(expr)))
+                    }
+                    qsls::protocol::CodeLensCommand::Run(expr) => {
+                        ("run", Some(CodeLensArg::Expr(expr)))
+                    }
+                    qsls::protocol::CodeLensCommand::Estimate(expr) => {
+                        ("estimate", Some(CodeLensArg::Expr(expr)))
+                    }
+                    qsls::protocol::CodeLensCommand::Circuit(op_info) => (
                         "circuit",
-                        args.map(|args| OperationInfo {
-                            operation: args.operation,
-                            total_num_qubits: args.total_num_qubits,
-                        }),
+                        Some(CodeLensArg::Operation(OperationInfo {
+                            operation: op_info.operation,
+                            total_num_qubits: op_info.total_num_qubits,
+                        })),
                     ),
                 };
                 CodeLens {
@@ -529,21 +537,25 @@ serializable_type! {
     }"#
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum CodeLensArg {
+    Expr(String),
+    Operation(OperationInfo),
+}
+
 serializable_type! {
     CodeLens,
     {
         range: Range,
         command: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        args: Option<OperationInfo>,
+        args: Option<CodeLensArg>,
     },
     r#"export type ICodeLens = {
         range: IRange;
-        command: "histogram" | "estimate" | "debug" | "run";
-    } | {
-        range: IRange;
-        command: "circuit";
-        args?: IOperationInfo
+        command: "histogram" | "estimate" | "debug" | "run" | "circuit";
+        args?: object;
     }"#,
     ICodeLens
 }

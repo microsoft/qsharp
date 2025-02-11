@@ -227,7 +227,7 @@ suite("Q# Language Service Tests", function suite() {
       doc.uri,
     )) as vscode.CodeLens[];
 
-    assert.lengthOf(actualCodeLenses, 5);
+    assert.lengthOf(actualCodeLenses, 4);
 
     for (const lens of actualCodeLenses) {
       assert.include(doc.getText(lens.range), "function Test()");

@@ -39,7 +39,6 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
   let command;
   let title;
   let tooltip;
-  let args = undefined;
   switch (cl.command) {
     case "histogram":
       title = "Histogram";
@@ -53,28 +52,25 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
     case "debug":
       title = "Debug";
-      command = "qsharp-vscode.debugEditorContents";
-      tooltip = "Debug program";
+      command = "qsharp-vscode.debugExpression";
+      tooltip = "Debug callable";
       break;
     case "run":
       title = "Run";
-      command = "qsharp-vscode.runEditorContents";
-      tooltip = "Run program";
+      command = "qsharp-vscode.runExpression";
+      tooltip = "Run callable";
       break;
     case "circuit":
       title = "Circuit";
       command = "qsharp-vscode.showCircuit";
       tooltip = "Show circuit";
-      if (cl.args) {
-        args = [cl.args];
-      }
       break;
   }
 
   return new vscode.CodeLens(toVsCodeRange(cl.range), {
     title,
     command,
-    arguments: args,
+    arguments: [cl.args],
     tooltip,
   });
 }
