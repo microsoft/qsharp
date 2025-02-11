@@ -685,7 +685,7 @@ fn prat_parsing_exp_funcall() {
 }
 
 #[test]
-fn prat_parsing_funcall_exp_1() {
+fn prat_parsing_funcall_exp() {
     check(
         expr,
         "square(2) ** 3",
@@ -698,7 +698,7 @@ fn prat_parsing_funcall_exp_1() {
 }
 
 #[test]
-fn prat_parsing_funcall_exp_2() {
+fn prat_parsing_funcall_exp_arg() {
     check(
         expr,
         "square(2 ** 3)",
