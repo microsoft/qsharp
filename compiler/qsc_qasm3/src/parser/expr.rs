@@ -15,9 +15,16 @@ use num_traits::Num;
 use qsc_data_structures::span::Span;
 
 use crate::{
-    ast::{BinOp, Expr, ExprKind, ExprStmt, Lit, LiteralKind, UnOp, ValueExpression, Version},
+    ast::{
+        self, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind,
+        ExprStmt, FunctionCall, IndexElement, IndexExpr, IndexSetItem, Lit, LiteralKind,
+        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
+    },
     keyword::Keyword,
-    lex::{cooked::Literal, ClosedBinOp, Delim, Radix, Token, TokenKind},
+    lex::{
+        cooked::{ComparisonOp, Literal},
+        ClosedBinOp, Delim, Radix, Token, TokenKind,
+    },
     parser::{
         completion::WordKinds,
         prim::{shorten, token},
@@ -27,26 +34,31 @@ use crate::{
 
 use crate::parser::Result;
 
-use super::error::{Error, ErrorKind};
+use super::{
+    error::{Error, ErrorKind},
+    prim::{ident, opt, seq, FinalSep},
+    stmt::scalar_or_array_type,
+};
 
 struct PrefixOp {
-    kind: UnOp,
+    kind: UnaryOp,
     precedence: u8,
 }
 
-struct MixfixOp {
+struct InfixOp {
     kind: OpKind,
     precedence: u8,
 }
 
 enum OpKind {
-    Postfix(UnOp),
-    Binary(BinOp, Assoc),
     Assign,
-    AssignUpdate,
     AssignBinary(BinOp),
+    Binary(BinOp, Assoc),
+    Funcall,
+    Index,
 }
 
+// TODO: This seems to be an unnecessary wrapper. Consider removing.
 #[derive(Clone, Copy)]
 enum OpName {
     Token(TokenKind),
@@ -67,35 +79,117 @@ enum Assoc {
 
 const RANGE_PRECEDENCE: u8 = 1;
 
-pub(super) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
+pub(super) fn expr(s: &mut ParserContext) -> Result<Expr> {
     expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Box<Expr>> {
+pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Expr> {
     expr_op(s, OpContext::Stmt)
 }
 
-fn expr_op(s: &mut ParserContext, _context: OpContext) -> Result<Box<Expr>> {
-    let lhs = expr_base(s)?;
+fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
+    let lo = s.peek().span.lo;
+
+    let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
+        s.advance();
+        let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+        Expr {
+            span: s.span(lo),
+            kind: Box::new(ExprKind::UnaryOp(ast::UnaryOpExpr {
+                op: op.kind,
+                expr: rhs,
+            })),
+        }
+    } else {
+        expr_base(s)?
+    };
+
+    let min_precedence = match context {
+        OpContext::Precedence(p) => p,
+        OpContext::Stmt => 0,
+    };
+
+    while let Some(op) = infix_op(op_name(s)) {
+        if op.precedence < min_precedence {
+            break;
+        }
+
+        s.advance();
+        let kind = match op.kind {
+            OpKind::Assign => {
+                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+                Box::new(ExprKind::Assign(AssignExpr { lhs, rhs }))
+            }
+            OpKind::AssignBinary(kind) => {
+                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+                Box::new(ExprKind::AssignOp(AssignOpExpr { op: kind, lhs, rhs }))
+            }
+            OpKind::Binary(kind, assoc) => {
+                let precedence = next_precedence(op.precedence, assoc);
+                let rhs = expr_op(s, OpContext::Precedence(precedence))?;
+                Box::new(ExprKind::BinaryOp(BinaryOpExpr { op: kind, lhs, rhs }))
+            }
+            OpKind::Funcall => {
+                if let ExprKind::Ident(ident) = *lhs.kind {
+                    Box::new(funcall(s, ident)?)
+                } else {
+                    return Err(Error::new(ErrorKind::Convert("identifier", "", lhs.span)));
+                }
+            }
+            OpKind::Index => Box::new(index_expr(s, lhs)?),
+        };
+
+        lhs = Expr {
+            span: s.span(lo),
+            kind,
+        };
+    }
+
     Ok(lhs)
 }
 
-fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
+fn expr_base(s: &mut ParserContext) -> Result<Expr> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(l) = lit(s)? {
-        Ok(Box::new(ExprKind::Lit(l)))
+    if let Some(l) = lit(s)? {
+        Ok(Expr {
+            span: s.span(lo),
+            kind: Box::new(ExprKind::Lit(l)),
+        })
+    } else if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
+        paren_expr(s, lo)
     } else {
-        Err(Error::new(ErrorKind::Rule(
-            "expression",
-            s.peek().kind,
-            s.peek().span,
-        )))
-    }?;
-
-    Ok(Box::new(Expr {
-        span: s.span(lo),
-        kind,
-    }))
+        match opt(s, scalar_or_array_type) {
+            Err(err) => Err(err),
+            Ok(Some(r#type)) => {
+                // If we have a type, we expect to see a
+                // parenthesized expression next.
+                token(s, TokenKind::Open(Delim::Paren))?;
+                let arg = paren_expr(s, lo)?;
+                Ok(Expr {
+                    span: s.span(lo),
+                    kind: Box::new(ExprKind::Cast(Cast {
+                        span: s.span(lo),
+                        r#type,
+                        arg,
+                    })),
+                })
+            }
+            Ok(None) => {
+                if let Ok(id) = ident(s) {
+                    Ok(Expr {
+                        span: s.span(lo),
+                        kind: Box::new(ExprKind::Ident(*id)),
+                    })
+                } else {
+                    Err(Error::new(ErrorKind::Rule(
+                        "expression",
+                        s.peek().kind,
+                        s.peek().span,
+                    )))
+                }
+            }
+        }
+    }
 }
 
 pub(super) fn lit(s: &mut ParserContext) -> Result<Option<Lit>> {
@@ -315,21 +409,203 @@ fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
     }
 }
 
+fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
+    let (mut exprs, final_sep) = seq(s, expr)?;
+    token(s, TokenKind::Close(Delim::Paren))?;
+
+    let kind = if final_sep == FinalSep::Missing && exprs.len() == 1 {
+        ExprKind::Paren(exprs.pop().expect("vector should have exactly one item"))
+    } else {
+        return Err(Error::new(ErrorKind::Convert(
+            "parenthesized expression",
+            "expression list",
+            s.span(lo),
+        )));
+    };
+
+    Ok(Expr {
+        span: s.span(lo),
+        kind: Box::new(kind),
+    })
+}
+
+fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
+    let lo = ident.span.lo;
+    let (args, _) = seq(s, expr)?;
+    token(s, TokenKind::Close(Delim::Paren))?;
+    Ok(ExprKind::FunctionCall(FunctionCall {
+        span: s.span(lo),
+        name: ast::Identifier::Ident(Box::new(ident)),
+        args: args.into_iter().map(Box::new).collect(),
+    }))
+}
+
+fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
+    let lo = match &r#type {
+        TypeDef::Scalar(ident) => ident.span.lo,
+        TypeDef::Array(array) => array.span.lo,
+        TypeDef::ArrayReference(array) => array.span.lo,
+    };
+    let arg = paren_expr(s, lo)?;
+    token(s, TokenKind::Close(Delim::Paren))?;
+    Ok(ExprKind::Cast(Cast {
+        span: s.span(lo),
+        r#type,
+        arg,
+    }))
+}
+
+fn index_expr(s: &mut ParserContext, lhs: Expr) -> Result<ExprKind> {
+    let lo = s.span(0).hi - 1;
+    let index = index_element(s)?;
+    token(s, TokenKind::Close(Delim::Bracket))?;
+    Ok(ExprKind::IndexExpr(IndexExpr {
+        span: s.span(lo),
+        collection: lhs,
+        index,
+    }))
+}
+
+fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
+    let index = match opt(s, set_expr) {
+        Ok(Some(v)) => IndexElement::DiscreteSet(v),
+        Err(err) => return Err(err),
+        Ok(None) => {
+            let (exprs, _) = seq(s, index_set_item)?;
+            let exprs = exprs
+                .into_iter()
+                .map(Box::new)
+                .collect::<Vec<_>>()
+                .into_boxed_slice();
+            IndexElement::IndexSet(exprs)
+        }
+    };
+    Ok(index)
+}
+
+fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
+    let lo = s.peek().span.lo;
+    let start = opt(s, expr)?;
+
+    // If no colon, return the expr as a normal index.
+    if token(s, TokenKind::Colon).is_err() {
+        let expr = start.ok_or(Error::new(ErrorKind::Rule(
+            "expression",
+            s.peek().kind,
+            s.span(lo),
+        )))?;
+        return Ok(IndexSetItem::Expr(expr));
+    }
+
+    let end = opt(s, expr)?;
+    let step = opt(s, |s| {
+        token(s, TokenKind::Colon)?;
+        expr(s)
+    })?;
+
+    Ok(IndexSetItem::RangeDefinition(RangeDefinition {
+        span: s.span(lo),
+        start,
+        end,
+        step,
+    }))
+}
+
+fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let (exprs, _) = seq(s, expr)?;
+    token(s, TokenKind::Close(Delim::Brace))?;
+    Ok(DiscreteSet {
+        span: s.span(lo),
+        values: exprs.into_boxed_slice(),
+    })
+}
+
+fn op_name(s: &ParserContext) -> OpName {
+    match s.peek().kind {
+        TokenKind::Keyword(keyword) => OpName::Keyword(keyword),
+        kind => OpName::Token(kind),
+    }
+}
+
+fn next_precedence(precedence: u8, assoc: Assoc) -> u8 {
+    match assoc {
+        Assoc::Left => precedence + 1,
+        Assoc::Right => precedence,
+    }
+}
+
+/// The operation precedence table is at
+/// <https://openqasm.com/language/classical.html#evaluation-order>.
 fn prefix_op(name: OpName) -> Option<PrefixOp> {
     match name {
         OpName::Token(TokenKind::Bang) => Some(PrefixOp {
-            kind: UnOp::NotL,
+            kind: UnaryOp::NotL,
             precedence: 11,
         }),
         OpName::Token(TokenKind::Tilde) => Some(PrefixOp {
-            kind: UnOp::NotB,
+            kind: UnaryOp::NotB,
             precedence: 11,
         }),
         OpName::Token(TokenKind::ClosedBinOp(ClosedBinOp::Minus)) => Some(PrefixOp {
-            kind: UnOp::Neg,
+            kind: UnaryOp::Neg,
             precedence: 11,
         }),
 
+        _ => None,
+    }
+}
+
+/// The operation precedence table is at
+/// <https://openqasm.com/language/classical.html#evaluation-order>.
+fn infix_op(name: OpName) -> Option<InfixOp> {
+    fn left_assoc(op: BinOp, precedence: u8) -> Option<InfixOp> {
+        Some(InfixOp {
+            kind: OpKind::Binary(op, Assoc::Left),
+            precedence,
+        })
+    }
+
+    let OpName::Token(kind) = name else {
+        return None;
+    };
+
+    match kind {
+        TokenKind::ClosedBinOp(token) => match token {
+            ClosedBinOp::StarStar => Some(InfixOp {
+                kind: OpKind::Binary(BinOp::Exp, Assoc::Right),
+                precedence: 12,
+            }),
+            ClosedBinOp::Star => left_assoc(BinOp::Mul, 10),
+            ClosedBinOp::Slash => left_assoc(BinOp::Div, 10),
+            ClosedBinOp::Percent => left_assoc(BinOp::Mod, 10),
+            ClosedBinOp::Minus => left_assoc(BinOp::Sub, 9),
+            ClosedBinOp::Plus => left_assoc(BinOp::Add, 9),
+            ClosedBinOp::LtLt => left_assoc(BinOp::Shl, 8),
+            ClosedBinOp::GtGt => left_assoc(BinOp::Shr, 8),
+            ClosedBinOp::Amp => left_assoc(BinOp::AndB, 5),
+            ClosedBinOp::Bar => left_assoc(BinOp::OrB, 4),
+            ClosedBinOp::Caret => left_assoc(BinOp::XorB, 3),
+            ClosedBinOp::AmpAmp => left_assoc(BinOp::AndL, 2),
+            ClosedBinOp::BarBar => left_assoc(BinOp::OrL, 1),
+        },
+        TokenKind::ComparisonOp(token) => match token {
+            ComparisonOp::Gt => left_assoc(BinOp::Gt, 7),
+            ComparisonOp::GtEq => left_assoc(BinOp::Gte, 7),
+            ComparisonOp::Lt => left_assoc(BinOp::Lt, 7),
+            ComparisonOp::LtEq => left_assoc(BinOp::Lte, 7),
+            ComparisonOp::BangEq => left_assoc(BinOp::Neq, 6),
+            ComparisonOp::EqEq => left_assoc(BinOp::Eq, 6),
+        },
+        TokenKind::Open(Delim::Paren) => Some(InfixOp {
+            kind: OpKind::Funcall,
+            precedence: 13,
+        }),
+        TokenKind::Open(Delim::Bracket) => Some(InfixOp {
+            kind: OpKind::Index,
+            precedence: 13,
+        }),
         _ => None,
     }
 }
@@ -397,6 +673,6 @@ pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> 
     Ok(Box::new(ValueExpression::Expr(stmt)))
 }
 
-pub(crate) fn expr_list(_s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
-    todo!("expr_list")
+pub(crate) fn expr_list(s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
+    seq(s, expr).map(|pair| pair.0)
 }
