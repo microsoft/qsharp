@@ -646,6 +646,71 @@ fn pratt_parsing_parens() {
 }
 
 #[test]
+fn prat_parsing_mul_unary() {
+    check(
+        expr,
+        "2 * -3",
+        &expect![[r#"
+            Expr [0-6]: BinOp (Mul):
+                Expr [0-1]: Lit: Int(2)
+                Expr [4-6]: UnOp (Neg):
+                    Expr [5-6]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn prat_parsing_unary_mul() {
+    check(
+        expr,
+        "-2 * 3",
+        &expect![[r#"
+            Expr [0-6]: BinOp (Mul):
+                Expr [0-2]: UnOp (Neg):
+                    Expr [1-2]: Lit: Int(2)
+                Expr [5-6]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn prat_parsing_exp_funcall() {
+    check(
+        expr,
+        "2 ** square(3)",
+        &expect![[r#"
+            Expr [0-14]: BinOp (Exp):
+                Expr [0-1]: Lit: Int(2)
+                Expr [5-14]: FunctionCall [5-14]: Ident [5-11] "square"
+                    Expr [12-13]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn prat_parsing_funcall_exp_1() {
+    check(
+        expr,
+        "square(2) ** 3",
+        &expect![[r#"
+            Expr [0-14]: BinOp (Exp):
+                Expr [0-9]: FunctionCall [0-9]: Ident [0-6] "square"
+                    Expr [7-8]: Lit: Int(2)
+                Expr [13-14]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
+fn prat_parsing_funcall_exp_2() {
+    check(
+        expr,
+        "square(2 ** 3)",
+        &expect![[r#"
+            Expr [0-14]: FunctionCall [0-14]: Ident [0-6] "square"
+                Expr [7-13]: BinOp (Exp):
+                    Expr [7-8]: Lit: Int(2)
+                    Expr [12-13]: Lit: Int(3)"#]],
+    );
+}
+
+#[test]
 fn funcall() {
     check(
         expr,
@@ -1073,5 +1138,33 @@ fn set_expr() {
             Expr [1-2]: Lit: Int(2)
             Expr [4-5]: Lit: Int(3)
             Expr [7-8]: Lit: Int(4)"#]],
+    );
+}
+
+#[test]
+fn assignment_1() {
+    check(
+        crate::parser::stmt::parse,
+        "bool c = a && !b;",
+        &expect![[r#"
+        Stmt [0-17]
+            StmtKind: ClassicalDeclarationStmt [0-17]: ClassicalType [0-4]: BoolType, Ident [5-6] "c", ValueExpression ExprStmt [9-16]: Expr [9-16]: BinOp (AndL):
+                Expr [9-10]: Ident [9-10] "a"
+                Expr [14-16]: UnOp (NotL):
+                    Expr [15-16]: Ident [15-16] "b""#]],
+    );
+}
+
+#[test]
+fn assignment_2() {
+    check(
+        crate::parser::stmt::parse,
+        "bool d = !a && b;",
+        &expect![[r#"
+        Stmt [0-17]
+            StmtKind: ClassicalDeclarationStmt [0-17]: ClassicalType [0-4]: BoolType, Ident [5-6] "d", ValueExpression ExprStmt [9-16]: Expr [9-16]: BinOp (AndL):
+                Expr [9-11]: UnOp (NotL):
+                    Expr [10-11]: Ident [10-11] "a"
+                Expr [15-16]: Ident [15-16] "b""#]],
     );
 }
