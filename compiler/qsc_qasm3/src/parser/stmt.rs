@@ -276,7 +276,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::IODeclaration(decl))
 }
 
-fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
+pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     if let Ok(v) = scalar_type(s) {
         return Ok(TypeDef::Scalar(v));
     }
@@ -444,7 +444,6 @@ fn scalar_int_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_int_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Int))?;
     let ty = int_type(s)?;
     Ok(ArrayBaseTypeKind::Int(ty))
 }
@@ -468,7 +467,6 @@ fn scalar_uint_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_uint_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::UInt))?;
     let ty = uint_type(s)?;
     Ok(ArrayBaseTypeKind::UInt(ty))
 }
@@ -493,7 +491,6 @@ fn scalar_float_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_float_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Float))?;
     let ty = float_type(s)?;
     Ok(ArrayBaseTypeKind::Float(ty))
 }
@@ -518,7 +515,6 @@ fn scalar_angle_type(s: &mut ParserContext) -> Result<ScalarType> {
 }
 
 fn array_angle_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
-    token(s, TokenKind::Type(Type::Angle))?;
     let ty = angle_type(s)?;
     Ok(ArrayBaseTypeKind::Angle(ty))
 }

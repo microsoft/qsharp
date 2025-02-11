@@ -62,7 +62,6 @@ bitflags! {
         // Begin keywords.
         //
 
-        const Array = keyword_bit(Keyword::Array);
         const Barrier = keyword_bit(Keyword::Barrier);
         const Box = keyword_bit(Keyword::Box);
         const Break = keyword_bit(Keyword::Break);
