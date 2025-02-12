@@ -1,11 +1,11 @@
 use expect_test::expect;
 
-use crate::parser::{stmt::switch_stmt, tests::check};
+use crate::parser::{stmt::parse_switch_stmt, tests::check};
 
 #[test]
 fn simple_switch() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {
           case 1 {}
@@ -26,7 +26,7 @@ fn simple_switch() {
 #[test]
 fn no_cases_no_default() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {}
     ",
@@ -51,7 +51,7 @@ fn no_cases_no_default() {
 #[test]
 fn no_cases() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {
           default {}
@@ -79,7 +79,7 @@ fn no_cases() {
 #[test]
 fn no_default() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {
           case 0, 1 {}
@@ -99,7 +99,7 @@ fn no_default() {
 #[test]
 fn case_with_no_labels() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {
           case {}
@@ -128,7 +128,7 @@ fn case_with_no_labels() {
 #[test]
 fn multiple_cases() {
     check(
-        switch_stmt,
+        parse_switch_stmt,
         "
         switch (x) {
           case 0 { int x = 0; }

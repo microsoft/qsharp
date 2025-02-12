@@ -54,6 +54,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(v)
     } else if let Some(decl) = opt(s, parse_local)? {
         Box::new(decl)
+    } else if let Some(switch) = opt(s, parse_switch_stmt)? {
+        Box::new(StmtKind::Switch(switch))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -601,7 +603,7 @@ pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
     Ok(ty)
 }
 
-pub fn switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
+pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Switch))?;
 
