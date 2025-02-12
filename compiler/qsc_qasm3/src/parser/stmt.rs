@@ -19,10 +19,10 @@ use crate::{
     ast::{
         list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclaration, DefStmt, Expr, ExprStmt, FloatType, IODeclaration, IOKeyword, Ident,
-        IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition, QubitDeclaration,
-        ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
-        TypedParameter, UIntType,
+        ConstantDeclaration, DefStmt, Expr, ExprStmt, ExternDecl, ExternParameter, FloatType,
+        IODeclaration, IOKeyword, Ident, IncludeStmt, IntType, List, LiteralKind, Pragma,
+        QuantumGateDefinition, QubitDeclaration, ReturnStmt, ScalarType, ScalarTypeKind, Stmt,
+        StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType,
     },
     keyword::Keyword,
     lex::{
@@ -55,9 +55,11 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(decl)
     } else if let Some(decl) = opt(s, parse_def)? {
         Box::new(decl)
-    } else if let Some(v) = opt(s, parse_include)? {
-        Box::new(v)
+    } else if let Some(include) = opt(s, parse_include)? {
+        Box::new(include)
     } else if let Some(decl) = opt(s, parse_local)? {
+        Box::new(decl)
+    } else if let Some(decl) = opt(s, parse_extern)? {
         Box::new(decl)
     } else if let Some(switch) = opt(s, parse_switch_stmt)? {
         Box::new(StmtKind::Switch(switch))
@@ -228,7 +230,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
 }
 
 // qreg and creg are separate from classical and quantum declarations
-// simply for performance reasons. The former are more common and old
+// simply for performance reasons. The latter are more common and old
 // style declarations should be rare.
 fn parse_local(s: &mut ParserContext) -> Result<StmtKind> {
     if let Some(decl) = opt(s, parse_classical_decl)? {
@@ -250,6 +252,24 @@ fn parse_local(s: &mut ParserContext) -> Result<StmtKind> {
     }
 }
 
+fn parse_extern(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(crate::keyword::Keyword::Extern))?;
+    let ident = Box::new(prim::ident(s)?);
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let (params, _) = seq(s, extern_arg_def)?;
+    token(s, TokenKind::Close(Delim::Paren))?;
+    let return_type = opt(s, return_sig)?;
+    recovering_semi(s);
+    let kind = StmtKind::ExternDecl(ExternDecl {
+        span: s.span(lo),
+        ident,
+        params: list_from_iter(params),
+        return_type,
+    });
+    Ok(kind)
+}
+
 fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Def))?;
@@ -262,14 +282,36 @@ fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     let kind = StmtKind::Def(DefStmt {
         span: s.span(lo),
         name,
-        params: exprs
-            .into_iter()
-            .map(Box::new)
-            .collect::<Vec<_>>()
-            .into_boxed_slice(),
+        params: list_from_iter(exprs),
         body,
         return_type,
     });
+    Ok(kind)
+}
+
+fn extern_arg_def(s: &mut ParserContext) -> Result<ExternParameter> {
+    let lo = s.peek().span.lo;
+
+    let kind = if let Ok(ty) = scalar_type(s) {
+        ExternParameter::Scalar(ty, s.span(lo))
+    } else if let Ok(ty) = array_reference_ty(s) {
+        ExternParameter::ArrayReference(ty, s.span(lo))
+    } else if let Ok(size) = extern_creg_type(s) {
+        let ty = ScalarType {
+            span: s.span(lo),
+            kind: ScalarTypeKind::Bit(BitType {
+                size,
+                span: s.span(lo),
+            }),
+        };
+        ExternParameter::Scalar(ty, s.span(lo))
+    } else {
+        return Err(Error::new(ErrorKind::Rule(
+            "extern argument definition",
+            s.peek().kind,
+            s.peek().span,
+        )));
+    };
     Ok(kind)
 }
 
@@ -338,11 +380,7 @@ fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
         span: s.span(lo),
         mutability,
         base_type,
-        dimensions: dimensions
-            .into_iter()
-            .map(Box::new)
-            .collect::<Vec<_>>()
-            .into_boxed_slice(),
+        dimensions: list_from_iter(dimensions),
     })
 }
 
@@ -361,16 +399,8 @@ fn parse_gatedef(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::QuantumGateDefinition(QuantumGateDefinition {
         span: s.span(lo),
         ident,
-        params: params
-            .into_iter()
-            .map(Box::new)
-            .collect::<Vec<_>>()
-            .into_boxed_slice(),
-        qubits: qubits
-            .into_iter()
-            .map(Box::new)
-            .collect::<Vec<_>>()
-            .into_boxed_slice(),
+        params: list_from_iter(params),
+        qubits: list_from_iter(qubits),
         body,
     }))
 }
@@ -513,11 +543,7 @@ pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
     Ok(ArrayType {
         base_type: kind,
         span: s.span(lo),
-        dimensions: expr_list
-            .into_iter()
-            .map(Box::new)
-            .collect::<Vec<_>>()
-            .into_boxed_slice(),
+        dimensions: list_from_iter(expr_list),
     })
 }
 
@@ -613,6 +639,12 @@ fn qreg_decl(s: &mut ParserContext) -> Result<StmtKind> {
         qubit: identifier,
         size,
     }))
+}
+
+fn extern_creg_type(s: &mut ParserContext) -> Result<Option<ExprStmt>> {
+    token(s, TokenKind::Keyword(crate::keyword::Keyword::CReg))?;
+    let size = opt(s, designator)?;
+    Ok(size)
 }
 
 fn creg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<ExprStmt>)> {

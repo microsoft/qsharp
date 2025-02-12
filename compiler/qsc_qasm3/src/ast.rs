@@ -746,22 +746,40 @@ impl Display for ClassicalArgument {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExternArgument {
-    pub span: Span,
-    pub r#type: ScalarType,
-    pub access: Option<AccessControl>,
+pub enum ExternParameter {
+    Scalar(ScalarType, Span),
+    Quantum(Option<ExprStmt>, Span),
+    ArrayReference(ArrayReferenceType, Span),
 }
 
-impl Display for ExternArgument {
+impl Display for ExternParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(access) = &self.access {
-            write!(
-                f,
-                "ExternArgument {}: {}, {}",
-                self.span, self.r#type, access
-            )
-        } else {
-            write!(f, "ExternArgument {}: {}", self.span, self.r#type)
+        match self {
+            ExternParameter::Scalar(ty, span) => {
+                write!(f, "{span}: {ty}")
+            }
+            ExternParameter::Quantum(expr, span) => {
+                write!(f, "{span}: {expr:?}")
+            }
+            ExternParameter::ArrayReference(ty, span) => {
+                write!(f, "{span}: {ty}")
+            }
+        }
+    }
+}
+
+impl Default for ExternParameter {
+    fn default() -> Self {
+        ExternParameter::Scalar(ScalarType::default(), Span::default())
+    }
+}
+
+impl WithSpan for ExternParameter {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            ExternParameter::Scalar(ty, _) => ExternParameter::Scalar(ty, span),
+            ExternParameter::Quantum(expr, _) => ExternParameter::Quantum(expr, span),
+            ExternParameter::ArrayReference(ty, _) => ExternParameter::ArrayReference(ty, span),
         }
     }
 }
@@ -1129,16 +1147,16 @@ impl Display for QuantumGateDefinition {
 #[derive(Clone, Debug)]
 pub struct ExternDecl {
     pub span: Span,
-    pub name: Identifier,
-    pub arguments: List<ExternArgument>,
+    pub ident: Box<Ident>,
+    pub params: List<ExternParameter>,
     pub return_type: Option<ScalarType>,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ExternDecl {}: {}", self.span, self.name)?;
-        for arg in &self.arguments {
+        write!(indent, "ExternDecl {}: {}", self.span, self.ident)?;
+        for arg in &self.params {
             write!(indent, "\n{arg}")?;
         }
         if let Some(return_type) = &self.return_type {
