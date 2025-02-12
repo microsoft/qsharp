@@ -89,7 +89,7 @@ fn legacy_pragma_ws_after_hash() {
                     Lex(
                         Incomplete(
                             Ident,
-                            Pragma,
+                            Identifier,
                             Whitespace,
                             Span {
                                 lo: 1,
