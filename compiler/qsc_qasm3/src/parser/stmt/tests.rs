@@ -6,3 +6,4 @@ mod classical_decl;
 mod io_decl;
 mod pragma;
 mod quantum_decl;
+mod switch_stmt;
