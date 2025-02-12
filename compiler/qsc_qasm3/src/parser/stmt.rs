@@ -603,6 +603,9 @@ pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
     Ok(ty)
 }
 
+/// The Language Spec and the grammar for switch statements disagree.
+/// We followed the Spec when writing the parser
+/// <https://openqasm.com/language/classical.html#the-switch-statement>.
 pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Switch))?;
