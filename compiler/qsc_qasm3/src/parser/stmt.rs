@@ -17,11 +17,13 @@ use super::{
 };
 use crate::{
     ast::{
-        AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
-        ClassicalDeclarationStmt, ComplexType, ConstantDeclaration, ExprStmt, FloatType,
-        IODeclaration, IOKeyword, IncludeStmt, IntType, LiteralKind, Pragma, QubitDeclaration,
-        ScalarType, ScalarTypeKind, Stmt, StmtKind, TypeDef, UIntType,
+        self, list_from_iter, AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
+        ClassicalDeclarationStmt, ComplexType, CompoundStmt, ConstantDeclaration, Expr, ExprStmt,
+        FloatType, IODeclaration, IOKeyword, IncludeStmt, IntType, List, LiteralKind, Pragma,
+        QubitDeclaration, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
+        UIntType,
     },
+    keyword::Keyword,
     lex::{
         cooked::{Literal, Type},
         Delim, TokenKind,
@@ -597,4 +599,45 @@ pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
     let ty = float_type(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(ty)
+}
+
+pub fn switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Switch))?;
+
+    // Controlling expression.
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let controlling_expr = expr::expr(s)?;
+    token(s, TokenKind::Close(Delim::Paren))?;
+
+    // Open cases bracket.
+    token(s, TokenKind::Open(Delim::Brace))?;
+
+    // Cases.
+    let cases = list_from_iter(many(s, case_stmt)?);
+
+    // Default case.
+    let default = opt(s, default_case_stmt)?;
+
+    // Close cases bracket.
+    token(s, TokenKind::Close(Delim::Brace))?;
+
+    Ok(SwitchStmt {
+        span: s.span(lo),
+        target: controlling_expr,
+        cases,
+        default,
+    })
+}
+
+fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
+    token(s, TokenKind::Keyword(Keyword::Case))?;
+    let controlling_label = expr::expr_list(s)?;
+    let block = parse_block(s).map(|block| *block)?;
+    Ok((list_from_iter(controlling_label), block))
+}
+
+fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
+    token(s, TokenKind::Keyword(Keyword::Default))?;
+    parse_block(s).map(|block| *block)
 }
