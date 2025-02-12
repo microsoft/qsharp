@@ -6,7 +6,7 @@ import {
   gateHeight,
   horizontalGap,
   minGateWidth,
-  panelWidth,
+  minToolboxHeight,
   verticalGap,
 } from "./constants";
 import { _formatGate } from "./formatters/gateFormatter";
@@ -75,17 +75,17 @@ const removeQubitLineControl = (): HTMLElement => {
 const panel = (options?: PanelOptions): HTMLElement => {
   const panelElem = elem("div");
   panelElem.className = "panel";
-  children(panelElem, [addPanel(options)]);
+  children(panelElem, [createToolbox(options)]);
   return panelElem;
 };
 
 /**
- * Function to produce addPanel element
+ * Function to produce toolbox element
  * @param context       Context object to manage extension state
  * @param options       User-provided object to customize extensionPanel
- * @returns             HTML element for addPanel
+ * @returns             HTML element for toolbox
  */
-const addPanel = (options?: PanelOptions): HTMLElement => {
+const createToolbox = (options?: PanelOptions): HTMLElement => {
   let gateDictionary = defaultGateDictionary;
   let objectKeys = Object.keys(gateDictionary);
   if (options != null) {
@@ -99,29 +99,31 @@ const addPanel = (options?: PanelOptions): HTMLElement => {
     }
   }
 
+  // Generate gate elements in a 3xN grid
   let prefixX = 0;
   let prefixY = 0;
   const gateElems = objectKeys.map((key) => {
     const { width: gateWidth } = toMetadata(gateDictionary[key], 0, 0);
-    if (prefixX + gateWidth + horizontalGap > panelWidth) {
-      prefixX = 0;
-      prefixY += gateHeight + verticalGap;
+    if (prefixY + gateHeight + verticalGap > minToolboxHeight) {
+      prefixY = 0;
+      prefixX += gateWidth + horizontalGap;
     }
     const gateElem = gate(gateDictionary, key.toString(), prefixX, prefixY);
-    prefixX += gateWidth + horizontalGap;
+    prefixY += gateHeight + verticalGap;
     return gateElem;
   });
 
   // Generate svg container to store gate elements
   const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgElem.classList.add("toolbox-panel-svg");
   childrenSvg(svgElem, gateElems);
 
-  // Generate add panel
-  const addPanelElem = elem("div", "add-panel");
-  children(addPanelElem, [title("ADD")]);
-  addPanelElem.appendChild(svgElem);
+  // Generate toolbox panel
+  const toolboxElem = elem("div", "toolbox-panel");
+  children(toolboxElem, [title("Toolbox")]);
+  toolboxElem.appendChild(svgElem);
 
-  return addPanelElem;
+  return toolboxElem;
 };
 
 /**
@@ -238,8 +240,16 @@ const toMetadata = (
 };
 
 /**
- * Generate gate element for Add Panel based on type of gate
- * @param type      Type of gate. Example: 'H' or 'X'
+ * Generate an SVG gate element for the Toolbox panel based on the type of gate.
+ * This function retrieves the operation metadata from the gate dictionary,
+ * formats the gate, and returns the corresponding SVG element.
+ *
+ * @param gateDictionary - The dictionary containing gate operations.
+ * @param type - The type of gate. Example: 'H' or 'X'.
+ * @param x - The x coordinate at the starting point from the left.
+ * @param y - The y coordinate at the starting point from the top.
+ * @returns The generated SVG element representing the gate.
+ * @throws Will throw an error if the gate type is not available in the dictionary.
  */
 const gate = (
   gateDictionary: GateDictionary,
@@ -268,11 +278,9 @@ interface GateDictionary {
  * Object for default gate dictionary
  */
 const defaultGateDictionary: GateDictionary = {
-  Measure: {
-    gate: "Measure",
-    isMeasurement: true,
-    controls: [{ qId: 0, type: 0 }],
-    targets: [{ qId: 0, type: 1, cId: 0 }],
+  RX: {
+    gate: "RX",
+    targets: [{ qId: 0, type: 0 }],
   },
   RY: {
     gate: "RY",
@@ -282,12 +290,20 @@ const defaultGateDictionary: GateDictionary = {
     gate: "RZ",
     targets: [{ qId: 0, type: 0 }],
   },
-  H: {
-    gate: "H",
-    targets: [{ qId: 0, type: 0 }],
-  },
   X: {
     gate: "X",
+    targets: [{ qId: 0, type: 0 }],
+  },
+  Y: {
+    gate: "Y",
+    targets: [{ qId: 0, type: 0 }],
+  },
+  Z: {
+    gate: "Z",
+    targets: [{ qId: 0, type: 0 }],
+  },
+  H: {
+    gate: "H",
     targets: [{ qId: 0, type: 0 }],
   },
   S: {
@@ -298,13 +314,11 @@ const defaultGateDictionary: GateDictionary = {
     gate: "T",
     targets: [{ qId: 0, type: 0 }],
   },
-  Y: {
-    gate: "Y",
-    targets: [{ qId: 0, type: 0 }],
-  },
-  Z: {
-    gate: "Z",
-    targets: [{ qId: 0, type: 0 }],
+  Measure: {
+    gate: "Measure",
+    isMeasurement: true,
+    controls: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: 1, cId: 0 }],
   },
 };
 

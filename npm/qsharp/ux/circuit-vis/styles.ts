@@ -1,12 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import {
-  gateHeight,
-  minGateWidth,
-  panelMinHeight,
-  panelWidth,
-} from "./constants";
+import { gateHeight, minGateWidth, minToolboxHeight } from "./constants";
 
 /**
  * Provides configuration for CSS styles of visualization.
@@ -300,14 +295,13 @@ const _panel = `
     .target-input, .controls-input, .parameters-input {
         margin-bottom: 8px;
     }
-    .add-panel-gate {
-        width: 40px;
-        height: 40px;
-        border: 1px solid black;
+    .toolbox-panel {
+        width: -webkit-fill-available;
+        min-height: ${minToolboxHeight}px;
     }
-    .add-panel-svg {
-        width: ${panelWidth}px;
-        min-height: ${panelMinHeight}px;
+    .toolbox-panel-svg {
+        width: -webkit-fill-available;
+        min-height: ${minToolboxHeight}px;
     }
     .ghost {
         width: ${minGateWidth}px;
