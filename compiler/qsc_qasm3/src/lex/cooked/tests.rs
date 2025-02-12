@@ -1187,3 +1187,41 @@ fn sharp_pragma_ident() {
         "#]],
     );
 }
+
+#[test]
+fn dim() {
+    check("dim", &expect![[r#"
+        [
+            Err(
+                Incomplete(
+                    Single(
+                        Sharp,
+                    ),
+                    Dim,
+                    Ident,
+                    Span {
+                        lo: 0,
+                        hi: 3,
+                    },
+                ),
+            ),
+        ]
+    "#]]);
+}
+
+#[test]
+fn sharp_dim() {
+    check("#dim", &expect![[r#"
+        [
+            Ok(
+                Token {
+                    kind: Dim,
+                    span: Span {
+                        lo: 0,
+                        hi: 4,
+                    },
+                },
+            ),
+        ]
+    "#]]);
+}

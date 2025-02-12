@@ -509,11 +509,24 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 let cooked_ident = Self::ident(ident);
-                if matches!(cooked_ident, TokenKind::Keyword(Keyword::Pragma)) {
-                    self.eat_to_end_of_line();
-                    Ok(Some(TokenKind::Pragma))
-                } else {
-                    Ok(Some(cooked_ident))
+                match cooked_ident {
+                    TokenKind::Dim => {
+                        let span = Span {
+                            lo: token.offset,
+                            hi: self.offset(),
+                        };
+                        Err(Error::Incomplete(
+                            raw::TokenKind::Single(Single::Sharp),
+                            TokenKind::Dim,
+                            raw::TokenKind::Ident,
+                            span,
+                        ))
+                    }
+                    TokenKind::Keyword(Keyword::Pragma) => {
+                        self.eat_to_end_of_line();
+                        Ok(Some(TokenKind::Pragma))
+                    }
+                    _ => Ok(Some(cooked_ident)),
                 }
             }
             raw::TokenKind::HardwareQubit => Ok(Some(TokenKind::HardwareQubit)),
@@ -553,23 +566,26 @@ impl<'a> Lexer<'a> {
                 }
             }
             raw::TokenKind::Single(Single::Sharp) => {
-                let complete = TokenKind::Pragma;
-                self.expect(raw::TokenKind::Ident, complete)?;
+                self.expect(raw::TokenKind::Ident, TokenKind::Identifier)?;
                 let ident = &self.input[(token.offset as usize + 1)..(self.offset() as usize)];
-                if matches!(Self::ident(ident), TokenKind::Keyword(Keyword::Pragma)) {
-                    self.eat_to_end_of_line();
-                    Ok(Some(complete))
-                } else {
-                    let span = Span {
-                        lo: token.offset,
-                        hi: self.offset(),
-                    };
-                    Err(Error::Incomplete(
-                        raw::TokenKind::Ident,
-                        complete,
-                        raw::TokenKind::Ident,
-                        span,
-                    ))
+                match Self::ident(ident) {
+                    TokenKind::Dim => Ok(Some(TokenKind::Dim)),
+                    TokenKind::Keyword(Keyword::Pragma) => {
+                        self.eat_to_end_of_line();
+                        Ok(Some(TokenKind::Pragma))
+                    }
+                    _ => {
+                        let span = Span {
+                            lo: token.offset,
+                            hi: self.offset(),
+                        };
+                        Err(Error::Incomplete(
+                            raw::TokenKind::Ident,
+                            TokenKind::Pragma,
+                            raw::TokenKind::Ident,
+                            span,
+                        ))
+                    }
                 }
             }
             raw::TokenKind::Single(single) => self.single(single).map(Some),
