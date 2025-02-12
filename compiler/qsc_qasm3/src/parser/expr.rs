@@ -409,7 +409,7 @@ fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
     }
 }
 
-fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
+pub(crate) fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
     let (mut exprs, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
 

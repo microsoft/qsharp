@@ -17,11 +17,13 @@ use super::{
 };
 use crate::{
     ast::{
-        AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
-        ClassicalDeclarationStmt, ComplexType, ConstantDeclaration, ExprStmt, FloatType,
-        IODeclaration, IOKeyword, IncludeStmt, IntType, LiteralKind, Pragma, QubitDeclaration,
-        ScalarType, ScalarTypeKind, Stmt, StmtKind, TypeDef, UIntType,
+        list_from_iter, AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
+        ClassicalDeclarationStmt, ComplexType, ConstantDeclaration, Expr, ExprStmt, FloatType,
+        IODeclaration, IOKeyword, IncludeStmt, IntType, List, LiteralKind, Pragma,
+        QubitDeclaration, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
+        UIntType,
     },
+    keyword::Keyword,
     lex::{
         cooked::{Literal, Type},
         Delim, TokenKind,
@@ -52,6 +54,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(v)
     } else if let Some(decl) = opt(s, parse_local)? {
         Box::new(decl)
+    } else if let Some(switch) = opt(s, parse_switch_stmt)? {
+        Box::new(StmtKind::Switch(switch))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -597,4 +601,57 @@ pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
     let ty = float_type(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(ty)
+}
+
+/// The Language Spec and the grammar for switch statements disagree.
+/// We followed the Spec when writing the parser
+/// <https://openqasm.com/language/classical.html#the-switch-statement>.
+pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Switch))?;
+
+    // Controlling expression.
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let controlling_expr = expr::paren_expr(s, lo)?;
+
+    // Open cases bracket.
+    token(s, TokenKind::Open(Delim::Brace))?;
+
+    // Cases.
+    let lo_cases = s.peek().span.lo;
+    let cases = list_from_iter(many(s, case_stmt)?);
+    if cases.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingSwitchCases(s.span(lo_cases))));
+    }
+
+    // Default case.
+    let default = opt(s, default_case_stmt)?;
+
+    // Close cases bracket.
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+
+    Ok(SwitchStmt {
+        span: s.span(lo),
+        target: controlling_expr,
+        cases,
+        default,
+    })
+}
+
+fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Case))?;
+
+    let controlling_label = expr::expr_list(s)?;
+    if controlling_label.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingSwitchCaseLabels(s.span(lo))));
+    }
+
+    let block = parse_block(s).map(|block| *block)?;
+    Ok((list_from_iter(controlling_label), block))
+}
+
+fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
+    token(s, TokenKind::Keyword(Keyword::Default))?;
+    parse_block(s).map(|block| *block)
 }
