@@ -1680,6 +1680,10 @@ impl GlobalTable {
                                 global.name.clone(),
                                 Res::Item(item_id, ItemStatus::Available),
                             );
+                            self.scope.terms.get_mut_or_default(namespace).insert(
+                                global.name.clone(),
+                                Res::Item(item_id, ItemStatus::Available),
+                            );
                         }
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")

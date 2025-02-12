@@ -182,6 +182,8 @@ def init(
 
     manifest_contents = None
     if project_root is not None:
+        # Normalize the project path (i.e. fix file separators and remove unnecessary '.' and '..')
+        project_root = resolve(".", project_root)
         qsharp_json = join(project_root, "qsharp.json")
         if not exists(qsharp_json):
             raise QSharpError(

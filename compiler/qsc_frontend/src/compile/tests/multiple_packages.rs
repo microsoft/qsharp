@@ -602,3 +602,44 @@ fn callable_reexport() {
         ),
     ]);
 }
+
+#[test]
+fn old_syntax_udt_reexported() {
+    multiple_package_multiple_source_check(
+        vec![
+            (
+                "A",
+                vec![
+                    (
+                        "FileOne",
+                        "
+                     struct Foo { content: Bool, otherContent: Bool }
+                     newtype Bar = ( content: Bool, otherContent: Bool );
+                     ",
+                    ),
+                    ("FileTwo", "export FileOne.Foo as Bar, FileOne.Bar as Baz;"),
+                ],
+            ),
+            (
+                "B",
+                vec![(
+                    "FileThree",
+                    "export A.FileTwo.Bar as Baz, A.FileTwo.Baz as Quux;",
+                )],
+            ),
+            (
+                "C",
+                vec![(
+                    "FileFour",
+                    "@EntryPoint()
+            operation Main() : Unit {
+            // use old UDT syntax with both a struct and a newtype
+                let x = B.FileThree.Baz(true, true);
+                let x = B.FileThree.Quux(true, true);
+            }",
+                )],
+            ),
+        ],
+        Some(&expect!["[]"]),
+    );
+}

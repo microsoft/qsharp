@@ -76,6 +76,13 @@ impl EvaluationContext {
     pub fn push_scope(&mut self, s: Scope) {
         self.scopes.push(s);
     }
+
+    /// Determines whether we are currently in a dynamic branch context for any scope.
+    pub fn is_currently_evaluating_any_branch(&self) -> bool {
+        self.scopes
+            .iter()
+            .any(Scope::is_currently_evaluating_branch)
+    }
 }
 
 /// Struct that represents a block node when we intepret an RIR program as a graph.
