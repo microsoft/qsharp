@@ -510,18 +510,9 @@ impl<'a> Lexer<'a> {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 let cooked_ident = Self::ident(ident);
                 match cooked_ident {
-                    TokenKind::Dim => {
-                        let span = Span {
-                            lo: token.offset,
-                            hi: self.offset(),
-                        };
-                        Err(Error::Incomplete(
-                            raw::TokenKind::Single(Single::Sharp),
-                            TokenKind::Dim,
-                            raw::TokenKind::Ident,
-                            span,
-                        ))
-                    }
+                    // A `dim` token without a `#` in front should be
+                    // treated as an identifier and not as a keyword.
+                    TokenKind::Dim => Ok(Some(TokenKind::Identifier)),
                     TokenKind::Keyword(Keyword::Pragma) => {
                         self.eat_to_end_of_line();
                         Ok(Some(TokenKind::Pragma))

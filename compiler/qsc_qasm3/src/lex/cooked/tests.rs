@@ -1003,7 +1003,7 @@ fn unknown() {
                 Err(
                     Incomplete(
                         Ident,
-                        Pragma,
+                        Identifier,
                         Single(
                             Sharp,
                         ),
@@ -1016,7 +1016,7 @@ fn unknown() {
                 Err(
                     IncompleteEof(
                         Ident,
-                        Pragma,
+                        Identifier,
                         Span {
                             lo: 2,
                             hi: 2,
@@ -1190,28 +1190,29 @@ fn sharp_pragma_ident() {
 
 #[test]
 fn dim() {
-    check("dim", &expect![[r#"
+    check(
+        "dim",
+        &expect![[r#"
         [
-            Err(
-                Incomplete(
-                    Single(
-                        Sharp,
-                    ),
-                    Dim,
-                    Ident,
-                    Span {
+            Ok(
+                Token {
+                    kind: Identifier,
+                    span: Span {
                         lo: 0,
                         hi: 3,
                     },
-                ),
+                },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn sharp_dim() {
-    check("#dim", &expect![[r#"
+    check(
+        "#dim",
+        &expect![[r#"
         [
             Ok(
                 Token {
@@ -1223,5 +1224,6 @@ fn sharp_dim() {
                 },
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }

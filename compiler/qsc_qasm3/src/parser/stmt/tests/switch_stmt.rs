@@ -97,46 +97,23 @@ fn multiple_cases() {
         switch_stmt,
         "
         switch (x) {
-          case 0 { x = 0; }
-          case 1 { y = 1; }
+          case 0 { int x = 0; }
+          case 1 { int y = 1; }
         }
     ",
         &expect![[r#"
-            SwitchStmt [9-87]:
+            SwitchStmt [9-95]:
                 Cases:
                     Labels:
                         Expr [37-38]: Lit: Int(0)
-                    Block [39-49]: <empty>
+                    Block [39-53]:
+                        Stmt [41-51]
+                            StmtKind: ClassicalDeclarationStmt [41-51]: ClassicalType [41-44]: IntType [41-44], Ident [45-46] "x", ValueExpression ExprStmt [49-50]: Expr [49-50]: Lit: Int(0)
                     Labels:
-                        Expr [65-66]: Lit: Int(1)
-                    Block [67-77]: <empty>
-                    <no default>
-
-            [
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Identifier,
-                        Span {
-                            lo: 41,
-                            hi: 42,
-                        },
-                    ),
-                ),
-                Error(
-                    Token(
-                        Close(
-                            Brace,
-                        ),
-                        Identifier,
-                        Span {
-                            lo: 69,
-                            hi: 70,
-                        },
-                    ),
-                ),
-            ]"#]],
+                        Expr [69-70]: Lit: Int(1)
+                    Block [71-85]:
+                        Stmt [73-83]
+                            StmtKind: ClassicalDeclarationStmt [73-83]: ClassicalType [73-76]: IntType [73-76], Ident [77-78] "y", ValueExpression ExprStmt [81-82]: Expr [81-82]: Lit: Int(1)
+                    <no default>"#]],
     );
 }
