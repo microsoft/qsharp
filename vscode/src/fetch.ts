@@ -288,6 +288,12 @@ function onOpen(response: Response) {
           )}`,
         );
       });
+    } else if (contentType?.startsWith("text/plain")) {
+      return response.text().then((text) => {
+        throw new Error(
+          `Expected content-type to be ${EventStreamContentType}, Actual: ${contentType}, Body: ${text}`,
+        );
+      });
     } else {
       throw new Error(
         `Expected content-type to be ${EventStreamContentType}, Actual: ${contentType}`,
