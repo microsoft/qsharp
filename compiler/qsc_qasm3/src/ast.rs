@@ -21,6 +21,7 @@ fn set_indentation<'a, 'b>(
         0 => indent.with_str(""),
         1 => indent.with_str("    "),
         2 => indent.with_str("        "),
+        3 => indent.with_str("            "),
         _ => unimplemented!("indentation level not supported"),
     }
 }
@@ -28,7 +29,11 @@ fn set_indentation<'a, 'b>(
 // TODO: profile this with iai-callgrind in a large OpenQASM3
 // sample to verify that is actually faster than using Vec<T>.
 /// An alternative to `Vec<T>` that uses less stack space.
-type List<T> = Box<[Box<T>]>;
+pub(crate) type List<T> = Box<[Box<T>]>;
+
+pub(crate) fn list_from_iter<T>(vals: impl IntoIterator<Item = T>) -> List<T> {
+    vals.into_iter().map(Box::new).collect()
+}
 
 #[derive(Clone, Debug)]
 pub struct Program {
@@ -1551,18 +1556,57 @@ impl Display for EnumerableSet {
 #[derive(Clone, Debug)]
 pub struct SwitchStmt {
     pub span: Span,
-    pub target: ExprStmt,
-    pub cases: List<(List<ExprStmt>, CompoundStmt)>,
+    pub target: Expr,
+    pub cases: List<(List<Expr>, Block)>,
     /// Note that `None` is quite different to `[]` in this case; the latter is
     /// an explicitly empty body, whereas the absence of a default might mean
     /// that the switch is inexhaustive, and a linter might want to complain.
-    pub default: Option<CompoundStmt>,
+    pub default: Option<Block>,
 }
 
 impl Display for SwitchStmt {
-    fn fmt(&self, _f: &mut Formatter<'_>) -> fmt::Result {
-        todo!("SwitchStmt display");
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "SwitchStmt {}:", self.span)?;
+        let mut indent = set_indentation(indented(f), 1);
+        write!(indent, "\nTarget: {}", self.target)?;
+        if self.cases.is_empty() {
+            write!(indent, "\n<no cases>")?;
+        } else {
+            write!(indent, "\nCases:")?;
+            for elt in &self.cases {
+                let (labels, block) = &**elt;
+                indent = display_switch_case(indent, labels, block)?;
+            }
+        }
+        if let Some(default) = &self.default {
+            write!(indent, "\nDefault Case:")?;
+            indent = set_indentation(indent, 2);
+            write!(indent, "\n{default}")?;
+        } else {
+            write!(indent, "\n<no default>")?;
+        }
+        Ok(())
     }
+}
+
+fn display_switch_case<'a, 'b>(
+    mut indent: Indented<'a, Formatter<'b>>,
+    labels: &List<Expr>,
+    block: &Block,
+) -> Result<Indented<'a, Formatter<'b>>, core::fmt::Error> {
+    indent = set_indentation(indent, 2);
+    if labels.is_empty() {
+        write!(indent, "\n<no labels>")?;
+    } else {
+        write!(indent, "\nLabels:")?;
+        indent = set_indentation(indent, 3);
+        for label in labels {
+            write!(indent, "\n{label}")?;
+        }
+    }
+    indent = set_indentation(indent, 2);
+    write!(indent, "\n{block}")?;
+    Ok(indent)
 }
 
 #[derive(Clone, Debug)]
