@@ -20,7 +20,7 @@ import {
 import { OpenAIChatService } from "./openAiChatService";
 import { getRandomGuid } from "../utils";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
-import { knownToolNameOrDefault } from "./azqTools";
+import { azqToolDefinitions, knownToolNameOrDefault } from "./azqTools";
 
 export class Copilot {
   private service: IChatService;
@@ -201,9 +201,11 @@ export class Copilot {
    */
   async executeToolCalls(toolCalls: ToolCall[]) {
     for (const toolCall of toolCalls) {
+      const statusString = azqToolDefinitions[toolCall.name].statusMessage;
+
       this.sendStatusUpdateOnly({
         status: "executingTool",
-        toolName: toolCall.name,
+        toolStatus: statusString,
       });
 
       const toolResult = await executeTool(

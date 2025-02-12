@@ -27,7 +27,7 @@ export async function executeTool(
 
   const result: any = {};
 
-  const handler = azqToolDefinitions[tool_name];
+  const handler = azqToolDefinitions[tool_name].handler;
 
   if (handler) {
     try {

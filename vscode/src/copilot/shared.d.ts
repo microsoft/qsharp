@@ -84,7 +84,7 @@ type Status =
     }
   | {
       status: "executingTool";
-      toolName: string;
+      toolStatus: string;
     }
   | {
       status: "assistantConnectionError";

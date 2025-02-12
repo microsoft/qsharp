@@ -28,21 +28,39 @@ import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
  * service as they don't have to adhere to a strict schema.
  */
 export const azqToolDefinitions: {
-  [key: string]: (
-    conversationState: ToolState,
-    args?: any,
-  ) => Promise<ToolResult>;
+  [key: string]: {
+    handler: (conversationState: ToolState, args?: any) => Promise<ToolResult>;
+    statusMessage: string;
+  };
 } = {
-  GetJobs: getJobs,
-  GetJob: getJob,
-  ConnectToWorkspace: connectToWorkspace,
-  DownloadJobResults: downloadJobResults,
-  GetWorkspaces: getWorkspaces,
-  SubmitToTarget: submitToTarget,
-  GetActiveWorkspace: getActiveWorkspace,
-  SetActiveWorkspace: setActiveWorkspace,
-  GetProviders: getProviders,
-  GetTarget: getTarget,
+  GetJobs: { handler: getJobs, statusMessage: "Getting recent jobs" },
+  GetJob: { handler: getJob, statusMessage: "Getting job details" },
+  ConnectToWorkspace: {
+    handler: connectToWorkspace,
+    statusMessage: "Connecting to workspace",
+  },
+  DownloadJobResults: {
+    handler: downloadJobResults,
+    statusMessage: "Retrieving job results",
+  },
+  GetWorkspaces: {
+    handler: getWorkspaces,
+    statusMessage: "Getting available workspaces",
+  },
+  SubmitToTarget: { handler: submitToTarget, statusMessage: "Submitting job" },
+  GetActiveWorkspace: {
+    handler: getActiveWorkspace,
+    statusMessage: "Getting active workspace",
+  },
+  SetActiveWorkspace: {
+    handler: setActiveWorkspace,
+    statusMessage: "Setting the active workspace",
+  },
+  GetProviders: {
+    handler: getProviders,
+    statusMessage: "Retrieving list of providers",
+  },
+  GetTarget: { handler: getTarget, statusMessage: "Getting target details" },
 };
 
 /**
