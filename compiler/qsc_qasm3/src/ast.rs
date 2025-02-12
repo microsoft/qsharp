@@ -1574,7 +1574,7 @@ impl Display for SwitchStmt {
             write!(indent, "\nCases:")?;
             for elt in &self.cases {
                 let (labels, block) = &**elt;
-                indent = display_swith_case(indent, labels, block)?;
+                indent = display_switch_case(indent, labels, block)?;
             }
         }
         if let Some(default) = &self.default {
@@ -1588,7 +1588,7 @@ impl Display for SwitchStmt {
     }
 }
 
-fn display_swith_case<'a, 'b>(
+fn display_switch_case<'a, 'b>(
     mut indent: Indented<'a, Formatter<'b>>,
     labels: &List<Expr>,
     block: &Block,
