@@ -17,9 +17,9 @@ use super::{
 };
 use crate::{
     ast::{
-        self, list_from_iter, AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
-        ClassicalDeclarationStmt, ComplexType, CompoundStmt, ConstantDeclaration, Expr, ExprStmt,
-        FloatType, IODeclaration, IOKeyword, IncludeStmt, IntType, List, LiteralKind, Pragma,
+        list_from_iter, AngleType, Annotation, ArrayBaseTypeKind, ArrayType, BitType, Block,
+        ClassicalDeclarationStmt, ComplexType, ConstantDeclaration, Expr, ExprStmt, FloatType,
+        IODeclaration, IOKeyword, IncludeStmt, IntType, List, LiteralKind, Pragma,
         QubitDeclaration, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
         UIntType,
     },
@@ -614,7 +614,11 @@ pub fn switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     token(s, TokenKind::Open(Delim::Brace))?;
 
     // Cases.
+    let lo_cases = s.peek().span.lo;
     let cases = list_from_iter(many(s, case_stmt)?);
+    if cases.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingSwitchCases(s.span(lo_cases))));
+    }
 
     // Default case.
     let default = opt(s, default_case_stmt)?;
@@ -631,8 +635,14 @@ pub fn switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
 }
 
 fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
+    let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Case))?;
+
     let controlling_label = expr::expr_list(s)?;
+    if controlling_label.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingSwitchCaseLabels(s.span(lo))));
+    }
+
     let block = parse_block(s).map(|block| *block)?;
     Ok((list_from_iter(controlling_label), block))
 }

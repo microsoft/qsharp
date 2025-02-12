@@ -16,8 +16,9 @@ fn simple_switch() {
             SwitchStmt [9-72]:
                 Cases:
                     Labels:
-                    Expr [37-38]: Lit: Int(1)Block [39-41]: <empty>
-                Default Case:
+                        Expr [37-38]: Lit: Int(1)
+                    Block [39-41]: <empty>
+                    Default Case:
                     Block [60-62]: <empty>"#]],
     );
 }
@@ -32,7 +33,18 @@ fn no_cases_no_default() {
         &expect![[r#"
             SwitchStmt [9-22]:
                 <no cases>
-                <no default>"#]],
+                <no default>
+
+            [
+                Error(
+                    MissingSwitchCases(
+                        Span {
+                            lo: 21,
+                            hi: 21,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -49,7 +61,18 @@ fn no_cases() {
             SwitchStmt [9-52]:
                 <no cases>
                 Default Case:
-                    Block [40-42]: <empty>"#]],
+                    Block [40-42]: <empty>
+
+            [
+                Error(
+                    MissingSwitchCases(
+                        Span {
+                            lo: 32,
+                            hi: 21,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -87,7 +110,18 @@ fn case_with_no_labels() {
                 Cases:
                     <no labels>
                     Block [37-39]: <empty>
-                    <no default>"#]],
+                    <no default>
+
+            [
+                Error(
+                    MissingSwitchCaseLabels(
+                        Span {
+                            lo: 32,
+                            hi: 36,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
