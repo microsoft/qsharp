@@ -51,25 +51,85 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let return_type = "Unit";
+    // The return type is determined by the number of qubits "children".
+    // However, the actual return statement is determined by the variables storing measurements.
+    // If there is an inconsistency between these, which would happen if there was a mismatch between
+    // the number of qubit children specified on the circuit and the number of qubit children specified
+    // on the measurements, incorrect Q# could be generated.
+    let return_type = match circuit.qubits.iter().fold(0, |sum, q| sum + q.num_children) {
+        0 => "Unit",
+        1 => "Result",
+        _ => "Result[]",
+    };
 
     let mut qsharp_str = format!("operation {circuit_name}({parameters}) : {return_type} {{\n");
     indentation_level += 1;
 
-    for op in circuit.operations {
-        let operation_str = if op.is_measurement {
-            measurement_call(op, &qubits)
+    let mut measure_results = vec![];
+    let indent = "    ".repeat(indentation_level);
+    // ToDo: Add support for children operations
+    for op in &circuit.operations {
+        if op.is_measurement {
+            let operation_str = measurement_call(op, &qubits);
+            let mut op_results = vec![];
+            for t in &op.targets {
+                if let Some(c_id) = t.c_id {
+                    let result = (format!("c{}_{}", t.q_id, c_id), (t.q_id, c_id));
+                    op_results.push(result.clone());
+                }
+            }
+
+            // Sort first by q_id, then by c_id
+            op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+            let result = op_results
+                .iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            match op_results.len() {
+                0 => {
+                    qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                }
+                1 => {
+                    qsharp_str.push_str(&format!("{indent}let {result} = {operation_str};\n"));
+                    measure_results.extend(op_results);
+                }
+                _ => {
+                    qsharp_str.push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
+                    measure_results.extend(op_results);
+                }
+            }
         } else {
-            operation_call(op, &qubits)
+            let operation_str = operation_call(op, &qubits);
+            qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
         };
-        let indent = "    ".repeat(indentation_level);
-        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
     }
+
+    if !measure_results.is_empty() {
+        // Sort first by q_id, then by c_id
+        measure_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+        match measure_results.len() {
+            0 => {}
+            1 => {
+                let (name, _) = measure_results[0].clone();
+                qsharp_str.push_str(&format!("{indent}return {name};\n"));
+            }
+            _ => {
+                let results = measure_results
+                    .iter()
+                    .map(|(name, _)| name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                qsharp_str.push_str(&format!("{indent}return [{results}];\n"));
+            }
+        }
+    }
+
     qsharp_str.push_str("}\n");
     qsharp_str
 }
 
-fn measurement_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String {
+fn measurement_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String {
     // Note: for measurements, the controls are their arguments and the targets are the variables where they results are stored.
     // We may want to change this in the future to be more consistent with the other operations.
     // We also ignore a lot of the usual gate info for measurements, like the gate name and display args.
@@ -92,7 +152,7 @@ fn measurement_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String 
     }
 }
 
-fn operation_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String {
+fn operation_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String {
     let gate = op.gate.as_str();
     let functors = if op.is_controlled && op.is_adjoint {
         "Controlled Adjoint "
@@ -105,7 +165,7 @@ fn operation_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String {
     };
 
     let mut args = vec![];
-    if let Some(display_arg) = op.display_args {
+    if let Some(display_arg) = op.display_args.clone() {
         args.push(display_arg);
     }
 
