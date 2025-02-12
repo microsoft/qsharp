@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use rustc_hash::FxHashMap;
 
-use crate::Circuit;
+use crate::{Circuit, Operation};
 
 // pub fn circ_to_qsharp(circuit: Circuit) -> String {
 //     let mut qsharp = String::new();
@@ -25,15 +28,14 @@ use crate::Circuit;
 //     qsharp
 // }
 
-pub fn str_test(contents: String) -> String {
-    match serde_json::from_str::<Circuit>(contents.as_str()) {
-        // Ok(circuit) => test(circuit),
-        Ok(circuit) => build_qsharp(circuit),
+pub fn circ_to_qsharp(circuit_name: String, circuit_json: String) -> String {
+    match serde_json::from_str::<Circuit>(circuit_json.as_str()) {
+        Ok(circuit) => build_qsharp(circuit_name, circuit),
         Err(e) => format!("Error: {}", e),
     }
 }
 
-pub fn build_qsharp(circuit: Circuit) -> String {
+pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
     let mut indentation_level = 0;
     let qubits = circuit
         .qubits
@@ -51,57 +53,85 @@ pub fn build_qsharp(circuit: Circuit) -> String {
 
     let return_type = "Unit";
 
-    let mut qsharp_str = format!("operation PrepareBellState({parameters}) : {return_type} {{\n");
+    let mut qsharp_str = format!("operation {circuit_name}({parameters}) : {return_type} {{\n");
     indentation_level += 1;
 
     for op in circuit.operations {
-        let gate = op.gate.as_str();
-
-        let targets = op
-            .targets
-            .iter()
-            .map(|t| qubits.get(&t.q_id).unwrap().clone())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let controls = op
-            .controls
-            .iter()
-            .map(|t| qubits.get(&t.q_id).unwrap().clone())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let args = match (controls.is_empty(), targets.is_empty()) {
-            (false, false) => format!("[{controls}], {targets}"),
-            (false, true) => format!("[{controls}]"),
-            (true, false) => targets,
-            (true, true) => "".to_owned(),
+        let operation_str = if op.is_measurement {
+            measurement_call(op, &qubits)
+        } else {
+            operation_call(op, &qubits)
         };
-
-        let operation_str = match (op.is_controlled, op.is_adjoint) {
-            (false, false) => format!("{gate}({args})"),
-            (false, true) => format!("Adjoint {gate}({args})"),
-            (true, false) => format!("Controlled {gate}({args})"),
-            (true, true) => format!("Controlled Adjoint {gate}({args})"),
-        };
-
         let indent = "    ".repeat(indentation_level);
-
         qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
     }
     qsharp_str.push_str("}\n");
     qsharp_str
 }
 
-pub fn test(_x: Circuit) -> String {
-    "
-/// # Summary
-/// Prepares |Ψ−⟩ = (|01⟩-|10⟩)/√2 state assuming `register` is in |00⟩ state.
-operation PreparePsiMinus(register : Qubit[]) : Unit {
-    H(register[0]);                 // |+0〉
-    Z(register[0]);                 // |-0〉
-    X(register[1]);                 // |-1〉
-    CNOT(register[0], register[1]); // 1/sqrt(2)(|01〉 - |10〉)
-}"
-    .to_owned()
+fn measurement_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String {
+    // Note: for measurements, the controls are their arguments and the targets are the variables where they results are stored.
+    // We may want to change this in the future to be more consistent with the other operations.
+    // We also ignore a lot of the usual gate info for measurements, like the gate name and display args.
+
+    let args = op
+        .controls
+        .iter()
+        .map(|c| qubits.get(&c.q_id).unwrap().clone())
+        .collect::<Vec<_>>();
+    let args_count = args.len();
+
+    let args = args.join(", ");
+    if args_count == 1 {
+        format!("M({args})")
+    } else {
+        // This is a joint measurement operation.
+        // For now, assume PauliZ measurement basis for all measurements.
+        let bases = vec!["PauliZ"; args_count].join(", ");
+        format!("Measure([{bases}], [{args}])")
+    }
+}
+
+fn operation_call(op: Operation, qubits: &FxHashMap<usize, String>) -> String {
+    let gate = op.gate.as_str();
+    let functors = if op.is_controlled && op.is_adjoint {
+        "Controlled Adjoint "
+    } else if op.is_controlled {
+        "Controlled "
+    } else if op.is_adjoint {
+        "Adjoint "
+    } else {
+        ""
+    };
+
+    let mut args = vec![];
+    if let Some(display_arg) = op.display_args {
+        args.push(display_arg);
+    }
+
+    let targets = op
+        .targets
+        .iter()
+        .map(|t| qubits.get(&t.q_id).unwrap().clone())
+        .collect::<Vec<_>>();
+    args.extend(targets);
+
+    if op.is_controlled {
+        let controls = op
+            .controls
+            .iter()
+            .map(|t| qubits.get(&t.q_id).unwrap().clone())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let controls = format!("[{controls}]");
+        let args_count = args.len();
+        let mut inner_args = args.join(", ");
+        if args_count != 1 {
+            inner_args = format!("({})", inner_args);
+        }
+        args = vec![controls, inner_args];
+    }
+
+    let args = args.join(", ");
+    format!("{functors}{gate}({args})")
 }
