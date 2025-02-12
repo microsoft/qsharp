@@ -1142,6 +1142,18 @@ fn set_expr() {
 }
 
 #[test]
+fn lit_array() {
+    check(
+        super::lit_array,
+        "{{2, {5}}, 1 + z}",
+        &expect![[r#"
+            Expr [0-17]: Lit: Array:
+                Expr { span: Span { lo: 1, hi: 9 }, kind: Lit(Lit { span: Span { lo: 1, hi: 9 }, kind: Array([Expr { span: Span { lo: 2, hi: 3 }, kind: Lit(Lit { span: Span { lo: 2, hi: 3 }, kind: Int(2) }) }, Expr { span: Span { lo: 5, hi: 8 }, kind: Lit(Lit { span: Span { lo: 5, hi: 8 }, kind: Array([Expr { span: Span { lo: 6, hi: 7 }, kind: Lit(Lit { span: Span { lo: 6, hi: 7 }, kind: Int(5) }) }]) }) }]) }) }
+                Expr { span: Span { lo: 11, hi: 16 }, kind: BinaryOp(BinaryOpExpr { op: Add, lhs: Expr { span: Span { lo: 11, hi: 12 }, kind: Lit(Lit { span: Span { lo: 11, hi: 12 }, kind: Int(1) }) }, rhs: Expr { span: Span { lo: 15, hi: 16 }, kind: Ident(Ident { span: Span { lo: 15, hi: 16 }, name: "z" }) } }) }"#]],
+    );
+}
+
+#[test]
 fn assignment_and_unop() {
     check(
         crate::parser::stmt::parse,

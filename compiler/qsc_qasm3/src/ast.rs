@@ -1781,7 +1781,7 @@ impl Display for Lit {
 
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
-    Array(List<ExprStmt>),
+    Array(List<Expr>),
     Bitstring(BigInt, usize),
     Bool(bool),
     Duration { value: f64, unit: TimeUnit },

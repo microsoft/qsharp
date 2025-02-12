@@ -16,9 +16,9 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     ast::{
-        self, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind,
-        ExprStmt, FunctionCall, IndexElement, IndexExpr, IndexSetItem, Lit, LiteralKind,
-        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
+        self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
+        Expr, ExprKind, ExprStmt, FunctionCall, IndexElement, IndexExpr, IndexSetItem, Lit,
+        LiteralKind, RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -36,7 +36,7 @@ use crate::parser::Result;
 
 use super::{
     error::{Error, ErrorKind},
-    prim::{ident, opt, seq, FinalSep},
+    prim::{ident, opt, recovering_token, seq, FinalSep},
     stmt::scalar_or_array_type,
 };
 
@@ -662,9 +662,34 @@ pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
     })
 }
 
+fn lit_array(s: &mut ParserContext) -> Result<Expr> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let elements = seq(s, lit_array_element).map(|pair| pair.0)?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    Ok(Expr {
+        span: s.span(lo),
+        kind: Box::new(ExprKind::Lit(Lit {
+            span: s.span(lo),
+            kind: LiteralKind::Array(list_from_iter(elements)),
+        })),
+    })
+}
+
+fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
+    if let Some(elt) = opt(s, expr)? {
+        return Ok(elt);
+    }
+    lit_array(s)
+}
+
 pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
     let lo = s.peek().span.lo;
-    let expr = expr_stmt(s)?;
+    let expr = if let Some(expr) = opt(s, expr_stmt)? {
+        expr
+    } else {
+        lit_array(s)?
+    };
     let stmt = ExprStmt {
         span: s.span(lo),
         expr,

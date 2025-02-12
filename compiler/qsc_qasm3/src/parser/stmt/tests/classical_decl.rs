@@ -668,3 +668,46 @@ fn stretch_decl() {
                 StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-7]: Stretch, Ident [8-9] "s""#]],
     );
 }
+
+#[test]
+fn empty_array_decl() {
+    check(
+        parse,
+        "array[int, 0] arr = {};",
+        &expect![[r#"
+            Stmt [0-23]
+                StmtKind: ClassicalDeclarationStmt [0-23]: ArrayType [0-13]: ArrayBaseTypeKind IntType [6-9]
+                Expr [11-12]: Lit: Int(0), Ident [14-17] "arr", ValueExpression ExprStmt [20-22]: Expr [20-22]: Lit: Array:"#]],
+    );
+}
+
+#[test]
+fn simple_array_decl() {
+    check(
+        parse,
+        "array[int[32], 3] arr = {1, 2, 3};",
+        &expect![[r#"
+        Stmt [0-34]
+            StmtKind: ClassicalDeclarationStmt [0-34]: ArrayType [0-17]: ArrayBaseTypeKind IntType[ExprStmt [9-13]: Expr [10-12]: Lit: Int(32)]: [6-13]
+            Expr [15-16]: Lit: Int(3), Ident [18-21] "arr", ValueExpression ExprStmt [24-33]: Expr [24-33]: Lit: Array:
+                Expr { span: Span { lo: 25, hi: 26 }, kind: Lit(Lit { span: Span { lo: 25, hi: 26 }, kind: Int(1) }) }
+                Expr { span: Span { lo: 28, hi: 29 }, kind: Lit(Lit { span: Span { lo: 28, hi: 29 }, kind: Int(2) }) }
+                Expr { span: Span { lo: 31, hi: 32 }, kind: Lit(Lit { span: Span { lo: 31, hi: 32 }, kind: Int(3) }) }"#]],
+    );
+}
+
+#[test]
+fn nested_array_decl() {
+    check(
+        parse,
+        "array[int[32], 3, 2] arr = {{1, 2}, {3, 4}, {5, 6}};",
+        &expect![[r#"
+            Stmt [0-52]
+                StmtKind: ClassicalDeclarationStmt [0-52]: ArrayType [0-20]: ArrayBaseTypeKind IntType[ExprStmt [9-13]: Expr [10-12]: Lit: Int(32)]: [6-13]
+                Expr [15-16]: Lit: Int(3)
+                Expr [18-19]: Lit: Int(2), Ident [21-24] "arr", ValueExpression ExprStmt [27-51]: Expr [27-51]: Lit: Array:
+                    Expr { span: Span { lo: 28, hi: 34 }, kind: Lit(Lit { span: Span { lo: 28, hi: 34 }, kind: Array([Expr { span: Span { lo: 29, hi: 30 }, kind: Lit(Lit { span: Span { lo: 29, hi: 30 }, kind: Int(1) }) }, Expr { span: Span { lo: 32, hi: 33 }, kind: Lit(Lit { span: Span { lo: 32, hi: 33 }, kind: Int(2) }) }]) }) }
+                    Expr { span: Span { lo: 36, hi: 42 }, kind: Lit(Lit { span: Span { lo: 36, hi: 42 }, kind: Array([Expr { span: Span { lo: 37, hi: 38 }, kind: Lit(Lit { span: Span { lo: 37, hi: 38 }, kind: Int(3) }) }, Expr { span: Span { lo: 40, hi: 41 }, kind: Lit(Lit { span: Span { lo: 40, hi: 41 }, kind: Int(4) }) }]) }) }
+                    Expr { span: Span { lo: 44, hi: 50 }, kind: Lit(Lit { span: Span { lo: 44, hi: 50 }, kind: Array([Expr { span: Span { lo: 45, hi: 46 }, kind: Lit(Lit { span: Span { lo: 45, hi: 46 }, kind: Int(5) }) }, Expr { span: Span { lo: 48, hi: 49 }, kind: Lit(Lit { span: Span { lo: 48, hi: 49 }, kind: Int(6) }) }]) }) }"#]],
+    );
+}
