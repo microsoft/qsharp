@@ -178,7 +178,7 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
                 if let Ok(id) = ident(s) {
                     Ok(Expr {
                         span: s.span(lo),
-                        kind: Box::new(ExprKind::Ident(*id)),
+                        kind: Box::new(ExprKind::Ident(id)),
                     })
                 } else {
                     Err(Error::new(ErrorKind::Rule(
