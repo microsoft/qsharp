@@ -58,15 +58,15 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
     }
 }
 
-pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
+pub(super) fn ident(s: &mut ParserContext) -> Result<Ident> {
     let peek = s.peek();
     if peek.kind == TokenKind::Identifier {
         let name = s.read().into();
         s.advance();
-        Ok(Box::new(Ident {
+        Ok(Ident {
             span: peek.span,
             name,
-        }))
+        })
     } else {
         Err(Error::new(ErrorKind::Rule(
             "identifier",
@@ -92,11 +92,11 @@ pub(super) fn path(
     let lo = s.peek().span.lo;
     let i = ident(s).map_err(|e| (e, None))?;
 
-    let mut parts = vec![*i];
+    let mut parts = vec![i];
     while token(s, TokenKind::Dot).is_ok() {
         s.expect(WordKinds::PathSegment);
         match ident(s) {
-            Ok(ident) => parts.push(*ident),
+            Ok(ident) => parts.push(ident),
             Err(error) => {
                 let trivia_span = s.skip_trivia();
                 let keyword = trivia_span.hi == trivia_span.lo
