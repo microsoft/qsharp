@@ -14,6 +14,8 @@ fn simple_switch() {
     ",
         &expect![[r#"
             SwitchStmt [9-72]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 Cases:
                     Labels:
                         Expr [37-38]: Lit: Int(1)
@@ -32,6 +34,8 @@ fn no_cases_no_default() {
     ",
         &expect![[r#"
             SwitchStmt [9-22]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 <no cases>
                 <no default>
 
@@ -59,6 +63,8 @@ fn no_cases() {
     ",
         &expect![[r#"
             SwitchStmt [9-52]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 <no cases>
                 Default Case:
                     Block [40-42]: <empty>
@@ -87,6 +93,8 @@ fn no_default() {
     ",
         &expect![[r#"
             SwitchStmt [9-54]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 Cases:
                     Labels:
                         Expr [37-38]: Lit: Int(0)
@@ -107,6 +115,8 @@ fn case_with_no_labels() {
     ",
         &expect![[r#"
             SwitchStmt [9-49]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 Cases:
                     <no labels>
                     Block [37-39]: <empty>
@@ -137,6 +147,8 @@ fn multiple_cases() {
     ",
         &expect![[r#"
             SwitchStmt [9-95]:
+                Target: Expr [9-19]: Paren:
+                    Expr [17-18]: Ident [17-18] "x"
                 Cases:
                     Labels:
                         Expr [37-38]: Lit: Int(0)

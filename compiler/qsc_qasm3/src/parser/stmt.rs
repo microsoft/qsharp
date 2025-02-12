@@ -612,8 +612,7 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
 
     // Controlling expression.
     token(s, TokenKind::Open(Delim::Paren))?;
-    let controlling_expr = expr::expr(s)?;
-    token(s, TokenKind::Close(Delim::Paren))?;
+    let controlling_expr = expr::paren_expr(s, lo)?;
 
     // Open cases bracket.
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -629,7 +628,7 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     let default = opt(s, default_case_stmt)?;
 
     // Close cases bracket.
-    token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
 
     Ok(SwitchStmt {
         span: s.span(lo),

@@ -1568,6 +1568,7 @@ impl Display for SwitchStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "SwitchStmt {}:", self.span)?;
         let mut indent = set_indentation(indented(f), 1);
+        write!(indent, "\nTarget: {}", self.target)?;
         if self.cases.is_empty() {
             write!(indent, "\n<no cases>")?;
         } else {
