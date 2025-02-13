@@ -1180,3 +1180,41 @@ fn assignment_unop_and() {
                 Expr [15-16]: Ident [15-16] "b""#]],
     );
 }
+
+#[test]
+fn hardware_qubit() {
+    check(
+        super::hardware_qubit,
+        "$12",
+        &expect!["HardwareQubit [0-3]: 12"],
+    );
+}
+
+#[test]
+fn indexed_identifier() {
+    check(
+        super::indexed_identifier,
+        "arr[1][2]",
+        &expect![[r#"
+        IndexedIdent [0-9]: Ident [0-3] "arr"[
+        IndexElement:
+            IndexSetItem Expr [4-5]: Lit: Int(1)
+        IndexElement:
+            IndexSetItem Expr [7-8]: Lit: Int(2)]"#]],
+    );
+}
+
+#[test]
+fn measure_hardware_qubit() {
+    check(super::measure_expr, "measure $12", &expect!["MeasureExpr [0-7]: GateOperand HardwareQubit [8-11]: 12"]);
+}
+
+#[test]
+fn measure_indexed_identifier() {
+    check(super::measure_expr, "measure qubits[1][2]", &expect![[r#"
+        MeasureExpr [0-7]: GateOperand IndexedIdent [8-20]: Ident [8-14] "qubits"[
+        IndexElement:
+            IndexSetItem Expr [15-16]: Lit: Int(1)
+        IndexElement:
+            IndexSetItem Expr [18-19]: Lit: Int(2)]"#]]);
+}

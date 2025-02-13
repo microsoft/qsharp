@@ -711,3 +711,29 @@ fn nested_array_decl() {
                     Expr { span: Span { lo: 44, hi: 50 }, kind: Lit(Lit { span: Span { lo: 44, hi: 50 }, kind: Array([Expr { span: Span { lo: 45, hi: 46 }, kind: Lit(Lit { span: Span { lo: 45, hi: 46 }, kind: Int(5) }) }, Expr { span: Span { lo: 48, hi: 49 }, kind: Lit(Lit { span: Span { lo: 48, hi: 49 }, kind: Int(6) }) }]) }) }"#]],
     );
 }
+
+#[test]
+fn measure_hardware_qubit_decl() {
+    check(
+        parse,
+        "bit res = measure $12;",
+        &expect![[r#"
+            Stmt [0-22]
+                StmtKind: ClassicalDeclarationStmt [0-22]: ClassicalType [0-3]: BitType, Ident [4-7] "res", ValueExpression MeasureExpr [10-17]: GateOperand HardwareQubit [18-21]: 12"#]],
+    );
+}
+
+#[test]
+fn measure_register_decl() {
+    check(
+        parse,
+        "bit res = measure qubits[2][3];",
+        &expect![[r#"
+            Stmt [0-31]
+                StmtKind: ClassicalDeclarationStmt [0-31]: ClassicalType [0-3]: BitType, Ident [4-7] "res", ValueExpression MeasureExpr [10-17]: GateOperand IndexedIdent [18-30]: Ident [18-24] "qubits"[
+                IndexElement:
+                    IndexSetItem Expr [25-26]: Lit: Int(2)
+                IndexElement:
+                    IndexSetItem Expr [28-29]: Lit: Int(3)]"#]],
+    );
+}

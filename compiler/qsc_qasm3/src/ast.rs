@@ -300,14 +300,14 @@ impl Display for UnaryOp {
 
 #[derive(Clone, Debug)]
 pub enum GateOperand {
-    Ident(Box<Identifier>),
+    IndexedIdent(Box<IndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
 }
 
 impl Display for GateOperand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            GateOperand::Ident(ident) => write!(f, "GateOperand {ident}"),
+            GateOperand::IndexedIdent(ident) => write!(f, "GateOperand {ident}"),
             GateOperand::HardwareQubit(qubit) => write!(f, "GateOperand {qubit}"),
         }
     }
@@ -1294,7 +1294,7 @@ impl Display for ClassicalDeclarationStmt {
 #[derive(Clone, Debug)]
 pub enum ValueExpression {
     Expr(ExprStmt),
-    Measurement(QuantumMeasurement),
+    Measurement(MeasureExpr),
 }
 
 impl Display for ValueExpression {
