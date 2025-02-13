@@ -100,38 +100,35 @@ suite("Q# Debugger Tests", function suite() {
     ]);
   });
 
-  // Scenario broken with VS Code change https://github.com/microsoft/vscode/issues/197377
-  // Fix the extension and/or re-enable test when the VS Code issue reaches a resolution.
-  //
-  // test("Launch with launch.json configuration - file substitution", async () => {
-  //   await vscode.window.showTextDocument(fooUri);
+  test("Launch with launch.json configuration - file substitution", async () => {
+    await vscode.window.showTextDocument(fooUri);
 
-  //   // ${file} will expand to the filesystem path of the currently opened file
-  //   await vscode.debug.startDebugging(workspaceFolder, {
-  //     name: "Launch foo.qs",
-  //     type: "qsharp",
-  //     request: "launch",
-  //     program: "${file}",
-  //   });
+    // ${file} will expand to the filesystem path of the currently opened file
+    await vscode.debug.startDebugging(workspaceFolder, {
+      name: "Launch foo.qs",
+      type: "qsharp",
+      request: "launch",
+      program: "${file}",
+    });
 
-  //   await waitUntilPaused([
-  //     {
-  //       id: 0,
-  //       source: {
-  //         name: "foo.qs",
-  //         path: "vscode-test-web://mount/src/foo.qs",
-  //         sourceReference: 0,
-  //         adapterData: "qsharp-adapter-data",
-  //       },
-  //       line: 5,
-  //       column: 9,
-  //       name: "Foo ",
-  //       endLine: 5,
-  //       endColumn: 15,
-  //     },
-  //     { id: 0, line: 0, column: 0, name: "entry", source: undefined },
-  //   ]);
-  // });
+    await waitUntilPaused([
+      {
+        id: 0,
+        source: {
+          name: "foo.qs",
+          path: "vscode-test-web://mount/src/foo.qs",
+          sourceReference: 0,
+          adapterData: "qsharp-adapter-data",
+        },
+        line: 5,
+        column: 9,
+        name: "Foo ",
+        endLine: 5,
+        endColumn: 15,
+      },
+      { id: 0, line: 0, column: 0, name: "entry", source: undefined },
+    ]);
+  });
 
   test("Run until completion", async () => {
     // launch debugger
