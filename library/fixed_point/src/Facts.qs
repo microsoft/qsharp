@@ -51,8 +51,6 @@ function AssertFormatsAreIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
 /// Array of quantum fixed-point numbers that will be checked for
 /// compatibility (using assertions).
 function AssertPointPositionsIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
-
-
     if IsEmpty(fixedPoints) {
         return ();
     }
