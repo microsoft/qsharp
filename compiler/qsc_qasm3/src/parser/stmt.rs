@@ -246,7 +246,7 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
-        qubit: *name,
+        qubit: name,
         size,
     }))
 }
@@ -275,7 +275,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
         span: s.span(lo),
         io_identifier: kind,
         r#type: ty,
-        identifier,
+        identifier: Box::new(identifier),
     };
     Ok(StmtKind::IODeclaration(decl))
 }
@@ -313,7 +313,7 @@ fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
         let decl = ConstantDeclaration {
             span: s.span(lo),
             r#type: ty,
-            identifier,
+            identifier: Box::new(identifier),
             init_expr: Box::new(ExprStmt {
                 span: init_expr.span,
                 expr: init_expr,
@@ -331,7 +331,7 @@ fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
         let decl = ClassicalDeclarationStmt {
             span: s.span(lo),
             r#type: ty,
-            identifier,
+            identifier: Box::new(identifier),
             init_expr,
         };
         StmtKind::ClassicalDecl(decl)

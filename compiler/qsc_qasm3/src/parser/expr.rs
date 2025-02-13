@@ -17,7 +17,7 @@ use qsc_data_structures::span::Span;
 use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
-        Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, IndexElement,
+        Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
         IndexExpr, IndexSetItem, IndexedIdent, Lit, LiteralKind, MeasureExpr, RangeDefinition,
         TypeDef, UnaryOp, ValueExpression, Version,
     },
@@ -179,7 +179,7 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
                 if let Ok(id) = ident(s) {
                     Ok(Expr {
                         span: s.span(lo),
-                        kind: Box::new(ExprKind::Ident(*id)),
+                        kind: Box::new(ExprKind::Ident(id)),
                     })
                 } else {
                     Err(Error::new(ErrorKind::Rule(
@@ -734,12 +734,12 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
 
 fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
     let lo = s.peek().span.lo;
-    let name = ident(s)?;
+    let name: Ident = ident(s)?;
     let indices = list_from_iter(many(s, index_operand)?);
 
     Ok(IndexedIdent {
         span: s.span(lo),
-        name: *name,
+        name,
         indices,
     })
 }
