@@ -204,8 +204,9 @@ class CircuitEvents {
     const elems = this._gateElems();
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
-        ev.stopPropagation();
         if (ev.button !== 0) return;
+        ev.stopPropagation();
+        this._removeAllWireDropzones();
         if (elem.getAttribute("data-expanded") !== "true") {
           const selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = this._findOperation(selectedLocation);
