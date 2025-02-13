@@ -64,7 +64,7 @@ class CircuitEvents {
    * Dispose the CircuitEvents instance and remove event listeners
    */
   dispose() {
-    console.log("Disposing CircuitEvents instance");
+    this._removeToolboxElementsEvents();
     this._removeDocumentEvents();
   }
 
@@ -132,16 +132,6 @@ class CircuitEvents {
   };
 
   /**
-   * Add events specifically for dropzoneLayer
-   */
-  _addDropzoneLayerEvents() {
-    this.container.addEventListener(
-      "mouseup",
-      () => (this.dropzoneLayer.style.display = "none"),
-    );
-  }
-
-  /**
    * Add events for document
    */
   _addDocumentEvents() {
@@ -159,6 +149,16 @@ class CircuitEvents {
     document.removeEventListener("keyup", this.documentKeyupHandler);
     document.removeEventListener("mouseup", this.documentMouseupHandler);
     document.removeEventListener("mousedown", this.documentMousedownHandler);
+  }
+
+  /**
+   * Add events specifically for dropzoneLayer
+   */
+  _addDropzoneLayerEvents() {
+    this.container.addEventListener(
+      "mouseup",
+      () => (this.dropzoneLayer.style.display = "none"),
+    );
   }
 
   /**
@@ -204,8 +204,8 @@ class CircuitEvents {
     const elems = this._gateElems();
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
-        if (ev.button !== 0) return;
         ev.stopPropagation();
+        if (ev.button !== 0) return;
         if (elem.getAttribute("data-expanded") !== "true") {
           const selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = this._findOperation(selectedLocation);
@@ -389,21 +389,34 @@ class CircuitEvents {
     document.body.appendChild(overlay);
   }
 
+  toolboxMousedownHandler = (ev: MouseEvent) => {
+    if (ev.button !== 0) return;
+    this.container.classList.add("moving");
+    this.dropzoneLayer.style.display = "block";
+    const elem = ev.currentTarget as HTMLElement;
+    const type = elem.getAttribute("data-type");
+    if (type == null) return;
+    this.selectedOperation = defaultGateDictionary[type];
+    this.createGhostElement(ev);
+  };
+
   /**
-   * Add events for circuit objects in the circuit
+   * Add events for gates in the toolbox
    */
   _addToolboxElementsEvents() {
     const elems = this._toolboxElems();
     elems.forEach((elem) => {
-      elem.addEventListener("mousedown", (ev: MouseEvent) => {
-        if (ev.button !== 0) return;
-        this.container.classList.add("moving");
-        this.dropzoneLayer.style.display = "block";
-        const type = elem.getAttribute("data-type");
-        if (type == null) return;
-        this.selectedOperation = defaultGateDictionary[type];
-        this.createGhostElement(ev);
-      });
+      elem.addEventListener("mousedown", this.toolboxMousedownHandler);
+    });
+  }
+
+  /**
+   * Remove events for gates in the toolbox
+   */
+  _removeToolboxElementsEvents() {
+    const elems = this._toolboxElems();
+    elems.forEach((elem) => {
+      elem.removeEventListener("mousedown", this.toolboxMousedownHandler);
     });
   }
 
