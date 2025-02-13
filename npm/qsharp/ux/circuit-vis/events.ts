@@ -10,12 +10,18 @@ import { _formatGate } from "./formatters/gateFormatter";
 import { box, controlDot } from "./formatters/formatUtils";
 import { defaultGateDictionary, toMetadata } from "./panel";
 
+let events: CircuitEvents | null = null;
+
 const extensionEvents = (
   container: HTMLElement,
   sqore: Sqore,
   useRefresh: () => void,
 ): void => {
-  const events = new CircuitEvents(container, sqore, useRefresh);
+  if (events != null) {
+    events.dispose();
+  }
+
+  events = new CircuitEvents(container, sqore, useRefresh);
 
   events._addContextMenuEvent();
   events._addDropzoneLayerEvents();
@@ -55,6 +61,14 @@ class CircuitEvents {
   }
 
   /**
+   * Dispose the CircuitEvents instance and remove event listeners
+   */
+  dispose() {
+    console.log("Disposing CircuitEvents instance");
+    this._removeDocumentEvents();
+  }
+
+  /**
    * Generate an array of y values based on circuit wires
    */
   _wireData(): number[] {
@@ -79,6 +93,44 @@ class CircuitEvents {
    * Events Adding Functions *
    ***************************/
 
+  documentKeydownHandler = (ev: KeyboardEvent) => {
+    const selectedLocation = this.selectedOperation
+      ? this._getLocation(this.selectedOperation)
+      : null;
+    if (ev.ctrlKey && selectedLocation) {
+      this.container.classList.remove("moving");
+      this.container.classList.add("copying");
+    } else if (ev.key == "Delete" && selectedLocation) {
+      this._removeOperation(selectedLocation);
+      this.renderFn();
+    }
+  };
+
+  documentKeyupHandler = (ev: KeyboardEvent) => {
+    const selectedLocation = this.selectedOperation
+      ? this._getLocation(this.selectedOperation)
+      : null;
+    if (ev.ctrlKey && selectedLocation) {
+      this.container.classList.remove("copying");
+      this.container.classList.add("moving");
+    }
+  };
+
+  documentMousedownHandler = () => {
+    this._removeAllWireDropzones();
+  };
+
+  documentMouseupHandler = () => {
+    this.container.classList.remove("moving", "copying");
+    this.movingControl = false;
+    if (this.container) {
+      const ghostElem = this.container.querySelector(".ghost");
+      if (ghostElem) {
+        this.container.removeChild(ghostElem);
+      }
+    }
+  };
+
   /**
    * Add events specifically for dropzoneLayer
    */
@@ -93,39 +145,20 @@ class CircuitEvents {
    * Add events for document
    */
   _addDocumentEvents() {
-    document.addEventListener("keydown", (ev: KeyboardEvent) => {
-      const selectedLocation = this.selectedOperation
-        ? this._getLocation(this.selectedOperation)
-        : null;
-      if (ev.ctrlKey && selectedLocation) {
-        this.container.classList.remove("moving");
-        this.container.classList.add("copying");
-      } else if (ev.key == "Delete" && selectedLocation) {
-        this._removeOperation(selectedLocation);
-        this.renderFn();
-      }
-    });
+    document.addEventListener("keydown", this.documentKeydownHandler);
+    document.addEventListener("keyup", this.documentKeyupHandler);
+    document.addEventListener("mouseup", this.documentMouseupHandler);
+    document.addEventListener("mousedown", this.documentMousedownHandler);
+  }
 
-    document.addEventListener("keyup", (ev: KeyboardEvent) => {
-      const selectedLocation = this.selectedOperation
-        ? this._getLocation(this.selectedOperation)
-        : null;
-      if (ev.ctrlKey && selectedLocation) {
-        this.container.classList.remove("copying");
-        this.container.classList.add("moving");
-      }
-    });
-
-    document.addEventListener("mouseup", () => {
-      this.container.classList.remove("moving", "copying");
-      this.movingControl = false;
-      if (this.container) {
-        const ghostElem = this.container.querySelector(".ghost");
-        if (ghostElem) {
-          this.container.removeChild(ghostElem);
-        }
-      }
-    });
+  /**
+   * Remove events for document
+   */
+  _removeDocumentEvents() {
+    document.removeEventListener("keydown", this.documentKeydownHandler);
+    document.removeEventListener("keyup", this.documentKeyupHandler);
+    document.removeEventListener("mouseup", this.documentMouseupHandler);
+    document.removeEventListener("mousedown", this.documentMousedownHandler);
   }
 
   /**
@@ -143,6 +176,15 @@ class CircuitEvents {
   _addHostElementsEvents() {
     const elems = this._hostElems();
     elems.forEach((elem) => {
+      // DEBUG:
+      // elem.addEventListener("mouseover", () => {
+      //   const gate = this._findGateElem(elem);
+      //   if (gate == null) return;
+      //   const gateLoc = gate.getAttribute("data-location");
+      //   const gateWireStr = elem.getAttribute("data-wire");
+      //   console.log("Location: ", gateLoc, " Wire: ", gateWireStr);
+      // });
+
       elem.addEventListener("mousedown", (ev: MouseEvent) => {
         if (ev.button !== 0) return;
         if (elem.classList.contains("control-dot")) {
@@ -372,6 +414,13 @@ class CircuitEvents {
     const dropzoneElems =
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {
+      // DEBUG:
+      // dropzoneElem.addEventListener("mouseover", () => {
+      //   const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
+      //   const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
+      //   console.log("Location: ", targetLoc, " Wire: ", targetWireStr);
+      // });
+
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
         const originalOperations = cloneDeep(this.operations);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
@@ -841,7 +890,11 @@ class CircuitEvents {
 
       if (!isTarget && !isControl) {
         const dropzone = this._createWireDropzone(wireIndex);
+        dropzone.addEventListener("mousedown", (ev: MouseEvent) =>
+          ev.stopPropagation(),
+        );
         dropzone.addEventListener("click", () => {
+          console.log("Clicking dropzone wire");
           if (this.selectedOperation != null) {
             this.addControl(this.selectedOperation, wireIndex);
           }
@@ -864,6 +917,9 @@ class CircuitEvents {
     // Create dropzones only for wires that the selectedOperation has a control
     this.selectedOperation.controls?.forEach((control) => {
       const dropzone = this._createWireDropzone(control.qId);
+      dropzone.addEventListener("mousedown", (ev: MouseEvent) =>
+        ev.stopPropagation(),
+      );
       dropzone.addEventListener("click", () => {
         if (this.selectedOperation != null) {
           this.removeControl(this.selectedOperation, control.qId);
@@ -932,6 +988,16 @@ class CircuitEvents {
     dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
 
     return dropzone;
+  }
+
+  /**
+   * Remove all wire dropzones
+   */
+  _removeAllWireDropzones() {
+    const dropzones = this.circuitSvg.querySelectorAll(".dropzone-full-wire");
+    dropzones.forEach((elem) => {
+      elem.parentNode?.removeChild(elem);
+    });
   }
 
   /**
