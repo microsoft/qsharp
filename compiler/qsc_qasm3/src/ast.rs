@@ -746,27 +746,45 @@ impl Display for ClassicalArgument {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExternArgument {
-    pub span: Span,
-    pub r#type: ScalarType,
-    pub access: Option<AccessControl>,
+pub enum ExternParameter {
+    Scalar(ScalarType, Span),
+    Quantum(Option<ExprStmt>, Span),
+    ArrayReference(ArrayReferenceType, Span),
 }
 
-impl Display for ExternArgument {
+impl Display for ExternParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(access) = &self.access {
-            write!(
-                f,
-                "ExternArgument {}: {}, {}",
-                self.span, self.r#type, access
-            )
-        } else {
-            write!(f, "ExternArgument {}: {}", self.span, self.r#type)
+        match self {
+            ExternParameter::Scalar(ty, span) => {
+                write!(f, "{span}: {ty}")
+            }
+            ExternParameter::Quantum(expr, span) => {
+                write!(f, "{span}: {expr:?}")
+            }
+            ExternParameter::ArrayReference(ty, span) => {
+                write!(f, "{span}: {ty}")
+            }
         }
     }
 }
 
-#[derive(Clone, Debug)]
+impl Default for ExternParameter {
+    fn default() -> Self {
+        ExternParameter::Scalar(ScalarType::default(), Span::default())
+    }
+}
+
+impl WithSpan for ExternParameter {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            ExternParameter::Scalar(ty, _) => ExternParameter::Scalar(ty, span),
+            ExternParameter::Quantum(expr, _) => ExternParameter::Quantum(expr, span),
+            ExternParameter::ArrayReference(ty, _) => ExternParameter::ArrayReference(ty, span),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct ScalarType {
     pub span: Span,
     pub kind: ScalarTypeKind,
@@ -778,7 +796,7 @@ impl Display for ScalarType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum ScalarTypeKind {
     Bit(BitType),
     Int(IntType),
@@ -789,6 +807,8 @@ pub enum ScalarTypeKind {
     BoolType,
     Duration,
     Stretch,
+    #[default]
+    Err,
 }
 
 impl Display for ScalarTypeKind {
@@ -803,6 +823,7 @@ impl Display for ScalarTypeKind {
             ScalarTypeKind::BoolType => write!(f, "BoolType"),
             ScalarTypeKind::Duration => write!(f, "Duration"),
             ScalarTypeKind::Stretch => write!(f, "Stretch"),
+            ScalarTypeKind::Err => write!(f, "Err"),
         }
     }
 }
@@ -966,8 +987,9 @@ impl Display for ArrayType {
 #[derive(Clone, Debug)]
 pub struct ArrayReferenceType {
     pub span: Span,
+    pub mutability: AccessControl,
     pub base_type: ArrayBaseTypeKind,
-    pub dimensions: List<ExprStmt>,
+    pub dimensions: List<Expr>,
 }
 
 impl Display for ArrayReferenceType {
@@ -1061,7 +1083,7 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Ident,
+    pub qubit: Box<Ident>,
     pub size: Option<ExprStmt>,
 }
 
@@ -1082,23 +1104,40 @@ impl Display for QubitDeclaration {
 #[derive(Clone, Debug)]
 pub struct QuantumGateDefinition {
     pub span: Span,
-    pub name: Identifier,
-    pub arguments: Vec<Identifier>,
-    pub qubits: Vec<Identifier>,
-    pub body: Vec<Stmt>,
+    pub ident: Box<Ident>,
+    pub params: List<Ident>,
+    pub qubits: List<Ident>,
+    pub body: Box<Block>,
 }
 
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "QuantumGateDefinition {}: {}", self.span, self.name)?;
-        for arg in &self.arguments {
-            write!(indent, "\n{arg}")?;
+        write!(indent, "Gate {}: {}", self.span, self.ident)?;
+        write!(indent, "(")?;
+        if self.params.is_empty() {
+            write!(indent, "<no params>")?;
+        } else {
+            let param_str = self
+                .params
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(indent, "{param_str}")?;
         }
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        for stmt in &self.body {
+        write!(indent, ") ")?;
+
+        let qubit_str = self
+            .qubits
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(indent, "{qubit_str}")?;
+
+        writeln!(indent)?;
+        for stmt in &self.body.stmts {
             write!(indent, "\n{stmt}")?;
         }
         Ok(())
@@ -1108,16 +1147,16 @@ impl Display for QuantumGateDefinition {
 #[derive(Clone, Debug)]
 pub struct ExternDecl {
     pub span: Span,
-    pub name: Identifier,
-    pub arguments: List<ExternArgument>,
+    pub ident: Box<Ident>,
+    pub params: List<ExternParameter>,
     pub return_type: Option<ScalarType>,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ExternDecl {}: {}", self.span, self.name)?;
-        for arg in &self.arguments {
+        write!(indent, "ExternDecl {}: {}", self.span, self.ident)?;
+        for arg in &self.params {
             write!(indent, "\n{arg}")?;
         }
         if let Some(return_type) = &self.return_type {
@@ -1141,7 +1180,7 @@ impl Display for QuantumStmt {
 
 #[derive(Clone, Debug)]
 pub enum QuantumStmtKind {
-    Gate(QuantumGate),
+    Gate(GateCall),
     Phase(QuantumPhase),
     Barrier(List<ExprStmt>),
     Reset(List<Box<Identifier>>),
@@ -1152,18 +1191,18 @@ pub enum QuantumStmtKind {
 impl Display for QuantumStmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            QuantumStmtKind::Gate(gate) => write!(f, "QuantumStmtKind {gate}"),
-            QuantumStmtKind::Phase(phase) => write!(f, "QuantumStmtKind {phase}"),
-            QuantumStmtKind::Barrier(barrier) => write!(f, "QuantumStmtKind {barrier:?}"),
-            QuantumStmtKind::Reset(reset) => write!(f, "QuantumStmtKind {reset:?}"),
-            QuantumStmtKind::DelayInstruction(delay) => write!(f, "QuantumStmtKind {delay:?}"),
-            QuantumStmtKind::Box(box_stmt) => write!(f, "QuantumStmtKind {box_stmt:?}"),
+            QuantumStmtKind::Gate(gate) => write!(f, "{gate}"),
+            QuantumStmtKind::Phase(phase) => write!(f, "{phase}"),
+            QuantumStmtKind::Barrier(barrier) => write!(f, "{barrier:?}"),
+            QuantumStmtKind::Reset(reset) => write!(f, "{reset:?}"),
+            QuantumStmtKind::DelayInstruction(delay) => write!(f, "{delay:?}"),
+            QuantumStmtKind::Box(box_stmt) => write!(f, "{box_stmt:?}"),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct QuantumGate {
+pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
     pub name: Identifier,
@@ -1172,10 +1211,10 @@ pub struct QuantumGate {
     pub duration: Option<ExprStmt>,
 }
 
-impl Display for QuantumGate {
+impl Display for GateCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "QuantumGate {}: {}", self.span, self.name)?;
+        write!(indent, "GateCall {}: {}", self.span, self.name)?;
         for arg in &self.args {
             write!(indent, "\n{arg}")?;
         }
@@ -1311,7 +1350,7 @@ pub struct IODeclaration {
     pub span: Span,
     pub io_identifier: IOKeyword,
     pub r#type: TypeDef,
-    pub identifier: Box<Ident>,
+    pub ident: Box<Ident>,
 }
 
 impl Display for IODeclaration {
@@ -1319,7 +1358,7 @@ impl Display for IODeclaration {
         write!(
             f,
             "IODeclaration {}: {}, {}, {}",
-            self.span, self.io_identifier, self.r#type, self.identifier
+            self.span, self.io_identifier, self.r#type, self.ident
         )
     }
 }
@@ -1413,22 +1452,78 @@ impl Display for CalibrationArgument {
 }
 
 #[derive(Clone, Debug)]
+pub enum TypedParameter {
+    Scalar(ScalarType, Box<Ident>, Span),
+    Quantum(Option<ExprStmt>, Box<Ident>, Span),
+    ArrayReference(ArrayReferenceType, Box<Ident>, Span),
+}
+
+impl WithSpan for TypedParameter {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            TypedParameter::Scalar(scalar, ident, _) => TypedParameter::Scalar(scalar, ident, span),
+            TypedParameter::Quantum(expr, ident, _) => TypedParameter::Quantum(expr, ident, span),
+            TypedParameter::ArrayReference(array, ident, _) => {
+                TypedParameter::ArrayReference(array, ident, span)
+            }
+        }
+    }
+}
+
+impl Display for TypedParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TypedParameter::Scalar(scalar, ident, span) => {
+                write!(f, "{span} {ident}: {scalar}")
+            }
+            TypedParameter::Quantum(expr, ident, span) => {
+                if let Some(expr) = expr {
+                    write!(f, "{span} {ident}: qubit[{expr}]")
+                } else {
+                    write!(f, "{span} {ident}: qubit")
+                }
+            }
+            TypedParameter::ArrayReference(array, ident, span) => {
+                write!(f, "{span} {ident}: {array}")
+            }
+        }
+    }
+}
+
+impl Default for TypedParameter {
+    fn default() -> Self {
+        TypedParameter::Scalar(ScalarType::default(), Box::default(), Span::default())
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct DefStmt {
-    span: Span,
-    name: Identifier,
-    args: List<Box<Operand>>,
-    body: List<Box<Stmt>>,
-    return_type: Option<ScalarType>,
+    pub span: Span,
+    pub name: Box<Ident>,
+    pub params: List<TypedParameter>,
+    pub body: Box<Block>,
+    pub return_type: Option<ScalarType>,
 }
 
 impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "DefStmt {}: {}", self.span, self.name)?;
-        for arg in &self.args {
-            write!(indent, "\n{arg}")?;
+        write!(indent, "(")?;
+        if self.params.is_empty() {
+            write!(indent, "<no params>")?;
+        } else {
+            let param_str = self
+                .params
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            write!(indent, "{param_str}")?;
         }
-        for stmt in &self.body {
+        write!(indent, ") ")?;
+
+        for stmt in &self.body.stmts {
             write!(indent, "\n{stmt}")?;
         }
         if let Some(return_type) = &self.return_type {
@@ -1455,8 +1550,8 @@ impl Display for Operand {
 
 #[derive(Clone, Debug)]
 pub struct ReturnStmt {
-    span: Span,
-    expr: Option<Box<ValueExpression>>,
+    pub span: Span,
+    pub expr: Option<Box<ValueExpression>>,
 }
 
 impl Display for ReturnStmt {
