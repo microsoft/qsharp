@@ -1142,6 +1142,18 @@ fn set_expr() {
 }
 
 #[test]
+fn lit_array() {
+    check(
+        super::lit_array,
+        "{{2, {5}}, 1 + z}",
+        &expect![[r#"
+            Expr [0-17]: Lit: Array:
+                Expr { span: Span { lo: 1, hi: 9 }, kind: Lit(Lit { span: Span { lo: 1, hi: 9 }, kind: Array([Expr { span: Span { lo: 2, hi: 3 }, kind: Lit(Lit { span: Span { lo: 2, hi: 3 }, kind: Int(2) }) }, Expr { span: Span { lo: 5, hi: 8 }, kind: Lit(Lit { span: Span { lo: 5, hi: 8 }, kind: Array([Expr { span: Span { lo: 6, hi: 7 }, kind: Lit(Lit { span: Span { lo: 6, hi: 7 }, kind: Int(5) }) }]) }) }]) }) }
+                Expr { span: Span { lo: 11, hi: 16 }, kind: BinaryOp(BinaryOpExpr { op: Add, lhs: Expr { span: Span { lo: 11, hi: 12 }, kind: Lit(Lit { span: Span { lo: 11, hi: 12 }, kind: Int(1) }) }, rhs: Expr { span: Span { lo: 15, hi: 16 }, kind: Ident(Ident { span: Span { lo: 15, hi: 16 }, name: "z" }) } }) }"#]],
+    );
+}
+
+#[test]
 fn assignment_and_unop() {
     check(
         crate::parser::stmt::parse,
@@ -1166,5 +1178,51 @@ fn assignment_unop_and() {
                 Expr [9-11]: UnOp (NotL):
                     Expr [10-11]: Ident [10-11] "a"
                 Expr [15-16]: Ident [15-16] "b""#]],
+    );
+}
+
+#[test]
+fn hardware_qubit() {
+    check(
+        super::hardware_qubit,
+        "$12",
+        &expect!["HardwareQubit [0-3]: 12"],
+    );
+}
+
+#[test]
+fn indexed_identifier() {
+    check(
+        super::indexed_identifier,
+        "arr[1][2]",
+        &expect![[r#"
+        IndexedIdent [0-9]: Ident [0-3] "arr"[
+        IndexElement:
+            IndexSetItem Expr [4-5]: Lit: Int(1)
+        IndexElement:
+            IndexSetItem Expr [7-8]: Lit: Int(2)]"#]],
+    );
+}
+
+#[test]
+fn measure_hardware_qubit() {
+    check(
+        super::measure_expr,
+        "measure $12",
+        &expect!["MeasureExpr [0-7]: GateOperand HardwareQubit [8-11]: 12"],
+    );
+}
+
+#[test]
+fn measure_indexed_identifier() {
+    check(
+        super::measure_expr,
+        "measure qubits[1][2]",
+        &expect![[r#"
+        MeasureExpr [0-7]: GateOperand IndexedIdent [8-20]: Ident [8-14] "qubits"[
+        IndexElement:
+            IndexSetItem Expr [15-16]: Lit: Int(1)
+        IndexElement:
+            IndexSetItem Expr [18-19]: Lit: Int(2)]"#]],
     );
 }
