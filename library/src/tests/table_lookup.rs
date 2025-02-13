@@ -9,6 +9,15 @@ use qsc::interpret::Value;
 const SELECT_TEST_LIB: &str = include_str!("resources/src/select.qs");
 
 #[test]
+fn check_select_exhaustive_bitwidth_0() {
+    test_expression_with_lib(
+        "Test.TestSelect(0, 10)",
+        SELECT_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
 fn check_select_exhaustive_bitwidth_1() {
     test_expression_with_lib(
         "Test.TestSelect(1, 10)",
