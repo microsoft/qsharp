@@ -662,6 +662,7 @@ pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
     })
 }
 
+/// A literal array is a list of literal array elements.
 fn lit_array(s: &mut ParserContext) -> Result<Expr> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -676,6 +677,7 @@ fn lit_array(s: &mut ParserContext) -> Result<Expr> {
     })
 }
 
+/// A literal array element can be an expression, or a literal array element.
 fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
     if let Some(elt) = opt(s, expr)? {
         return Ok(elt);
