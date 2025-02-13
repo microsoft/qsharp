@@ -39,7 +39,7 @@
     "github-markdown-css": "^5.3.0",
     "globals": "^15.9.0",
     "markdown-it": "^14.1.0",
-    "mocha": "^10.2.0",
+    "mocha": "^10.8.2",
     "modern-normalize": "^2.0.0",
     "monaco-editor": "^0.44.0",
     "preact": "^10.20.0",
