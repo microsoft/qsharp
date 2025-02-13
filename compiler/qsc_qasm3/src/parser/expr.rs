@@ -16,9 +16,10 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     ast::{
-        self, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind,
-        ExprStmt, FunctionCall, IndexElement, IndexExpr, IndexSetItem, Lit, LiteralKind,
-        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
+        self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
+        Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
+        IndexExpr, IndexSetItem, IndexedIdent, Lit, LiteralKind, MeasureExpr, RangeDefinition,
+        TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -36,7 +37,7 @@ use crate::parser::Result;
 
 use super::{
     error::{Error, ErrorKind},
-    prim::{ident, opt, seq, FinalSep},
+    prim::{ident, many, opt, recovering_token, seq, FinalSep},
     stmt::scalar_or_array_type,
 };
 
@@ -458,7 +459,7 @@ fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
 fn index_expr(s: &mut ParserContext, lhs: Expr) -> Result<ExprKind> {
     let lo = s.span(0).hi - 1;
     let index = index_element(s)?;
-    token(s, TokenKind::Close(Delim::Bracket))?;
+    recovering_token(s, TokenKind::Close(Delim::Bracket));
     Ok(ExprKind::IndexExpr(IndexExpr {
         span: s.span(lo),
         collection: lhs,
@@ -662,17 +663,96 @@ pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
     })
 }
 
+/// A literal array is a list of literal array elements.
+fn lit_array(s: &mut ParserContext) -> Result<Expr> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let elements = seq(s, lit_array_element).map(|pair| pair.0)?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    Ok(Expr {
+        span: s.span(lo),
+        kind: Box::new(ExprKind::Lit(Lit {
+            span: s.span(lo),
+            kind: LiteralKind::Array(list_from_iter(elements)),
+        })),
+    })
+}
+
+/// A literal array element can be an expression, or a literal array element.
+fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
+    if let Some(elt) = opt(s, expr)? {
+        return Ok(elt);
+    }
+    lit_array(s)
+}
+
 pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
     let lo = s.peek().span.lo;
-    let expr = expr_stmt(s)?;
+    if let Some(measurement) = opt(s, measure_expr)? {
+        return Ok(Box::new(ValueExpression::Measurement(measurement)));
+    }
+
+    let expr = if let Some(expr) = opt(s, expr_stmt)? {
+        expr
+    } else {
+        lit_array(s)?
+    };
+
     let stmt = ExprStmt {
         span: s.span(lo),
         expr,
     };
-    // todo: measurement
+
     Ok(Box::new(ValueExpression::Expr(stmt)))
 }
 
-pub(crate) fn expr_list(s: &mut ParserContext<'_>) -> Result<Vec<Expr>> {
+pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
     seq(s, expr).map(|pair| pair.0)
+}
+
+fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Measure)?;
+
+    Ok(MeasureExpr {
+        span: s.span(lo),
+        operand: gate_operand(s)?,
+    })
+}
+
+fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
+    if let Some(indexed_ident) = opt(s, indexed_identifier)? {
+        return Ok(GateOperand::IndexedIdent(Box::new(indexed_ident)));
+    }
+    Ok(GateOperand::HardwareQubit(Box::new(hardware_qubit(s)?)))
+}
+
+fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
+    let lo = s.peek().span.lo;
+    let hardware_qubit = s.read();
+    token(s, TokenKind::HardwareQubit)?;
+
+    Ok(HardwareQubit {
+        span: s.span(lo),
+        name: hardware_qubit[1..].into(),
+    })
+}
+
+fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
+    let lo = s.peek().span.lo;
+    let name: Ident = ident(s)?;
+    let indices = list_from_iter(many(s, index_operand)?);
+
+    Ok(IndexedIdent {
+        span: s.span(lo),
+        name,
+        indices,
+    })
+}
+
+fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let index = index_element(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Bracket));
+    Ok(index)
 }
