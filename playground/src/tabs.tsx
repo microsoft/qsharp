@@ -65,7 +65,7 @@ export function OutputTabs(props: {
   setActiveTab: (tab: ActiveTab) => void;
 }) {
   return (
-    <div class="results-column">
+    <>
       {props.showPanel ? (
         <div class="results-labels">
           {tabArray.map((elem) => (
@@ -78,11 +78,13 @@ export function OutputTabs(props: {
           ))}
         </div>
       ) : null}
-      <ResultsTab {...props} />
-      <AstTab {...props} />
-      <HirTab {...props} />
-      <RirTab {...props} />
-      <QirTab {...props} />
-    </div>
+      <div class="output">
+        <ResultsTab {...props} />
+        <AstTab {...props} />
+        <HirTab {...props} />
+        <RirTab {...props} />
+        <QirTab {...props} />
+      </div>
+    </>
   );
 }
