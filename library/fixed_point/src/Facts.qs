@@ -27,7 +27,6 @@ operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
 /// Array of quantum fixed-point numbers that will be checked for
 /// compatibility (using assertions).
 function AssertFormatsAreIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
-    import Std.Diagnostics.Fact;
 
     if IsEmpty(fixedPoints) {
         return ();
