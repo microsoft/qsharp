@@ -339,23 +339,26 @@ impl LanguageService {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
                     qsls::protocol::CodeLensCommand::Histogram(expr) => {
-                        ("histogram", Some(CodeLensArg::Expr(expr)))
+                        ("histogram", Some(CodeLensArg::Expr((None, expr))))
                     }
                     qsls::protocol::CodeLensCommand::Debug(expr) => {
-                        ("debug", Some(CodeLensArg::Expr(expr)))
+                        ("debug", Some(CodeLensArg::Expr((None, expr))))
                     }
                     qsls::protocol::CodeLensCommand::Run(expr) => {
-                        ("run", Some(CodeLensArg::Expr(expr)))
+                        ("run", Some(CodeLensArg::Expr((None, expr))))
                     }
                     qsls::protocol::CodeLensCommand::Estimate(expr) => {
-                        ("estimate", Some(CodeLensArg::Expr(expr)))
+                        ("estimate", Some(CodeLensArg::Expr((None, expr))))
                     }
                     qsls::protocol::CodeLensCommand::Circuit(op_info) => (
                         "circuit",
-                        Some(CodeLensArg::Operation(OperationInfo {
-                            operation: op_info.operation,
-                            total_num_qubits: op_info.total_num_qubits,
-                        })),
+                        Some(CodeLensArg::Operation((
+                            None,
+                            OperationInfo {
+                                operation: op_info.operation,
+                                total_num_qubits: op_info.total_num_qubits,
+                            },
+                        ))),
                     ),
                 };
                 CodeLens {
@@ -540,8 +543,8 @@ serializable_type! {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum CodeLensArg {
-    Expr(String),
-    Operation(OperationInfo),
+    Expr((Option<String>, String)),
+    Operation((Option<String>, OperationInfo)),
 }
 
 serializable_type! {
@@ -555,7 +558,7 @@ serializable_type! {
     r#"export type ICodeLens = {
         range: IRange;
         command: "histogram" | "estimate" | "debug" | "run" | "circuit";
-        args?: object;
+        args?: any[];
     }"#,
     ICodeLens
 }

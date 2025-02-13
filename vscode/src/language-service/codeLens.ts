@@ -52,12 +52,12 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       break;
     case "debug":
       title = "Debug";
-      command = "qsharp-vscode.debugExpression";
+      command = "qsharp-vscode.debugEditorContents";
       tooltip = "Debug callable";
       break;
     case "run":
       title = "Run";
-      command = "qsharp-vscode.runExpression";
+      command = "qsharp-vscode.runEditorContents";
       tooltip = "Run callable";
       break;
     case "circuit":
@@ -70,7 +70,7 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
   return new vscode.CodeLens(toVsCodeRange(cl.range), {
     title,
     command,
-    arguments: [cl.args],
+    arguments: cl.args ?? [],
     tooltip,
   });
 }

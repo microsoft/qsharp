@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import * as vscode from "vscode";
 import {
   IOperationInfo,
   QscEventTarget,
@@ -46,7 +47,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand(
       `${qsharpExtensionId}.showRe`,
-      async (expr?: string) => {
+      async (resource?: vscode.Uri, expr?: string) => {
         clearCommandDiagnostics();
         const associationId = getRandomGuid();
         sendTelemetryEvent(
@@ -283,7 +284,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand(
       `${qsharpExtensionId}.showHistogram`,
-      async (expr?: string) => {
+      async (resource?: vscode.Uri, expr?: string) => {
         clearCommandDiagnostics();
 
         const associationId = getRandomGuid();

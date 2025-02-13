@@ -33,7 +33,7 @@ pub enum Error {
 /// If the item is not a callable, returns `None`.
 /// If the callable takes any non-qubit parameters, returns `None`.
 ///
-/// If the callable only takes qubit parameters or no parameters, (including qubit arrays):
+/// If the callable only takes qubit parameters (including qubit arrays) or no parameters:
 ///
 /// The first element of the return tuple is a vector,
 /// where each element corresponds to a parameter, and the
