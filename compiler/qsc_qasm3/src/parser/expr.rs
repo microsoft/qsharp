@@ -688,16 +688,22 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 
 pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
     let lo = s.peek().span.lo;
-    if let Some(expr) = opt(s, expr_stmt).or_else(|_| opt(s, lit_array))? {
-        let stmt = ExprStmt {
-            span: s.span(lo),
-            expr,
-        };
-        Ok(Box::new(ValueExpression::Expr(stmt)))
-    } else {
-        let measurement = measure_expr(s)?;
-        Ok(Box::new(ValueExpression::Measurement(measurement)))
+    if let Some(measurement) = opt(s, measure_expr)? {
+        return Ok(Box::new(ValueExpression::Measurement(measurement)));
     }
+
+    let expr = if let Some(expr) = opt(s, expr_stmt)? {
+        expr
+    } else {
+        lit_array(s)?
+    };
+
+    let stmt = ExprStmt {
+        span: s.span(lo),
+        expr,
+    };
+
+    Ok(Box::new(ValueExpression::Expr(stmt)))
 }
 
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
