@@ -175,29 +175,34 @@ operation Unlookup(
     select : Qubit[],
     target : Qubit[]
 ) : Unit {
-    let numBits = Length(target);
-    let numAddressBits = Length(select);
+    // No measurement-based uncomputation when there is only one address
+    if Length(data) == 1 {
+        WriteMemoryContents(Head(data), target);
+    } else {
+        let numBits = Length(target);
+        let numAddressBits = Length(select);
 
-    let l = MinI(Floor(Lg(IntAsDouble(numBits))), numAddressBits - 1);
-    Fact(
-        l < numAddressBits,
-        $"l = {l} must be smaller than {numAddressBits}"
-    );
+        let l = MinI(Floor(Lg(IntAsDouble(numBits))), numAddressBits - 1);
+        Fact(
+            l < numAddressBits,
+            $"l = {l} must be smaller than {numAddressBits}"
+        );
 
-    let res = Mapped(r -> r == One, ForEach(MResetX, target));
+        let res = Mapped(r -> r == One, ForEach(MResetX, target));
 
-    let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
+        let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
 
-    let numAddressBitsFixup = numAddressBits - l;
+        let numAddressBitsFixup = numAddressBits - l;
 
-    let selectParts = Partitioned([l], select);
-    let targetFixup = target[...2^l - 1];
+        let selectParts = Partitioned([l], select);
+        let targetFixup = target[...2^l - 1];
 
-    within {
-        EncodeUnary(selectParts[0], targetFixup);
-        ApplyToEachA(H, targetFixup);
-    } apply {
-        lookup(dataFixup, selectParts[1], targetFixup);
+        within {
+            EncodeUnary(selectParts[0], targetFixup);
+            ApplyToEachA(H, targetFixup);
+        } apply {
+            lookup(dataFixup, selectParts[1], targetFixup);
+        }
     }
 }
 
