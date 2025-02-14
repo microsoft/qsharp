@@ -279,15 +279,15 @@ interface GateDictionary {
  */
 const defaultGateDictionary: GateDictionary = {
   RX: {
-    gate: "RX",
+    gate: "Rx",
     targets: [{ qId: 0, type: 0 }],
   },
   RY: {
-    gate: "RY",
+    gate: "Ry",
     targets: [{ qId: 0, type: 0 }],
   },
   RZ: {
-    gate: "RZ",
+    gate: "Rz",
     targets: [{ qId: 0, type: 0 }],
   },
   X: {

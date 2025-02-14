@@ -442,7 +442,12 @@ pub trait FileSystemAsync {
                 })?;
             if let Some(ext) = path.extension() {
                 if ext == "circ" {
-                    contents = Arc::from(circ_to_qsharp(name.to_string(), contents.to_string()));
+                    let name = path
+                        .file_stem()
+                        .expect("File should have name")
+                        .to_string_lossy()
+                        .to_string();
+                    contents = Arc::from(circ_to_qsharp(name, contents.to_string()));
                 }
             }
             sources.push((name, contents));
