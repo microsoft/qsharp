@@ -908,7 +908,6 @@ class CircuitEvents {
           ev.stopPropagation(),
         );
         dropzone.addEventListener("click", () => {
-          console.log("Clicking dropzone wire");
           if (this.selectedOperation != null) {
             this.addControl(this.selectedOperation, wireIndex);
           }
