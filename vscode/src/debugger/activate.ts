@@ -45,17 +45,21 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContents`,
-      (resource: vscode.Uri) =>
+      (resource: vscode.Uri, expr?: string) =>
         startDebugging(
           resource,
-          { name: "Run Q# File", stopOnEntry: false },
+          { name: "Run Q# File", stopOnEntry: false, entry: expr },
           { noDebug: true },
         ),
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContents`,
-      (resource: vscode.Uri) =>
-        startDebugging(resource, { name: "Debug Q# File", stopOnEntry: true }),
+      (resource: vscode.Uri, expr?: string) =>
+        startDebugging(resource, {
+          name: "Debug Q# File",
+          stopOnEntry: true,
+          entry: expr,
+        }),
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContentsWithCircuit`,
@@ -73,7 +77,7 @@ function registerCommands(context: vscode.ExtensionContext) {
   );
 
   function startDebugging(
-    resource: vscode.Uri,
+    resource: vscode.Uri | undefined,
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
@@ -147,6 +151,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.shots = 1;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
         config.stopOnEntry = !config.noDebug;
+        config.entry = config.entry ?? "";
       }
     }
 

@@ -149,16 +149,13 @@ function ZoomableCircuit(props: {
   ) {
     if (isEditable) {
       let circuitPanel = qviz.create(circuit).useDraggable().usePanel();
-
       if (editCallback) {
         circuitPanel = circuitPanel.useOnCircuitChange(editCallback);
       }
-
       circuitPanel.useEvents().draw(container);
     } else {
       qviz.create(circuit).draw(container);
     }
-
     // circuit-vis hardcodes the styles in the SVG.
     // Remove the style elements -- we'll define the styles in our own CSS.
     const styleElements = container.querySelectorAll("style");

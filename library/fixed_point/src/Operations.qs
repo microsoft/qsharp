@@ -3,8 +3,9 @@
 
 import Types.FixedPoint;
 import Init.PrepareFxP;
-import Facts.AssertPointPositionsIdenticalFxP, Facts.AssertFormatsAreIdenticalFxP, Facts.AssertAllZeroFxP;
+import Operations.AddFxP;
 import Signed.Operations.Invert2sSI, Signed.Operations.MultiplySI, Signed.Operations.SquareSI;
+import Facts.AssertPointPositionsIdenticalFxP;
 import Std.Arrays.Zipped;
 import Std.Arithmetic.RippleCarryTTKIncByLE;
 
@@ -17,6 +18,7 @@ import Std.Arithmetic.RippleCarryTTKIncByLE;
 /// ## fp
 /// Fixed-point number to which the constant will
 /// be added.
+@Config(Unrestricted)
 operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl {
     let n = Length(fp::Register);
     use ys = Qubit[n];
@@ -46,6 +48,7 @@ operation AddConstantFxP(constant : Double, fp : FixedPoint) : Unit is Adj + Ctl
 /// The current implementation requires the two fixed-point numbers
 /// to have the same point position counting from the least-significant
 /// bit, i.e., $n_i$ and $p_i$ must be equal.
+@Config(Unrestricted)
 operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
     AssertPointPositionsIdenticalFxP([fp1, fp2]);
 
@@ -62,6 +65,7 @@ operation AddFxP(fp1 : FixedPoint, fp2 : FixedPoint) : Unit is Adj + Ctl {
 /// # Remarks
 /// Numerical inaccuracies may occur depending on the
 /// bit-precision of the fixed-point number.
+@Config(Unrestricted)
 operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
     let (_, reg) = fp!;
     Invert2sSI(reg);
@@ -79,6 +83,7 @@ operation InvertFxP(fp : FixedPoint) : Unit is Adj + Ctl {
 /// # Remarks
 /// Computes the difference by inverting `subtrahend` before and after adding
 /// it to `minuend`.  Notice that `minuend`, the first argument is updated.
+@Config(Unrestricted)
 operation SubtractFxP(minuend : FixedPoint, subtrahend : FixedPoint) : Unit is Adj + Ctl {
     within {
         InvertFxP(subtrahend);
@@ -102,13 +107,14 @@ operation SubtractFxP(minuend : FixedPoint, subtrahend : FixedPoint) : Unit is A
 /// # Remarks
 /// The current implementation requires the three fixed-point numbers
 /// to have the same point position and the same number of qubits.
+@Config(Unrestricted)
 operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) : Unit is Adj {
 
     body (...) {
         Controlled MultiplyFxP([], (fp1, fp2, result));
     }
     controlled (controls, ...) {
-        AssertFormatsAreIdenticalFxP([fp1, fp2, result]);
+        Facts.AssertFormatsAreIdenticalFxP([fp1, fp2, result]);
         let n = Length(fp1::Register);
 
         use tmpResult = Qubit[2 * n];
@@ -133,12 +139,13 @@ operation MultiplyFxP(fp1 : FixedPoint, fp2 : FixedPoint, result : FixedPoint) :
 /// ## result
 /// Result fixed-point number,
 /// must be in state $\ket{0}$ initially.
+@Config(Unrestricted)
 operation SquareFxP(fp : FixedPoint, result : FixedPoint) : Unit is Adj {
     body (...) {
         Controlled SquareFxP([], (fp, result));
     }
     controlled (controls, ...) {
-        AssertFormatsAreIdenticalFxP([fp, result]);
+        Facts.AssertFormatsAreIdenticalFxP([fp, result]);
         let n = Length(fp::Register);
 
         use tmpResult = Qubit[2 * n];

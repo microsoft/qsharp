@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import { gateHeight, minGateWidth, minToolboxHeight } from "./constants";
-
 /**
  * Provides configuration for CSS styles of visualization.
  */

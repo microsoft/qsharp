@@ -198,11 +198,11 @@ pub struct CodeLens {
 
 #[derive(Debug)]
 pub enum CodeLensCommand {
-    Histogram,
-    Debug,
-    Run,
-    Estimate,
-    Circuit(Option<OperationInfo>),
+    Histogram(String),
+    Debug(String),
+    Run(String),
+    Estimate(String),
+    Circuit(OperationInfo),
 }
 
 #[derive(Debug)]

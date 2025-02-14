@@ -64,7 +64,11 @@ export interface ICompiler {
 
   getQir(program: ProgramConfig): Promise<string>;
 
-  getEstimates(program: ProgramConfig, params: string): Promise<string>;
+  getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string>;
 
   getCircuit(
     program: ProgramConfig,
@@ -204,9 +208,14 @@ export class Compiler implements ICompiler {
     return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
   }
 
-  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
+  async getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string> {
     return this.wasm.get_estimates(
       toWasmProgramConfig(program, "unrestricted"),
+      expr,
       params,
     );
   }

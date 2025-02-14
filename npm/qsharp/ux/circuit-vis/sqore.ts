@@ -231,7 +231,6 @@ export class Sqore {
       docCss.className = "qviz-style";
       document.head.appendChild(docCss);
     }
-
     // Add body elements
     elements.forEach((element: SVGElement) => svg.appendChild(element));
 

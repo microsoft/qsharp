@@ -7,7 +7,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=18.17.1"
+    "node": ">=20.18.2"
   },
   "scripts": {
     "eslint:check": "eslint -c ./eslint.config.mjs --max-warnings 0 ./",
@@ -23,7 +23,7 @@
     "@types/chai": "^4.3.8",
     "@types/markdown-it": "^14.1.1",
     "@types/mocha": "^10.0.2",
-    "@types/node": "^18.17",
+    "@types/node": "^20.17",
     "@types/vscode": "^1.83.0",
     "@types/vscode-webview": "^1.57.3",
     "@vscode/debugadapter": "^1.63.0",
@@ -38,7 +38,7 @@
     "github-markdown-css": "^5.3.0",
     "globals": "^15.9.0",
     "markdown-it": "^14.1.0",
-    "mocha": "^10.2.0",
+    "mocha": "^10.8.2",
     "modern-normalize": "^2.0.0",
     "monaco-editor": "^0.44.0",
     "preact": "^10.20.0",

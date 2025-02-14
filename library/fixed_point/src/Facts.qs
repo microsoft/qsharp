@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 import Types.FixedPoint;
-import Std.Arrays.IsEmpty, Std.Arrays.Rest;
-import Std.Diagnostics.Fact, Std.Diagnostics.CheckAllZero;
+import Std.Diagnostics.Fact;
+import Std.Arrays.IsEmpty, Std.Arrays.Rest, Std.Arrays.Unzipped;
 
 /// # Summary
 /// Asserts that a quantum fixed-point number is
@@ -12,7 +12,9 @@ import Std.Diagnostics.Fact, Std.Diagnostics.CheckAllZero;
 /// # Description
 /// This assertion succeeds when all qubits are in state $\ket{0}$,
 /// representing that the register encodes the fixed-point number $0.0$.
+@Config(Unrestricted)
 operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
+    import Std.Diagnostics.CheckAllZero;
     Fact(CheckAllZero(fp::Register), "Quantum fixed-point number was not zero.");
 }
 
@@ -25,6 +27,7 @@ operation AssertAllZeroFxP(fp : FixedPoint) : Unit {
 /// Array of quantum fixed-point numbers that will be checked for
 /// compatibility (using assertions).
 function AssertFormatsAreIdenticalFxP(fixedPoints : FixedPoint[]) : Unit {
+
     if IsEmpty(fixedPoints) {
         return ();
     }
