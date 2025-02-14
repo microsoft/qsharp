@@ -192,43 +192,40 @@ const toMetadata = (
   x: number,
   y: number,
 ): Metadata => {
+  const target = y + 1 + gateHeight / 2; // offset by 1 for top padding
   const metadata: Metadata = {
     type: GateType.Invalid,
     x: x + 1 + minGateWidth / 2, // offset by 1 for left padding
     controlsY: [],
-    targetsY: [y + 1 + gateHeight / 2], // offset by 1 for top padding
+    targetsY: [target],
     label: "",
     width: -1,
   };
 
   if (operation == null) return metadata;
 
-  const {
-    gate,
-    displayArgs,
-    isMeasurement,
-    // isConditional,
-    isControlled,
-    // isAdjoint,
-    // conditionalRender,
-  } = operation;
+  const { gate, displayArgs, isMeasurement, isControlled } = operation;
 
+  // Note: there are a lot of special cases here.
+  // It would be good if we could generalize metadata the logic a bit better.
   if (isMeasurement) {
     metadata.type = GateType.Measure;
-    metadata.controlsY = [y + 1 + gateHeight / 2];
+    metadata.controlsY = [target];
   } else if (gate === "SWAP") {
     metadata.type = GateType.Swap;
   } else if (isControlled) {
     metadata.type = gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
     metadata.label = gate;
+    if (gate !== "X") {
+      metadata.targetsY = [[target]];
+    }
   } else if (gate === "X") {
     metadata.type = GateType.X;
     metadata.label = gate;
   } else {
     metadata.type = GateType.Unitary;
     metadata.label = gate;
-    metadata.targetsY = [[y + 1 + gateHeight / 2]];
-    // GateType.Unitary wants matrix array. Also, offset by 1 for top padding
+    metadata.targetsY = [[target]];
   }
 
   if (displayArgs != null) metadata.displayArgs = displayArgs;
