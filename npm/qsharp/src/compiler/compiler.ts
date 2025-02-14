@@ -94,7 +94,7 @@ export type ProgramConfig = (
       /** An array of source objects, each containing a name and contents. */
       sources: [string, string][];
       /** An array of language features to be opted in to in this compilation. */
-      languageFeatures: string[];
+      languageFeatures?: string[];
     }
   | {
       /** Sources from all resolved dependencies, along with their languageFeatures configuration */
