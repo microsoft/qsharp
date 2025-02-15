@@ -18,6 +18,7 @@ const buildOptions = {
     join(thisDir, "src", "compilerWorker.ts"),
     join(thisDir, "src", "debugger/debug-service-worker.ts"),
     join(thisDir, "src", "webview/webview.tsx"),
+    join(thisDir, "src", "copilot/webview/copilot.tsx"),
   ],
   outdir: join(thisDir, "out"),
   bundle: true,
@@ -76,7 +77,7 @@ export function copyKatex(destDir) {
     join(katexDest, "katex.min.css"),
   );
 
-  // Also copy the GitHub markdown CSS
+  // github markdown css
   copyFileSync(
     join(libsDir, `github-markdown-css/github-markdown-light.css`),
     join(katexDest, "github-markdown-light.css"),
@@ -84,6 +85,26 @@ export function copyKatex(destDir) {
   copyFileSync(
     join(libsDir, `github-markdown-css/github-markdown-dark.css`),
     join(katexDest, "github-markdown-dark.css"),
+  );
+
+  // highlight.js css
+  copyFileSync(
+    join(libsDir, `highlight.js/styles/default.css`),
+    join(katexDest, "hljs-light.css"),
+  );
+  copyFileSync(
+    join(libsDir, `highlight.js/styles/dark.css`),
+    join(katexDest, "hljs-dark.css"),
+  );
+
+  // vscode codicons
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.css"),
+    join(katexDest, "codicon.css"),
+  );
+  copyFileSync(
+    join(libsDir, "@vscode", "codicons", "dist", "codicon.ttf"),
+    join(katexDest, "codicon.ttf"),
   );
 
   const fontsDir = join(katexBase, "fonts");

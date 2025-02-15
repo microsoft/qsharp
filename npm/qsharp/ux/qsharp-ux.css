@@ -50,22 +50,6 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   --bar-selected-outline: #587ddd;
 }
 
-/* Generic element resets */
-
-/* TODO: Don't apply to entire page */
-*,
-*::before,
-*::after {
-  box-sizing: inherit;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  box-sizing: border-box;
-  font-size: 16px;
-}
-
 /* TODO: Make the below playground specific classes */
 
 /* Playground body */

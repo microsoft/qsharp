@@ -28,6 +28,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -80,6 +81,7 @@ export async function activate(
   registerWebViewCommands(context);
   initFileSystem(context);
   initProjectCreator(context);
+  registerCopilotPanel(context);
 
   log.info("Q# extension activated.");
 
