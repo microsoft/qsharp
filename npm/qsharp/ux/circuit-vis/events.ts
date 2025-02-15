@@ -2,13 +2,26 @@
 // Licensed under the MIT license.
 
 import cloneDeep from "lodash/cloneDeep";
-import { Operation, Qubit } from "./circuit";
-import { Register } from "./register";
-import { Sqore } from "./sqore";
 import isEqual from "lodash/isEqual";
+import { Operation, Qubit } from "./circuit";
+import { Sqore } from "./sqore";
 import { _formatGate } from "./formatters/gateFormatter";
 import { box, controlDot } from "./formatters/formatUtils";
 import { defaultGateDictionary, toMetadata } from "./panel";
+import {
+  locationStringToIndexes,
+  getGateTargets,
+  getGateLocationString,
+} from "./utils";
+import { addContextMenuToGateElem } from "./contextMenu";
+import {
+  addControl,
+  addOperation,
+  findAndRemoveOperations,
+  moveX,
+  removeControl,
+  removeOperation,
+} from "./circuitManipulation";
 
 let events: CircuitEvents | null = null;
 
@@ -20,32 +33,23 @@ const extensionEvents = (
   if (events != null) {
     events.dispose();
   }
-
   events = new CircuitEvents(container, sqore, useRefresh);
-
-  events._addContextMenuEvent();
-  events._addDropzoneLayerEvents();
-  events._addHostElementsEvents();
-  events._addGateElementsEvents();
-  events._addToolboxElementsEvents();
-  events._addDropzoneElementsEvents();
-  events._addQubitLineControlEvents();
-  events._addDocumentEvents();
 };
 
 class CircuitEvents {
+  renderFn: () => void;
   private container: HTMLElement;
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
-  private operations: Operation[];
-  private qubits: Qubit[];
+  operations: Operation[];
+  qubits: Qubit[];
   private wireData: number[];
-  private renderFn: () => void;
   private selectedOperation: Operation | null;
   private selectedWire: number | null;
   private movingControl: boolean;
 
   constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
+    this.renderFn = useRefresh;
     this.container = container;
     this.circuitSvg = container.querySelector("svg[id]") as SVGElement;
     this.dropzoneLayer = container.querySelector(
@@ -54,10 +58,18 @@ class CircuitEvents {
     this.operations = sqore.circuit.operations;
     this.qubits = sqore.circuit.qubits;
     this.wireData = this._wireData();
-    this.renderFn = useRefresh;
     this.selectedOperation = null;
     this.selectedWire = null;
     this.movingControl = false;
+
+    this._addContextMenuEvent();
+    this._addDropzoneLayerEvents();
+    this._addHostElementsEvents();
+    this._addGateElementsEvents();
+    this._addToolboxElementsEvents();
+    this._addDropzoneElementsEvents();
+    this._addQubitLineControlEvents();
+    this._addDocumentEvents();
   }
 
   /**
@@ -68,47 +80,26 @@ class CircuitEvents {
     this._removeDocumentEvents();
   }
 
-  /**
-   * Generate an array of y values based on circuit wires
-   */
-  _wireData(): number[] {
-    // elems include qubit wires and lines of measure gates
-    const elems = this.container.querySelectorAll<SVGGElement>(
-      "svg[id] > g:nth-child(3) > g",
-    );
-    // filter out <g> elements having more than 2 elements because
-    // qubit wires contain only 2 elements: <line> and <text>
-    // lines of measure gates contain 4 <line> elements
-    const wireElems = Array.from(elems).filter(
-      (elem) => elem.childElementCount < 3,
-    );
-    const wireData = wireElems.map((wireElem) => {
-      const lineElem = wireElem.children[0] as SVGLineElement;
-      return Number(lineElem.getAttribute("y1"));
-    });
-    return wireData;
-  }
-
   /***************************
    * Events Adding Functions *
    ***************************/
 
   documentKeydownHandler = (ev: KeyboardEvent) => {
     const selectedLocation = this.selectedOperation
-      ? this._getLocation(this.selectedOperation)
+      ? getGateLocationString(this.selectedOperation)
       : null;
     if (ev.ctrlKey && selectedLocation) {
       this.container.classList.remove("moving");
       this.container.classList.add("copying");
     } else if (ev.key == "Delete" && selectedLocation) {
-      this._removeOperation(selectedLocation);
+      removeOperation(this, selectedLocation);
       this.renderFn();
     }
   };
 
   documentKeyupHandler = (ev: KeyboardEvent) => {
     const selectedLocation = this.selectedOperation
-      ? this._getLocation(this.selectedOperation)
+      ? getGateLocationString(this.selectedOperation)
       : null;
     if (ev.ctrlKey && selectedLocation) {
       this.container.classList.remove("copying");
@@ -229,165 +220,8 @@ class CircuitEvents {
         }
       });
 
-      this._addContextMenuToGateElem(elem);
+      addContextMenuToGateElem(this, elem);
     });
-  }
-
-  _addContextMenuToGateElem(elem: SVGGraphicsElement) {
-    elem?.addEventListener("contextmenu", (ev: MouseEvent) => {
-      ev.preventDefault();
-
-      // Remove any existing context menu
-      const existingContextMenu = document.querySelector(".context-menu");
-      if (existingContextMenu) {
-        document.body.removeChild(existingContextMenu);
-      }
-
-      const selectedLocation = elem.getAttribute("data-location");
-      const selectedOperation = this._findOperation(selectedLocation);
-      if (!selectedOperation || !selectedLocation) return;
-
-      const contextMenu = document.createElement("div");
-      contextMenu.classList.add("context-menu");
-      contextMenu.style.top = `${ev.clientY}px`;
-      contextMenu.style.left = `${ev.clientX}px`;
-
-      const adjointOption = this.createContextMenuItem("Toggle Adjoint", () => {
-        selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
-        this.renderFn();
-      });
-
-      const addControlOption = this.createContextMenuItem("Add control", () => {
-        this._startAddingControl(selectedOperation);
-      });
-
-      let removeControlOption: HTMLDivElement | null = null;
-      if (selectedOperation.controls && selectedOperation.controls.length > 0) {
-        removeControlOption = this.createContextMenuItem(
-          "Remove control",
-          () => {
-            this._startRemovingControl(selectedOperation);
-          },
-        );
-      }
-
-      const promptArgOption = this.createContextMenuItem(
-        "Edit Argument",
-        () => {
-          this._createCustomPrompt(
-            "Argument for Gate:",
-            (userInput) => {
-              if (userInput !== null) {
-                if (userInput == "") {
-                  selectedOperation.displayArgs = undefined;
-                } else {
-                  selectedOperation.displayArgs = userInput;
-                }
-              }
-              this.renderFn();
-            },
-            selectedOperation.displayArgs,
-          );
-        },
-      );
-
-      const deleteOption = this.createContextMenuItem("Delete", () => {
-        this._removeOperation(selectedLocation);
-        this.renderFn();
-      });
-
-      if (!selectedOperation.isMeasurement) {
-        // Note: X has a special symbol that doesn't allow for adjoint or args.
-        // In the future, we may want to create context menus off of host elements rather
-        // than gate elements. Then we can generalize this exception.
-        if (selectedOperation.gate != "X") {
-          contextMenu.appendChild(adjointOption);
-        }
-        contextMenu.appendChild(addControlOption);
-        if (removeControlOption) {
-          contextMenu.appendChild(removeControlOption);
-        }
-        if (selectedOperation.gate != "X") {
-          contextMenu.appendChild(promptArgOption);
-        }
-      }
-      contextMenu.appendChild(deleteOption);
-      document.body.appendChild(contextMenu);
-
-      document.addEventListener(
-        "click",
-        () => {
-          if (document.body.contains(contextMenu)) {
-            document.body.removeChild(contextMenu);
-          }
-        },
-        { once: true },
-      );
-    });
-  }
-
-  /**
-   * Create a custom prompt element
-   * @param message - The message to display in the prompt
-   * @param callback - The callback function to handle the user input
-   * @param defaultValue - The default value to display in the input element
-   */
-  _createCustomPrompt(
-    message: string,
-    callback: (input: string | null) => void,
-    defaultValue: string = "",
-  ) {
-    // Create the prompt overlay
-    const overlay = document.createElement("div");
-    overlay.classList.add("custom-prompt-overlay");
-
-    // Create the prompt container
-    const promptContainer = document.createElement("div");
-    promptContainer.classList.add("custom-prompt-container");
-
-    // Create the message element
-    const messageElem = document.createElement("div");
-    messageElem.classList.add("custom-prompt-message");
-    messageElem.textContent = message;
-
-    // Create the input element
-    const inputElem = document.createElement("input");
-    inputElem.classList.add("custom-prompt-input");
-    inputElem.type = "text";
-    inputElem.value = defaultValue;
-
-    // Create the buttons container
-    const buttonsContainer = document.createElement("div");
-    buttonsContainer.classList.add("custom-prompt-buttons");
-
-    // Create the OK button
-    const okButton = document.createElement("button");
-    okButton.classList.add("custom-prompt-button");
-    okButton.textContent = "OK";
-    okButton.addEventListener("click", () => {
-      callback(inputElem.value);
-      document.body.removeChild(overlay);
-    });
-
-    // Create the Cancel button
-    const cancelButton = document.createElement("button");
-    cancelButton.classList.add("custom-prompt-button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.addEventListener("click", () => {
-      callback(null);
-      document.body.removeChild(overlay);
-    });
-
-    // Append elements to the prompt container
-    buttonsContainer.appendChild(okButton);
-    buttonsContainer.appendChild(cancelButton);
-    promptContainer.appendChild(messageElem);
-    promptContainer.appendChild(inputElem);
-    promptContainer.appendChild(buttonsContainer);
-    overlay.appendChild(promptContainer);
-
-    // Append the overlay to the body
-    document.body.appendChild(overlay);
   }
 
   toolboxMousedownHandler = (ev: MouseEvent) => {
@@ -448,20 +282,21 @@ class CircuitEvents {
           this.selectedOperation == null
         )
           return;
-        const sourceLocation = this._getLocation(this.selectedOperation);
+        const sourceLocation = getGateLocationString(this.selectedOperation);
 
         if (sourceLocation == null) {
           // Add a new operation from the toolbox
-          this._addOperation(this.selectedOperation, targetLoc, targetWire);
+          addOperation(this, this.selectedOperation, targetLoc, targetWire);
           // const newOperation = this._addOperation(this.selectedOperation, targetLoc, targetWire);
           // if (newOperation) {
           //     this._moveY(targetWire, newOperation, this.wireData.length);
           // }
         } else if (sourceLocation && this.selectedWire != null) {
           if (ev.ctrlKey) {
-            this._addOperation(this.selectedOperation, targetLoc, targetWire);
+            addOperation(this, this.selectedOperation, targetLoc, targetWire);
           } else {
-            const newOperation = this._moveX(
+            const newOperation = moveX(
+              this,
               sourceLocation,
               targetLoc,
               targetWire,
@@ -484,7 +319,7 @@ class CircuitEvents {
               //this._moveY(targetWire - this.selectedWire, newOperation, this.wireData.length);
               const parentOperation = this._findParentOperation(sourceLocation);
               if (parentOperation) {
-                parentOperation.targets = this._targets(parentOperation);
+                parentOperation.targets = getGateTargets(parentOperation);
               }
             }
           }
@@ -533,7 +368,7 @@ class CircuitEvents {
           }
           return false;
         };
-        this._findAndRemoveOperations(check);
+        findAndRemoveOperations(this.operations, check);
         this.qubits.pop();
         this.renderFn();
       });
@@ -566,7 +401,7 @@ class CircuitEvents {
   _findParentOperation(location: string | null): Operation | null {
     if (!location) return null;
 
-    const indexes = this._indexes(location);
+    const indexes = locationStringToIndexes(location);
     indexes.pop();
     const lastIndex = indexes.pop();
 
@@ -585,7 +420,7 @@ class CircuitEvents {
   _findParentArray(location: string | null): Operation[] | null {
     if (!location) return null;
 
-    const indexes = this._indexes(location);
+    const indexes = locationStringToIndexes(location);
     indexes.pop(); // The last index refers to the operation itself, remove it so that the last index instead refers to the parent operation
 
     let parentArray = this.operations;
@@ -601,7 +436,7 @@ class CircuitEvents {
   _findOperation(location: string | null): Operation | null {
     if (!location) return null;
 
-    const index = this._lastIndex(location);
+    const index = locationStringToIndexes(location).pop();
     const operationParent = this._findParentArray(location);
 
     if (operationParent == null || index == null) return null;
@@ -609,279 +444,9 @@ class CircuitEvents {
     return operationParent[index];
   }
 
-  _findAndRemoveOperations(pred: (op: Operation) => boolean): void {
-    const originalOperations = cloneDeep(this.operations);
-
-    const inPlaceFilter = (
-      ops: Operation[],
-      pred: (op: Operation) => boolean,
-    ) => {
-      let i = 0;
-      while (i < ops.length) {
-        if (!pred(ops[i])) {
-          ops.splice(i, 1);
-        } else {
-          i++;
-        }
-      }
-    };
-
-    const recursivePred = (op: Operation) => {
-      if (pred(op)) return true;
-      if (op.children) {
-        inPlaceFilter(op.children, (child) => !recursivePred(child));
-      }
-      return false;
-    };
-
-    inPlaceFilter(this.operations, (op) => !recursivePred(op));
-    if (isEqual(originalOperations, this.operations) === false) this.renderFn();
-  }
-
-  /**************************
-   *  Circuit Manipulation  *
-   **************************/
-
-  /**
-   * Remove an operation from the circuit
-   */
-  _removeOperation(sourceLocation: string) {
-    const sourceOperation = this._findOperation(sourceLocation);
-    const sourceOperationParent = this._findParentArray(sourceLocation);
-
-    if (sourceOperation == null || sourceOperationParent == null) return null;
-
-    // Delete sourceOperation
-    if (sourceOperation.dataAttributes === undefined) {
-      sourceOperation.dataAttributes = { removed: "true" };
-    } else {
-      sourceOperation.dataAttributes["removed"] = "true";
-    }
-    const indexToRemove = sourceOperationParent.findIndex(
-      (operation) =>
-        operation.dataAttributes && operation.dataAttributes["removed"],
-    );
-    sourceOperationParent.splice(indexToRemove, 1);
-
-    if (sourceOperation.isMeasurement) {
-      this._removeMeasurementLines(sourceOperation);
-    }
-  }
-
-  /**
-   * Removes all measurement lines of a measure from the circuit and adjust the cIds of the other measurements
-   */
-  _removeMeasurementLines(sourceOperation: Operation) {
-    for (const target of sourceOperation.targets) {
-      const qubit = this.qubits[target.qId];
-      if (qubit.numChildren != undefined && target.cId != undefined) {
-        for (const op of this.operations) {
-          if (op.controls) {
-            for (const control of op.controls) {
-              if (
-                control.qId === target.qId &&
-                control.cId &&
-                control.cId > target.cId
-              ) {
-                control.cId--;
-              }
-            }
-          }
-          for (const targetReg of op.targets) {
-            if (
-              targetReg.qId === target.qId &&
-              targetReg.cId &&
-              targetReg.cId > target.cId
-            ) {
-              targetReg.cId--;
-            }
-          }
-        }
-        qubit.numChildren--;
-      }
-    }
-  }
-
-  /**
-   * Move an operation horizontally
-   */
-  _moveX = (
-    sourceLocation: string,
-    targetLocation: string,
-    targetWire: number,
-  ): Operation | null => {
-    const sourceOperation = this._findOperation(sourceLocation);
-    if (sourceLocation === targetLocation) return sourceOperation;
-    const sourceOperationParent = this._findParentArray(sourceLocation);
-    const targetOperationParent = this._findParentArray(targetLocation);
-    const targetLastIndex = this._lastIndex(targetLocation);
-
-    if (
-      targetOperationParent == null ||
-      targetLastIndex == null ||
-      sourceOperation == null ||
-      sourceOperationParent == null
-    )
-      return null;
-
-    // Insert sourceOperation to target last index
-    const newSourceOperation: Operation = JSON.parse(
-      JSON.stringify(sourceOperation),
-    );
-    if (newSourceOperation.isMeasurement) {
-      this._addMeasurementLine(newSourceOperation, targetWire);
-    }
-    targetOperationParent.splice(targetLastIndex, 0, newSourceOperation);
-
-    // Delete sourceOperation
-    if (sourceOperation.dataAttributes === undefined) {
-      sourceOperation.dataAttributes = { removed: "true" };
-    } else {
-      sourceOperation.dataAttributes["removed"] = "true";
-    }
-    const indexToRemove = sourceOperationParent.findIndex(
-      (operation) =>
-        operation.dataAttributes && operation.dataAttributes["removed"],
-    );
-    sourceOperationParent.splice(indexToRemove, 1);
-
-    if (sourceOperation.isMeasurement) {
-      this._removeMeasurementLines(sourceOperation);
-    }
-
-    return newSourceOperation;
-  };
-
-  /**
-   * Add an operation into the circuit
-   */
-  _addOperation = (
-    sourceOperation: Operation,
-    targetLocation: string,
-    targetWire: number,
-  ): Operation | null => {
-    const targetOperationParent = this._findParentArray(targetLocation);
-    const targetLastIndex = this._lastIndex(targetLocation);
-
-    if (
-      targetOperationParent == null ||
-      targetLastIndex == null ||
-      sourceOperation == null
-    )
-      return null;
-
-    // Insert sourceOperation to target last index
-    const newSourceOperation: Operation = JSON.parse(
-      JSON.stringify(sourceOperation),
-    );
-    if (newSourceOperation.isMeasurement) {
-      this._addMeasurementLine(newSourceOperation, targetWire);
-    } else {
-      newSourceOperation.targets = [{ qId: targetWire, type: 0 }];
-    }
-    targetOperationParent.splice(targetLastIndex, 0, newSourceOperation);
-
-    return newSourceOperation;
-  };
-
-  /**
-   * Add a measurement line to the circuit and attach the source operation
-   */
-  _addMeasurementLine = (
-    sourceOperation: Operation,
-    targetQubitWire: number,
-  ) => {
-    const newNumChildren = this.qubits[targetQubitWire].numChildren
-      ? this.qubits[targetQubitWire].numChildren + 1
-      : 1;
-    this.qubits[targetQubitWire].numChildren = newNumChildren;
-    sourceOperation.targets = [
-      { qId: targetQubitWire, type: 1, cId: newNumChildren - 1 },
-    ];
-    sourceOperation.controls = [{ qId: targetQubitWire, type: 0 }];
-  };
-
-  /**
-   * Add a control to the specified operation on the given wire index
-   *
-   * @param op - The operation to which the control will be added
-   * @param wireIndex - The index of the wire where the control will be added
-   */
-  addControl(op: Operation, wireIndex: number) {
-    if (!op.controls) {
-      op.controls = [];
-    }
-    const existingControl = op.controls.find(
-      (control) => control.qId === wireIndex,
-    );
-    if (!existingControl) {
-      op.controls.push({
-        qId: wireIndex,
-        type: 0,
-      });
-      op.controls.sort((a, b) => a.qId - b.qId);
-      op.isControlled = true;
-      this.renderFn();
-    }
-    this.selectedOperation = null;
-    this.container.classList.remove("adding-control");
-  }
-
-  /**
-   * Remove a control from the specified operation on the given wire index
-   *
-   * @param op - The operation from which the control will be removed
-   * @param wireIndex - The index of the wire where the control will be removed
-   */
-  removeControl(op: Operation, wireIndex: number) {
-    if (op.controls) {
-      const controlIndex = op.controls.findIndex(
-        (control) => control.qId === wireIndex,
-      );
-      if (controlIndex !== -1) {
-        op.controls.splice(controlIndex, 1);
-        if (op.controls.length === 0) {
-          op.isControlled = false;
-        }
-        this.renderFn();
-      }
-    }
-    this.selectedOperation = null;
-    this.container.classList.remove("removing-control");
-  }
-
-  /**
-   * Move an operation vertically by changing its controls and targets
-   */
-  // ToDo: this should be repurposed to move a multi-target operation to a different wire
-  _moveY = (
-    targetWire: number,
-    operation: Operation,
-    totalWires: number,
-  ): Operation => {
-    if (!operation.isMeasurement) {
-      this._offsetRecursively(operation, targetWire, totalWires);
-    }
-    return operation;
-  };
-
   /*****************
    *     Misc.     *
    *****************/
-
-  /**
-   * Create a context menu item
-   * @param text - The text to display in the menu item
-   * @param onClick - The function to call when the menu item is clicked
-   * @returns The created menu item element
-   */
-  createContextMenuItem(text: string, onClick: () => void): HTMLDivElement {
-    const menuItem = document.createElement("div");
-    menuItem.classList.add("context-menu-option");
-    menuItem.textContent = text;
-    menuItem.addEventListener("click", onClick);
-    return menuItem;
-  }
 
   /**
    * Start the process of adding a control to the selected operation.
@@ -909,7 +474,12 @@ class CircuitEvents {
         );
         dropzone.addEventListener("click", () => {
           if (this.selectedOperation != null) {
-            this.addControl(this.selectedOperation, wireIndex);
+            const successful = addControl(this.selectedOperation, wireIndex);
+            this.selectedOperation = null;
+            this.container.classList.remove("adding-control");
+            if (successful) {
+              this.renderFn();
+            }
           }
         });
         this.circuitSvg.appendChild(dropzone);
@@ -935,7 +505,12 @@ class CircuitEvents {
       );
       dropzone.addEventListener("click", () => {
         if (this.selectedOperation != null) {
-          this.removeControl(this.selectedOperation, control.qId);
+          const successful = removeControl(this.selectedOperation, control.qId);
+          this.selectedOperation = null;
+          this.container.classList.remove("removing-control");
+          if (successful) {
+            this.renderFn();
+          }
         }
       });
       this.circuitSvg.appendChild(dropzone);
@@ -1014,11 +589,24 @@ class CircuitEvents {
   }
 
   /**
-   * Gets the location of an operation, if it has one
+   * Get list of y values based on circuit wires
    */
-  _getLocation(operation: Operation): string | null {
-    if (operation.dataAttributes == null) return null;
-    return operation.dataAttributes["location"];
+  _wireData(): number[] {
+    // elems include qubit wires and lines of measure gates
+    const elems = this.container.querySelectorAll<SVGGElement>(
+      "svg[id] > g:nth-child(3) > g",
+    );
+    // filter out <g> elements having more than 2 elements because
+    // qubit wires contain only 2 elements: <line> and <text>
+    // lines of measure gates contain 4 <line> elements
+    const wireElems = Array.from(elems).filter(
+      (elem) => elem.childElementCount < 3,
+    );
+    const wireData = wireElems.map((wireElem) => {
+      const lineElem = wireElem.children[0] as SVGLineElement;
+      return Number(lineElem.getAttribute("y1"));
+    });
+    return wireData;
   }
 
   /**
@@ -1049,109 +637,6 @@ class CircuitEvents {
       this.circuitSvg.querySelectorAll<SVGGraphicsElement>(".gate"),
     );
   }
-
-  /**
-   * Recursively change object controls and targets
-   */
-  _offsetRecursively(
-    operation: Operation,
-    wireOffset: number,
-    totalWires: number,
-  ): Operation {
-    // Offset all targets by offsetY value
-    if (operation.targets) {
-      operation.targets.forEach((target) => {
-        target.qId = this._circularMod(target.qId, wireOffset, totalWires);
-        if (target.cId)
-          target.cId = this._circularMod(target.cId, wireOffset, totalWires);
-      });
-    }
-
-    // Offset all controls by offsetY value
-    if (operation.controls) {
-      operation.controls.forEach((control) => {
-        control.qId = this._circularMod(control.qId, wireOffset, totalWires);
-        if (control.cId)
-          control.cId = this._circularMod(control.qId, wireOffset, totalWires);
-      });
-    }
-
-    // Offset recursively through all children
-    if (operation.children) {
-      operation.children.forEach((child) =>
-        this._offsetRecursively(child, wireOffset, totalWires),
-      );
-    }
-
-    return operation;
-  }
-
-  /**
-   * Find targets of an operation by recursively walkthrough all of its children controls and targets
-   * i.e. Gate Foo contains gate H and gate RX.
-   *      qIds of Gate H is 1
-   *      qIds of Gate RX is 1, 2
-   *      This should return [{qId: 1}, {qId: 2}]
-   */
-  _targets(operation: Operation): Register[] | [] {
-    const _recurse = (operation: Operation) => {
-      registers.push(...operation.targets);
-      if (operation.controls) {
-        registers.push(...operation.controls);
-        // If there is more children, keep adding more to registers
-        if (operation.children) {
-          for (const child of operation.children) {
-            _recurse(child);
-          }
-        }
-      }
-    };
-
-    const registers: Register[] = [];
-    if (operation.children == null) return [];
-
-    // Recursively walkthrough all children to populate registers
-    for (const child of operation.children) {
-      _recurse(child);
-    }
-
-    // Extract qIds from array of object
-    // i.e. [{qId: 0}, {qId: 1}, {qId: 1}] -> [0, 1, 1]
-    const qIds = registers.map((register) => register.qId);
-    const uniqueQIds = Array.from(new Set(qIds));
-
-    // Transform array of numbers into array of qId object
-    // i.e. [0, 1] -> [{qId: 0}, {qId: 1}]
-    return uniqueQIds.map((qId) => ({
-      qId,
-      type: 0,
-    }));
-  }
-
-  /**
-   * This modulo function always returns positive value based on total
-   * i.e: value=0, offset=-1, total=4 returns 3 instead of -1
-   */
-  _circularMod(value: number, offset: number, total: number): number {
-    return (((value + offset) % total) + total) % total;
-  }
-
-  /**
-   * Split location into an array of indexes
-   */
-  _indexes(location: string): number[] {
-    return location !== ""
-      ? location.split("-").map((segment) => parseInt(segment))
-      : [];
-  }
-
-  /**
-   * Get the last index of location
-   * i.e: location = "0-1-2", _lastIndex will return 2
-   */
-  _lastIndex(location: string): number | undefined {
-    return this._indexes(location).pop();
-  }
 }
 
-export { extensionEvents };
+export { extensionEvents, CircuitEvents };
