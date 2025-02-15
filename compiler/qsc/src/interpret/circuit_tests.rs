@@ -490,18 +490,25 @@ fn custom_intrinsic_mixed_args() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // This is one gate that spans ten target wires, even though the
-    // text visualization doesn't convey that clearly.
     expect![[r"
         q_0    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_1    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_2    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_3    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_4    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_5    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_6    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_7    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_8    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
         q_9    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
     "]]
     .assert_eq(&circ.to_string());
@@ -883,6 +890,113 @@ fn operation_with_long_gates_properly_aligned() {
         q_2    ── H ─── rx(1.0000) ──────── H ─────── rx(1.0000) ──── H ─── rx(1.0000) ─────────┆──────────┼──────────
         q_3    ─────────────────────────────────────────────────────────────────────────── rxx(1.0000) ─── X ──── M ──
                                                                                                                   ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_gets_horizontal_lines() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ─
+                      ┆
+        q_1    ─ rxx(1.0000) ─
+        q_2    ─ rxx(1.0000) ─
+                      ┆
+        q_3    ─ rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_double_rows() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+                    Rxx(1.0, q0, q1);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ── rxx(1.0000) ─
+                      ┆              ┆
+        q_1    ─ rxx(1.0000) ── rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_added_rows() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+
+                    [M(q0), M(q2)]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_1    ─ rxx(1.0000) ────────
+        q_2    ─ rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_3    ─ rxx(1.0000) ────────
     "#]]
     .assert_eq(&circ.to_string());
 }
