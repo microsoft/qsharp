@@ -100,7 +100,12 @@ const createGhostElement = (
 };
 
 /**
- * Create a dropzone element that spans the length of the wire
+ * Create a dropzone element that spans the length of the wire.
+ *
+ * @param circuitSvg The SVG element representing the circuit.
+ * @param wireData An array of y values corresponding to the circuit wires.
+ * @param wireIndex The index of the wire for which the dropzone is created.
+ * @returns The created dropzone SVG element.
  */
 const createWireDropzone = (
   circuitSvg: SVGElement,
@@ -124,7 +129,9 @@ const createWireDropzone = (
 };
 
 /**
- * Remove all wire dropzones
+ * Remove all wire dropzones.
+ *
+ * @param circuitSvg The SVG element representing the circuit.
  */
 const removeAllWireDropzones = (circuitSvg: SVGElement) => {
   const dropzones = circuitSvg.querySelectorAll(".dropzone-full-wire");

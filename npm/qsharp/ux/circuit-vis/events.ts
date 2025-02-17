@@ -175,15 +175,6 @@ class CircuitEvents {
   _addHostElementsEvents() {
     const elems = getHostElems(this.container);
     elems.forEach((elem) => {
-      // DEBUG:
-      // elem.addEventListener("mouseover", () => {
-      //   const gate = this._findGateElem(elem);
-      //   if (gate == null) return;
-      //   const gateLoc = gate.getAttribute("data-location");
-      //   const gateWireStr = elem.getAttribute("data-wire");
-      //   console.log("Location: ", gateLoc, " Wire: ", gateWireStr);
-      // });
-
       elem.addEventListener("mousedown", (ev: MouseEvent) => {
         if (ev.button !== 0) return;
         if (elem.classList.contains("control-dot")) {
@@ -278,13 +269,6 @@ class CircuitEvents {
     const dropzoneElems =
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {
-      // DEBUG:
-      // dropzoneElem.addEventListener("mouseover", () => {
-      //   const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
-      //   const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
-      //   console.log("Location: ", targetLoc, " Wire: ", targetWireStr);
-      // });
-
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
         const originalOperations = cloneDeep(this.operations);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
