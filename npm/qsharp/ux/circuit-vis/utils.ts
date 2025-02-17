@@ -149,10 +149,184 @@ const getGateLocationString = (operation: Operation): string | null => {
   return operation.dataAttributes["location"];
 };
 
+/**********************
+ *  Finder Functions  *
+ **********************/
+
+/**
+ * Find the surrounding gate element of a host element.
+ *
+ * @param hostElem The SVG element representing the host element.
+ * @returns The surrounding gate element or null if not found.
+ */
+const findGateElem = (hostElem: SVGElement): SVGElement | null => {
+  return hostElem.closest<SVGElement>("[data-location]");
+};
+
+/**
+ * Find the location of the gate surrounding a host element.
+ *
+ * @param hostElem The SVG element representing the host element.
+ * @returns The location string of the surrounding gate or null if not found.
+ */
+const findLocation = (hostElem: SVGElement) => {
+  const gateElem = findGateElem(hostElem);
+  return gateElem != null ? gateElem.getAttribute("data-location") : null;
+};
+
+/**
+ * Find the parent operation of the operation specified by location.
+ *
+ * @param operations The array of operations to search through.
+ * @param location The location string of the operation.
+ * @returns The parent operation or null if not found.
+ */
+const findParentOperation = (
+  operations: Operation[],
+  location: string | null,
+): Operation | null => {
+  if (!location) return null;
+
+  const indexes = locationStringToIndexes(location);
+  indexes.pop();
+  const lastIndex = indexes.pop();
+
+  if (lastIndex == null) return null;
+
+  let parentOperation = operations;
+  for (const index of indexes) {
+    parentOperation = parentOperation[index].children || parentOperation;
+  }
+  return parentOperation[lastIndex];
+};
+
+/**
+ * Find the parent array of an operation based on its location.
+ *
+ * @param operations The array of operations to search through.
+ * @param location The location string of the operation.
+ * @returns The parent array of operations or null if not found.
+ */
+const findParentArray = (
+  operations: Operation[],
+  location: string | null,
+): Operation[] | null => {
+  if (!location) return null;
+
+  const indexes = locationStringToIndexes(location);
+  indexes.pop(); // The last index refers to the operation itself, remove it so that the last index instead refers to the parent operation
+
+  let parentArray = operations;
+  for (const index of indexes) {
+    parentArray = parentArray[index].children || parentArray;
+  }
+  return parentArray;
+};
+
+/**
+ * Find an operation based on its location.
+ *
+ * @param operations The array of operations to search through.
+ * @param location The location string of the operation.
+ * @returns The operation or null if not found.
+ */
+const findOperation = (
+  operations: Operation[],
+  location: string | null,
+): Operation | null => {
+  if (!location) return null;
+
+  const index = locationStringToIndexes(location).pop();
+  const operationParent = findParentArray(operations, location);
+
+  if (operationParent == null || index == null) return null;
+
+  return operationParent[index];
+};
+
+/**********************
+ *  Getter Functions  *
+ **********************/
+
+/**
+ * Get list of y values based on circuit wires.
+ *
+ * @param container The HTML container element containing the circuit visualization.
+ * @returns An array of y values corresponding to the circuit wires.
+ */
+const getWireData = (container: HTMLElement): number[] => {
+  // elems include qubit wires and lines of measure gates
+  const elems = container.querySelectorAll<SVGGElement>(
+    "svg[id] > g:nth-child(3) > g",
+  );
+  // filter out <g> elements having more than 2 elements because
+  // qubit wires contain only 2 elements: <line> and <text>
+  // lines of measure gates contain 4 <line> elements
+  const wireElems = Array.from(elems).filter(
+    (elem) => elem.childElementCount < 3,
+  );
+  const wireData = wireElems.map((wireElem) => {
+    const lineElem = wireElem.children[0] as SVGLineElement;
+    return Number(lineElem.getAttribute("y1"));
+  });
+  return wireData;
+};
+
+/**
+ * Get list of toolbox items.
+ *
+ * @param container The HTML container element containing the toolbox items.
+ * @returns An array of SVG graphics elements representing the toolbox items.
+ */
+const getToolboxElems = (container: HTMLElement): SVGGraphicsElement[] => {
+  return Array.from(
+    container.querySelectorAll<SVGGraphicsElement>("[toolbox-item]"),
+  );
+};
+
+/**
+ * Get list of host elements that dropzones can be attached to.
+ *
+ * @param container The HTML container element containing the circuit visualization.
+ * @returns An array of SVG graphics elements representing the host elements.
+ */
+const getHostElems = (container: HTMLElement): SVGGraphicsElement[] => {
+  const circuitSvg = container.querySelector("svg[id]");
+  return circuitSvg != null
+    ? Array.from(
+        circuitSvg.querySelectorAll<SVGGraphicsElement>(
+          '[class^="gate-"]:not(.gate-control, .gate-swap), .control-dot, .oplus, .cross',
+        ),
+      )
+    : [];
+};
+
+/**
+ * Get list of gate elements from the circuit, but not the toolbox.
+ *
+ * @param container The HTML container element containing the circuit visualization.
+ * @returns An array of SVG graphics elements representing the gate elements.
+ */
+const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
+  const circuitSvg = container.querySelector("svg[id]");
+  return circuitSvg != null
+    ? Array.from(circuitSvg.querySelectorAll<SVGGraphicsElement>(".gate"))
+    : [];
+};
+
 export {
   createUUID,
   getGateWidth,
   getGateTargets,
   locationStringToIndexes,
   getGateLocationString,
+  findGateElem,
+  findLocation,
+  findParentOperation,
+  findParentArray,
+  findOperation,
+  getWireData,
+  getToolboxElems,
+  getHostElems,
+  getGateElems,
 };

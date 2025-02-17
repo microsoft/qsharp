@@ -3,7 +3,11 @@
 
 import { Operation } from "./circuit";
 import { CircuitEvents } from "./events";
-import { locationStringToIndexes } from "./utils";
+import {
+  findOperation,
+  findParentArray,
+  locationStringToIndexes,
+} from "./utils";
 
 /**
  * Move an operation horizontally.
@@ -20,10 +24,19 @@ const moveX = (
   targetLocation: string,
   targetWire: number,
 ): Operation | null => {
-  const sourceOperation = circuitEvents._findOperation(sourceLocation);
+  const sourceOperation = findOperation(
+    circuitEvents.operations,
+    sourceLocation,
+  );
   if (sourceLocation === targetLocation) return sourceOperation;
-  const sourceOperationParent = circuitEvents._findParentArray(sourceLocation);
-  const targetOperationParent = circuitEvents._findParentArray(targetLocation);
+  const sourceOperationParent = findParentArray(
+    circuitEvents.operations,
+    sourceLocation,
+  );
+  const targetOperationParent = findParentArray(
+    circuitEvents.operations,
+    targetLocation,
+  );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
   if (
@@ -136,7 +149,10 @@ const addOperation = (
   targetLocation: string,
   targetWire: number,
 ): Operation | null => {
-  const targetOperationParent = circuitEvents._findParentArray(targetLocation);
+  const targetOperationParent = findParentArray(
+    circuitEvents.operations,
+    targetLocation,
+  );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
   if (
@@ -170,8 +186,14 @@ const removeOperation = (
   circuitEvents: CircuitEvents,
   sourceLocation: string,
 ) => {
-  const sourceOperation = circuitEvents._findOperation(sourceLocation);
-  const sourceOperationParent = circuitEvents._findParentArray(sourceLocation);
+  const sourceOperation = findOperation(
+    circuitEvents.operations,
+    sourceLocation,
+  );
+  const sourceOperationParent = findParentArray(
+    circuitEvents.operations,
+    sourceLocation,
+  );
 
   if (sourceOperation == null || sourceOperationParent == null) return null;
 

@@ -2,8 +2,11 @@
 // Licensed under the MIT license.
 
 import { Operation } from "./circuit";
-import { box } from "./formatters/formatUtils";
+import { box, controlDot } from "./formatters/formatUtils";
+import { _formatGate } from "./formatters/gateFormatter";
+import { toMetadata } from "./panel";
 import { Sqore } from "./sqore";
+import { findLocation, getHostElems, getWireData } from "./utils";
 
 interface Context {
   container: HTMLElement;
@@ -34,32 +37,117 @@ const extensionDraggable = (
     container: container,
     svg,
     operations: sqore.circuit.operations,
-    wireData: _wireData(container),
+    wireData: getWireData(container),
     renderFn: useRefresh,
     paddingY: 20,
     selectedId: null,
     selectedWire: null,
   };
-  _addStyles(container, _wireData(container));
+  _addStyles(container, getWireData(container));
   _addDataWires(container);
   svg.appendChild(_dropzoneLayer(context));
+};
+
+/**
+ * Creates a ghost element for dragging operations in the circuit visualization.
+ *
+ * @param ev The mouse event that triggered the creation of the ghost element.
+ * @param container The HTML container element where the ghost element will be appended.
+ * @param selectedOperation The operation that is being dragged.
+ * @param isControl A boolean indicating if the ghost element is for a control operation.
+ */
+const createGhostElement = (
+  ev: MouseEvent,
+  container: HTMLElement,
+  selectedOperation: Operation,
+  isControl: boolean,
+) => {
+  const ghost = isControl
+    ? controlDot(0, 0)
+    : (() => {
+        const ghostMetadata = toMetadata(selectedOperation, 0, 0);
+        return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
+      })();
+
+  // Generate svg element to wrap around ghost element
+  const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgElem.append(ghost);
+
+  // Generate div element to wrap around svg element
+  const divElem = document.createElement("div");
+  divElem.classList.add("ghost");
+  divElem.appendChild(svgElem);
+
+  if (container) {
+    container.appendChild(divElem);
+
+    // Now that the element is appended to the DOM, get its dimensions
+    const ghostRect = ghost.getBoundingClientRect();
+    const ghostWidth = ghostRect.width;
+    const ghostHeight = ghostRect.height;
+
+    const updateDivLeftTop = (ev: MouseEvent) => {
+      divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
+      divElem.style.top = `${ev.clientY + window.scrollY - ghostHeight / 2}px`;
+    };
+
+    updateDivLeftTop(ev);
+
+    container.addEventListener("mousemove", updateDivLeftTop);
+  } else {
+    console.error("container not found");
+  }
+};
+
+/**
+ * Create a dropzone element that spans the length of the wire
+ */
+const createWireDropzone = (
+  circuitSvg: SVGElement,
+  wireData: number[],
+  wireIndex: number,
+): SVGElement => {
+  const wireY = wireData[wireIndex];
+  const svgWidth = Number(circuitSvg.getAttribute("width"));
+  const paddingY = 20;
+
+  const dropzone = box(
+    0,
+    wireY - paddingY,
+    svgWidth,
+    paddingY * 2,
+    "dropzone-full-wire",
+  );
+  dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
+
+  return dropzone;
+};
+
+/**
+ * Remove all wire dropzones
+ */
+const removeAllWireDropzones = (circuitSvg: SVGElement) => {
+  const dropzones = circuitSvg.querySelectorAll(".dropzone-full-wire");
+  dropzones.forEach((elem) => {
+    elem.parentNode?.removeChild(elem);
+  });
 };
 
 /**
  * Add data-wire to all host elements
  */
 const _addDataWires = (container: HTMLElement) => {
-  const elems = _hostElems(container);
+  const elems = getHostElems(container);
   elems.forEach((elem) => {
     const { cY } = _center(elem);
     // i.e. cY = 40, wireData returns [40, 100, 140, 180]
     // dataWire will return 0, which is the index of 40 in wireData
-    const dataWire = _wireData(container).findIndex((y) => y === cY);
+    const dataWire = getWireData(container).findIndex((y) => y === cY);
     if (dataWire !== -1) {
       elem.setAttribute("data-wire", `${dataWire}`);
     } else {
       const { y, height } = elem.getBBox();
-      const wireData = _wireData(container);
+      const wireData = getWireData(container);
       const groupDataWire = wireData.findIndex(
         (wireY) => wireY > y && wireY < y + height,
       );
@@ -79,24 +167,10 @@ const _wireYs = (elem: SVGGraphicsElement, wireData: number[]): number[] => {
 };
 
 /**
- * Get list of host elements that dropzones can be attached to
- */
-const _hostElems = (container: HTMLElement): SVGGraphicsElement[] => {
-  const svgElem = container.querySelector("svg[id]");
-  return svgElem != null
-    ? Array.from(
-        svgElem.querySelectorAll<SVGGraphicsElement>(
-          '[class^="gate-"]:not(.gate-control, .gate-swap), .control-dot, .oplus, .cross',
-        ),
-      )
-    : [];
-};
-
-/**
  * Add custom styles specific to this module
  */
 const _addStyles = (container: HTMLElement, wireData: number[]): void => {
-  const elems = _hostElems(container);
+  const elems = getHostElems(container);
   elems.forEach((elem) => {
     if (_wireYs(elem, wireData).length < 2) elem.style.cursor = "grab";
   });
@@ -130,7 +204,7 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.style.display = "none";
 
   const { container, svg, wireData, operations, paddingY } = context;
-  const elems = _hostElems(container);
+  const elems = getHostElems(container);
 
   const wirePrefixes = _wirePrefixes(wireData);
 
@@ -158,7 +232,7 @@ const _dropzoneLayer = (context: Context) => {
       );
       elemDropzone.setAttribute(
         "data-dropzone-location",
-        _findLocation(elem) || "",
+        findLocation(elem) || "",
       );
       elemDropzone.setAttribute("data-dropzone-wire", `${wirePrefix.index}`);
 
@@ -183,7 +257,7 @@ const _dropzoneLayer = (context: Context) => {
           );
           elemDropzone.setAttribute(
             "data-dropzone-location",
-            _findLocation(elem) || "",
+            findLocation(elem) || "",
           );
           elemDropzone.setAttribute(
             "data-dropzone-wire",
@@ -217,40 +291,9 @@ const _dropzoneLayer = (context: Context) => {
   return dropzoneLayer;
 };
 
-/**
- * Generate an array of y values based on circuit wires
- */
-const _wireData = (container: HTMLElement): number[] => {
-  // elems include qubit wires and lines of measure gates
-  const elems = container.querySelectorAll<SVGGElement>(
-    "svg[id] > g:nth-child(3) > g",
-  );
-  // filter out <g> elements having more than 2 elements because
-  // qubit wires contain only 2 elements: <line> and <text>
-  // lines of measure gates contain 4 <line> elements
-  const wireElems = Array.from(elems).filter(
-    (elem) => elem.childElementCount < 3,
-  );
-  const wireData = wireElems.map((wireElem) => {
-    const lineElem = wireElem.children[0] as SVGLineElement;
-    return Number(lineElem.getAttribute("y1"));
-  });
-  return wireData;
+export {
+  extensionDraggable,
+  createGhostElement,
+  createWireDropzone,
+  removeAllWireDropzones,
 };
-
-/**
- * Find equivalent gate element of host element
- */
-const _findGateElem = (elem: SVGElement): SVGElement | null => {
-  return elem.closest<SVGElement>("[data-location]");
-};
-
-/**
- * Find location of host element
- */
-const _findLocation = (elem: SVGElement) => {
-  const gateElem = _findGateElem(elem);
-  return gateElem != null ? gateElem.getAttribute("data-location") : null;
-};
-
-export { extensionDraggable };

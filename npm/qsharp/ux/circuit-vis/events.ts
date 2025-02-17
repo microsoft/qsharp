@@ -5,13 +5,16 @@ import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
 import { Operation, Qubit } from "./circuit";
 import { Sqore } from "./sqore";
-import { _formatGate } from "./formatters/gateFormatter";
-import { box, controlDot } from "./formatters/formatUtils";
-import { defaultGateDictionary, toMetadata } from "./panel";
+import { defaultGateDictionary } from "./panel";
 import {
-  locationStringToIndexes,
   getGateTargets,
   getGateLocationString,
+  findParentOperation,
+  findOperation,
+  getToolboxElems,
+  getGateElems,
+  getHostElems,
+  getWireData,
 } from "./utils";
 import { addContextMenuToGateElem } from "./contextMenu";
 import {
@@ -22,6 +25,11 @@ import {
   removeControl,
   removeOperation,
 } from "./circuitManipulation";
+import {
+  createGhostElement,
+  createWireDropzone,
+  removeAllWireDropzones,
+} from "./draggable";
 
 let events: CircuitEvents | null = null;
 
@@ -38,11 +46,11 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
+  operations: Operation[];
+  qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
-  operations: Operation[];
-  qubits: Qubit[];
   private wireData: number[];
   private selectedOperation: Operation | null;
   private selectedWire: number | null;
@@ -57,7 +65,7 @@ class CircuitEvents {
     ) as SVGGElement;
     this.operations = sqore.circuit.operations;
     this.qubits = sqore.circuit.qubits;
-    this.wireData = this._wireData();
+    this.wireData = getWireData(this.container);
     this.selectedOperation = null;
     this.selectedWire = null;
     this.movingControl = false;
@@ -108,7 +116,7 @@ class CircuitEvents {
   };
 
   documentMousedownHandler = () => {
-    this._removeAllWireDropzones();
+    removeAllWireDropzones(this.circuitSvg);
   };
 
   documentMouseupHandler = () => {
@@ -165,7 +173,7 @@ class CircuitEvents {
    * Add events for circuit objects in the circuit
    */
   _addHostElementsEvents() {
-    const elems = this._hostElems();
+    const elems = getHostElems(this.container);
     elems.forEach((elem) => {
       // DEBUG:
       // elem.addEventListener("mouseover", () => {
@@ -192,29 +200,37 @@ class CircuitEvents {
    * Add events for circuit objects in the circuit
    */
   _addGateElementsEvents() {
-    const elems = this._gateElems();
+    const elems = getGateElems(this.container);
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
         if (ev.button !== 0) return;
         ev.stopPropagation();
-        this._removeAllWireDropzones();
+        removeAllWireDropzones(this.circuitSvg);
         if (elem.getAttribute("data-expanded") !== "true") {
           const selectedLocation = elem.getAttribute("data-location");
-          this.selectedOperation = this._findOperation(selectedLocation);
+          this.selectedOperation = findOperation(
+            this.operations,
+            selectedLocation,
+          );
+          if (this.selectedOperation == null || !selectedLocation) return;
 
-          this.createGhostElement(ev);
+          createGhostElement(
+            ev,
+            this.container,
+            this.selectedOperation,
+            this.movingControl,
+          );
 
           // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
-          if (this.selectedOperation && selectedLocation) {
-            if (this.selectedOperation.dataAttributes == null) {
-              this.selectedOperation.dataAttributes = {
-                location: selectedLocation,
-              };
-            } else {
-              this.selectedOperation.dataAttributes["location"] =
-                selectedLocation;
-            }
+          if (this.selectedOperation.dataAttributes == null) {
+            this.selectedOperation.dataAttributes = {
+              location: selectedLocation,
+            };
+          } else {
+            this.selectedOperation.dataAttributes["location"] =
+              selectedLocation;
           }
+
           this.container.classList.add("moving");
           this.dropzoneLayer.style.display = "block";
         }
@@ -232,14 +248,14 @@ class CircuitEvents {
     const type = elem.getAttribute("data-type");
     if (type == null) return;
     this.selectedOperation = defaultGateDictionary[type];
-    this.createGhostElement(ev);
+    createGhostElement(ev, this.container, this.selectedOperation, false);
   };
 
   /**
    * Add events for gates in the toolbox
    */
   _addToolboxElementsEvents() {
-    const elems = this._toolboxElems();
+    const elems = getToolboxElems(this.container);
     elems.forEach((elem) => {
       elem.addEventListener("mousedown", this.toolboxMousedownHandler);
     });
@@ -249,7 +265,7 @@ class CircuitEvents {
    * Remove events for gates in the toolbox
    */
   _removeToolboxElementsEvents() {
-    const elems = this._toolboxElems();
+    const elems = getToolboxElems(this.container);
     elems.forEach((elem) => {
       elem.removeEventListener("mousedown", this.toolboxMousedownHandler);
     });
@@ -287,10 +303,6 @@ class CircuitEvents {
         if (sourceLocation == null) {
           // Add a new operation from the toolbox
           addOperation(this, this.selectedOperation, targetLoc, targetWire);
-          // const newOperation = this._addOperation(this.selectedOperation, targetLoc, targetWire);
-          // if (newOperation) {
-          //     this._moveY(targetWire, newOperation, this.wireData.length);
-          // }
         } else if (sourceLocation && this.selectedWire != null) {
           if (ev.ctrlKey) {
             addOperation(this, this.selectedOperation, targetLoc, targetWire);
@@ -316,8 +328,10 @@ class CircuitEvents {
                   newOperation.targets = [{ qId: targetWire, type: 0 }];
                 }
               }
-              //this._moveY(targetWire - this.selectedWire, newOperation, this.wireData.length);
-              const parentOperation = this._findParentOperation(sourceLocation);
+              const parentOperation = findParentOperation(
+                this.operations,
+                sourceLocation,
+              );
               if (parentOperation) {
                 parentOperation.targets = getGateTargets(parentOperation);
               }
@@ -376,74 +390,6 @@ class CircuitEvents {
     }
   }
 
-  /**********************
-   *  Finder Functions  *
-   **********************/
-
-  /**
-   * Find the surrounding gate element of host element
-   */
-  _findGateElem(hostElem: SVGElement): SVGElement | null {
-    return hostElem.closest<SVGElement>("[data-location]");
-  }
-
-  /**
-   * Find location of the gate surrounding a host element
-   */
-  _findLocation(hostElem: SVGElement) {
-    const gateElem = this._findGateElem(hostElem);
-    return gateElem != null ? gateElem.getAttribute("data-location") : null;
-  }
-
-  /**
-   * Find the parent operation of the operation specified by location
-   */
-  _findParentOperation(location: string | null): Operation | null {
-    if (!location) return null;
-
-    const indexes = locationStringToIndexes(location);
-    indexes.pop();
-    const lastIndex = indexes.pop();
-
-    if (lastIndex == null) return null;
-
-    let parentOperation = this.operations;
-    for (const index of indexes) {
-      parentOperation = parentOperation[index].children || parentOperation;
-    }
-    return parentOperation[lastIndex];
-  }
-
-  /**
-   * Find the parent array of an operation based on its location
-   */
-  _findParentArray(location: string | null): Operation[] | null {
-    if (!location) return null;
-
-    const indexes = locationStringToIndexes(location);
-    indexes.pop(); // The last index refers to the operation itself, remove it so that the last index instead refers to the parent operation
-
-    let parentArray = this.operations;
-    for (const index of indexes) {
-      parentArray = parentArray[index].children || parentArray;
-    }
-    return parentArray;
-  }
-
-  /**
-   * Find an operation based on its location
-   */
-  _findOperation(location: string | null): Operation | null {
-    if (!location) return null;
-
-    const index = locationStringToIndexes(location).pop();
-    const operationParent = this._findParentArray(location);
-
-    if (operationParent == null || index == null) return null;
-
-    return operationParent[index];
-  }
-
   /*****************
    *     Misc.     *
    *****************/
@@ -468,7 +414,11 @@ class CircuitEvents {
       );
 
       if (!isTarget && !isControl) {
-        const dropzone = this._createWireDropzone(wireIndex);
+        const dropzone = createWireDropzone(
+          this.circuitSvg,
+          this.wireData,
+          wireIndex,
+        );
         dropzone.addEventListener("mousedown", (ev: MouseEvent) =>
           ev.stopPropagation(),
         );
@@ -499,7 +449,11 @@ class CircuitEvents {
 
     // Create dropzones only for wires that the selectedOperation has a control
     this.selectedOperation.controls?.forEach((control) => {
-      const dropzone = this._createWireDropzone(control.qId);
+      const dropzone = createWireDropzone(
+        this.circuitSvg,
+        this.wireData,
+        control.qId,
+      );
       dropzone.addEventListener("mousedown", (ev: MouseEvent) =>
         ev.stopPropagation(),
       );
@@ -515,127 +469,6 @@ class CircuitEvents {
       });
       this.circuitSvg.appendChild(dropzone);
     });
-  }
-
-  createGhostElement(ev: MouseEvent) {
-    const ghost = this.movingControl
-      ? controlDot(0, 0)
-      : (() => {
-          const ghostMetadata = toMetadata(this.selectedOperation!, 0, 0);
-          return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
-        })();
-
-    // Generate svg element to wrap around ghost element
-    const svgElem = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "svg",
-    );
-    svgElem.append(ghost);
-
-    // Generate div element to wrap around svg element
-    const divElem = document.createElement("div");
-    divElem.classList.add("ghost");
-    divElem.appendChild(svgElem);
-
-    if (this.container) {
-      this.container.appendChild(divElem);
-
-      // Now that the element is appended to the DOM, get its dimensions
-      const ghostRect = ghost.getBoundingClientRect();
-      const ghostWidth = ghostRect.width;
-      const ghostHeight = ghostRect.height;
-
-      const updateDivLeftTop = (ev: MouseEvent) => {
-        divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
-        divElem.style.top = `${ev.clientY + window.scrollY - ghostHeight / 2}px`;
-      };
-
-      updateDivLeftTop(ev);
-
-      this.container.addEventListener("mousemove", updateDivLeftTop);
-    } else {
-      console.error("container not found");
-    }
-  }
-
-  /**
-   * Create a dropzone element that spans the length of the wire
-   */
-  _createWireDropzone(wireIndex: number): SVGElement {
-    const wireY = this.wireData[wireIndex];
-    const svgWidth = Number(this.circuitSvg.getAttribute("width"));
-    const paddingY = 20;
-
-    const dropzone = box(
-      0,
-      wireY - paddingY,
-      svgWidth,
-      paddingY * 2,
-      "dropzone-full-wire",
-    );
-    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
-
-    return dropzone;
-  }
-
-  /**
-   * Remove all wire dropzones
-   */
-  _removeAllWireDropzones() {
-    const dropzones = this.circuitSvg.querySelectorAll(".dropzone-full-wire");
-    dropzones.forEach((elem) => {
-      elem.parentNode?.removeChild(elem);
-    });
-  }
-
-  /**
-   * Get list of y values based on circuit wires
-   */
-  _wireData(): number[] {
-    // elems include qubit wires and lines of measure gates
-    const elems = this.container.querySelectorAll<SVGGElement>(
-      "svg[id] > g:nth-child(3) > g",
-    );
-    // filter out <g> elements having more than 2 elements because
-    // qubit wires contain only 2 elements: <line> and <text>
-    // lines of measure gates contain 4 <line> elements
-    const wireElems = Array.from(elems).filter(
-      (elem) => elem.childElementCount < 3,
-    );
-    const wireData = wireElems.map((wireElem) => {
-      const lineElem = wireElem.children[0] as SVGLineElement;
-      return Number(lineElem.getAttribute("y1"));
-    });
-    return wireData;
-  }
-
-  /**
-   * Get list of toolbox items
-   */
-  _toolboxElems(): SVGGraphicsElement[] {
-    return Array.from(
-      this.container.querySelectorAll<SVGGraphicsElement>("[toolbox-item]"),
-    );
-  }
-
-  /**
-   * Get list of host elements that dropzones can be attached to
-   */
-  _hostElems(): SVGGraphicsElement[] {
-    return Array.from(
-      this.circuitSvg.querySelectorAll<SVGGraphicsElement>(
-        '[class^="gate-"]:not(.gate-control, .gate-swap), .control-dot, .oplus, .cross',
-      ),
-    );
-  }
-
-  /**
-   * Get list of gate elements from the circuit, but not the toolbox
-   */
-  _gateElems(): SVGGraphicsElement[] {
-    return Array.from(
-      this.circuitSvg.querySelectorAll<SVGGraphicsElement>(".gate"),
-    );
   }
 }
 

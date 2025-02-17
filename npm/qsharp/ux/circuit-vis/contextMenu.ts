@@ -3,6 +3,7 @@
 
 import { removeOperation } from "./circuitManipulation";
 import { CircuitEvents } from "./events";
+import { findOperation } from "./utils";
 
 /**
  * Adds a context menu to a gate element in the circuit visualization.
@@ -24,7 +25,10 @@ const addContextMenuToGateElem = (
     }
 
     const selectedLocation = gateElem.getAttribute("data-location");
-    const selectedOperation = circuitEvents._findOperation(selectedLocation);
+    const selectedOperation = findOperation(
+      circuitEvents.operations,
+      selectedLocation,
+    );
     if (!selectedOperation || !selectedLocation) return;
 
     const contextMenu = document.createElement("div");
