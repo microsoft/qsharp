@@ -536,15 +536,31 @@ serializable_type! {
     IDocFile
 }
 
+serializable_type! {
+    DocumentationData,
+    {
+        files: Vec<DocFile>,
+        errors_encountered: bool,
+    },
+    r#"export interface IDocumentationData {
+        files: IDocFile[];
+        errors_encountered: boolean;
+    }"#,
+    IDocumentationData
+}
+
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile> {
+pub fn generate_docs(additional_program: Option<ProgramConfig>) -> DocumentationData {
     let docs = if let Some(additional_program) = additional_program {
         let Ok((source_map, capabilities, language_features, package_store, dependencies)) =
             into_qsc_args(additional_program, None)
         else {
             // Can't generate docs if building dependencies failed
-            return Vec::new();
+            return DocumentationData {
+                files: Vec::new(),
+                errors_encountered: true,
+            };
         };
 
         qsc_doc_gen::generate_docs::generate_docs(
@@ -556,10 +572,10 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
         qsc_doc_gen::generate_docs::generate_docs(None, None, None)
     };
 
-    let mut result: Vec<IDocFile> = vec![];
+    let mut files: Vec<IDocFile> = vec![];
 
     for (name, metadata, contents) in docs.files {
-        result.push(
+        files.push(
             DocFile {
                 filename: name.to_string(),
                 metadata: metadata.to_string(),
@@ -569,7 +585,7 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
         );
     }
 
-    result
+    file
 }
 
 #[wasm_bindgen(typescript_custom_section)]

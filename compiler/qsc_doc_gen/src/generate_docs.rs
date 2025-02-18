@@ -10,7 +10,7 @@ use crate::table_of_contents::table_of_contents;
 use qsc_ast::ast;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::target::TargetCapabilityFlags;
-use qsc_frontend::compile::{self, compile, Dependencies, Error, PackageStore, SourceMap};
+use qsc_frontend::compile::{self, compile, Dependencies, PackageStore, SourceMap};
 use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
@@ -25,7 +25,7 @@ type FilesWithMetadata = Vec<(Rc<str>, Rc<Metadata>, Rc<str>)>;
 
 pub struct Documentation {
     pub files: Files,
-    pub errors: Vec<Error>,
+    pub error_encountered: bool,
 }
 
 // Namespace -> metadata for items
@@ -168,7 +168,7 @@ struct Compilation {
     /// Aliases for packages.
     dependencies: FxHashMap<PackageId, Arc<str>>,
     // Compilation errors
-    errors: Vec<Error>,
+    errors_encountered: bool,
 }
 
 impl Compilation {
@@ -184,7 +184,7 @@ impl Compilation {
 
         let mut current_package_id: Option<PackageId> = None;
         let mut package_aliases: FxHashMap<PackageId, Arc<str>> = FxHashMap::default();
-        let compilation_errors: Vec<Error>;
+        let errors_encountered: bool;
 
         let package_store =
             if let Some((mut package_store, dependencies, sources)) = additional_program {
@@ -195,7 +195,7 @@ impl Compilation {
                     actual_capabilities,
                     actual_language_features,
                 );
-                compilation_errors = unit.errors.clone();
+                errors_encountered = !unit.errors.is_empty();
 
                 for (package_id, package_alias) in dependencies {
                     if let Some(package_alias) = package_alias {
@@ -207,7 +207,7 @@ impl Compilation {
             } else {
                 let mut package_store = PackageStore::new(compile::core());
                 let std_unit = compile::std(&package_store, actual_capabilities);
-                compilation_errors = std_unit.errors.clone();
+                errors_encountered = !std_unit.errors.is_empty();
                 package_store.insert(std_unit);
                 package_store
             };
@@ -216,7 +216,7 @@ impl Compilation {
             package_store,
             current_package_id,
             dependencies: package_aliases,
-            errors: compilation_errors,
+            errors_encountered,
         }
     }
 }
@@ -377,7 +377,7 @@ pub fn generate_docs(
 
     Documentation {
         files: result,
-        errors: compilation.errors,
+        error_encountered: compilation.errors_encountered,
     }
 }
 
