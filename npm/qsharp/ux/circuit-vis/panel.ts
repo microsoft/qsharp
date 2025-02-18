@@ -9,7 +9,7 @@ import {
   minToolboxHeight,
   verticalGap,
 } from "./constants";
-import { _formatGate } from "./formatters/gateFormatter";
+import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
 import { Sqore } from "./sqore";
 import { getGateWidth } from "./utils";
@@ -258,7 +258,7 @@ const gate = (
   if (operation == null) throw new Error(`Gate ${type} not available`);
   const metadata = toMetadata(operation, x, y);
   metadata.dataAttributes = { type: type };
-  const gateElem = _formatGate(metadata).cloneNode(true) as SVGElement;
+  const gateElem = formatGate(metadata).cloneNode(true) as SVGElement;
   gateElem.setAttribute("toolbox-item", "true");
 
   return gateElem;

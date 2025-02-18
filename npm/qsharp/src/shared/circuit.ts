@@ -9,7 +9,7 @@ import { Register } from "./register.js";
 export interface Circuit {
   /** Array of qubit resources. */
   qubits: Qubit[];
-  operations: Operation[];
+  operations: Operation[][];
 }
 
 /**
@@ -52,7 +52,9 @@ export interface Operation {
   /** Formatted gate arguments to be displayed. */
   displayArgs?: string;
   /** Nested operations within this operation. */
-  children?: Operation[];
+  children?: Operation[][];
+  /** Number of columns to span. */
+  columnWidth?: number;
   /** Whether gate is a measurement operation. */
   isMeasurement?: boolean;
   /** Whether gate is a conditional operation. */

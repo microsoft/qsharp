@@ -20,47 +20,45 @@ import { getGateWidth } from "./utils";
  * @param operations Array of operations.
  * @param registers  Mapping from qubit IDs to register metadata.
  *
- * @returns An object containing `metadataList` (Array of Metadata objects) and
+ * @returns An object containing `metadataArray` (2D Array of Metadata objects) and
  *          `svgWidth` which is the width of the entire SVG.
  */
 const processOperations = (
-  operations: Operation[],
+  operations: Operation[][],
   registers: RegisterMap,
-): { metadataList: Metadata[]; svgWidth: number } => {
-  if (operations.length === 0) return { metadataList: [], svgWidth: startX };
+): { metadataArray: Metadata[][]; svgWidth: number } => {
+  if (operations.length === 0) return { metadataArray: [], svgWidth: startX };
 
   // Group operations based on registers
-  const groupedOps: number[][] = _groupOperations(operations, registers);
+  //const groupedOps: number[][] = _groupOperations(operations, registers);
 
   // Align operations on multiple registers
-  const alignedOps: (number | null)[][] = _alignOps(groupedOps);
+  //const alignedOps: (number | null)[][] = _alignOps(groupedOps);
 
   // Maintain widths of each column to account for variable-sized gates
-  const numColumns: number = Math.max(
-    0,
-    ...alignedOps.map((ops) => ops.length),
-  );
+  // const numColumns: number = Math.max(
+  //   0,
+  //   ...alignedOps.map((ops) => ops.length),
+  // );
+  const numColumns: number = operations.length;
   const columnsWidths: number[] = new Array(numColumns).fill(minGateWidth);
 
   // Get classical registers and their starting column index
-  const classicalRegs: [number, Register][] = _getClassicalRegStart(
-    operations,
-    alignedOps,
-  );
+  const classicalRegs: [number, Register][] = _getClassicalRegStart(operations);
 
   // Keep track of which ops are already seen to avoid duplicate rendering
-  const visited: { [opIdx: number]: boolean } = {};
+  // const visited: { [opIdx: number]: boolean } = {};
 
   // Map operation index to gate metadata for formatting later
-  const opsMetadata: Metadata[][] = alignedOps.map((regOps) =>
-    regOps.map((opIdx, col) => {
-      let op: Operation | null = null;
+  const opsMetadata: Metadata[][] = operations.map((col, colIndex) =>
+    col.map((op) => {
+      //let op: Operation | null = null;
 
       // eslint-disable-next-line no-prototype-builtins
-      if (opIdx != null && !visited.hasOwnProperty(opIdx)) {
-        op = operations[opIdx];
-        visited[opIdx] = true;
-      }
+      // if (opIdx != null && !visited.hasOwnProperty(opIdx)) {
+      //   op = operations[opIdx];
+      //   visited[opIdx] = true;
+      // }
 
       const metadata: Metadata = _opToMetadata(op, registers);
 
@@ -74,7 +72,7 @@ const processOperations = (
         // Get y coordinates of classical registers in the same column as this operation
         const classicalRegY: number[] = classicalRegs
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([regCol, _]) => regCol <= col)
+          .filter(([regCol, _]) => regCol <= colIndex)
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           .map(([_, reg]) => {
             if (reg.cId == null)
@@ -95,138 +93,262 @@ const processOperations = (
       }
 
       // Expand column size, if needed
-      if (metadata.width > columnsWidths[col]) {
-        columnsWidths[col] = metadata.width;
+      if (metadata.width > columnsWidths[colIndex]) {
+        columnsWidths[colIndex] = metadata.width;
       }
 
       return metadata;
     }),
   );
 
+  // Filter out invalid gates
+  const metadataArray: Metadata[][] = opsMetadata
+    .map((col) => col.filter(({ type }) => type != GateType.Invalid))
+    .filter((col) => col.length > 0);
+
   // Fill in x coord of each gate
-  const endX: number = _fillMetadataX(opsMetadata, columnsWidths);
+  const endX: number = _fillMetadataX(metadataArray, columnsWidths);
 
-  // Flatten operations and filter out invalid gates
-  const metadataList: Metadata[] = opsMetadata
-    .flat()
-    .filter(({ type }) => type != GateType.Invalid);
-
-  return { metadataList, svgWidth: endX };
+  return { metadataArray, svgWidth: endX };
 };
 
-/**
- * Group gates provided by operations into their respective registers.
- *
- * @param operations Array of operations.
- * @param numRegs    Total number of registers.
- *
- * @returns 2D array of indices where `groupedOps[i][j]` is the index of the operations
- *          at register `i` and column `j` (not yet aligned/padded).
- */
-const _groupOperations = (
-  operations: Operation[],
-  registers: RegisterMap,
-): number[][] => {
-  // NOTE: We get the max ID instead of just number of keys because there can be a qubit ID that
-  // isn't acted upon and thus does not show up as a key in registers.
-  const numRegs: number =
-    Math.max(-1, ...Object.keys(registers).map(Number)) + 1;
-  const groupedOps: number[][] = Array.from(Array(numRegs), () => new Array(0));
-  operations.forEach(({ targets, controls }, instrIdx) => {
-    const ctrls: Register[] = controls || [];
-    const qRegs: Register[] = [...ctrls, ...targets].filter(
-      ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
-    );
-    const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
-    const clsControls: Register[] = ctrls.filter(
-      ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
-    );
-    const isClassicallyControlled: boolean = clsControls.length > 0;
-    if (!isClassicallyControlled && qRegs.length === 0) return;
-    // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
-    // the contiguous range of registers that it covers.
-    const minRegIdx: number = isClassicallyControlled
-      ? 0
-      : Math.min(...qRegIdxList);
-    const maxRegIdx: number = isClassicallyControlled
-      ? numRegs - 1
-      : Math.max(...qRegIdxList);
-    // Add operation also to registers that are in-between target registers
-    // so that other gates won't render in the middle.
-    for (let i = minRegIdx; i <= maxRegIdx; i++) {
-      groupedOps[i].push(instrIdx);
-    }
-  });
-  return groupedOps;
-};
+// /**
+//  * Takes in a list of operations and maps them to `metadata` objects which
+//  * contains information for formatting the corresponding SVG.
+//  *
+//  * @param operations Array of operations.
+//  * @param registers  Mapping from qubit IDs to register metadata.
+//  *
+//  * @returns An object containing `metadataList` (Array of Metadata objects) and
+//  *          `svgWidth` which is the width of the entire SVG.
+//  */
+// const processOperations = (
+//   operations: Operation[],
+//   registers: RegisterMap,
+// ): { metadataList: Metadata[]; svgWidth: number } => {
+//   if (operations.length === 0) return { metadataList: [], svgWidth: startX };
 
-/**
- * Aligns operations by padding registers with `null`s to make sure that multiqubit
- * gates are in the same column.
- * e.g. ---[x]---[x]--
- *      ----------|---
- *
- * @param ops 2D array of operations. Each row represents a register
- *            and the operations acting on it (in-order).
- *
- * @returns 2D array of aligned operations padded with `null`s.
- */
-const _alignOps = (ops: number[][]): (number | null)[][] => {
-  let maxNumOps: number = Math.max(0, ...ops.map((regOps) => regOps.length));
-  let col = 0;
-  // Deep copy ops to be returned as paddedOps
-  const paddedOps: (number | null)[][] = JSON.parse(JSON.stringify(ops));
-  while (col < maxNumOps) {
-    for (let regIdx = 0; regIdx < paddedOps.length; regIdx++) {
-      const reg: (number | null)[] = paddedOps[regIdx];
-      if (reg.length <= col) continue;
+//   // Group operations based on registers
+//   const groupedOps: number[][] = _groupOperations(operations, registers);
 
-      // Should never be null (nulls are only padded to previous columns)
-      const opIdx: number | null = reg[col];
+//   // Align operations on multiple registers
+//   const alignedOps: (number | null)[][] = _alignOps(groupedOps);
 
-      // Get position of gate
-      const targetsPos: number[] = paddedOps.map((regOps) =>
-        regOps.indexOf(opIdx),
-      );
-      const gatePos: number = Math.max(-1, ...targetsPos);
+//   // Maintain widths of each column to account for variable-sized gates
+//   const numColumns: number = Math.max(
+//     0,
+//     ...alignedOps.map((ops) => ops.length),
+//   );
+//   const columnsWidths: number[] = new Array(numColumns).fill(minGateWidth);
 
-      // If current column is not desired gate position, pad with null
-      if (col < gatePos) {
-        paddedOps[regIdx].splice(col, 0, null);
-        maxNumOps = Math.max(maxNumOps, paddedOps[regIdx].length);
-      }
-    }
-    col++;
-  }
-  return paddedOps;
-};
+//   // Get classical registers and their starting column index
+//   const classicalRegs: [number, Register][] = _getClassicalRegStart(
+//     operations,
+//     alignedOps,
+//   );
+
+//   // Keep track of which ops are already seen to avoid duplicate rendering
+//   const visited: { [opIdx: number]: boolean } = {};
+
+//   // Map operation index to gate metadata for formatting later
+//   const opsMetadata: Metadata[][] = alignedOps.map((regOps) =>
+//     regOps.map((opIdx, col) => {
+//       let op: Operation | null = null;
+
+//       // eslint-disable-next-line no-prototype-builtins
+//       if (opIdx != null && !visited.hasOwnProperty(opIdx)) {
+//         op = operations[opIdx];
+//         visited[opIdx] = true;
+//       }
+
+//       const metadata: Metadata = _opToMetadata(op, registers);
+
+//       if (
+//         op != null &&
+//         [GateType.Unitary, GateType.ControlledUnitary].includes(metadata.type)
+//       ) {
+//         // If gate is a unitary type, split targetsY into groups if there
+//         // is a classical register between them for rendering
+
+//         // Get y coordinates of classical registers in the same column as this operation
+//         const classicalRegY: number[] = classicalRegs
+//           // eslint-disable-next-line @typescript-eslint/no-unused-vars
+//           .filter(([regCol, _]) => regCol <= col)
+//           // eslint-disable-next-line @typescript-eslint/no-unused-vars
+//           .map(([_, reg]) => {
+//             if (reg.cId == null)
+//               throw new Error("Could not find cId for classical register.");
+//             const { children } = registers[reg.qId];
+//             if (children == null)
+//               throw new Error(
+//                 `Failed to find classical registers for qubit ID ${reg.qId}.`,
+//               );
+//             return children[reg.cId].y;
+//           });
+
+//         metadata.targetsY = _splitTargetsY(
+//           op.targets,
+//           classicalRegY,
+//           registers,
+//         );
+//       }
+
+//       // Expand column size, if needed
+//       if (metadata.width > columnsWidths[col]) {
+//         columnsWidths[col] = metadata.width;
+//       }
+
+//       return metadata;
+//     }),
+//   );
+
+//   // Fill in x coord of each gate
+//   const endX: number = _fillMetadataX(opsMetadata, columnsWidths);
+
+//   // Flatten operations and filter out invalid gates
+//   const metadataList: Metadata[] = opsMetadata
+//     .flat()
+//     .filter(({ type }) => type != GateType.Invalid);
+
+//   return { metadataList, svgWidth: endX };
+// };
+
+// ToDo: Is this necessary anymore?
+// /**
+//  * Group gates provided by operations into their respective registers.
+//  *
+//  * @param operations Array of operations.
+//  * @param numRegs    Total number of registers.
+//  *
+//  * @returns 2D array of indices where `groupedOps[i][j]` is the index of the operations
+//  *          at register `i` and column `j` (not yet aligned/padded).
+//  */
+// const _groupOperations = (
+//   operations: Operation[],
+//   registers: RegisterMap,
+// ): number[][] => {
+//   // NOTE: We get the max ID instead of just number of keys because there can be a qubit ID that
+//   // isn't acted upon and thus does not show up as a key in registers.
+//   const numRegs: number =
+//     Math.max(-1, ...Object.keys(registers).map(Number)) + 1;
+//   const groupedOps: number[][] = Array.from(Array(numRegs), () => new Array(0));
+//   operations.forEach(({ targets, controls }, instrIdx) => {
+//     const ctrls: Register[] = controls || [];
+//     const qRegs: Register[] = [...ctrls, ...targets].filter(
+//       ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
+//     );
+//     const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
+//     const clsControls: Register[] = ctrls.filter(
+//       ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
+//     );
+//     const isClassicallyControlled: boolean = clsControls.length > 0;
+//     if (!isClassicallyControlled && qRegs.length === 0) return;
+//     // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
+//     // the contiguous range of registers that it covers.
+//     const minRegIdx: number = isClassicallyControlled
+//       ? 0
+//       : Math.min(...qRegIdxList);
+//     const maxRegIdx: number = isClassicallyControlled
+//       ? numRegs - 1
+//       : Math.max(...qRegIdxList);
+//     // Add operation also to registers that are in-between target registers
+//     // so that other gates won't render in the middle.
+//     for (let i = minRegIdx; i <= maxRegIdx; i++) {
+//       groupedOps[i].push(instrIdx);
+//     }
+//   });
+//   return groupedOps;
+// };
+
+// /**
+//  * Aligns operations by padding registers with `null`s to make sure that multiqubit
+//  * gates are in the same column.
+//  * e.g. ---[x]---[x]--
+//  *      ----------|---
+//  *
+//  * @param ops 2D array of operations. Each row represents a register
+//  *            and the operations acting on it (in-order).
+//  *
+//  * @returns 2D array of aligned operations padded with `null`s.
+//  */
+// const _alignOps = (ops: number[][]): (number | null)[][] => {
+//   let maxNumOps: number = Math.max(0, ...ops.map((regOps) => regOps.length));
+//   let col = 0;
+//   // Deep copy ops to be returned as paddedOps
+//   const paddedOps: (number | null)[][] = JSON.parse(JSON.stringify(ops));
+//   while (col < maxNumOps) {
+//     for (let regIdx = 0; regIdx < paddedOps.length; regIdx++) {
+//       const reg: (number | null)[] = paddedOps[regIdx];
+//       if (reg.length <= col) continue;
+
+//       // Should never be null (nulls are only padded to previous columns)
+//       const opIdx: number | null = reg[col];
+
+//       // Get position of gate
+//       const targetsPos: number[] = paddedOps.map((regOps) =>
+//         regOps.indexOf(opIdx),
+//       );
+//       const gatePos: number = Math.max(-1, ...targetsPos);
+
+//       // If current column is not desired gate position, pad with null
+//       if (col < gatePos) {
+//         paddedOps[regIdx].splice(col, 0, null);
+//         maxNumOps = Math.max(maxNumOps, paddedOps[regIdx].length);
+//       }
+//     }
+//     col++;
+//   }
+//   return paddedOps;
+// };
 
 /**
  * Retrieves the starting index of each classical register.
  *
  * @param ops     Array of operations.
- * @param idxList 2D array of aligned operation indices.
  *
  * @returns Array of classical register and their starting column indices in the form [[column, register]].
  */
-const _getClassicalRegStart = (
-  ops: Operation[],
-  idxList: (number | null)[][],
-): [number, Register][] => {
+const _getClassicalRegStart = (ops: Operation[][]): [number, Register][] => {
   const clsRegs: [number, Register][] = [];
-  idxList.forEach((reg) => {
-    for (let col = 0; col < reg.length; col++) {
-      const opIdx: number | null = reg[col];
-      if (opIdx != null && ops[opIdx].isMeasurement) {
-        const targetClsRegs: Register[] = ops[opIdx].targets.filter(
+  ops.forEach((col, colIndex) => {
+    col.forEach((op) => {
+      if (op.isMeasurement) {
+        const targetClsRegs: Register[] = op.targets.filter(
           (reg) => reg.type === RegisterType.Classical,
         );
-        targetClsRegs.forEach((reg) => clsRegs.push([col, reg]));
+        targetClsRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
       }
-    }
+    });
   });
   return clsRegs;
 };
+
+// /**
+//  * Retrieves the starting index of each classical register.
+//  *
+//  * @param ops     Array of operations.
+//  * @param idxList 2D array of aligned operation indices.
+//  *
+//  * @returns Array of classical register and their starting column indices in the form [[column, register]].
+//  */
+// const _getClassicalRegStart = (
+//   ops: Operation[],
+//   idxList: (number | null)[][],
+// ): [number, Register][] => {
+//   const clsRegs: [number, Register][] = [];
+//   idxList.forEach((reg) => {
+//     for (let col = 0; col < reg.length; col++) {
+//       const opIdx: number | null = reg[col];
+//       if (opIdx != null && ops[opIdx].isMeasurement) {
+//         const targetClsRegs: Register[] = ops[opIdx].targets.filter(
+//           (reg) => reg.type === RegisterType.Classical,
+//         );
+//         targetClsRegs.forEach((reg) => clsRegs.push([col, reg]));
+//       }
+//     }
+//   });
+//   return clsRegs;
+// };
 
 /**
  * Maps operation to metadata (e.g. gate type, position, dimensions, text)
@@ -278,19 +400,23 @@ const _opToMetadata = (
       );
 
     // Gates to display when classical bit is 0.
-    const onZeroOps: Operation[] = children.filter(
-      (op) => op.conditionalRender !== ConditionalRender.OnOne,
-    );
+    const onZeroOps: Operation[][] = children
+      .map((col) =>
+        col.filter((op) => op.conditionalRender !== ConditionalRender.OnOne),
+      )
+      .filter((col) => col.length > 0);
     let childrenInstrs = processOperations(onZeroOps, registers);
-    const zeroGates: Metadata[] = childrenInstrs.metadataList;
+    const zeroGates: Metadata[][] = childrenInstrs.metadataArray;
     const zeroChildWidth: number = childrenInstrs.svgWidth;
 
     // Gates to display when classical bit is 1.
-    const onOneOps: Operation[] = children.filter(
-      (op) => op.conditionalRender !== ConditionalRender.OnZero,
-    );
+    const onOneOps: Operation[][] = children
+      .map((col) =>
+        col.filter((op) => op.conditionalRender !== ConditionalRender.OnZero),
+      )
+      .filter((col) => col.length > 0);
     childrenInstrs = processOperations(onOneOps, registers);
-    const oneGates: Metadata[] = childrenInstrs.metadataList;
+    const oneGates: Metadata[][] = childrenInstrs.metadataArray;
     const oneChildWidth: number = childrenInstrs.svgWidth;
 
     // Subtract startX (left-side) and 2*gatePadding (right-side) from nested child gates width
@@ -311,12 +437,9 @@ const _opToMetadata = (
     conditionalRender == ConditionalRender.AsGroup &&
     (children?.length || 0) > 0
   ) {
-    const childrenInstrs = processOperations(
-      children as Operation[],
-      registers,
-    );
+    const childrenInstrs = processOperations(children!, registers);
     metadata.type = GateType.Group;
-    metadata.children = childrenInstrs.metadataList;
+    metadata.children = childrenInstrs.metadataArray;
     // _zoomButton function in gateFormatter.ts relies on
     // 'expanded' attribute to render zoom button
     metadata.dataAttributes = { expanded: "true" };
@@ -475,9 +598,9 @@ const _fillMetadataX = (
 
   const endX: number = currX;
 
-  opsMetadata.forEach((regOps) =>
-    regOps.forEach((metadata, col) => {
-      const x = colStartX[col];
+  opsMetadata.forEach((col, colIndex) =>
+    col.forEach((metadata) => {
+      const x = colStartX[colIndex];
       switch (metadata.type) {
         case GateType.ClassicalControlled:
         case GateType.Group:
@@ -497,7 +620,7 @@ const _fillMetadataX = (
           break;
 
         default:
-          metadata.x = x + columnWidths[col] / 2;
+          metadata.x = x + columnWidths[colIndex] / 2;
           break;
       }
     }),
@@ -509,28 +632,20 @@ const _fillMetadataX = (
 /**
  * Offset x coords of nested children operations.
  *
- * @param children 2D array of children metadata.
+ * @param children 2D or 3D array of children metadata.
  * @param offset   x coord offset.
  */
 const _offsetChildrenX = (
-  children: (Metadata | Metadata[])[] | undefined,
+  children: Metadata[][] | Metadata[][][] | undefined,
   offset: number,
 ): void => {
   if (children == null) return;
-  children.flat().forEach((child) => {
-    child.x += offset;
-    _offsetChildrenX(child.children, offset);
+  children.forEach((col) => {
+    col.flat().forEach((child) => {
+      child.x += offset;
+      _offsetChildrenX(child.children, offset);
+    });
   });
 };
 
-export {
-  processOperations,
-  _groupOperations,
-  _alignOps,
-  _getClassicalRegStart,
-  _opToMetadata,
-  _getRegY,
-  _splitTargetsY,
-  _fillMetadataX,
-  _offsetChildrenX,
-};
+export { processOperations };

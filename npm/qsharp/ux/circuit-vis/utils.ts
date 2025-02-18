@@ -77,7 +77,10 @@ const _getStringWidth = (
 };
 
 /**
- * Find targets of an operation by recursively walking through all of its children controls and targets.
+ * Find targets of an operation's children by recursively walking
+ * through all of its children's controls and targets.
+ * Note that this intensionally ignores the direct targets of the
+ * operation itself.
  *
  * Example:
  * Gate Foo contains gate H and gate RX.
@@ -88,16 +91,18 @@ const _getStringWidth = (
  * @param operation The operation to find targets for.
  * @returns An array of registers with unique qIds.
  */
-const getGateTargets = (operation: Operation): Register[] | [] => {
+const getChildTargets = (operation: Operation): Register[] | [] => {
   const _recurse = (operation: Operation) => {
     registers.push(...operation.targets);
     if (operation.controls) {
       registers.push(...operation.controls);
       // If there is more children, keep adding more to registers
       if (operation.children) {
-        for (const child of operation.children) {
-          _recurse(child);
-        }
+        operation.children.forEach((col) =>
+          col.forEach((child) => {
+            _recurse(child);
+          }),
+        );
       }
     }
   };
@@ -106,9 +111,11 @@ const getGateTargets = (operation: Operation): Register[] | [] => {
   if (operation.children == null) return [];
 
   // Recursively walkthrough all children to populate registers
-  for (const child of operation.children) {
-    _recurse(child);
-  }
+  operation.children.forEach((col) =>
+    col.forEach((child) => {
+      _recurse(child);
+    }),
+  );
 
   // Extract qIds from array of object
   // i.e. [{qId: 0}, {qId: 1}, {qId: 1}] -> [0, 1, 1]
@@ -124,17 +131,21 @@ const getGateTargets = (operation: Operation): Register[] | [] => {
 };
 
 /**
- * Split a location string into an array of indexes.
+ * Split a location string into an array of index tuples.
  *
  * Example:
- * "1-2-3" -> [1, 2, 3]
+ * "0,1-0,2-2,3" -> [[0,1], [0,2], [2,3]]
  *
  * @param location The location string to split.
  * @returns An array of indexes.
  */
-const locationStringToIndexes = (location: string): number[] => {
+const locationStringToIndexes = (location: string): [number, number][] => {
   return location !== ""
-    ? location.split("-").map((segment) => parseInt(segment))
+    ? location.split("-").map((segment) => {
+        const coords = segment.split(",");
+        if (coords.length !== 2) throw new Error("Invalid location");
+        return [parseInt(coords[0]), parseInt(coords[1])];
+      })
     : [];
 };
 
@@ -182,7 +193,7 @@ const findLocation = (hostElem: SVGElement) => {
  * @returns The parent operation or null if not found.
  */
 const findParentOperation = (
-  operations: Operation[],
+  operations: Operation[][],
   location: string | null,
 ): Operation | null => {
   if (!location) return null;
@@ -195,9 +206,10 @@ const findParentOperation = (
 
   let parentOperation = operations;
   for (const index of indexes) {
-    parentOperation = parentOperation[index].children || parentOperation;
+    parentOperation =
+      parentOperation[index[0]][index[1]].children || parentOperation;
   }
-  return parentOperation[lastIndex];
+  return parentOperation[lastIndex[0]][lastIndex[1]];
 };
 
 /**
@@ -208,9 +220,9 @@ const findParentOperation = (
  * @returns The parent array of operations or null if not found.
  */
 const findParentArray = (
-  operations: Operation[],
+  operations: Operation[][],
   location: string | null,
-): Operation[] | null => {
+): Operation[][] | null => {
   if (!location) return null;
 
   const indexes = locationStringToIndexes(location);
@@ -218,7 +230,7 @@ const findParentArray = (
 
   let parentArray = operations;
   for (const index of indexes) {
-    parentArray = parentArray[index].children || parentArray;
+    parentArray = parentArray[index[0]][index[1]].children || parentArray;
   }
   return parentArray;
 };
@@ -231,7 +243,7 @@ const findParentArray = (
  * @returns The operation or null if not found.
  */
 const findOperation = (
-  operations: Operation[],
+  operations: Operation[][],
   location: string | null,
 ): Operation | null => {
   if (!location) return null;
@@ -241,7 +253,7 @@ const findOperation = (
 
   if (operationParent == null || index == null) return null;
 
-  return operationParent[index];
+  return operationParent[index[0]][index[1]];
 };
 
 /**********************
@@ -317,7 +329,7 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
 export {
   createUUID,
   getGateWidth,
-  getGateTargets,
+  getChildTargets as getGateTargets,
   locationStringToIndexes,
   getGateLocationString,
   findGateElem,
