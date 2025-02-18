@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import { gateHeight, minGateWidth, minToolboxHeight } from "./constants";
 /**
  * Provides configuration for CSS styles of visualization.
  */
@@ -95,7 +96,11 @@ export const style = (customStyle: StyleConfig = {}): string => {
 
   return `${_defaultGates(styleConfig)}
     ${_classicallyControlledGates(styleConfig)}
-    ${_expandCollapse}`;
+    ${_expandCollapse}
+    ${_draggable}
+    ${_panel}
+    ${_contextMenu}
+    ${_customPromptOverlay}`;
 };
 
 const _defaultGates = (styleConfig: StyleConfig): string => `
@@ -234,3 +239,152 @@ const _expandCollapse = `
         opacity: 1;
         transition: opacity 1s;
     }`;
+
+const _draggable = `
+    text {
+        user-select: none;
+        pointer-events: none;
+    }
+    .dropzone-layer {
+        display: none;
+    }
+    .dropzone {
+        fill-opacity: 0%;
+        stroke-opacity: 0%;
+    }
+    .dropzone:hover {
+        fill: #EC7063;
+        fill-opacity: 50%;
+    }
+    .dropzone-full-wire {
+        fill-opacity: 0%;
+        stroke-opacity: 0%;
+    }
+    .dropzone-full-wire:hover {
+        fill: #EC7063;
+        fill-opacity: 50%;
+    }
+    .grab {
+        cursor: grab;
+    }
+    .moving {
+        cursor: move;
+    }
+    .copying {
+        cursor: copy;
+    }
+    `;
+
+const _panel = `
+    .container {
+        display: flex;
+    }
+    .edit-panel {
+        display: flex;
+        flex-direction: column;
+    }
+    .title {
+        margin: 0 0 4px;
+        font-size: 1.2rem;
+        user-select: none;
+    }
+    .block {
+        display: block;
+    }
+    .target-input, .controls-input, .parameters-input {
+        margin-bottom: 8px;
+    }
+    .toolbox-panel {
+        width: -webkit-fill-available;
+        min-height: ${minToolboxHeight}px;
+    }
+    .toolbox-panel-svg {
+        width: -webkit-fill-available;
+        min-height: ${minToolboxHeight}px;
+    }
+    .ghost {
+        width: ${minGateWidth}px;
+        height: ${gateHeight}px;
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+    }
+    .qubit-line-control {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .add-qubit-line, .remove-qubit-line {
+        border-radius: 4px;
+        padding: 8px 16px;
+        margin: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+`;
+
+const _contextMenu = `
+    .context-menu {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        padding: 5px 0;
+        border-radius: 4px;
+    }
+
+    .context-menu-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .context-menu-option:hover {
+        background-color: #f0f0f0;
+    }
+  `;
+
+const _customPromptOverlay = `
+    .custom-prompt-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .custom-prompt-container {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .custom-prompt-message {
+        margin-bottom: 10px;
+    }
+
+    .custom-prompt-input {
+        width: 100%;
+        padding: 5px;
+        margin-bottom: 10px;
+    }
+
+    .custom-prompt-buttons {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .custom-prompt-button {
+        padding: 5px 10px;
+        margin: 0 5px;
+    }
+    `;

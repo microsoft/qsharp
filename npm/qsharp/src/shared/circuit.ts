@@ -54,13 +54,13 @@ export interface Operation {
   /** Nested operations within this operation. */
   children?: Operation[];
   /** Whether gate is a measurement operation. */
-  isMeasurement: boolean;
+  isMeasurement?: boolean;
   /** Whether gate is a conditional operation. */
-  isConditional: boolean;
+  isConditional?: boolean;
   /** Whether gate is a controlled operation. */
-  isControlled: boolean;
+  isControlled?: boolean;
   /** Whether gate is an adjoint operation. */
-  isAdjoint: boolean;
+  isAdjoint?: boolean;
   /** Control registers the gate acts on. */
   controls?: Register[];
   /** Target registers the gate acts on. */

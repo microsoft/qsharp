@@ -5,18 +5,19 @@
 mod tests;
 
 use rustc_hash::FxHashMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
-#[derive(Clone, Serialize, Default, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
     pub operations: Vec<Operation>,
     pub qubits: Vec<Qubit>,
 }
 
-#[derive(Clone, Serialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+#[serde(default)]
 pub struct Operation {
     #[allow(clippy::struct_field_names)]
     pub gate: String,
@@ -42,7 +43,7 @@ pub struct Operation {
 const QUANTUM_REGISTER: usize = 0;
 const CLASSICAL_REGISTER: usize = 1;
 
-#[derive(Serialize, Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Register {
     #[serde(rename = "qId")]
     pub q_id: usize,
@@ -70,7 +71,7 @@ impl Register {
     }
 }
 
-#[derive(PartialEq, Clone, Serialize, Debug)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Qubit {
     pub id: usize,
     #[serde(rename = "numChildren")]

@@ -73,6 +73,8 @@ export type CircuitProps = {
   simulated: boolean;
   /** Circuit is still being generated */
   calculating: boolean;
+  isEditable: boolean;
+  editCallback?: (circuit: CircuitData) => void;
 };
 
 export type CircuitData = import("../src/shared/circuit").Circuit;
