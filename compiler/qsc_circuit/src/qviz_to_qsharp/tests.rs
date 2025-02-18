@@ -5,7 +5,7 @@ use super::*;
 use expect_test::{expect, Expect};
 
 fn check(contents: &str, expect: &Expect) {
-    let actual = circ_to_qsharp("Test".to_string(), contents.to_string());
+    let actual = qviz_to_qsharp("Test".to_string(), contents.to_string());
     expect.assert_eq(&actual);
 }
 

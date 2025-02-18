@@ -514,7 +514,7 @@
         "displayName": "Quantum Circuit",
         "selector": [
           {
-            "filenamePattern": "*.circ"
+            "filenamePattern": "*.qviz"
           }
         ],
         "priority": "default"

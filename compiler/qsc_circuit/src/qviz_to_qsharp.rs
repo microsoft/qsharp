@@ -8,27 +8,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{Circuit, Operation};
 
-// pub fn circ_to_qsharp(circuit: Circuit) -> String {
-//     let mut qsharp = String::new();
-//     qsharp.push_str(&format!("namespace {} {{\n", circuit.namespace));
-//     for operation in circuit.operations {
-//         qsharp.push_str(&format!("    operation {}(", operation.name));
-//         for (i, arg) in operation.args.iter().enumerate() {
-//             qsharp.push_str(&format!("{} : {}, ", arg.name, arg.ty));
-//         }
-//         qsharp.push_str(") : ");
-//         qsharp.push_str(&operation.ret_ty);
-//         qsharp.push_str(" {\n");
-//         for instr in operation.body {
-//             qsharp.push_str(&format!("        {};\n", instr));
-//         }
-//         qsharp.push_str("    }\n");
-//     }
-//     qsharp.push_str("}\n");
-//     qsharp
-// }
-
-pub fn circ_to_qsharp(circuit_name: String, circuit_json: String) -> String {
+pub fn qviz_to_qsharp(circuit_name: String, circuit_json: String) -> String {
     match serde_json::from_str::<Circuit>(circuit_json.as_str()) {
         Ok(circuit) => build_qsharp(circuit_name, circuit),
         Err(e) => format!("Error: {}", e),

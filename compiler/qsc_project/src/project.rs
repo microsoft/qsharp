@@ -8,7 +8,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_circuit::circ_to_qsharp::circ_to_qsharp;
+use qsc_circuit::qviz_to_qsharp::qviz_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
@@ -246,7 +246,7 @@ pub trait FileSystemAsync {
         for item in filter_hidden_files(listing.into_iter()) {
             let extension = item.entry_extension();
             match item.entry_type() {
-                Ok(EntryType::File) if extension == "qs" || extension == "circ" => {
+                Ok(EntryType::File) if extension == "qs" || extension == "qviz" => {
                     files.push(item.path());
                 }
                 Ok(EntryType::Folder) => {
@@ -441,13 +441,13 @@ pub trait FileSystemAsync {
                     error: e.to_string(),
                 })?;
             if let Some(ext) = path.extension() {
-                if ext == "circ" {
+                if ext == "qviz" {
                     let name = path
                         .file_stem()
                         .expect("File should have name")
                         .to_string_lossy()
                         .to_string();
-                    contents = Arc::from(circ_to_qsharp(name, contents.to_string()));
+                    contents = Arc::from(qviz_to_qsharp(name, contents.to_string()));
                 }
             }
             sources.push((name, contents));
