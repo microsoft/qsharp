@@ -46,7 +46,7 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
-  operations: Operation[];
+  operations: Operation[][];
   qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;

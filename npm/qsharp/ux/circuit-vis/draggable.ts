@@ -3,7 +3,7 @@
 
 import { Operation } from "./circuit";
 import { box, controlDot } from "./formatters/formatUtils";
-import { _formatGate } from "./formatters/gateFormatter";
+import { formatGate } from "./formatters/gateFormatter";
 import { toMetadata } from "./panel";
 import { Sqore } from "./sqore";
 import { findLocation, getHostElems, getWireData } from "./utils";
@@ -11,7 +11,7 @@ import { findLocation, getHostElems, getWireData } from "./utils";
 interface Context {
   container: HTMLElement;
   svg: SVGElement;
-  operations: Operation[];
+  operations: Operation[][];
   wireData: number[];
   renderFn: () => void;
   paddingY: number;
@@ -66,7 +66,7 @@ const createGhostElement = (
     ? controlDot(0, 0)
     : (() => {
         const ghostMetadata = toMetadata(selectedOperation, 0, 0);
-        return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
+        return formatGate(ghostMetadata).cloneNode(true) as SVGElement;
       })();
 
   // Generate svg element to wrap around ghost element
