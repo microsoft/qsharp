@@ -75,51 +75,50 @@ fn no_gates() {
 
 #[test]
 fn bell() {
+    let operations = vec![
+        Operation {
+            gate: "H".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: false,
+            controls: vec![],
+            targets: vec![Register::quantum(0)],
+            children: vec![],
+        },
+        Operation {
+            gate: "X".to_string(),
+            display_args: None,
+            is_controlled: true,
+            is_adjoint: false,
+            is_measurement: false,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::quantum(1)],
+            children: vec![],
+        },
+        Operation {
+            gate: "Measure".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: true,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::classical(0, 0)],
+            children: vec![],
+        },
+        Operation {
+            gate: "Measure".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: true,
+            controls: vec![Register::quantum(1)],
+            targets: vec![Register::classical(1, 0)],
+            children: vec![],
+        },
+    ];
     let c = Circuit {
-        operations: vec![
-            vec![Operation {
-                gate: "H".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![],
-                targets: vec![Register::quantum(0)],
-                children: vec![],
-            }],
-            vec![Operation {
-                gate: "X".to_string(),
-                display_args: None,
-                is_controlled: true,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::quantum(1)],
-                children: vec![],
-            }],
-            vec![
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register::quantum(0)],
-                    targets: vec![Register::classical(0, 0)],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register::quantum(1)],
-                    targets: vec![Register::classical(1, 0)],
-                    children: vec![],
-                },
-            ],
-        ],
+        operations: operation_list_to_grid(operations, 1),
         qubits: vec![
             Qubit {
                 id: 0,
@@ -143,39 +142,40 @@ fn bell() {
 
 #[test]
 fn control_classical() {
+    let operations = vec![
+        Operation {
+            gate: "Measure".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: true,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::classical(0, 0)],
+            children: vec![],
+        },
+        Operation {
+            gate: "X".to_string(),
+            display_args: None,
+            is_controlled: true,
+            is_adjoint: false,
+            is_measurement: false,
+            controls: vec![Register::classical(0, 0)],
+            targets: vec![Register::quantum(2)],
+            children: vec![],
+        },
+        Operation {
+            gate: "X".to_string(),
+            display_args: None,
+            is_controlled: true,
+            is_adjoint: false,
+            is_measurement: false,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::quantum(2)],
+            children: vec![],
+        },
+    ];
     let c = Circuit {
-        operations: vec![
-            vec![Operation {
-                gate: "Measure".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: true,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::classical(0, 0)],
-                children: vec![],
-            }],
-            vec![Operation {
-                gate: "X".to_string(),
-                display_args: None,
-                is_controlled: true,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![Register::classical(0, 0)],
-                targets: vec![Register::quantum(2)],
-                children: vec![],
-            }],
-            vec![Operation {
-                gate: "X".to_string(),
-                display_args: None,
-                is_controlled: true,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::quantum(2)],
-                children: vec![],
-            }],
-        ],
+        operations: operation_list_to_grid(operations, 2),
         qubits: vec![
             Qubit {
                 id: 0,
@@ -203,29 +203,30 @@ fn control_classical() {
 
 #[test]
 fn two_measurements() {
+    let operations = vec![
+        Operation {
+            gate: "Measure".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: true,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::classical(0, 0)],
+            children: vec![],
+        },
+        Operation {
+            gate: "Measure".to_string(),
+            display_args: None,
+            is_controlled: false,
+            is_adjoint: false,
+            is_measurement: true,
+            controls: vec![Register::quantum(0)],
+            targets: vec![Register::classical(0, 1)],
+            children: vec![],
+        },
+    ];
     let c = Circuit {
-        operations: vec![
-            vec![Operation {
-                gate: "Measure".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: true,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::classical(0, 0)],
-                children: vec![],
-            }],
-            vec![Operation {
-                gate: "Measure".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: true,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::classical(0, 1)],
-                children: vec![],
-            }],
-        ],
+        operations: operation_list_to_grid(operations, 0),
         qubits: vec![Qubit {
             id: 0,
             num_children: 2,
@@ -299,5 +300,71 @@ fn two_targets() {
         q_1    ───────┆───────
         q_2    ─ rzz(1.0000) ─
     "]]
+    .assert_eq(&c.to_string());
+}
+
+#[test]
+fn respect_column_info() {
+    let c = Circuit {
+        operations: vec![
+            vec![Operation {
+                gate: "X".to_string(),
+                display_args: None,
+                is_controlled: false,
+                is_adjoint: false,
+                is_measurement: false,
+                controls: vec![],
+                targets: vec![Register::quantum(0)],
+                children: vec![],
+            }],
+            vec![
+                Operation {
+                    gate: "Y".to_string(),
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: vec![],
+                    targets: vec![Register::quantum(0)],
+                    children: vec![],
+                },
+                Operation {
+                    gate: "S".to_string(),
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: vec![],
+                    targets: vec![Register::quantum(1)],
+                    children: vec![],
+                },
+            ],
+            vec![Operation {
+                gate: "Z".to_string(),
+                display_args: None,
+                is_controlled: false,
+                is_adjoint: false,
+                is_measurement: false,
+                controls: vec![],
+                targets: vec![Register::quantum(0)],
+                children: vec![],
+            }],
+        ],
+        qubits: vec![
+            Qubit {
+                id: 0,
+                num_children: 0,
+            },
+            Qubit {
+                id: 1,
+                num_children: 0,
+            },
+        ],
+    };
+
+    expect![[r#"
+        q_0    ── X ──── Y ──── Z ──
+        q_1    ───────── S ─────────
+    "#]]
     .assert_eq(&c.to_string());
 }

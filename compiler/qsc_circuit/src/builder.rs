@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    circuit::{Circuit, Operation, Register},
+    circuit::{operation_list_to_grid, Circuit, Operation, Register},
     Config,
 };
 use num_bigint::BigUint;
@@ -17,7 +17,7 @@ use std::{fmt::Write, mem::take, rc::Rc};
 /// Backend implementation that builds a circuit representation.
 pub struct Builder {
     max_ops_exceeded: bool,
-    circuit: Circuit,
+    operations: Vec<Operation>,
     config: Config,
     remapper: Remapper,
 }
@@ -227,7 +227,7 @@ impl Builder {
     pub fn new(config: Config) -> Self {
         Builder {
             max_ops_exceeded: false,
-            circuit: Circuit::default(),
+            operations: vec![],
             config,
             remapper: Remapper::default(),
         }
@@ -235,14 +235,14 @@ impl Builder {
 
     #[must_use]
     pub fn snapshot(&self) -> Circuit {
-        let circuit = self.circuit.clone();
-        self.finish_circuit(circuit)
+        let operations = self.operations.clone();
+        self.finish_circuit(operations)
     }
 
     #[must_use]
     pub fn finish(mut self) -> Circuit {
-        let circuit = take(&mut self.circuit);
-        self.finish_circuit(circuit)
+        let operations = take(&mut self.operations);
+        self.finish_circuit(operations)
     }
 
     fn map(&mut self, qubit: usize) -> WireId {
@@ -250,14 +250,12 @@ impl Builder {
     }
 
     fn push_gate(&mut self, gate: Operation) {
-        if self.max_ops_exceeded || self.circuit.operations.len() >= self.config.max_operations {
+        if self.max_ops_exceeded || self.operations.len() >= self.config.max_operations {
             // Stop adding gates and leave the circuit as is
             self.max_ops_exceeded = true;
             return;
         }
-        // Just give each operation their own column for now
-        // ToDo: apply algorithm to minimize circuit depth
-        self.circuit.operations.push(vec![gate]);
+        self.operations.push(gate);
     }
 
     fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
@@ -268,31 +266,36 @@ impl Builder {
             .unwrap_or_default()
     }
 
-    fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
+    fn finish_circuit(&self, mut operations: Vec<Operation>) -> Circuit {
         // add deferred measurements
         if self.config.base_profile {
             for (qubit, _) in &self.remapper.qubit_measurement_counts {
-                if self.max_ops_exceeded || circuit.operations.len() >= self.config.max_operations {
+                if self.max_ops_exceeded || operations.len() >= self.config.max_operations {
                     break;
                 }
 
                 // guaranteed one measurement per qubit, so result is always 0
-                // Just give each operation their own column for now
-                // ToDo: apply algorithm to minimize circuit depth
-                circuit.operations.push(vec![measurement_gate(qubit.0, 0)]);
+                operations.push(measurement_gate(qubit.0, 0));
             }
         }
+
+        let mut qubits = vec![];
 
         // add qubit declarations
         for i in 0..self.remapper.num_qubits() {
             let num_measurements = self.num_measurements_for_qubit(WireId(i));
-            circuit.qubits.push(crate::circuit::Qubit {
+            qubits.push(crate::circuit::Qubit {
                 id: i,
                 num_children: num_measurements,
             });
         }
 
-        circuit
+        let max_q_id = qubits.iter().map(|qubit| qubit.id).max().unwrap_or(0);
+
+        Circuit {
+            operations: operation_list_to_grid(operations, max_q_id),
+            qubits,
+        }
     }
 
     /// Splits the qubit arguments from classical arguments so that the qubits
