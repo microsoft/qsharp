@@ -96,7 +96,6 @@ impl Config {
 }
 
 type ObjectsByColumn = FxHashMap<usize, CircuitObject>;
-type ColumnWidthsByColumn = FxHashMap<usize, ColumnRenderer>;
 
 struct Row {
     wire: Wire,
@@ -183,29 +182,23 @@ impl Row {
     fn fmt(
         &self,
         f: &mut std::fmt::Formatter<'_>,
-        column_renderers: &ColumnWidthsByColumn,
-        end_column: usize,
+        column_renderers: &[ColumnRenderer],
     ) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
-        let default_renderer = ColumnRenderer::default();
-
         let mut s = String::new();
         match &self.wire {
             Wire::Qubit { q_id: label } => {
                 s.write_str(&fmt_qubit_label(*label))?;
-                for column in 1..end_column {
+                for (column, renderer) in column_renderers.iter().enumerate().skip(1) {
                     let val = self.objects.get(&column);
-                    let renderer = column_renderers.get(&column).unwrap_or(&default_renderer);
-
                     let object = val.unwrap_or(&CircuitObject::Wire);
 
                     s.write_str(&renderer.fmt_qubit_circuit_object(object))?;
                 }
             }
             Wire::Classical { start_column } => {
-                for column in 0..end_column {
+                for (column, renderer) in column_renderers.iter().enumerate() {
                     let val = self.objects.get(&column);
-                    let renderer = column_renderers.get(&column).unwrap_or(&default_renderer);
 
                     let object = match (val, start_column) {
                         (Some(v), _) => v,
@@ -468,26 +461,23 @@ impl Display for Circuit {
         // based on the maximum length needed for gates, where a gate X is printed as "- X -".
         let column_renderers = (0..end_column)
             .map(|column| {
-                (
-                    column,
-                    ColumnRenderer::new(
-                        rows.iter()
-                            .filter_map(|row| row.objects.get(&column))
-                            .filter_map(|object| match object {
-                                CircuitObject::Object(string) => Some(string.len() + 4),
-                                _ => None,
-                            })
-                            .chain(std::iter::once(MIN_COLUMN_WIDTH))
-                            .max()
-                            .unwrap(),
-                    ),
+                ColumnRenderer::new(
+                    rows.iter()
+                        .filter_map(|row| row.objects.get(&column))
+                        .filter_map(|object| match object {
+                            CircuitObject::Object(string) => Some(string.len() + 4),
+                            _ => None,
+                        })
+                        .chain(std::iter::once(MIN_COLUMN_WIDTH))
+                        .max()
+                        .unwrap(),
                 )
             })
-            .collect::<ColumnWidthsByColumn>();
+            .collect::<Vec<_>>();
 
         // Draw the diagram
         for row in rows {
-            row.fmt(f, &column_renderers, end_column)?;
+            row.fmt(f, &column_renderers)?;
         }
 
         Ok(())
