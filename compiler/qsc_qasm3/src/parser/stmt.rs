@@ -19,10 +19,11 @@ use crate::{
     ast::{
         list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclaration, DefStmt, Expr, ExprStmt, ExternDecl, ExternParameter, FloatType,
-        IODeclaration, IOKeyword, Ident, IncludeStmt, IntType, List, LiteralKind, Pragma,
-        QuantumGateDefinition, QubitDeclaration, ReturnStmt, ScalarType, ScalarTypeKind, Stmt,
-        StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType,
+        ConstantDeclaration, DefStmt, EnumerableSet, Expr, ExprStmt, ExternDecl, ExternParameter,
+        FloatType, ForStmt, IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt,
+        IntType, List, LiteralKind, Pragma, QuantumGateDefinition, QubitDeclaration,
+        RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt,
+        TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{
@@ -63,6 +64,12 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(decl)
     } else if let Some(switch) = opt(s, parse_switch_stmt)? {
         Box::new(StmtKind::Switch(switch))
+    } else if let Some(stmt) = opt(s, parse_if_stmt)? {
+        Box::new(StmtKind::If(stmt))
+    } else if let Some(stmt) = opt(s, parse_for_loop)? {
+        Box::new(StmtKind::For(stmt))
+    } else if let Some(stmt) = opt(s, parse_while_loop)? {
+        Box::new(StmtKind::WhileLoop(stmt))
     } else if let Some(decl) = opt(s, parse_return)? {
         Box::new(decl)
     } else {
@@ -840,8 +847,8 @@ pub(super) fn complex_subtype(s: &mut ParserContext) -> Result<FloatType> {
 }
 
 /// The Language Spec and the grammar for switch statements disagree.
-/// We followed the Spec when writing the parser
-/// <https://openqasm.com/language/classical.html#the-switch-statement>.
+/// We followed the Spec when writing the parser.
+/// Reference: <https://openqasm.com/language/classical.html#the-switch-statement>.
 pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Switch))?;
@@ -890,4 +897,123 @@ fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
 fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
     token(s, TokenKind::Keyword(Keyword::Default))?;
     parse_block(s).map(|block| *block)
+}
+
+/// Parses a block or a statement. This is a helper function
+/// to be used in loops and if stmts, in which their bodies
+/// can be a block expr or a single statement.
+fn parse_block_or_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
+    if let Some(block) = opt(s, parse_block)? {
+        Ok(block.stmts)
+    } else {
+        Ok(Box::new([parse(s)?]))
+    }
+}
+
+/// Grammar ` LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?`.
+/// Source: <https://openqasm.com/language/classical.html#if-else-statements>.
+pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::If))?;
+    let paren_expr_lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let condition = expr::paren_expr(s, paren_expr_lo)?;
+    let if_block = parse_block_or_stmt(s)?;
+    let else_block = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Else)))?.is_some() {
+        Some(parse_block_or_stmt(s)?)
+    } else {
+        None
+    };
+
+    Ok(IfStmt {
+        span: s.span(lo),
+        condition,
+        if_block,
+        else_block,
+    })
+}
+
+/// Grammar `LBRACKET start=expression COLON (step=expression COLON)? stop=expression]`.
+/// Reference: <https://openqasm.com/language/classical.html#for-loops>.
+fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Bracket))?;
+    let start = Some(expr::expr(s)?);
+
+    // If no colon, return the expr as a normal index.
+    token(s, TokenKind::Colon)?;
+
+    // QASM ranges have the pattern [start : (step :)? end]
+    // We assume the second expr is the `end`.
+    let mut end = Some(expr::expr(s)?);
+    let mut step = None;
+
+    // If we find a third expr, then the second expr was the `step`.
+    // and this third expr is the actual `end`.
+    if let Some(expr) = opt(s, |s| {
+        token(s, TokenKind::Colon)?;
+        expr::expr(s)
+    })? {
+        step = end;
+        end = Some(expr);
+    }
+
+    recovering_token(s, TokenKind::Close(Delim::Bracket));
+
+    Ok(RangeDefinition {
+        span: s.span(lo),
+        start,
+        end,
+        step,
+    })
+}
+
+/// Parses the `(setExpression | LBRACKET rangeExpression RBRACKET | expression)`
+/// part of a for loop statement.
+/// Reference: <https://openqasm.com/language/classical.html#for-loops>.
+fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
+    if let Some(range) = opt(s, for_loop_range_expr)? {
+        Ok(EnumerableSet::RangeDefinition(range))
+    } else if let Some(set) = opt(s, expr::set_expr)? {
+        Ok(EnumerableSet::DiscreteSet(set))
+    } else {
+        Ok(EnumerableSet::Expr(expr::expr(s)?))
+    }
+}
+
+/// Grammar: `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
+/// Reference: <https://openqasm.com/language/classical.html#for-loops>.
+pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::For))?;
+    let r#type = scalar_type(s)?;
+    let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
+    token(s, TokenKind::Keyword(Keyword::In))?;
+    let set_declaration = Box::new(for_loop_iterable_expr(s)?);
+    let block = parse_block_or_stmt(s)?;
+
+    Ok(ForStmt {
+        span: s.span(lo),
+        r#type,
+        identifier,
+        set_declaration,
+        block,
+    })
+}
+
+/// Grammar: `WHILE LPAREN expression RPAREN body=statementOrScope`.
+/// Reference: <https://openqasm.com/language/classical.html#while-loops>.
+pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::While))?;
+    let paren_expr_lo = s.peek().span.lo;
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let while_condition = expr::paren_expr(s, paren_expr_lo)?;
+    let block = parse_block_or_stmt(s)?;
+
+    Ok(WhileLoop {
+        span: s.span(lo),
+        while_condition,
+        block,
+    })
 }

@@ -498,8 +498,8 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
         return Ok(IndexSetItem::Expr(expr));
     }
 
-    let end = opt(s, expr)?;
-    let step = opt(s, |s| {
+    let step = opt(s, expr)?;
+    let end = opt(s, |s| {
         token(s, TokenKind::Colon)?;
         expr(s)
     })?;
@@ -512,11 +512,11 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     }))
 }
 
-fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
+pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let (exprs, _) = seq(s, expr)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
+    let exprs = expr_list(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(DiscreteSet {
         span: s.span(lo),
         values: exprs.into_boxed_slice(),
