@@ -1,115 +1,118 @@
 /* Normal font is typically used for ket brackets, non-italic numerals & letters, e.g., ∣0⟩
    This font set include Latin alphanumeric characters, a few uppercase Greek letters, and common math symbols. */
 @font-face {
-    font-family: 'KaTeX_Main';
-    font-style: normal;
-    font-weight: 400;
-    src: url(fonts/KaTeX_Main-Regular.woff2) format('woff2');
+  font-family: "KaTeX_Main";
+  font-style: normal;
+  font-weight: 400;
+  src: url(fonts/KaTeX_Main-Regular.woff2) format("woff2");
 }
 
 /* Italic Roman and greek letters (capital and small), often used for gate/matrix letters (H) and α, ψ, θ, etc.
    This font has no punctuation of mathematical symbols (no brackets, sqrt, or even vertical bars or equal signs) */
 @font-face {
-    font-family: 'KaTeX_Math';
-    font-style: italic;
-    font-weight: 400;
-    src: url(fonts/KaTeX_Math-Italic.woff2) format('woff2');
+  font-family: "KaTeX_Math";
+  font-style: italic;
+  font-weight: 400;
+  src: url(fonts/KaTeX_Math-Italic.woff2) format("woff2");
 }
 
 :root {
-    font-size: 16px;
-    --circuit-font: 'KaTeX_Main';
-    --circuit-font-italic: 'KaTeX_Math';
-    --circuit-font-size: 1.3rem;
-    --circuit-font-script-size: 0.7rem;
-    --circuit-color: white;
-    --circuit-fill: #141414;
-    --circuit-shadow: #646464;
-    --circuit-droparea-fill: #332222;
-    --circuit-qubit-line: #909090;
-    --circuit-qubit-width: 2px;
-    --circuit-gate-fill: #000000;
-    --circuit-gate-stroke: #ffffff;
-    --circuit-gate-stroke-width: 1px;
-    --circuit-control-line-stroke-width: 2px;
-    --circuit-control-line-stroke-color: #e0e0e0;
-    --circuit-gate-width: 40px;
-    --circuit-gate-height: 40px;
+  font-size: 16px;
+  --circuit-font: "KaTeX_Main";
+  --circuit-font-italic: "KaTeX_Math";
+  --circuit-font-size: 1.3rem;
+  --circuit-font-script-size: 0.7rem;
+  --circuit-color: white;
+  --circuit-fill: #141414;
+  --circuit-shadow: #646464;
+  --circuit-droparea-fill: #332222;
+  --circuit-qubit-line: #909090;
+  --circuit-qubit-width: 2px;
+  --circuit-gate-fill: #000000;
+  --circuit-gate-stroke: #ffffff;
+  --circuit-gate-stroke-width: 1px;
+  --circuit-control-line-stroke-width: 2px;
+  --circuit-control-line-stroke-color: #e0e0e0;
+  --circuit-gate-width: 40px;
+  --circuit-gate-height: 40px;
 }
 
 body {
-    font-family: var(--circuit-font);
-    background-color: #1e1e1e;
-    color: white;
+  font-family: var(--circuit-font);
+  background-color: #1e1e1e;
+  color: white;
 }
 
 .circuit-background {
-    filter: drop-shadow(0 0 4px var(--circuit-shadow));
-    fill: var(--circuit-fill);
+  filter: drop-shadow(0 0 4px var(--circuit-shadow));
+  fill: var(--circuit-fill);
 }
 
 .circuit-hover-display {
-    display: inline;
+  display: inline;
 }
 
 .circuit-line {
-    stroke: var(--circuit-qubit-line);
-    stroke-width: var(--circuit-qubit-width);
+  stroke: var(--circuit-qubit-line);
+  stroke-width: var(--circuit-qubit-width);
 }
 
 .circuit-gate {
-    transform: translate(calc(var(--circuit-gate-width) * -0.5), calc(var(--circuit-gate-height) * -0.5));
-    fill: var(--circuit-gate-fill);
-    stroke: var(--circuit-gate-stroke);
-    stroke-width: var(--circuit-gate-stroke-width);
-    width: var(--circuit-gate-width);
-    height: var(--circuit-gate-height);
+  transform: translate(
+    calc(var(--circuit-gate-width) * -0.5),
+    calc(var(--circuit-gate-height) * -0.5)
+  );
+  fill: var(--circuit-gate-fill);
+  stroke: var(--circuit-gate-stroke);
+  stroke-width: var(--circuit-gate-stroke-width);
+  width: var(--circuit-gate-width);
+  height: var(--circuit-gate-height);
 }
 
 .circuit-gate-text {
-    font-family: var(--circuit-font-italic);
-    font-style: italic;
-    font-size: var(--circuit-font-size);
-    fill: var(--circuit-color);
-    text-anchor: middle;
-    pointer-events: none;
-    transform: translate(-1px, 1px);
-    dominant-baseline: middle;
-    user-select: none;
-    -webkit-user-select: none;
+  font-family: var(--circuit-font-italic);
+  font-style: italic;
+  font-size: var(--circuit-font-size);
+  fill: var(--circuit-color);
+  text-anchor: middle;
+  pointer-events: none;
+  transform: translate(-1px, 1px);
+  dominant-baseline: middle;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .circuit-script {
-    font-size: var(--circuit-font-script-size);
+  font-size: var(--circuit-font-script-size);
 }
 
 .circuit-gate-reset {
-    font-family: var(--circuit-font);
-    font-style: normal;
+  font-family: var(--circuit-font);
+  font-style: normal;
 }
 
 .circuit-cx-lines {
-    stroke: var(--circuit-control-line-stroke-color);
-    fill: var(--circuit-control-line-stroke-color);
-    stroke-width: var(--circuit-control-line-stroke-width);
-    pointer-events: none;
+  stroke: var(--circuit-control-line-stroke-color);
+  fill: var(--circuit-control-line-stroke-color);
+  stroke-width: var(--circuit-control-line-stroke-width);
+  pointer-events: none;
 }
 
 .circuit-cx-target {
-    fill: var(--circuit-fill);
-    pointer-events: auto;
+  fill: var(--circuit-fill);
+  pointer-events: auto;
 }
 
 .circuit-measure-angle {
-    stroke: var(--circuit-color);
-    fill: none;
-    stroke-width: 1px;
+  stroke: var(--circuit-color);
+  fill: none;
+  stroke-width: 1px;
 }
 
 .circuit-placeholder {
-    stroke: gray;
-    stroke-width: 2px;
-    stroke-dasharray: 4px 4px;
-    rx: 8px;
-    fill: var(--circuit-fill);
+  stroke: gray;
+  stroke-width: 2px;
+  stroke-dasharray: 4px 4px;
+  rx: 8px;
+  fill: var(--circuit-fill);
 }
