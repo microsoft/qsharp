@@ -479,7 +479,7 @@ impl Display for DefCalStmt {
 #[derive(Clone, Debug)]
 pub struct IfStmt {
     pub span: Span,
-    pub condition: ExprStmt,
+    pub condition: Expr,
     pub if_block: List<Stmt>,
     pub else_block: Option<List<Stmt>>,
 }
@@ -1565,32 +1565,10 @@ impl Display for ReturnStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct BranchingStmt {
-    span: Span,
-    condition: ExprStmt,
-    if_block: List<Stmt>,
-    else_block: List<Stmt>,
-}
-
-impl Display for BranchingStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "BranchingStmt {}: {}", self.span, self.condition)?;
-        for stmt in &self.if_block {
-            write!(indent, "\n{stmt}")?;
-        }
-        for stmt in &self.else_block {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct WhileLoop {
-    span: Span,
-    while_condition: ExprStmt,
-    block: List<Stmt>,
+    pub span: Span,
+    pub while_condition: Expr,
+    pub block: List<Stmt>,
 }
 
 impl Display for WhileLoop {
@@ -1606,11 +1584,11 @@ impl Display for WhileLoop {
 
 #[derive(Clone, Debug)]
 pub struct ForStmt {
-    span: Span,
-    r#type: ScalarType,
-    identifier: Identifier,
-    set_declaration: Box<EnumerableSet>,
-    block: List<Stmt>,
+    pub span: Span,
+    pub r#type: ScalarType,
+    pub identifier: Identifier,
+    pub set_declaration: Box<EnumerableSet>,
+    pub block: List<Stmt>,
 }
 
 impl Display for ForStmt {
@@ -1632,7 +1610,7 @@ impl Display for ForStmt {
 pub enum EnumerableSet {
     DiscreteSet(DiscreteSet),
     RangeDefinition(RangeDefinition),
-    Expr(ExprStmt),
+    Expr(Expr),
 }
 
 impl Display for EnumerableSet {
