@@ -48,41 +48,44 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
     let mut measure_results = vec![];
     let indent = "    ".repeat(indentation_level);
     // ToDo: Add support for children operations
-    for op in &circuit.operations {
-        if op.is_measurement {
-            let operation_str = measurement_call(op, &qubits);
-            let mut op_results = vec![];
-            for t in &op.targets {
-                if let Some(c_id) = t.c_id {
-                    let result = (format!("c{}_{}", t.q_id, c_id), (t.q_id, c_id));
-                    op_results.push(result.clone());
+    for col in &circuit.operations {
+        for op in col {
+            if op.is_measurement {
+                let operation_str = measurement_call(op, &qubits);
+                let mut op_results = vec![];
+                for t in &op.targets {
+                    if let Some(c_id) = t.c_id {
+                        let result = (format!("c{}_{}", t.q_id, c_id), (t.q_id, c_id));
+                        op_results.push(result.clone());
+                    }
                 }
-            }
 
-            // Sort first by q_id, then by c_id
-            op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
-            let result = op_results
-                .iter()
-                .map(|(name, _)| name.as_str())
-                .collect::<Vec<_>>()
-                .join(", ");
-            match op_results.len() {
-                0 => {
-                    qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                // Sort first by q_id, then by c_id
+                op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+                let result = op_results
+                    .iter()
+                    .map(|(name, _)| name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                match op_results.len() {
+                    0 => {
+                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                    }
+                    1 => {
+                        qsharp_str.push_str(&format!("{indent}let {result} = {operation_str};\n"));
+                        measure_results.extend(op_results);
+                    }
+                    _ => {
+                        qsharp_str
+                            .push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
+                        measure_results.extend(op_results);
+                    }
                 }
-                1 => {
-                    qsharp_str.push_str(&format!("{indent}let {result} = {operation_str};\n"));
-                    measure_results.extend(op_results);
-                }
-                _ => {
-                    qsharp_str.push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
-                    measure_results.extend(op_results);
-                }
-            }
-        } else {
-            let operation_str = operation_call(op, &qubits);
-            qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
-        };
+            } else {
+                let operation_str = operation_call(op, &qubits);
+                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+            };
+        }
     }
 
     if !measure_results.is_empty() {

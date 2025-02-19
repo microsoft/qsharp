@@ -9,15 +9,21 @@ fn deserialize_circuit() {
     let contents = r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "X",
-      "isControlled": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 1, "type": 0 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "X",
+        "isControlled": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 1, "type": 0 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -30,7 +36,8 @@ fn deserialize_circuit() {
     expect![[r#"
         q_0    ── H ──── Z ──── ● ──
         q_1    ── X ─────────── X ──
-    "#]].assert_eq(&c.to_string());
+    "#]]
+    .assert_eq(&c.to_string());
 }
 
 #[test]
@@ -70,7 +77,7 @@ fn no_gates() {
 fn bell() {
     let c = Circuit {
         operations: vec![
-            Operation {
+            vec![Operation {
                 gate: "H".to_string(),
                 display_args: None,
                 is_controlled: false,
@@ -79,8 +86,8 @@ fn bell() {
                 controls: vec![],
                 targets: vec![Register::quantum(0)],
                 children: vec![],
-            },
-            Operation {
+            }],
+            vec![Operation {
                 gate: "X".to_string(),
                 display_args: None,
                 is_controlled: true,
@@ -89,27 +96,29 @@ fn bell() {
                 controls: vec![Register::quantum(0)],
                 targets: vec![Register::quantum(1)],
                 children: vec![],
-            },
-            Operation {
-                gate: "Measure".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: true,
-                controls: vec![Register::quantum(0)],
-                targets: vec![Register::classical(0, 0)],
-                children: vec![],
-            },
-            Operation {
-                gate: "Measure".to_string(),
-                display_args: None,
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: true,
-                controls: vec![Register::quantum(1)],
-                targets: vec![Register::classical(1, 0)],
-                children: vec![],
-            },
+            }],
+            vec![
+                Operation {
+                    gate: "Measure".to_string(),
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::classical(0, 0)],
+                    children: vec![],
+                },
+                Operation {
+                    gate: "Measure".to_string(),
+                    display_args: None,
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: true,
+                    controls: vec![Register::quantum(1)],
+                    targets: vec![Register::classical(1, 0)],
+                    children: vec![],
+                },
+            ],
         ],
         qubits: vec![
             Qubit {
@@ -136,7 +145,7 @@ fn bell() {
 fn control_classical() {
     let c = Circuit {
         operations: vec![
-            Operation {
+            vec![Operation {
                 gate: "Measure".to_string(),
                 display_args: None,
                 is_controlled: false,
@@ -145,8 +154,8 @@ fn control_classical() {
                 controls: vec![Register::quantum(0)],
                 targets: vec![Register::classical(0, 0)],
                 children: vec![],
-            },
-            Operation {
+            }],
+            vec![Operation {
                 gate: "X".to_string(),
                 display_args: None,
                 is_controlled: true,
@@ -155,8 +164,8 @@ fn control_classical() {
                 controls: vec![Register::classical(0, 0)],
                 targets: vec![Register::quantum(2)],
                 children: vec![],
-            },
-            Operation {
+            }],
+            vec![Operation {
                 gate: "X".to_string(),
                 display_args: None,
                 is_controlled: true,
@@ -165,7 +174,7 @@ fn control_classical() {
                 controls: vec![Register::quantum(0)],
                 targets: vec![Register::quantum(2)],
                 children: vec![],
-            },
+            }],
         ],
         qubits: vec![
             Qubit {
@@ -196,7 +205,7 @@ fn control_classical() {
 fn two_measurements() {
     let c = Circuit {
         operations: vec![
-            Operation {
+            vec![Operation {
                 gate: "Measure".to_string(),
                 display_args: None,
                 is_controlled: false,
@@ -205,8 +214,8 @@ fn two_measurements() {
                 controls: vec![Register::quantum(0)],
                 targets: vec![Register::classical(0, 0)],
                 children: vec![],
-            },
-            Operation {
+            }],
+            vec![Operation {
                 gate: "Measure".to_string(),
                 display_args: None,
                 is_controlled: false,
@@ -215,7 +224,7 @@ fn two_measurements() {
                 controls: vec![Register::quantum(0)],
                 targets: vec![Register::classical(0, 1)],
                 children: vec![],
-            },
+            }],
         ],
         qubits: vec![Qubit {
             id: 0,
@@ -234,7 +243,7 @@ fn two_measurements() {
 #[test]
 fn with_args() {
     let c = Circuit {
-        operations: vec![Operation {
+        operations: vec![vec![Operation {
             gate: "rx".to_string(),
             display_args: Some("1.5708".to_string()),
             is_controlled: false,
@@ -243,7 +252,7 @@ fn with_args() {
             controls: vec![],
             targets: vec![Register::quantum(0)],
             children: vec![],
-        }],
+        }]],
         qubits: vec![Qubit {
             id: 0,
             num_children: 0,
@@ -259,7 +268,7 @@ fn with_args() {
 #[test]
 fn two_targets() {
     let c = Circuit {
-        operations: vec![Operation {
+        operations: vec![vec![Operation {
             gate: "rzz".to_string(),
             display_args: Some("1.0000".to_string()),
             is_controlled: false,
@@ -268,7 +277,7 @@ fn two_targets() {
             controls: vec![],
             targets: vec![Register::quantum(0), Register::quantum(2)],
             children: vec![],
-        }],
+        }]],
         qubits: vec![
             Qubit {
                 id: 0,

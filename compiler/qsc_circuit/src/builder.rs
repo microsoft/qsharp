@@ -255,7 +255,9 @@ impl Builder {
             self.max_ops_exceeded = true;
             return;
         }
-        self.circuit.operations.push(gate);
+        // Just give each operation their own column for now
+        // ToDo: apply algorithm to minimize circuit depth
+        self.circuit.operations.push(vec![gate]);
     }
 
     fn num_measurements_for_qubit(&self, qubit: WireId) -> usize {
@@ -275,7 +277,9 @@ impl Builder {
                 }
 
                 // guaranteed one measurement per qubit, so result is always 0
-                circuit.operations.push(measurement_gate(qubit.0, 0));
+                // Just give each operation their own column for now
+                // ToDo: apply algorithm to minimize circuit depth
+                circuit.operations.push(vec![measurement_gate(qubit.0, 0)]);
             }
         }
 

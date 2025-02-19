@@ -12,7 +12,7 @@ use std::{fmt::Display, fmt::Write, ops::Not, vec};
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
-    pub operations: Vec<Operation>,
+    pub operations: Vec<Vec<Operation>>,
     pub qubits: Vec<Qubit>,
 }
 
@@ -37,7 +37,7 @@ pub struct Operation {
     pub controls: Vec<Register>,
     pub targets: Vec<Register>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub children: Vec<Operation>,
+    pub children: Vec<Vec<Operation>>,
 }
 
 const QUANTUM_REGISTER: usize = 0;
@@ -347,78 +347,80 @@ impl Display for Circuit {
             }
         }
 
-        for o in &self.operations {
-            // Row indexes for the targets for this operation
-            let targets = o
-                .targets
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
+        for col in &self.operations {
+            for o in col {
+                // Row indexes for the targets for this operation
+                let targets = o
+                    .targets
+                    .iter()
+                    .filter_map(|reg| {
+                        let reg = (reg.q_id, reg.c_id);
+                        register_to_row.get(&reg).cloned()
+                    })
+                    .collect::<Vec<_>>();
 
-            // Row indexes for the controls for this operation
-            let controls = o
-                .controls
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
+                // Row indexes for the controls for this operation
+                let controls = o
+                    .controls
+                    .iter()
+                    .filter_map(|reg| {
+                        let reg = (reg.q_id, reg.c_id);
+                        register_to_row.get(&reg).cloned()
+                    })
+                    .collect::<Vec<_>>();
 
-            let mut all_rows = targets.clone();
-            all_rows.extend(controls.iter());
-            all_rows.sort_unstable();
+                let mut all_rows = targets.clone();
+                all_rows.extend(controls.iter());
+                all_rows.sort_unstable();
 
-            // We'll need to know the entire range of rows for this operation so we can
-            // figure out the starting column and also so we can draw any
-            // vertical lines that cross wires.
-            let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
-                (*first, tail.last().unwrap_or(first) + 1)
-            });
+                // We'll need to know the entire range of rows for this operation so we can
+                // figure out the starting column and also so we can draw any
+                // vertical lines that cross wires.
+                let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
+                    (*first, tail.last().unwrap_or(first) + 1)
+                });
 
-            // The starting column - the first available column in all
-            // the rows that this operation spans.
-            let column = rows[begin..end]
-                .iter()
-                .map(|r| r.next_column)
-                .max()
-                .unwrap_or(1);
+                // The starting column - the first available column in all
+                // the rows that this operation spans.
+                let column = rows[begin..end]
+                    .iter()
+                    .map(|r| r.next_column)
+                    .max()
+                    .unwrap_or(1);
 
-            // Add the operation to the diagram
-            for i in targets {
-                let row = &mut rows[i];
-                if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
-                    row.start_classical(column);
-                } else {
-                    row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
-                };
-            }
-
-            if o.is_controlled || o.is_measurement {
-                for i in controls {
+                // Add the operation to the diagram
+                for i in targets {
                     let row = &mut rows[i];
-                    if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
-                        row.add_object(column, "M");
+                    if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
+                        row.start_classical(column);
                     } else {
-                        row.add_object(column, "●");
+                        row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
                     };
                 }
 
-                // If we have a control wire, draw vertical lines spanning all
-                // control and target wires and crossing any in between
-                // (vertical lines may overlap if there are multiple controls/targets,
-                // this is ok in practice)
-                for row in &mut rows[begin..end] {
-                    row.add_vertical(column);
-                }
-            } else {
-                // No control wire. Draw dashed vertical lines to connect
-                // target wires if there are multiple targets
-                for row in &mut rows[begin..end] {
-                    row.add_dashed_vertical(column);
+                if o.is_controlled || o.is_measurement {
+                    for i in controls {
+                        let row = &mut rows[i];
+                        if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
+                            row.add_object(column, "M");
+                        } else {
+                            row.add_object(column, "●");
+                        };
+                    }
+
+                    // If we have a control wire, draw vertical lines spanning all
+                    // control and target wires and crossing any in between
+                    // (vertical lines may overlap if there are multiple controls/targets,
+                    // this is ok in practice)
+                    for row in &mut rows[begin..end] {
+                        row.add_vertical(column);
+                    }
+                } else {
+                    // No control wire. Draw dashed vertical lines to connect
+                    // target wires if there are multiple targets
+                    for row in &mut rows[begin..end] {
+                        row.add_dashed_vertical(column);
+                    }
                 }
             }
         }
