@@ -30,7 +30,8 @@ fn deserialize_circuit() {
     expect![[r#"
         q_0    ── H ──── Z ──── ● ──
         q_1    ── X ─────────── X ──
-    "#]].assert_eq(&c.to_string());
+    "#]]
+    .assert_eq(&c.to_string());
 }
 
 #[test]

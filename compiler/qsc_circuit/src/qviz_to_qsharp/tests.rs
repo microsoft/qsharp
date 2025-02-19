@@ -80,7 +80,6 @@ fn circuit_with_adjoint_gate() {
     {
       "gate": "X",
       "isAdjoint": true,
-      "controls": [{ "qId": 0, "type": 0 }],
       "targets": [{ "qId": 1, "type": 0 }]
     }
   ],
@@ -94,7 +93,7 @@ fn circuit_with_adjoint_gate() {
                 H(q0);
                 Z(q0);
                 S(q1);
-                Adjoint X([q0], q1);
+                Adjoint X(q1);
             }
         "#]],
     );
