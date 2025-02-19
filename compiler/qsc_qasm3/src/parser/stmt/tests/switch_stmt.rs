@@ -1,6 +1,5 @@
-use expect_test::expect;
-
 use crate::parser::{stmt::parse_switch_stmt, tests::check};
+use expect_test::expect;
 
 #[test]
 fn simple_switch() {
