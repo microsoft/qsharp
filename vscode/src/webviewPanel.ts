@@ -391,7 +391,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand(
       `${qsharpExtensionId}.showCircuit`,
-      async (operation?: IOperationInfo) => {
+      async (resource?: vscode.Uri, operation?: IOperationInfo) => {
         await showCircuitCommand(context.extensionUri, operation);
       },
     ),
