@@ -330,14 +330,15 @@ impl Display for Circuit {
         // to row in the diagram
         let mut register_to_row = FxHashMap::default();
 
-        // Keep track of which qubits have the qubit after them in the same multi-qubit operation.
-        let mut consequtive_qubits = FxHashSet::default();
+        // Keep track of which qubits have the qubit after them in the same multi-qubit operation,
+        // because those qubits need to get a gap row below them.
+        let mut qubits_with_gap_row_below = FxHashSet::default();
 
         for operation in self.operations.iter() {
             for target in operation.targets.iter() {
                 let qubit = target.q_id;
 
-                if consequtive_qubits.contains(&qubit) {
+                if qubits_with_gap_row_below.contains(&qubit) {
                     continue;
                 }
 
@@ -345,7 +346,7 @@ impl Display for Circuit {
 
                 // Check if the next qubit is also in this operation.
                 if operation.targets.iter().any(|t| t.q_id == next_qubit) {
-                    consequtive_qubits.insert(qubit);
+                    qubits_with_gap_row_below.insert(qubit);
                 }
             }
         }
@@ -361,8 +362,9 @@ impl Display for Circuit {
             register_to_row.insert((q.id, None), rows.len() - 1);
 
             // If this qubit has no children, but it is in a multi-qubit operation with
-            // the next qubit, we add one classical row for clarity.
-            let extra_rows = if consequtive_qubits.contains(&q.id) {
+            // the next qubit, we add an empty row to make room for the vertical connector.
+            // We can just use a classical wire type for this row since the wire won't actually be rendered.
+            let extra_rows = if qubits_with_gap_row_below.contains(&q.id) {
                 cmp::max(1, q.num_children)
             } else {
                 q.num_children
