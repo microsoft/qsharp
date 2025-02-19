@@ -28,18 +28,6 @@ const processOperations = (
   registers: RegisterMap,
 ): { metadataArray: Metadata[][]; svgWidth: number } => {
   if (operations.length === 0) return { metadataArray: [], svgWidth: startX };
-
-  // Group operations based on registers
-  //const groupedOps: number[][] = _groupOperations(operations, registers);
-
-  // Align operations on multiple registers
-  //const alignedOps: (number | null)[][] = _alignOps(groupedOps);
-
-  // Maintain widths of each column to account for variable-sized gates
-  // const numColumns: number = Math.max(
-  //   0,
-  //   ...alignedOps.map((ops) => ops.length),
-  // );
   const numColumns: number = operations.length;
   const columnsWidths: number[] = new Array(numColumns).fill(minGateWidth);
 
@@ -52,14 +40,6 @@ const processOperations = (
   // Map operation index to gate metadata for formatting later
   const opsMetadata: Metadata[][] = operations.map((col, colIndex) =>
     col.map((op) => {
-      //let op: Operation | null = null;
-
-      // eslint-disable-next-line no-prototype-builtins
-      // if (opIdx != null && !visited.hasOwnProperty(opIdx)) {
-      //   op = operations[opIdx];
-      //   visited[opIdx] = true;
-      // }
-
       const metadata: Metadata = _opToMetadata(op, registers);
 
       if (
@@ -133,33 +113,6 @@ const _getClassicalRegStart = (ops: Operation[][]): [number, Register][] => {
   });
   return clsRegs;
 };
-
-// /**
-//  * Retrieves the starting index of each classical register.
-//  *
-//  * @param ops     Array of operations.
-//  * @param idxList 2D array of aligned operation indices.
-//  *
-//  * @returns Array of classical register and their starting column indices in the form [[column, register]].
-//  */
-// const _getClassicalRegStart = (
-//   ops: Operation[],
-//   idxList: (number | null)[][],
-// ): [number, Register][] => {
-//   const clsRegs: [number, Register][] = [];
-//   idxList.forEach((reg) => {
-//     for (let col = 0; col < reg.length; col++) {
-//       const opIdx: number | null = reg[col];
-//       if (opIdx != null && ops[opIdx].isMeasurement) {
-//         const targetClsRegs: Register[] = ops[opIdx].targets.filter(
-//           (reg) => reg.type === RegisterType.Classical,
-//         );
-//         targetClsRegs.forEach((reg) => clsRegs.push([col, reg]));
-//       }
-//     }
-//   });
-//   return clsRegs;
-// };
 
 /**
  * Maps operation to metadata (e.g. gate type, position, dimensions, text)
