@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     ast::{
-        list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
+        list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
         ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EndStmt, EnumerableSet, Expr,
         ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident,
@@ -79,6 +79,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::End(stmt))
     } else if let Some(stmt) = opt(s, parse_expression_stmt)? {
         Box::new(StmtKind::ExprStmt(stmt))
+    } else if let Some(alias) = opt(s, parse_alias_stmt)? {
+        Box::new(StmtKind::Alias(alias))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -1056,5 +1058,19 @@ fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
     Ok(ExprStmt {
         span: s.span(lo),
         expr,
+    })
+}
+
+fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Let))?;
+    let ident = Identifier::Ident(Box::new(prim::ident(s)?));
+    token(s, TokenKind::Eq)?;
+    let exprs = expr::alias_expr(s)?;
+
+    Ok(AliasDeclStmt {
+        ident,
+        exprs,
+        span: s.span(lo),
     })
 }
