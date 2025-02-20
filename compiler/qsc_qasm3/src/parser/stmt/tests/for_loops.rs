@@ -92,3 +92,25 @@ fn for_loop_expr() {
                     StmtKind: ClassicalDeclarationStmt [31-41]: ClassicalType [31-34]: IntType [31-34], Ident [35-36] "a", ValueExpression ExprStmt [39-40]: Expr [39-40]: Lit: Int(0)"#]],
     );
 }
+
+#[test]
+fn for_loop_with_continue_stmt() {
+    check(
+        parse,
+        "
+    for int x in {1, 2, 3} {
+        int a = 0;
+        continue;
+    }",
+        &expect![[r#"
+            Stmt [5-72]
+                StmtKind: ForStmt [5-72]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", DiscreteSet [18-27]:
+                    Expr [19-20]: Lit: Int(1)
+                    Expr [22-23]: Lit: Int(2)
+                    Expr [25-26]: Lit: Int(3)
+                Stmt [38-48]
+                    StmtKind: ClassicalDeclarationStmt [38-48]: ClassicalType [38-41]: IntType [38-41], Ident [42-43] "a", ValueExpression ExprStmt [46-47]: Expr [46-47]: Lit: Int(0)
+                Stmt [57-66]
+                    StmtKind: Continue [57-66]"#]],
+    );
+}

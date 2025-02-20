@@ -4,9 +4,8 @@
 #[cfg(test)]
 pub(crate) mod tests;
 
-use std::rc::Rc;
-
 use qsc_data_structures::span::Span;
+use std::rc::Rc;
 
 use super::{
     completion::WordKinds,
@@ -19,9 +18,9 @@ use crate::{
     ast::{
         list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclaration, DefStmt, EnumerableSet, Expr, ExprStmt, ExternDecl, ExternParameter,
-        FloatType, ForStmt, IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt,
-        IntType, List, LiteralKind, Pragma, QuantumGateDefinition, QubitDeclaration,
+        ConstantDeclaration, ContinueStmt, DefStmt, EnumerableSet, Expr, ExprStmt, ExternDecl,
+        ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident, Identifier, IfStmt,
+        IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition, QubitDeclaration,
         RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt,
         TypeDef, TypedParameter, UIntType, WhileLoop,
     },
@@ -70,8 +69,10 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::For(stmt))
     } else if let Some(stmt) = opt(s, parse_while_loop)? {
         Box::new(StmtKind::WhileLoop(stmt))
-    } else if let Some(decl) = opt(s, parse_return)? {
-        Box::new(decl)
+    } else if let Some(stmt) = opt(s, parse_return)? {
+        Box::new(stmt)
+    } else if let Some(stmt) = opt(s, parse_continue_stmt)? {
+        Box::new(StmtKind::Continue(stmt))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -1015,4 +1016,12 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
         while_condition,
         block,
     })
+}
+
+/// Grammar: CONTINUE SEMICOLON
+fn parse_continue_stmt(s: &mut ParserContext) -> Result<ContinueStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Continue))?;
+    recovering_token(s, TokenKind::Semicolon);
+    Ok(ContinueStmt { span: s.span(lo) })
 }
