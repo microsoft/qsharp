@@ -75,6 +75,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Continue(stmt))
     } else if let Some(stmt) = opt(s, parse_break_stmt)? {
         Box::new(StmtKind::Break(stmt))
+    } else if let Some(stmt) = opt(s, parse_expression_stmt)? {
+        Box::new(StmtKind::ExprStmt(stmt))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -1024,7 +1026,7 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
 fn parse_continue_stmt(s: &mut ParserContext) -> Result<ContinueStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Continue))?;
-    recovering_token(s, TokenKind::Semicolon);
+    recovering_semi(s);
     Ok(ContinueStmt { span: s.span(lo) })
 }
 
@@ -1032,6 +1034,16 @@ fn parse_continue_stmt(s: &mut ParserContext) -> Result<ContinueStmt> {
 fn parse_break_stmt(s: &mut ParserContext) -> Result<BreakStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Break))?;
-    recovering_token(s, TokenKind::Semicolon);
+    recovering_semi(s);
     Ok(BreakStmt { span: s.span(lo) })
+}
+
+fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
+    let lo = s.peek().span.lo;
+    let expr = expr::expr(s)?;
+    recovering_semi(s);
+    Ok(ExprStmt {
+        span: s.span(lo),
+        expr,
+    })
 }
