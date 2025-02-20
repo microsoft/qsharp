@@ -18,8 +18,8 @@ use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
         Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
-        IndexExpr, IndexSetItem, IndexedIdent, Lit, LiteralKind, MeasureExpr, RangeDefinition,
-        TypeDef, UnaryOp, ValueExpression, Version,
+        IndexExpr, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr,
+        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -776,4 +776,16 @@ fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
     let index = index_element(s)?;
     recovering_token(s, TokenKind::Close(Delim::Bracket));
     Ok(index)
+}
+
+/// This expressions are not part of the expression tree
+/// and are only used in alias statements.
+/// Grammar:
+pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
+    let mut exprs = Vec::new();
+    exprs.push(expr(s)?);
+    while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
+        exprs.push(expr(s)?);
+    }
+    Ok(list_from_iter(exprs))
 }
