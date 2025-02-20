@@ -400,7 +400,7 @@ impl<'a> Context<'a> {
                     .expect("return type should be present");
                 self.return_ty = prev_ret_ty;
                 self.inferrer
-                    .eq(body.span, output_ty.clone(), body_partial.ty);
+                    .eq(body.span, body_partial.ty, output_ty.clone());
                 converge(Ty::Arrow(Box::new(Arrow {
                     kind: convert::callable_kind_from_ast(*kind),
                     input: Box::new(input),
