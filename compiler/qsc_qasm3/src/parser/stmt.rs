@@ -18,8 +18,8 @@ use crate::{
     ast::{
         list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
-        ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EnumerableSet, Expr, ExprStmt,
-        ExternDecl, ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident,
+        ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EndStmt, EnumerableSet, Expr,
+        ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident,
         Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
         QubitDeclaration, RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind,
         SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
@@ -75,6 +75,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Continue(stmt))
     } else if let Some(stmt) = opt(s, parse_break_stmt)? {
         Box::new(StmtKind::Break(stmt))
+    } else if let Some(stmt) = opt(s, parse_end_stmt)? {
+        Box::new(StmtKind::End(stmt))
     } else if let Some(stmt) = opt(s, parse_expression_stmt)? {
         Box::new(StmtKind::ExprStmt(stmt))
     } else {
@@ -1038,6 +1040,15 @@ fn parse_break_stmt(s: &mut ParserContext) -> Result<BreakStmt> {
     Ok(BreakStmt { span: s.span(lo) })
 }
 
+/// Grammar: `END SEMICOLON`.
+fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::End))?;
+    recovering_semi(s);
+    Ok(EndStmt { span: s.span(lo) })
+}
+
+/// GRAMMAR: `expression SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
     let lo = s.peek().span.lo;
     let expr = expr::expr(s)?;
