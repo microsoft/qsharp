@@ -36,7 +36,7 @@ fn begin_document() {
         "|OPENQASM 3;",
         &expect![[r#"
             WordKinds(
-                Annotation | CReg | Def | Extern | Gate | Include | Input | OpenQASM | Output | Pragma | QReg | Qubit | Return | Switch,
+                Annotation | Break | Continue | CReg | Def | End | Extern | False | For | Gate | If | Include | Input | Let | OpenQASM | Output | Pragma | QReg | Qubit | True | Return | Switch | While,
             )
         "#]],
     );
@@ -48,7 +48,7 @@ fn end_of_version() {
         "OPENQASM 3;|",
         &expect![[r#"
             WordKinds(
-                Annotation | CReg | Def | Extern | Gate | Include | Input | Output | Pragma | QReg | Qubit | Return | Switch,
+                Annotation | Break | Continue | CReg | Def | End | Extern | False | For | Gate | If | Include | Input | Let | Output | Pragma | QReg | Qubit | True | Return | Switch | While,
             )
         "#]],
     );

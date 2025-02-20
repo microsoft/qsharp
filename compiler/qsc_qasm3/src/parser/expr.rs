@@ -18,8 +18,8 @@ use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
         Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
-        IndexExpr, IndexSetItem, IndexedIdent, Lit, LiteralKind, MeasureExpr, RangeDefinition,
-        TypeDef, UnaryOp, ValueExpression, Version,
+        IndexExpr, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr,
+        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -484,6 +484,12 @@ fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
     Ok(index)
 }
 
+/// QASM3 index set items can either of:
+///  1. An expression: arr[2]
+///  2. A range with start and end: arr[start : end]
+///  3. A range with start, step, and end: arr[start : step : end]
+///  4. Additionally, points 2. and 3. can have missing start, step, or step.
+///     here are some examples: arr[:], arr[: step :], arr[: step : end]
 fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     let lo = s.peek().span.lo;
     let start = opt(s, expr)?;
@@ -498,11 +504,22 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
         return Ok(IndexSetItem::Expr(expr));
     }
 
+    // We assume the second expr is the `end`.
     let end = opt(s, expr)?;
-    let step = opt(s, |s| {
-        token(s, TokenKind::Colon)?;
-        expr(s)
-    })?;
+
+    // If no colon, return a range with start and end: [start : end].
+    if token(s, TokenKind::Colon).is_err() {
+        return Ok(IndexSetItem::RangeDefinition(RangeDefinition {
+            span: s.span(lo),
+            start,
+            end,
+            step: None,
+        }));
+    }
+
+    // If there was a second colon, the second expression was the step.
+    let step = end;
+    let end = opt(s, expr)?;
 
     Ok(IndexSetItem::RangeDefinition(RangeDefinition {
         span: s.span(lo),
@@ -512,11 +529,11 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     }))
 }
 
-fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
+pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let (exprs, _) = seq(s, expr)?;
-    token(s, TokenKind::Close(Delim::Brace))?;
+    let exprs = expr_list(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(DiscreteSet {
         span: s.span(lo),
         values: exprs.into_boxed_slice(),
@@ -606,6 +623,10 @@ fn infix_op(name: OpName) -> Option<InfixOp> {
         TokenKind::Open(Delim::Bracket) => Some(InfixOp {
             kind: OpKind::Index,
             precedence: 13,
+        }),
+        TokenKind::Eq => Some(InfixOp {
+            kind: OpKind::Assign,
+            precedence: 0,
         }),
         _ => None,
     }
@@ -755,4 +776,16 @@ fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
     let index = index_element(s)?;
     recovering_token(s, TokenKind::Close(Delim::Bracket));
     Ok(index)
+}
+
+/// This expressions are not part of the expression tree
+/// and are only used in alias statements.
+/// Grammar: `expression (DOUBLE_PLUS expression)*`.
+pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
+    let mut exprs = Vec::new();
+    exprs.push(expr(s)?);
+    while opt(s, |s| token(s, TokenKind::PlusPlus))?.is_some() {
+        exprs.push(expr(s)?);
+    }
+    Ok(list_from_iter(exprs))
 }

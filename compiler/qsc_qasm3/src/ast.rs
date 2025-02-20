@@ -326,18 +326,18 @@ impl Display for HardwareQubit {
 }
 
 #[derive(Clone, Debug)]
-pub struct Alias {
-    pub ident: Box<Identifier>,
-    pub expr: Box<List<Expr>>,
+pub struct AliasDeclStmt {
+    pub ident: Identifier,
+    pub exprs: List<Expr>,
     pub span: Span,
 }
 
-impl Display for Alias {
+impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Alias {}: {}", self.span, self.ident)?;
         indent = set_indentation(indent, 1);
-        for expr in &*self.expr {
+        for expr in &*self.exprs {
             write!(indent, "\n{expr}")?;
         }
         Ok(())
@@ -378,7 +378,7 @@ impl Display for AssignOp {
 /// A statement kind.
 #[derive(Clone, Debug, Default)]
 pub enum StmtKind {
-    Alias(Alias),
+    Alias(AliasDeclStmt),
     Assign(Assign),
     AssignOp(AssignOp),
     Barrier(BarrierStmt),
@@ -395,6 +395,7 @@ pub enum StmtKind {
     DelayStmt(DelayStmt),
     /// An empty statement.
     Empty,
+    End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
     For(ForStmt),
@@ -435,6 +436,7 @@ impl Display for StmtKind {
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::DelayStmt(delay) => write!(f, "{delay}"),
             StmtKind::Empty => write!(f, "Empty"),
+            StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
@@ -479,7 +481,7 @@ impl Display for DefCalStmt {
 #[derive(Clone, Debug)]
 pub struct IfStmt {
     pub span: Span,
-    pub condition: ExprStmt,
+    pub condition: Expr,
     pub if_block: List<Stmt>,
     pub else_block: Option<List<Stmt>>,
 }
@@ -624,18 +626,6 @@ impl Display for IndexedIdent {
             write!(f, "\n{index}")?;
         }
         write!(f, "]")
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AliasStmt {
-    pub span: Span,
-    pub kind: Box<Expr>,
-}
-
-impl Display for AliasStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "AliasStmt {}: {}", self.span, self.kind)
     }
 }
 
@@ -1565,32 +1555,10 @@ impl Display for ReturnStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct BranchingStmt {
-    span: Span,
-    condition: ExprStmt,
-    if_block: List<Stmt>,
-    else_block: List<Stmt>,
-}
-
-impl Display for BranchingStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "BranchingStmt {}: {}", self.span, self.condition)?;
-        for stmt in &self.if_block {
-            write!(indent, "\n{stmt}")?;
-        }
-        for stmt in &self.else_block {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct WhileLoop {
-    span: Span,
-    while_condition: ExprStmt,
-    block: List<Stmt>,
+    pub span: Span,
+    pub while_condition: Expr,
+    pub block: List<Stmt>,
 }
 
 impl Display for WhileLoop {
@@ -1606,11 +1574,11 @@ impl Display for WhileLoop {
 
 #[derive(Clone, Debug)]
 pub struct ForStmt {
-    span: Span,
-    r#type: ScalarType,
-    identifier: Identifier,
-    set_declaration: Box<EnumerableSet>,
-    block: List<Stmt>,
+    pub span: Span,
+    pub r#type: ScalarType,
+    pub identifier: Identifier,
+    pub set_declaration: Box<EnumerableSet>,
+    pub block: List<Stmt>,
 }
 
 impl Display for ForStmt {
@@ -1632,7 +1600,7 @@ impl Display for ForStmt {
 pub enum EnumerableSet {
     DiscreteSet(DiscreteSet),
     RangeDefinition(RangeDefinition),
-    Expr(ExprStmt),
+    Expr(Expr),
 }
 
 impl Display for EnumerableSet {
@@ -2097,6 +2065,17 @@ impl Display for ContinueStmt {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct EndStmt {
+    pub span: Span,
+}
+
+impl Display for EndStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "End {}", self.span)
+    }
+}
+
 fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fmt::Result {
     write!(indent, "Assign:")?;
     indent = set_indentation(indent, 1);
@@ -2159,15 +2138,15 @@ fn display_range(mut indent: Indented<Formatter>, range: &RangeDefinition) -> fm
     write!(indent, "Range: {}", range.span)?;
     indent = set_indentation(indent, 1);
     match &range.start {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nstart: {e}")?,
         None => write!(indent, "\n<no start>")?,
     }
     match &range.step {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nstep: {e}")?,
         None => write!(indent, "\n<no step>")?,
     }
     match &range.end {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nend: {e}")?,
         None => write!(indent, "\n<no end>")?,
     }
     Ok(())
