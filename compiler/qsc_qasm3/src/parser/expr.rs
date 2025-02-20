@@ -517,7 +517,7 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
         }));
     }
 
-    // If there was a second semicolon, the second expression was the step.
+    // If there was a second colon, the second expression was the step.
     let step = end;
     let end = opt(s, expr)?;
 
@@ -780,7 +780,7 @@ fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
 
 /// This expressions are not part of the expression tree
 /// and are only used in alias statements.
-/// Grammar:
+/// Grammar: `expression (DOUBLE_PLUS expression)*`.
 pub fn alias_expr(s: &mut ParserContext) -> Result<List<Expr>> {
     let mut exprs = Vec::new();
     exprs.push(expr(s)?);
