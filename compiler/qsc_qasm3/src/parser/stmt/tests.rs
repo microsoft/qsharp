@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod alias;
 mod annotation;
 mod classical_decl;
 mod def;
