@@ -254,3 +254,33 @@ fn check_preparation_doc_sample() {
     "#]]
     .assert_eq(&out);
 }
+
+#[test]
+fn check_uniform_superposition_preparation() {
+    let out = test_expression_with_lib(
+        "Test.TestPrepareUniformSuperposition(5)",
+        STATE_PREPARATION_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000000000⟩: −0.4472+0.0000𝑖
+        |0010000000⟩: −0.4472+0.0000𝑖
+        |0100000000⟩: −0.4472+0.0000𝑖
+        |1000000000⟩: −0.4472+0.0000𝑖
+        |1100000000⟩: −0.4472+0.0000𝑖
+    "#]]
+    .assert_eq(&out);
+}
+
+#[test]
+fn check_uniform_superposition_preparation_exhaustive() {
+    let out = test_expression_with_lib(
+        "Test.TestPrepareUniformSuperpositionExhaustive()",
+        STATE_PREPARATION_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+
+    expect![[""]].assert_eq(&out);
+}
