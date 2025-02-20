@@ -424,7 +424,7 @@ function AnyOutsideToleranceD(tolerance : Double, coefficients : Double[]) : Boo
 ///    ResetAll(qs);
 /// ```
 operation PrepareUniformSuperposition(nStates : Int, qubits : Qubit[]) : Unit is Adj + Ctl {
-    Fact (nStates > 0, "Number of basis states must be positive.");
+    Fact(nStates > 0, "Number of basis states must be positive.");
     let nQubits = BitSizeI(nStates - 1);
     Fact(nQubits <= Length(qubits), $"Qubit register is too short to prepare {nStates} states.");
     let completeStateCount = 2^nQubits;
