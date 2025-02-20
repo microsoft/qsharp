@@ -11,6 +11,9 @@ import
     Std.Convert.ComplexAsComplexPolar,
     Std.Convert.IntAsDouble,
     Std.Arithmetic.ApplyIfGreaterLE,
+    Std.Arithmetic.ApplyIfGreaterL,
+    Std.Arithmetic.ReflectAboutInteger,
+    Std.Convert.IntAsBigInt,
     Std.Math.*,
     Std.Arrays.*;
 
@@ -425,168 +428,30 @@ function AnyOutsideToleranceD(tolerance : Double, coefficients : Double[]) : Boo
 /// ```
 operation PrepareUniformSuperposition(nStates : Int, qubits : Qubit[]) : Unit is Adj + Ctl {
     Fact(nStates > 0, "Number of basis states must be positive.");
-    let nQubits = BitSizeI(nStates - 1);
+    let nQubits = BitSizeI(nStates-1);
     Fact(nQubits <= Length(qubits), $"Qubit register is too short to prepare {nStates} states.");
-    let completeStateCount = 2^nQubits;
+    let relevantQubits = qubits[...nQubits - 1];
+    let nTrailingZeroes = TrailingZeroCountI(nStates);
 
-    if nStates == completeStateCount {
-        // Superposition over all states involving nQubits
-        for i in 0..nQubits-1 {
-            H(qubits[i]);
-        }
+    if nTrailingZeroes == nQubits {
+        ApplyToEachCA(H, relevantQubits);
     } else {
-        use flagQubit = Qubit[3];
-        let targetQubits = qubits[0..nQubits - 1];
-        let register = flagQubit + targetQubits;
-        let stateOracle = PrepareUniformSuperpositionOracle(nStates, nQubits, 0, _);
+        use tgt = Qubit();
 
-        let phases = ([0.0, PI()], [PI(), 0.0]);
+        let sqrt = Sqrt(IntAsDouble(1 <<< Length(relevantQubits)) / IntAsDouble(nStates));
+        let angle = 2.0 * ArcSin(0.5 * sqrt);
 
-        ObliviousAmplitudeAmplificationFromStatePreparation(
-            phases,
-            stateOracle,
-            (qs0, qs1) => I(qs0[0]),
-            0
-        )(register, []);
+        ApplyToEachCA(H, relevantQubits);
 
-        ApplyToEachCA(X, flagQubit);
-    }
-}
+        ApplyIfGreaterL(Ry(2.0 * angle, _), IntAsBigInt(nStates), relevantQubits, tgt);
 
-operation PrepareUniformSuperpositionOracle(nIndices : Int, nQubits : Int, idxFlag : Int, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let targetQubits = qubits[3...];
-    let flagQubit = qubits[0];
-    let auxillaryQubits = qubits[1..2];
-    let theta = ArcSin(Sqrt(IntAsDouble(2^nQubits) / IntAsDouble(nIndices)) * Sin(PI() / 6.0));
-
-    ApplyToEachCA(H, targetQubits);
-    use compareQubits = Qubit[nQubits] {
         within {
-            ApplyXorInPlace(nIndices - 1, compareQubits);
+            ApplyToEachA(H, relevantQubits[nTrailingZeroes...]);
         } apply {
-            ApplyIfGreaterLE(X, targetQubits, compareQubits, auxillaryQubits[0]);
-            X(auxillaryQubits[0]);
-        }
-    }
-    Ry(2.0 * theta, auxillaryQubits[1]);
-    (Controlled X)(auxillaryQubits, flagQubit);
-}
-
-function ObliviousAmplitudeAmplificationFromStatePreparation(
-    phases : (Double[], Double[]),
-    startStateOracle : Qubit[] => Unit is Adj + Ctl,
-    signalOracle : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
-    idxFlagQubit : Int
-) : (Qubit[], Qubit[]) => Unit is Adj + Ctl {
-    let startStateReflection = (phase, qs) => {
-        within {
-            ApplyToEachCA(X, qs);
-        } apply {
-            Controlled R1(Rest(qs), (phase, qs[0]));
-        }
-    };
-    let targetStateReflection = (phase, qs) => R1(phase, qs[idxFlagQubit]);
-    let obliviousSignalOracle = (qs0, qs1) => { startStateOracle(qs0); signalOracle(qs0, qs1); };
-    return ObliviousAmplitudeAmplificationFromPartialReflections(
-        phases,
-        startStateReflection,
-        targetStateReflection,
-        obliviousSignalOracle
-    );
-}
-
-
-function ObliviousAmplitudeAmplificationFromPartialReflections(
-    phases : (Double[], Double[]),
-    startStateReflection : (Double, Qubit[]) => Unit is Adj + Ctl,
-    targetStateReflection : (Double, Qubit[]) => Unit is Adj + Ctl,
-    signalOracle : (Qubit[], Qubit[]) => Unit is Adj + Ctl
-) : (Qubit[], Qubit[]) => Unit is Adj + Ctl {
-    return ApplyObliviousAmplitudeAmplification(
-        phases,
-        startStateReflection,
-        targetStateReflection,
-        signalOracle,
-        _,
-        _
-    );
-}
-
-/// # Summary
-/// Oblivious amplitude amplification by specifying partial reflections.
-///
-/// # Description
-///
-/// Given a particular auxiliary start state $\ket{\text{start}}_a$, a
-/// particular auxiliary target state $\ket{\text{target}}_a$, and any
-/// system state $\ket{\psi}_s$, suppose that
-/// $$
-/// \begin{align}
-///     O\ket{\text{start}}_a\ket{\psi}_s = \lambda\ket{\text{target}}_a U \ket{\psi}_s + \sqrt{1-|\lambda|^2}\ket{\text{target}^\perp}_a
-/// \end{align}
-/// $$
-/// for some unitary $U$.
-/// By a sequence of reflections about the start and target states on the
-/// auxiliary register interleaved by applications of `signalOracle` and its
-/// adjoint, the success probability of applying $U$ may be altered.
-///
-/// In most cases, `auxiliaryRegister` is initialized in the state $\ket{\text{start}}_a$.
-///
-/// # Input
-/// ## phases
-/// Phases of partial reflections
-/// ## startStateReflection
-/// Reflection operator about start state of auxiliary register
-/// ## targetStateReflection
-/// Reflection operator about target state of auxiliary register
-/// ## signalOracle
-/// Unitary oracle $O$ that acts jointly on the
-/// auxiliary and system registers.
-/// ## auxiliaryRegister
-/// Auxiliary register
-/// ## systemRegister
-/// System register
-///
-/// # References
-/// - See [*D.W. Berry, A.M. Childs, R. Cleve, R. Kothari, R.D. Somma*](https://arxiv.org/abs/1312.1414)
-/// for the standard version.
-/// - See [*G.H. Low, I.L. Chuang*](https://arxiv.org/abs/1610.06546)
-/// for a generalization to partial reflections.
-operation ApplyObliviousAmplitudeAmplification(
-    phases : (Double[], Double[]),
-    startStateReflection : (Double, Qubit[]) => Unit is Adj + Ctl,
-    targetStateReflection : (Double, Qubit[]) => Unit is Adj + Ctl,
-    signalOracle : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
-    auxiliaryRegister : Qubit[],
-    systemRegister : Qubit[]
-) : Unit is Adj + Ctl {
-    let (aboutStart, aboutTarget) = phases;
-    Fact(Length(aboutStart) == Length(aboutTarget), "number of phases about start and target state must be equal");
-    let numPhases = Length(aboutStart);
-
-    for idx in 0..numPhases-1 {
-        if aboutStart[idx] != 0.0 {
-            startStateReflection(aboutStart[idx], auxiliaryRegister);
+            ReflectAboutInteger(0, relevantQubits[nTrailingZeroes...] + [tgt]);
+            Ry(-angle, tgt);
         }
 
-        if aboutTarget[idx] != 0.0 {
-            // In the last iteration we do not need to apply `Adjoint signalOracle`
-            if idx == numPhases - 1 {
-                signalOracle(auxiliaryRegister, systemRegister);
-                targetStateReflection(aboutTarget[idx], auxiliaryRegister);
-            } else {
-                within {
-                    signalOracle(auxiliaryRegister, systemRegister);
-                } apply {
-                    targetStateReflection(aboutTarget[idx], auxiliaryRegister);
-                }
-            }
-        }
-    }
-
-    // We do need one more `signalOracle` call, if the last phase about the target state was 0.0
-    if numPhases == 0 or aboutTarget[numPhases - 1] == 0.0 {
-        signalOracle(auxiliaryRegister, systemRegister);
+        X(tgt);
     }
 }
-

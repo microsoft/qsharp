@@ -24,6 +24,7 @@ import Std.Math.*;
 import Std.Convert.IntAsDouble;
 import Std.Arithmetic.ApplyIfGreaterLE;
 import Std.StatePreparation.PreparePureStateD;
+import Std.StatePreparation.PrepareUniformSuperposition;
 import Std.Diagnostics.Fact;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
