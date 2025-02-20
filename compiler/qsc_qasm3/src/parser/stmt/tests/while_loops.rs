@@ -59,3 +59,25 @@ fn while_loop_with_continue_stmt() {
                     StmtKind: Continue [49-58]"#]],
     );
 }
+
+#[test]
+fn while_loop_with_break_stmt() {
+    check(
+        parse,
+        "
+    while (x != 2) {
+        int a = 0;
+        break;
+    }",
+        &expect![[r#"
+            Stmt [5-61]
+                StmtKind: WhileLoop [5-61]: Expr [11-19]: Paren:
+                    Expr [12-18]: BinOp (Neq):
+                        Expr [12-13]: Ident [12-13] "x"
+                        Expr [17-18]: Lit: Int(2)
+                Stmt [30-40]
+                    StmtKind: ClassicalDeclarationStmt [30-40]: ClassicalType [30-33]: IntType [30-33], Ident [34-35] "a", ValueExpression ExprStmt [38-39]: Expr [38-39]: Lit: Int(0)
+                Stmt [49-55]
+                    StmtKind: Break [49-55]"#]],
+    );
+}
