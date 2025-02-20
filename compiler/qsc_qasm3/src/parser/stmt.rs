@@ -17,12 +17,12 @@ use super::{
 use crate::{
     ast::{
         list_from_iter, AccessControl, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, BitType, Block, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclaration, ContinueStmt, DefStmt, EnumerableSet, Expr, ExprStmt, ExternDecl,
-        ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident, Identifier, IfStmt,
-        IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition, QubitDeclaration,
-        RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt,
-        TypeDef, TypedParameter, UIntType, WhileLoop,
+        ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
+        ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EnumerableSet, Expr, ExprStmt,
+        ExternDecl, ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident,
+        Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
+        QubitDeclaration, RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind,
+        SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{
@@ -73,6 +73,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(stmt)
     } else if let Some(stmt) = opt(s, parse_continue_stmt)? {
         Box::new(StmtKind::Continue(stmt))
+    } else if let Some(stmt) = opt(s, parse_break_stmt)? {
+        Box::new(StmtKind::Break(stmt))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -1018,10 +1020,18 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
     })
 }
 
-/// Grammar: CONTINUE SEMICOLON
+/// Grammar: `CONTINUE SEMICOLON`.
 fn parse_continue_stmt(s: &mut ParserContext) -> Result<ContinueStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Continue))?;
     recovering_token(s, TokenKind::Semicolon);
     Ok(ContinueStmt { span: s.span(lo) })
+}
+
+/// Grammar: `BREAK SEMICOLON`.
+fn parse_break_stmt(s: &mut ParserContext) -> Result<BreakStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Break))?;
+    recovering_token(s, TokenKind::Semicolon);
+    Ok(BreakStmt { span: s.span(lo) })
 }
