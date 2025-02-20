@@ -484,6 +484,12 @@ fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
     Ok(index)
 }
 
+/// QASM3 index set items can either of:
+///  1. An expression: arr[2]
+///  2. A range with start and end: arr[start : end]
+///  3. A range with start, step, and end: arr[start : step : end]
+///  4. Additionally, points 2. and 3. can have missing start, step, or step.
+///     here are some examples: arr[:], arr[: step :], arr[: step : end]
 fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     let lo = s.peek().span.lo;
     let start = opt(s, expr)?;
@@ -498,11 +504,22 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
         return Ok(IndexSetItem::Expr(expr));
     }
 
-    let step = opt(s, expr)?;
-    let end = opt(s, |s| {
-        token(s, TokenKind::Colon)?;
-        expr(s)
-    })?;
+    // We assume the second expr is the `end`.
+    let end = opt(s, expr)?;
+
+    // If no colon, return a range with start and end: [start : end].
+    if token(s, TokenKind::Colon).is_err() {
+        return Ok(IndexSetItem::RangeDefinition(RangeDefinition {
+            span: s.span(lo),
+            start,
+            end,
+            step: None,
+        }));
+    }
+
+    // If there was a second semicolon, the second expression was the step.
+    let step = end;
+    let end = opt(s, expr)?;
 
     Ok(IndexSetItem::RangeDefinition(RangeDefinition {
         span: s.span(lo),
