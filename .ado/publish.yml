@@ -324,10 +324,11 @@ extends:
 
           # For arm64 linux(mariner) we need to use the python already installed
           # so we skip the prereqs check
+          # For arm64 windows rustup is not present in the image so we need to skip prereqs check too
           - script: |
               python ./prereqs.py --skip-wasm
             displayName: Check Prereqs
-            condition: not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64')))
+            condition: and(not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))), not(and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))))
 
           - script: |
               python build.py --pip --no-check-prereqs --integration-tests
