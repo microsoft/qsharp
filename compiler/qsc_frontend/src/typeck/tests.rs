@@ -3189,7 +3189,7 @@ fn lambda_inner_return_without_call_ambiguous() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-112 "{\n        let f = (a, b) -> {\n            return a + b;\n        };\n    }" : Unit
             #12 54-55 "f" : ((?2, ?2) -> ?2)
@@ -3204,7 +3204,7 @@ fn lambda_inner_return_without_call_ambiguous() {
             #25 89-90 "a" : ?2
             #28 93-94 "b" : ?2
             Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
-        "##]],
+        "#]],
     );
 }
 
