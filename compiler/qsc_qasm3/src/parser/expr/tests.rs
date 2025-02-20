@@ -1156,28 +1156,30 @@ fn lit_array() {
 #[test]
 fn assignment_and_unop() {
     check(
-        crate::parser::stmt::parse,
-        "bool c = a && !b;",
+        expr,
+        "c = a && !b",
         &expect![[r#"
-        Stmt [0-17]
-            StmtKind: ClassicalDeclarationStmt [0-17]: ClassicalType [0-4]: BoolType, Ident [5-6] "c", ValueExpression ExprStmt [9-16]: Expr [9-16]: BinOp (AndL):
-                Expr [9-10]: Ident [9-10] "a"
-                Expr [14-16]: UnOp (NotL):
-                    Expr [15-16]: Ident [15-16] "b""#]],
+            Expr [0-11]: Assign:
+                Expr [0-1]: Ident [0-1] "c"
+                Expr [4-11]: BinOp (AndL):
+                    Expr [4-5]: Ident [4-5] "a"
+                    Expr [9-11]: UnOp (NotL):
+                        Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
 #[test]
 fn assignment_unop_and() {
     check(
-        crate::parser::stmt::parse,
-        "bool d = !a && b;",
+        expr,
+        "d = !a && b",
         &expect![[r#"
-        Stmt [0-17]
-            StmtKind: ClassicalDeclarationStmt [0-17]: ClassicalType [0-4]: BoolType, Ident [5-6] "d", ValueExpression ExprStmt [9-16]: Expr [9-16]: BinOp (AndL):
-                Expr [9-11]: UnOp (NotL):
-                    Expr [10-11]: Ident [10-11] "a"
-                Expr [15-16]: Ident [15-16] "b""#]],
+            Expr [0-11]: Assign:
+                Expr [0-1]: Ident [0-1] "d"
+                Expr [4-11]: BinOp (AndL):
+                    Expr [4-6]: UnOp (NotL):
+                        Expr [5-6]: Ident [5-6] "a"
+                    Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
