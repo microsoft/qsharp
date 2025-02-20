@@ -395,6 +395,7 @@ pub enum StmtKind {
     DelayStmt(DelayStmt),
     /// An empty statement.
     Empty,
+    End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
     For(ForStmt),
@@ -435,6 +436,7 @@ impl Display for StmtKind {
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::DelayStmt(delay) => write!(f, "{delay}"),
             StmtKind::Empty => write!(f, "Empty"),
+            StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
@@ -2072,6 +2074,17 @@ pub struct ContinueStmt {
 impl Display for ContinueStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Continue {}", self.span)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct EndStmt {
+    pub span: Span,
+}
+
+impl Display for EndStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "End {}", self.span)
     }
 }
 
