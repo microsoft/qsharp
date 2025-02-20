@@ -624,6 +624,10 @@ fn infix_op(name: OpName) -> Option<InfixOp> {
             kind: OpKind::Index,
             precedence: 13,
         }),
+        TokenKind::Eq => Some(InfixOp {
+            kind: OpKind::Assign,
+            precedence: 0,
+        }),
         _ => None,
     }
 }
