@@ -919,7 +919,7 @@ fn parse_block_or_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
     }
 }
 
-/// Grammar ` LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?`.
+/// Grammar `IF LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?`.
 /// Source: <https://openqasm.com/language/classical.html#if-else-statements>.
 pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     let lo = s.peek().span.lo;
@@ -958,12 +958,9 @@ fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
 
     // If we find a third expr, then the second expr was the `step`.
     // and this third expr is the actual `end`.
-    if let Some(expr) = opt(s, |s| {
-        token(s, TokenKind::Colon)?;
-        expr::expr(s)
-    })? {
+    if token(s, TokenKind::Colon).is_ok() {
         step = end;
-        end = Some(expr);
+        end = Some(expr::expr(s)?);
     }
 
     recovering_token(s, TokenKind::Close(Delim::Bracket));
@@ -1050,7 +1047,7 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
     Ok(EndStmt { span: s.span(lo) })
 }
 
-/// GRAMMAR: `expression SEMICOLON`.
+/// Grammar: `expression SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
     let lo = s.peek().span.lo;
     let expr = expr::expr(s)?;
@@ -1061,12 +1058,14 @@ fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
     })
 }
 
+/// Grammar: `LET Identifier EQUALS aliasExpression SEMICOLON`.
 fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Let))?;
     let ident = Identifier::Ident(Box::new(prim::ident(s)?));
     token(s, TokenKind::Eq)?;
     let exprs = expr::alias_expr(s)?;
+    recovering_semi(s);
 
     Ok(AliasDeclStmt {
         ident,
