@@ -326,18 +326,18 @@ impl Display for HardwareQubit {
 }
 
 #[derive(Clone, Debug)]
-pub struct Alias {
-    pub ident: Box<Identifier>,
-    pub expr: Box<List<Expr>>,
+pub struct AliasDeclStmt {
+    pub ident: Identifier,
+    pub exprs: List<Expr>,
     pub span: Span,
 }
 
-impl Display for Alias {
+impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Alias {}: {}", self.span, self.ident)?;
         indent = set_indentation(indent, 1);
-        for expr in &*self.expr {
+        for expr in &*self.exprs {
             write!(indent, "\n{expr}")?;
         }
         Ok(())
@@ -378,7 +378,7 @@ impl Display for AssignOp {
 /// A statement kind.
 #[derive(Clone, Debug, Default)]
 pub enum StmtKind {
-    Alias(Alias),
+    Alias(AliasDeclStmt),
     Assign(Assign),
     AssignOp(AssignOp),
     Barrier(BarrierStmt),
@@ -626,18 +626,6 @@ impl Display for IndexedIdent {
             write!(f, "\n{index}")?;
         }
         write!(f, "]")
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AliasStmt {
-    pub span: Span,
-    pub kind: Box<Expr>,
-}
-
-impl Display for AliasStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "AliasStmt {}: {}", self.span, self.kind)
     }
 }
 
