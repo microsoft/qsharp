@@ -217,3 +217,41 @@ fn check_rca_for_operation_lambda_two_parameters_with_controls() {
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_function_lambda_using_array_slicing_with_explicit_return() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        let lambda = (a, n) -> { return a[...n - 1] };
+        lambda([1, 2, 3], 2)
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_function_lambda_using_array_slicing_with_implicit_return() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        let lambda = (a, n) -> { a[...n - 1] };
+        lambda([1, 2, 3], 2)
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}

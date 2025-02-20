@@ -2381,6 +2381,90 @@ fn lambda_with_invalid_free_variable() {
 }
 
 #[test]
+fn lambda_with_explicit_return_should_have_non_unit_output_type() {
+    check_hir(
+        "function Foo(): Unit { let f = i -> return i + 1;}",
+        &expect![[r#"
+            Package:
+                Item 0 [0-50] (Public):
+                    Namespace (Ident 21 [0-50] "test"): Item 1
+                Item 1 [0-50] (Internal):
+                    Parent: 0
+                    Callable 0 [0-50] (function):
+                        name: Ident 1 [9-12] "Foo"
+                        input: Pat 2 [12-14] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [0-50]: Impl:
+                            Block 4 [21-50] [Type Unit]:
+                                Stmt 5 [23-49]: Local (Immutable):
+                                    Pat 6 [27-28] [Type (Int -> Int)]: Bind: Ident 7 [27-28] "f"
+                                    Expr 8 [31-48] [Type (Int -> Int)]: Closure([], 2)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [31-48] (Internal):
+                    Parent: 1
+                    Callable 16 [31-48] (function):
+                        name: Ident 17 [31-48] "<lambda>"
+                        input: Pat 15 [31-48] [Type (Int,)]: Tuple:
+                            Pat 9 [31-32] [Type Int]: Bind: Ident 10 [31-32] "i"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 18 [36-48]: Impl:
+                            Block 19 [36-48] [Type Int]:
+                                Stmt 20 [36-48]: Expr: Expr 11 [36-48] [Type Int]: Return: Expr 12 [43-48] [Type Int]: BinOp (Add):
+                                    Expr 13 [43-44] [Type Int]: Var: Local 10
+                                    Expr 14 [47-48] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn lambda_with_implicit_return_should_have_non_unit_output_type() {
+    check_hir(
+        "function Foo(): Unit { let f = i -> i + 1}",
+        &expect![[r#"
+            Package:
+                Item 0 [0-42] (Public):
+                    Namespace (Ident 20 [0-42] "test"): Item 1
+                Item 1 [0-42] (Internal):
+                    Parent: 0
+                    Callable 0 [0-42] (function):
+                        name: Ident 1 [9-12] "Foo"
+                        input: Pat 2 [12-14] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [0-42]: Impl:
+                            Block 4 [21-42] [Type Unit]:
+                                Stmt 5 [23-41]: Local (Immutable):
+                                    Pat 6 [27-28] [Type (Int -> Int)]: Bind: Ident 7 [27-28] "f"
+                                    Expr 8 [31-41] [Type (Int -> Int)]: Closure([], 2)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [31-41] (Internal):
+                    Parent: 1
+                    Callable 15 [31-41] (function):
+                        name: Ident 16 [31-41] "<lambda>"
+                        input: Pat 14 [31-41] [Type (Int,)]: Tuple:
+                            Pat 9 [31-32] [Type Int]: Bind: Ident 10 [31-32] "i"
+                        output: Int
+                        functors: empty set
+                        body: SpecDecl 17 [36-41]: Impl:
+                            Block 18 [36-41] [Type Int]:
+                                Stmt 19 [36-41]: Expr: Expr 11 [36-41] [Type Int]: BinOp (Add):
+                                    Expr 12 [36-37] [Type Int]: Var: Local 10
+                                    Expr 13 [40-41] [Type Int]: Lit: Int(1)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
 fn duplicate_commas_in_tydef() {
     check_hir(
         indoc! {r#"
