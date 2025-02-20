@@ -1044,17 +1044,17 @@ fn index_multiple_ranges() {
         &expect![[r#"
             Expr [0-18]: IndexExpr [3-18]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
                 Range: [4-7]
-                    Expr [4-5]: Lit: Int(1)
+                    start: Expr [4-5]: Lit: Int(1)
                     <no step>
-                    Expr [6-7]: Lit: Int(5)
+                    end: Expr [6-7]: Lit: Int(5)
                 Range: [9-12]
-                    Expr [9-10]: Lit: Int(3)
+                    start: Expr [9-10]: Lit: Int(3)
                     <no step>
-                    Expr [11-12]: Lit: Int(7)
+                    end: Expr [11-12]: Lit: Int(7)
                 Range: [14-17]
-                    Expr [14-15]: Lit: Int(4)
+                    start: Expr [14-15]: Lit: Int(4)
                     <no step>
-                    Expr [16-17]: Lit: Int(8)"#]],
+                    end: Expr [16-17]: Lit: Int(8)"#]],
     );
 }
 
@@ -1066,9 +1066,9 @@ fn index_range() {
         &expect![[r#"
             Expr [0-10]: IndexExpr [3-10]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
                 Range: [4-9]
-                    Expr [4-5]: Lit: Int(1)
-                    Expr [8-9]: Lit: Int(2)
-                    Expr [6-7]: Lit: Int(5)"#]],
+                    start: Expr [4-5]: Lit: Int(1)
+                    step: Expr [6-7]: Lit: Int(5)
+                    end: Expr [8-9]: Lit: Int(2)"#]],
     );
 }
 
@@ -1094,7 +1094,7 @@ fn index_range_start() {
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
                 Range: [4-6]
-                    Expr [4-5]: Lit: Int(1)
+                    start: Expr [4-5]: Lit: Int(1)
                     <no step>
                     <no end>"#]],
     );
@@ -1110,7 +1110,7 @@ fn index_range_end() {
                 Range: [4-6]
                     <no start>
                     <no step>
-                    Expr [5-6]: Lit: Int(5)"#]],
+                    end: Expr [5-6]: Lit: Int(5)"#]],
     );
 }
 
@@ -1118,12 +1118,12 @@ fn index_range_end() {
 fn index_range_step() {
     check(
         expr,
-        "foo[::2]",
+        "foo[:2:]",
         &expect![[r#"
             Expr [0-8]: IndexExpr [3-8]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
                 Range: [4-7]
                     <no start>
-                    Expr [6-7]: Lit: Int(2)
+                    step: Expr [5-6]: Lit: Int(2)
                     <no end>"#]],
     );
 }
