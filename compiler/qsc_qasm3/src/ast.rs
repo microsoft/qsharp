@@ -2137,15 +2137,15 @@ fn display_range(mut indent: Indented<Formatter>, range: &RangeDefinition) -> fm
     write!(indent, "Range: {}", range.span)?;
     indent = set_indentation(indent, 1);
     match &range.start {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nstart: {e}")?,
         None => write!(indent, "\n<no start>")?,
     }
     match &range.step {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nstep: {e}")?,
         None => write!(indent, "\n<no step>")?,
     }
     match &range.end {
-        Some(e) => write!(indent, "\n{e}")?,
+        Some(e) => write!(indent, "\nend: {e}")?,
         None => write!(indent, "\n<no end>")?,
     }
     Ok(())
