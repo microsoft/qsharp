@@ -3221,7 +3221,7 @@ fn lambda_implicit_return_without_call_ambiguous() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-104 "{\n        let f = (a, b) -> {\n            a + b\n        };\n    }" : Unit
             #12 54-55 "f" : ((?3, ?3) -> ?3)
@@ -3235,7 +3235,7 @@ fn lambda_implicit_return_without_call_ambiguous() {
             #24 82-83 "a" : ?3
             #27 86-87 "b" : ?3
             Error(Type(Error(AmbiguousTy(Span { lo: 68, hi: 97 }))))
-        "##]],
+        "#]],
     );
 }
 
