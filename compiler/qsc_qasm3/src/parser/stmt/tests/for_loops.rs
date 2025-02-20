@@ -50,9 +50,9 @@ fn for_loop_range() {
         &expect![[r#"
             Stmt [5-52]
                 StmtKind: ForStmt [5-52]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", Range: [18-25]
-                    Expr [19-20]: Lit: Int(0)
-                    Expr [21-22]: Lit: Int(2)
-                    Expr [23-24]: Lit: Int(7)
+                    start: Expr [19-20]: Lit: Int(0)
+                    step: Expr [21-22]: Lit: Int(2)
+                    end: Expr [23-24]: Lit: Int(7)
                 Stmt [36-46]
                     StmtKind: ClassicalDeclarationStmt [36-46]: ClassicalType [36-39]: IntType [36-39], Ident [40-41] "a", ValueExpression ExprStmt [44-45]: Expr [44-45]: Lit: Int(0)"#]],
     );
@@ -69,9 +69,9 @@ fn for_loop_range_no_step() {
         &expect![[r#"
             Stmt [5-50]
                 StmtKind: ForStmt [5-50]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", Range: [18-23]
-                    Expr [19-20]: Lit: Int(0)
+                    start: Expr [19-20]: Lit: Int(0)
                     <no step>
-                    Expr [21-22]: Lit: Int(7)
+                    end: Expr [21-22]: Lit: Int(7)
                 Stmt [34-44]
                     StmtKind: ClassicalDeclarationStmt [34-44]: ClassicalType [34-37]: IntType [34-37], Ident [38-39] "a", ValueExpression ExprStmt [42-43]: Expr [42-43]: Lit: Int(0)"#]],
     );
