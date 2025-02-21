@@ -16,6 +16,7 @@ import {
  * @param sourceLocation The location string of the source operation.
  * @param targetLocation The location string of the target position.
  * @param targetWire The wire index to move the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The moved operation or null if the move was unsuccessful.
  */
 const moveX = (
@@ -23,12 +24,14 @@ const moveX = (
   sourceLocation: string,
   targetLocation: string,
   targetWire: number,
+  insertNewColumn: boolean = false,
 ): Operation | null => {
   const sourceOperation = findOperation(
     circuitEvents.operations,
     sourceLocation,
   );
   if (sourceLocation === targetLocation) return sourceOperation;
+  console.log("Moving operation from", sourceLocation, "to", targetLocation);
   const sourceOperationParent = findParentArray(
     circuitEvents.operations,
     sourceLocation,
@@ -54,6 +57,7 @@ const moveX = (
     targetOperationParent,
     targetLastIndex,
     targetWire,
+    insertNewColumn,
   );
 
   // Delete sourceOperation
@@ -128,6 +132,7 @@ const moveX = (
  * @param sourceOperation The operation to be added.
  * @param targetLocation The location string of the target position.
  * @param targetWire The wire index to add the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The added operation or null if the addition was unsuccessful.
  */
 const addOperation = (
@@ -135,11 +140,14 @@ const addOperation = (
   sourceOperation: Operation,
   targetLocation: string,
   targetWire: number,
+  insertNewColumn: boolean = false,
 ): Operation | null => {
   const targetOperationParent = findParentArray(
     circuitEvents.operations,
     targetLocation,
   );
+  console.log("Adding operation at", targetLocation);
+
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
   if (
@@ -155,6 +163,7 @@ const addOperation = (
     targetOperationParent,
     targetLastIndex,
     targetWire,
+    insertNewColumn,
   );
   if (!newSourceOperation.isMeasurement) {
     newSourceOperation.targets = [{ qId: targetWire, type: 0 }];
@@ -173,6 +182,7 @@ const removeOperation = (
   circuitEvents: CircuitEvents,
   sourceLocation: string,
 ) => {
+  console.log("Removing operation at", sourceLocation);
   const sourceOperation = findOperation(
     circuitEvents.operations,
     sourceLocation,
@@ -288,6 +298,7 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
  * @param targetOperationParent The parent array where the operation will be added.
  * @param targetLastIndex The index within the parent array where the operation will be added.
  * @param targetWire The wire index to add the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The added operation.
  */
 const _addOp = (
@@ -296,6 +307,7 @@ const _addOp = (
   targetOperationParent: Operation[][],
   targetLastIndex: [number, number],
   targetWire: number,
+  insertNewColumn: boolean = false,
 ): Operation => {
   const newSourceOperation: Operation = JSON.parse(
     JSON.stringify(sourceOperation),
@@ -307,7 +319,11 @@ const _addOp = (
   if (targetOperationParent[colIndex] == null) {
     targetOperationParent[colIndex] = [];
   }
-  targetOperationParent[colIndex].splice(opIndex, 0, newSourceOperation);
+  if (insertNewColumn) {
+    targetOperationParent.splice(colIndex, 0, [newSourceOperation]);
+  } else {
+    targetOperationParent[colIndex].splice(opIndex, 0, newSourceOperation);
+  }
   return newSourceOperation;
 };
 

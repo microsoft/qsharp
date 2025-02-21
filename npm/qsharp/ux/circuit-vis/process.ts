@@ -507,6 +507,40 @@ const _transformToColRow = (
 };
 
 /**
+ * Get the minimum and maximum register indices for a given operation.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @param maxQId The maximum qubit ID.
+ * @returns A tuple containing the minimum and maximum register indices.
+ */
+const getMinMaxRegIdx = (
+  operation: Operation,
+  maxQId: number,
+): [number, number] => {
+  const { targets, controls } = operation;
+  const ctrls: Register[] = controls || [];
+  const qRegs: Register[] = [...ctrls, ...targets].filter(
+    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
+  );
+  const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
+  const clsControls: Register[] = ctrls.filter(
+    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
+  );
+  const isClassicallyControlled: boolean = clsControls.length > 0;
+  if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
+  // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
+  // the contiguous range of registers that it covers.
+  const minRegIdx: number = isClassicallyControlled
+    ? 0
+    : Math.min(...qRegIdxList);
+  const maxRegIdx: number = isClassicallyControlled
+    ? maxQId - 1
+    : Math.max(...qRegIdxList);
+
+  return [minRegIdx, maxRegIdx];
+};
+
+/**
  * Group gates provided by operations into their respective registers.
  *
  * @param operations Array of operations.
@@ -523,25 +557,8 @@ const _groupOperations = (
   // isn't acted upon and thus does not show up as a key in registers.
   const maxQId: number = Math.max(-1, ...registers.map(({ qId }) => qId)) + 1;
   const groupedOps: number[][] = Array.from(Array(maxQId), () => new Array(0));
-  operations.forEach(({ targets, controls }, instrIdx) => {
-    const ctrls: Register[] = controls || [];
-    const qRegs: Register[] = [...ctrls, ...targets].filter(
-      ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
-    );
-    const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
-    const clsControls: Register[] = ctrls.filter(
-      ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
-    );
-    const isClassicallyControlled: boolean = clsControls.length > 0;
-    if (!isClassicallyControlled && qRegs.length === 0) return;
-    // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
-    // the contiguous range of registers that it covers.
-    const minRegIdx: number = isClassicallyControlled
-      ? 0
-      : Math.min(...qRegIdxList);
-    const maxRegIdx: number = isClassicallyControlled
-      ? maxQId - 1
-      : Math.max(...qRegIdxList);
+  operations.forEach((operation, instrIdx) => {
+    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, maxQId);
     // Add operation also to registers that are in-between target registers
     // so that other gates won't render in the middle.
     for (let i = minRegIdx; i <= maxRegIdx; i++) {
@@ -592,4 +609,4 @@ const _alignOps = (ops: number[][]): (number | null)[][] => {
   return paddedOps;
 };
 
-export { processOperations, operationListToGrid };
+export { processOperations, operationListToGrid, getMinMaxRegIdx };
