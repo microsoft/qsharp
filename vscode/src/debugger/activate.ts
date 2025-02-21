@@ -45,21 +45,33 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContents`,
-      (resource: vscode.Uri, expr?: string) =>
+      (resource: vscode.Uri, expr?: string) => {
+        // if expr is not a string, ignore it. VS Code can sometimes
+        // pass other types when this command is invoked via UI buttons.
+        if (typeof expr !== "string") {
+          expr = undefined;
+        }
         startDebugging(
           resource,
           { name: "Run Q# File", stopOnEntry: false, entry: expr },
           { noDebug: true },
-        ),
+        );
+      },
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContents`,
-      (resource: vscode.Uri, expr?: string) =>
+      (resource: vscode.Uri, expr?: string) => {
+        // if expr is not a string, ignore it. VS Code can sometimes
+        // pass other types when this command is invoked via UI buttons.
+        if (typeof expr !== "string") {
+          expr = undefined;
+        }
         startDebugging(resource, {
           name: "Debug Q# File",
           stopOnEntry: true,
           entry: expr,
-        }),
+        });
+      },
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContentsWithCircuit`,
