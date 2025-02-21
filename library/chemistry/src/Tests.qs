@@ -2,7 +2,6 @@ import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import JordanWigner.JordanWignerOptimizedBlockEncoding.PrepareUniformSuperposition;
 import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorPQRSTermSigns;
 import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
 import JordanWigner.OptimizedBEOperator.SelectZ;
@@ -22,20 +21,6 @@ import Std.Math.ComplexPolar;
 import Std.Math.Lg;
 import Std.Arrays.Reversed;
 import Std.Math.Sqrt;
-
-@Config(Unrestricted)
-@Test()
-operation PrepareUniformSuperpositionTest() : Unit {
-    let NBits = 4;
-    use qs = Qubit[NBits];
-    for NStates in 1..2^NBits-1 {
-        PrepareUniformSuperposition(NStates, qs);
-        let t = Std.Math.Sqrt(1.0 / IntAsDouble(NStates));
-        Adjoint Std.StatePreparation.PreparePureStateD(Repeated(t, NStates), Reversed(qs));
-        Fact(CheckAllZero(qs), "All Z");
-        ResetAll(qs);
-    }
-}
 
 @Config(Unrestricted)
 @Test()

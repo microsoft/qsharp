@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::test_expression;
+use super::test_expression_fails;
 use super::test_expression_with_lib;
 use expect_test::expect;
 use qsc::interpret::Value;
@@ -253,4 +254,56 @@ fn check_preparation_doc_sample() {
         |10⟩: 0.9354+0.0000𝑖
     "#]]
     .assert_eq(&out);
+}
+
+#[test]
+fn check_uniform_superposition_preparation() {
+    let out = test_expression_with_lib(
+        "Test.TestPrepareUniformSuperposition(5)",
+        STATE_PREPARATION_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000000000⟩: 0.4472+0.0000𝑖
+        |0010000000⟩: 0.4472+0.0000𝑖
+        |0100000000⟩: 0.4472+0.0000𝑖
+        |1000000000⟩: 0.4472+0.0000𝑖
+        |1100000000⟩: 0.4472+0.0000𝑖
+    "#]]
+    .assert_eq(&out);
+}
+
+#[test]
+fn check_uniform_superposition_preparation_exhaustive() {
+    let _ = test_expression_with_lib(
+        "Test.TestPrepareUniformSuperpositionExhaustive()",
+        STATE_PREPARATION_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
+
+#[test]
+fn check_uniform_superposition_short_array() {
+    let out = test_expression_fails(
+        "{
+            use qs=Qubit[2];
+            Std.StatePreparation.PrepareUniformSuperposition(5, qs);
+        }",
+    );
+
+    expect!["program failed: Qubit register is too short to prepare 5 states."].assert_eq(&out);
+}
+
+#[test]
+fn check_uniform_superposition_invalid_state_count() {
+    let out = test_expression_fails(
+        "{
+            use qs=Qubit[2];
+            Std.StatePreparation.PrepareUniformSuperposition(0, qs);
+        }",
+    );
+
+    expect!["program failed: Number of basis states must be positive."].assert_eq(&out);
 }
