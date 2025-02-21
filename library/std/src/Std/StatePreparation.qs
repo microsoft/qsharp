@@ -433,15 +433,15 @@ operation PrepareUniformSuperposition(nStates : Int, qubits : Qubit[]) : Unit is
     let relevantQubits = qubits[...nQubits - 1];
     let nTrailingZeroes = TrailingZeroCountI(nStates);
 
-    if nTrailingZeroes == nQubits {
-        ApplyToEachCA(H, relevantQubits);
-    } else {
+    ApplyToEachCA(H, relevantQubits);
+
+    if nTrailingZeroes != nQubits {
+        // Not a superposition of all relevant states so adjustment is needed.
         use tgt = Qubit();
 
-        let sqrt = Sqrt(IntAsDouble(1 <<< Length(relevantQubits)) / IntAsDouble(nStates));
+        let nRelevantStates = 2^nQubits;
+        let sqrt = Sqrt(IntAsDouble(nRelevantStates) / IntAsDouble(nStates));
         let angle = 2.0 * ArcSin(0.5 * sqrt);
-
-        ApplyToEachCA(H, relevantQubits);
 
         ApplyIfGreaterL(Ry(2.0 * angle, _), IntAsBigInt(nStates), relevantQubits, tgt);
 
