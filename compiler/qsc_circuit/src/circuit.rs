@@ -179,34 +179,30 @@ impl Row {
         self.next_column = column + 1;
     }
 
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        column_renderers: &[ColumnRenderer],
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, columns: &[Column]) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
         let mut s = String::new();
         match &self.wire {
             Wire::Qubit { q_id: label } => {
                 s.write_str(&fmt_qubit_label(*label))?;
-                for (column, renderer) in column_renderers.iter().enumerate().skip(1) {
-                    let val = self.objects.get(&column);
+                for (column_index, column) in columns.iter().enumerate().skip(1) {
+                    let val = self.objects.get(&column_index);
                     let object = val.unwrap_or(&CircuitObject::Wire);
 
-                    s.write_str(&renderer.fmt_qubit_circuit_object(object))?;
+                    s.write_str(&column.fmt_qubit_circuit_object(object))?;
                 }
             }
             Wire::Classical { start_column } => {
-                for (column, renderer) in column_renderers.iter().enumerate() {
-                    let val = self.objects.get(&column);
+                for (column_index, column) in columns.iter().enumerate() {
+                    let val = self.objects.get(&column_index);
 
                     let object = match (val, start_column) {
                         (Some(v), _) => v,
-                        (None, Some(s)) if column > *s => &CircuitObject::Wire,
+                        (None, Some(s)) if column_index > *s => &CircuitObject::Wire,
                         _ => &CircuitObject::Blank,
                     };
 
-                    s.write_str(&renderer.fmt_classical_circuit_object(object))?;
+                    s.write_str(&column.fmt_classical_circuit_object(object))?;
                 }
             }
         }
@@ -235,11 +231,11 @@ fn fmt_qubit_label(id: usize) -> String {
     format!("q_{id: <rest$}")
 }
 
-struct ColumnRenderer {
+struct Column {
     column_width: usize,
 }
 
-impl Default for ColumnRenderer {
+impl Default for Column {
     fn default() -> Self {
         Self {
             column_width: MIN_COLUMN_WIDTH,
@@ -247,9 +243,9 @@ impl Default for ColumnRenderer {
     }
 }
 
-impl ColumnRenderer {
+impl Column {
     fn new(column_width: usize) -> Self {
-        // Column widths should be odd numbers for the renderer to work well
+        // Column widths should be odd numbers for this struct to work well
         let odd_column_width = column_width | 1;
         Self {
             column_width: odd_column_width,
@@ -459,9 +455,9 @@ impl Display for Circuit {
 
         // To be able to fit long-named operations, we calculate the required width for each column,
         // based on the maximum length needed for gates, where a gate X is printed as "- X -".
-        let column_renderers = (0..end_column)
+        let columns = (0..end_column)
             .map(|column| {
-                ColumnRenderer::new(
+                Column::new(
                     rows.iter()
                         .filter_map(|row| row.objects.get(&column))
                         .filter_map(|object| match object {
@@ -477,7 +473,7 @@ impl Display for Circuit {
 
         // Draw the diagram
         for row in rows {
-            row.fmt(f, &column_renderers)?;
+            row.fmt(f, &columns)?;
         }
 
         Ok(())
