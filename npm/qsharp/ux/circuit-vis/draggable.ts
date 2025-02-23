@@ -238,7 +238,33 @@ const _dropzoneLayer = (context: Context) => {
     .sort(([colIndexA], [colIndexB]) => Number(colIndexA) - Number(colIndexB))
     .map(([colIndex, colWidth]) => [Number(colIndex), colWidth]);
 
-  let xOffset = startX / 2;
+  // let xOffset = regLineStart;
+  let xOffset = startX - gatePadding;
+
+  const makeDropzoneBox = (
+    wireIndex: number,
+    colWidth: number,
+    shouldPushOps: boolean,
+  ) => {
+    const wireY = wireData[wireIndex];
+    if (shouldPushOps) {
+      return box(
+        xOffset - gatePadding * 2,
+        wireY - paddingY,
+        gatePadding * 4,
+        paddingY * 2,
+        "dropzone",
+      );
+    } else {
+      return box(
+        xOffset,
+        wireY - paddingY,
+        colWidth + gatePadding * 2,
+        paddingY * 2,
+        "dropzone",
+      );
+    }
+  };
 
   // Create dropzones for each intersection of columns and wires
   sortedColWidths.forEach(([colIndex, colWidth]) => {
@@ -249,19 +275,12 @@ const _dropzoneLayer = (context: Context) => {
       const [minTarget, maxTarget] = getMinMaxRegIdx(op, wireData.length);
       // Add dropzones before the first target
       while (wireIndex <= maxTarget) {
-        const wireY = wireData[wireIndex];
-        const dropzone = box(
-          xOffset,
-          wireY - paddingY,
-          colWidth + gatePadding * 2,
-          paddingY * 2,
-          "dropzone",
-        );
+        const shouldPushOps = wireIndex >= minTarget;
+        const dropzone = makeDropzoneBox(wireIndex, colWidth, shouldPushOps);
         dropzone.setAttribute(
           "data-dropzone-location",
           `${colIndex},${opIndex}`,
         );
-        const shouldPushOps = wireIndex >= minTarget;
         dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
         dropzone.setAttribute("data-dropzone-push", `${shouldPushOps}`);
         dropzoneLayer.appendChild(dropzone);
@@ -271,14 +290,7 @@ const _dropzoneLayer = (context: Context) => {
 
     // Add dropzones after the last target
     while (wireIndex < wireData.length) {
-      const wireY = wireData[wireIndex];
-      const dropzone = box(
-        xOffset,
-        wireY - paddingY,
-        colWidth + gatePadding * 2,
-        paddingY * 2,
-        "dropzone",
-      );
+      const dropzone = makeDropzoneBox(wireIndex, colWidth, false);
       dropzone.setAttribute(
         "data-dropzone-location",
         `${colIndex},${columnOps.length}`,
@@ -296,13 +308,9 @@ const _dropzoneLayer = (context: Context) => {
 
   // Add remaining dropzones to fit max-width of the circuit
   wireData.forEach((wireY, wireIndex) => {
-    const dropzone = box(
-      xOffset,
-      wireY - paddingY,
-      minGateWidth / 2 + gatePadding * 2,
-      paddingY * 2,
-      "dropzone",
-    );
+    // Note: the last column should have dropzones shaped like push-dropzones,
+    // but they shouldn't have the push logic attached to them
+    const dropzone = makeDropzoneBox(wireIndex, 0, true);
     dropzone.setAttribute("data-dropzone-location", `${endColIndex},0`);
     dropzone.setAttribute("data-dropzone-push", "false");
     dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);

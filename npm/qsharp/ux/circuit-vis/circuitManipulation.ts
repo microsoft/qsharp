@@ -31,7 +31,6 @@ const moveX = (
     sourceLocation,
   );
   if (sourceLocation === targetLocation) return sourceOperation;
-  console.log("Moving operation from", sourceLocation, "to", targetLocation);
   const sourceOperationParent = findParentArray(
     circuitEvents.operations,
     sourceLocation,
@@ -146,8 +145,6 @@ const addOperation = (
     circuitEvents.operations,
     targetLocation,
   );
-  console.log("Adding operation at", targetLocation);
-
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
   if (
@@ -182,7 +179,6 @@ const removeOperation = (
   circuitEvents: CircuitEvents,
   sourceLocation: string,
 ) => {
-  console.log("Removing operation at", sourceLocation);
   const sourceOperation = findOperation(
     circuitEvents.operations,
     sourceLocation,

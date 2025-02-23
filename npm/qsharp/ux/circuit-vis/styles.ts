@@ -250,7 +250,7 @@ const _draggable = `
     }
     .dropzone {
         fill-opacity: 0%;
-        stroke-opacity: 0%;
+        stroke-opacity: 60%;
     }
     .dropzone:hover {
         fill: #EC7063;
