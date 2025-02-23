@@ -8,6 +8,7 @@ use expect_test::expect;
 fn deserialize_circuit() {
     let contents = r#"
 {
+  "version": "1.0.0",
   "operations": [
     [
       { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
@@ -42,19 +43,15 @@ fn deserialize_circuit() {
 
 #[test]
 fn empty() {
-    let c = Circuit {
-        operations: vec![],
-        qubits: vec![],
-    };
-
+    let c = Circuit::new(vec![], vec![]);
     expect![[""]].assert_eq(&c.to_string());
 }
 
 #[test]
 fn no_gates() {
-    let c = Circuit {
-        operations: vec![],
-        qubits: vec![
+    let c = Circuit::new(
+        vec![],
+        vec![
             Qubit {
                 id: 0,
                 num_children: 0,
@@ -64,7 +61,7 @@ fn no_gates() {
                 num_children: 0,
             },
         ],
-    };
+    );
 
     expect![[r"
         q_0
@@ -117,9 +114,9 @@ fn bell() {
             children: vec![],
         },
     ];
-    let c = Circuit {
-        operations: operation_list_to_grid(operations, 1),
-        qubits: vec![
+    let c = Circuit::new(
+        operation_list_to_grid(operations, 1),
+        vec![
             Qubit {
                 id: 0,
                 num_children: 1,
@@ -129,7 +126,7 @@ fn bell() {
                 num_children: 1,
             },
         ],
-    };
+    );
 
     expect![[r"
         q_0    ── H ──── ● ──── M ──
@@ -174,9 +171,9 @@ fn control_classical() {
             children: vec![],
         },
     ];
-    let c = Circuit {
-        operations: operation_list_to_grid(operations, 2),
-        qubits: vec![
+    let c = Circuit::new(
+        operation_list_to_grid(operations, 2),
+        vec![
             Qubit {
                 id: 0,
                 num_children: 1,
@@ -190,7 +187,7 @@ fn control_classical() {
                 num_children: 0,
             },
         ],
-    };
+    );
 
     expect![[r"
         q_0    ── M ─────────── ● ──
@@ -225,13 +222,13 @@ fn two_measurements() {
             children: vec![],
         },
     ];
-    let c = Circuit {
-        operations: operation_list_to_grid(operations, 0),
-        qubits: vec![Qubit {
+    let c = Circuit::new(
+        operation_list_to_grid(operations, 0),
+        vec![Qubit {
             id: 0,
             num_children: 2,
         }],
-    };
+    );
 
     expect![[r"
         q_0    ── M ──── M ──
@@ -243,8 +240,8 @@ fn two_measurements() {
 
 #[test]
 fn with_args() {
-    let c = Circuit {
-        operations: vec![vec![Operation {
+    let c = Circuit::new(
+        vec![vec![Operation {
             gate: "rx".to_string(),
             display_args: Some("1.5708".to_string()),
             is_controlled: false,
@@ -254,11 +251,11 @@ fn with_args() {
             targets: vec![Register::quantum(0)],
             children: vec![],
         }]],
-        qubits: vec![Qubit {
+        vec![Qubit {
             id: 0,
             num_children: 0,
         }],
-    };
+    );
 
     expect![[r"
         q_0    ─ rx(1.5708) ──
@@ -268,8 +265,8 @@ fn with_args() {
 
 #[test]
 fn two_targets() {
-    let c = Circuit {
-        operations: vec![vec![Operation {
+    let c = Circuit::new(
+        vec![vec![Operation {
             gate: "rzz".to_string(),
             display_args: Some("1.0000".to_string()),
             is_controlled: false,
@@ -279,7 +276,7 @@ fn two_targets() {
             targets: vec![Register::quantum(0), Register::quantum(2)],
             children: vec![],
         }]],
-        qubits: vec![
+        vec![
             Qubit {
                 id: 0,
                 num_children: 0,
@@ -293,7 +290,7 @@ fn two_targets() {
                 num_children: 0,
             },
         ],
-    };
+    );
 
     expect![[r"
         q_0    ─ rzz(1.0000) ─
@@ -305,8 +302,8 @@ fn two_targets() {
 
 #[test]
 fn respect_column_info() {
-    let c = Circuit {
-        operations: vec![
+    let c = Circuit::new(
+        vec![
             vec![Operation {
                 gate: "X".to_string(),
                 display_args: None,
@@ -350,7 +347,7 @@ fn respect_column_info() {
                 children: vec![],
             }],
         ],
-        qubits: vec![
+        vec![
             Qubit {
                 id: 0,
                 num_children: 0,
@@ -360,7 +357,7 @@ fn respect_column_info() {
                 num_children: 0,
             },
         ],
-    };
+    );
 
     expect![[r#"
         q_0    ── X ──── Y ──── Z ──

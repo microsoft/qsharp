@@ -13,6 +13,7 @@ import { svgNS } from "./constants";
 import { extensionDraggable } from "./draggable";
 import { extensionEvents } from "./events";
 import { extensionPanel, PanelOptions } from "./panel";
+import { updateToCurrentVersion } from "../../src/shared/circuit";
 
 /**
  * Contains metadata for visualization.
@@ -55,7 +56,7 @@ export class Sqore {
    * @param style Custom visualization style.
    */
   constructor(circuit: Circuit, style: StyleConfig | string = {}) {
-    this.circuit = circuit;
+    this.circuit = updateToCurrentVersion(circuit);
     this.style = this.getStyle(style);
     this.extensions = [];
   }

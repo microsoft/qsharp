@@ -292,10 +292,7 @@ impl Builder {
 
         let max_q_id = qubits.iter().map(|qubit| qubit.id).max().unwrap_or(0);
 
-        Circuit {
-            operations: operation_list_to_grid(operations, max_q_id),
-            qubits,
-        }
+        Circuit::new(operation_list_to_grid(operations, max_q_id), qubits)
     }
 
     /// Splits the qubit arguments from classical arguments so that the qubits

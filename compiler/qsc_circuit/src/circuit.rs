@@ -12,8 +12,21 @@ use std::{fmt::Display, fmt::Write, ops::Not, vec};
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
+    pub version: String,
     pub operations: Vec<Vec<Operation>>,
     pub qubits: Vec<Qubit>,
+}
+
+impl Circuit {
+    pub const CURRENT_VERSION: &'static str = "1.0.0";
+
+    pub fn new(operations: Vec<Vec<Operation>>, qubits: Vec<Qubit>) -> Self {
+        Self {
+            version: Self::CURRENT_VERSION.to_string(),
+            operations,
+            qubits,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]

@@ -4,13 +4,32 @@
 import { Register } from "./register.js";
 
 /**
+ * Current format version.
+ */
+export const CURRENT_VERSION = "1.0.0";
+
+/**
  * Circuit to be visualized.
  */
 export interface Circuit {
+  version: string;
   /** Array of qubit resources. */
   qubits: Qubit[];
   operations: Operation[][];
 }
+
+/**
+ * Update circuit to current formate version.
+ */
+export const updateToCurrentVersion = (circuit: Circuit): Circuit => {
+  if (circuit.version === CURRENT_VERSION) {
+    return circuit;
+  }
+  return {
+    ...circuit,
+    version: CURRENT_VERSION,
+  };
+};
 
 /**
  * Represents a unique qubit resource bit.
