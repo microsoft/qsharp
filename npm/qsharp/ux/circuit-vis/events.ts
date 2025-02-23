@@ -57,6 +57,7 @@ class CircuitEvents {
   private selectedOperation: Operation | null;
   private selectedWire: number | null;
   private movingControl: boolean;
+  private mouseUpOnCircuit: boolean;
 
   constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
     this.renderFn = useRefresh;
@@ -71,6 +72,7 @@ class CircuitEvents {
     this.selectedOperation = null;
     this.selectedWire = null;
     this.movingControl = false;
+    this.mouseUpOnCircuit = false;
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -123,13 +125,37 @@ class CircuitEvents {
 
   documentMouseupHandler = () => {
     this.container.classList.remove("moving", "copying");
-    this.movingControl = false;
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
       if (ghostElem) {
         this.container.removeChild(ghostElem);
       }
+      if (!this.mouseUpOnCircuit) {
+        const selectedLocation = this.selectedOperation
+          ? getGateLocationString(this.selectedOperation)
+          : null;
+        if (this.selectedOperation != null && selectedLocation != null) {
+          // If we are moving a control, remove it from the selectedOperation
+          if (
+            this.movingControl &&
+            this.selectedOperation.controls != null &&
+            this.selectedWire != null
+          ) {
+            const controlIndex = this.selectedOperation.controls.findIndex(
+              (control) => control.qId === this.selectedWire,
+            );
+            if (controlIndex !== -1)
+              this.selectedOperation.controls.splice(controlIndex, 1);
+          } else {
+            // Otherwise, remove the selectedOperation
+            removeOperation(this, selectedLocation);
+          }
+          this.renderFn();
+        }
+      }
     }
+    this.movingControl = false;
+    this.mouseUpOnCircuit = false;
   };
 
   /**
@@ -160,6 +186,10 @@ class CircuitEvents {
       "mouseup",
       () => (this.dropzoneLayer.style.display = "none"),
     );
+
+    this.circuitSvg.addEventListener("mouseup", () => {
+      this.mouseUpOnCircuit = true;
+    });
   }
 
   /**
