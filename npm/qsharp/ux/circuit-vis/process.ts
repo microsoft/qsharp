@@ -352,15 +352,13 @@ const _fillMetadataX = (
   opsMetadata: Metadata[][],
   columnWidths: number[],
 ): number => {
-  let currX: number = startX;
+  let endX: number = startX;
 
   const colStartX: number[] = columnWidths.map((width) => {
-    const x: number = currX;
-    currX += width + gatePadding * 2;
+    const x: number = endX;
+    endX += width + gatePadding * 2;
     return x;
   });
-
-  const endX: number = currX;
 
   opsMetadata.forEach((col, colIndex) =>
     col.forEach((metadata) => {

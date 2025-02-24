@@ -13,7 +13,6 @@ import {
   getGateElems,
   getHostElems,
   getWireData,
-  locationStringToIndexes,
 } from "./utils";
 import { addContextMenuToHostElem } from "./contextMenu";
 import {
@@ -29,7 +28,6 @@ import {
   createWireDropzone,
   removeAllWireDropzones,
 } from "./draggable";
-import { getMinMaxRegIdx } from "./process";
 
 let events: CircuitEvents | null = null;
 
@@ -306,44 +304,6 @@ class CircuitEvents {
   }
 
   /**
-   * Check if any of the dropzones in the selected column have the "data-dropzone-push" attribute.
-   *
-   * @param dropzoneElems The list of dropzone elements to check.
-   * @param targetLoc The target location string to check against.
-   * @returns True if any dropzone in the selected column has the "data-dropzone-push" attribute, false otherwise.
-   */
-  _checkWireRangeForPushAttr(
-    dropzoneElems: NodeListOf<SVGRectElement>,
-    targetLoc: string,
-  ) {
-    if (this.selectedOperation == null || this.selectedWire == null)
-      return false;
-    // Check if any of the dropzones in the selected column have the "data-dropzone-push" attribute
-    const [minTarget, maxTarget] = getMinMaxRegIdx(
-      this.selectedOperation,
-      this.qubits.length,
-    );
-    const [targetColumn] = locationStringToIndexes(targetLoc)[0]; // Assumes only top-level location
-    for (let wire = minTarget; wire <= maxTarget; wire++) {
-      // Don't check the wire for the element that is being moved
-      if (wire === this.selectedWire) continue;
-      const wireDropzone = Array.from(dropzoneElems).find((elem) => {
-        const wireAttr = elem.getAttribute("data-dropzone-wire");
-        const locationAttr = elem.getAttribute("data-dropzone-location");
-        if (wireAttr && locationAttr) {
-          const [column] = locationStringToIndexes(locationAttr)[0];
-          return parseInt(wireAttr) === wire && column === targetColumn;
-        }
-        return false;
-      });
-      if (wireDropzone?.getAttribute("data-dropzone-push") == "true") {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
    * Add events for dropzone elements
    */
   _addDropzoneElementsEvents() {
@@ -354,8 +314,9 @@ class CircuitEvents {
         const copying = ev.ctrlKey;
         const originalOperations = cloneDeep(this.operations);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
-        let insertNewColumn =
-          dropzoneElem.getAttribute("data-dropzone-push") == "true" || false;
+        const insertNewColumn =
+          dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
+          false;
         const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
         const targetWire =
           targetWireStr != null ? parseInt(targetWireStr) : null;
@@ -378,12 +339,6 @@ class CircuitEvents {
             insertNewColumn,
           );
         } else if (sourceLocation && this.selectedWire != null) {
-          if (!insertNewColumn) {
-            insertNewColumn = this._checkWireRangeForPushAttr(
-              dropzoneElems,
-              targetLoc,
-            );
-          }
           if (copying) {
             addOperation(
               this,

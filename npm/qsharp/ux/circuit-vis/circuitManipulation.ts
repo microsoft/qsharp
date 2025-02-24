@@ -77,7 +77,8 @@ const _moveX = (
     circuitEvents.operations,
     sourceLocation,
   );
-  if (sourceLocation === targetLocation) return sourceOperation;
+  if (!insertNewColumn && sourceLocation === targetLocation)
+    return sourceOperation;
   const sourceOperationParent = findParentArray(
     circuitEvents.operations,
     sourceLocation,
