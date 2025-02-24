@@ -125,6 +125,8 @@ pub enum TokenKind {
     PlusPlus,
     /// `->`
     Arrow,
+    /// `@`
+    At,
 
     // Operators,
     ClosedBinOp(ClosedBinOp),
@@ -173,6 +175,7 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
+            TokenKind::At => write!(f, "`@`"),
             TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
             TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
             TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
@@ -404,6 +407,12 @@ pub(crate) struct Lexer<'a> {
 
     // This uses a `Peekable` iterator over the raw lexer, which allows for one token lookahead.
     tokens: Peekable<raw::Lexer<'a>>,
+
+    /// This flag is used to detect annotations at the
+    /// beginning of a file. Normally annotations are
+    /// detected because there is a Newline followed by an `@`,
+    /// but there is no newline at the beginning of a file.
+    beginning_of_file: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -415,6 +424,7 @@ impl<'a> Lexer<'a> {
                 .try_into()
                 .expect("input length should fit into u32"),
             tokens: raw::Lexer::new(input).peekable(),
+            beginning_of_file: true,
         }
     }
 
@@ -503,8 +513,27 @@ impl<'a> Lexer<'a> {
                     hi: token.offset,
                 }))
             }
-            raw::TokenKind::Comment(_) | raw::TokenKind::Newline | raw::TokenKind::Whitespace => {
-                Ok(None)
+            raw::TokenKind::Comment(_) | raw::TokenKind::Whitespace => Ok(None),
+            raw::TokenKind::Newline => {
+                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
+                self.next_if_eq(raw::TokenKind::Whitespace);
+                match self.tokens.peek() {
+                    Some(token) if token.kind == raw::TokenKind::Single(Single::At) => {
+                        let token = self.tokens.next().expect("self.tokens.peek() was Some(_)");
+                        let complete = TokenKind::Annotation;
+                        self.expect(raw::TokenKind::Ident, complete);
+                        self.eat_to_end_of_line();
+                        let kind = Some(complete);
+                        return Ok(kind.map(|kind| {
+                            let span = Span {
+                                lo: token.offset,
+                                hi: self.offset(),
+                            };
+                            Token { kind, span }
+                        }));
+                    }
+                    _ => Ok(None),
+                }
             }
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
@@ -620,11 +649,14 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::At => {
-                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
-                let complete = TokenKind::Annotation;
-                self.expect(raw::TokenKind::Ident, complete);
-                self.eat_to_end_of_line();
-                Ok(complete)
+                if self.beginning_of_file {
+                    let complete = TokenKind::Annotation;
+                    self.expect(raw::TokenKind::Ident, complete);
+                    self.eat_to_end_of_line();
+                    Ok(complete)
+                } else {
+                    Ok(TokenKind::At)
+                }
             }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
@@ -739,9 +771,15 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(token) = self.tokens.next() {
             match self.cook(&token) {
-                Ok(None) => {}
-                Ok(Some(token)) => return Some(Ok(token)),
-                Err(err) => return Some(Err(err)),
+                Ok(None) => self.beginning_of_file = false,
+                Ok(Some(token)) => {
+                    self.beginning_of_file = false;
+                    return Some(Ok(token));
+                }
+                Err(err) => {
+                    self.beginning_of_file = false;
+                    return Some(Err(err));
+                }
             }
         }
 
