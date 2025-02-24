@@ -10,7 +10,7 @@ use std::rc::Rc;
 use super::{
     completion::WordKinds,
     error::{Error, ErrorKind},
-    expr::{self, designator},
+    expr::{self, designator, gate_operand},
     prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, shorten},
     Result,
 };
@@ -19,10 +19,12 @@ use crate::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
         ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EndStmt, EnumerableSet, Expr,
-        ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, IODeclaration, IOKeyword, Ident,
-        Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
-        QubitDeclaration, RangeDefinition, ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind,
-        SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+        ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
+        GateCall, GateModifierKind, IODeclaration, IOKeyword, Ident, Identifier, IfStmt,
+        IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
+        QuantumGateModifier, QuantumStmt, QubitDeclaration, RangeDefinition, ReturnStmt,
+        ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType,
+        WhileLoop,
     },
     keyword::Keyword,
     lex::{
@@ -77,6 +79,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Break(stmt))
     } else if let Some(stmt) = opt(s, parse_end_stmt)? {
         Box::new(StmtKind::End(stmt))
+    } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
+        Box::new(stmt_kind)
     } else if let Some(stmt) = opt(s, parse_expression_stmt)? {
         Box::new(StmtKind::ExprStmt(stmt))
     } else if let Some(alias) = opt(s, parse_alias_stmt)? {
@@ -452,7 +456,7 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
-fn qubit_type(s: &mut ParserContext<'_>) -> Result<Option<ExprStmt>> {
+fn qubit_type(s: &mut ParserContext<'_>) -> Result<Option<Expr>> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Qubit))?;
     let size = opt(s, designator)?;
     Ok(size)
@@ -521,10 +525,7 @@ fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
             span: s.span(lo),
             r#type: ty,
             identifier,
-            init_expr: Box::new(ExprStmt {
-                span: init_expr.span,
-                expr: init_expr,
-            }),
+            init_expr,
         };
         StmtKind::ConstDecl(decl)
     } else {
@@ -657,20 +658,20 @@ fn qreg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
-fn extern_creg_type(s: &mut ParserContext) -> Result<Option<ExprStmt>> {
+fn extern_creg_type(s: &mut ParserContext) -> Result<Option<Expr>> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::CReg))?;
     let size = opt(s, designator)?;
     Ok(size)
 }
 
-fn creg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<ExprStmt>)> {
+fn creg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<Expr>)> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::CReg))?;
     let name = Box::new(prim::ident(s)?);
     let size = opt(s, designator)?;
     Ok((name, size))
 }
 
-fn qreg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<ExprStmt>)> {
+fn qreg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<Expr>)> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::QReg))?;
     let name = Box::new(prim::ident(s)?);
     let size = opt(s, designator)?;
@@ -1071,5 +1072,111 @@ fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
         ident,
         exprs,
         span: s.span(lo),
+    })
+}
+
+/// In QASM3, it is hard to disambiguate between a quantum-gate-call missing modifiers
+/// and expression statements. Consider the following expressions:
+///  1. `Rx(2, 3) q0;`
+///  2. `Rx(2, 3) + q0;`
+///  3. `Rx(2, 3);`
+///  4. `Rx;`
+///
+/// (1) is a quantum-gate-call, (2) is a binary operation, (3) is a function call, and
+/// (4) is an identifer. We don't know for sure until we see the what is beyond the gate
+/// name and its potential classical parameters.
+///
+/// Therefore, we parse the gate name and its potential parameters using the expr parser.
+/// If the expr is a function call or an identifier and it is followed by qubit arguments,
+/// we reinterpret the expression as a quantum gate.
+///
+/// Grammar:
+///  `gateModifier* Identifier (LPAREN expressionList? RPAREN)? designator? gateOperandList  SEMICOLON
+/// | gateModifier* GPHASE     (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON`.
+fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+    let modifiers = list_from_iter(many(s, gate_modifier)?);
+
+    // As explained in the docstring, we parse the gate using the expr parser.
+    let gate_or_expr = expr::expr(s)?;
+
+    let duration = opt(s, designator)?;
+    let qubits = list_from_iter(many(s, gate_operand)?);
+    recovering_semi(s);
+
+    // If didn't parse modifiers, a duration, nor qubit args then this is an expr, not a gate call.
+    if modifiers.is_empty() && duration.is_none() && qubits.is_empty() {
+        return Ok(StmtKind::ExprStmt(ExprStmt {
+            span: s.span(lo),
+            expr: gate_or_expr,
+        }));
+    }
+
+    let (name, args) = match *gate_or_expr.kind {
+        ExprKind::FunctionCall(FunctionCall { name, args, .. }) => (name, args),
+        ExprKind::Ident(ident) => (Identifier::Ident(Box::new(ident)), Default::default()),
+        _ => {
+            return Err(Error::new(ErrorKind::ExpectedItem(
+                TokenKind::Identifier,
+                gate_or_expr.span,
+            )))
+        }
+    };
+
+    let quantum_stmt = QuantumStmt {
+        span: s.span(lo),
+        kind: crate::ast::QuantumStmtKind::Gate(GateCall {
+            span: s.span(lo),
+            modifiers,
+            name,
+            args,
+            qubits,
+            duration,
+        }),
+    };
+
+    Ok(StmtKind::Quantum(quantum_stmt))
+}
+
+/// Grammar:
+/// `(
+///     INV
+///     | POW LPAREN expression RPAREN
+///     | (CTRL | NEGCTRL) (LPAREN expression RPAREN)?
+/// ) AT`.
+fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
+    let lo = s.peek().span.lo;
+
+    let kind = if opt(s, |s| token(s, TokenKind::Inv))?.is_some() {
+        GateModifierKind::Inv
+    } else if opt(s, |s| token(s, TokenKind::Pow))?.is_some() {
+        token(s, TokenKind::Open(Delim::Paren))?;
+        let expr = expr::expr(s)?;
+        recovering_token(s, TokenKind::Close(Delim::Paren));
+        GateModifierKind::Pow(expr)
+    } else if opt(s, |s| token(s, TokenKind::Ctrl))?.is_some() {
+        let expr = opt(s, |s| {
+            token(s, TokenKind::Open(Delim::Paren))?;
+            let expr = expr::expr(s)?;
+            recovering_token(s, TokenKind::Close(Delim::Paren));
+            Ok(expr)
+        })?;
+        GateModifierKind::Ctrl(expr)
+    } else {
+        token(s, TokenKind::NegCtrl)?;
+        let expr = opt(s, |s| {
+            token(s, TokenKind::Open(Delim::Paren))?;
+            let expr = expr::expr(s)?;
+            recovering_token(s, TokenKind::Close(Delim::Paren));
+            Ok(expr)
+        })?;
+        GateModifierKind::NegCtrl(expr)
+    };
+
+    recovering_token(s, TokenKind::At);
+
+    Ok(QuantumGateModifier {
+        span: s.span(lo),
+        kind,
     })
 }
