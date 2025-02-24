@@ -17,9 +17,9 @@ use qsc_data_structures::span::Span;
 use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
-        Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
-        IndexExpr, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr,
-        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
+        Expr, ExprKind, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr,
+        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TypeDef,
+        UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -673,15 +673,11 @@ fn unescape(s: &str) -> std::result::Result<String, usize> {
     Ok(buf)
 }
 
-pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
-    let lo = s.peek().span.lo;
+pub(super) fn designator(s: &mut ParserContext) -> Result<Expr> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let expr = expr(s)?;
-    token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(ExprStmt {
-        span: s.span(lo),
-        expr,
-    })
+    recovering_token(s, TokenKind::Close(Delim::Bracket));
+    Ok(expr)
 }
 
 /// A literal array is a list of literal array elements.
@@ -708,23 +704,17 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 }
 
 pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
-    let lo = s.peek().span.lo;
     if let Some(measurement) = opt(s, measure_expr)? {
         return Ok(Box::new(ValueExpression::Measurement(measurement)));
     }
 
-    let expr = if let Some(expr) = opt(s, expr_stmt)? {
+    let expr = if let Some(expr) = opt(s, expr)? {
         expr
     } else {
         lit_array(s)?
     };
 
-    let stmt = ExprStmt {
-        span: s.span(lo),
-        expr,
-    };
-
-    Ok(Box::new(ValueExpression::Expr(stmt)))
+    Ok(Box::new(ValueExpression::Expr(expr)))
 }
 
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
@@ -741,7 +731,7 @@ fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     })
 }
 
-fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
+pub(crate) fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
     if let Some(indexed_ident) = opt(s, indexed_identifier)? {
         return Ok(GateOperand::IndexedIdent(Box::new(indexed_ident)));
     }
