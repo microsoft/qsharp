@@ -36,7 +36,7 @@ fn input_bit_array_decl() {
         "input bit[2] b;",
         &expect![[r#"
             Stmt [0-15]
-                StmtKind: IODeclaration [0-15]: input, ClassicalType [6-12]: BitType [6-12]: ExprStmt [9-12]: Expr [10-11]: Lit: Int(2), Ident [13-14] "b""#]],
+                StmtKind: IODeclaration [0-15]: input, ClassicalType [6-12]: BitType [6-12]: Expr [10-11]: Lit: Int(2), Ident [13-14] "b""#]],
     );
 }
 
@@ -47,7 +47,7 @@ fn output_bit_array_decl() {
         "output bit[2] b;",
         &expect![[r#"
             Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: output, ClassicalType [7-13]: BitType [7-13]: ExprStmt [10-13]: Expr [11-12]: Lit: Int(2), Ident [14-15] "b""#]],
+                StmtKind: IODeclaration [0-16]: output, ClassicalType [7-13]: BitType [7-13]: Expr [11-12]: Lit: Int(2), Ident [14-15] "b""#]],
     );
 }
 
@@ -102,7 +102,7 @@ fn input_complex_sized_decl() {
         "input complex[float[32]] c;",
         &expect![[r#"
             Stmt [0-27]
-                StmtKind: IODeclaration [0-27]: input, ClassicalType [6-24]: ComplexType[float[FloatType[ExprStmt [19-23]: Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24], Ident [25-26] "c""#]],
+                StmtKind: IODeclaration [0-27]: input, ClassicalType [6-24]: ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24], Ident [25-26] "c""#]],
     );
 }
 
@@ -113,7 +113,7 @@ fn output_complex_sized_decl() {
         "output complex[float[32]] c;",
         &expect![[r#"
             Stmt [0-28]
-                StmtKind: IODeclaration [0-28]: output, ClassicalType [7-25]: ComplexType[float[FloatType[ExprStmt [20-24]: Expr [21-23]: Lit: Int(32)]: [15-24]]]: [7-25], Ident [26-27] "c""#]],
+                StmtKind: IODeclaration [0-28]: output, ClassicalType [7-25]: ComplexType[float[FloatType[Expr [21-23]: Lit: Int(32)]: [15-24]]]: [7-25], Ident [26-27] "c""#]],
     );
 }
 
@@ -146,7 +146,7 @@ fn input_int_sized_decl() {
         "input int[32] i;",
         &expect![[r#"
             Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: input, ClassicalType [6-13]: IntType[ExprStmt [9-13]: Expr [10-12]: Lit: Int(32)]: [6-13], Ident [14-15] "i""#]],
+                StmtKind: IODeclaration [0-16]: input, ClassicalType [6-13]: IntType[Expr [10-12]: Lit: Int(32)]: [6-13], Ident [14-15] "i""#]],
     );
 }
 
@@ -157,7 +157,7 @@ fn output_int_sized_decl() {
         "output int[32] i;",
         &expect![[r#"
             Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: output, ClassicalType [7-14]: IntType[ExprStmt [10-14]: Expr [11-13]: Lit: Int(32)]: [7-14], Ident [15-16] "i""#]],
+                StmtKind: IODeclaration [0-17]: output, ClassicalType [7-14]: IntType[Expr [11-13]: Lit: Int(32)]: [7-14], Ident [15-16] "i""#]],
     );
 }
 
@@ -190,7 +190,7 @@ fn input_uint_sized_decl() {
         "input uint[32] i;",
         &expect![[r#"
             Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: input, ClassicalType [6-14]: UIntType[ExprStmt [10-14]: Expr [11-13]: Lit: Int(32)]: [6-14], Ident [15-16] "i""#]],
+                StmtKind: IODeclaration [0-17]: input, ClassicalType [6-14]: UIntType[Expr [11-13]: Lit: Int(32)]: [6-14], Ident [15-16] "i""#]],
     );
 }
 
@@ -201,7 +201,7 @@ fn output_uint_sized_decl() {
         "output uint[32] i;",
         &expect![[r#"
             Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: output, ClassicalType [7-15]: UIntType[ExprStmt [11-15]: Expr [12-14]: Lit: Int(32)]: [7-15], Ident [16-17] "i""#]],
+                StmtKind: IODeclaration [0-18]: output, ClassicalType [7-15]: UIntType[Expr [12-14]: Lit: Int(32)]: [7-15], Ident [16-17] "i""#]],
     );
 }
 
@@ -234,7 +234,7 @@ fn input_float_sized_decl() {
         "input float[32] f;",
         &expect![[r#"
             Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: FloatType[ExprStmt [11-15]: Expr [12-14]: Lit: Int(32)]: [6-15], Ident [16-17] "f""#]],
+                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: FloatType[Expr [12-14]: Lit: Int(32)]: [6-15], Ident [16-17] "f""#]],
     );
 }
 
@@ -245,7 +245,7 @@ fn output_float_sized_decl() {
         "output float[32] f;",
         &expect![[r#"
             Stmt [0-19]
-                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: FloatType[ExprStmt [12-16]: Expr [13-15]: Lit: Int(32)]: [7-16], Ident [17-18] "f""#]],
+                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: FloatType[Expr [13-15]: Lit: Int(32)]: [7-16], Ident [17-18] "f""#]],
     );
 }
 
@@ -278,7 +278,7 @@ fn input_angle_sized_decl() {
         "input angle[32] a;",
         &expect![[r#"
             Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: AngleType [6-15]: ExprStmt [11-15]: Expr [12-14]: Lit: Int(32), Ident [16-17] "a""#]],
+                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: AngleType [6-15]: Expr [12-14]: Lit: Int(32), Ident [16-17] "a""#]],
     );
 }
 
@@ -289,7 +289,7 @@ fn output_angle_sized_decl() {
         "output angle[32] a;",
         &expect![[r#"
             Stmt [0-19]
-                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: AngleType [7-16]: ExprStmt [12-16]: Expr [13-15]: Lit: Int(32), Ident [17-18] "a""#]],
+                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: AngleType [7-16]: Expr [13-15]: Lit: Int(32), Ident [17-18] "a""#]],
     );
 }
 
