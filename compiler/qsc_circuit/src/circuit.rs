@@ -12,9 +12,14 @@ use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
+    #[serde(default = "default_version")]
     pub version: String,
     pub operations: Vec<Vec<Operation>>,
     pub qubits: Vec<Qubit>,
+}
+
+fn default_version() -> String {
+    Circuit::CURRENT_VERSION.to_string()
 }
 
 impl Circuit {
