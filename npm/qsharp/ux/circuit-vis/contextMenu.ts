@@ -1,21 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { removeOperation } from "./circuitManipulation";
+import { removeControl, removeOperation } from "./circuitManipulation";
 import { CircuitEvents } from "./events";
-import { findOperation } from "./utils";
+import { findGateElem, findOperation } from "./utils";
 
 /**
  * Adds a context menu to a gate element in the circuit visualization.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param gateElem The SVG element representing the gate to which the context menu will be added.
+ * @param hostElem The SVG element representing the gate to which the context menu will be added.
  */
 const addContextMenuToGateElem = (
   circuitEvents: CircuitEvents,
-  gateElem: SVGGraphicsElement,
+  hostElem: SVGGraphicsElement,
 ) => {
-  gateElem?.addEventListener("contextmenu", (ev: MouseEvent) => {
+  hostElem?.addEventListener("contextmenu", (ev: MouseEvent) => {
     ev.preventDefault();
 
     // Remove any existing context menu
@@ -24,6 +24,8 @@ const addContextMenuToGateElem = (
       document.body.removeChild(existingContextMenu);
     }
 
+    const gateElem = findGateElem(hostElem);
+    if (!gateElem) return;
     const selectedLocation = gateElem.getAttribute("data-location");
     const selectedOperation = findOperation(
       circuitEvents.operations,
@@ -35,6 +37,14 @@ const addContextMenuToGateElem = (
     contextMenu.classList.add("context-menu");
     contextMenu.style.top = `${ev.clientY}px`;
     contextMenu.style.left = `${ev.clientX}px`;
+    contextMenu.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    contextMenu.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
 
     const adjointOption = _createContextMenuItem("Toggle Adjoint", () => {
       selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
@@ -46,7 +56,20 @@ const addContextMenuToGateElem = (
     });
 
     let removeControlOption: HTMLDivElement | null = null;
-    if (selectedOperation.controls && selectedOperation.controls.length > 0) {
+    const dataWireStr = hostElem.getAttribute("data-wire");
+    const dataWire = dataWireStr != null ? parseInt(dataWireStr) : null;
+    const isControl =
+      hostElem.classList.contains("control-dot") && dataWire != null;
+    // The Remove Control option is different when targeting a control element directly.
+    if (isControl) {
+      removeControlOption = _createContextMenuItem("Remove control", () => {
+        removeControl(selectedOperation, dataWire);
+        circuitEvents.renderFn();
+      });
+    } else if (
+      selectedOperation.controls &&
+      selectedOperation.controls.length > 0
+    ) {
       removeControlOption = _createContextMenuItem("Remove control", () => {
         circuitEvents._startRemovingControl(selectedOperation);
       });
@@ -74,22 +97,25 @@ const addContextMenuToGateElem = (
       circuitEvents.renderFn();
     });
 
-    if (!selectedOperation.isMeasurement) {
-      // Note: X has a special symbol that doesn't allow for adjoint or args.
-      // In the future, we may want to create context menus off of host elements rather
-      // than gate elements. Then we can generalize this exception.
-      if (selectedOperation.gate != "X") {
-        contextMenu.appendChild(adjointOption);
+    // This is a bit of a mess of special-cases.
+    if (isControl && removeControlOption) {
+      contextMenu.appendChild(removeControlOption!);
+    } else {
+      if (!selectedOperation.isMeasurement) {
+        if (selectedOperation.gate != "X") {
+          contextMenu.appendChild(adjointOption);
+        }
+        contextMenu.appendChild(addControlOption);
+        if (removeControlOption) {
+          contextMenu.appendChild(removeControlOption);
+        }
+        if (selectedOperation.gate != "X") {
+          contextMenu.appendChild(promptArgOption);
+        }
       }
-      contextMenu.appendChild(addControlOption);
-      if (removeControlOption) {
-        contextMenu.appendChild(removeControlOption);
-      }
-      if (selectedOperation.gate != "X") {
-        contextMenu.appendChild(promptArgOption);
-      }
+      contextMenu.appendChild(deleteOption);
     }
-    contextMenu.appendChild(deleteOption);
+
     document.body.appendChild(contextMenu);
 
     document.addEventListener(
@@ -135,6 +161,18 @@ const _createCustomPrompt = (
   // Create the prompt overlay
   const overlay = document.createElement("div");
   overlay.classList.add("custom-prompt-overlay");
+  overlay.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  overlay.addEventListener("mouseup", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  overlay.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
 
   // Create the prompt container
   const promptContainer = document.createElement("div");

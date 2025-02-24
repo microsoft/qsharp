@@ -58,21 +58,27 @@ class CircuitEvents {
   private selectedWire: number | null;
   private movingControl: boolean;
   private mouseUpOnCircuit: boolean;
+  private dragging: boolean;
 
   constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
     this.renderFn = useRefresh;
+
     this.container = container;
     this.circuitSvg = container.querySelector("svg[id]") as SVGElement;
     this.dropzoneLayer = container.querySelector(
       ".dropzone-layer",
     ) as SVGGElement;
+
     this.operations = sqore.circuit.operations;
     this.qubits = sqore.circuit.qubits;
+
     this.wireData = getWireData(this.container);
     this.selectedOperation = null;
     this.selectedWire = null;
+
     this.movingControl = false;
     this.mouseUpOnCircuit = false;
+    this.dragging = false;
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -123,18 +129,22 @@ class CircuitEvents {
     removeAllWireDropzones(this.circuitSvg);
   };
 
-  documentMouseupHandler = () => {
+  documentMouseupHandler = (ev: MouseEvent) => {
+    const copying = ev.ctrlKey;
     this.container.classList.remove("moving", "copying");
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
       if (ghostElem) {
         this.container.removeChild(ghostElem);
       }
-      if (!this.mouseUpOnCircuit) {
+
+      // Handle deleting operations that have been dragged outside the circuit
+      if (!this.mouseUpOnCircuit && this.dragging && !copying) {
         const selectedLocation = this.selectedOperation
           ? getGateLocationString(this.selectedOperation)
           : null;
         if (this.selectedOperation != null && selectedLocation != null) {
+          // We are dragging a gate with a location (not from toolbox) out side the circuit
           // If we are moving a control, remove it from the selectedOperation
           if (
             this.movingControl &&
@@ -154,6 +164,7 @@ class CircuitEvents {
         }
       }
     }
+    this.dragging = false;
     this.movingControl = false;
     this.mouseUpOnCircuit = false;
   };
@@ -216,6 +227,8 @@ class CircuitEvents {
         this.selectedWire =
           selectedWireStr != null ? parseInt(selectedWireStr) : null;
       });
+
+      addContextMenuToGateElem(this, elem);
     });
   }
 
@@ -226,40 +239,39 @@ class CircuitEvents {
     const elems = getGateElems(this.container);
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
-        if (ev.button !== 0) return;
-        ev.stopPropagation();
-        removeAllWireDropzones(this.circuitSvg);
+        let selectedLocation = null;
         if (elem.getAttribute("data-expanded") !== "true") {
-          const selectedLocation = elem.getAttribute("data-location");
+          selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = findOperation(
             this.operations,
             selectedLocation,
           );
-          if (this.selectedOperation == null || !selectedLocation) return;
-
-          createGhostElement(
-            ev,
-            this.container,
-            this.selectedOperation,
-            this.movingControl,
-          );
-
-          // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
-          if (this.selectedOperation.dataAttributes == null) {
-            this.selectedOperation.dataAttributes = {
-              location: selectedLocation,
-            };
-          } else {
-            this.selectedOperation.dataAttributes["location"] =
-              selectedLocation;
-          }
-
-          this.container.classList.add("moving");
-          this.dropzoneLayer.style.display = "block";
         }
-      });
+        if (ev.button !== 0) return;
+        ev.stopPropagation();
+        removeAllWireDropzones(this.circuitSvg);
+        if (this.selectedOperation == null || !selectedLocation) return;
 
-      addContextMenuToGateElem(this, elem);
+        this.dragging = true;
+        createGhostElement(
+          ev,
+          this.container,
+          this.selectedOperation,
+          this.movingControl,
+        );
+
+        // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
+        if (this.selectedOperation.dataAttributes == null) {
+          this.selectedOperation.dataAttributes = {
+            location: selectedLocation,
+          };
+        } else {
+          this.selectedOperation.dataAttributes["location"] = selectedLocation;
+        }
+
+        this.container.classList.add("moving");
+        this.dropzoneLayer.style.display = "block";
+      });
     });
   }
 
@@ -271,6 +283,7 @@ class CircuitEvents {
     const type = elem.getAttribute("data-type");
     if (type == null) return;
     this.selectedOperation = defaultGateDictionary[type];
+    this.dragging = true;
     createGhostElement(ev, this.container, this.selectedOperation, false);
   };
 
