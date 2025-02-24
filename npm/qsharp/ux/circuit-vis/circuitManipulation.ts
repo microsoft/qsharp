@@ -3,11 +3,58 @@
 
 import { Operation } from "./circuit";
 import { CircuitEvents } from "./events";
+import { RegisterType } from "./register";
 import {
   findOperation,
   findParentArray,
+  findParentOperation,
+  getGateTargets,
   locationStringToIndexes,
 } from "./utils";
+
+/**
+ * Move an operation in the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceLocation The location string of the source operation.
+ * @param targetLocation The location string of the target position.
+ * @param sourceWire The wire index of the source operation.
+ * @param targetWire The wire index to move the operation to.
+ * @param movingControl Whether the operation is being moved as a control.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
+ * @returns The moved operation or null if the move was unsuccessful.
+ */
+const moveOperation = (
+  circuitEvents: CircuitEvents,
+  sourceLocation: string,
+  targetLocation: string,
+  sourceWire: number,
+  targetWire: number,
+  movingControl: boolean,
+  insertNewColumn: boolean = false,
+): Operation | null => {
+  const sourceOperation = _moveX(
+    circuitEvents,
+    sourceLocation,
+    targetLocation,
+    targetWire,
+    insertNewColumn,
+  );
+
+  if (sourceOperation == null) return null;
+
+  // Update sourceOperation targets and controls
+  _moveY(
+    circuitEvents,
+    sourceOperation,
+    sourceLocation,
+    sourceWire,
+    targetWire,
+    movingControl,
+  );
+
+  return sourceOperation;
+};
 
 /**
  * Move an operation horizontally.
@@ -16,19 +63,22 @@ import {
  * @param sourceLocation The location string of the source operation.
  * @param targetLocation The location string of the target position.
  * @param targetWire The wire index to move the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The moved operation or null if the move was unsuccessful.
  */
-const moveX = (
+const _moveX = (
   circuitEvents: CircuitEvents,
   sourceLocation: string,
   targetLocation: string,
   targetWire: number,
+  insertNewColumn: boolean = false,
 ): Operation | null => {
   const sourceOperation = findOperation(
     circuitEvents.operations,
     sourceLocation,
   );
-  if (sourceLocation === targetLocation) return sourceOperation;
+  if (!insertNewColumn && sourceLocation === targetLocation)
+    return sourceOperation;
   const sourceOperationParent = findParentArray(
     circuitEvents.operations,
     sourceLocation,
@@ -48,31 +98,65 @@ const moveX = (
     return null;
 
   // Insert sourceOperation to target last index
-  const newSourceOperation: Operation = JSON.parse(
-    JSON.stringify(sourceOperation),
+  const newSourceOperation = _addOp(
+    circuitEvents,
+    sourceOperation,
+    targetOperationParent,
+    targetLastIndex,
+    targetWire,
+    insertNewColumn,
   );
-  if (newSourceOperation.isMeasurement) {
-    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
-  }
-  targetOperationParent.splice(targetLastIndex, 0, newSourceOperation);
 
   // Delete sourceOperation
-  if (sourceOperation.dataAttributes === undefined) {
-    sourceOperation.dataAttributes = { removed: "true" };
-  } else {
-    sourceOperation.dataAttributes["removed"] = "true";
-  }
-  const indexToRemove = sourceOperationParent.findIndex(
-    (operation) =>
-      operation.dataAttributes && operation.dataAttributes["removed"],
-  );
-  sourceOperationParent.splice(indexToRemove, 1);
-
-  if (sourceOperation.isMeasurement) {
-    _removeMeasurementLines(circuitEvents, sourceOperation);
-  }
+  _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
 
   return newSourceOperation;
+};
+
+/**
+ * Move an operation vertically by changing its controls and targets.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceOperation The operation to be moved.
+ * @param sourceLocation The location string of the source operation.
+ * @param sourceWire The wire index of the source operation.
+ * @param targetWire The wire index to move the operation to.
+ * @param movingControl Whether the operation is being moved as a control.
+ */
+const _moveY = (
+  circuitEvents: CircuitEvents,
+  sourceOperation: Operation,
+  sourceLocation: string,
+  sourceWire: number,
+  targetWire: number,
+  movingControl: boolean,
+): void => {
+  if (sourceOperation.isMeasurement) {
+    _removeMeasurementLines(circuitEvents, sourceOperation);
+    _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
+  } else {
+    if (movingControl) {
+      sourceOperation.controls?.forEach((control) => {
+        if (control.qId === sourceWire) {
+          control.qId = targetWire;
+        }
+      });
+      sourceOperation.controls = sourceOperation.controls?.sort(
+        (a, b) => a.qId - b.qId,
+      );
+    } else {
+      sourceOperation.targets = [{ qId: targetWire, type: RegisterType.Qubit }];
+    }
+  }
+
+  // Update parent operation targets
+  const parentOperation = findParentOperation(
+    circuitEvents.operations,
+    sourceLocation,
+  );
+  if (parentOperation) {
+    parentOperation.targets = getGateTargets(parentOperation);
+  }
 };
 
 // /**
@@ -141,6 +225,7 @@ const moveX = (
  * @param sourceOperation The operation to be added.
  * @param targetLocation The location string of the target position.
  * @param targetWire The wire index to add the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The added operation or null if the addition was unsuccessful.
  */
 const addOperation = (
@@ -148,6 +233,7 @@ const addOperation = (
   sourceOperation: Operation,
   targetLocation: string,
   targetWire: number,
+  insertNewColumn: boolean = false,
 ): Operation | null => {
   const targetOperationParent = findParentArray(
     circuitEvents.operations,
@@ -162,16 +248,19 @@ const addOperation = (
   )
     return null;
 
-  // Insert sourceOperation to target last index
-  const newSourceOperation: Operation = JSON.parse(
-    JSON.stringify(sourceOperation),
+  const newSourceOperation = _addOp(
+    circuitEvents,
+    sourceOperation,
+    targetOperationParent,
+    targetLastIndex,
+    targetWire,
+    insertNewColumn,
   );
-  if (newSourceOperation.isMeasurement) {
-    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
-  } else {
-    newSourceOperation.targets = [{ qId: targetWire, type: 0 }];
+  if (!newSourceOperation.isMeasurement) {
+    newSourceOperation.targets = [
+      { qId: targetWire, type: RegisterType.Qubit },
+    ];
   }
-  targetOperationParent.splice(targetLastIndex, 0, newSourceOperation);
 
   return newSourceOperation;
 };
@@ -198,20 +287,7 @@ const removeOperation = (
   if (sourceOperation == null || sourceOperationParent == null) return null;
 
   // Delete sourceOperation
-  if (sourceOperation.dataAttributes === undefined) {
-    sourceOperation.dataAttributes = { removed: "true" };
-  } else {
-    sourceOperation.dataAttributes["removed"] = "true";
-  }
-  const indexToRemove = sourceOperationParent.findIndex(
-    (operation) =>
-      operation.dataAttributes && operation.dataAttributes["removed"],
-  );
-  sourceOperationParent.splice(indexToRemove, 1);
-
-  if (sourceOperation.isMeasurement) {
-    _removeMeasurementLines(circuitEvents, sourceOperation);
-  }
+  _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
 };
 
 /**
@@ -221,16 +297,24 @@ const removeOperation = (
  * @param pred The predicate function to determine which operations to remove.
  */
 const findAndRemoveOperations = (
-  operations: Operation[],
+  operations: Operation[][],
   pred: (op: Operation) => boolean,
 ) => {
   const inPlaceFilter = (
-    ops: Operation[],
+    ops: Operation[][],
     pred: (op: Operation) => boolean,
   ) => {
     let i = 0;
     while (i < ops.length) {
-      if (!pred(ops[i])) {
+      let j = 0;
+      while (j < ops[i].length) {
+        if (!pred(ops[i][j])) {
+          ops[i].splice(j, 1);
+        } else {
+          j++;
+        }
+      }
+      if (ops[i].length === 0) {
         ops.splice(i, 1);
       } else {
         i++;
@@ -266,7 +350,7 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
   if (!existingControl) {
     op.controls.push({
       qId: wireIndex,
-      type: 0,
+      type: RegisterType.Qubit,
     });
     op.controls.sort((a, b) => a.qId - b.qId);
     op.isControlled = true;
@@ -299,6 +383,82 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
 };
 
 /**
+ * Add an operation to the circuit at the specified location.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceOperation The operation to be added.
+ * @param targetOperationParent The parent array where the operation will be added.
+ * @param targetLastIndex The index within the parent array where the operation will be added.
+ * @param targetWire The wire index to add the operation to.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
+ * @returns The added operation.
+ */
+const _addOp = (
+  circuitEvents: CircuitEvents,
+  sourceOperation: Operation,
+  targetOperationParent: Operation[][],
+  targetLastIndex: [number, number],
+  targetWire: number,
+  insertNewColumn: boolean = false,
+): Operation => {
+  const newSourceOperation: Operation = JSON.parse(
+    JSON.stringify(sourceOperation),
+  );
+  if (newSourceOperation.isMeasurement) {
+    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
+  }
+  const [colIndex, opIndex] = targetLastIndex;
+  if (targetOperationParent[colIndex] == null) {
+    targetOperationParent[colIndex] = [];
+  }
+  if (insertNewColumn) {
+    targetOperationParent.splice(colIndex, 0, [newSourceOperation]);
+  } else {
+    targetOperationParent[colIndex].splice(opIndex, 0, newSourceOperation);
+  }
+  return newSourceOperation;
+};
+
+/**
+ * Remove an operation from the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceOperation The operation to be removed.
+ * @param sourceOperationParent The parent array from which the operation will be removed.
+ */
+const _removeOp = (
+  circuitEvents: CircuitEvents,
+  sourceOperation: Operation,
+  sourceOperationParent: Operation[][],
+) => {
+  if (sourceOperation.dataAttributes === undefined) {
+    sourceOperation.dataAttributes = { removed: "true" };
+  } else {
+    sourceOperation.dataAttributes["removed"] = "true";
+  }
+
+  // Find and remove the operation in sourceOperationParent
+  for (let colIndex = 0; colIndex < sourceOperationParent.length; colIndex++) {
+    const col = sourceOperationParent[colIndex];
+    const indexToRemove = col.findIndex(
+      (operation) =>
+        operation.dataAttributes && operation.dataAttributes["removed"],
+    );
+    if (indexToRemove !== -1) {
+      col.splice(indexToRemove, 1);
+      if (col.length === 0) {
+        sourceOperationParent.splice(colIndex, 1);
+      }
+      break;
+    }
+  }
+
+  if (sourceOperation.isMeasurement) {
+    _removeMeasurementLines(circuitEvents, sourceOperation);
+  }
+};
+
+/**
  * Add a measurement line to the circuit and attach the source operation.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
@@ -315,9 +475,15 @@ const _addMeasurementLine = (
     : 1;
   circuitEvents.qubits[targetQubitWire].numChildren = newNumChildren;
   sourceOperation.targets = [
-    { qId: targetQubitWire, type: 1, cId: newNumChildren - 1 },
+    {
+      qId: targetQubitWire,
+      type: RegisterType.Classical,
+      cId: newNumChildren - 1,
+    },
   ];
-  sourceOperation.controls = [{ qId: targetQubitWire, type: 0 }];
+  sourceOperation.controls = [
+    { qId: targetQubitWire, type: RegisterType.Qubit },
+  ];
 };
 
 /**
@@ -333,25 +499,27 @@ const _removeMeasurementLines = (
   for (const target of sourceOperation.targets) {
     const qubit = circuitEvents.qubits[target.qId];
     if (qubit.numChildren != undefined && target.cId != undefined) {
-      for (const op of circuitEvents.operations) {
-        if (op.controls) {
-          for (const control of op.controls) {
-            if (
-              control.qId === target.qId &&
-              control.cId &&
-              control.cId > target.cId
-            ) {
-              control.cId--;
+      for (const col of circuitEvents.operations) {
+        for (const op of col) {
+          if (op.controls) {
+            for (const control of op.controls) {
+              if (
+                control.qId === target.qId &&
+                control.cId &&
+                control.cId > target.cId
+              ) {
+                control.cId--;
+              }
             }
           }
-        }
-        for (const targetReg of op.targets) {
-          if (
-            targetReg.qId === target.qId &&
-            targetReg.cId &&
-            targetReg.cId > target.cId
-          ) {
-            targetReg.cId--;
+          for (const targetReg of op.targets) {
+            if (
+              targetReg.qId === target.qId &&
+              targetReg.cId &&
+              targetReg.cId > target.cId
+            ) {
+              targetReg.cId--;
+            }
           }
         }
       }
@@ -361,7 +529,7 @@ const _removeMeasurementLines = (
 };
 
 export {
-  moveX,
+  moveOperation,
   addOperation,
   removeOperation,
   findAndRemoveOperations,

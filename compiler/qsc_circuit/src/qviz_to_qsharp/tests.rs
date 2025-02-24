@@ -15,10 +15,14 @@ fn qsharp_from_circuit() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -28,8 +32,8 @@ fn qsharp_from_circuit() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Unit {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 X(q1);
             }
         "#]],
@@ -42,15 +46,21 @@ fn circuit_with_controlled_gate() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "X",
-      "isControlled": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 1, "type": 0 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "X",
+        "isControlled": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 1, "type": 0 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -60,8 +70,8 @@ fn circuit_with_controlled_gate() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Unit {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 Controlled X([q0], q1);
             }
         "#]],
@@ -74,14 +84,18 @@ fn circuit_with_adjoint_gate() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "X",
-      "isAdjoint": true,
-      "targets": [{ "qId": 1, "type": 0 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
+      {
+        "gate": "X",
+        "isAdjoint": true,
+        "targets": [{ "qId": 1, "type": 0 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -91,8 +105,8 @@ fn circuit_with_adjoint_gate() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Unit {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 Adjoint X(q1);
             }
         "#]],
@@ -105,16 +119,22 @@ fn circuit_with_controlled_adjoint_gate() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "X",
-      "isControlled": true,
-      "isAdjoint": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 1, "type": 0 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "X",
+        "isControlled": true,
+        "isAdjoint": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 1, "type": 0 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -124,8 +144,8 @@ fn circuit_with_controlled_adjoint_gate() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Unit {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 Controlled Adjoint X([q0], q1);
             }
         "#]],
@@ -138,9 +158,13 @@ fn circuit_with_rz_gate() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Rz", "targets": [{ "qId": 1, "type": 0 }], "displayArgs": "1.2" }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "Rz", "targets": [{ "qId": 1, "type": 0 }], "displayArgs": "1.2" }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -163,15 +187,21 @@ fn circuit_with_controlled_gate_multiple_args() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    {
-      "gate": "Rz",
-      "isControlled": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 1, "type": 0 }],
-      "displayArgs": "1.2"
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "Rz",
+        "isControlled": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 1, "type": 0 }],
+        "displayArgs": "1.2"
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 0 },
@@ -194,15 +224,21 @@ fn circuit_with_measurement_gate() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "Measure",
-      "isMeasurement": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 1 },
@@ -212,8 +248,8 @@ fn circuit_with_measurement_gate() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Result {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 let c0_0 = M(q0);
                 return c0_0;
             }
@@ -227,27 +263,35 @@ fn circuit_with_multiple_measurement_gates() {
         r#"
 {
   "operations": [
-    { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-    { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] },
-    {
-      "gate": "Measure",
-      "isMeasurement": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
-    },
-    {
-      "gate": "Measure",
-      "isMeasurement": true,
-      "controls": [{ "qId": 1, "type": 0 }],
-      "targets": [{ "qId": 1, "type": 1, "cId": 0 }]
-    },
-    {
-      "gate": "Measure",
-      "isMeasurement": true,
-      "controls": [{ "qId": 0, "type": 0 }],
-      "targets": [{ "qId": 0, "type": 1, "cId": 1 }]
-    }
+    [
+      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
+    ],
+    [
+      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
+      },
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [{ "qId": 1, "type": 0 }],
+        "targets": [{ "qId": 1, "type": 1, "cId": 0 }]
+      }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [{ "qId": 0, "type": 0 }],
+        "targets": [{ "qId": 0, "type": 1, "cId": 1 }]
+      }
+    ]
   ],
   "qubits": [
     { "id": 0, "numChildren": 2 },
@@ -257,8 +301,8 @@ fn circuit_with_multiple_measurement_gates() {
         &expect![[r#"
             operation Test(q0 : Qubit, q1 : Qubit) : Result[] {
                 H(q0);
-                Z(q0);
                 S(q1);
+                Z(q0);
                 let c0_0 = M(q0);
                 let c1_0 = M(q1);
                 let c0_1 = M(q0);

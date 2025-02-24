@@ -12,8 +12,21 @@ use std::{fmt::Display, fmt::Write, ops::Not, vec};
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
-    pub operations: Vec<Operation>,
+    pub version: String,
+    pub operations: Vec<Vec<Operation>>,
     pub qubits: Vec<Qubit>,
+}
+
+impl Circuit {
+    pub const CURRENT_VERSION: &'static str = "1.0.0";
+
+    pub fn new(operations: Vec<Vec<Operation>>, qubits: Vec<Qubit>) -> Self {
+        Self {
+            version: Self::CURRENT_VERSION.to_string(),
+            operations,
+            qubits,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
@@ -37,7 +50,7 @@ pub struct Operation {
     pub controls: Vec<Register>,
     pub targets: Vec<Register>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub children: Vec<Operation>,
+    pub children: Vec<Vec<Operation>>,
 }
 
 const QUANTUM_REGISTER: usize = 0;
@@ -347,78 +360,74 @@ impl Display for Circuit {
             }
         }
 
-        for o in &self.operations {
-            // Row indexes for the targets for this operation
-            let targets = o
-                .targets
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
+        for (col_index, col) in self.operations.iter().enumerate().collect::<Vec<_>>() {
+            for o in col {
+                // Row indexes for the targets for this operation
+                let targets = o
+                    .targets
+                    .iter()
+                    .filter_map(|reg| {
+                        let reg = (reg.q_id, reg.c_id);
+                        register_to_row.get(&reg).cloned()
+                    })
+                    .collect::<Vec<_>>();
 
-            // Row indexes for the controls for this operation
-            let controls = o
-                .controls
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
+                // Row indexes for the controls for this operation
+                let controls = o
+                    .controls
+                    .iter()
+                    .filter_map(|reg| {
+                        let reg = (reg.q_id, reg.c_id);
+                        register_to_row.get(&reg).cloned()
+                    })
+                    .collect::<Vec<_>>();
 
-            let mut all_rows = targets.clone();
-            all_rows.extend(controls.iter());
-            all_rows.sort_unstable();
+                let mut all_rows = targets.clone();
+                all_rows.extend(controls.iter());
+                all_rows.sort_unstable();
 
-            // We'll need to know the entire range of rows for this operation so we can
-            // figure out the starting column and also so we can draw any
-            // vertical lines that cross wires.
-            let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
-                (*first, tail.last().unwrap_or(first) + 1)
-            });
+                // We'll need to know the entire range of rows for this operation so we can
+                // figure out the starting column and also so we can draw any
+                // vertical lines that cross wires.
+                let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
+                    (*first, tail.last().unwrap_or(first) + 1)
+                });
 
-            // The starting column - the first available column in all
-            // the rows that this operation spans.
-            let column = rows[begin..end]
-                .iter()
-                .map(|r| r.next_column)
-                .max()
-                .unwrap_or(1);
+                let column = col_index + 1;
 
-            // Add the operation to the diagram
-            for i in targets {
-                let row = &mut rows[i];
-                if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
-                    row.start_classical(column);
-                } else {
-                    row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
-                };
-            }
-
-            if o.is_controlled || o.is_measurement {
-                for i in controls {
+                // Add the operation to the diagram
+                for i in targets {
                     let row = &mut rows[i];
-                    if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
-                        row.add_object(column, "M");
+                    if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
+                        row.start_classical(column);
                     } else {
-                        row.add_object(column, "●");
+                        row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
                     };
                 }
 
-                // If we have a control wire, draw vertical lines spanning all
-                // control and target wires and crossing any in between
-                // (vertical lines may overlap if there are multiple controls/targets,
-                // this is ok in practice)
-                for row in &mut rows[begin..end] {
-                    row.add_vertical(column);
-                }
-            } else {
-                // No control wire. Draw dashed vertical lines to connect
-                // target wires if there are multiple targets
-                for row in &mut rows[begin..end] {
-                    row.add_dashed_vertical(column);
+                if o.is_controlled || o.is_measurement {
+                    for i in controls {
+                        let row = &mut rows[i];
+                        if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
+                            row.add_object(column, "M");
+                        } else {
+                            row.add_object(column, "●");
+                        };
+                    }
+
+                    // If we have a control wire, draw vertical lines spanning all
+                    // control and target wires and crossing any in between
+                    // (vertical lines may overlap if there are multiple controls/targets,
+                    // this is ok in practice)
+                    for row in &mut rows[begin..end] {
+                        row.add_vertical(column);
+                    }
+                } else {
+                    // No control wire. Draw dashed vertical lines to connect
+                    // target wires if there are multiple targets
+                    for row in &mut rows[begin..end] {
+                        row.add_dashed_vertical(column);
+                    }
                 }
             }
         }
@@ -456,4 +465,212 @@ impl Display for Circuit {
 
         Ok(())
     }
+}
+
+/// Converts a list of operations into a 2D grid of operations in col-row format.
+/// Operations will be left-justified as much as possible in the resulting grid.
+/// Children operations are recursively converted into a grid.
+///
+/// # Arguments
+///
+/// * `operations` - A vector of operations to be converted.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D array of operations.
+pub fn operation_list_to_grid(
+    mut operations: Vec<Operation>,
+    max_q_id: usize,
+) -> Vec<Vec<Operation>> {
+    for op in &mut operations {
+        if op.children.len() == 1 {
+            op.children = operation_list_to_grid(op.children.remove(0), max_q_id);
+        }
+    }
+    remove_padding(operation_list_to_padded_array(operations, max_q_id))
+}
+
+/// Converts a list of operations into a padded 2D array of operations.
+///
+/// # Arguments
+///
+/// * `operations` - A vector of operations to be converted.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D vector of optional operations padded with `None`.
+fn operation_list_to_padded_array(
+    operations: Vec<Operation>,
+    max_q_id: usize,
+) -> Vec<Vec<Option<Operation>>> {
+    if operations.is_empty() {
+        return vec![];
+    }
+
+    let grouped_ops = group_operations(&operations, max_q_id);
+    let aligned_ops = transform_to_col_row(align_ops(grouped_ops));
+
+    // Need to convert to optional operations so we can
+    // take operations out without messing up the indexing
+    let mut operations = operations.into_iter().map(Some).collect::<Vec<_>>();
+    aligned_ops
+        .into_iter()
+        .map(|col| {
+            col.into_iter()
+                .map(|op_idx| op_idx.and_then(|idx| operations[idx].take()))
+                .collect()
+        })
+        .collect()
+}
+
+/// Removes padding (`None` values) from a 2D array of operations.
+///
+/// # Arguments
+///
+/// * `operations` - A 2D vector of optional operations padded with `None`.
+///
+/// # Returns
+///
+/// A 2D vector of operations without `None` values.
+fn remove_padding(operations: Vec<Vec<Option<Operation>>>) -> Vec<Vec<Operation>> {
+    operations
+        .into_iter()
+        .map(|col| col.into_iter().flatten().collect())
+        .collect()
+}
+
+/// Transforms a row-col 2D array into an equivalent col-row 2D array.
+///
+/// # Arguments
+///
+/// * `aligned_ops` - A 2D vector of optional usize values in row-col format.
+///
+/// # Returns
+///
+/// A 2D vector of optional usize values in col-row format.
+fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<usize>>> {
+    if aligned_ops.is_empty() {
+        return vec![];
+    }
+
+    let num_rows = aligned_ops.len();
+    let num_cols = aligned_ops.iter().map(|row| row.len()).max().unwrap_or(0);
+
+    let mut col_row_array = vec![vec![None; num_rows]; num_cols];
+
+    for (row, row_data) in aligned_ops.into_iter().enumerate() {
+        for (col, value) in row_data.into_iter().enumerate() {
+            col_row_array[col][row] = value;
+        }
+    }
+
+    col_row_array
+}
+
+/// Groups operations by their respective registers.
+///
+/// # Arguments
+///
+/// * `operations` - A slice of operations to be grouped.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D vector of indices where `groupedOps[i][j]` is the index of the operations
+/// at register `i` and column `j` (not yet aligned/padded).
+fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>> {
+    let end_q_id = max_q_id + 1; // Add one so that it is an "end" index
+    let mut grouped_ops = vec![vec![]; end_q_id];
+
+    for (instr_idx, op) in operations.iter().enumerate() {
+        let ctrls = &op.controls;
+        let q_regs: Vec<_> = ctrls
+            .iter()
+            .chain(&op.targets)
+            .filter(|reg| reg.r#type == QUANTUM_REGISTER)
+            .collect();
+        let q_reg_idx_list: Vec<_> = q_regs.iter().map(|reg| reg.q_id).collect();
+        let cls_controls: Vec<_> = ctrls
+            .iter()
+            .filter(|reg| reg.r#type == CLASSICAL_REGISTER)
+            .collect();
+        let is_classically_controlled = !cls_controls.is_empty();
+
+        if !is_classically_controlled && q_regs.is_empty() {
+            continue;
+        }
+
+        let min_reg_idx = if is_classically_controlled {
+            0
+        } else {
+            *q_reg_idx_list.iter().min().unwrap()
+        };
+        let max_reg_idx = if is_classically_controlled {
+            end_q_id - 1
+        } else {
+            *q_reg_idx_list.iter().max().unwrap()
+        };
+
+        for reg_ops in grouped_ops
+            .iter_mut()
+            .take(max_reg_idx + 1)
+            .skip(min_reg_idx)
+        {
+            reg_ops.push(instr_idx);
+        }
+    }
+
+    grouped_ops
+}
+
+/// Aligns operations by padding registers with `None` to make sure that multiqubit
+/// gates are in the same column.
+///
+/// # Arguments
+///
+/// * `ops` - A 2D vector of usize values representing the operations.
+///
+/// # Returns
+///
+/// A 2D vector of optional usize values representing the aligned operations.
+fn align_ops(ops: Vec<Vec<usize>>) -> Vec<Vec<Option<usize>>> {
+    let mut max_num_ops = ops.iter().map(|reg_ops| reg_ops.len()).max().unwrap_or(0);
+    let mut col = 0;
+    let mut padded_ops: Vec<Vec<Option<usize>>> = ops
+        .into_iter()
+        .map(|reg_ops| reg_ops.into_iter().map(Some).collect())
+        .collect();
+
+    while col < max_num_ops {
+        for reg_idx in 0..padded_ops.len() {
+            if padded_ops[reg_idx].len() <= col {
+                continue;
+            }
+
+            // Represents the gate at padded_ops[reg_idx][col]
+            let op_idx = padded_ops[reg_idx][col];
+
+            // The vec of where in each register the gate appears
+            let targets_pos: Vec<_> = padded_ops
+                .iter()
+                .map(|reg_ops| reg_ops.iter().position(|&x| x == op_idx))
+                .collect();
+            // The maximum column index of the gate in the target registers
+            let gate_max_col = targets_pos
+                .iter()
+                .filter_map(|&pos| pos)
+                .max()
+                .unwrap_or(usize::MAX);
+
+            if col < gate_max_col {
+                padded_ops[reg_idx].insert(col, None);
+                max_num_ops = max_num_ops.max(padded_ops[reg_idx].len());
+            }
+        }
+        col += 1;
+    }
+
+    padded_ops
 }

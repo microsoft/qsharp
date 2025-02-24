@@ -7,21 +7,19 @@ import { Operation, Qubit } from "./circuit";
 import { Sqore } from "./sqore";
 import { defaultGateDictionary } from "./panel";
 import {
-  getGateTargets,
   getGateLocationString,
-  findParentOperation,
   findOperation,
   getToolboxElems,
   getGateElems,
   getHostElems,
   getWireData,
 } from "./utils";
-import { addContextMenuToGateElem } from "./contextMenu";
+import { addContextMenuToHostElem } from "./contextMenu";
 import {
   addControl,
   addOperation,
   findAndRemoveOperations,
-  moveX,
+  moveOperation,
   removeControl,
   removeOperation,
 } from "./circuitManipulation";
@@ -46,7 +44,7 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
-  operations: Operation[];
+  operations: Operation[][];
   qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;
@@ -55,20 +53,28 @@ class CircuitEvents {
   private selectedOperation: Operation | null;
   private selectedWire: number | null;
   private movingControl: boolean;
+  private mouseUpOnCircuit: boolean;
+  private dragging: boolean;
 
   constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
     this.renderFn = useRefresh;
+
     this.container = container;
     this.circuitSvg = container.querySelector("svg[id]") as SVGElement;
     this.dropzoneLayer = container.querySelector(
       ".dropzone-layer",
     ) as SVGGElement;
+
     this.operations = sqore.circuit.operations;
     this.qubits = sqore.circuit.qubits;
+
     this.wireData = getWireData(this.container);
     this.selectedOperation = null;
     this.selectedWire = null;
+
     this.movingControl = false;
+    this.mouseUpOnCircuit = false;
+    this.dragging = false;
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -119,15 +125,44 @@ class CircuitEvents {
     removeAllWireDropzones(this.circuitSvg);
   };
 
-  documentMouseupHandler = () => {
+  documentMouseupHandler = (ev: MouseEvent) => {
+    const copying = ev.ctrlKey;
     this.container.classList.remove("moving", "copying");
-    this.movingControl = false;
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
       if (ghostElem) {
         this.container.removeChild(ghostElem);
       }
+
+      // Handle deleting operations that have been dragged outside the circuit
+      if (!this.mouseUpOnCircuit && this.dragging && !copying) {
+        const selectedLocation = this.selectedOperation
+          ? getGateLocationString(this.selectedOperation)
+          : null;
+        if (this.selectedOperation != null && selectedLocation != null) {
+          // We are dragging a gate with a location (not from toolbox) out side the circuit
+          // If we are moving a control, remove it from the selectedOperation
+          if (
+            this.movingControl &&
+            this.selectedOperation.controls != null &&
+            this.selectedWire != null
+          ) {
+            const controlIndex = this.selectedOperation.controls.findIndex(
+              (control) => control.qId === this.selectedWire,
+            );
+            if (controlIndex !== -1)
+              this.selectedOperation.controls.splice(controlIndex, 1);
+          } else {
+            // Otherwise, remove the selectedOperation
+            removeOperation(this, selectedLocation);
+          }
+          this.renderFn();
+        }
+      }
     }
+    this.dragging = false;
+    this.movingControl = false;
+    this.mouseUpOnCircuit = false;
   };
 
   /**
@@ -158,6 +193,10 @@ class CircuitEvents {
       "mouseup",
       () => (this.dropzoneLayer.style.display = "none"),
     );
+
+    this.circuitSvg.addEventListener("mouseup", () => {
+      this.mouseUpOnCircuit = true;
+    });
   }
 
   /**
@@ -184,6 +223,8 @@ class CircuitEvents {
         this.selectedWire =
           selectedWireStr != null ? parseInt(selectedWireStr) : null;
       });
+
+      addContextMenuToHostElem(this, elem);
     });
   }
 
@@ -194,40 +235,39 @@ class CircuitEvents {
     const elems = getGateElems(this.container);
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
-        if (ev.button !== 0) return;
-        ev.stopPropagation();
-        removeAllWireDropzones(this.circuitSvg);
+        let selectedLocation = null;
         if (elem.getAttribute("data-expanded") !== "true") {
-          const selectedLocation = elem.getAttribute("data-location");
+          selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = findOperation(
             this.operations,
             selectedLocation,
           );
-          if (this.selectedOperation == null || !selectedLocation) return;
-
-          createGhostElement(
-            ev,
-            this.container,
-            this.selectedOperation,
-            this.movingControl,
-          );
-
-          // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
-          if (this.selectedOperation.dataAttributes == null) {
-            this.selectedOperation.dataAttributes = {
-              location: selectedLocation,
-            };
-          } else {
-            this.selectedOperation.dataAttributes["location"] =
-              selectedLocation;
-          }
-
-          this.container.classList.add("moving");
-          this.dropzoneLayer.style.display = "block";
         }
-      });
+        if (ev.button !== 0) return;
+        ev.stopPropagation();
+        removeAllWireDropzones(this.circuitSvg);
+        if (this.selectedOperation == null || !selectedLocation) return;
 
-      addContextMenuToGateElem(this, elem);
+        this.dragging = true;
+        createGhostElement(
+          ev,
+          this.container,
+          this.selectedOperation,
+          this.movingControl,
+        );
+
+        // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
+        if (this.selectedOperation.dataAttributes == null) {
+          this.selectedOperation.dataAttributes = {
+            location: selectedLocation,
+          };
+        } else {
+          this.selectedOperation.dataAttributes["location"] = selectedLocation;
+        }
+
+        this.container.classList.add("moving");
+        this.dropzoneLayer.style.display = "block";
+      });
     });
   }
 
@@ -239,6 +279,7 @@ class CircuitEvents {
     const type = elem.getAttribute("data-type");
     if (type == null) return;
     this.selectedOperation = defaultGateDictionary[type];
+    this.dragging = true;
     createGhostElement(ev, this.container, this.selectedOperation, false);
   };
 
@@ -270,8 +311,12 @@ class CircuitEvents {
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
+        const copying = ev.ctrlKey;
         const originalOperations = cloneDeep(this.operations);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
+        const insertNewColumn =
+          dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
+          false;
         const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
         const targetWire =
           targetWireStr != null ? parseInt(targetWireStr) : null;
@@ -286,40 +331,32 @@ class CircuitEvents {
 
         if (sourceLocation == null) {
           // Add a new operation from the toolbox
-          addOperation(this, this.selectedOperation, targetLoc, targetWire);
+          addOperation(
+            this,
+            this.selectedOperation,
+            targetLoc,
+            targetWire,
+            insertNewColumn,
+          );
         } else if (sourceLocation && this.selectedWire != null) {
-          if (ev.ctrlKey) {
-            addOperation(this, this.selectedOperation, targetLoc, targetWire);
+          if (copying) {
+            addOperation(
+              this,
+              this.selectedOperation,
+              targetLoc,
+              targetWire,
+              insertNewColumn,
+            );
           } else {
-            const newOperation = moveX(
+            moveOperation(
               this,
               sourceLocation,
               targetLoc,
+              this.selectedWire,
               targetWire,
+              this.movingControl,
+              insertNewColumn,
             );
-            if (newOperation) {
-              if (!newOperation.isMeasurement) {
-                if (this.movingControl) {
-                  newOperation.controls?.forEach((control) => {
-                    if (control.qId === this.selectedWire) {
-                      control.qId = targetWire;
-                    }
-                  });
-                  newOperation.controls = newOperation.controls?.sort(
-                    (a, b) => a.qId - b.qId,
-                  );
-                } else {
-                  newOperation.targets = [{ qId: targetWire, type: 0 }];
-                }
-              }
-              const parentOperation = findParentOperation(
-                this.operations,
-                sourceLocation,
-              );
-              if (parentOperation) {
-                parentOperation.targets = getGateTargets(parentOperation);
-              }
-            }
           }
         }
 

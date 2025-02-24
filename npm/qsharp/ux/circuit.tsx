@@ -74,7 +74,7 @@ function ZoomableCircuit(props: {
       updateWidth();
       // Disable "rendering" text
       setRendering(false);
-    } else {
+    } else if (!props.isEditable) {
       // Initial drawing done, attach window resize handler
       window.addEventListener("resize", onResize);
       return () => {
@@ -90,7 +90,7 @@ function ZoomableCircuit(props: {
   return (
     <div>
       <div>
-        {rendering ? null : (
+        {props.isEditable || rendering ? null : (
           <ZoomControl zoom={zoomLevel} onInput={userSetZoomLevel} />
         )}
       </div>

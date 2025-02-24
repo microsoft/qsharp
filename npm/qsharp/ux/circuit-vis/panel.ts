@@ -9,8 +9,9 @@ import {
   minToolboxHeight,
   verticalGap,
 } from "./constants";
-import { _formatGate } from "./formatters/gateFormatter";
+import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
+import { RegisterType } from "./register";
 import { Sqore } from "./sqore";
 import { getGateWidth } from "./utils";
 
@@ -258,7 +259,7 @@ const gate = (
   if (operation == null) throw new Error(`Gate ${type} not available`);
   const metadata = toMetadata(operation, x, y);
   metadata.dataAttributes = { type: type };
-  const gateElem = _formatGate(metadata).cloneNode(true) as SVGElement;
+  const gateElem = formatGate(metadata).cloneNode(true) as SVGElement;
   gateElem.setAttribute("toolbox-item", "true");
 
   return gateElem;
@@ -277,45 +278,45 @@ interface GateDictionary {
 const defaultGateDictionary: GateDictionary = {
   RX: {
     gate: "Rx",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   RY: {
     gate: "Ry",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   RZ: {
     gate: "Rz",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   X: {
     gate: "X",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   Y: {
     gate: "Y",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   Z: {
     gate: "Z",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   H: {
     gate: "H",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   S: {
     gate: "S",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   T: {
     gate: "T",
-    targets: [{ qId: 0, type: 0 }],
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
   Measure: {
     gate: "Measure",
     isMeasurement: true,
-    controls: [{ qId: 0, type: 0 }],
-    targets: [{ qId: 0, type: 1, cId: 0 }],
+    controls: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qId: 0, type: RegisterType.Classical, cId: 0 }],
   },
 };
 

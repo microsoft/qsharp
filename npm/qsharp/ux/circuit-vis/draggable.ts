@@ -2,16 +2,23 @@
 // Licensed under the MIT license.
 
 import { Operation } from "./circuit";
+import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
-import { _formatGate } from "./formatters/gateFormatter";
+import { formatGate } from "./formatters/gateFormatter";
 import { toMetadata } from "./panel";
+import { getMinMaxRegIdx } from "./process";
 import { Sqore } from "./sqore";
-import { findLocation, getHostElems, getWireData } from "./utils";
+import {
+  findLocation,
+  getHostElems,
+  getWireData,
+  locationStringToIndexes,
+} from "./utils";
 
 interface Context {
   container: HTMLElement;
   svg: SVGElement;
-  operations: Operation[];
+  operations: Operation[][];
   wireData: number[];
   renderFn: () => void;
   paddingY: number;
@@ -63,10 +70,10 @@ const createGhostElement = (
   isControl: boolean,
 ) => {
   const ghost = isControl
-    ? controlDot(0, 0)
+    ? controlDot(20, 20)
     : (() => {
         const ghostMetadata = toMetadata(selectedOperation, 0, 0);
-        return _formatGate(ghostMetadata).cloneNode(true) as SVGElement;
+        return formatGate(ghostMetadata).cloneNode(true) as SVGElement;
       })();
 
   // Generate svg element to wrap around ghost element
@@ -82,9 +89,12 @@ const createGhostElement = (
     container.appendChild(divElem);
 
     // Now that the element is appended to the DOM, get its dimensions
-    const ghostRect = ghost.getBoundingClientRect();
-    const ghostWidth = ghostRect.width;
-    const ghostHeight = ghostRect.height;
+    const [ghostWidth, ghostHeight] = isControl
+      ? [40, 40]
+      : (() => {
+          const ghostRect = ghost.getBoundingClientRect();
+          return [ghostRect.width, ghostRect.height];
+        })();
 
     const updateDivLeftTop = (ev: MouseEvent) => {
       divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
@@ -184,14 +194,6 @@ const _addStyles = (container: HTMLElement, wireData: number[]): void => {
 };
 
 /**
- * Generate an array of wire prefixes from wire data
- */
-const _wirePrefixes = (
-  wireData: number[],
-): { index: number; wireY: number; prefixX: number }[] =>
-  wireData.map((wireY, index) => ({ index, wireY, prefixX: 40 }));
-
-/**
  * Find center point of element
  */
 const _center = (elem: SVGGraphicsElement): { cX: number; cY: number } => {
@@ -210,90 +212,135 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.classList.add("dropzone-layer");
   dropzoneLayer.style.display = "none";
 
-  const { container, svg, wireData, operations, paddingY } = context;
+  const { container, operations, wireData, paddingY } = context;
+  if (wireData.length === 0) return dropzoneLayer; // Return early if there are no wires
   const elems = getHostElems(container);
 
-  const wirePrefixes = _wirePrefixes(wireData);
+  // Get the widths of each column based on the elements in the column
+  const colWidths = elems.reduce(
+    (acc, elem) => {
+      const location = findLocation(elem);
+      if (!location) return acc;
+      const indexes = locationStringToIndexes(location);
+      // NOTE: for now, we are just going to consider the widths of top-level gates
+      if (indexes.length != 1) return acc;
+      const [colIndex] = indexes[0];
 
-  // Sort host elements by its x property
-  const sortedElems = Array.from(elems).sort((first, second) => {
-    const { x: x1 } = first.getBBox();
-    const { x: x2 } = second.getBBox();
-    return x1 - x2;
-  });
+      if (!acc[colIndex]) {
+        acc[colIndex] = Math.max(minGateWidth, elem.getBBox().width);
+      } else {
+        acc[colIndex] = Math.max(acc[colIndex], elem.getBBox().width);
+      }
+      return acc;
+    },
+    {} as Record<number, number>,
+  );
 
-  // Add dropzones for each host elements
-  sortedElems.map((elem) => {
-    const { cX, cY } = _center(elem);
-    const wirePrefix = wirePrefixes.find((item) => item.wireY === cY);
+  // Sort colWidths by colIndex
+  const sortedColWidths = Object.entries(colWidths)
+    .sort(([colIndexA], [colIndexB]) => Number(colIndexA) - Number(colIndexB))
+    .map(([colIndex, colWidth]) => [Number(colIndex), colWidth]);
 
-    // Check to prevent group gates creating dropzones between wires
-    if (wirePrefix) {
-      const { prefixX } = wirePrefix;
-      const elemDropzone = box(
-        prefixX,
-        cY - paddingY,
-        cX - prefixX,
+  // let xOffset = regLineStart;
+  let xOffset = startX - gatePadding;
+
+  /**
+   * Create a dropzone box element.
+   *
+   * @param wireIndex The index of the wire for which the dropzone is created.
+   * @param colIndex The index of the column where the dropzone is located.
+   * @param colWidth The width of the column.
+   * @param opIndex The index of the operation within the column.
+   * @param interColumn Whether the dropzone is between columns.
+   * @returns The created dropzone SVG element.
+   */
+  const _makeDropzoneBox = (
+    wireIndex: number,
+    colIndex: number,
+    colWidth: number,
+    opIndex: number,
+    interColumn: boolean,
+  ): SVGElement => {
+    const wireY = wireData[wireIndex];
+    let dropzone = null;
+    if (interColumn) {
+      dropzone = box(
+        xOffset - gatePadding * 2,
+        wireY - paddingY,
+        gatePadding * 4,
         paddingY * 2,
         "dropzone",
       );
-      elemDropzone.setAttribute(
-        "data-dropzone-location",
-        findLocation(elem) || "",
-      );
-      elemDropzone.setAttribute("data-dropzone-wire", `${wirePrefix.index}`);
-
-      wirePrefix.prefixX = cX;
-
-      dropzoneLayer.appendChild(elemDropzone);
     } else {
-      // Let group gates creating dropzones for each wire
-      const { x } = elem.getBBox();
-      const wireYs = _wireYs(elem, wireData);
-
-      wireYs.map((wireY) => {
-        const wirePrefix = wirePrefixes.find((item) => item.wireY === wireY);
-        if (wirePrefix) {
-          const { prefixX } = wirePrefix;
-          const elemDropzone = box(
-            prefixX,
-            wireY - paddingY,
-            x - prefixX,
-            paddingY * 2,
-            "dropzone",
-          );
-          elemDropzone.setAttribute(
-            "data-dropzone-location",
-            findLocation(elem) || "",
-          );
-          elemDropzone.setAttribute(
-            "data-dropzone-wire",
-            `${wirePrefix.index}`,
-          );
-
-          wirePrefix.prefixX = x;
-
-          dropzoneLayer.appendChild(elemDropzone);
-        }
-      });
+      dropzone = box(
+        xOffset + gatePadding,
+        wireY - paddingY,
+        //colWidth + gatePadding * 2,
+        colWidth,
+        paddingY * 2,
+        "dropzone",
+      );
     }
+    dropzone.setAttribute("data-dropzone-location", `${colIndex},${opIndex}`);
+    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
+    dropzone.setAttribute("data-dropzone-inter-column", `${interColumn}`);
+    return dropzone;
+  };
+
+  // Create dropzones for each intersection of columns and wires
+  sortedColWidths.forEach(([colIndex, colWidth]) => {
+    const columnOps = operations[colIndex];
+    let wireIndex = 0;
+
+    columnOps.forEach((op, opIndex) => {
+      const [minTarget, maxTarget] = getMinMaxRegIdx(op, wireData.length);
+      // Add dropzones before the first target
+      while (wireIndex <= maxTarget) {
+        dropzoneLayer.appendChild(
+          _makeDropzoneBox(wireIndex, colIndex, colWidth, opIndex, true),
+        );
+        // We don't want to make a central zone if the spot is occupied by a gate or its connecting lines
+        if (wireIndex < minTarget) {
+          dropzoneLayer.appendChild(
+            _makeDropzoneBox(wireIndex, colIndex, colWidth, opIndex, false),
+          );
+        }
+
+        wireIndex++;
+      }
+    });
+
+    // Add dropzones after the last target
+    while (wireIndex < wireData.length) {
+      dropzoneLayer.appendChild(
+        _makeDropzoneBox(wireIndex, colIndex, colWidth, columnOps.length, true),
+      );
+      dropzoneLayer.appendChild(
+        _makeDropzoneBox(
+          wireIndex,
+          colIndex,
+          colWidth,
+          columnOps.length,
+          false,
+        ),
+      );
+
+      wireIndex++;
+    }
+    xOffset += colWidth + gatePadding * 2;
   });
 
-  // Add remaining dropzones to fit max-width of the circuit
-  wirePrefixes.map(({ wireY, prefixX }) => {
-    const maxWidth = Number(svg.getAttribute("width"));
-    const elemDropzone = box(
-      prefixX,
-      wireY - paddingY,
-      maxWidth - prefixX,
-      paddingY * 2,
-      "dropzone",
-    );
-    elemDropzone.setAttribute("data-dropzone-location", `${operations.length}`);
-    const index = wireData.findIndex((item) => item === wireY);
-    elemDropzone.setAttribute("data-dropzone-wire", `${index}`);
-    dropzoneLayer.appendChild(elemDropzone);
-  });
+  // This assumes column indexes are continuous
+  const endColIndex = sortedColWidths.length;
+
+  // Add remaining dropzones to allow users to add gates to the end of the circuit
+  for (let wireIndex = 0; wireIndex < wireData.length; wireIndex++) {
+    const dropzone = _makeDropzoneBox(wireIndex, endColIndex, 0, 0, true);
+    // Note: the last column should have the shape of an inter-column dropzone, but
+    // we don't want to attach the inter-column logic to it.
+    dropzone.setAttribute("data-dropzone-inter-column", "false");
+    dropzoneLayer.appendChild(dropzone);
+  }
 
   return dropzoneLayer;
 };

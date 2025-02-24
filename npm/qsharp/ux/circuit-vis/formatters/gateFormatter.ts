@@ -29,15 +29,18 @@ import {
 /**
  * Given an array of operations (in metadata format), return the SVG representation.
  *
- * @param opsMetadata Array of Metadata representation of operations.
+ * @param opsMetadata 2D array of Metadata representation of operations.
  * @param nestedDepth Depth of nested operations (used in classically controlled and grouped operations).
  *
  * @returns SVG representation of operations.
  */
-const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
-  const formattedGates: SVGElement[] = opsMetadata.map((metadata) =>
-    _formatGate(metadata, nestedDepth),
-  );
+const formatGates = (
+  opsMetadata: Metadata[][],
+  nestedDepth = 0,
+): SVGElement => {
+  const formattedGates: SVGElement[] = opsMetadata
+    .map((col) => col.map((metadata) => formatGate(metadata, nestedDepth)))
+    .flat();
   return group(formattedGates);
 };
 
@@ -49,7 +52,7 @@ const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
  *
  * @returns SVG representation of gate.
  */
-const _formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
+const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
   const { type, x, controlsY, targetsY, label, displayArgs, width } = metadata;
   switch (type) {
     case GateType.Measure:
@@ -439,7 +442,7 @@ const _groupedOperations = (
   const box: SVGElement = dashedBox(x1, y1, x2, y2);
   const elems: SVGElement[] = [box];
   if (children != null)
-    elems.push(formatGates(children as Metadata[], nestedDepth + 1));
+    elems.push(formatGates(children as Metadata[][], nestedDepth + 1));
   return _createGate(elems, metadata, nestedDepth);
 };
 
@@ -457,7 +460,7 @@ const _classicalControlled = (
 ): SVGElement => {
   const { controlsY, dataAttributes } = metadata;
   const targetsY: number[] = metadata.targetsY as number[];
-  const children: Metadata[][] = metadata.children as Metadata[][];
+  const children: Metadata[][][] = metadata.children as Metadata[][][];
   let { x, width } = metadata;
 
   const controlY = controlsY[0];
@@ -543,15 +546,4 @@ const _controlCircle = (
     class: "classically-controlled-btn",
   });
 
-export {
-  formatGates,
-  _formatGate,
-  _createGate,
-  _zoomButton,
-  _measure,
-  _unitary,
-  _swap,
-  _controlledGate,
-  _groupedOperations,
-  _classicalControlled,
-};
+export { formatGates, formatGate };
