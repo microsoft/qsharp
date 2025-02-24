@@ -275,7 +275,6 @@ const _dropzoneLayer = (context: Context) => {
       dropzone = box(
         xOffset + gatePadding,
         wireY - paddingY,
-        //colWidth + gatePadding * 2,
         colWidth,
         paddingY * 2,
         "dropzone",

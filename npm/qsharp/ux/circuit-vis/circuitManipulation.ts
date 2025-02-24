@@ -159,65 +159,6 @@ const _moveY = (
   }
 };
 
-// /**
-//  * Move an operation vertically by changing its controls and targets
-//  */
-// // ToDo: this should be repurposed to move a multi-target operation to a different wire
-// const _moveY = (
-//   targetWire: number,
-//   operation: Operation,
-//   totalWires: number,
-// ): Operation => {
-//   if (!operation.isMeasurement) {
-//     _offsetRecursively(operation, targetWire, totalWires);
-//   }
-//   return operation;
-// };
-
-// /**
-//  * Recursively change object controls and targets
-//  */
-// const _offsetRecursively = (
-//   operation: Operation,
-//   wireOffset: number,
-//   totalWires: number,
-// ): Operation => {
-//   // Offset all targets by offsetY value
-//   if (operation.targets) {
-//     operation.targets.forEach((target) => {
-//       target.qId = _circularMod(target.qId, wireOffset, totalWires);
-//       if (target.cId)
-//         target.cId = _circularMod(target.cId, wireOffset, totalWires);
-//     });
-//   }
-
-//   // Offset all controls by offsetY value
-//   if (operation.controls) {
-//     operation.controls.forEach((control) => {
-//       control.qId = _circularMod(control.qId, wireOffset, totalWires);
-//       if (control.cId)
-//         control.cId = _circularMod(control.qId, wireOffset, totalWires);
-//     });
-//   }
-
-//   // Offset recursively through all children
-//   if (operation.children) {
-//     operation.children.forEach((child) =>
-//       _offsetRecursively(child, wireOffset, totalWires),
-//     );
-//   }
-
-//   return operation;
-// };
-
-// /**
-//  * This modulo function always returns positive value based on total
-//  * i.e: value=0, offset=-1, total=4 returns 3 instead of -1
-//  */
-// const _circularMod = (value: number, offset: number, total: number): number => {
-//   return (((value + offset) % total) + total) % total;
-// };
-
 /**
  * Add an operation into the circuit.
  *

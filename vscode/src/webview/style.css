@@ -1,3 +1,6 @@
+/* Copyright (c) Microsoft Corporation.
+   Licensed under the MIT License. */
+
 /* Normal font is typically used for ket brackets, non-italic numerals & letters, e.g., ∣0⟩
    This font set include Latin alphanumeric characters, a few uppercase Greek letters, and common math symbols. */
 @font-face {

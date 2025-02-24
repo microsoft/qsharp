@@ -370,6 +370,12 @@ class CircuitEvents {
     });
   }
 
+  /**
+   * Add event listeners for the buttons to add or remove qubit lines.
+   * The add button will append a new qubit line to the circuit.
+   * The remove button will remove the last qubit line from the circuit,
+   * along with any operations associated with it.
+   */
   _addQubitLineControlEvents() {
     const addQubitLineButton = this.container.querySelector(".add-qubit-line");
     const removeQubitLineButton =

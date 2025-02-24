@@ -39,30 +39,30 @@ const extensionPanel =
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (container: HTMLElement, sqore: Sqore, useRefresh: () => void): void => {
     if (container.querySelector(".panel") == null) {
-      const panelElem = panel(options);
+      const panelElem = _panel(options);
       container.prepend(panelElem);
-      container.appendChild(qubitLineControl());
+      container.appendChild(_qubitLineControl());
     }
   };
 
-const qubitLineControl = (): HTMLElement => {
-  const qubitLineControlElem = elem("div", "qubit-line-control");
-  children(qubitLineControlElem, [
-    title("Add/Remove Qubit Lines:"),
-    addQubitLineControl(),
-    removeQubitLineControl(),
+const _qubitLineControl = (): HTMLElement => {
+  const qubitLineControlElem = _elem("div", "qubit-line-control");
+  _children(qubitLineControlElem, [
+    _title("Add/Remove Qubit Lines:"),
+    _addQubitLineControl(),
+    _removeQubitLineControl(),
   ]);
   return qubitLineControlElem;
 };
 
-const addQubitLineControl = (): HTMLElement => {
-  const addQubitLineControlElem = elem("button", "add-qubit-line");
+const _addQubitLineControl = (): HTMLElement => {
+  const addQubitLineControlElem = _elem("button", "add-qubit-line");
   addQubitLineControlElem.textContent = "+";
   return addQubitLineControlElem;
 };
 
-const removeQubitLineControl = (): HTMLElement => {
-  const removeQubitLineControlElem = elem("button", "remove-qubit-line");
+const _removeQubitLineControl = (): HTMLElement => {
+  const removeQubitLineControlElem = _elem("button", "remove-qubit-line");
   removeQubitLineControlElem.textContent = "-";
   return removeQubitLineControlElem;
 };
@@ -73,10 +73,10 @@ const removeQubitLineControl = (): HTMLElement => {
  * @param options       User-provided object to customize extensionPanel
  * @returns             HTML element for panel
  */
-const panel = (options?: PanelOptions): HTMLElement => {
-  const panelElem = elem("div");
+const _panel = (options?: PanelOptions): HTMLElement => {
+  const panelElem = _elem("div");
   panelElem.className = "panel";
-  children(panelElem, [createToolbox(options)]);
+  _children(panelElem, [_createToolbox(options)]);
   return panelElem;
 };
 
@@ -86,7 +86,7 @@ const panel = (options?: PanelOptions): HTMLElement => {
  * @param options       User-provided object to customize extensionPanel
  * @returns             HTML element for toolbox
  */
-const createToolbox = (options?: PanelOptions): HTMLElement => {
+const _createToolbox = (options?: PanelOptions): HTMLElement => {
   let gateDictionary = defaultGateDictionary;
   let objectKeys = Object.keys(gateDictionary);
   if (options != null) {
@@ -109,7 +109,7 @@ const createToolbox = (options?: PanelOptions): HTMLElement => {
       prefixY = 0;
       prefixX += gateWidth + horizontalGap;
     }
-    const gateElem = gate(gateDictionary, key.toString(), prefixX, prefixY);
+    const gateElem = _gate(gateDictionary, key.toString(), prefixX, prefixY);
     prefixY += gateHeight + verticalGap;
     return gateElem;
   });
@@ -117,11 +117,11 @@ const createToolbox = (options?: PanelOptions): HTMLElement => {
   // Generate svg container to store gate elements
   const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svgElem.classList.add("toolbox-panel-svg");
-  childrenSvg(svgElem, gateElems);
+  _childrenSvg(svgElem, gateElems);
 
   // Generate toolbox panel
-  const toolboxElem = elem("div", "toolbox-panel");
-  children(toolboxElem, [title("Toolbox")]);
+  const toolboxElem = _elem("div", "toolbox-panel");
+  _children(toolboxElem, [_title("Toolbox")]);
   toolboxElem.appendChild(svgElem);
 
   return toolboxElem;
@@ -133,7 +133,7 @@ const createToolbox = (options?: PanelOptions): HTMLElement => {
  * @param className Class name
  * @returns         HTML element
  */
-const elem = (tag: string, className?: string): HTMLElement => {
+const _elem = (tag: string, className?: string): HTMLElement => {
   const _elem = document.createElement(tag);
   if (className) {
     _elem.className = className;
@@ -147,7 +147,7 @@ const elem = (tag: string, className?: string): HTMLElement => {
  * @param childElems    Array of HTML child elements
  * @returns             Parent HTML element with all children appended
  */
-const children = (
+const _children = (
   parentElem: HTMLElement,
   childElems: HTMLElement[],
 ): HTMLElement => {
@@ -161,7 +161,7 @@ const children = (
  * @param childElems    Array of SVG child elements
  * @returns             Parent SVG element with all children appended
  */
-const childrenSvg = (
+const _childrenSvg = (
   parentElem: SVGElement,
   childElems: SVGElement[],
 ): SVGElement => {
@@ -174,8 +174,8 @@ const childrenSvg = (
  * @param text  Text
  * @returns     Title element
  */
-const title = (text: string): HTMLElement => {
-  const titleElem = elem("h2");
+const _title = (text: string): HTMLElement => {
+  const titleElem = _elem("h2");
   titleElem.className = "title";
   titleElem.textContent = text;
   return titleElem;
@@ -249,7 +249,7 @@ const toMetadata = (
  * @returns The generated SVG element representing the gate.
  * @throws Will throw an error if the gate type is not available in the dictionary.
  */
-const gate = (
+const _gate = (
   gateDictionary: GateDictionary,
   type: string,
   x: number,

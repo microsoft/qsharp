@@ -140,7 +140,8 @@ const _defaultGates = (styleConfig: StyleConfig): string => `
     }
     .register-classical {
         stroke-width: ${(styleConfig.lineWidth || 0) / 2};
-    }`;
+    }
+`;
 
 const _classicallyControlledGates = (styleConfig: StyleConfig): string => {
   const gateOutline = `
@@ -157,7 +158,9 @@ const _classicallyControlledGates = (styleConfig: StyleConfig): string => {
         stroke-width: ${(styleConfig.lineWidth || 0) + 0.3};
         fill: ${styleConfig.classicalZero};
         fill-opacity: 0.1;
-    }`;
+    }
+`;
+
   const controlBtn = `
     .classically-controlled-btn {
         cursor: pointer;
@@ -170,7 +173,8 @@ const _classicallyControlledGates = (styleConfig: StyleConfig): string => {
     }
     .classically-controlled-zero .classically-controlled-btn {
         fill: ${styleConfig.classicalZero};
-    }`;
+    }
+`;
 
   const controlBtnText = `
     .classically-controlled-btn text {
@@ -187,7 +191,8 @@ const _classicallyControlledGates = (styleConfig: StyleConfig): string => {
     }
     .classically-controlled-zero .classically-controlled-btn text {
         fill: ${styleConfig.classicalZeroText};
-    }`;
+    }
+`;
 
   return `
     .hidden {
@@ -238,7 +243,8 @@ const _expandCollapse = `
         visibility: visible;
         opacity: 1;
         transition: opacity 1s;
-    }`;
+    }
+`;
 
 const _draggable = `
     text {
@@ -273,7 +279,7 @@ const _draggable = `
     .copying {
         cursor: copy;
     }
-    `;
+`;
 
 const _panel = `
     .container {
@@ -344,7 +350,7 @@ const _contextMenu = `
     .context-menu-option:hover {
         background-color: #f0f0f0;
     }
-  `;
+`;
 
 const _customPromptOverlay = `
     .custom-prompt-overlay {
@@ -387,4 +393,4 @@ const _customPromptOverlay = `
         padding: 5px 10px;
         margin: 0 5px;
     }
-    `;
+`;

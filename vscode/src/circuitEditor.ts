@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 
@@ -69,38 +72,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     updateWebview();
   }
 
-  private _getHtmlForWebview(webview: vscode.Webview): string {
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.context.extensionUri,
-        "src",
-        "webview",
-        "editor.js",
-      ),
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.context.extensionUri,
-        "src",
-        "webview",
-        "style.css",
-      ),
-    );
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Q#</title>
-          <link rel="stylesheet" href="${styleUri}" />
-          <script src="${scriptUri}"></script>
-        </head>
-        <body>
-        </body>
-      </html>`;
-  }
-
   private getHtmlForWebview(webview: vscode.Webview): string {
     const extensionUri = this.context.extensionUri;
 
@@ -135,9 +106,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       </html>`;
   }
 
-  /**
-   * Try to get a current document as json text.
-   */
   private getDocumentAsJson(document: vscode.TextDocument): any {
     const text = document.getText();
     if (text.trim().length === 0) {
@@ -153,9 +121,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
-  /**
-   * Write out the json to a given document.
-   */
   private updateTextDocument(document: vscode.TextDocument, circuit: string) {
     // Short-circuit if there are no changes to be made.
     if (circuit == document.getText()) {

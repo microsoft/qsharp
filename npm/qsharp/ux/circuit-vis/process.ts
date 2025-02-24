@@ -34,9 +34,6 @@ const processOperations = (
   // Get classical registers and their starting column index
   const classicalRegs: [number, Register][] = _getClassicalRegStart(operations);
 
-  // Keep track of which ops are already seen to avoid duplicate rendering
-  // const visited: { [opIdx: number]: boolean } = {};
-
   // Map operation index to gate metadata for formatting later
   const opsMetadata: Metadata[][] = operations.map((col, colIndex) =>
     col.map((op) => {
@@ -51,10 +48,8 @@ const processOperations = (
 
         // Get y coordinates of classical registers in the same column as this operation
         const classicalRegY: number[] = classicalRegs
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([regCol, _]) => regCol <= colIndex)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .map(([_, reg]) => {
+          .filter(([regCol]) => regCol <= colIndex)
+          .map(([, reg]) => {
             if (reg.cId == null)
               throw new Error("Could not find cId for classical register.");
             const { children } = registers[reg.qId];
