@@ -4,9 +4,9 @@
 #[cfg(test)]
 mod tests;
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
-use std::{fmt::Display, fmt::Write, ops::Not, vec};
+use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 
 /// Representation of a quantum circuit.
 /// Implementation of `CircuitData` type from `qsharp-lang` npm package.
@@ -96,7 +96,6 @@ impl Config {
 }
 
 type ObjectsByColumn = FxHashMap<usize, CircuitObject>;
-type ColumnWidthsByColumn = FxHashMap<usize, usize>;
 
 struct Row {
     wire: Wire,
@@ -110,6 +109,8 @@ enum Wire {
 }
 
 enum CircuitObject {
+    Blank,
+    Wire,
     WireCross,
     WireStart,
     DashedCross,
@@ -178,38 +179,30 @@ impl Row {
         self.next_column = column + 1;
     }
 
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        column_widths: &ColumnWidthsByColumn,
-        end_column: usize,
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, columns: &[Column]) -> std::fmt::Result {
         // Temporary string so we can trim whitespace at the end
         let mut s = String::new();
         match &self.wire {
             Wire::Qubit { q_id: label } => {
                 s.write_str(&fmt_qubit_label(*label))?;
-                for column in 1..end_column {
-                    let val = self.objects.get(&column);
-                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-                    if let Some(v) = val {
-                        s.write_str(&fmt_qubit_circuit_object(v, column_width))?;
-                    } else {
-                        s.write_str(&get_qubit_wire(column_width))?;
-                    }
+                for (column_index, column) in columns.iter().enumerate().skip(1) {
+                    let val = self.objects.get(&column_index);
+                    let object = val.unwrap_or(&CircuitObject::Wire);
+
+                    s.write_str(&column.fmt_qubit_circuit_object(object))?;
                 }
             }
             Wire::Classical { start_column } => {
-                for column in 0..end_column {
-                    let val = self.objects.get(&column);
-                    let column_width = *column_widths.get(&column).unwrap_or(&MIN_COLUMN_WIDTH);
-                    if let Some(v) = val {
-                        s.write_str(&fmt_classical_circuit_object(v, column_width))?;
-                    } else if start_column.map_or(false, |s| column > s) {
-                        s.write_str(&get_classical_wire(column_width))?;
-                    } else {
-                        s.write_str(&get_blank(column_width))?;
-                    }
+                for (column_index, column) in columns.iter().enumerate() {
+                    let val = self.objects.get(&column_index);
+
+                    let object = match (val, start_column) {
+                        (Some(v), _) => v,
+                        (None, Some(s)) if column_index > *s => &CircuitObject::Wire,
+                        _ => &CircuitObject::Blank,
+                    };
+
+                    s.write_str(&column.fmt_classical_circuit_object(object))?;
                 }
             }
         }
@@ -220,63 +213,16 @@ impl Row {
 
 const MIN_COLUMN_WIDTH: usize = 7;
 
-/// "───────"
-fn get_qubit_wire(column_width: usize) -> String {
-    "─".repeat(column_width)
-}
-
-/// "═══════"
-fn get_classical_wire(column_width: usize) -> String {
-    "═".repeat(column_width)
-}
-
-/// "───┼───"
-fn get_qubit_wire_cross(column_width: usize) -> String {
-    let half_width = "─".repeat(column_width / 2);
-    format!("{}┼{}", half_width, half_width)
-}
-
-/// "═══╪═══"
-fn get_classical_wire_cross(column_width: usize) -> String {
-    let half_width = "═".repeat(column_width / 2);
-    format!("{}╪{}", half_width, half_width)
-}
-
-/// "   ╘═══"
-fn get_classical_wire_start(column_width: usize) -> String {
-    let first_half_width = " ".repeat(column_width / 2);
-    let second_half_width = "═".repeat(column_width / 2);
-    format!("{}╘{}", first_half_width, second_half_width)
-}
-
-/// "───┆───"
-fn get_qubit_wire_dashed_cross(column_width: usize) -> String {
-    let half_width = "─".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "═══┆═══"
-fn get_classical_wire_dashed_cross(column_width: usize) -> String {
-    let half_width = "═".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "   │   "
-fn get_vertical(column_width: usize) -> String {
-    let half_width = " ".repeat(column_width / 2);
-    format!("{}│{}", half_width, half_width)
-}
-
-/// "   ┆   "
-fn get_vertical_dashed(column_width: usize) -> String {
-    let half_width = " ".repeat(column_width / 2);
-    format!("{}┆{}", half_width, half_width)
-}
-
-/// "       "
-fn get_blank(column_width: usize) -> String {
-    " ".repeat(column_width)
-}
+const QUBIT_WIRE: [char; 3] = ['─', '─', '─']; // "───────"
+const CLASSICAL_WIRE: [char; 3] = ['═', '═', '═']; // "═══════"
+const QUBIT_WIRE_CROSS: [char; 3] = ['─', '┼', '─']; // "───┼───"
+const CLASSICAL_WIRE_CROSS: [char; 3] = ['═', '╪', '═']; // "═══╪═══"
+const CLASSICAL_WIRE_START: [char; 3] = [' ', '╘', '═']; // "   ╘═══"
+const QUBIT_WIRE_DASHED_CROSS: [char; 3] = ['─', '┆', '─']; // "───┆───"
+const CLASSICAL_WIRE_DASHED_CROSS: [char; 3] = ['═', '┆', '═']; // "═══┆═══"
+const VERTICAL_DASHED: [char; 3] = [' ', '┆', ' ']; // "   │   "
+const VERTICAL: [char; 3] = [' ', '│', ' ']; // "   ┆   "
+const BLANK: [char; 3] = [' ', ' ', ' ']; // "       "
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
@@ -285,35 +231,83 @@ fn fmt_qubit_label(id: usize) -> String {
     format!("q_{id: <rest$}")
 }
 
-/// "── A ──"
-fn fmt_on_qubit_wire(obj: &str, column_width: usize) -> String {
-    format!("{:─^column_width$}", format!(" {obj} "))
+struct Column {
+    column_width: usize,
 }
 
-/// "══ A ══"
-fn fmt_on_classical_wire(obj: &str, column_width: usize) -> String {
-    format!("{:═^column_width$}", format!(" {obj} "))
-}
-
-fn fmt_classical_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    match circuit_object {
-        CircuitObject::WireCross => get_classical_wire_cross(column_width),
-        CircuitObject::WireStart => get_classical_wire_start(column_width),
-        CircuitObject::DashedCross => get_classical_wire_dashed_cross(column_width),
-        CircuitObject::Vertical => get_vertical(column_width),
-        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
-        CircuitObject::Object(label) => fmt_on_classical_wire(label.as_str(), column_width),
+impl Default for Column {
+    fn default() -> Self {
+        Self {
+            column_width: MIN_COLUMN_WIDTH,
+        }
     }
 }
 
-fn fmt_qubit_circuit_object(circuit_object: &CircuitObject, column_width: usize) -> String {
-    match circuit_object {
-        CircuitObject::WireCross => get_qubit_wire_cross(column_width),
-        CircuitObject::WireStart => get_blank(column_width), // This should never happen
-        CircuitObject::DashedCross => get_qubit_wire_dashed_cross(column_width),
-        CircuitObject::Vertical => get_vertical(column_width),
-        CircuitObject::VerticalDashed => get_vertical_dashed(column_width),
-        CircuitObject::Object(label) => fmt_on_qubit_wire(label.as_str(), column_width),
+impl Column {
+    fn new(column_width: usize) -> Self {
+        // Column widths should be odd numbers for this struct to work well
+        let odd_column_width = column_width | 1;
+        Self {
+            column_width: odd_column_width,
+        }
+    }
+
+    /// "── A ──"
+    fn fmt_on_qubit_wire(&self, obj: &str) -> String {
+        let column_width = self.column_width;
+        format!("{:─^column_width$}", format!(" {obj} "))
+    }
+
+    /// "══ A ══"
+    fn fmt_on_classical_wire(&self, obj: &str) -> String {
+        let column_width = self.column_width;
+        format!("{:═^column_width$}", format!(" {obj} "))
+    }
+
+    fn expand_template(&self, template: &[char; 3]) -> String {
+        let half_width = self.column_width / 2;
+        let left = template[0].to_string().repeat(half_width);
+        let right = template[2].to_string().repeat(half_width);
+
+        format!("{left}{}{right}", template[1])
+    }
+
+    fn fmt_classical_circuit_object(&self, circuit_object: &CircuitObject) -> String {
+        if let CircuitObject::Object(label) = circuit_object {
+            return self.fmt_on_classical_wire(label.as_str());
+        }
+
+        let template = match circuit_object {
+            CircuitObject::Blank => BLANK,
+            CircuitObject::Wire => CLASSICAL_WIRE,
+            CircuitObject::WireCross => CLASSICAL_WIRE_CROSS,
+            CircuitObject::WireStart => CLASSICAL_WIRE_START,
+            CircuitObject::DashedCross => CLASSICAL_WIRE_DASHED_CROSS,
+            CircuitObject::Vertical => VERTICAL,
+            CircuitObject::VerticalDashed => VERTICAL_DASHED,
+            CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+        };
+
+        self.expand_template(&template)
+    }
+
+    fn fmt_qubit_circuit_object(&self, circuit_object: &CircuitObject) -> String {
+        if let CircuitObject::Object(label) = circuit_object {
+            return self.fmt_on_qubit_wire(label.as_str());
+        }
+
+        let template = match circuit_object {
+            CircuitObject::Blank => BLANK,
+            CircuitObject::Wire => QUBIT_WIRE,
+            CircuitObject::WireCross => QUBIT_WIRE_CROSS,
+            CircuitObject::WireStart => BLANK, // This should never happen
+            CircuitObject::DashedCross => QUBIT_WIRE_DASHED_CROSS,
+            CircuitObject::Vertical => VERTICAL,
+            CircuitObject::VerticalDashed => VERTICAL_DASHED,
+            CircuitObject::Object(_) => unreachable!("This case is covered in the early return."),
+        };
+
+        self.expand_template(&template)
     }
 }
 
@@ -325,6 +319,27 @@ impl Display for Circuit {
         // to row in the diagram
         let mut register_to_row = FxHashMap::default();
 
+        // Keep track of which qubits have the qubit after them in the same multi-qubit operation,
+        // because those qubits need to get a gap row below them.
+        let mut qubits_with_gap_row_below = FxHashSet::default();
+
+        for operation in self.operations.iter() {
+            for target in operation.targets.iter() {
+                let qubit = target.q_id;
+
+                if qubits_with_gap_row_below.contains(&qubit) {
+                    continue;
+                }
+
+                let next_qubit = qubit + 1;
+
+                // Check if the next qubit is also in this operation.
+                if operation.targets.iter().any(|t| t.q_id == next_qubit) {
+                    qubits_with_gap_row_below.insert(qubit);
+                }
+            }
+        }
+
         // Initialize all qubit and classical wires
         for q in &self.qubits {
             rows.push(Row {
@@ -335,7 +350,16 @@ impl Display for Circuit {
 
             register_to_row.insert((q.id, None), rows.len() - 1);
 
-            for i in 0..q.num_children {
+            // If this qubit has no children, but it is in a multi-qubit operation with
+            // the next qubit, we add an empty row to make room for the vertical connector.
+            // We can just use a classical wire type for this row since the wire won't actually be rendered.
+            let extra_rows = if qubits_with_gap_row_below.contains(&q.id) {
+                cmp::max(1, q.num_children)
+            } else {
+                q.num_children
+            };
+
+            for i in 0..extra_rows {
                 rows.push(Row {
                     wire: Wire::Classical { start_column: None },
                     objects: FxHashMap::default(),
@@ -431,14 +455,13 @@ impl Display for Circuit {
 
         // To be able to fit long-named operations, we calculate the required width for each column,
         // based on the maximum length needed for gates, where a gate X is printed as "- X -".
-        let column_widths = (0..end_column)
+        let columns = (0..end_column)
             .map(|column| {
-                (
-                    column,
+                Column::new(
                     rows.iter()
                         .filter_map(|row| row.objects.get(&column))
                         .filter_map(|object| match object {
-                            CircuitObject::Object(string) => Some((string.len() + 4) | 1), // Column lengths need to be odd numbers
+                            CircuitObject::Object(string) => Some(string.len() + 4),
                             _ => None,
                         })
                         .chain(std::iter::once(MIN_COLUMN_WIDTH))
@@ -446,11 +469,11 @@ impl Display for Circuit {
                         .unwrap(),
                 )
             })
-            .collect::<ColumnWidthsByColumn>();
+            .collect::<Vec<_>>();
 
         // Draw the diagram
         for row in rows {
-            row.fmt(f, &column_widths, end_column)?;
+            row.fmt(f, &columns)?;
         }
 
         Ok(())
