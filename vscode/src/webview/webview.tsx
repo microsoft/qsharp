@@ -16,6 +16,7 @@ import {
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
 import { DocumentationView, IDocFile } from "./docview";
+import "./webview.css";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
