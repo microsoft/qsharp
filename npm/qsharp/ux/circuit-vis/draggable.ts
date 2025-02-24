@@ -70,7 +70,7 @@ const createGhostElement = (
   isControl: boolean,
 ) => {
   const ghost = isControl
-    ? controlDot(0, 0)
+    ? controlDot(20, 20)
     : (() => {
         const ghostMetadata = toMetadata(selectedOperation, 0, 0);
         return formatGate(ghostMetadata).cloneNode(true) as SVGElement;
@@ -89,9 +89,12 @@ const createGhostElement = (
     container.appendChild(divElem);
 
     // Now that the element is appended to the DOM, get its dimensions
-    const ghostRect = ghost.getBoundingClientRect();
-    const ghostWidth = ghostRect.width;
-    const ghostHeight = ghostRect.height;
+    const [ghostWidth, ghostHeight] = isControl
+      ? [40, 40]
+      : (() => {
+          const ghostRect = ghost.getBoundingClientRect();
+          return [ghostRect.width, ghostRect.height];
+        })();
 
     const updateDivLeftTop = (ev: MouseEvent) => {
       divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
