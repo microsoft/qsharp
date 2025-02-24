@@ -40,6 +40,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Measure => Some("measure".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
+        TokenKind::At => Some("@".to_string()),
         TokenKind::ClosedBinOp(op) => Some(op.to_string()),
         TokenKind::BinOpEq(super::ClosedBinOp::AmpAmp | super::ClosedBinOp::BarBar)
         | TokenKind::Literal(_)

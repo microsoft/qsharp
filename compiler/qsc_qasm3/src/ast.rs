@@ -506,7 +506,7 @@ impl Display for IfStmt {
 #[derive(Clone, Debug)]
 pub struct DelayStmt {
     pub span: Span,
-    pub duration: ExprStmt,
+    pub duration: Expr,
 }
 
 impl Display for DelayStmt {
@@ -688,12 +688,31 @@ pub struct RangeDefinition {
 #[derive(Clone, Debug)]
 pub struct QuantumGateModifier {
     pub span: Span,
-    pub qubit: Box<Identifier>,
+    pub kind: GateModifierKind,
 }
 
 impl Display for QuantumGateModifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumGateModifier {}: {}", self.span, self.qubit)
+        write!(f, "QuantumGateModifier {}: {}", self.span, self.kind)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum GateModifierKind {
+    Inv,
+    Pow(Expr),
+    Ctrl(Option<Expr>),
+    NegCtrl(Option<Expr>),
+}
+
+impl Display for GateModifierKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            GateModifierKind::Inv => write!(f, "Inv"),
+            GateModifierKind::Pow(expr) => write!(f, "Pow {expr}"),
+            GateModifierKind::Ctrl(expr) => write!(f, "Ctrl {expr:?}"),
+            GateModifierKind::NegCtrl(expr) => write!(f, "NegCtrl {expr:?}"),
+        }
     }
 }
 
@@ -738,7 +757,7 @@ impl Display for ClassicalArgument {
 #[derive(Clone, Debug)]
 pub enum ExternParameter {
     Scalar(ScalarType, Span),
-    Quantum(Option<ExprStmt>, Span),
+    Quantum(Option<Expr>, Span),
     ArrayReference(ArrayReferenceType, Span),
 }
 
@@ -845,7 +864,7 @@ impl Display for ArrayBaseTypeKind {
 
 #[derive(Clone, Debug)]
 pub struct IntType {
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
     pub span: Span,
 }
 
@@ -861,7 +880,7 @@ impl Display for IntType {
 
 #[derive(Clone, Debug)]
 pub struct UIntType {
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
     pub span: Span,
 }
 
@@ -877,7 +896,7 @@ impl Display for UIntType {
 
 #[derive(Clone, Debug)]
 pub struct FloatType {
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
     pub span: Span,
 }
 
@@ -909,7 +928,7 @@ impl Display for ComplexType {
 
 #[derive(Clone, Debug)]
 pub struct AngleType {
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
     pub span: Span,
 }
 
@@ -925,7 +944,7 @@ impl Display for AngleType {
 
 #[derive(Clone, Debug)]
 pub struct BitType {
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
     pub span: Span,
 }
 
@@ -1015,7 +1034,7 @@ impl Display for AccessControl {
 #[derive(Clone, Debug)]
 pub struct QuantumArgument {
     pub span: Span,
-    pub expr: Option<ExprStmt>,
+    pub expr: Option<Expr>,
 }
 
 impl Display for QuantumArgument {
@@ -1074,7 +1093,7 @@ impl Display for IncludeStmt {
 pub struct QubitDeclaration {
     pub span: Span,
     pub qubit: Box<Ident>,
-    pub size: Option<ExprStmt>,
+    pub size: Option<Expr>,
 }
 
 impl Display for QubitDeclaration {
@@ -1196,9 +1215,9 @@ pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
     pub name: Identifier,
-    pub args: List<ExprStmt>,
-    pub qubits: List<Box<Identifier>>,
-    pub duration: Option<ExprStmt>,
+    pub args: List<Expr>,
+    pub qubits: List<GateOperand>,
+    pub duration: Option<Expr>,
 }
 
 impl Display for GateCall {
@@ -1222,7 +1241,7 @@ impl Display for GateCall {
 pub struct QuantumPhase {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
-    pub arg: ExprStmt,
+    pub arg: Expr,
     pub qubits: List<Box<Identifier>>,
 }
 
@@ -1240,7 +1259,7 @@ impl Display for QuantumPhase {
 #[derive(Clone, Debug)]
 pub struct DelayInstruction {
     span: Span,
-    duration: ExprStmt,
+    duration: Expr,
     qubits: List<Box<Identifier>>,
 }
 
@@ -1258,7 +1277,7 @@ impl Display for DelayInstruction {
 #[derive(Clone, Debug)]
 pub struct BoxStmt {
     pub span: Span,
-    pub duration: Option<ExprStmt>,
+    pub duration: Option<Expr>,
     pub body: List<QuantumStmt>,
 }
 
@@ -1322,7 +1341,7 @@ impl Display for ClassicalDeclarationStmt {
 
 #[derive(Clone, Debug)]
 pub enum ValueExpression {
-    Expr(ExprStmt),
+    Expr(Expr),
     Measurement(MeasureExpr),
 }
 
@@ -1358,7 +1377,7 @@ pub struct ConstantDeclaration {
     pub span: Span,
     pub r#type: TypeDef,
     pub identifier: Box<Ident>,
-    pub init_expr: Box<ExprStmt>,
+    pub init_expr: Expr,
 }
 
 impl Display for ConstantDeclaration {
@@ -1429,7 +1448,7 @@ impl Display for CalibrationDefinition {
 #[derive(Clone, Debug)]
 pub enum CalibrationArgument {
     Classical(ClassicalArgument),
-    Expr(ExprStmt),
+    Expr(Expr),
 }
 
 impl Display for CalibrationArgument {
@@ -1444,7 +1463,7 @@ impl Display for CalibrationArgument {
 #[derive(Clone, Debug)]
 pub enum TypedParameter {
     Scalar(ScalarType, Box<Ident>, Span),
-    Quantum(Option<ExprStmt>, Box<Ident>, Span),
+    Quantum(Option<Expr>, Box<Ident>, Span),
     ArrayReference(ArrayReferenceType, Box<Ident>, Span),
 }
 
@@ -1702,7 +1721,6 @@ pub enum ExprKind {
     Lit(Lit),
     FunctionCall(FunctionCall),
     Cast(Cast),
-    Concatenation(Concatenation),
     IndexExpr(IndexExpr),
     Paren(Expr),
 }
@@ -1718,7 +1736,6 @@ impl Display for ExprKind {
             ExprKind::Lit(lit) => write!(f, "{lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
             ExprKind::Cast(cast) => display_cast(indent, cast),
-            ExprKind::Concatenation(concat) => write!(f, "{concat}"),
             ExprKind::IndexExpr(index) => write!(f, "{index}"),
             ExprKind::Assign(expr) => write!(f, "{expr}"),
             ExprKind::AssignOp(expr) => write!(f, "{expr}"),
@@ -1900,23 +1917,6 @@ impl fmt::Display for Version {
 }
 
 #[derive(Clone, Debug)]
-pub struct Concatenation {
-    lhs: ExprStmt,
-    rhs: ExprStmt,
-}
-
-impl Display for Concatenation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Concatenation:")?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\n{}", self.lhs)?;
-        write!(indent, "\n{}", self.rhs)?;
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
 pub enum IndexElement {
     DiscreteSet(DiscreteSet),
     IndexSet(List<IndexSetItem>),
@@ -1980,25 +1980,6 @@ impl Display for AssignmentOp {
             AssignmentOp::BinaryOp(op) => write!(f, "AssignmentOp ({op:?})"),
             AssignmentOp::UnaryOp(op) => write!(f, "AssignmentOp ({op:?})"),
             AssignmentOp::Assign => write!(f, "AssignmentOp (Assign)"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum GateModifierName {
-    Inv,
-    Pow,
-    Ctrl,
-    NegCtrl,
-}
-
-impl Display for GateModifierName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            GateModifierName::Inv => write!(f, "inv"),
-            GateModifierName::Pow => write!(f, "pow"),
-            GateModifierName::Ctrl => write!(f, "ctrl"),
-            GateModifierName::NegCtrl => write!(f, "negctrl"),
         }
     }
 }
