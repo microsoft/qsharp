@@ -7,9 +7,7 @@ import { Operation, Qubit } from "./circuit";
 import { Sqore } from "./sqore";
 import { defaultGateDictionary } from "./panel";
 import {
-  getGateTargets,
   getGateLocationString,
-  findParentOperation,
   findOperation,
   getToolboxElems,
   getGateElems,
@@ -17,12 +15,12 @@ import {
   getWireData,
   locationStringToIndexes,
 } from "./utils";
-import { addContextMenuToGateElem } from "./contextMenu";
+import { addContextMenuToHostElem } from "./contextMenu";
 import {
   addControl,
   addOperation,
   findAndRemoveOperations,
-  moveX,
+  moveOperation,
   removeControl,
   removeOperation,
 } from "./circuitManipulation";
@@ -228,7 +226,7 @@ class CircuitEvents {
           selectedWireStr != null ? parseInt(selectedWireStr) : null;
       });
 
-      addContextMenuToGateElem(this, elem);
+      addContextMenuToHostElem(this, elem);
     });
   }
 
@@ -395,36 +393,15 @@ class CircuitEvents {
               insertNewColumn,
             );
           } else {
-            const newOperation = moveX(
+            moveOperation(
               this,
               sourceLocation,
               targetLoc,
+              this.selectedWire,
               targetWire,
+              this.movingControl,
               insertNewColumn,
             );
-            if (newOperation) {
-              if (!newOperation.isMeasurement) {
-                if (this.movingControl) {
-                  newOperation.controls?.forEach((control) => {
-                    if (control.qId === this.selectedWire) {
-                      control.qId = targetWire;
-                    }
-                  });
-                  newOperation.controls = newOperation.controls?.sort(
-                    (a, b) => a.qId - b.qId,
-                  );
-                } else {
-                  newOperation.targets = [{ qId: targetWire, type: 0 }];
-                }
-              }
-              const parentOperation = findParentOperation(
-                this.operations,
-                sourceLocation,
-              );
-              if (parentOperation) {
-                parentOperation.targets = getGateTargets(parentOperation);
-              }
-            }
           }
         }
 

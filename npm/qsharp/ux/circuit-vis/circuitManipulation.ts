@@ -3,11 +3,58 @@
 
 import { Operation } from "./circuit";
 import { CircuitEvents } from "./events";
+import { RegisterType } from "./register";
 import {
   findOperation,
   findParentArray,
+  findParentOperation,
+  getGateTargets,
   locationStringToIndexes,
 } from "./utils";
+
+/**
+ * Move an operation in the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceLocation The location string of the source operation.
+ * @param targetLocation The location string of the target position.
+ * @param sourceWire The wire index of the source operation.
+ * @param targetWire The wire index to move the operation to.
+ * @param movingControl Whether the operation is being moved as a control.
+ * @param insertNewColumn Whether to insert a new column when adding the operation.
+ * @returns The moved operation or null if the move was unsuccessful.
+ */
+const moveOperation = (
+  circuitEvents: CircuitEvents,
+  sourceLocation: string,
+  targetLocation: string,
+  sourceWire: number,
+  targetWire: number,
+  movingControl: boolean,
+  insertNewColumn: boolean = false,
+): Operation | null => {
+  const sourceOperation = _moveX(
+    circuitEvents,
+    sourceLocation,
+    targetLocation,
+    targetWire,
+    insertNewColumn,
+  );
+
+  if (sourceOperation == null) return null;
+
+  // Update sourceOperation targets and controls
+  _moveY(
+    circuitEvents,
+    sourceOperation,
+    sourceLocation,
+    sourceWire,
+    targetWire,
+    movingControl,
+  );
+
+  return sourceOperation;
+};
 
 /**
  * Move an operation horizontally.
@@ -19,7 +66,7 @@ import {
  * @param insertNewColumn Whether to insert a new column when adding the operation.
  * @returns The moved operation or null if the move was unsuccessful.
  */
-const moveX = (
+const _moveX = (
   circuitEvents: CircuitEvents,
   sourceLocation: string,
   targetLocation: string,
@@ -63,6 +110,52 @@ const moveX = (
   _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
 
   return newSourceOperation;
+};
+
+/**
+ * Move an operation vertically by changing its controls and targets.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param sourceOperation The operation to be moved.
+ * @param sourceLocation The location string of the source operation.
+ * @param sourceWire The wire index of the source operation.
+ * @param targetWire The wire index to move the operation to.
+ * @param movingControl Whether the operation is being moved as a control.
+ */
+const _moveY = (
+  circuitEvents: CircuitEvents,
+  sourceOperation: Operation,
+  sourceLocation: string,
+  sourceWire: number,
+  targetWire: number,
+  movingControl: boolean,
+): void => {
+  if (sourceOperation.isMeasurement) {
+    _removeMeasurementLines(circuitEvents, sourceOperation);
+    _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
+  } else {
+    if (movingControl) {
+      sourceOperation.controls?.forEach((control) => {
+        if (control.qId === sourceWire) {
+          control.qId = targetWire;
+        }
+      });
+      sourceOperation.controls = sourceOperation.controls?.sort(
+        (a, b) => a.qId - b.qId,
+      );
+    } else {
+      sourceOperation.targets = [{ qId: targetWire, type: RegisterType.Qubit }];
+    }
+  }
+
+  // Update parent operation targets
+  const parentOperation = findParentOperation(
+    circuitEvents.operations,
+    sourceLocation,
+  );
+  if (parentOperation) {
+    parentOperation.targets = getGateTargets(parentOperation);
+  }
 };
 
 // /**
@@ -163,7 +256,9 @@ const addOperation = (
     insertNewColumn,
   );
   if (!newSourceOperation.isMeasurement) {
-    newSourceOperation.targets = [{ qId: targetWire, type: 0 }];
+    newSourceOperation.targets = [
+      { qId: targetWire, type: RegisterType.Qubit },
+    ];
   }
 
   return newSourceOperation;
@@ -254,7 +349,7 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
   if (!existingControl) {
     op.controls.push({
       qId: wireIndex,
-      type: 0,
+      type: RegisterType.Qubit,
     });
     op.controls.sort((a, b) => a.qId - b.qId);
     op.isControlled = true;
@@ -379,9 +474,15 @@ const _addMeasurementLine = (
     : 1;
   circuitEvents.qubits[targetQubitWire].numChildren = newNumChildren;
   sourceOperation.targets = [
-    { qId: targetQubitWire, type: 1, cId: newNumChildren - 1 },
+    {
+      qId: targetQubitWire,
+      type: RegisterType.Classical,
+      cId: newNumChildren - 1,
+    },
   ];
-  sourceOperation.controls = [{ qId: targetQubitWire, type: 0 }];
+  sourceOperation.controls = [
+    { qId: targetQubitWire, type: RegisterType.Qubit },
+  ];
 };
 
 /**
@@ -427,7 +528,7 @@ const _removeMeasurementLines = (
 };
 
 export {
-  moveX,
+  moveOperation,
   addOperation,
   removeOperation,
   findAndRemoveOperations,

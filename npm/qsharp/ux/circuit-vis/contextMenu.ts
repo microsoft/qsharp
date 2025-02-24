@@ -6,12 +6,12 @@ import { CircuitEvents } from "./events";
 import { findGateElem, findOperation } from "./utils";
 
 /**
- * Adds a context menu to a gate element in the circuit visualization.
+ * Adds a context menu to a host element in the circuit visualization.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param hostElem The SVG element representing the gate to which the context menu will be added.
+ * @param hostElem The SVG element representing a gate component to which the context menu will be added.
  */
-const addContextMenuToGateElem = (
+const addContextMenuToHostElem = (
   circuitEvents: CircuitEvents,
   hostElem: SVGGraphicsElement,
 ) => {
@@ -223,4 +223,4 @@ const _createCustomPrompt = (
   document.body.appendChild(overlay);
 };
 
-export { addContextMenuToGateElem };
+export { addContextMenuToHostElem };
