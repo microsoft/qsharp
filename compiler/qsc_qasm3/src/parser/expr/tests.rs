@@ -765,7 +765,7 @@ fn cast_to_bit_with_designator() {
         "bit[4](0)",
         &expect![[r#"
             Expr [0-9]: Cast [0-9]:
-                ClassicalType [0-6]: BitType [0-6]: ExprStmt [3-6]: Expr [4-5]: Lit: Int(4)
+                ClassicalType [0-6]: BitType [0-6]: Expr [4-5]: Lit: Int(4)
                 Expr [0-9]: Paren:
                     Expr [7-8]: Lit: Int(0)"#]],
     );
@@ -791,7 +791,7 @@ fn cast_to_int_with_designator() {
         "int[64](0)",
         &expect![[r#"
             Expr [0-10]: Cast [0-10]:
-                ClassicalType [0-7]: IntType[ExprStmt [3-7]: Expr [4-6]: Lit: Int(64)]: [0-7]
+                ClassicalType [0-7]: IntType[Expr [4-6]: Lit: Int(64)]: [0-7]
                 Expr [0-10]: Paren:
                     Expr [8-9]: Lit: Int(0)"#]],
     );
@@ -817,7 +817,7 @@ fn cast_to_uint_with_designator() {
         "uint[64](0)",
         &expect![[r#"
             Expr [0-11]: Cast [0-11]:
-                ClassicalType [0-8]: UIntType[ExprStmt [4-8]: Expr [5-7]: Lit: Int(64)]: [0-8]
+                ClassicalType [0-8]: UIntType[Expr [5-7]: Lit: Int(64)]: [0-8]
                 Expr [0-11]: Paren:
                     Expr [9-10]: Lit: Int(0)"#]],
     );
@@ -843,7 +843,7 @@ fn cast_to_float_with_designator() {
         "float[64](0)",
         &expect![[r#"
             Expr [0-12]: Cast [0-12]:
-                ClassicalType [0-9]: FloatType[ExprStmt [5-9]: Expr [6-8]: Lit: Int(64)]: [0-9]
+                ClassicalType [0-9]: FloatType[Expr [6-8]: Lit: Int(64)]: [0-9]
                 Expr [0-12]: Paren:
                     Expr [10-11]: Lit: Int(0)"#]],
     );
@@ -869,7 +869,7 @@ fn cast_to_complex_with_designator() {
         "complex[float[64]](0)",
         &expect![[r#"
             Expr [0-21]: Cast [0-21]:
-                ClassicalType [0-18]: ComplexType[float[FloatType[ExprStmt [13-17]: Expr [14-16]: Lit: Int(64)]: [8-17]]]: [0-18]
+                ClassicalType [0-18]: ComplexType[float[FloatType[Expr [14-16]: Lit: Int(64)]: [8-17]]]: [0-18]
                 Expr [0-21]: Paren:
                     Expr [19-20]: Lit: Int(0)"#]],
     );
@@ -921,7 +921,7 @@ fn cast_to_int_array() {
         "array[int[64], 4](0)",
         &expect![[r#"
             Expr [0-20]: Cast [0-20]:
-                ArrayType [0-17]: ArrayBaseTypeKind IntType[ExprStmt [9-13]: Expr [10-12]: Lit: Int(64)]: [6-13]
+                ArrayType [0-17]: ArrayBaseTypeKind IntType[Expr [10-12]: Lit: Int(64)]: [6-13]
                 Expr [15-16]: Lit: Int(4)
                 Expr [0-20]: Paren:
                     Expr [18-19]: Lit: Int(0)"#]],
@@ -935,7 +935,7 @@ fn cast_to_uint_array() {
         "array[uint[64], 4](0)",
         &expect![[r#"
             Expr [0-21]: Cast [0-21]:
-                ArrayType [0-18]: ArrayBaseTypeKind UIntType[ExprStmt [10-14]: Expr [11-13]: Lit: Int(64)]: [6-14]
+                ArrayType [0-18]: ArrayBaseTypeKind UIntType[Expr [11-13]: Lit: Int(64)]: [6-14]
                 Expr [16-17]: Lit: Int(4)
                 Expr [0-21]: Paren:
                     Expr [19-20]: Lit: Int(0)"#]],
@@ -949,7 +949,7 @@ fn cast_to_float_array() {
         "array[float[64], 4](0)",
         &expect![[r#"
             Expr [0-22]: Cast [0-22]:
-                ArrayType [0-19]: ArrayBaseTypeKind FloatType[ExprStmt [11-15]: Expr [12-14]: Lit: Int(64)]: [6-15]
+                ArrayType [0-19]: ArrayBaseTypeKind FloatType[Expr [12-14]: Lit: Int(64)]: [6-15]
                 Expr [17-18]: Lit: Int(4)
                 Expr [0-22]: Paren:
                     Expr [20-21]: Lit: Int(0)"#]],
@@ -963,7 +963,7 @@ fn cast_to_angle_array() {
         "array[angle[64], 4](0)",
         &expect![[r#"
             Expr [0-22]: Cast [0-22]:
-                ArrayType [0-19]: ArrayBaseTypeKind AngleType [6-15]: ExprStmt [11-15]: Expr [12-14]: Lit: Int(64)
+                ArrayType [0-19]: ArrayBaseTypeKind AngleType [6-15]: Expr [12-14]: Lit: Int(64)
                 Expr [17-18]: Lit: Int(4)
                 Expr [0-22]: Paren:
                     Expr [20-21]: Lit: Int(0)"#]],
@@ -1005,7 +1005,7 @@ fn cast_to_complex_array() {
         "array[complex[float[32]], 4](0)",
         &expect![[r#"
             Expr [0-31]: Cast [0-31]:
-                ArrayType [0-28]: ArrayBaseTypeKind ComplexType[float[FloatType[ExprStmt [19-23]: Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24]
+                ArrayType [0-28]: ArrayBaseTypeKind ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24]
                 Expr [26-27]: Lit: Int(4)
                 Expr [0-31]: Paren:
                     Expr [29-30]: Lit: Int(0)"#]],
