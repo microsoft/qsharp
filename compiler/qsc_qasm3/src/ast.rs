@@ -298,10 +298,12 @@ impl Display for UnaryOp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum GateOperand {
     IndexedIdent(Box<IndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
+    #[default]
+    Err,
 }
 
 impl Display for GateOperand {
@@ -309,7 +311,14 @@ impl Display for GateOperand {
         match self {
             GateOperand::IndexedIdent(ident) => write!(f, "GateOperand {ident}"),
             GateOperand::HardwareQubit(qubit) => write!(f, "GateOperand {qubit}"),
+            GateOperand::Err => write!(f, "Error"),
         }
+    }
+}
+
+impl WithSpan for GateOperand {
+    fn with_span(self, _span: Span) -> Self {
+        self
     }
 }
 
