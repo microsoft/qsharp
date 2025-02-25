@@ -37,7 +37,7 @@ pub fn run_lints(
 pub(crate) fn run_lints_without_deduplication(
     package_store: &PackageStore,
     compile_unit: &CompileUnit,
-    config: Option<&[LintConfig]>,
+    config: Option<&[LintOrGroupConfig]>,
 ) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,

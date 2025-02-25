@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    linter::{Compilation, remove_duplicates, run_lints_without_deduplication, unfold_groups},
     lint_groups::LintGroup,
+    linter::{remove_duplicates, run_lints_without_deduplication},
     Lint, LintLevel, LintOrGroupConfig,
 };
 use expect_test::{expect, Expect};
@@ -105,60 +105,23 @@ fn set_keyword_lint() {
 #[test]
 fn lint_group() {
     check_with_config(
-        &wrap_in_callable("let x = ((1 + 2)) / 0;;;;", CallableKind::Operation),
+        &wrap_in_callable("newtype Foo = ()", CallableKind::Operation),
         Some(&[LintOrGroupConfig::Group(crate::GroupConfig {
-            lint_group: LintGroup::Pedantic,
+            lint_group: LintGroup::Deprecation,
             level: LintLevel::Error,
         })]),
         &expect![[r#"
             [
                 SrcLint {
-                    source: ";;;",
+                    source: "newtype Foo = ()",
                     level: Error,
-                    message: "redundant semicolons",
-                    help: "remove the redundant semicolons",
-                    code_action_edits: [
-                        (
-                            "",
-                            Span {
-                                lo: 94,
-                                hi: 97,
-                            },
-                        ),
-                    ],
-                },
-                SrcLint {
-                    source: "((1 + 2)) / 0",
-                    level: Error,
-                    message: "attempt to divide by zero",
-                    help: "division by zero will fail at runtime",
+                    message: "deprecated `newtype` declarations",
+                    help: "`newtype` declarations are deprecated, use `struct` instead",
                     code_action_edits: [],
                 },
                 SrcLint {
-                    source: "((1 + 2))",
-                    level: Error,
-                    message: "unnecessary parentheses",
-                    help: "remove the extra parentheses for clarity",
-                    code_action_edits: [
-                        (
-                            "",
-                            Span {
-                                lo: 80,
-                                hi: 81,
-                            },
-                        ),
-                        (
-                            "",
-                            Span {
-                                lo: 88,
-                                hi: 89,
-                            },
-                        ),
-                    ],
-                },
-                SrcLint {
                     source: "RunProgram",
-                    level: Error,
+                    level: Allow,
                     message: "operation does not contain any quantum operations",
                     help: "this callable can be declared as a function instead",
                     code_action_edits: [],
@@ -853,7 +816,7 @@ fn check(source: &str, expected: &Expect) {
     expected.assert_debug_eq(&actual);
 }
 
-fn check_with_config(source: &str, expected: &Expect, config: Option<&[LintOrGroupConfig]>) {
+fn check_with_config(source: &str, config: Option<&[LintOrGroupConfig]>, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let actual: Vec<_> = compile_and_collect_lints(&source, config)
         .into_iter()
@@ -864,7 +827,7 @@ fn check_with_config(source: &str, expected: &Expect, config: Option<&[LintOrGro
 
 fn check_with_deduplication(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
-    let mut lints = compile_and_collect_lints(&source);
+    let mut lints = compile_and_collect_lints(&source, None);
     remove_duplicates(&mut lints);
     let actual: Vec<_> = lints
         .into_iter()
