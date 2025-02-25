@@ -10,21 +10,22 @@ use std::rc::Rc;
 use super::{
     completion::WordKinds,
     error::{Error, ErrorKind},
-    expr::{self, designator, gate_operand},
+    expr::{self, designator, gate_operand, indexed_identifier},
     prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, shorten},
     Result,
 };
 use crate::{
     ast::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
-        ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EndStmt, EnumerableSet, Expr,
-        ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
+        ArrayReferenceType, ArrayType, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
+        CalibrationGrammarStmt, CalibrationStmt, ClassicalDeclarationStmt, ComplexType,
+        ConstantDeclaration, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
+        Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
         GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident, Identifier,
-        IfStmt, IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
-        QuantumGateModifier, QuantumStmt, QubitDeclaration, RangeDefinition, ReturnStmt,
-        ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType,
-        WhileLoop,
+        IfStmt, IncludeStmt, IntType, List, LiteralKind, MeasureStmt, Pragma,
+        QuantumGateDefinition, QuantumGateModifier, QubitDeclaration, RangeDefinition, ResetStmt,
+        ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
+        TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{
@@ -85,6 +86,22 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::ExprStmt(stmt))
     } else if let Some(alias) = opt(s, parse_alias_stmt)? {
         Box::new(StmtKind::Alias(alias))
+    } else if let Some(stmt) = opt(s, parse_box)? {
+        Box::new(StmtKind::Box(stmt))
+    } else if let Some(stmt) = opt(s, parse_calibration_grammar_stmt)? {
+        Box::new(StmtKind::CalibrationGrammar(stmt))
+    } else if let Some(stmt) = opt(s, parse_defcal_stmt)? {
+        Box::new(StmtKind::DefCal(stmt))
+    } else if let Some(stmt) = opt(s, parse_cal)? {
+        Box::new(StmtKind::Cal(stmt))
+    } else if let Some(stmt) = opt(s, parse_barrier)? {
+        Box::new(StmtKind::Barrier(stmt))
+    } else if let Some(stmt) = opt(s, parse_delay)? {
+        Box::new(StmtKind::DelayStmt(stmt))
+    } else if let Some(stmt) = opt(s, parse_reset)? {
+        Box::new(StmtKind::Reset(stmt))
+    } else if let Some(stmt) = opt(s, parse_measure_stmt)? {
+        Box::new(StmtKind::Measure(stmt))
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -191,7 +208,7 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
                 span: s.span(lo),
                 filename: v.to_string(),
             };
-            token(s, TokenKind::Semicolon)?;
+            recovering_semi(s);
             return Ok(StmtKind::Include(r));
         }
     };
@@ -409,6 +426,8 @@ fn return_sig(s: &mut ParserContext) -> Result<ScalarType> {
     scalar_type(s)
 }
 
+/// Grammar:
+/// `GATE Identifier (LPAREN params=identifierList? RPAREN)? qubits=identifierList scope`.
 fn parse_gatedef(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Gate))?;
@@ -1075,6 +1094,44 @@ fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     })
 }
 
+fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
+    let stmt = *parse(s)?;
+    match &*stmt.kind {
+        StmtKind::Barrier(_) | StmtKind::Break(_) | StmtKind::DelayStmt(_) | StmtKind::Reset(_) => {
+            Ok(stmt)
+        }
+        _ => Err(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span))),
+    }
+}
+
+fn parse_many_boxable_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
+    let stmts = many(s, |s| {
+        recovering(
+            s,
+            |span| Stmt {
+                span,
+                kind: Box::new(StmtKind::Err),
+                annotations: Box::new([]),
+            },
+            &[TokenKind::Semicolon],
+            parse_boxable_stmt,
+        )
+    });
+
+    Ok(list_from_iter(stmts?))
+}
+
+fn parse_box_body(s: &mut ParserContext) -> Result<List<Stmt>> {
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let stmts = barrier(
+        s,
+        &[TokenKind::Close(Delim::Brace)],
+        parse_many_boxable_stmt,
+    )?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    Ok(stmts)
+}
+
 /// In QASM3, it is hard to disambiguate between a quantum-gate-call missing modifiers
 /// and expression statements. Consider the following expressions:
 ///  1. `Rx(2, 3) q0;`
@@ -1101,7 +1158,7 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
     let gate_or_expr = expr::expr(s)?;
 
     let duration = opt(s, designator)?;
-    let qubits = gate_operands(s)?;
+    let qubits = gate_operand_list(s)?;
     recovering_semi(s);
 
     // If didn't parse modifiers, a duration, nor qubit args then this is an expr, not a gate call.
@@ -1123,19 +1180,14 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         }
     };
 
-    let quantum_stmt = QuantumStmt {
+    Ok(StmtKind::GateCall(GateCall {
         span: s.span(lo),
-        kind: crate::ast::QuantumStmtKind::Gate(GateCall {
-            span: s.span(lo),
-            modifiers,
-            name,
-            args,
-            qubits,
-            duration,
-        }),
-    };
-
-    Ok(StmtKind::Quantum(quantum_stmt))
+        modifiers,
+        name,
+        args,
+        qubits,
+        duration,
+    }))
 }
 
 /// Grammar:
@@ -1181,6 +1233,189 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
     })
 }
 
-fn gate_operands(s: &mut ParserContext) -> Result<List<GateOperand>> {
+/// Grammar: `gateOperand (COMMA gateOperand)* COMMA?`.
+fn gate_operand_list(s: &mut ParserContext) -> Result<List<GateOperand>> {
     Ok(list_from_iter(seq(s, gate_operand)?.0))
+}
+
+/// Grammar: `DEFCALGRAMMAR StringLiteral SEMICOLON`.
+fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGrammarStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::DefCalGrammar);
+    token(s, TokenKind::Keyword(Keyword::DefCalGrammar))?;
+    let next = s.peek();
+    let v = expr::lit(s)?;
+
+    if let Some(v) = v {
+        recovering_semi(s);
+        if let LiteralKind::String(v) = v.kind {
+            return Ok(CalibrationGrammarStmt {
+                span: s.span(lo),
+                name: v.to_string(),
+            });
+        }
+    };
+
+    Err(Error::new(ErrorKind::Rule(
+        "calibration grammar statement",
+        TokenKind::Literal(Literal::String),
+        next.span,
+    )))
+}
+
+/// We don't support `defcal` statements.
+/// Grammar: `DEFCAL pushmode(eatUntilOpenBrace) pushmode(eatUntilBalancedClosingBrace)`.
+fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::DefCal);
+    token(s, TokenKind::Keyword(Keyword::DefCal))?;
+
+    // Once we have parsed the `defcal` token, we eat all the tokens until we see an open brace.
+    while !matches!(
+        s.peek().kind,
+        TokenKind::Open(Delim::Brace) | TokenKind::Eof
+    ) {
+        s.advance();
+    }
+
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let mut level: u32 = 1;
+
+    loop {
+        match s.peek().kind {
+            TokenKind::Eof => {
+                s.advance();
+                return Err(Error::new(ErrorKind::Token(
+                    TokenKind::Close(Delim::Brace),
+                    TokenKind::Eof,
+                    s.span(lo),
+                )));
+            }
+            TokenKind::Open(Delim::Brace) => {
+                s.advance();
+                level += 1;
+            }
+            TokenKind::Close(Delim::Brace) => {
+                s.advance();
+                level -= 1;
+                if level == 0 {
+                    return Ok(DefCalStmt { span: s.span(lo) });
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
+/// We don't support `cal` block statements.
+/// Grammar: `CAL OPEN_BRACE pushmode(eatUntilBalancedClosingBrace)`.
+fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Cal);
+    token(s, TokenKind::Keyword(Keyword::Cal))?;
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let mut level: u32 = 1;
+
+    loop {
+        match s.peek().kind {
+            TokenKind::Eof => {
+                s.advance();
+                return Err(Error::new(ErrorKind::Token(
+                    TokenKind::Close(Delim::Brace),
+                    TokenKind::Eof,
+                    s.span(lo),
+                )));
+            }
+            TokenKind::Open(Delim::Brace) => {
+                s.advance();
+                level += 1;
+            }
+            TokenKind::Close(Delim::Brace) => {
+                s.advance();
+                level -= 1;
+                if level == 0 {
+                    return Ok(CalibrationStmt { span: s.span(lo) });
+                }
+            }
+            _ => (),
+        }
+    }
+}
+
+/// Grammar: `BARRIER gateOperandList? SEMICOLON`.
+fn parse_barrier(s: &mut ParserContext) -> Result<BarrierStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Barrier);
+    token(s, TokenKind::Keyword(Keyword::Barrier))?;
+    let qubits = gate_operand_list(s)?;
+    recovering_semi(s);
+
+    Ok(BarrierStmt {
+        span: s.span(lo),
+        qubits,
+    })
+}
+
+/// Grammar: `BOX designator? scope`.
+fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Box);
+    token(s, TokenKind::Keyword(Keyword::Box))?;
+    let duration = opt(s, designator)?;
+    let body = parse_box_body(s)?;
+
+    Ok(BoxStmt {
+        span: s.span(lo),
+        duration,
+        body,
+    })
+}
+
+/// Grammar: `DELAY designator gateOperandList? SEMICOLON`.
+fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Delay);
+    token(s, TokenKind::Keyword(Keyword::Delay))?;
+    let duration = designator(s)?;
+    let qubits = gate_operand_list(s)?;
+    recovering_semi(s);
+
+    Ok(DelayStmt {
+        span: s.span(lo),
+        duration,
+        qubits,
+    })
+}
+
+/// Grammar: `RESET gateOperand SEMICOLON`.
+fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
+    let lo = s.peek().span.lo;
+    s.expect(WordKinds::Barrier);
+    token(s, TokenKind::Keyword(Keyword::Barrier))?;
+    let operand = Box::new(gate_operand(s)?);
+    recovering_semi(s);
+
+    Ok(ResetStmt {
+        span: s.span(lo),
+        operand,
+    })
+}
+
+/// Grammar: `measureExpression (ARROW indexedIdentifier)? SEMICOLON`.
+fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureStmt> {
+    let lo = s.peek().span.lo;
+    let measure = expr::measure_expr(s)?;
+
+    let target = opt(s, |s| {
+        token(s, TokenKind::Arrow)?;
+        Ok(Box::new(indexed_identifier(s)?))
+    })?;
+
+    recovering_semi(s);
+
+    Ok(MeasureStmt {
+        span: s.span(lo),
+        measurement: measure,
+        target,
+    })
 }

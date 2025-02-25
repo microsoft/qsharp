@@ -409,13 +409,14 @@ pub enum StmtKind {
     ExternDecl(ExternDecl),
     For(ForStmt),
     If(IfStmt),
+    GateCall(GateCall),
+    GPhase(QuantumPhase),
     Include(IncludeStmt),
     IODeclaration(IODeclaration),
     Measure(MeasureStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
     QuantumDecl(QubitDeclaration),
-    Quantum(QuantumStmt),
     Reset(ResetStmt),
     Return(ReturnStmt),
     Switch(SwitchStmt),
@@ -449,6 +450,8 @@ impl Display for StmtKind {
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
+            StmtKind::GateCall(gate_call) => write!(f, "{gate_call}"),
+            StmtKind::GPhase(gphase) => write!(f, "{gphase}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
             StmtKind::IODeclaration(io) => write!(f, "{io}"),
@@ -456,7 +459,6 @@ impl Display for StmtKind {
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
             StmtKind::QuantumGateDefinition(gate) => write!(f, "{gate}"),
             StmtKind::QuantumDecl(decl) => write!(f, "{decl}"),
-            StmtKind::Quantum(quantum_stmt) => write!(f, "{quantum_stmt}"),
             StmtKind::Reset(reset_stmt) => write!(f, "{reset_stmt}"),
             StmtKind::Return(return_stmt) => write!(f, "{return_stmt}"),
             StmtKind::Switch(switch_stmt) => write!(f, "{switch_stmt}"),
@@ -479,11 +481,13 @@ impl Display for CalibrationGrammarStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct DefCalStmt {}
+pub struct DefCalStmt {
+    pub span: Span,
+}
 
 impl Display for DefCalStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "DefCalStmt")
+        write!(f, "DefCalStmt {}", self.span)
     }
 }
 
@@ -509,18 +513,6 @@ impl Display for IfStmt {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct DelayStmt {
-    pub span: Span,
-    pub duration: Expr,
-}
-
-impl Display for DelayStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "DelayStmt {}: {}", self.span, self.duration)
     }
 }
 
@@ -722,18 +714,6 @@ impl Display for GateModifierKind {
             GateModifierKind::Ctrl(expr) => write!(f, "Ctrl {expr:?}"),
             GateModifierKind::NegCtrl(expr) => write!(f, "NegCtrl {expr:?}"),
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct QuantumMeasurement {
-    pub span: Span,
-    pub qubit: Box<Identifier>,
-}
-
-impl Display for QuantumMeasurement {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumMeasurement {}: {}", self.span, self.qubit)
     }
 }
 
@@ -1185,41 +1165,6 @@ impl Display for ExternDecl {
 }
 
 #[derive(Clone, Debug)]
-pub struct QuantumStmt {
-    pub span: Span,
-    pub kind: QuantumStmtKind,
-}
-
-impl Display for QuantumStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumStmt {}: {}", self.span, self.kind)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum QuantumStmtKind {
-    Gate(GateCall),
-    Phase(QuantumPhase),
-    Barrier(List<ExprStmt>),
-    Reset(List<Box<Identifier>>),
-    DelayInstruction(DelayInstruction),
-    Box(BoxStmt),
-}
-
-impl Display for QuantumStmtKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            QuantumStmtKind::Gate(gate) => write!(f, "{gate}"),
-            QuantumStmtKind::Phase(phase) => write!(f, "{phase}"),
-            QuantumStmtKind::Barrier(barrier) => write!(f, "{barrier:?}"),
-            QuantumStmtKind::Reset(reset) => write!(f, "{reset:?}"),
-            QuantumStmtKind::DelayInstruction(delay) => write!(f, "{delay:?}"),
-            QuantumStmtKind::Box(box_stmt) => write!(f, "{box_stmt:?}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
@@ -1266,13 +1211,13 @@ impl Display for QuantumPhase {
 }
 
 #[derive(Clone, Debug)]
-pub struct DelayInstruction {
-    span: Span,
-    duration: Expr,
-    qubits: List<Box<Identifier>>,
+pub struct DelayStmt {
+    pub span: Span,
+    pub duration: Expr,
+    pub qubits: List<GateOperand>,
 }
 
-impl Display for DelayInstruction {
+impl Display for DelayStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "DelayInstruction {}: {}", self.span, self.duration)?;
@@ -1287,7 +1232,7 @@ impl Display for DelayInstruction {
 pub struct BoxStmt {
     pub span: Span,
     pub duration: Option<Expr>,
-    pub body: List<QuantumStmt>,
+    pub body: List<Stmt>,
 }
 
 impl Display for BoxStmt {
@@ -1308,16 +1253,20 @@ impl Display for BoxStmt {
 #[derive(Clone, Debug)]
 pub struct MeasureStmt {
     pub span: Span,
-    pub measure: QuantumMeasurement,
-    pub target: Option<Box<Identifier>>,
+    pub measurement: MeasureExpr,
+    pub target: Option<Box<IndexedIdent>>,
 }
 
 impl Display for MeasureStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(target) = &self.target {
-            write!(f, "MeasureStmt {}: {}, {}", self.span, self.measure, target)
+            write!(
+                f,
+                "MeasureStmt {}: {}, {}",
+                self.span, self.measurement, target
+            )
         } else {
-            write!(f, "MeasureStmt {}: {}", self.span, self.measure)
+            write!(f, "MeasureStmt {}: {}", self.span, self.measurement)
         }
     }
 }
@@ -1417,13 +1366,12 @@ impl Display for CalibrationGrammarDeclaration {
 
 #[derive(Clone, Debug)]
 pub struct CalibrationStmt {
-    span: Span,
-    body: String,
+    pub span: Span,
 }
 
 impl Display for CalibrationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CalibrationStmt {}: {}", self.span, self.body)
+        write!(f, "CalibrationStmt {}", self.span)
     }
 }
 
