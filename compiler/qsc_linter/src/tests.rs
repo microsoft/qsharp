@@ -107,7 +107,7 @@ fn lint_group() {
     check_with_config(
         &wrap_in_callable("newtype Foo = ()", CallableKind::Operation),
         Some(&[LintOrGroupConfig::Group(crate::GroupConfig {
-            lint_group: LintGroup::Deprecation,
+            lint_group: LintGroup::Deprecations,
             level: LintLevel::Error,
         })]),
         &expect![[r#"

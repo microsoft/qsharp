@@ -15,7 +15,7 @@ pub struct GroupConfig {
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum LintGroup {
-    Deprecation,
+    Deprecations,
 }
 
 impl LintGroup {
@@ -23,7 +23,7 @@ impl LintGroup {
         use crate::AstLint::*;
         use crate::HirLint::*;
         match self {
-            LintGroup::Deprecation => {
+            LintGroup::Deprecations => {
                 vec![
                     LintKind::Ast(DeprecatedNewtype),
                     LintKind::Ast(DeprecatedSet),
