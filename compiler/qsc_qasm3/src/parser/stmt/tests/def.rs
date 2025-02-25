@@ -47,7 +47,7 @@ fn missing_args_with_delim_error() {
         "def x(,) { }",
         &expect![[r#"
             Stmt [0-12]
-                StmtKind: DefStmt [0-12]: Ident [4-5] "x"([6-6] Ident [0-0] "": ClassicalType [0-0]: Err) 
+                StmtKind: DefStmt [0-12]: Ident [4-5] "x"([6-6] Ident [0-0] "": ClassicalType [0-0]: Err)
 
             [
                 Error(
@@ -69,7 +69,7 @@ fn args_with_extra_delim_err_ty() {
         "def x(int a,,int b) { }",
         &expect![[r#"
             Stmt [0-23]
-                StmtKind: DefStmt [0-23]: Ident [4-5] "x"([6-11] Ident [10-11] "a": ClassicalType [6-9]: IntType [6-9], [12-12] Ident [0-0] "": ClassicalType [0-0]: Err, [13-18] Ident [17-18] "b": ClassicalType [13-16]: IntType [13-16]) 
+                StmtKind: DefStmt [0-23]: Ident [4-5] "x"([6-11] Ident [10-11] "a": ClassicalType [6-9]: IntType [6-9], [12-12] Ident [0-0] "": ClassicalType [0-0]: Err, [13-18] Ident [17-18] "b": ClassicalType [13-16]: IntType [13-16])
 
             [
                 Error(
@@ -91,7 +91,7 @@ fn classical_subroutine() {
         "def square(int[32] x) -> int { return x ** 2; }",
         &expect![[r#"
             Stmt [0-47]
-                StmtKind: DefStmt [0-47]: Ident [4-10] "square"([11-20] Ident [19-20] "x": ClassicalType [11-18]: IntType[Expr [15-17]: Lit: Int(32)]: [11-18]) 
+                StmtKind: DefStmt [0-47]: Ident [4-10] "square"([11-20] Ident [19-20] "x": ClassicalType [11-18]: IntType[Expr [15-17]: Lit: Int(32)]: [11-18])
                 Stmt [31-45]
                     StmtKind: ReturnStmt [31-45]: ValueExpression Expr [38-44]: BinOp (Exp):
                         Expr [38-39]: Ident [38-39] "x"
@@ -118,7 +118,7 @@ fn old_style_args() {
         "def test(creg c, qreg q, creg c2[2], qreg q4[4]) -> int { return x ** 2; }",
         &expect![[r#"
             Stmt [0-74]
-                StmtKind: DefStmt [0-74]: Ident [4-8] "test"([9-15] Ident [14-15] "c": ClassicalType [9-15]: BitType, [17-23] Ident [22-23] "q": qubit, [25-35] Ident [30-32] "c2": ClassicalType [25-35]: BitType [25-35]: Expr [33-34]: Lit: Int(2), [37-47] Ident [42-44] "q4": qubit[Expr [45-46]: Lit: Int(4)]) 
+                StmtKind: DefStmt [0-74]: Ident [4-8] "test"([9-15] Ident [14-15] "c": ClassicalType [9-15]: BitType, [17-23] Ident [22-23] "q": qubit, [25-35] Ident [30-32] "c2": ClassicalType [25-35]: BitType [25-35]: Expr [33-34]: Lit: Int(2), [37-47] Ident [42-44] "q4": qubit[Expr [45-46]: Lit: Int(4)])
                 Stmt [58-72]
                     StmtKind: ReturnStmt [58-72]: ValueExpression Expr [65-71]: BinOp (Exp):
                         Expr [65-66]: Ident [65-66] "x"
