@@ -165,14 +165,6 @@ const _createCustomPrompt = (
     e.preventDefault();
     e.stopPropagation();
   });
-  overlay.addEventListener("mouseup", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
-  overlay.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
 
   // Create the prompt container
   const promptContainer = document.createElement("div");
