@@ -11,9 +11,9 @@ fn gate_call() {
         parse,
         "H q0;",
         &expect![[r#"
-        Stmt [0-5]
-            StmtKind: QuantumStmt [0-5]: GateCall [0-5]: Ident [0-1] "H"
-            GateOperand IndexedIdent [2-4]: Ident [2-4] "q0"[]"#]],
+            Stmt [0-5]
+                StmtKind: GateCall [0-5]: Ident [0-1] "H"
+                GateOperand IndexedIdent [2-4]: Ident [2-4] "q0"[]"#]],
     );
 }
 
@@ -23,11 +23,11 @@ fn gate_call_qubit_register() {
         parse,
         "H q[2];",
         &expect![[r#"
-        Stmt [0-7]
-            StmtKind: QuantumStmt [0-7]: GateCall [0-7]: Ident [0-1] "H"
-            GateOperand IndexedIdent [2-6]: Ident [2-3] "q"[
-            IndexElement:
-                IndexSetItem Expr [4-5]: Lit: Int(2)]"#]],
+            Stmt [0-7]
+                StmtKind: GateCall [0-7]: Ident [0-1] "H"
+                GateOperand IndexedIdent [2-6]: Ident [2-3] "q"[
+                IndexElement:
+                    IndexSetItem Expr [4-5]: Lit: Int(2)]"#]],
     );
 }
 
@@ -38,7 +38,7 @@ fn gate_multiple_qubits() {
         "CNOT q0, q[4];",
         &expect![[r#"
             Stmt [0-14]
-                StmtKind: QuantumStmt [0-14]: GateCall [0-14]: Ident [0-4] "CNOT"
+                StmtKind: GateCall [0-14]: Ident [0-4] "CNOT"
                 GateOperand IndexedIdent [5-7]: Ident [5-7] "q0"[]
                 GateOperand IndexedIdent [9-13]: Ident [9-10] "q"[
                 IndexElement:
@@ -53,7 +53,7 @@ fn gate_no_qubits() {
         "inv @ H;",
         &expect![[r#"
             Stmt [0-8]
-                StmtKind: QuantumStmt [0-8]: GateCall [0-8]: Ident [6-7] "H""#]],
+                StmtKind: GateCall [0-8]: Ident [6-7] "H""#]],
     );
 }
 
@@ -63,12 +63,12 @@ fn gate_call_with_parameters() {
         parse,
         "Rx(pi / 2) q0;",
         &expect![[r#"
-        Stmt [0-14]
-            StmtKind: QuantumStmt [0-14]: GateCall [0-14]: Ident [0-2] "Rx"
-            Expr [3-9]: BinOp (Div):
-                Expr [3-5]: Ident [3-5] "pi"
-                Expr [8-9]: Lit: Int(2)
-            GateOperand IndexedIdent [11-13]: Ident [11-13] "q0"[]"#]],
+            Stmt [0-14]
+                StmtKind: GateCall [0-14]: Ident [0-2] "Rx"
+                Expr [3-9]: BinOp (Div):
+                    Expr [3-5]: Ident [3-5] "pi"
+                    Expr [8-9]: Lit: Int(2)
+                GateOperand IndexedIdent [11-13]: Ident [11-13] "q0"[]"#]],
     );
 }
 
@@ -79,7 +79,7 @@ fn gate_call_inv_modifier() {
         "inv @ H q0;",
         &expect![[r#"
             Stmt [0-11]
-                StmtKind: QuantumStmt [0-11]: GateCall [0-11]: Ident [6-7] "H"
+                StmtKind: GateCall [0-11]: Ident [6-7] "H"
                 GateOperand IndexedIdent [8-10]: Ident [8-10] "q0"[]"#]],
     );
 }
@@ -91,7 +91,7 @@ fn gate_call_ctrl_inv_modifiers() {
         "ctrl(2) @ inv @ Rx(pi / 2) c1, c2, q0;",
         &expect![[r#"
             Stmt [0-38]
-                StmtKind: QuantumStmt [0-38]: GateCall [0-38]: Ident [16-18] "Rx"
+                StmtKind: GateCall [0-38]: Ident [16-18] "Rx"
                 Expr [19-25]: BinOp (Div):
                     Expr [19-21]: Ident [19-21] "pi"
                     Expr [24-25]: Lit: Int(2)
