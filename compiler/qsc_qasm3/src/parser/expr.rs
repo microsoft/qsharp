@@ -721,7 +721,7 @@ pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
     seq(s, expr).map(|pair| pair.0)
 }
 
-fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
+pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Measure)?;
 
@@ -749,7 +749,7 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
     })
 }
 
-fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
+pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
     let indices = list_from_iter(many(s, index_operand)?);
