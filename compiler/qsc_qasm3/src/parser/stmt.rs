@@ -1097,9 +1097,12 @@ fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
 fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
     let stmt = *parse(s)?;
     match &*stmt.kind {
-        StmtKind::Barrier(_) | StmtKind::Break(_) | StmtKind::DelayStmt(_) | StmtKind::Reset(_) => {
-            Ok(stmt)
-        }
+        StmtKind::Barrier(_)
+        | StmtKind::Break(_)
+        | StmtKind::DelayStmt(_)
+        | StmtKind::Reset(_)
+        | StmtKind::GateCall(_)
+        | StmtKind::GPhase(_) => Ok(stmt),
         _ => Err(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span))),
     }
 }
@@ -1302,7 +1305,7 @@ fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
                     return Ok(DefCalStmt { span: s.span(lo) });
                 }
             }
-            _ => (),
+            _ => s.advance(),
         }
     }
 }
@@ -1337,7 +1340,7 @@ fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
                     return Ok(CalibrationStmt { span: s.span(lo) });
                 }
             }
-            _ => (),
+            _ => s.advance(),
         }
     }
 }
@@ -1375,7 +1378,7 @@ fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
 fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Delay);
-    token(s, TokenKind::Keyword(Keyword::Delay))?;
+    token(s, TokenKind::Delay)?;
     let duration = designator(s)?;
     let qubits = gate_operand_list(s)?;
     recovering_semi(s);
@@ -1390,8 +1393,8 @@ fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
 /// Grammar: `RESET gateOperand SEMICOLON`.
 fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Barrier);
-    token(s, TokenKind::Keyword(Keyword::Barrier))?;
+    s.expect(WordKinds::Reset);
+    token(s, TokenKind::Reset)?;
     let operand = Box::new(gate_operand(s)?);
     recovering_semi(s);
 
