@@ -10,16 +10,16 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, Interpreter};
+use qsc::qasm3::io::SourceResolver;
+use qsc::qasm3::{
+    qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
+};
 use qsc::target::Profile;
 use qsc::{
     ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures,
     PackageStore, SourceMap,
 };
 use qsc::{Backend, PackageType, SparseSim};
-use qsc_qasm3::io::SourceResolver;
-use qsc_qasm3::{
-    qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
-};
 
 use crate::fs::file_system;
 use crate::interpreter::{
@@ -88,7 +88,7 @@ pub fn run_qasm3(
 ) -> PyResult<PyObject> {
     let mut receiver = OptionalCallbackReceiver { callback, py };
 
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let target = get_target_profile(&kwargs)?;
     let operation_name = get_operation_name(&kwargs)?;
@@ -120,11 +120,7 @@ pub fn run_qasm3(
         .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
     match run_ast(&mut interpreter, &mut receiver, shots, seed) {
-        Ok(result) => Ok(PyList::new_bound(
-            py,
-            result.iter().map(|v| ValueWrapper(v.clone()).into_py(py)),
-        )
-        .into_py(py)),
+        Ok(result) => Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into()),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
 }
@@ -166,7 +162,7 @@ pub(crate) fn resource_estimate_qasm3(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
@@ -228,7 +224,7 @@ pub(crate) fn compile_qasm3_to_qir(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let target = get_target_profile(&kwargs)?;
     let operation_name = get_operation_name(&kwargs)?;
@@ -265,7 +261,7 @@ pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
 ) -> PyResult<QasmCompileUnit> {
-    let parse_result = qsc_qasm3::parse::parse_source(
+    let parse_result = qsc::qasm3::parse::parse_source(
         source,
         format!("{}.qasm", operation_name.as_ref()),
         resolver,
@@ -367,7 +363,7 @@ pub(crate) fn compile_qasm3_to_qsharp(
     fetch_github: Option<PyObject>,
     kwargs: Option<Bound<'_, PyDict>>,
 ) -> PyResult<String> {
-    let kwargs = kwargs.unwrap_or_else(|| PyDict::new_bound(py));
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
 
     let operation_name = get_operation_name(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
@@ -498,7 +494,7 @@ fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimat
 }
 
 /// Formats a list of QASM3 errors into a single string.
-pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc_qasm3::Error>>) -> String {
+pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc::qasm3::Error>>) -> String {
     errors
         .into_iter()
         .map(|e| {

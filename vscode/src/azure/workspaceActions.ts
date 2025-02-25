@@ -104,7 +104,7 @@ export function getPythonCodeForWorkspace(
 
   const pythonCode = `# If developing locally, on first run this will open a browser to authenticate the
 # connection with Azure. In remote scenarios, such as SSH or Codespaces, it may
-# be necesssary to install the Azure CLI and run 'az login --use-device-code' to
+# be necessary to install the Azure CLI and run 'az login --use-device-code' to
 # authenticate. For unattended scenarios, such as batch jobs, a service principal
 # should be configured and used for authentication. For more information, see
 # https://learn.microsoft.com/en-us/azure/developer/python/sdk/authentication-overview

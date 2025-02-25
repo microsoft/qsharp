@@ -4,13 +4,16 @@
 #[cfg(test)]
 mod tests;
 
+use crate::protocol::TestCallable;
+
 use super::compilation::Compilation;
-use super::protocol::{DiagnosticUpdate, NotebookMetadata};
-use crate::protocol::{ErrorKind, WorkspaceConfigurationUpdate};
+use super::protocol::{
+    DiagnosticUpdate, ErrorKind, NotebookMetadata, TestCallables, WorkspaceConfigurationUpdate,
+};
 use log::{debug, trace};
 use miette::Diagnostic;
-use qsc::{compile, project};
-use qsc::{target::Profile, LanguageFeatures, PackageType};
+use qsc::line_column::Encoding;
+use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintOrGroupConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -102,24 +105,32 @@ pub(super) struct CompilationStateUpdater<'a> {
     /// Callback which will receive diagnostics (compilation errors)
     /// whenever a (re-)compilation occurs.
     diagnostics_receiver: Box<dyn Fn(DiagnosticUpdate) + 'a>,
+    /// Callback which will receive test callables whenever a (re-)compilation occurs.
+    test_callable_receiver: Box<dyn Fn(TestCallables) + 'a>,
     cache: RefCell<PackageCache>,
     /// Functions to interact with the host filesystem for project system operations.
     project_host: Box<dyn JSProjectHost>,
+    /// Encoding for converting between line/column and byte offsets.
+    position_encoding: Encoding,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
         diagnostics_receiver: impl Fn(DiagnosticUpdate) + 'a,
+        test_callable_receiver: impl Fn(TestCallables) + 'a,
         project_host: impl JSProjectHost + 'static,
+        position_encoding: Encoding,
     ) -> Self {
         Self {
             state,
             configuration: Configuration::default(),
             documents_with_errors: FxHashSet::default(),
             diagnostics_receiver: Box::new(diagnostics_receiver),
+            test_callable_receiver: Box::new(test_callable_receiver),
             cache: RefCell::default(),
             project_host: Box::new(project_host),
+            position_encoding,
         }
     }
 
@@ -174,7 +185,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
         self.insert_buffer_aware_compilation(project);
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Attempts to resolve a manifest for the given document uri.
@@ -253,6 +264,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 &configuration.lints_config,
                 loaded_project.package_graph_sources,
                 loaded_project.errors,
+                &loaded_project.name,
             );
 
             state
@@ -275,7 +287,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Removes a document from the open documents map. If the
@@ -372,7 +384,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 (compilation, notebook_configuration),
             );
         });
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     pub(super) fn close_notebook_document(&mut self, notebook_uri: &str) {
@@ -390,19 +402,30 @@ impl<'a> CompilationStateUpdater<'a> {
             state.compilations.remove(notebook_uri);
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     // It gets really messy knowing when to clear diagnostics
     // when the document changes ownership between compilations, etc.
     // So let's do it the simplest way possible. Republish all the diagnostics every time.
-    fn publish_diagnostics(&mut self) {
+    fn publish_diagnostics_and_test_callables(&mut self) {
+        self.publish_test_callables();
         let last_docs_with_errors = take(&mut self.documents_with_errors);
         let mut docs_with_errors = FxHashSet::default();
 
         self.with_state(|state| {
             for (compilation_uri, compilation) in &state.compilations {
                 trace!("publishing diagnostics for {compilation_uri}");
+
+                if compilation_uri.starts_with(qsc_project::GITHUB_SCHEME) {
+                    // If the compilation URI is a GitHub virtual document URI,
+                    // that's a signal that this is a source file from a GitHub package
+                    // that is open in the editor.
+                    // We can't discover the manifest and load the project for these files.
+                    // So they end up in their own single-file compilation.
+                    // Don't publish diagnostics for these, as they will contain spurious errors.
+                    continue;
+                }
 
                 for (uri, errors) in map_errors_to_docs(
                     compilation_uri,
@@ -415,12 +438,6 @@ impl<'a> CompilationStateUpdater<'a> {
                         // When the same document is included in multiple compilations,
                         // only report the errors for one of them, the goal being
                         // a less confusing user experience.
-                        continue;
-                    }
-                    if uri.starts_with(qsc_project::GITHUB_SCHEME) {
-                        // Don't publish diagnostics for GitHub URIs.
-                        // This is temporary workaround to avoid spurious errors when a document
-                        // is opened in single file mode that is part of a read-only GitHub project.
                         continue;
                     }
 
@@ -503,7 +520,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         });
 
-        self.publish_diagnostics();
+        self.publish_diagnostics_and_test_callables();
     }
 
     /// Borrows the compilation state immutably and invokes `f`.
@@ -532,6 +549,36 @@ impl<'a> CompilationStateUpdater<'a> {
     {
         let mut state = self.state.borrow_mut();
         f(&mut state)
+    }
+
+    fn publish_test_callables(&self) {
+        self.with_state(|state| {
+            // get test callables from each compilation
+            let callables: Vec<_> = state
+                .compilations
+                .iter()
+                .flat_map(|(compilation_uri, (compilation, _))| {
+                    compilation.test_cases.iter().map(move |(name, span)| {
+                        Some(TestCallable {
+                            compilation_uri: Arc::from(compilation_uri.as_ref()),
+                            callable_name: Arc::from(name.as_ref()),
+                            location: crate::qsc_utils::into_location(
+                                self.position_encoding,
+                                compilation,
+                                *span,
+                                compilation.user_package_id,
+                            ),
+                            // notebooks don't have human readable names -- we use this
+                            // to filter them out in the test explorer
+                            friendly_name: compilation.friendly_project_name()?,
+                        })
+                    })
+                })
+                .flatten()
+                .collect();
+
+            (self.test_callable_receiver)(TestCallables { callables });
+        });
     }
 }
 

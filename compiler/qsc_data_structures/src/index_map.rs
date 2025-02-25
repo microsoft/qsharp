@@ -114,7 +114,7 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
 
     pub fn contains_key(&self, key: K) -> bool {
         let index: usize = key.into();
-        self.values.get(index).map_or(false, Option::is_some)
+        self.values.get(index).is_some_and(Option::is_some)
     }
 
     pub fn get(&self, key: K) -> Option<&V> {

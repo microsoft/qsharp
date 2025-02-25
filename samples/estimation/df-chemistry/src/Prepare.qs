@@ -7,6 +7,7 @@ import Std.Intrinsic.*;
 import Std.Math.*;
 import Std.Arithmetic.*;
 import Std.TableLookup.*;
+import Std.StatePreparation.PrepareUniformSuperposition;
 
 // ------------------------------------- //
 // State preparation (public operations) //
@@ -17,37 +18,6 @@ operation PrepareSingleQubit(p0 : Double, p1 : Double, target : Qubit) : Unit is
     let alpha = ArcCos(Sqrt(p0 / oneNorm));
 
     Ry(2.0 * alpha, target);
-}
-
-operation PrepareUniformSuperposition(numStates : Int, qs : Qubit[]) : Unit is Adj + Ctl {
-    Fact(numStates >= 1, "numStates must be positive");
-    Fact(numStates <= 2^Length(qs), $"numStates must be smaller or equal to {2^Length(qs)}");
-
-    let qsAdjusted = qs[...Ceiling(Lg(IntAsDouble(numStates))) - 1];
-
-    let (factor, pow) = DecomposePowerOf2(numStates);
-
-    if factor == 1 {
-        ApplyToEachCA(H, qsAdjusted[0..pow - 1]);
-    } else {
-        use tgt = Qubit();
-
-        let sqrt = Sqrt(IntAsDouble(1 <<< Length(qsAdjusted)) / IntAsDouble(numStates));
-        let angle = 2.0 * ArcSin(0.5 * sqrt);
-
-        ApplyToEachCA(H, qsAdjusted);
-
-        ApplyIfGreaterL(Ry(2.0 * angle, _), IntAsBigInt(numStates), qsAdjusted, tgt);
-
-        within {
-            ApplyToEachA(H, qsAdjusted[pow...]);
-        } apply {
-            ReflectAboutInteger(0, qsAdjusted[pow...] + [tgt]);
-            Ry(-angle, tgt);
-        }
-
-        X(tgt);
-    }
 }
 
 struct PrepareArbitrarySuperposition {
@@ -87,18 +57,6 @@ function MakePrepareArbitrarySuperpositionWithData(targetError : Double, coeffic
 // State preparation (private operations) //
 // -------------------------------------- //
 
-internal function DecomposePowerOf2(number : Int) : (Int, Int) {
-    mutable pow = 0;
-    mutable factor = number;
-
-    while factor % 2 == 0 {
-        set factor /= 2;
-        set pow += 1;
-    }
-
-    (factor, pow)
-}
-
 internal function ArbitrarySuperpositionRegisterLengths(targetError : Double, nCoefficients : Int) : (Int, Int) {
     Fact(targetError > 0.0, "targetError must be positive");
     Fact(nCoefficients > 0, "nCoefficients must be positive");
@@ -116,7 +74,7 @@ internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coeffi
     let nCoefficients = Length(coefficients);
     Fact(bitsPrecision <= 31, $"Bits of precision {bitsPrecision} unsupported. Max is 31.");
     Fact(nCoefficients > 1, "Cannot prepare state with less than 2 coefficients.");
-    Fact(oneNorm != 0.0, "State must have at least one coefficient > 0");
+    Fact(AbsD(oneNorm) > 0.0, "State must have at least one coefficient > 0");
 
     let barHeight = 2^bitsPrecision - 1;
 

@@ -3164,8 +3164,8 @@ fn lambda_inner_return() {
             #12 54-55 "f" : (Unit -> Int)
             #14 58-98 "() -> {\n            return 42;\n        }" : (Unit -> Int)
             #15 58-60 "()" : Unit
-            #16 64-98 "{\n            return 42;\n        }" : Unit
-            #17 64-98 "{\n            return 42;\n        }" : Unit
+            #16 64-98 "{\n            return 42;\n        }" : Int
+            #17 64-98 "{\n            return 42;\n        }" : Int
             #19 78-87 "return 42" : Unit
             #20 85-87 "42" : Int
             #22 112-113 "r" : Int
@@ -3197,8 +3197,8 @@ fn lambda_inner_return_without_call_ambiguous() {
             #15 58-64 "(a, b)" : (?2, ?2)
             #16 59-60 "a" : ?2
             #18 62-63 "b" : ?2
-            #20 68-105 "{\n            return a + b;\n        }" : Unit
-            #21 68-105 "{\n            return a + b;\n        }" : Unit
+            #20 68-105 "{\n            return a + b;\n        }" : ?2
+            #21 68-105 "{\n            return a + b;\n        }" : ?2
             #23 82-94 "return a + b" : Unit
             #24 89-94 "a + b" : ?2
             #25 89-90 "a" : ?2
@@ -3224,17 +3224,17 @@ fn lambda_implicit_return_without_call_ambiguous() {
         &expect![[r#"
             #6 30-32 "()" : Unit
             #10 40-104 "{\n        let f = (a, b) -> {\n            a + b\n        };\n    }" : Unit
-            #12 54-55 "f" : ((?2, ?2) -> ?2)
-            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?2, ?2) -> ?2)
-            #15 58-64 "(a, b)" : (?2, ?2)
-            #16 59-60 "a" : ?2
-            #18 62-63 "b" : ?2
-            #20 68-97 "{\n            a + b\n        }" : ?2
-            #21 68-97 "{\n            a + b\n        }" : ?2
-            #23 82-87 "a + b" : ?2
-            #24 82-83 "a" : ?2
-            #27 86-87 "b" : ?2
-            Error(Type(Error(AmbiguousTy(Span { lo: 62, hi: 63 }))))
+            #12 54-55 "f" : ((?3, ?3) -> ?3)
+            #14 58-97 "(a, b) -> {\n            a + b\n        }" : ((?3, ?3) -> ?3)
+            #15 58-64 "(a, b)" : (?3, ?3)
+            #16 59-60 "a" : ?3
+            #18 62-63 "b" : ?3
+            #20 68-97 "{\n            a + b\n        }" : ?3
+            #21 68-97 "{\n            a + b\n        }" : ?3
+            #23 82-87 "a + b" : ?3
+            #24 82-83 "a" : ?3
+            #27 86-87 "b" : ?3
+            Error(Type(Error(AmbiguousTy(Span { lo: 68, hi: 97 }))))
         "#]],
     );
 }

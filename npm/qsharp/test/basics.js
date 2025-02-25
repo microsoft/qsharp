@@ -14,6 +14,7 @@ import {
   getDebugServiceWorker,
   utils,
 } from "../dist/main.js";
+
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
@@ -36,7 +37,12 @@ export function runSingleShot(code, expr, useWorker) {
     const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run({ sources: [["test.qs", code]] }, expr, 1, resultsHandler)
+      .run(
+        { sources: [["test.qs", code]], languageFeatures: [] },
+        expr,
+        1,
+        resultsHandler,
+      )
       .then(() => resolve(resultsHandler.getResults()[0]))
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
@@ -334,7 +340,7 @@ test("worker 100 shots", async () => {
   const resultsHandler = new QscEventTarget(true);
   const compiler = getCompilerWorker();
   await compiler.run(
-    { sources: [["test.qs", code]] },
+    { sources: [["test.qs", code]], languageFeatures: [] },
     expr,
     100,
     resultsHandler,
@@ -358,7 +364,7 @@ test("Run samples", async () => {
 
   for await (const sample of testCases) {
     await compiler.run(
-      { sources: [["main.qs", sample.code]] },
+      { sources: [["main.qs", sample.code]], languageFeatures: [] },
       "",
       1,
       resultsHandler,
@@ -387,7 +393,12 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run({ sources: [["test.qs", code]] }, "", 10, resultsHandler);
+  await compiler.run(
+    { sources: [["test.qs", code]], languageFeatures: [] },
+    "",
+    10,
+    resultsHandler,
+  );
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -416,11 +427,19 @@ test("cancel worker", () => {
 
     // Queue some tasks that will never complete
     compiler
-      .run({ sources: [["test.qs", code]] }, "", 10, resultsHandler)
+      .run(
+        {
+          sources: [["test.qs", code]],
+          languageFeatures: [],
+        },
+        "",
+        10,
+        resultsHandler,
+      )
       .catch((err) => {
         cancelledArray.push(err);
       });
-    compiler.getHir(code, []).catch((err) => {
+    compiler.getHir(code, [], "adaptive_ri").catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -431,7 +450,7 @@ test("cancel worker", () => {
 
       // Start a new compiler and ensure that works fine
       const compiler2 = getCompilerWorker();
-      const result = await compiler2.getHir(code, []);
+      const result = await compiler2.getHir(code, [], "adaptive_ri");
       compiler2.terminate();
 
       // getHir should have worked
@@ -483,6 +502,80 @@ test("language service diagnostics", async () => {
   // dispose() will complete when the language service has processed all the updates.
   await languageService.dispose();
   assert(gotDiagnostics);
+});
+
+test("test callable discovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 1);
+    assert.equal(event.detail.callables[0].callableName, "Sample.main");
+    assert.deepStrictEqual(event.detail.callables[0].location, {
+      source: "test.qs",
+      span: {
+        end: {
+          character: 18,
+          line: 2,
+        },
+        start: {
+          character: 14,
+          line: 2,
+        },
+      },
+    });
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation main() : Unit {}
+}`,
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
+});
+
+test("multiple test callable discovery", async () => {
+  const languageService = getLanguageService();
+  let gotTests = false;
+  languageService.addEventListener("testCallables", (event) => {
+    gotTests = true;
+    assert.equal(event.type, "testCallables");
+    assert.equal(event.detail.callables.length, 4);
+    assert.equal(event.detail.callables[0].callableName, "Sample.test1");
+    assert.equal(event.detail.callables[1].callableName, "Sample.test2");
+    assert.equal(event.detail.callables[2].callableName, "Sample2.test1");
+    assert.equal(event.detail.callables[3].callableName, "Sample2.test2");
+  });
+  await languageService.updateDocument(
+    "test.qs",
+    1,
+    `namespace Sample {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+}
+namespace Sample2 {
+    @Test()
+    operation test1() : Unit {}
+
+    @Test()
+    function test2() : Unit {}
+  }    
+}
+`,
+  );
+
+  // dispose() will complete when the language service has processed all the updates.
+  await languageService.dispose();
+  assert(gotTests);
 });
 
 test("diagnostics with related spans", async () => {
@@ -707,7 +800,12 @@ async function testCompilerError(useWorker) {
   let promiseResult = undefined;
   let lastState = undefined;
   await compiler
-    .run({ sources: [["test.qs", "invalid code"]] }, "", 1, events)
+    .run(
+      { sources: [["test.qs", "invalid code"]], languageFeatures: [] },
+      "",
+      1,
+      events,
+    )
     .then(() => {
       promiseResult = "success";
     })
@@ -748,6 +846,7 @@ test("debug service loading source without entry point attr fails - web worker",
 }`,
           ],
         ],
+        languageFeatures: [],
         profile: "base",
       },
       undefined,
@@ -772,6 +871,7 @@ test("debug service loading source with syntax error fails - web worker", async 
 }`,
           ],
         ],
+        languageFeatures: [],
         profile: "base",
       },
       undefined,
@@ -790,6 +890,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
         sources: [
           ["test.qs", `namespace Sample { operation main() : Unit { } }`],
         ],
+        languageFeatures: [],
         profile: "base",
       },
       "SomeBadExpr()",
@@ -811,6 +912,7 @@ test("debug service loading source that doesn't match profile fails - web worker
             `namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }`,
           ],
         ],
+        languageFeatures: [],
         profile: "adaptive_ri",
       },
       "A.Test()",
@@ -829,6 +931,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
         sources: [
           ["test.qs", `namespace Sample { operation Main() : Unit { } }`],
         ],
+        languageFeatures: [],
         profile: "unrestricted",
       },
       "Sample.Main()",
@@ -859,6 +962,7 @@ test("debug service loading source with entry point attr succeeds - web worker",
 }`,
           ],
         ],
+        languageFeatures: [],
         profile: "base",
       },
       undefined,
@@ -889,6 +993,7 @@ test("debug service getting breakpoints after loaded source succeeds when file n
 }`,
           ],
         ],
+        languageFeatures: [],
         profile: "base",
       },
       undefined,
@@ -928,6 +1033,7 @@ test("debug service compiling multiple sources - web worker", async () => {
 }`,
           ],
         ],
+        languageFeatures: [],
         profile: "unrestricted",
       },
       undefined,

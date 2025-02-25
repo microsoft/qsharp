@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as qviz from "@microsoft/quantum-viz.js/lib";
+import * as qviz from "./circuit-vis";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
@@ -131,7 +131,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
   function renderCircuit(circuit: qviz.Circuit, container: HTMLDivElement) {
     qviz.draw(circuit, container);
 
-    // quantum-viz hardcodes the styles in the SVG.
+    // circuit-vis hardcodes the styles in the SVG.
     // Remove the style elements -- we'll define the styles in our own CSS.
     const styleElements = container.querySelectorAll("style");
     styleElements?.forEach((tag) => tag.remove());
@@ -170,10 +170,12 @@ function Unrenderable(props: { qubits: number; operations: number }) {
         <p>No circuit to display. No qubits have been allocated.</p>
       </div>
     ) : props.operations > MAX_OPERATIONS ? (
+      // Don't show the real number of operations here, as that number is
+      // *already* truncated by the underlying circuit builder.
       <div>
         <p>
-          This circuit has too many gates to display. It has {props.operations}{" "}
-          gates, but the maximum supported is {MAX_OPERATIONS}.
+          This circuit has too many gates to display. The maximum supported
+          number of gates is {MAX_OPERATIONS}.
         </p>
       </div>
     ) : props.qubits > MAX_QUBITS ? (

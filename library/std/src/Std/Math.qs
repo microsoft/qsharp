@@ -11,7 +11,7 @@ import Std.Diagnostics.*;
 
 /// # Summary
 /// Returns a double-precision approximation of the
-/// matematical constant 𝝅 ≈ 3.14159265358979323846
+/// mathematical constant 𝝅 ≈ 3.14159265358979323846
 ///
 /// # Remarks
 /// Mathematical constant 𝝅 represents the ratio of the circumference

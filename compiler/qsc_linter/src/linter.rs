@@ -25,6 +25,20 @@ pub fn run_lints(
     compile_unit: &CompileUnit,
     config: Option<&[LintOrGroupConfig]>,
 ) -> Vec<Lint> {
+    let mut lints = run_lints_without_deduplication(package_store, compile_unit, config);
+    remove_duplicates(&mut lints);
+    lints
+}
+
+/// This function is used by our unit tests, to make sure lints aren't duplicated under
+/// normal circunstances. The `run_lints` functions deduplicates the lints to take care
+/// of a few special cases where the same expression (referring to the same span in the
+/// source code) appears referenced in multiple places in the HIR.
+pub(crate) fn run_lints_without_deduplication(
+    package_store: &PackageStore,
+    compile_unit: &CompileUnit,
+    config: Option<&[LintConfig]>,
+) -> Vec<Lint> {
     let compilation = Compilation {
         package_store,
         compile_unit,
@@ -76,6 +90,11 @@ pub(crate) fn unfold_groups(config: &[LintOrGroupConfig]) -> Vec<LintConfig> {
             level: *level,
         })
         .collect()
+}
+
+pub(crate) fn remove_duplicates<T: Eq + std::hash::Hash + Clone>(vec: &mut Vec<T>) {
+    let mut seen = rustc_hash::FxHashSet::default();
+    vec.retain(|x| seen.insert(x.clone()));
 }
 
 #[derive(Clone, Copy)]
@@ -159,6 +178,21 @@ pub struct Lint {
     /// The suggested edits to fix the lint.
     pub code_action_edits: Vec<(String, Span)>,
 }
+
+impl std::hash::Hash for Lint {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.span.hash(state);
+        self.kind.hash(state);
+    }
+}
+
+impl std::cmp::PartialEq for Lint {
+    fn eq(&self, other: &Self) -> bool {
+        self.span == other.span && self.kind == other.kind
+    }
+}
+
+impl std::cmp::Eq for Lint {}
 
 impl std::fmt::Display for Lint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

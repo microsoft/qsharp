@@ -168,12 +168,17 @@ export type {
   IStructStepResult,
   IWorkspaceEdit,
   ProjectLoader,
+  ITestDescriptor,
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
-export type { LanguageServiceEvent } from "./language-service/language-service.js";
+export type {
+  LanguageServiceDiagnosticEvent,
+  LanguageServiceEvent,
+  LanguageServiceTestCallablesEvent,
+} from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
 export { log, type LogLevel, type TargetProfile };
 export type {
@@ -186,3 +191,5 @@ export type {
 };
 
 export * as utils from "./utils.js";
+
+export type { Circuit as CircuitData } from "./shared/circuit.js";

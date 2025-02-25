@@ -6,13 +6,14 @@ use crate::{
     line_column::{ILocation, IPosition, IRange, Location, Position, Range},
     project_system::ProjectHost,
     serializable_type,
+    test_discovery::TestDescriptor,
 };
 use qsc::{
     self, line_column::Encoding, linter::LintOrGroupConfig, target::Profile, LanguageFeatures,
     PackageType,
 };
 use qsc_project::Manifest;
-use qsls::protocol::DiagnosticUpdate;
+use qsls::protocol::{DiagnosticUpdate, TestCallable, TestCallables};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -32,12 +33,10 @@ impl LanguageService {
 
     pub fn start_background_work(
         &mut self,
-        diagnostics_callback: DiagnosticsCallback,
+        diagnostics_callback: &DiagnosticsCallback,
+        test_callables_callback: &TestCallableCallback,
         host: ProjectHost,
     ) -> js_sys::Promise {
-        let diagnostics_callback =
-            crate::project_system::to_js_function(diagnostics_callback.obj, "diagnostics_callback");
-
         let diagnostics_callback = diagnostics_callback
             .dyn_ref::<js_sys::Function>()
             .expect("expected a valid JS function")
@@ -59,7 +58,45 @@ impl LanguageService {
                 )
                 .expect("callback should succeed");
         };
-        let mut worker = self.0.create_update_worker(diagnostics_callback, host);
+
+        let test_callables_callback = test_callables_callback
+            .dyn_ref::<js_sys::Function>()
+            .expect("expected a valid JS function")
+            .clone();
+
+        let test_callables_callback = move |update: TestCallables| {
+            let callables = update
+                .callables
+                .iter()
+                .map(
+                    |TestCallable {
+                         compilation_uri,
+                         callable_name,
+                         location,
+                         friendly_name,
+                     }|
+                     -> TestDescriptor {
+                        TestDescriptor {
+                            compilation_uri: compilation_uri.to_string(),
+                            callable_name: callable_name.to_string(),
+                            location: location.clone().into(),
+                            friendly_name: friendly_name.to_string(),
+                        }
+                    },
+                )
+                .collect::<Vec<_>>();
+
+            let _ = test_callables_callback
+                .call1(
+                    &JsValue::NULL,
+                    &serde_wasm_bindgen::to_value(&callables)
+                        .expect("conversion to TestCallables should succeed"),
+                )
+                .expect("callback should succeed");
+        };
+        let mut worker =
+            self.0
+                .create_update_worker(diagnostics_callback, test_callables_callback, host);
 
         future_to_promise(async move {
             worker.run().await;
@@ -302,16 +339,27 @@ impl LanguageService {
             .map(|lens| {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
-                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
-                    qsls::protocol::CodeLensCommand::Debug => ("debug", None),
-                    qsls::protocol::CodeLensCommand::Run => ("run", None),
-                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
-                    qsls::protocol::CodeLensCommand::Circuit(args) => (
+                    qsls::protocol::CodeLensCommand::Histogram(expr) => {
+                        ("histogram", Some(CodeLensArg::Expr((None, expr))))
+                    }
+                    qsls::protocol::CodeLensCommand::Debug(expr) => {
+                        ("debug", Some(CodeLensArg::Expr((None, expr))))
+                    }
+                    qsls::protocol::CodeLensCommand::Run(expr) => {
+                        ("run", Some(CodeLensArg::Expr((None, expr))))
+                    }
+                    qsls::protocol::CodeLensCommand::Estimate(expr) => {
+                        ("estimate", Some(CodeLensArg::Expr((None, expr))))
+                    }
+                    qsls::protocol::CodeLensCommand::Circuit(op_info) => (
                         "circuit",
-                        args.map(|args| OperationInfo {
-                            operation: args.operation,
-                            total_num_qubits: args.total_num_qubits,
-                        }),
+                        Some(CodeLensArg::Operation((
+                            None,
+                            OperationInfo {
+                                operation: op_info.operation,
+                                total_num_qubits: op_info.total_num_qubits,
+                            },
+                        ))),
                     ),
                 };
                 CodeLens {
@@ -493,21 +541,25 @@ serializable_type! {
     }"#
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum CodeLensArg {
+    Expr((Option<String>, String)),
+    Operation((Option<String>, OperationInfo)),
+}
+
 serializable_type! {
     CodeLens,
     {
         range: Range,
         command: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        args: Option<OperationInfo>,
+        args: Option<CodeLensArg>,
     },
     r#"export type ICodeLens = {
         range: IRange;
-        command: "histogram" | "estimate" | "debug" | "run";
-    } | {
-        range: IRange;
-        command: "circuit";
-        args?: IOperationInfo
+        command: "histogram" | "estimate" | "debug" | "run" | "circuit";
+        args?: any[];
     }"#,
     ICodeLens
 }
@@ -573,7 +625,7 @@ serializable_type! {
         pub projectRoot: Option<String>,
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "base" | "adaptive_ri" | "unrestricted";
+        targetProfile?: "base" | "adaptive_ri" | "adaptive_rif" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
         manifest?: string;
         projectRoot?: string;
@@ -587,4 +639,10 @@ extern "C" {
         typescript_type = "(uri: string, version: number | undefined, diagnostics: VSDiagnostic[]) => void"
     )]
     pub type DiagnosticsCallback;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "(callables: ITestDescriptor[]) => void")]
+    pub type TestCallableCallback;
 }

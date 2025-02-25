@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
+import { type Circuit as CircuitData } from "../shared/circuit.js";
 import {
   IDocFile,
   IOperationInfo,
@@ -35,15 +35,17 @@ export interface ICompiler {
 
   getAst(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string>;
 
   getHir(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string>;
+
+  getRir(program: ProgramConfig): Promise<string[]>;
 
   run(
     program: ProgramConfig,
@@ -62,7 +64,11 @@ export interface ICompiler {
 
   getQir(program: ProgramConfig): Promise<string>;
 
-  getEstimates(program: ProgramConfig, params: string): Promise<string>;
+  getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string>;
 
   getCircuit(
     program: ProgramConfig,
@@ -88,7 +94,7 @@ export type ProgramConfig = (
       /** An array of source objects, each containing a name and contents. */
       sources: [string, string][];
       /** An array of language features to be opted in to in this compilation. */
-      languageFeatures?: string[];
+      languageFeatures: string[];
     }
   | {
       /** Sources from all resolved dependencies, along with their languageFeatures configuration */
@@ -121,6 +127,9 @@ export class Compiler implements ICompiler {
       (uri: string, version: number | undefined, errors: VSDiagnostic[]) => {
         diags = errors;
       },
+      () => {
+        // do nothing; test callables are not reported in checkCode
+      },
       {
         readFile: async () => null,
         listDirectory: async () => [],
@@ -140,14 +149,10 @@ export class Compiler implements ICompiler {
 
   async getAst(
     code: string,
-    languageFeatures?: string[],
-    profile?: TargetProfile,
+    languageFeatures: string[],
+    profile: TargetProfile,
   ): Promise<string> {
-    return this.wasm.get_ast(
-      code,
-      languageFeatures ?? [],
-      profile ?? "adaptive_ri",
-    );
+    return this.wasm.get_ast(code, languageFeatures, profile);
   }
 
   async getHir(
@@ -155,11 +160,15 @@ export class Compiler implements ICompiler {
     languageFeatures: string[],
     profile: TargetProfile,
   ): Promise<string> {
-    return this.wasm.get_hir(
-      code,
-      languageFeatures ?? [],
-      profile ?? "adaptive_ri",
+    return this.wasm.get_hir(code, languageFeatures, profile);
+  }
+
+  async getRir(program: ProgramConfig): Promise<string[]> {
+    const config = toWasmProgramConfig(
+      program,
+      program.profile || "adaptive_ri",
     );
+    return this.wasm.get_rir(config);
   }
 
   async run(
@@ -199,9 +208,14 @@ export class Compiler implements ICompiler {
     return this.wasm.get_qir(toWasmProgramConfig(program, "base"));
   }
 
-  async getEstimates(program: ProgramConfig, params: string): Promise<string> {
+  async getEstimates(
+    program: ProgramConfig,
+    expr: string,
+    params: string,
+  ): Promise<string> {
     return this.wasm.get_estimates(
       toWasmProgramConfig(program, "unrestricted"),
+      expr,
       params,
     );
   }
@@ -319,6 +333,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     checkCode: "request",
     getAst: "request",
     getHir: "request",
+    getRir: "request",
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",

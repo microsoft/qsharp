@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import Facts.AssertFormatsAreIdenticalFxP, Facts.AssertAllZeroFxP;
 import Types.FixedPoint;
 import Init.PrepareFxP;
-import Operations.MultiplyFxP, Operations.SquareFxP, Operations.AddConstantFxP;
+import Facts.AssertFormatsAreIdenticalFxP;
+
 
 /// # Summary
 /// Evaluates a polynomial in a fixed-point representation.
@@ -19,12 +19,15 @@ import Operations.MultiplyFxP, Operations.SquareFxP, Operations.AddConstantFxP;
 /// ## result
 /// Output fixed-point number which will hold $P(x)$. Must be in state
 /// $\ket{0}$ initially.
+@Config(Unrestricted)
 operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, result : FixedPoint) : Unit is Adj {
     body (...) {
         Controlled EvaluatePolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
-        AssertFormatsAreIdenticalFxP([fpx, result]);
+        import Operations.AddConstantFxP;
+
+        Facts.AssertFormatsAreIdenticalFxP([fpx, result]);
         let degree = Length(coefficients) - 1;
         let p = fpx::IntegerBits;
         let n = Length(fpx::Register);
@@ -40,10 +43,11 @@ operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, resul
                     let currentIterate = FixedPoint(p, qubits[(d - 1) * n..d * n - 1]);
                     let nextIterate = FixedPoint(p, qubits[(d - 2) * n..(d - 1) * n - 1]);
                     // multiply by x and then add current coefficient
-                    MultiplyFxP(currentIterate, fpx, nextIterate);
+                    Operations.MultiplyFxP(currentIterate, fpx, nextIterate);
                     AddConstantFxP(coefficients[d-1], nextIterate);
                 }
             } apply {
+                import Operations.MultiplyFxP;
                 let finalIterate = FixedPoint(p, qubits[0..n-1]);
                 // final multiplication into the result register
                 Controlled MultiplyFxP(controls, (finalIterate, fpx, result));
@@ -67,12 +71,15 @@ operation EvaluatePolynomialFxP(coefficients : Double[], fpx : FixedPoint, resul
 /// ## result
 /// Output fixed-point number which will hold $P(x)$. Must be in state
 /// $\ket{0}$ initially.
+@Config(Unrestricted)
 operation EvaluateEvenPolynomialFxP(coefficients : Double[], fpx : FixedPoint, result : FixedPoint) : Unit is Adj {
     body (...) {
         Controlled EvaluateEvenPolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
-        AssertFormatsAreIdenticalFxP([fpx, result]);
+        import Operations.SquareFxP;
+
+        Facts.AssertFormatsAreIdenticalFxP([fpx, result]);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);
 
@@ -104,11 +111,13 @@ operation EvaluateEvenPolynomialFxP(coefficients : Double[], fpx : FixedPoint, r
 /// ## result
 /// Output fixed-point number which will hold P(x). Must be in state
 /// $\ket{0}$ initially.
+@Config(Unrestricted)
 operation EvaluateOddPolynomialFxP(coefficients : Double[], fpx : FixedPoint, result : FixedPoint) : Unit is Adj {
     body (...) {
         Controlled EvaluateOddPolynomialFxP([], (coefficients, fpx, result));
     }
     controlled (controls, ...) {
+        import Operations.MultiplyFxP;
         AssertFormatsAreIdenticalFxP([fpx, result]);
         let halfDegree = Length(coefficients) - 1;
         let n = Length(fpx::Register);

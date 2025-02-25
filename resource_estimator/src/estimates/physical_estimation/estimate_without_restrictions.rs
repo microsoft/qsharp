@@ -107,7 +107,10 @@ impl<
                 ));
             }
 
-            num_cycles = max_allowed_num_cycles_for_code_parameter + 1;
+            num_cycles = std::cmp::max(
+                max_allowed_num_cycles_for_code_parameter + 1,
+                num_cycles + 1,
+            );
         }
     }
 
@@ -278,11 +281,10 @@ impl<
 }
 
 impl<
-        'a,
         E: ErrorCorrection<Parameter = impl Clone>,
         B: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
         L: Overhead,
-    > Deref for EstimateWithoutRestrictions<'a, E, B, L>
+    > Deref for EstimateWithoutRestrictions<'_, E, B, L>
 {
     type Target = PhysicalResourceEstimation<E, B, L>;
 

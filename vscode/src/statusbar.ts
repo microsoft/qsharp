@@ -94,6 +94,7 @@ function registerTargetProfileCommand() {
 const targetProfiles = [
   { configName: "base", uiText: "Q#: QIR base" },
   { configName: "adaptive_ri", uiText: "Q#: QIR Adaptive RI" },
+  { configName: "adaptive_rif", uiText: "Q#: QIR Adaptive RIF" },
   { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
 
@@ -103,6 +104,8 @@ function getTargetProfileSetting(uiText: string): TargetProfile {
       return "base";
     case "Q#: QIR Adaptive RI":
       return "adaptive_ri";
+    case "Q#: QIR Adaptive RIF":
+      return "adaptive_rif";
     case "Q#: unrestricted":
       return "unrestricted";
     default:

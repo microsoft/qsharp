@@ -223,6 +223,7 @@ fn compile_project_with_markers_cursor_optional(
         LanguageFeatures::default(),
     );
 
+    let test_cases = unit.package.get_test_callables();
     let package_id = package_store.insert(unit);
 
     (
@@ -231,10 +232,12 @@ fn compile_project_with_markers_cursor_optional(
             user_package_id: package_id,
             kind: CompilationKind::OpenProject {
                 package_graph_sources,
+                friendly_name: Arc::from("test project"),
             },
             compile_errors: errors,
             project_errors: Vec::new(),
             dependencies: dependencies.into_iter().collect(),
+            test_cases,
         },
         cursor_location,
         target_spans,
@@ -294,6 +297,7 @@ where
         kind: CompilationKind::Notebook { project: None },
         project_errors: Vec::new(),
         dependencies: [(source_package_id, None)].into_iter().collect(),
+        test_cases: Default::default(),
     }
 }
 

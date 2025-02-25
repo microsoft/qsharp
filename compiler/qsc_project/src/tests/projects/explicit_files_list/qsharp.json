@@ -1,6 +1,7 @@
 {
   "author": "Microsoft",
-  "files" : [
-    "src/Main.qs"
+  "files": [
+    "src/Main.qs",
+    "src/Other.qs"
   ]
 }

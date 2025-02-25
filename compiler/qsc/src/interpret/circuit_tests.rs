@@ -148,10 +148,8 @@ fn rotation_gate() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // The wire isn't visible here since the gate label is longer
-    // than the static column width, but we can live with it.
     expect![[r"
-        q_0     rx(1.5708)
+        q_0    ─ rx(1.5708) ──
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -262,8 +260,8 @@ fn mresetz_unrestricted_profile() {
         .expect("circuit generation should succeed");
 
     expect![[r"
-        q_0    ── H ──── M ─── |0〉 ─
-                         ╘══════════
+        q_0    ── H ──── M ──── |0〉 ──
+                         ╘════════════
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -349,10 +347,10 @@ fn unrestricted_profile_result_comparison() {
         .expect("circuit generation should succeed");
 
     expect![[r"
-        q_0    ── H ──── M ──── X ─── |0〉 ─
-                         ╘═════════════════
-        q_1    ── H ──── M ─── |0〉 ────────
-                         ╘═════════════════
+        q_0    ── H ──── M ───── X ───── |0〉 ──
+                         ╘═════════════════════
+        q_1    ── H ──── M ──── |0〉 ───────────
+                         ╘═════════════════════
     "]]
     .assert_eq(&circ.to_string());
 
@@ -366,10 +364,10 @@ fn unrestricted_profile_result_comparison() {
 
     let circuit = interpreter.get_circuit();
     expect![[r"
-        q_0    ── H ──── M ──── X ─── |0〉 ─
-                         ╘═════════════════
-        q_1    ── H ──── M ─── |0〉 ────────
-                         ╘═════════════════
+        q_0    ── H ──── M ───── X ───── |0〉 ──
+                         ╘═════════════════════
+        q_1    ── H ──── M ──── |0〉 ───────────
+                         ╘═════════════════════
     "]]
     .assert_eq(&circuit.to_string());
 }
@@ -456,10 +454,8 @@ fn custom_intrinsic_one_classical_arg() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // A custom intrinsic that doesn't take qubits just doesn't
-    // show up on the circuit.
     expect![[r"
-        q_0    ── X ── foo(4)
+        q_0    ── X ─── foo(4) ──
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -494,19 +490,26 @@ fn custom_intrinsic_mixed_args() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    // This is one gate that spans ten target wires, even though the
-    // text visualization doesn't convey that clearly.
     expect![[r"
-        q_0     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_1     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_2     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_3     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_4     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_5     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_6     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_7     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_8     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
-        q_9     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_0    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_1    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_2    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_3    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_4    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_5    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_6    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_7    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_8    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
+                                                         ┆
+        q_9    ─ AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1) ──
     "]]
     .assert_eq(&circ.to_string());
 
@@ -536,7 +539,7 @@ fn custom_intrinsic_apply_idle_noise() {
     // ConfigurePauliNoise has no qubit arguments so it shouldn't show up.
     // ApplyIdleNoise is a quantum operation so it shows up.
     expect![[r#"
-        q_0     ApplyIdleNoise
+        q_0    ─ ApplyIdleNoise ──
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -776,7 +779,6 @@ fn controlled_operation() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn internal_operation() {
     let mut interpreter = interpreter(
         r"
@@ -793,113 +795,17 @@ fn internal_operation() {
         Profile::Unrestricted,
     );
 
-    let circ_err = interpreter
+    let circ = interpreter
         .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should not fail");
 
     expect![[r#"
-        Circuit {
-            operations: [
-                Operation {
-                    gate: "H",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: [],
-                    targets: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "X",
-                    display_args: None,
-                    is_controlled: true,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 1,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "Measure",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: [
-                        Register {
-                            q_id: 0,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 0,
-                            type: 1,
-                            c_id: Some(
-                                0,
-                            ),
-                        },
-                    ],
-                    children: [],
-                },
-                Operation {
-                    gate: "Measure",
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: [
-                        Register {
-                            q_id: 1,
-                            type: 0,
-                            c_id: None,
-                        },
-                    ],
-                    targets: [
-                        Register {
-                            q_id: 1,
-                            type: 1,
-                            c_id: Some(
-                                0,
-                            ),
-                        },
-                    ],
-                    children: [],
-                },
-            ],
-            qubits: [
-                Qubit {
-                    id: 0,
-                    num_children: 1,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 1,
-                },
-            ],
-        }
+        q_0    ── H ──── ● ──── M ──
+                         │      ╘═══
+        q_1    ───────── X ──── M ──
+                                ╘═══
     "#]]
-    .assert_debug_eq(&circ_err);
+    .assert_eq(&circ.to_string());
 }
 
 #[test]
@@ -929,6 +835,170 @@ fn operation_with_non_qubit_args() {
         ]
     "]]
     .assert_debug_eq(&circ_err);
+}
+
+#[test]
+fn operation_with_long_gates_properly_aligned() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+
+                    H(q0);
+                    H(q1);
+                    X(q1);
+                    Ry(1.0, q1);
+                    CNOT(q0, q1);
+                    M(q0);
+
+                    use q2 = Qubit();
+
+                    H(q2);
+                    Rx(1.0, q2);
+                    H(q2);
+                    Rx(1.0, q2);
+                    H(q2);
+                    Rx(1.0, q2);
+
+                    use q3 = Qubit();
+
+                    Rxx(1.0, q1, q3);
+
+                    CNOT(q0, q3);
+
+                    [M(q1), M(q3)]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ────────────────────────────────────── ● ──────── M ────────────────────────────────── ● ─────────
+                                                           │          ╘════════════════════════════════════╪══════════
+        q_1    ── H ──────── X ─────── ry(1.0000) ──────── X ───────────────────────────── rxx(1.0000) ────┼───── M ──
+                                                                                                ┆          │      ╘═══
+        q_2    ── H ─── rx(1.0000) ──────── H ─────── rx(1.0000) ──── H ─── rx(1.0000) ─────────┆──────────┼──────────
+        q_3    ─────────────────────────────────────────────────────────────────────────── rxx(1.0000) ─── X ──── M ──
+                                                                                                                  ╘═══
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_gets_horizontal_lines() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ─
+                      ┆
+        q_1    ─ rxx(1.0000) ─
+        q_2    ─ rxx(1.0000) ─
+                      ┆
+        q_3    ─ rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_double_rows() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+                    Rxx(1.0, q0, q1);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ── rxx(1.0000) ─
+                      ┆              ┆
+        q_1    ─ rxx(1.0000) ── rxx(1.0000) ─
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn operation_with_subsequent_qubits_no_added_rows() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                import Std.Measurement.*;
+
+                @EntryPoint()
+                operation Main() : Result[] {
+                    use q0 = Qubit();
+                    use q1 = Qubit();
+                    Rxx(1.0, q0, q1);
+
+                    use q2 = Qubit();
+                    use q3 = Qubit();
+                    Rxx(1.0, q2, q3);
+
+                    [M(q0), M(q2)]
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, false)
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ─ rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_1    ─ rxx(1.0000) ────────
+        q_2    ─ rxx(1.0000) ─── M ──
+                      ┆          ╘═══
+        q_3    ─ rxx(1.0000) ────────
+    "#]]
+    .assert_eq(&circ.to_string());
 }
 
 /// Tests that invoke circuit generation throught the debugger.
@@ -1012,17 +1082,17 @@ mod debugger_stepping {
             step:
             q_0    ── H ──
             step:
-            q_0    ── H ──── Z ───────────────────────
-            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
-                                           ╘══════════
+            q_0    ── H ──── Z ─────────────────────────
+            q_1    ── H ──── ● ──── H ──── M ──── |0〉 ──
+                                           ╘════════════
             step:
-            q_0    ── H ──── Z ─── |0〉 ───────────────
-            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
-                                           ╘══════════
+            q_0    ── H ──── Z ──── |0〉 ──────────────────
+            q_1    ── H ──── ● ───── H ───── M ──── |0〉 ──
+                                             ╘════════════
             step:
-            q_0    ── H ──── Z ─── |0〉 ───────────────
-            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
-                                           ╘══════════
+            q_0    ── H ──── Z ──── |0〉 ──────────────────
+            q_1    ── H ──── ● ───── H ───── M ──── |0〉 ──
+                                             ╘════════════
         "]]
         .assert_eq(&circs);
     }
@@ -1056,11 +1126,11 @@ mod debugger_stepping {
             q_0    ── H ──── M ──
                              ╘═══
             step:
-            q_0    ── H ──── M ─── |0〉 ─
-                             ╘══════════
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
             step:
-            q_0    ── H ──── M ─── |0〉 ─
-                             ╘══════════
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
         "]]
         .assert_eq(&circs);
     }

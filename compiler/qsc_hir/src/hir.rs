@@ -279,6 +279,58 @@ impl Display for Package {
     }
 }
 
+/// The name of a test callable, including its parent namespace.
+pub type TestCallableName = String;
+
+impl Package {
+    /// Returns a collection of the fully qualified names of any callables annotated with `@Test()`
+    pub fn get_test_callables(&self) -> Vec<(TestCallableName, Span)> {
+        let items_with_test_attribute = self
+            .items
+            .iter()
+            .filter(|(_, item)| item.attrs.iter().any(|attr| *attr == Attr::Test));
+
+        let callables = items_with_test_attribute
+            .filter(|(_, item)| matches!(item.kind, ItemKind::Callable(_)));
+
+        let callable_names = callables
+            .filter_map(|(_, item)| -> Option<_> {
+                if let ItemKind::Callable(callable) = &item.kind {
+                    if !callable.generics.is_empty()
+                        || callable.input.kind != PatKind::Tuple(vec![])
+                    {
+                        return None;
+                    }
+
+                    // this is indeed a test callable, so let's grab its parent name
+                    let (name, span) = match item.parent {
+                        None => Default::default(),
+                        Some(parent_id) => {
+                            let parent_item = self
+                                .items
+                                .get(parent_id)
+                                .expect("Parent item did not exist in package");
+                            let name = if let ItemKind::Namespace(ns, _) = &parent_item.kind {
+                                format!("{}.{}", ns.name(), callable.name.name)
+                            } else {
+                                callable.name.name.to_string()
+                            };
+                            let span = callable.name.span;
+                            (name, span)
+                        }
+                    };
+
+                    Some((name, span))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        callable_names
+    }
+}
+
 /// An item.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
@@ -702,13 +754,19 @@ impl Display for ExprKind {
             ExprKind::Field(expr, field) => display_field(indent, expr, field)?,
             ExprKind::For(iter, iterable, body) => display_for(indent, iter, iterable, body)?,
             ExprKind::Hole => write!(indent, "Hole")?,
-            ExprKind::If(cond, body, els) => display_if(indent, cond, body, els)?,
+            ExprKind::If(cond, body, els) => display_if(indent, cond, body, els.as_deref())?,
             ExprKind::Index(array, index) => display_index(indent, array, index)?,
             ExprKind::Lit(lit) => write!(indent, "Lit: {lit}")?,
-            ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
-            ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
+            ExprKind::Range(start, step, end) => {
+                display_range(indent, start.as_deref(), step.as_deref(), end.as_deref())?;
+            }
+            ExprKind::Repeat(repeat, until, fixup) => {
+                display_repeat(indent, repeat, until, fixup.as_ref())?;
+            }
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
-            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
+            ExprKind::Struct(name, copy, fields) => {
+                display_struct(indent, name, copy.as_deref(), fields)?;
+            }
             ExprKind::String(components) => display_string(indent, components)?,
             ExprKind::UpdateIndex(expr1, expr2, expr3) => {
                 display_update_index(indent, expr1, expr2, expr3)?;
@@ -866,7 +924,7 @@ fn display_if(
     mut indent: Indented<Formatter>,
     cond: &Expr,
     body: &Expr,
-    els: &Option<Box<Expr>>,
+    els: Option<&Expr>,
 ) -> fmt::Result {
     write!(indent, "If:")?;
     indent = set_indentation(indent, 1);
@@ -888,9 +946,9 @@ fn display_index(mut indent: Indented<Formatter>, array: &Expr, index: &Expr) ->
 
 fn display_range(
     mut indent: Indented<Formatter>,
-    start: &Option<Box<Expr>>,
-    step: &Option<Box<Expr>>,
-    end: &Option<Box<Expr>>,
+    start: Option<&Expr>,
+    step: Option<&Expr>,
+    end: Option<&Expr>,
 ) -> fmt::Result {
     write!(indent, "Range:")?;
     indent = set_indentation(indent, 1);
@@ -913,7 +971,7 @@ fn display_repeat(
     mut indent: Indented<Formatter>,
     repeat: &Block,
     until: &Expr,
-    fixup: &Option<Block>,
+    fixup: Option<&Block>,
 ) -> fmt::Result {
     write!(indent, "Repeat:")?;
     indent = set_indentation(indent, 1);
@@ -929,7 +987,7 @@ fn display_repeat(
 fn display_struct(
     mut indent: Indented<Formatter>,
     name: &Res,
-    copy: &Option<Box<Expr>>,
+    copy: Option<&Expr>,
     fields: &[Box<FieldAssign>],
 ) -> fmt::Result {
     write!(indent, "Struct ({name}):")?;
@@ -1359,6 +1417,8 @@ pub enum Attr {
     /// Indicates that an intrinsic callable is a reset. This means that the operation will be marked as
     /// "irreversible" in the generated QIR.
     Reset,
+    /// Indicates that a callable is a test case.
+    Test,
 }
 
 impl Attr {
@@ -1376,6 +1436,7 @@ The `not` operator is also supported to negate the attribute, e.g. `not Adaptive
             Attr::SimulatableIntrinsic => "Indicates that an item should be treated as an intrinsic callable for QIR code generation and any implementation should only be used during simulation.",
             Attr::Measurement => "Indicates that an intrinsic callable is a measurement. This means that the operation will be marked as \"irreversible\" in the generated QIR, and output Result types will be moved to the arguments.",
             Attr::Reset => "Indicates that an intrinsic callable is a reset. This means that the operation will be marked as \"irreversible\" in the generated QIR.",
+            Attr::Test =>  "Indicates that a callable is a test case.",
         }
     }
 }
@@ -1391,6 +1452,7 @@ impl FromStr for Attr {
             "SimulatableIntrinsic" => Ok(Self::SimulatableIntrinsic),
             "Measurement" => Ok(Self::Measurement),
             "Reset" => Ok(Self::Reset),
+            "Test" => Ok(Self::Test),
             _ => Err(()),
         }
     }

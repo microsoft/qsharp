@@ -19,7 +19,7 @@ schedules:
 
 variables:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.82"
+  RUST_TOOLCHAIN_VERSION: "1.84"
 
 resources:
   repositories:
@@ -112,6 +112,10 @@ extends:
             inputs:
               versionSpec: '3.11'
 
+          - task: UseNode@1
+            inputs:
+              version: "20.x"
+
           - script: |
               python ./prereqs.py --install && python ./version.py
             displayName: Install Prereqs and set version
@@ -154,6 +158,10 @@ extends:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '3.11'
+
+        - task: UseNode@1
+          inputs:
+            version: "20.x"
 
         - script: |
             python ./prereqs.py --install && python ./version.py
@@ -211,6 +219,10 @@ extends:
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '3.11'
+
+        - task: UseNode@1
+          inputs:
+            version: "20.x"
 
         - script: |
             python ./prereqs.py --skip-wasm && python ./version.py
@@ -279,6 +291,10 @@ extends:
           - task: UsePythonVersion@0
             inputs:
               versionSpec: '3.11'
+
+          - task: UseNode@1
+            inputs:
+              version: "20.x"
 
           - script: |
               python ./prereqs.py --skip-wasm && python ./version.py

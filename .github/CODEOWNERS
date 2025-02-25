@@ -5,23 +5,23 @@
 /compiler @idavis @minestarks @swernli
 /compiler/qsc_codegen @idavis @swernli
 /compiler/qsc_doc_gen @billti @DmitryVasilevsky @ScottCarda-MS
-/compiler/qsc_formatter @billti @ScottCarda-MS @minestarks
-/compiler/qsc_project @minestarks @sezna @swernli
+/compiler/qsc_formatter @billti @minestarks @ScottCarda-MS
+/compiler/qsc_project @idavis @minestarks @swernli
 /compiler/qsc_partial_eval @idavis @swernli
 /compiler/qsc_rca @idavis @swernli
 /compiler/qsc_rir @idavis @swernli
 /fuzz  @billti @idavis @swernli
-/katas @billti @DmitryVasilevsky @sezna @swernli @tcNickolas
+/katas @billti @DmitryVasilevsky @swernli
 /jupyterlab @billti @idavis @minestarks
 /language_service @billti @idavis @minestarks @ScottCarda-MS
 /library @DmitryVasilevsky @swernli
-/npm @billti @minestarks @sezna
+/npm @billti @DmitryVasilevsky @minestarks
 /pip @billti @idavis @minestarks
 /playground @billti @minestarks
 /resource_estimator @billti @ivanbasov @swernli
-/samples @DmitryVasilevsky @sezna @swernli @tcNickolas
-/vscode @billti @idavis @minestarks @sezna
-/wasm @billti @sezna @swernli
+/samples @DmitryVasilevsky @minestarks @swernli
+/vscode @billti @idavis @minestarks
+/wasm @billti @idavis @swernli
 
 /Cargo.lock @idavis @minestarks @swernli
 /Cargo.toml @idavis @minestarks @swernli

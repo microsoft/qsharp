@@ -8,12 +8,13 @@ mod instruction_tests;
 mod tests;
 
 use qsc_data_structures::target::TargetCapabilityFlags;
+use qsc_eval::val::Value;
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_partial_eval::{partially_evaluate, ProgramEntry};
+use qsc_partial_eval::{partially_evaluate, partially_evaluate_call, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::check_and_transform,
-    rir::{self, ConditionCode},
+    rir::{self, ConditionCode, FcmpConditionCode, Program},
     utils::get_all_block_successors,
 };
 
@@ -37,6 +38,20 @@ pub fn hir_to_qir(
     fir_to_qir(&fir_store, capabilities, compute_properties, entry)
 }
 
+/// converts the given sources to RIR using the given language features.
+pub fn fir_to_rir(
+    fir_store: &qsc_fir::fir::PackageStore,
+    capabilities: TargetCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+    entry: &ProgramEntry,
+) -> Result<(Program, Program), qsc_partial_eval::Error> {
+    let mut program = get_rir_from_compilation(fir_store, compute_properties, entry, capabilities)?;
+    let orig = program.clone();
+    check_and_transform(&mut program);
+    Ok((orig, program))
+}
+
+/// converts the given sources to QIR using the given language features.
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: TargetCapabilityFlags,
@@ -44,6 +59,25 @@ pub fn fir_to_qir(
     entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
     let mut program = get_rir_from_compilation(fir_store, compute_properties, entry, capabilities)?;
+    check_and_transform(&mut program);
+    Ok(ToQir::<String>::to_qir(&program, &program))
+}
+
+/// converts the given callable to QIR using the given arguments and language features.
+pub fn fir_to_qir_from_callable(
+    fir_store: &qsc_fir::fir::PackageStore,
+    capabilities: TargetCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+    callable: qsc_fir::fir::StoreItemId,
+    args: Value,
+) -> Result<String, qsc_partial_eval::Error> {
+    let compute_properties = compute_properties.unwrap_or_else(|| {
+        let analyzer = qsc_rca::Analyzer::init(fir_store);
+        analyzer.analyze_all()
+    });
+
+    let mut program =
+        partially_evaluate_call(fir_store, &compute_properties, callable, args, capabilities)?;
     check_and_transform(&mut program);
     Ok(ToQir::<String>::to_qir(&program, &program))
 }
@@ -136,6 +170,29 @@ impl ToQir<String> for rir::Operand {
     }
 }
 
+impl ToQir<String> for rir::FcmpConditionCode {
+    fn to_qir(&self, _program: &rir::Program) -> String {
+        match self {
+            rir::FcmpConditionCode::False => "false".to_string(),
+            rir::FcmpConditionCode::OrderedAndEqual => "oeq".to_string(),
+            rir::FcmpConditionCode::OrderedAndGreaterThan => "ogt".to_string(),
+            rir::FcmpConditionCode::OrderedAndGreaterThanOrEqual => "oge".to_string(),
+            rir::FcmpConditionCode::OrderedAndLessThan => "olt".to_string(),
+            rir::FcmpConditionCode::OrderedAndLessThanOrEqual => "ole".to_string(),
+            rir::FcmpConditionCode::OrderedAndNotEqual => "one".to_string(),
+            rir::FcmpConditionCode::Ordered => "ord".to_string(),
+            rir::FcmpConditionCode::UnorderedOrEqual => "ueq".to_string(),
+            rir::FcmpConditionCode::UnorderedOrGreaterThan => "ugt".to_string(),
+            rir::FcmpConditionCode::UnorderedOrGreaterThanOrEqual => "uge".to_string(),
+            rir::FcmpConditionCode::UnorderedOrLessThan => "ult".to_string(),
+            rir::FcmpConditionCode::UnorderedOrLessThanOrEqual => "ule".to_string(),
+            rir::FcmpConditionCode::UnorderedOrNotEqual => "une".to_string(),
+            rir::FcmpConditionCode::Unordered => "uno".to_string(),
+            rir::FcmpConditionCode::True => "true".to_string(),
+        }
+    }
+}
+
 impl ToQir<String> for rir::ConditionCode {
     fn to_qir(&self, _program: &rir::Program) -> String {
         match self {
@@ -181,6 +238,18 @@ impl ToQir<String> for rir::Instruction {
             rir::Instruction::Call(call_id, args, output) => {
                 call_to_qir(args, *call_id, *output, program)
             }
+            rir::Instruction::Fadd(lhs, rhs, variable) => {
+                fbinop_to_qir("fadd", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Fdiv(lhs, rhs, variable) => {
+                fbinop_to_qir("fdiv", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Fmul(lhs, rhs, variable) => {
+                fbinop_to_qir("fmul", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Fsub(lhs, rhs, variable) => {
+                fbinop_to_qir("fsub", lhs, rhs, *variable, program)
+            }
             rir::Instruction::LogicalAnd(lhs, rhs, variable) => {
                 logical_binop_to_qir("and", lhs, rhs, *variable, program)
             }
@@ -192,6 +261,9 @@ impl ToQir<String> for rir::Instruction {
             }
             rir::Instruction::Mul(lhs, rhs, variable) => {
                 binop_to_qir("mul", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Fcmp(op, lhs, rhs, variable) => {
+                fcmp_to_qir(*op, lhs, rhs, *variable, program)
             }
             rir::Instruction::Icmp(op, lhs, rhs, variable) => {
                 icmp_to_qir(*op, lhs, rhs, *variable, program)
@@ -314,6 +386,31 @@ fn call_to_qir(
     }
 }
 
+fn fcmp_to_qir(
+    op: FcmpConditionCode,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
+    variable: rir::Variable,
+    program: &rir::Program,
+) -> String {
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for fcmp {op}"
+    );
+
+    assert_eq!(var_ty, "i1", "unsupported output type {var_ty} for fcmp");
+    format!(
+        "  {} = fcmp {} {lhs_ty} {}, {}",
+        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&op, program),
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
+    )
+}
+
 fn icmp_to_qir(
     op: ConditionCode,
     lhs: &rir::Operand,
@@ -358,6 +455,34 @@ fn binop_to_qir(
         "mismatched input/output types ({lhs_ty}, {var_ty}) for {op}"
     );
     assert_eq!(var_ty, "i64", "unsupported type {var_ty} for {op}");
+
+    format!(
+        "  {} = {op} {var_ty} {}, {}",
+        ToQir::<String>::to_qir(&variable.variable_id, program),
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
+    )
+}
+
+fn fbinop_to_qir(
+    op: &str,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
+    variable: rir::Variable,
+    program: &rir::Program,
+) -> String {
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for {op}"
+    );
+    assert_eq!(
+        lhs_ty, var_ty,
+        "mismatched input/output types ({lhs_ty}, {var_ty}) for {op}"
+    );
+    assert_eq!(var_ty, "double", "unsupported type {var_ty} for {op}");
 
     format!(
         "  {} = {op} {var_ty} {}, {}",
@@ -455,7 +580,7 @@ fn get_value_ty(lhs: &rir::Operand) -> &str {
         rir::Operand::Literal(lit) => match lit {
             rir::Literal::Integer(_) => "i64",
             rir::Literal::Bool(_) => "i1",
-            rir::Literal::Double(_) => "f64",
+            rir::Literal::Double(_) => get_f64_ty(),
             rir::Literal::Qubit(_) => "%Qubit*",
             rir::Literal::Result(_) => "%Result*",
             rir::Literal::Pointer => "i8*",
@@ -468,11 +593,26 @@ fn get_variable_ty(variable: rir::Variable) -> &'static str {
     match variable.ty {
         rir::Ty::Integer => "i64",
         rir::Ty::Boolean => "i1",
-        rir::Ty::Double => "f64",
+        rir::Ty::Double => get_f64_ty(),
         rir::Ty::Qubit => "%Qubit*",
         rir::Ty::Result => "%Result*",
         rir::Ty::Pointer => "i8*",
     }
+}
+
+/// phi only supports "Floating-Point Types" which are defined as:
+/// - `half` (`f16`)
+/// - `bfloat`
+/// - `float` (`f32`)
+/// - `double` (`f64`)
+/// - `fp128`
+///
+/// We only support `f64`, so we break the pattern used for integers
+/// and have to use `double` here.
+///
+/// This conflicts with the QIR spec which says f64. Need to follow up on this.
+fn get_f64_ty() -> &'static str {
+    "double"
 }
 
 impl ToQir<String> for rir::BlockId {
@@ -580,51 +720,25 @@ fn get_module_metadata(program: &rir::Program) -> String {
         // loop through the capabilities and add them to the metadata
         // for values that we can generate.
         for cap in program.config.capabilities.iter() {
-            let name = match cap {
-                TargetCapabilityFlags::QubitReset => "qubit_resetting",
-                TargetCapabilityFlags::IntegerComputations => "classical_ints",
-                TargetCapabilityFlags::FloatingPointComputations => "classical_floats",
-                TargetCapabilityFlags::BackwardsBranching => "backwards_branching",
+            match cap {
+                TargetCapabilityFlags::IntegerComputations => {
+                    let name = "int_computations";
+                    flags.push_str(&format!(
+                        "!{} = !{{i32 {}, !\"{}\", !\"i{}\"}}\n",
+                        index, 1, name, 64
+                    ));
+                    index += 1;
+                }
+                TargetCapabilityFlags::FloatingPointComputations => {
+                    let name = "float_computations";
+                    flags.push_str(&format!(
+                        "!{} = !{{i32 {}, !\"{}\", !\"f{}\"}}\n",
+                        index, 1, name, 64
+                    ));
+                    index += 1;
+                }
                 _ => continue,
-            };
-            flags.push_str(&format!(
-                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
-                index, 1, name, true
-            ));
-            index += 1;
-        }
-
-        // loop through the capabilities that are missing and add them to the metadata
-        // as not supported.
-        let missing = TargetCapabilityFlags::all().difference(program.config.capabilities);
-        for cap in missing.iter() {
-            let name = match cap {
-                TargetCapabilityFlags::QubitReset => "qubit_resetting",
-                TargetCapabilityFlags::IntegerComputations => "classical_ints",
-                TargetCapabilityFlags::FloatingPointComputations => "classical_floats",
-                TargetCapabilityFlags::BackwardsBranching => "backwards_branching",
-                _ => continue,
-            };
-            flags.push_str(&format!(
-                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
-                index, 1, name, false
-            ));
-            index += 1;
-        }
-
-        // Add the remaining extension capabilities as not supported.
-        // We can't generate these values yet so we just add them as false.
-        let unmapped_capabilities = [
-            "classical_fixed_points",
-            "user_functions",
-            "multiple_target_branching",
-        ];
-        for capability in unmapped_capabilities {
-            flags.push_str(&format!(
-                "!{} = !{{i32 {}, !\"{}\", i1 {}}}\n",
-                index, 1, capability, false
-            ));
-            index += 1;
+            }
         }
     }
 

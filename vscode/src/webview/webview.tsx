@@ -33,6 +33,7 @@ window.addEventListener("load", main);
 
 type HistogramState = {
   viewType: "histogram";
+  panelId: string;
   buckets: Array<[string, number]>;
   shotCount: number;
 };
@@ -47,6 +48,7 @@ type EstimatesState = {
 
 type CircuitState = {
   viewType: "circuit";
+  panelId: string;
   props: CircuitProps;
 };
 
@@ -57,13 +59,13 @@ type DocumentationState = {
 };
 
 type State =
-  | { viewType: "loading" }
+  | { viewType: "loading"; panelId: string }
   | { viewType: "help" }
   | HistogramState
   | EstimatesState
   | CircuitState
   | DocumentationState;
-const loadingState: State = { viewType: "loading" };
+const loadingState: State = { viewType: "loading", panelId: "" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
 
@@ -140,6 +142,7 @@ function onMessage(event: any) {
       }
       state = {
         viewType: "histogram",
+        panelId: message.panelId,
         buckets: message.buckets as Array<[string, number]>,
         shotCount: message.shotCount,
       };

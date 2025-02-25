@@ -75,4 +75,4 @@ export type CircuitProps = {
   calculating: boolean;
 };
 
-export type CircuitData = import("@microsoft/quantum-viz.js/lib").Circuit;
+export type CircuitData = import("../src/shared/circuit").Circuit;

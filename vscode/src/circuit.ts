@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
 import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
+  type CircuitData,
   ICompilerWorker,
   IOperationInfo,
   IQSharpError,
@@ -332,6 +332,7 @@ export function updateCircuitPanel(
     calculating?: boolean;
   },
 ) {
+  const panelId = params?.operation?.operation || projectName;
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
     : projectName;
@@ -349,10 +350,9 @@ export function updateCircuitPanel(
   };
 
   const message = {
-    command: "circuit",
     props,
   };
-  sendMessageToPanel("circuit", reveal, message);
+  sendMessageToPanel({ panelType: "circuit", id: panelId }, reveal, message);
 }
 
 /**
