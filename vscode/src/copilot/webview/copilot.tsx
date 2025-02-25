@@ -247,6 +247,9 @@ function AssistantMessage(props: { content: string }) {
     <div className="left-message-row">
       <div className="assistant-message">
         <Markdown markdown={props.content}></Markdown>
+        <div className="content-reminder">
+          AI generated content may be incorrect.
+        </div>
       </div>
     </div>
   );

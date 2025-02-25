@@ -103,6 +103,11 @@ h1 {
   background-color: var(--vscode-input-background);
 }
 
+.content-reminder {
+  font-size: x-small;
+  margin: 16px 0;
+}
+
 pre code {
   background: inherit;
   border: 0.5px solid gray;
