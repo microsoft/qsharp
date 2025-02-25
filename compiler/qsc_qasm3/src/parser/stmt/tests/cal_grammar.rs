@@ -7,7 +7,11 @@ use expect_test::expect;
 
 #[test]
 fn defcalgrammar() {
-    check(parse, r#"defcalgrammar "openpulse";"#, &expect![[r#"
+    check(
+        parse,
+        r#"defcalgrammar "openpulse";"#,
+        &expect![[r#"
         Stmt [0-26]
-            StmtKind: CalibrationGrammarStmt [0-26]: openpulse"#]]);
+            StmtKind: CalibrationGrammarStmt [0-26]: openpulse"#]],
+    );
 }
