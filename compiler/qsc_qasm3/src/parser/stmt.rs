@@ -20,8 +20,8 @@ use crate::{
         ArrayReferenceType, ArrayType, BitType, Block, BreakStmt, ClassicalDeclarationStmt,
         ComplexType, ConstantDeclaration, ContinueStmt, DefStmt, EndStmt, EnumerableSet, Expr,
         ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
-        GateCall, GateModifierKind, IODeclaration, IOKeyword, Ident, Identifier, IfStmt,
-        IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
+        GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident, Identifier,
+        IfStmt, IncludeStmt, IntType, List, LiteralKind, Pragma, QuantumGateDefinition,
         QuantumGateModifier, QuantumStmt, QubitDeclaration, RangeDefinition, ReturnStmt,
         ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType,
         WhileLoop,
@@ -1101,7 +1101,7 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
     let gate_or_expr = expr::expr(s)?;
 
     let duration = opt(s, designator)?;
-    let qubits = list_from_iter(many(s, gate_operand)?);
+    let qubits = gate_operands(s)?;
     recovering_semi(s);
 
     // If didn't parse modifiers, a duration, nor qubit args then this is an expr, not a gate call.
@@ -1179,4 +1179,8 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
         span: s.span(lo),
         kind,
     })
+}
+
+fn gate_operands(s: &mut ParserContext) -> Result<List<GateOperand>> {
+    Ok(list_from_iter(seq(s, gate_operand)?.0))
 }
