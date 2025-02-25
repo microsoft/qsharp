@@ -11,8 +11,8 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use miette::Diagnostic;
-use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use qsc::{line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
+use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use std::{
     cell::RefCell,
     fmt::{Display, Write},
