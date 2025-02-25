@@ -101,6 +101,9 @@ pub enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qasm3.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
+    #[error("invalid classical statement in box")]
+    #[diagnostic(code("Qasm3.Parse.ClassicalStmtInBox"))]
+    ClassicalStmtInBox(#[label] Span),
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qasm3.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
@@ -132,6 +135,7 @@ impl ErrorKind {
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
+            Self::ClassicalStmtInBox(span) => Self::ClassicalStmtInBox(span + offset),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
