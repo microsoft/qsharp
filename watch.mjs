@@ -180,6 +180,11 @@ runWatcher(npmDir, "npm");
 // VSCode and playground are built by esbuild, but run the type checker in watch mode
 runWatcher(join(thisDir, "vscode"), "vscode");
 runWatcher(join(thisDir, "vscode"), "vscode webview", "tsc:watch:view");
+runWatcher(
+  join(thisDir, "vscode"),
+  "vscode copilot webview",
+  "tsc:watch:copilotView",
+);
 runWatcher(join(thisDir, "playground"), "playground");
 
 // Kick off watch mode builds (this will detect changes in the npm package it depends on) also

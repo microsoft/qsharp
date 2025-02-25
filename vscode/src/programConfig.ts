@@ -66,6 +66,24 @@ export function getActiveQSharpDocumentUri(): vscode.Uri | undefined {
     : undefined;
 }
 
+export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
+  const docUri = getVisibleQSharpDocumentUri();
+  if (!docUri) {
+    return {
+      success: false,
+      errorMsg: "Unable to find a visible Q# document",
+    };
+  }
+
+  return await getProgramForDocument(docUri);
+}
+
+export function getVisibleQSharpDocumentUri(): vscode.Uri | undefined {
+  return vscode.window.visibleTextEditors.find((editor) =>
+    isQsharpDocument(editor.document),
+  )?.document.uri;
+}
+
 /**
  * @param docUri A Q# document URI.
  * @returns The program configuration that applies to this document,

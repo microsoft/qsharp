@@ -1,3 +1,18 @@
+/* Generic element resets */
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
 .language-qsharp {
   line-height: 125%;
 }
