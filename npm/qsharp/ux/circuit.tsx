@@ -5,6 +5,7 @@ import * as qviz from "./circuit-vis";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
+import { CURRENT_VERSION } from "../src/shared/circuit";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -15,11 +16,19 @@ const MAX_QUBITS = 1000;
 
 // This component is shared by the Python widget and the VS Code panel
 export function Circuit(props: {
-  circuit: qviz.Circuit;
+  circuit?: qviz.Circuit;
   isEditable: boolean;
   editCallback?: (circuit: qviz.Circuit) => void;
 }) {
-  const circuit = props.circuit;
+  const circuit = props.circuit ?? {
+    operations: [],
+    qubits: [],
+    version: CURRENT_VERSION,
+  };
+
+  if (circuit.operations === undefined) circuit.operations = [];
+  if (circuit.qubits === undefined) circuit.qubits = [];
+
   const unrenderable =
     (!props.isEditable && circuit.qubits.length === 0) ||
     circuit.operations.length > MAX_OPERATIONS ||
@@ -29,11 +38,11 @@ export function Circuit(props: {
     <div>
       {unrenderable ? (
         <Unrenderable
-          qubits={props.circuit.qubits.length}
-          operations={props.circuit.operations.length}
+          qubits={circuit.qubits.length}
+          operations={circuit.operations.length}
         />
       ) : (
-        <ZoomableCircuit {...props} />
+        <ZoomableCircuit {...props} circuit={circuit} />
       )}
     </div>
   );
