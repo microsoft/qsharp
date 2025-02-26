@@ -93,6 +93,7 @@ impl Register {
 pub struct Qubit {
     pub id: usize,
     #[serde(rename = "numChildren")]
+    #[serde(default)]
     pub num_children: usize,
 }
 

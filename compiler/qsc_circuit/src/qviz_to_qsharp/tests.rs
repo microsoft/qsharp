@@ -311,3 +311,37 @@ fn circuit_with_multiple_measurement_gates() {
         "#]],
     );
 }
+
+#[test]
+fn empty_circuit() {
+    check(
+        r#"
+{
+  "operations": [],
+  "qubits": []
+}"#,
+        &expect![[r#"
+            operation Test() : Unit {
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn circuit_with_qubit_missing_num_children() {
+    check(
+        r#"
+{
+  "operations": [],
+  "qubits": [
+    {
+      "id": 0
+    }
+  ]
+}"#,
+        &expect![[r#"
+            operation Test(q0 : Qubit) : Unit {
+            }
+        "#]],
+    );
+}
