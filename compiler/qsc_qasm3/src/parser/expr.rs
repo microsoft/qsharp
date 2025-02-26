@@ -59,7 +59,9 @@ enum OpKind {
     Index,
 }
 
-// TODO: This seems to be an unnecessary wrapper. Consider removing.
+// TODO: This seems to be an unnecessary wrapper.
+//       OpName::Keyword is never used.
+//       Consider removing.
 #[derive(Clone, Copy)]
 enum OpName {
     Token(TokenKind),
