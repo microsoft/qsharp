@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::parser::{stmt::parse, tests::check};
 use expect_test::expect;
 

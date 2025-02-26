@@ -52,7 +52,7 @@ fn sized_bit_param_bit_ret_decl() {
         &expect![[r#"
             Stmt [0-24]
                 StmtKind: ExternDecl [0-24]: Ident [7-8] "x"
-                [9-15]: ClassicalType [9-15]: BitType [9-15]: ExprStmt [12-15]: Expr [13-14]: Ident [13-14] "n"
+                [9-15]: ClassicalType [9-15]: BitType [9-15]: Expr [13-14]: Ident [13-14] "n"
                 ClassicalType [20-23]: BitType"#]],
     );
 }
@@ -65,7 +65,7 @@ fn sized_creg_param_bit_ret_decl() {
         &expect![[r#"
             Stmt [0-25]
                 StmtKind: ExternDecl [0-25]: Ident [7-8] "x"
-                [9-16]: ClassicalType [9-16]: BitType [9-16]: ExprStmt [13-16]: Expr [14-15]: Ident [14-15] "n"
+                [9-16]: ClassicalType [9-16]: BitType [9-16]: Expr [14-15]: Ident [14-15] "n"
                 ClassicalType [21-24]: BitType"#]],
     );
 }
@@ -91,7 +91,7 @@ fn readonly_array_arg_with_int_dims() {
         &expect![[r#"
             Stmt [0-40]
                 StmtKind: ExternDecl [0-40]: Ident [7-8] "x"
-                [9-38]: ArrayReferenceType [9-38]: ArrayBaseTypeKind IntType[ExprStmt [27-30]: Expr [28-29]: Lit: Int(8)]: [24-30]
+                [9-38]: ArrayReferenceType [9-38]: ArrayBaseTypeKind IntType[Expr [28-29]: Lit: Int(8)]: [24-30]
                 Expr [32-33]: Lit: Int(2)
                 Expr [35-37]: Lit: Int(10)"#]],
     );
@@ -105,7 +105,7 @@ fn readonly_array_arg_with_dim() {
         &expect![[r#"
             Stmt [0-43]
                 StmtKind: ExternDecl [0-43]: Ident [7-8] "x"
-                [9-41]: ArrayReferenceType [9-41]: ArrayBaseTypeKind IntType[ExprStmt [27-30]: Expr [28-29]: Lit: Int(8)]: [24-30]
+                [9-41]: ArrayReferenceType [9-41]: ArrayBaseTypeKind IntType[Expr [28-29]: Lit: Int(8)]: [24-30]
                 Expr [39-40]: Lit: Int(1)"#]],
     );
 }
@@ -118,7 +118,7 @@ fn mutable_array_arg() {
         &expect![[r#"
             Stmt [0-42]
                 StmtKind: ExternDecl [0-42]: Ident [7-8] "x"
-                [9-40]: ArrayReferenceType [9-40]: ArrayBaseTypeKind IntType[ExprStmt [26-29]: Expr [27-28]: Lit: Int(8)]: [23-29]
+                [9-40]: ArrayReferenceType [9-40]: ArrayBaseTypeKind IntType[Expr [27-28]: Lit: Int(8)]: [23-29]
                 Expr [38-39]: Lit: Int(1)"#]],
     );
 }

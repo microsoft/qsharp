@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::parser::{stmt::parse_switch_stmt, tests::check};
 use expect_test::expect;
 
@@ -153,12 +156,12 @@ fn multiple_cases() {
                         Expr [37-38]: Lit: Int(0)
                     Block [39-53]:
                         Stmt [41-51]
-                            StmtKind: ClassicalDeclarationStmt [41-51]: ClassicalType [41-44]: IntType [41-44], Ident [45-46] "x", ValueExpression ExprStmt [49-50]: Expr [49-50]: Lit: Int(0)
+                            StmtKind: ClassicalDeclarationStmt [41-51]: ClassicalType [41-44]: IntType [41-44], Ident [45-46] "x", ValueExpression Expr [49-50]: Lit: Int(0)
                     Labels:
                         Expr [69-70]: Lit: Int(1)
                     Block [71-85]:
                         Stmt [73-83]
-                            StmtKind: ClassicalDeclarationStmt [73-83]: ClassicalType [73-76]: IntType [73-76], Ident [77-78] "y", ValueExpression ExprStmt [81-82]: Expr [81-82]: Lit: Int(1)
+                            StmtKind: ClassicalDeclarationStmt [73-83]: ClassicalType [73-76]: IntType [73-76], Ident [77-78] "y", ValueExpression Expr [81-82]: Lit: Int(1)
                     <no default>"#]],
     );
 }

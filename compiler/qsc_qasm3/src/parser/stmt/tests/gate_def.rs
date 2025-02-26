@@ -137,7 +137,7 @@ fn two_qubits_two_classical_with_body() {
                 StmtKind: Gate [0-45]: Ident [5-9] "c2q2"(Ident [10-11] "a", Ident [13-14] "b") Ident [16-17] "c", Ident [19-20] "d"
 
                 Stmt [23-43]
-                    StmtKind: ClassicalDeclarationStmt [23-43]: ClassicalType [23-32]: FloatType[ExprStmt [28-32]: Expr [29-31]: Lit: Int(32)]: [23-32], Ident [33-34] "x", ValueExpression ExprStmt [37-42]: Expr [37-42]: BinOp (Sub):
+                    StmtKind: ClassicalDeclarationStmt [23-43]: ClassicalType [23-32]: FloatType[Expr [29-31]: Lit: Int(32)]: [23-32], Ident [33-34] "x", ValueExpression Expr [37-42]: BinOp (Sub):
                         Expr [37-38]: Ident [37-38] "a"
                         Expr [41-42]: Ident [41-42] "b""#]],
     );

@@ -77,7 +77,7 @@ fn quantum_decl_with_designator() {
         "qubit[5] qubits;",
         &expect![[r#"
             Stmt [0-16]
-                StmtKind: QubitDeclaration [0-16]: Ident [9-15] "qubits", ExprStmt [5-8]: Expr [6-7]: Lit: Int(5)"#]],
+                StmtKind: QubitDeclaration [0-16]: Ident [9-15] "qubits", Expr [6-7]: Lit: Int(5)"#]],
     );
 }
 

@@ -25,7 +25,7 @@ fn creg_array_decl() {
         "creg c[n];",
         &expect![[r#"
             Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-10]: BitType [0-10]: ExprStmt [6-9]: Expr [7-8]: Ident [7-8] "n", Ident [5-6] "c""#]],
+                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-10]: BitType [0-10]: Expr [7-8]: Ident [7-8] "n", Ident [5-6] "c""#]],
     );
 }
 
@@ -47,6 +47,6 @@ fn qreg_array_decl() {
         "qreg q[n];",
         &expect![[r#"
             Stmt [0-10]
-                StmtKind: QubitDeclaration [0-10]: Ident [5-6] "q", ExprStmt [6-9]: Expr [7-8]: Ident [7-8] "n""#]],
+                StmtKind: QubitDeclaration [0-10]: Ident [5-6] "q", Expr [7-8]: Ident [7-8] "n""#]],
     );
 }
