@@ -18,12 +18,12 @@ use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
         Expr, ExprKind, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr,
-        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TypeDef,
-        UnaryOp, ValueExpression, Version,
+        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
+        TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
-        cooked::{ComparisonOp, Literal},
+        cooked::{ComparisonOp, Literal, TimingLiteralKind},
         ClosedBinOp, Delim, Radix, Token, TokenKind,
     },
     parser::{
@@ -308,10 +308,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                     span: token.span,
                 }))
             }
-            Literal::Timing(_timing_literal_kind) => Err(Error::new(ErrorKind::Lit(
-                "unimplemented: timing literal",
-                token.span,
-            ))),
+            Literal::Timing(kind) => timing_literal(lexeme, token, kind),
         },
         TokenKind::Keyword(Keyword::True) => Ok(Some(Lit {
             kind: LiteralKind::Bool(true),
@@ -407,6 +404,33 @@ fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
     match BigInt::from_str_radix(lexeme, radix) {
         Ok(value) => Some(value),
         Err(_) => None,
+    }
+}
+
+fn timing_literal(lexeme: &str, token: Token, kind: TimingLiteralKind) -> Result<Option<Lit>> {
+    {
+        let lexeme = lexeme
+            .chars()
+            .filter(|x| *x != '_')
+            .take_while(|x| x.is_numeric() || *x == '.')
+            .collect::<String>();
+
+        let value = lexeme
+            .parse()
+            .map_err(|_| Error::new(ErrorKind::Lit("timing", token.span)))?;
+
+        let unit = match kind {
+            TimingLiteralKind::Dt => TimeUnit::Dt,
+            TimingLiteralKind::Ns => TimeUnit::Ns,
+            TimingLiteralKind::Us => TimeUnit::Us,
+            TimingLiteralKind::Ms => TimeUnit::Ms,
+            TimingLiteralKind::S => TimeUnit::S,
+        };
+
+        Ok(Some(Lit {
+            span: token.span,
+            kind: LiteralKind::Duration { value, unit },
+        }))
     }
 }
 
