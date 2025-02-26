@@ -13,6 +13,7 @@ export
 import Std.Arrays.*;
 import Std.Convert.IntAsDouble;
 import Std.Math.*;
+
 import Utils.EvolutionGenerator;
 
 /// # Summary
@@ -29,7 +30,7 @@ struct JWOptimizedHTerms {
 /// Represents preparation of the initial state
 /// The meaning of the data represented is determined by the algorithm that receives it.
 struct JordanWignerInputState {
-    Amplitude : (Double, Double),
+    Amplitude : Complex,
     FermionIndices : Int[],
 }
 
@@ -259,11 +260,15 @@ function DecomposedIntoTimeStepsCA<'T>(
 /// Multiplier on duration of time-evolution by term indexed by `idx`.
 /// ## qubits
 /// Qubits acted on by simulation.
-operation TrotterStepImpl(evolutionGenerator : EvolutionGenerator, idx : Int, stepsize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let (evolutionSet, generatorSystem) = evolutionGenerator!;
-    let (nTerms, generatorSystemFunction) = generatorSystem!;
-    let generatorIndex = generatorSystemFunction(idx);
-    (evolutionSet(generatorIndex))(stepsize, qubits);
+operation TrotterStepImpl(
+    evolutionGenerator : EvolutionGenerator,
+    idx : Int,
+    stepsize : Double,
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
+
+    let generatorIndex = evolutionGenerator.System.EntryAt(idx);
+    (evolutionGenerator.EvolutionSet(generatorIndex))(stepsize, qubits);
 }
 
 /// # Summary
@@ -282,13 +287,18 @@ operation TrotterStepImpl(evolutionGenerator : EvolutionGenerator, idx : Int, st
 /// # Output
 /// Unitary operation that approximates a single step of time-evolution
 /// for duration `trotterStepSize`.
-function TrotterStep(evolutionGenerator : EvolutionGenerator, trotterOrder : Int, trotterStepSize : Double) : (Qubit[] => Unit is Adj + Ctl) {
-    let (evolutionSet, generatorSystem) = evolutionGenerator!;
-    let (nTerms, generatorSystemFunction) = generatorSystem!;
+function TrotterStep(
+    evolutionGenerator : EvolutionGenerator,
+    trotterOrder : Int,
+    trotterStepSize : Double
+) : (Qubit[] => Unit is Adj + Ctl) {
 
     // The input to DecomposeIntoTimeStepsCA has signature
     // (Int, ((Int, Double, Qubit[]) => () is Adj + Ctl))
-    let trotterForm = (nTerms, TrotterStepImpl(evolutionGenerator, _, _, _));
+    let trotterForm = (
+        evolutionGenerator.System.NumEntries,
+        TrotterStepImpl(evolutionGenerator, _, _, _)
+    );
     return (DecomposedIntoTimeStepsCA(trotterForm, trotterOrder))(trotterStepSize, _);
 }
 

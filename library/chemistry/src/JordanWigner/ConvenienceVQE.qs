@@ -5,6 +5,8 @@ export
     EstimateEnergyWrapper,
     EstimateEnergy;
 
+import Std.Math.Complex;
+
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerGeneratorSystem;
 import JordanWigner.JordanWignerVQE.EstimateTermExpectation;
 import JordanWigner.JordanWignerVQE.ExpandedCoefficients;
@@ -36,8 +38,8 @@ operation EstimateEnergyWrapper(jwHamiltonian : (Int, ((Int[], Double[])[], (Int
     let (inputState1, inputState2) = inputState;
     mutable jwInputState = [];
     for entry in inputState2 {
-        let (amp, idicies) = entry;
-        jwInputState += [new JordanWignerInputState { Amplitude = amp, FermionIndices = idicies }];
+        let ((r, i), idicies) = entry;
+        jwInputState += [new JordanWignerInputState { Amplitude = new Complex { Real = r, Imag = i }, FermionIndices = idicies }];
     }
     let inputState = (inputState1, jwInputState);
     let jwHamiltonian = new JordanWignerEncodingData {
@@ -67,26 +69,26 @@ operation EstimateEnergy(jwHamiltonian : JordanWignerEncodingData, nSamples : In
     // Initialize return value
     mutable energy = 0.;
 
-    // Unpack information and qubit Hamiltonian terms
-    let (nQubits, jwTerms, inputState, energyOffset) = jwHamiltonian!;
+    let nQubits = jwHamiltonian.NumQubits;
 
     // Loop over all qubit Hamiltonian terms
-    let (nTerms, indexFunction) = (JordanWignerGeneratorSystem(jwTerms))!;
+    let generatorSystem = JordanWignerGeneratorSystem(jwHamiltonian.Terms);
 
-    for idxTerm in 0..nTerms - 1 {
-        let term = indexFunction(idxTerm);
-        let ((idxTermType, coeff), idxFermions) = term!;
+    for idxTerm in 0..generatorSystem.NumEntries - 1 {
+        let term = generatorSystem.EntryAt(idxTerm);
+        let (idxTermType, coeff) = term.Term;
+        let idxFermions = term.Subsystem;
         let termType = idxTermType[0];
 
         let ops = MeasurementOperators(nQubits, idxFermions, termType);
         let coeffs = ExpandedCoefficients(coeff, termType);
 
         // The private wrapper enables fast emulation during expectation estimation
-        let inputStateUnitary = PrepareTrialState(inputState, _);
+        let inputStateUnitary = PrepareTrialState(jwHamiltonian.InputState, _);
 
         let jwTermEnergy = EstimateTermExpectation(inputStateUnitary, ops, coeffs, nQubits, nSamples);
         energy += jwTermEnergy;
     }
 
-    return energy + energyOffset;
+    return energy + jwHamiltonian.EnergyOffset;
 }

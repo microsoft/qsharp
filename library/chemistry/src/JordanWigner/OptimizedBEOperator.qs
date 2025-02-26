@@ -3,10 +3,11 @@
 
 export OptimizedBEXY;
 
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 import Std.Arrays.IndexRange;
 import Std.Arrays.Partitioned;
 import Std.Math.Max;
+
+import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 
 /// # Summary
 /// Applies a sequence of Z operations and either an X or Y operation to

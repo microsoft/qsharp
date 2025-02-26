@@ -48,14 +48,20 @@ struct GeneratorIndex {
 /// We iterate over this
 /// collection using a single-index integer, and the size of the
 /// collection is assumed to be known.
-struct GeneratorSystem { NumEntries : Int, EntryAt : (Int -> GeneratorIndex) }
+struct GeneratorSystem {
+    NumEntries : Int,
+    EntryAt : (Int -> GeneratorIndex)
+}
 
 /// # Summary
 /// Represents a dynamical generator as a set of simulatable gates and
 /// an expansion in terms of that basis.
 ///
 /// Last parameter for number of terms.
-struct EvolutionGenerator { EvolutionSet : GeneratorIndex -> (Double, Qubit[]) => Unit is Adj + Ctl, System : GeneratorSystem }
+struct EvolutionGenerator {
+    EvolutionSet : GeneratorIndex -> (Double, Qubit[]) => Unit is Adj + Ctl,
+    System : GeneratorSystem
+}
 
 /// # Summary
 /// Converts a Hamiltonian term to a GeneratorIndex.
