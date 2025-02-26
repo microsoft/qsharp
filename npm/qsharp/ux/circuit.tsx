@@ -5,6 +5,7 @@ import * as qviz from "./circuit-vis";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
+import { CURRENT_VERSION } from "../src/shared/circuit";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -14,10 +15,22 @@ const MAX_OPERATIONS = 10000;
 const MAX_QUBITS = 1000;
 
 // This component is shared by the Python widget and the VS Code panel
-export function Circuit(props: { circuit: qviz.Circuit }) {
-  const circuit = props.circuit;
+export function Circuit(props: {
+  circuit?: qviz.Circuit;
+  isEditable: boolean;
+  editCallback?: (circuit: qviz.Circuit) => void;
+}) {
+  const circuit = props.circuit ?? {
+    operations: [],
+    qubits: [],
+    version: CURRENT_VERSION,
+  };
+
+  if (circuit.operations === undefined) circuit.operations = [];
+  if (circuit.qubits === undefined) circuit.qubits = [];
+
   const unrenderable =
-    circuit.qubits.length === 0 ||
+    (!props.isEditable && circuit.qubits.length === 0) ||
     circuit.operations.length > MAX_OPERATIONS ||
     circuit.qubits.length > MAX_QUBITS;
 
@@ -25,17 +38,21 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
     <div>
       {unrenderable ? (
         <Unrenderable
-          qubits={props.circuit.qubits.length}
-          operations={props.circuit.operations.length}
+          qubits={circuit.qubits.length}
+          operations={circuit.operations.length}
         />
       ) : (
-        <ZoomableCircuit circuit={props.circuit} />
+        <ZoomableCircuit {...props} circuit={circuit} />
       )}
     </div>
   );
 }
 
-function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
+function ZoomableCircuit(props: {
+  circuit: qviz.Circuit;
+  isEditable: boolean;
+  editCallback?: (circuit: qviz.Circuit) => void;
+}) {
   const circuitDiv = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rendering, setRendering] = useState(true);
@@ -52,7 +69,12 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
     if (rendering) {
       const container = circuitDiv.current!;
       // Draw the circuit - may take a while for large circuits
-      const svg = renderCircuit(props.circuit, container);
+      const svg = renderCircuit(
+        props.circuit,
+        container,
+        props.isEditable,
+        props.editCallback,
+      );
       // Calculate the initial zoom level based on the container width
       const initialZoom = calculateZoomToFit(container, svg as SVGElement);
       // Set the initial zoom level
@@ -61,7 +83,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
       updateWidth();
       // Disable "rendering" text
       setRendering(false);
-    } else {
+    } else if (!props.isEditable) {
       // Initial drawing done, attach window resize handler
       window.addEventListener("resize", onResize);
       return () => {
@@ -77,7 +99,7 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
   return (
     <div>
       <div>
-        {rendering ? null : (
+        {props.isEditable || rendering ? null : (
           <ZoomControl zoom={zoomLevel} onInput={userSetZoomLevel} />
         )}
       </div>
@@ -128,9 +150,21 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
     }
   }
 
-  function renderCircuit(circuit: qviz.Circuit, container: HTMLDivElement) {
-    qviz.draw(circuit, container);
-
+  function renderCircuit(
+    circuit: qviz.Circuit,
+    container: HTMLDivElement,
+    isEditable: boolean,
+    editCallback?: (circuit: qviz.Circuit) => void,
+  ) {
+    if (isEditable) {
+      let circuitPanel = qviz.create(circuit).useDraggable().usePanel();
+      if (editCallback) {
+        circuitPanel = circuitPanel.useOnCircuitChange(editCallback);
+      }
+      circuitPanel.useEvents().draw(container);
+    } else {
+      qviz.create(circuit).draw(container);
+    }
     // circuit-vis hardcodes the styles in the SVG.
     // Remove the style elements -- we'll define the styles in our own CSS.
     const styleElements = container.querySelectorAll("style");
@@ -249,7 +283,13 @@ export function CircuitPanel(props: CircuitProps) {
           <Spinner />
         </div>
       ) : null}
-      {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
+      {props.circuit ? (
+        <Circuit
+          circuit={props.circuit}
+          isEditable={props.isEditable}
+          editCallback={props.editCallback}
+        ></Circuit>
+      ) : null}
     </div>
   );
 }
