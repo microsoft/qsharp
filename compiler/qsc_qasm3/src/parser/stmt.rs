@@ -1103,7 +1103,14 @@ fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
         | StmtKind::Reset(_)
         | StmtKind::GateCall(_)
         | StmtKind::GPhase(_) => Ok(stmt),
-        _ => Err(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span))),
+        _ => {
+            s.push_error(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span)));
+            Ok(Stmt {
+                span: stmt.span,
+                annotations: stmt.annotations,
+                kind: Box::new(StmtKind::Err),
+            })
+        }
     }
 }
 
@@ -1266,7 +1273,8 @@ fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGr
     )))
 }
 
-/// We don't support `defcal` statements.
+/// We don't support `defcal` block statements in the compiler. Therefore
+/// the parser just goes through the tokens in a defcal block and ignores them.
 /// Grammar: `DEFCAL pushmode(eatUntilOpenBrace) pushmode(eatUntilBalancedClosingBrace)`.
 fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
     let lo = s.peek().span.lo;
@@ -1310,7 +1318,8 @@ fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
     }
 }
 
-/// We don't support `cal` block statements.
+/// We don't support `cal` block statements in the compiler. Therefore
+/// the parser just goes through the tokens in a cal block and ignores them.
 /// Grammar: `CAL OPEN_BRACE pushmode(eatUntilBalancedClosingBrace)`.
 fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
     let lo = s.peek().span.lo;
