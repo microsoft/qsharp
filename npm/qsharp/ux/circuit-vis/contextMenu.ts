@@ -97,22 +97,27 @@ const addContextMenuToHostElem = (
       circuitEvents.renderFn();
     });
 
-    // This is a bit of a mess of special-cases.
     if (isControl && removeControlOption) {
       contextMenu.appendChild(removeControlOption!);
-    } else {
-      if (!selectedOperation.isMeasurement) {
-        if (selectedOperation.gate != "X") {
-          contextMenu.appendChild(adjointOption);
-        }
-        contextMenu.appendChild(addControlOption);
-        if (removeControlOption) {
-          contextMenu.appendChild(removeControlOption);
-        }
-        if (selectedOperation.gate != "X") {
-          contextMenu.appendChild(promptArgOption);
-        }
+    } else if (
+      selectedOperation.isMeasurement ||
+      selectedOperation.gate == "|0〉" ||
+      selectedOperation.gate == "|1〉"
+    ) {
+      contextMenu.appendChild(deleteOption);
+    } else if (selectedOperation.gate == "X") {
+      contextMenu.appendChild(addControlOption);
+      if (removeControlOption) {
+        contextMenu.appendChild(removeControlOption);
       }
+      contextMenu.appendChild(deleteOption);
+    } else {
+      contextMenu.appendChild(adjointOption);
+      contextMenu.appendChild(addControlOption);
+      if (removeControlOption) {
+        contextMenu.appendChild(removeControlOption);
+      }
+      contextMenu.appendChild(promptArgOption);
       contextMenu.appendChild(deleteOption);
     }
 

@@ -81,6 +81,22 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
                         measure_results.extend(op_results);
                     }
                 }
+            } else if op.gate == "|1〉" {
+                // Note "|1〉" will generate two operations: Reset and X
+                let operation_str = operation_call(op, &qubits);
+                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                let op_x = Operation {
+                    gate: "X".to_string(),
+                    is_controlled: false,
+                    is_adjoint: false,
+                    is_measurement: false,
+                    controls: vec![],
+                    targets: op.targets.clone(),
+                    display_args: None,
+                    children: vec![],
+                };
+                let operation_str = operation_call(&op_x, &qubits);
+                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
             } else {
                 let operation_str = operation_call(op, &qubits);
                 qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
@@ -136,7 +152,12 @@ fn measurement_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String
 }
 
 fn operation_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String {
-    let gate = op.gate.as_str();
+    let mut gate = op.gate.as_str();
+
+    if gate == "|0〉" || gate == "|1〉" {
+        gate = "Reset";
+    }
+
     let functors = if op.is_controlled && op.is_adjoint {
         "Controlled Adjoint "
     } else if op.is_controlled {

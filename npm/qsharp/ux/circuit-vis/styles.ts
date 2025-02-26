@@ -327,6 +327,7 @@ const _panel = `
         margin: 4px;
         cursor: pointer;
         font-size: 14px;
+        user-select: none;
     }
 `;
 

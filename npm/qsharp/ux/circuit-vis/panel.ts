@@ -40,8 +40,8 @@ const extensionPanel =
   (container: HTMLElement, sqore: Sqore, useRefresh: () => void): void => {
     if (container.querySelector(".panel") == null) {
       const panelElem = _panel(options);
+      container.prepend(_qubitLineControl());
       container.prepend(panelElem);
-      container.appendChild(_qubitLineControl());
     }
   };
 
@@ -317,6 +317,14 @@ const defaultGateDictionary: GateDictionary = {
     isMeasurement: true,
     controls: [{ qId: 0, type: RegisterType.Qubit }],
     targets: [{ qId: 0, type: RegisterType.Classical, cId: 0 }],
+  },
+  Reset: {
+    gate: "|0〉",
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
+  },
+  ResetX: {
+    gate: "|1〉",
+    targets: [{ qId: 0, type: RegisterType.Qubit }],
   },
 };
 

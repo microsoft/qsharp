@@ -65,6 +65,10 @@ const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
       );
     case GateType.X:
       return _createGate([_x(metadata, nestedDepth)], metadata, nestedDepth);
+    case GateType.Reset:
+      return _createGate([_ket("0", metadata)], metadata, nestedDepth);
+    case GateType.ResetX:
+      return _createGate([_ket("1", metadata)], metadata, nestedDepth);
     case GateType.Swap:
       return controlsY.length > 0
         ? _controlledGate(metadata, nestedDepth)
@@ -320,6 +324,7 @@ const _swap = (metadata: Metadata, nestedDepth: number): SVGElement => {
   const vertLine: SVGElement = line(x, ys[0], x, ys[1]);
   return group([bg, ...crosses, vertLine]);
 };
+
 /**
  * Creates the SVG for an X gate
  *
@@ -331,6 +336,20 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
   const ys = targetsY.flatMap((y) => y as number[]);
   return _oplus(x, ys[0]);
 };
+
+/**
+ * Creates the SVG for a ket notation (e.g "|0⟩" or "|1⟩") gate.
+ *
+ * @param label    The label for the ket notation (e.g., "0" or "1").
+ * @param metadata The metadata object containing information about the gate's position and appearance.
+ *
+ * @returns SVG representation of the ket notation gate.
+ */
+const _ket = (label: string, metadata: Metadata): SVGElement => {
+  const { x, targetsY, displayArgs, width } = metadata;
+  return _unitary(`|${label}〉`, x, targetsY as number[][], width, displayArgs);
+};
+
 /**
  * Generates cross for display in SWAP gate.
  *

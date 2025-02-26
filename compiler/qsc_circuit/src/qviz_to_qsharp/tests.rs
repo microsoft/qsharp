@@ -345,3 +345,29 @@ fn circuit_with_qubit_missing_num_children() {
         "#]],
     );
 }
+
+#[test]
+fn circuit_with_ket_gates() {
+    check(
+        r#"
+{
+  "operations": [
+    [
+      { "gate": "|0〉", "targets": [{ "qId": 0, "type": 0 }] },
+      { "gate": "|1〉", "targets": [{ "qId": 1, "type": 0 }] }
+    ]
+  ],
+  "qubits": [
+    { "id": 0 },
+    { "id": 1 }
+  ]
+}"#,
+        &expect![[r#"
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+                Reset(q0);
+                Reset(q1);
+                X(q1);
+            }
+        "#]],
+    );
+}
