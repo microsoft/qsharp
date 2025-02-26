@@ -72,7 +72,8 @@ function ComputeJordanWignerPauliZString(nFermions : Int, idxFermions : Int[]) :
 function ComputeJordanWignerPauliString(
     nFermions : Int,
     idxFermions : Int[],
-    pauliReplacements : Pauli[]) : Pauli[] {
+    pauliReplacements : Pauli[]
+) : Pauli[] {
 
     mutable pauliString = ComputeJordanWignerPauliZString(nFermions, idxFermions);
 
@@ -98,7 +99,8 @@ function ComputeJordanWignerPauliString(
 operation ApplyJordanWignerClusterOperatorPQTerm(
     term : GeneratorIndex,
     stepSize : Double,
-    qubits : Qubit[]) : Unit is Adj + Ctl {
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
 
     let (_, coeff) = term.Term;
     let idxFermions = term.Subsystem;
@@ -131,7 +133,8 @@ operation ApplyJordanWignerClusterOperatorPQTerm(
 operation ApplyJordanWignerClusterOperatorPQRSTerm(
     term : GeneratorIndex,
     stepSize : Double,
-    qubits : Qubit[]) : Unit is Adj + Ctl {
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
 
     let (_, coeff) = term.Term;
     let idxFermions = term.Subsystem;
@@ -162,8 +165,8 @@ function JordanWignerClusterOperatorPQRSTermSigns(indices : Int[]) : (Int[], Dou
     let q = indices[1];
     let r = indices[2];
     let s = indices[3];
-    mutable sorted = [0,0,0,0];
-    mutable signs = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0];
+    mutable sorted = [0, 0, 0, 0];
+    mutable signs = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
     mutable sign = 1.0;
 
     if (p > q) {
@@ -216,7 +219,8 @@ function JordanWignerClusterOperatorPQRSTermSigns(indices : Int[]) : (Int[], Dou
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
 function JordanWignerClusterOperatorGeneratorSystem(
-    data : JordanWignerInputState[]) : GeneratorSystem {
+    data : JordanWignerInputState[]
+) : GeneratorSystem {
     new GeneratorSystem {
         NumEntries = Length(data),
         EntryAt = JordanWignerStateAsGeneratorIndex(data, _)
@@ -253,7 +257,8 @@ function JordanWignerStateAsGeneratorIndex(data : JordanWignerInputState[], idx 
 operation JordanWignerClusterOperatorImpl(
     generatorIndex : GeneratorIndex,
     stepSize : Double,
-    qubits : Qubit[]) : Unit is Adj + Ctl {
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
 
     let (idxTermType, _) = generatorIndex.Term;
     let termType = idxTermType[0];
