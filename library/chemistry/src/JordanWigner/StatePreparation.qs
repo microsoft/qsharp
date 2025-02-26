@@ -31,8 +31,7 @@ operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits 
         if IsEmpty(terms) {
             // Do nothing, as there are no terms to prepare.
         } elif Length(terms) == 1 {
-            let (_, qubitIndices) = terms[0]!;
-            PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices, qubits);
+            PrepareSingleConfigurationalStateSingleSiteOccupation(terms[0].FermionIndices, qubits);
         } else {
             PrepareSparseMultiConfigurationalState(qs => I(qs[0]), terms, qubits);
         }
@@ -92,12 +91,16 @@ operation PrepareSparseMultiConfigurationalState(
     mutable applyFlips = [[], size = nExcitations];
 
     for idx in 0..nExcitations - 1 {
-        let ((r, i), excitation) = excitations[idx]!;
-        coefficientsSqrtAbs w/= idx <- Sqrt(AbsComplexPolar(ComplexAsComplexPolar(new Complex { Real = r, Imag = i })));
+        let (r, i) = excitations[idx].Amplitude;
+        let amplitude = new Complex {Real = r, Imag = i};
+        let amplitudePolar = ComplexAsComplexPolar(amplitude);
+
+        coefficientsSqrtAbs w/= idx <- Sqrt(AbsComplexPolar(amplitudePolar));
         coefficientsNewComplexPolar w/= idx <- new ComplexPolar {
             Magnitude = coefficientsSqrtAbs[idx],
-            Argument = ArgComplexPolar(ComplexAsComplexPolar(new Complex { Real = r, Imag = i }))
+            Argument = ArgComplexPolar(amplitudePolar)
         };
+        let excitation = excitations[idx].FermionIndices;
         applyFlips w/= idx <- excitation;
     }
 

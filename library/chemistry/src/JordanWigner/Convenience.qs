@@ -50,10 +50,9 @@ function TrotterStepOracle(jwHamiltonian : JordanWignerEncodingData, trotterStep
 
 function QubitizationOracleSeperatedRegisters(jwHamiltonian : JordanWignerEncodingData) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
     let generatorSystem = JordanWignerBlockEncodingGeneratorSystem(jwHamiltonian.Terms);
-    let (nTerms, genIdxFunction) = generatorSystem!;
     let (oneNorm, blockEncodingReflection) = PauliBlockEncoding(generatorSystem);
     let nTargetRegisterQubits = jwHamiltonian.NumQubits;
-    let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(nTerms)));
+    let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(generatorSystem.NumEntries)));
     return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
 }
 

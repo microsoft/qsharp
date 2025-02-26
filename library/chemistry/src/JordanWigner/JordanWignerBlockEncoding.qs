@@ -164,7 +164,10 @@ function V0123TermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
 function JordanWignerBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSystem {
-    let (ZData, ZZData, PQandPQQRData, h0123Data) = data!;
+    let ZData = data.HTerm0;
+    let ZZData = data.HTerm1;
+    let PQandPQQRData = data.HTerm2;
+    let h0123Data = data.HTerm3;
     mutable genIdxes = Repeated(
         new GeneratorIndex { Term = ([0], [0.0]), Subsystem = [0] },
         ((Length(ZData) + Length(ZZData)) + 2 * Length(PQandPQQRData)) + 8 * Length(h0123Data)

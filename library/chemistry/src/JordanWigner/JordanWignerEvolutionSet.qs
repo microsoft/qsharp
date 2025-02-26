@@ -77,7 +77,8 @@ operation ApplyJordanWignerZZTerm(term : GeneratorIndex, stepSize : Double, qubi
 /// ## qubits
 /// Qubits of Hamiltonian.
 operation ApplyJordanWignerPQTerm(term : GeneratorIndex, stepSize : Double, extraParityQubits : Qubit[], qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let angle = (1.0 * coeff[0]) * stepSize;
     let qubitsPQ = Subarray(idxFermions[0..1], qubits);
     let qubitsJW = qubits[idxFermions[0] + 1..idxFermions[1] - 1];
@@ -101,7 +102,8 @@ operation ApplyJordanWignerPQTerm(term : GeneratorIndex, stepSize : Double, extr
 /// ## qubits
 /// Qubits of Hamiltonian.
 operation ApplyJordanWignerPQandPQQRTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (idxTermType, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let angle = (1.0 * coeff[0]) * stepSize;
     let qubitQidx = idxFermions[1];
 
@@ -138,7 +140,8 @@ operation ApplyJordanWignerPQandPQQRTerm(term : GeneratorIndex, stepSize : Doubl
 /// ## qubits
 /// Qubits to apply the given term to.
 operation ApplyJordanWigner0123Term(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, v0123), idxFermions) = term!;
+    let (idxTermType, v0123) = term.Term;
+    let idxFermions = term.Subsystem;
     let angle = stepSize;
     let qubitsPQ = Subarray(idxFermions[0..1], qubits);
     let qubitsRS = Subarray(idxFermions[2..3], qubits);
@@ -166,7 +169,10 @@ operation ApplyJordanWigner0123Term(term : GeneratorIndex, stepSize : Double, qu
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
 function JordanWignerGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSystem {
-    let (ZData, ZZData, PQandPQQRData, h0123Data) = data!;
+    let ZData = data.HTerm0;
+    let ZZData = data.HTerm1;
+    let PQandPQQRData = data.HTerm2;
+    let h0123Data = data.HTerm3;
     let ZGenSys = HTermsToGenSys(ZData, [0]);
     let ZZGenSys = HTermsToGenSys(ZZData, [1]);
     let PQandPQQRGenSys = HTermsToGenSys(PQandPQQRData, [2]);
@@ -214,7 +220,7 @@ function AddGeneratorSystems(generatorSystemA : GeneratorSystem, generatorSystem
 /// ## qubits
 /// Register acted upon by time-evolution operator.
 operation JordanWignerFermionImpl(generatorIndex : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, idxDoubles), idxFermions) = generatorIndex!;
+    let (idxTermType, idxDoubles) = generatorIndex.Term;
     let termType = idxTermType[0];
 
     if (termType == 0) {

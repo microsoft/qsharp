@@ -27,7 +27,12 @@ import Std.Math.Sqrt;
 operation PrepareSparseMultiConfigurationalState0Test() : Unit {
     let nQubits = 6;
     let expectedResult = 39;
-    let excitations = [new JordanWignerInputState { Amplitude = (0.1, 0.0), FermionIndices = [0, 1, 2, 5] }];
+    let excitations = [
+        new JordanWignerInputState {
+            Amplitude = (0.1, 0.0),
+            FermionIndices = [0, 1, 2, 5]
+        }
+    ];
 
     use qubits = Qubit[nQubits];
     PrepareSparseMultiConfigurationalState(qs => I(qs[0]), excitations, qubits);
