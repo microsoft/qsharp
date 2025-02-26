@@ -421,6 +421,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "Q#",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.createCircuitFile",
+        "title": "Create New Circuit File",
+        "category": "Q#"
       }
     ],
     "breakpoints": [

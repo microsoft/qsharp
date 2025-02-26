@@ -3,18 +3,111 @@
 
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
+import { qsharpExtensionId } from "./common";
+import { sampleCircuit } from "./sampleCircuit";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     log.info("Registering CircuitEditorProvider");
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        `${qsharpExtensionId}.createCircuitFile`,
+        CircuitEditorProvider.createCircuitFile,
+      ),
+    );
+
     const provider = new CircuitEditorProvider(context);
     const providerRegistration = vscode.window.registerCustomEditorProvider(
       CircuitEditorProvider.viewType,
       provider,
     );
     return providerRegistration;
+  }
+
+  static async createCircuitFile(folderUri: vscode.Uri | undefined) {
+    if (!folderUri) {
+      // Try to detect the project folder of the currently active file
+      // ToDo: This won't work for non-text files, such as the circuit files.
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor) {
+        console.log("Active editor found");
+        let activeFileUri = activeEditor.document.uri;
+
+        while (activeFileUri.path !== "/") {
+          const parentUri = vscode.Uri.joinPath(activeFileUri, "..");
+          const qsharpJsonPath = vscode.Uri.joinPath(parentUri, "qsharp.json");
+          // Check if qsharp.json exists in the parent directory
+          try {
+            await vscode.workspace.fs.stat(qsharpJsonPath);
+            folderUri = parentUri;
+            break;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (_error) {
+            activeFileUri = parentUri;
+          }
+        }
+      }
+
+      if (!folderUri) {
+        console.log("No active editor found");
+        // This was run from the command palette, not the context menu, so create the project
+        // in the root of an open workspace folder.
+        const workspaceCount = vscode.workspace.workspaceFolders?.length || 0;
+        if (workspaceCount === 0) {
+          // No workspaces open
+          vscode.window.showErrorMessage(
+            "You must have a folder open to create a Q# project in",
+          );
+          return;
+        } else if (workspaceCount === 1) {
+          folderUri = vscode.workspace.workspaceFolders![0].uri;
+        } else {
+          const workspaceChoice = await vscode.window.showWorkspaceFolderPick({
+            placeHolder: "Pick the workspace folder for the project",
+          });
+          if (!workspaceChoice) return;
+          folderUri = workspaceChoice.uri;
+        }
+      }
+    }
+
+    const defaultFileName = "NewCircuit";
+    let fileName = await vscode.window.showInputBox({
+      prompt: "Enter the name of the new circuit file",
+      value: defaultFileName,
+    });
+
+    fileName = (fileName?.trim() || defaultFileName) + ".qviz";
+
+    if (!fileName) {
+      vscode.window.showErrorMessage("No file name provided.");
+      return;
+    }
+
+    const fileUri = vscode.Uri.joinPath(folderUri, "src", fileName);
+    const initialContent = JSON.stringify(sampleCircuit);
+    const edit = new vscode.WorkspaceEdit();
+    edit.createFile(fileUri);
+    edit.set(fileUri, [
+      new vscode.TextEdit(new vscode.Range(0, 0, 0, 0), initialContent),
+    ]);
+
+    // This doesn't throw on failure, it just returns false
+    if (!(await vscode.workspace.applyEdit(edit))) {
+      vscode.window.showErrorMessage(
+        "Unable to create circuit file. Check the circuit file doesn't already exist and that the file system is writable",
+      );
+      return;
+    }
+
+    await vscode.commands.executeCommand(
+      "vscode.openWith",
+      fileUri,
+      CircuitEditorProvider.viewType,
+    );
   }
 
   constructor(private readonly context: vscode.ExtensionContext) {
@@ -28,7 +121,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     _token: vscode.CancellationToken,
   ): Promise<void> {
     log.info("Resolving CircuitEditorProvider");
-    console.log("Resolving CircuitEditorProvider");
 
     // Setup initial content for the webview
     webviewPanel.webview.options = {
