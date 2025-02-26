@@ -26,8 +26,11 @@ fn set_indentation<'a, 'b>(
     }
 }
 
-// TODO: profile this with iai-callgrind in a large OpenQASM3
-// sample to verify that is actually faster than using Vec<T>.
+// TODO: Profile this with iai-callgrind in a large OpenQASM3
+//       sample to verify that is actually faster than using Vec<T>.
+//       Even though Box<T> uses less stack space, it reduces cache
+//       locality, because now you need to be jumping around in
+//       memory to read contiguous elements of a list.
 /// An alternative to `Vec<T>` that uses less stack space.
 pub(crate) type List<T> = Box<[Box<T>]>;
 
