@@ -13,12 +13,6 @@ export
     QuantumWalkByQubitization,
     PauliBlockEncoding;
 
-import JordanWigner.OptimizedBEOperator.JordanWignerSelect;
-import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitCount;
-import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitManager;
-import JordanWigner.Utils.JWOptimizedHTerms;
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
-import JordanWigner.Utils.RangeAsIntArray;
 import Std.Arrays.*;
 import Std.Math.*;
 import Std.Convert.IntAsDouble;
@@ -26,6 +20,13 @@ import Std.Arithmetic.ApplyIfGreaterLE;
 import Std.StatePreparation.PreparePureStateD;
 import Std.StatePreparation.PrepareUniformSuperposition;
 import Std.Diagnostics.Fact;
+
+import JordanWigner.OptimizedBEOperator.JordanWignerSelect;
+import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitCount;
+import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitManager;
+import JordanWigner.Utils.JWOptimizedHTerms;
+import JordanWigner.Utils.MultiplexOperationsFromGenerator;
+import JordanWigner.Utils.RangeAsIntArray;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 import Utils.HTermToGenIdx;

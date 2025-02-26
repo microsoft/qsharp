@@ -6,15 +6,16 @@ export
     PrepareSparseMultiConfigurationalState,
     PrepareUnitaryCoupledClusterState;
 
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorEvolutionSet;
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorGeneratorSystem;
-import JordanWigner.Utils.JordanWignerInputState;
-import JordanWigner.Utils.TrotterSimulationAlgorithm;
 import Std.Arrays.*;
 import Std.Convert.ComplexAsComplexPolar;
 import Std.Convert.IntAsDouble;
 import Std.StatePreparation.PreparePureStateD;
 import Std.Math.*;
+
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorEvolutionSet;
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorGeneratorSystem;
+import JordanWigner.Utils.JordanWignerInputState;
+import JordanWigner.Utils.TrotterSimulationAlgorithm;
 import Utils.EvolutionGenerator;
 
 operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits : Qubit[]) : Unit {
@@ -86,22 +87,20 @@ operation PrepareSparseMultiConfigurationalState(
 ) : Unit {
     let nExcitations = Length(excitations);
 
-    mutable coefficientsSqrtAbs = [0.0, size = nExcitations];
-    mutable coefficientsNewComplexPolar = Repeated(new ComplexPolar { Magnitude = 0.0, Argument = 0.0 }, nExcitations);
-    mutable applyFlips = [[], size = nExcitations];
+    mutable coefficientsSqrtAbs = [];
+    mutable coefficientsNewComplexPolar = [];
+    mutable applyFlips = [];
 
     for idx in 0..nExcitations - 1 {
-        let (r, i) = excitations[idx].Amplitude;
-        let amplitude = new Complex {Real = r, Imag = i};
-        let amplitudePolar = ComplexAsComplexPolar(amplitude);
+        let amplitudePolar = ComplexAsComplexPolar(excitations[idx].Amplitude);
+        let sqrAbsAmplitude = Sqrt(AbsComplexPolar(amplitudePolar));
 
-        coefficientsSqrtAbs w/= idx <- Sqrt(AbsComplexPolar(amplitudePolar));
-        coefficientsNewComplexPolar w/= idx <- new ComplexPolar {
-            Magnitude = coefficientsSqrtAbs[idx],
+        coefficientsSqrtAbs += [sqrAbsAmplitude];
+        coefficientsNewComplexPolar += [new ComplexPolar {
+            Magnitude = sqrAbsAmplitude,
             Argument = ArgComplexPolar(amplitudePolar)
-        };
-        let excitation = excitations[idx].FermionIndices;
-        applyFlips w/= idx <- excitation;
+        }];
+        applyFlips += [excitations[idx].FermionIndices];
     }
 
     let nBitsIndices = Ceiling(Lg(IntAsDouble(nExcitations)));

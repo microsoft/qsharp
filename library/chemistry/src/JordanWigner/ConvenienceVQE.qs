@@ -5,6 +5,8 @@ export
     EstimateEnergyWrapper,
     EstimateEnergy;
 
+import Std.Math.Complex;
+
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerGeneratorSystem;
 import JordanWigner.JordanWignerVQE.EstimateTermExpectation;
 import JordanWigner.JordanWignerVQE.ExpandedCoefficients;
@@ -36,8 +38,8 @@ operation EstimateEnergyWrapper(jwHamiltonian : (Int, ((Int[], Double[])[], (Int
     let (inputState1, inputState2) = inputState;
     mutable jwInputState = [];
     for entry in inputState2 {
-        let (amp, idicies) = entry;
-        jwInputState += [new JordanWignerInputState { Amplitude = amp, FermionIndices = idicies }];
+        let ((r, i), idicies) = entry;
+        jwInputState += [new JordanWignerInputState { Amplitude = new Complex { Real = r, Imag = i }, FermionIndices = idicies }];
     }
     let inputState = (inputState1, jwInputState);
     let jwHamiltonian = new JordanWignerEncodingData {

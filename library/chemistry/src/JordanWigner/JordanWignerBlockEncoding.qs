@@ -3,9 +3,10 @@
 
 export JordanWignerBlockEncodingGeneratorSystem;
 
+import Std.Arrays.IndexRange;
+
 import JordanWigner.Utils.JWOptimizedHTerms;
 import JordanWigner.Utils.RangeAsIntArray;
-import Std.Arrays.IndexRange;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 import Utils.HTermToGenIdx;

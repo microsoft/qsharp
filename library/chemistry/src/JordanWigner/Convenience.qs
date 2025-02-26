@@ -6,6 +6,10 @@ export
     QubitizationOracle,
     OptimizedQubitizationOracle;
 
+import Std.Convert.IntAsDouble;
+import Std.Math.Ceiling;
+import Std.Math.Lg;
+
 import JordanWigner.JordanWignerBlockEncoding.JordanWignerBlockEncodingGeneratorSystem;
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerFermionEvolutionSet;
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerGeneratorSystem;
@@ -13,11 +17,7 @@ import JordanWigner.JordanWignerOptimizedBlockEncoding.JordanWignerOptimizedBloc
 import JordanWigner.JordanWignerOptimizedBlockEncoding.PauliBlockEncoding;
 import JordanWigner.JordanWignerOptimizedBlockEncoding.QuantumWalkByQubitization;
 import JordanWigner.Utils.JordanWignerEncodingData;
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 import JordanWigner.Utils.TrotterSimulationAlgorithm;
-import Std.Convert.IntAsDouble;
-import Std.Math.Ceiling;
-import Std.Math.Lg;
 import Utils.EvolutionGenerator;
 
 // Convenience functions for performing simulation.

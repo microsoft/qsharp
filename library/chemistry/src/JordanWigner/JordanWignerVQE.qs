@@ -33,7 +33,14 @@ import Std.Math.AbsD;
 ///
 /// # Output
 /// The energy associated to the Jordan-Wigner term.
-operation EstimateTermExpectation(inputStateUnitary : (Qubit[] => Unit), ops : Pauli[][], coeffs : Double[], nQubits : Int, nSamples : Int) : Double {
+operation EstimateTermExpectation(
+    inputStateUnitary : (Qubit[] => Unit),
+    ops : Pauli[][],
+    coeffs : Double[],
+    nQubits : Int,
+    nSamples : Int
+) : Double {
+
     mutable jwTermEnergy = 0.;
 
     for i in IndexRange(coeffs) {
@@ -75,7 +82,13 @@ operation EstimateTermExpectation(inputStateUnitary : (Qubit[] => Unit), ops : P
 ///
 /// This is particularly important on target machines which respect
 /// physical limitations, such that probabilities cannot be measured.
-operation EstimateFrequency(preparation : (Qubit[] => Unit), measurement : (Qubit[] => Result), nQubits : Int, nMeasurements : Int) : Double {
+operation EstimateFrequency(
+    preparation : (Qubit[] => Unit),
+    measurement : (Qubit[] => Result),
+    nQubits : Int,
+    nMeasurements : Int
+) : Double {
+
     mutable nUp = 0;
 
     for idxMeasurement in 0..nMeasurements - 1 {
@@ -113,7 +126,12 @@ operation EstimateFrequency(preparation : (Qubit[] => Unit), measurement : (Qubi
 ///
 /// # Output
 /// An array of measurement operators (each being an array of Pauli).
-function MeasurementOperators(nQubits : Int, indices : Int[], termType : Int) : Pauli[][] {
+function MeasurementOperators(
+    nQubits : Int,
+    indices : Int[],
+    termType : Int
+) : Pauli[][] {
+
     // Compute the size and initialize the array of operators to be returned
     mutable nOps = 0;
     if (termType == 2) {
@@ -124,7 +142,7 @@ function MeasurementOperators(nQubits : Int, indices : Int[], termType : Int) : 
         nOps = 1;
     }
 
-    mutable ops = [[], size = nOps];
+    mutable ops = Repeated([], nOps);
 
     // Z and ZZ terms
     if termType == 0 or termType == 1 {
@@ -137,7 +155,16 @@ function MeasurementOperators(nQubits : Int, indices : Int[], termType : Int) : 
 
     // PQRS terms set operators between indices P and Q (resp R and S) to PauliZ
     elif termType == 3 {
-        let compactOps = [[PauliX, PauliX, PauliX, PauliX], [PauliY, PauliY, PauliY, PauliY], [PauliX, PauliX, PauliY, PauliY], [PauliY, PauliY, PauliX, PauliX], [PauliX, PauliY, PauliX, PauliY], [PauliY, PauliX, PauliY, PauliX], [PauliY, PauliX, PauliX, PauliY], [PauliX, PauliY, PauliY, PauliX]];
+        let compactOps = [
+            [PauliX, PauliX, PauliX, PauliX],
+            [PauliY, PauliY, PauliY, PauliY],
+            [PauliX, PauliX, PauliY, PauliY],
+            [PauliY, PauliY, PauliX, PauliX],
+            [PauliX, PauliY, PauliX, PauliY],
+            [PauliY, PauliX, PauliY, PauliX],
+            [PauliY, PauliX, PauliX, PauliY],
+            [PauliX, PauliY, PauliY, PauliX]
+        ];
 
         for iOp in 0..7 {
             mutable compactOp = compactOps[iOp];
@@ -207,7 +234,7 @@ function ExpandedCoefficients(coeff : Double[], termType : Int) : Double[] {
         nCoeffs = 1;
     }
 
-    mutable coeffs = [0.0, size = nCoeffs];
+    mutable coeffs = Repeated(0.0, nCoeffs);
 
     // Return the expanded array of coefficients
     if termType == 0 or termType == 1 {

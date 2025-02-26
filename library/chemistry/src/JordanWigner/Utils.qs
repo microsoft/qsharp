@@ -13,6 +13,7 @@ export
 import Std.Arrays.*;
 import Std.Convert.IntAsDouble;
 import Std.Math.*;
+
 import Utils.EvolutionGenerator;
 
 /// # Summary
@@ -29,7 +30,7 @@ struct JWOptimizedHTerms {
 /// Represents preparation of the initial state
 /// The meaning of the data represented is determined by the algorithm that receives it.
 struct JordanWignerInputState {
-    Amplitude : (Double, Double), // TODO: This is a complex number
+    Amplitude : Complex,
     FermionIndices : Int[],
 }
 
@@ -263,7 +264,8 @@ operation TrotterStepImpl(
     evolutionGenerator : EvolutionGenerator,
     idx : Int,
     stepsize : Double,
-    qubits : Qubit[]) : Unit is Adj + Ctl {
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
 
     let generatorIndex = evolutionGenerator.System.EntryAt(idx);
     (evolutionGenerator.EvolutionSet(generatorIndex))(stepsize, qubits);
@@ -288,13 +290,15 @@ operation TrotterStepImpl(
 function TrotterStep(
     evolutionGenerator : EvolutionGenerator,
     trotterOrder : Int,
-    trotterStepSize : Double) : (Qubit[] => Unit is Adj + Ctl) {
+    trotterStepSize : Double
+) : (Qubit[] => Unit is Adj + Ctl) {
 
     // The input to DecomposeIntoTimeStepsCA has signature
     // (Int, ((Int, Double, Qubit[]) => () is Adj + Ctl))
     let trotterForm = (
         evolutionGenerator.System.NumEntries,
-        TrotterStepImpl(evolutionGenerator, _, _, _));
+        TrotterStepImpl(evolutionGenerator, _, _, _)
+    );
     return (DecomposedIntoTimeStepsCA(trotterForm, trotterOrder))(trotterStepSize, _);
 }
 

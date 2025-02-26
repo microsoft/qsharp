@@ -5,9 +5,10 @@ export
     JordanWignerGeneratorSystem,
     JordanWignerFermionEvolutionSet;
 
-import JordanWigner.Utils.JWOptimizedHTerms;
 import Std.Arrays.IndexRange;
 import Std.Arrays.Subarray;
+
+import JordanWigner.Utils.JWOptimizedHTerms;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 import Utils.HTermsToGenSys;
