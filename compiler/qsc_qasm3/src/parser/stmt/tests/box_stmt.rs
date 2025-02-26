@@ -34,15 +34,19 @@ fn box_stmt_with_invalid_instruction() {
         "box {
         H q0;
         2 + 4;
+        X q1;
     }",
         &expect![[r#"
-            Stmt [0-40]
-                StmtKind: BoxStmt [0-40]: <no duration>
+            Stmt [0-54]
+                StmtKind: BoxStmt [0-54]: <no duration>
                 Stmt [14-19]
                     StmtKind: GateCall [14-19]: Ident [14-15] "H"
                     GateOperand IndexedIdent [16-18]: Ident [16-18] "q0"[]
                 Stmt [28-34]
                     StmtKind: Err
+                Stmt [43-48]
+                    StmtKind: GateCall [43-48]: Ident [43-44] "X"
+                    GateOperand IndexedIdent [45-47]: Ident [45-47] "q1"[]
 
             [
                 Error(
