@@ -21,7 +21,7 @@ export function Circuit(props: {
 }) {
   const circuit = props.circuit;
   const unrenderable =
-    circuit.qubits.length === 0 ||
+    (!props.isEditable && circuit.qubits.length === 0) ||
     circuit.operations.length > MAX_OPERATIONS ||
     circuit.qubits.length > MAX_QUBITS;
 
