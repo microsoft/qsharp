@@ -53,17 +53,12 @@ struct OptimizedBEGeneratorSystem {
     SelectTerm : (Int -> OptimizedBETermIndex)
 }
 
-// Get OptimizedBETermIndex coefficients
-function GetOptimizedBETermIndexCoeff(term : OptimizedBETermIndex) : Double {
-    term.Coefficient
-}
-
 
 // Get OptimizedBEGeneratorSystem coefficients
 function OptimizedBEGeneratorSystemCoeff(optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem) : Double[] {
     mutable coefficients = [];
     for idx in 0..optimizedBEGeneratorSystem.NumTerms - 1 {
-        coefficients += [GetOptimizedBETermIndexCoeff(optimizedBEGeneratorSystem.SelectTerm(idx))];
+        coefficients += [optimizedBEGeneratorSystem.SelectTerm(idx).Coefficient];
     }
     return coefficients;
 }
@@ -312,7 +307,7 @@ function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : Optim
     mutable oneNorm = 0.0;
 
     for idx in 0..finalIdx - 1 {
-        oneNorm = oneNorm + AbsD(GetOptimizedBETermIndexCoeff(majIdxes[idx]));
+        oneNorm = oneNorm + AbsD(majIdxes[idx].Coefficient);
     }
 
     let majIdxes = majIdxes[0..finalIdx - 1];
