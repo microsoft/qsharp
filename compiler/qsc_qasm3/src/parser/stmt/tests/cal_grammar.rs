@@ -15,3 +15,47 @@ fn defcalgrammar() {
             StmtKind: CalibrationGrammarStmt [0-26]: openpulse"#]],
     );
 }
+
+#[test]
+fn defcalgrammar_with_non_string_literal() {
+    check(
+        parse,
+        r#"defcalgrammar 5;"#,
+        &expect![[r#"
+            Error(
+                Rule(
+                    "string literal",
+                    Literal(
+                        Integer(
+                            Decimal,
+                        ),
+                    ),
+                    Span {
+                        lo: 14,
+                        hi: 15,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn defcalgrammar_with_no_literal() {
+    check(
+        parse,
+        r#"defcalgrammar;"#,
+        &expect![[r#"
+            Error(
+                Rule(
+                    "string literal",
+                    Semicolon,
+                    Span {
+                        lo: 13,
+                        hi: 14,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
