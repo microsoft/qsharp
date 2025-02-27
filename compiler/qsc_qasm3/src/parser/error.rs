@@ -128,6 +128,9 @@ pub enum ErrorKind {
     #[error("expected an item or closing brace, found {0}")]
     #[diagnostic(code("Qasm3.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
+    #[error("gphase gate requires exactly one angle")]
+    #[diagnostic(code("Qasm3.Parse.GPhaseInvalidArguments"))]
+    GPhaseInvalidArguments(#[label] Span),
 }
 
 impl ErrorKind {
@@ -148,6 +151,7 @@ impl ErrorKind {
             Self::MissingSwitchCaseLabels(span) => Self::MissingSwitchCaseLabels(span + offset),
             Self::MissingGateCallOperands(span) => Self::MissingGateCallOperands(span + offset),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
+            Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
         }
     }
 }
