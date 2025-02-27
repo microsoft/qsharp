@@ -16,6 +16,7 @@ mod extern_decl;
 mod for_loops;
 mod gate_call;
 mod gate_def;
+mod gphase;
 mod if_stmt;
 mod io_decl;
 mod measure;
