@@ -400,11 +400,11 @@ pub enum StmtKind {
     Cal(CalibrationStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
-    ConstDecl(ConstantDeclaration),
+    ConstDecl(ConstantDeclStmt),
     Continue(ContinueStmt),
     Def(DefStmt),
     DefCal(DefCalStmt),
-    DelayStmt(DelayStmt),
+    Delay(DelayStmt),
     /// An empty statement.
     Empty,
     End(EndStmt),
@@ -447,7 +447,7 @@ impl Display for StmtKind {
             StmtKind::Continue(continue_stmt) => write!(f, "{continue_stmt}"),
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
-            StmtKind::DelayStmt(delay) => write!(f, "{delay}"),
+            StmtKind::Delay(delay) => write!(f, "{delay}"),
             StmtKind::Empty => write!(f, "Empty"),
             StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
@@ -1341,14 +1341,14 @@ impl Display for IODeclaration {
 }
 
 #[derive(Clone, Debug)]
-pub struct ConstantDeclaration {
+pub struct ConstantDeclStmt {
     pub span: Span,
     pub r#type: TypeDef,
     pub identifier: Box<Ident>,
     pub init_expr: Expr,
 }
 
-impl Display for ConstantDeclaration {
+impl Display for ConstantDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
