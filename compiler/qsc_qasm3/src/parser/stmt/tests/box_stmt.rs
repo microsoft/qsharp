@@ -28,6 +28,28 @@ fn box_stmt() {
 }
 
 #[test]
+fn box_stmt_with_designator() {
+    check(
+        parse,
+        "
+    box[4us] {
+        H q0;
+        Rx(2.4) q1;
+    }",
+        &expect![[r#"
+            Stmt [5-55]
+                StmtKind: BoxStmt [5-55]: Expr [9-12]: Lit: Duration(4.0, Us)
+                Stmt [24-29]
+                    StmtKind: GateCall [24-29]: Ident [24-25] "H"
+                    GateOperand IndexedIdent [26-28]: Ident [26-28] "q0"[]
+                Stmt [38-49]
+                    StmtKind: GateCall [38-49]: Ident [38-40] "Rx"
+                    Expr [41-44]: Lit: Float(2.4)
+                    GateOperand IndexedIdent [46-48]: Ident [46-48] "q1"[]"#]],
+    );
+}
+
+#[test]
 fn box_stmt_with_invalid_instruction() {
     check(
         parse,
