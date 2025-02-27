@@ -284,7 +284,7 @@ function JordanWignerClusterOperatorPQRSTermSignsTest() : Unit {
 
 @Config(Unrestricted)
 function DoublesToComplexPolar(input : Double[]) : ComplexPolar[] {
-    Std.Arrays.Mapped(re -> ComplexAsComplexPolar(new Complex{ Real=re, Imag=0.0}), input)
+    Std.Arrays.Mapped(re -> ComplexAsComplexPolar(new Complex { Real = re, Imag = 0.0 }), input)
 }
 
 @Config(Unrestricted)
@@ -323,17 +323,17 @@ operation JordanWignerUCCDTermPQRSTest() : Unit {
     JordanWignerUCCTermTestHelper(5, [0, 1], term0, state0);
 
     // test using Exp(2.0 (a^\dag_0 a^\dag_1 a_3 a_4 - h.c.))
-    let term1 = [NewJordanWignerInputState (2.0, 0.0, [0, 1, 2, 4])];
+    let term1 = [NewJordanWignerInputState(2.0, 0.0, [0, 1, 2, 4])];
     let state1 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term1, state1);
 
     // test using Exp(2.0 (a^\dag_1 a^\dag_0 a_2 a_4 - h.c.))
-    let term2 = [NewJordanWignerInputState (2.0, 0.0, [1, 0, 2, 4])];
+    let term2 = [NewJordanWignerInputState(2.0, 0.0, [1, 0, 2, 4])];
     let state2 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term2, state2);
 
     // test using Exp(2.0 (a^\dag_1 a^\dag_0 a_2 a_4 - h.c.))
-    let term3 = [NewJordanWignerInputState (-2.0, 0.0, [4, 2, 1, 0])];
+    let term3 = [NewJordanWignerInputState(-2.0, 0.0, [4, 2, 1, 0])];
     let state3 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term2, state2);
 }
@@ -341,11 +341,11 @@ operation JordanWignerUCCDTermPQRSTest() : Unit {
 @Config(Unrestricted)
 // @Test()
 operation JordanWignerUCCDTermPRQSTest() : Unit {
-    let term0 = [NewJordanWignerInputState (2.0, 0.0, [2, 0, 4, 1])];
+    let term0 = [NewJordanWignerInputState(2.0, 0.0, [2, 0, 4, 1])];
     let state0 = [0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 2], term0, state0);
 
-    let term1 = [NewJordanWignerInputState (2.0, 0.0, [2, 0, 4, 1])];
+    let term1 = [NewJordanWignerInputState(2.0, 0.0, [2, 0, 4, 1])];
     let state1 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.909297, 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 2, 3], term1, state1);
 }
@@ -353,7 +353,7 @@ operation JordanWignerUCCDTermPRQSTest() : Unit {
 @Config(Unrestricted)
 @Test()
 operation JordanWignerUCCDTermPRSQTest() : Unit {
-    let term3 = [NewJordanWignerInputState (2.0, 0.0, [0, 4, 2, 3])];
+    let term3 = [NewJordanWignerInputState(2.0, 0.0, [0, 4, 2, 3])];
     let state3 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 4], term3, state3);
 }
@@ -398,7 +398,7 @@ function NearEqualityFactD(actual : Double, expected : Double) : Unit {
     }
 }
 
-function NewJordanWignerInputState(re: Double, im: Double, indices: Int[]) : JordanWignerInputState {
+function NewJordanWignerInputState(re : Double, im : Double, indices : Int[]) : JordanWignerInputState {
     new JordanWignerInputState {
         Amplitude = new Complex { Real = re, Imag = im },
         FermionIndices = indices
