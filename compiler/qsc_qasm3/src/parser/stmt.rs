@@ -197,8 +197,7 @@ pub fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
 
 fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Include);
-    token(s, TokenKind::Keyword(crate::keyword::Keyword::Include))?;
+    token(s, TokenKind::Keyword(Keyword::Include))?;
     let next = s.peek();
 
     let v = expr::lit(s)?;
@@ -1216,6 +1215,8 @@ fn parse_gphase(
     modifiers: List<QuantumGateModifier>,
 ) -> Result<GPhase> {
     token(s, TokenKind::GPhase)?;
+
+    let args_lo = s.peek().span.lo;
     let args = opt(s, |s| {
         token(s, TokenKind::Open(Delim::Paren))?;
         let exprs = expr::expr_list(s)?;
@@ -1223,6 +1224,12 @@ fn parse_gphase(
         Ok(list_from_iter(exprs))
     })?
     .unwrap_or_default();
+
+    if args.len() != 1 {
+        s.push_error(Error::new(ErrorKind::GPhaseInvalidArguments(
+            s.span(args_lo),
+        )));
+    }
 
     let duration = opt(s, designator)?;
     let qubits = gate_operand_list(s)?;
@@ -1288,7 +1295,6 @@ fn gate_operand_list(s: &mut ParserContext) -> Result<List<GateOperand>> {
 /// Grammar: `DEFCALGRAMMAR StringLiteral SEMICOLON`.
 fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGrammarStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::DefCalGrammar);
     token(s, TokenKind::Keyword(Keyword::DefCalGrammar))?;
     let next = s.peek();
     let v = expr::lit(s)?;
@@ -1315,7 +1321,6 @@ fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGr
 /// Grammar: `DEFCAL pushmode(eatUntilOpenBrace) pushmode(eatUntilBalancedClosingBrace)`.
 fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::DefCal);
     token(s, TokenKind::Keyword(Keyword::DefCal))?;
 
     // Once we have parsed the `defcal` token, we eat all the tokens until we see an open brace.
@@ -1360,7 +1365,6 @@ fn parse_defcal_stmt(s: &mut ParserContext) -> Result<DefCalStmt> {
 /// Grammar: `CAL OPEN_BRACE pushmode(eatUntilBalancedClosingBrace)`.
 fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Cal);
     token(s, TokenKind::Keyword(Keyword::Cal))?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let mut level: u32 = 1;
@@ -1394,7 +1398,6 @@ fn parse_cal(s: &mut ParserContext) -> Result<CalibrationStmt> {
 /// Grammar: `BARRIER gateOperandList? SEMICOLON`.
 fn parse_barrier(s: &mut ParserContext) -> Result<BarrierStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Barrier);
     token(s, TokenKind::Keyword(Keyword::Barrier))?;
     let qubits = gate_operand_list(s)?;
     recovering_semi(s);
@@ -1408,7 +1411,6 @@ fn parse_barrier(s: &mut ParserContext) -> Result<BarrierStmt> {
 /// Grammar: `BOX designator? scope`.
 fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Box);
     token(s, TokenKind::Keyword(Keyword::Box))?;
     let duration = opt(s, designator)?;
     let body = parse_box_body(s)?;
@@ -1423,7 +1425,6 @@ fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
 /// Grammar: `DELAY designator gateOperandList? SEMICOLON`.
 fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Delay);
     token(s, TokenKind::Delay)?;
     let duration = designator(s)?;
     let qubits = gate_operand_list(s)?;
@@ -1439,7 +1440,6 @@ fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
 /// Grammar: `RESET gateOperand SEMICOLON`.
 fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
     let lo = s.peek().span.lo;
-    s.expect(WordKinds::Reset);
     token(s, TokenKind::Reset)?;
     let operand = Box::new(gate_operand(s)?);
     recovering_semi(s);
