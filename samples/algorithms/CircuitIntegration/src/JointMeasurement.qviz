@@ -1,0 +1,287 @@
+{
+  "operations": [
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 0,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 1,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "targets": [
+          {
+            "qId": 3,
+            "type": 1,
+            "cId": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "|0〉",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 1,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 2,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "targets": [
+          {
+            "qId": 3,
+            "type": 1,
+            "cId": 1
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "|0〉",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 0,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "Z",
+        "targets": [
+          {
+            "qId": 2,
+            "type": 0
+          }
+        ],
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "isControlled": true
+      }
+    ],
+    [
+      {
+        "gate": "H",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "Measure",
+        "isMeasurement": true,
+        "controls": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ],
+        "targets": [
+          {
+            "qId": 3,
+            "type": 1,
+            "cId": 2
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "gate": "|0〉",
+        "targets": [
+          {
+            "qId": 3,
+            "type": 0
+          }
+        ]
+      }
+    ]
+  ],
+  "qubits": [
+    {
+      "id": 0,
+      "numChildren": 0
+    },
+    {
+      "id": 1,
+      "numChildren": 0
+    },
+    {
+      "id": 2,
+      "numChildren": 0
+    },
+    {
+      "id": 3,
+      "numChildren": 3
+    }
+  ],
+  "version": "1.0.0"
+}
