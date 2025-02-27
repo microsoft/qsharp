@@ -273,7 +273,7 @@ type EventTypes = {
     properties: {
       associationId: string;
       flowStatus: UserFlowStatus;
-      toolCalls: string; // JSON number array
+      toolCalls: string; // JSON string array of known tool names
     };
     measurements: {
       timeToCompleteMs: number; // includes tool call executions

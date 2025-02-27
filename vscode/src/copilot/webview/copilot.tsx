@@ -16,7 +16,8 @@ import {
 import "./copilot.css";
 // Set up the Markdown renderer with KaTeX support
 import mk from "@vscode/markdown-it-katex";
-import hljs from "highlight.js";
+import hljs from "highlight.js/lib/core";
+import python from "highlight.js/lib/languages/python";
 import markdownIt from "markdown-it";
 import { useEffect, useRef } from "preact/hooks";
 import { Histogram, Markdown, setRenderer } from "qsharp-lang/ux";
@@ -27,9 +28,13 @@ import {
   ToolMessage,
 } from "./debugUi";
 import hlsjQsharp from "./hlsj-qsharp";
+import { WebviewApi } from "vscode-webview";
 
-const vscodeApi = acquireVsCodeApi();
+const vscodeApi: WebviewApi<ChatElement[]> = acquireVsCodeApi();
 
+// Only include the Python and Q# languages so as not
+// to bloat the code
+hljs.registerLanguage("python", python);
 hljs.registerLanguage("qsharp", hlsjQsharp);
 const md = markdownIt("commonmark", {
   highlight(str, lang) {
@@ -356,7 +361,8 @@ window.addEventListener("message", onMessage);
 
 function loaded() {
   setThemeStylesheet();
-  restartChat([], undefined);
+  const savedHistory = vscodeApi.getState();
+  restartChat(savedHistory ?? [], undefined);
 }
 
 /**
@@ -377,6 +383,7 @@ function onMessage(event: MessageEvent<CopilotUpdate>) {
       model.history = message.payload.history;
       model.status = message.payload.status;
       model.debugUi = message.payload.debugUi;
+      vscodeApi.setState(message.payload.history);
       break;
     default:
       console.error("Unknown message kind: ", (message as any).kind);

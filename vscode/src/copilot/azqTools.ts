@@ -165,7 +165,7 @@ async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
 
 export async function getJobs(conversationState: ToolState): Promise<{
   result: {
-    recentJobs: MinimizedJob[];
+    recentJobs: JobOverview[];
     lastNJobs: number;
     lastNDays: number;
   };
@@ -173,6 +173,12 @@ export async function getJobs(conversationState: ToolState): Promise<{
   const workspace = await getConversationWorkspace(conversationState);
 
   const recentJobs = (await getRecentJobs(workspace)).map((job) => {
+    // Don't return the object directly as it may contain extra properties
+    // that may be too large when the tool output is JSON-ified.
+    // (notably `errorData`).
+    //
+    // Only explicitly include fields that are part of the `JobOverview` type,
+    // drop the rest.
     return {
       id: job.id,
       name: job.name,
@@ -193,7 +199,12 @@ export async function getJobs(conversationState: ToolState): Promise<{
   };
 }
 
-type MinimizedJob = {
+/**
+ * This is similar to the `Job` type but with only the fields we want
+ * to include in the overall `GetJobs` output. Notably, it excludes
+ * `errorData` since its size is unbounded.
+ */
+type JobOverview = {
   id: string;
   name: string;
   target: string;
@@ -204,14 +215,13 @@ type MinimizedJob = {
     | "Failed"
     | "Finishing"
     | "Cancelled";
-  count: number;
-  shots: number;
+  count?: number;
+  shots?: number;
   creationTime: string;
   beginExecutionTime?: string;
   endExecutionTime?: string;
   cancellationTime?: string;
   costEstimate?: any;
-  errorData?: { code: string; message: string };
 };
 
 /**
@@ -276,10 +286,11 @@ async function downloadJobResults(
     throw new CopilotToolError("Failed to connect to the workspace.");
   }
 
-  const outputData = await getJobFiles(container, blob, token, quantumUris);
-  if (outputData) {
+  try {
+    const outputData = await getJobFiles(container, blob, token, quantumUris);
     const buckets = formatHistogramBuckets(outputData);
-    if (!buckets) {
+    const shotCount = job.shots ?? job.count;
+    if (!buckets || !shotCount) {
       const doc = await vscode.workspace.openTextDocument({
         content: outputData,
         language: "json",
@@ -289,15 +300,16 @@ async function downloadJobResults(
     } else {
       const histogram = {
         buckets,
-        shotCount: job.shots,
+        shotCount,
       };
       return {
         result: "Results were successfully rendered.",
         widgetData: histogram,
       };
     }
+  } catch {
+    throw new CopilotToolError("Failed to download the results for the job.");
   }
-  throw new CopilotToolError("Failed to download the results for the job.");
 }
 
 /**

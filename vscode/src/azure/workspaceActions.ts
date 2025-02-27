@@ -450,14 +450,8 @@ function responseJobToJob(job: ResponseTypes.Job): Job {
     target: job.target,
     status: job.status,
     outputDataUri: job.outputDataUri,
-    count:
-      typeof job.inputParams.count === "string"
-        ? parseInt(job.inputParams.count)
-        : job.inputParams.count,
-    shots:
-      typeof job.inputParams.shots === "string"
-        ? parseInt(job.inputParams.shots)
-        : job.inputParams.shots,
+    count: numberOrUndefined(job.inputParams.count),
+    shots: numberOrUndefined(job.inputParams.shots),
     creationTime: job.creationTime,
     beginExecutionTime: job.beginExecutionTime,
     endExecutionTime: job.endExecutionTime,
@@ -465,6 +459,16 @@ function responseJobToJob(job: ResponseTypes.Job): Job {
     costEstimate: job.costEstimate,
     errorData: job.errorData,
   };
+}
+
+function numberOrUndefined(i: unknown): number | undefined {
+  if (typeof i === "string") {
+    const c = parseInt(i);
+    return isNaN(c) ? undefined : c;
+  } else if (typeof i === "number") {
+    return i;
+  }
+  return undefined;
 }
 
 export async function getJobFiles(

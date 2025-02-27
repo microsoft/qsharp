@@ -50,7 +50,11 @@ export class AzureQuantumChatBackend implements IChatService {
     content?: string;
     toolCalls?: ToolCall[];
   }> {
-    const token = this.msaAuth ? await this.getMsaChatSession() : "XXXX";
+    const authHeader: Record<string, string> = this.msaAuth
+      ? {
+          Authorization: `Bearer ${await this.getMsaChatSession()}`,
+        }
+      : {};
 
     const payload: QuantumChatRequest = {
       conversationId: this.conversationId,
@@ -65,7 +69,7 @@ export class AzureQuantumChatBackend implements IChatService {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...authHeader,
       },
       body: JSON.stringify(payload),
     };

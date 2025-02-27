@@ -5,10 +5,7 @@ body {
   padding: 12px;
   height: 100%;
   /*  match the native vscode chat style */
-  font-family:
-    Segoe WPC,
-    Segoe UI,
-    sans-serif;
+  font-family: "Segoe WPC", "Segoe UI", "sans-serif";
   font-size: 13px;
   background-color: var(--vscode-chat-list-background);
 }
@@ -124,15 +121,9 @@ pre code {
 }
 
 .input-box {
-  /* border: 1px solid #ccc; */
-  /* border-radius: 0.375em; */
-  /* padding-left: 8px; */
-  /* padding-right: 8px; */
   display: flex;
   justify-content: flex-start;
   align-items: flex-end;
-  /* width: 80vw; */
-  /* max-width: 600px; */
 
   /* match native vscode chat UI */
   /* https://github.com/microsoft/vscode/blob/7fadaa1ddc1c03dcd9a58fab063dac74284eb63e/src/vs/workbench/contrib/chat/browser/media/chat.css#L522 */
