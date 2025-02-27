@@ -21,8 +21,8 @@ use crate::{
         CalibrationGrammarStmt, CalibrationStmt, ClassicalDeclarationStmt, ComplexType,
         ConstantDeclaration, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
         Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
-        GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident, Identifier,
-        IfStmt, IncludeStmt, IntType, List, LiteralKind, MeasureStmt, Pragma,
+        GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
+        Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, MeasureStmt, Pragma,
         QuantumGateDefinition, QuantumGateModifier, QubitDeclaration, RangeDefinition, ResetStmt,
         ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
         TypedParameter, UIntType, WhileLoop,
@@ -1164,6 +1164,12 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     let modifiers = list_from_iter(many(s, gate_modifier)?);
 
+    // If the next token is `gphase`, parse a gphase instead, which has optional operands.
+    if s.peek().kind == TokenKind::GPhase {
+        let gphase = parse_gphase(s, lo, modifiers)?;
+        return Ok(StmtKind::GPhase(gphase));
+    }
+
     // As explained in the docstring, we parse the gate using the expr parser.
     let gate_or_expr = expr::expr(s)?;
 
@@ -1190,6 +1196,10 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         }
     };
 
+    if qubits.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingGateCallOperands(s.span(lo))));
+    }
+
     Ok(StmtKind::GateCall(GateCall {
         span: s.span(lo),
         modifiers,
@@ -1198,6 +1208,33 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         qubits,
         duration,
     }))
+}
+
+fn parse_gphase(
+    s: &mut ParserContext,
+    lo: u32,
+    modifiers: List<QuantumGateModifier>,
+) -> Result<GPhase> {
+    token(s, TokenKind::GPhase)?;
+    let args = opt(s, |s| {
+        token(s, TokenKind::Open(Delim::Paren))?;
+        let exprs = expr::expr_list(s)?;
+        recovering_token(s, TokenKind::Close(Delim::Paren));
+        Ok(list_from_iter(exprs))
+    })?
+    .unwrap_or_default();
+
+    let duration = opt(s, designator)?;
+    let qubits = gate_operand_list(s)?;
+    recovering_semi(s);
+
+    Ok(GPhase {
+        span: s.span(lo),
+        modifiers,
+        args,
+        qubits,
+        duration,
+    })
 }
 
 /// Grammar:

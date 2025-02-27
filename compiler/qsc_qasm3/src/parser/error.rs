@@ -122,6 +122,9 @@ pub enum ErrorKind {
     #[error("missing switch statement case labels")]
     #[diagnostic(code("Qasm3.Parse.MissingSwitchCaseLabels"))]
     MissingSwitchCaseLabels(#[label] Span),
+    #[error("missing switch statement case labels")]
+    #[diagnostic(code("Qasm3.Parse.MissingGateCallOperands"))]
+    MissingGateCallOperands(#[label] Span),
     #[error("expected an item or closing brace, found {0}")]
     #[diagnostic(code("Qasm3.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
@@ -143,6 +146,7 @@ impl ErrorKind {
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
             Self::MissingSwitchCases(span) => Self::MissingSwitchCases(span + offset),
             Self::MissingSwitchCaseLabels(span) => Self::MissingSwitchCaseLabels(span + offset),
+            Self::MissingGateCallOperands(span) => Self::MissingGateCallOperands(span + offset),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
         }
     }
