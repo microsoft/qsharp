@@ -9,11 +9,26 @@ use expect_test::expect;
 fn gphase() {
     check(
         parse,
-        "gphase q0;",
+        "gphase(pi / 2);",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: GPhase [0-10]:
-                GateOperand IndexedIdent [7-9]: Ident [7-9] "q0"[]"#]],
+            Stmt [0-15]
+                StmtKind: GPhase [0-15]:
+                Expr [7-13]: BinOp (Div):
+                    Expr [7-9]: Ident [7-9] "pi"
+                    Expr [12-13]: Lit: Int(2)"#]],
+    );
+}
+
+#[test]
+fn gphase_qubit_ident() {
+    check(
+        parse,
+        "gphase(a) q0;",
+        &expect![[r#"
+            Stmt [0-13]
+                StmtKind: GPhase [0-13]:
+                Expr [7-8]: Ident [7-8] "a"
+                GateOperand IndexedIdent [10-12]: Ident [10-12] "q0"[]"#]],
     );
 }
 
@@ -21,13 +36,14 @@ fn gphase() {
 fn gphase_qubit_register() {
     check(
         parse,
-        "gphase q[2];",
+        "gphase(a) q[2];",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: GPhase [0-12]:
-                GateOperand IndexedIdent [7-11]: Ident [7-8] "q"[
+            Stmt [0-15]
+                StmtKind: GPhase [0-15]:
+                Expr [7-8]: Ident [7-8] "a"
+                GateOperand IndexedIdent [10-14]: Ident [10-11] "q"[
                 IndexElement:
-                    IndexSetItem Expr [9-10]: Lit: Int(2)]"#]],
+                    IndexSetItem Expr [12-13]: Lit: Int(2)]"#]],
     );
 }
 
@@ -35,25 +51,37 @@ fn gphase_qubit_register() {
 fn gphase_multiple_qubits() {
     check(
         parse,
-        "gphase q0, q[4];",
+        "gphase(a) q0, q[4];",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: GPhase [0-16]:
-                GateOperand IndexedIdent [7-9]: Ident [7-9] "q0"[]
-                GateOperand IndexedIdent [11-15]: Ident [11-12] "q"[
+            Stmt [0-19]
+                StmtKind: GPhase [0-19]:
+                Expr [7-8]: Ident [7-8] "a"
+                GateOperand IndexedIdent [10-12]: Ident [10-12] "q0"[]
+                GateOperand IndexedIdent [14-18]: Ident [14-15] "q"[
                 IndexElement:
-                    IndexSetItem Expr [13-14]: Lit: Int(4)]"#]],
+                    IndexSetItem Expr [16-17]: Lit: Int(4)]"#]],
     );
 }
 
 #[test]
-fn gphase_no_qubits() {
+fn gphase_no_arguments() {
     check(
         parse,
-        "inv @ gphase;",
+        "gphase;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: GPhase [0-13]:"#]],
+            Stmt [0-7]
+                StmtKind: GPhase [0-7]:
+
+            [
+                Error(
+                    GPhaseInvalidArguments(
+                        Span {
+                            lo: 6,
+                            hi: 6,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -61,14 +89,13 @@ fn gphase_no_qubits() {
 fn gphase_with_parameters() {
     check(
         parse,
-        "gphase(pi / 2) q0;",
+        "gphase(pi / 2);",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: GPhase [0-18]:
+            Stmt [0-15]
+                StmtKind: GPhase [0-15]:
                 Expr [7-13]: BinOp (Div):
                     Expr [7-9]: Ident [7-9] "pi"
-                    Expr [12-13]: Lit: Int(2)
-                GateOperand IndexedIdent [15-17]: Ident [15-17] "q0"[]"#]],
+                    Expr [12-13]: Lit: Int(2)"#]],
     );
 }
 
@@ -76,11 +103,11 @@ fn gphase_with_parameters() {
 fn gphase_inv_modifier() {
     check(
         parse,
-        "inv @ gphase q0;",
+        "inv @ gphase(a);",
         &expect![[r#"
             Stmt [0-16]
                 StmtKind: GPhase [0-16]:
-                GateOperand IndexedIdent [13-15]: Ident [13-15] "q0"[]"#]],
+                Expr [13-14]: Ident [13-14] "a""#]],
     );
 }
 
@@ -88,15 +115,13 @@ fn gphase_inv_modifier() {
 fn gphase_ctrl_inv_modifiers() {
     check(
         parse,
-        "ctrl(2) @ inv @ gphase(pi / 2) c1, c2, q0;",
+        "ctrl @ inv @ gphase(pi / 2) q0;",
         &expect![[r#"
-            Stmt [0-42]
-                StmtKind: GPhase [0-42]:
-                Expr [23-29]: BinOp (Div):
-                    Expr [23-25]: Ident [23-25] "pi"
-                    Expr [28-29]: Lit: Int(2)
-                GateOperand IndexedIdent [31-33]: Ident [31-33] "c1"[]
-                GateOperand IndexedIdent [35-37]: Ident [35-37] "c2"[]
-                GateOperand IndexedIdent [39-41]: Ident [39-41] "q0"[]"#]],
+            Stmt [0-31]
+                StmtKind: GPhase [0-31]:
+                Expr [20-26]: BinOp (Div):
+                    Expr [20-22]: Ident [20-22] "pi"
+                    Expr [25-26]: Lit: Int(2)
+                GateOperand IndexedIdent [28-30]: Ident [28-30] "q0"[]"#]],
     );
 }
