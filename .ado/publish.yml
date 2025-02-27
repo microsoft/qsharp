@@ -315,20 +315,34 @@ extends:
               targetType: 'inline'
               script: |
                 # Get all environment variables
-                $envVars = Get-ChildItem Env:
-
+                # $envVars = Get-ChildItem Env:
                 # Iterate through each environment variable and print its name and value
-                foreach ($envVar in $envVars) {
-                    Write-Host "$($envVar.Name) = $($envVar.Value)"
-                }
+                # foreach ($envVar in $envVars) {
+                #     Write-Host "$($envVar.Name) = $($envVar.Value)"
+                # }
                 # Search for vswhere.exe on the C:\ drive
-                $vswherePath = @(Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
-                foreach ($path in $vswherePath) {
-                    Write-Host "Found vswhere.exe at: $path"
+                # $vswherePath = @(Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+                # foreach ($path in $vswherePath) {
+                #     Write-Host "Found vswhere.exe at: $path"
+                # }
+                # Get the path stored in the AGENT_HOMEDIRECTORY environment variable
+                $agentHomeDirectory = $env:AGENT_HOMEDIRECTORY
+
+                if ($agentHomeDirectory) {
+                    # Search for vswhere.exe in the AGENT_HOMEDIRECTORY directory
+                    $vswherePath = Get-ChildItem -Path $agentHomeDirectory -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+
+                    if ($vswherePath) {
+                        Write-Host "Found vswhere.exe at: $vswherePath"
+                        & $vswherePath --wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
+                    } else {
+                        Write-Host "vswhere.exe not found in AGENT_HOMEDIRECTORY."
+                    }
+                } else {
+                    Write-Host "AGENT_HOMEDIRECTORY environment variable is not set."
                 }
                 # if ($vswherePath) {
                 #     Write-Host "Found vswhere.exe at: $vswherePath"
-
                 #     # Check each environment variable as a folder
                 #     foreach ($envVar in [System.Environment]::GetEnvironmentVariables().Keys) {
                 #         $envPath = [System.Environment]::GetEnvironmentVariable($envVar)
