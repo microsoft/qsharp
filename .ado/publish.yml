@@ -315,7 +315,7 @@ extends:
               targetType: 'inline'
               script: |
                 # Search for vswhere.exe on the C:\ drive
-                $vswherePath = Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+                $vswherePath = Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
 
                 if ($vswherePath) {
                     Write-Host "Found vswhere.exe at: $vswherePath"
