@@ -1,14 +1,9 @@
-import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorPQRSTermSigns;
-import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
-import JordanWigner.OptimizedBEOperator.SelectZ;
-import JordanWigner.StatePreparation.PrepareSparseMultiConfigurationalState;
-import JordanWigner.StatePreparation.PrepareUnitaryCoupledClusterState;
-import JordanWigner.Utils.JordanWignerInputState;
 import Std.Arrays.IndexRange;
+import Std.Arrays.Mapped;
+import Std.Arrays.Reversed;
 import Std.Convert.ComplexAsComplexPolar;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.CheckAllZero;
@@ -19,15 +14,26 @@ import Std.Math.Ceiling;
 import Std.Math.Complex;
 import Std.Math.ComplexPolar;
 import Std.Math.Lg;
-import Std.Arrays.Reversed;
 import Std.Math.Sqrt;
+import Std.StatePreparation.ApproximatelyPreparePureStateCP;
+
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorPQRSTermSigns;
+import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
+import JordanWigner.OptimizedBEOperator.SelectZ;
+import JordanWigner.StatePreparation.PrepareSparseMultiConfigurationalState;
+import JordanWigner.StatePreparation.PrepareUnitaryCoupledClusterState;
+import JordanWigner.Utils.JordanWignerInputState;
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.ComputeJordanWignerBitString;
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.ComputeJordanWignerPauliZString;
 
 @Config(Unrestricted)
 @Test()
 operation PrepareSparseMultiConfigurationalState0Test() : Unit {
     let nQubits = 6;
     let expectedResult = 39;
-    let excitations = [new JordanWignerInputState { Amplitude = (0.1, 0.0), FermionIndices = [0, 1, 2, 5] }];
+    let excitations = [
+        NewJordanWignerInputState(0.1, 0.0, [0, 1, 2, 5])
+    ];
 
     use qubits = Qubit[nQubits];
     PrepareSparseMultiConfigurationalState(qs => I(qs[0]), excitations, qubits);
@@ -278,11 +284,7 @@ function JordanWignerClusterOperatorPQRSTermSignsTest() : Unit {
 
 @Config(Unrestricted)
 function DoublesToComplexPolar(input : Double[]) : ComplexPolar[] {
-    mutable arr = [new ComplexPolar { Magnitude = 0.0, Argument = 0.0 }, size = Length(input)];
-    for idx in 0..Length(input)-1 {
-        arr w/= idx <- ComplexAsComplexPolar(new Complex { Real = input[idx], Imag = 0. });
-    }
-    return arr;
+    Std.Arrays.Mapped(re -> ComplexAsComplexPolar(new Complex { Real = re, Imag = 0.0 }), input)
 }
 
 @Config(Unrestricted)
@@ -302,12 +304,12 @@ operation JordanWignerUCCTermTestHelper(nQubits : Int, excitations : Int[], term
 @Test()
 operation JordanWignerUCCSTermTest() : Unit {
     // test using Exp(2.0 (a^\dag_1 a_3 - h.c.))
-    let term0 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [1, 3] }];
+    let term0 = [NewJordanWignerInputState(2.0, 0.0, [1, 3])];
     let state0 = [0., 0.,-0.416147, 0., 0., 0., 0., 0.,-0.909297, 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(4, [1], term0, state0);
 
     // test using Exp(2.0 (a^\dag_3 a_1 - h.c.))
-    let term1 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [3, 1] }];
+    let term1 = [NewJordanWignerInputState(2.0, 0.0, [3, 1])];
     let state1 = [0., 0.,-0.416147, 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(4, [1], term1, state1);
 }
@@ -316,22 +318,22 @@ operation JordanWignerUCCSTermTest() : Unit {
 @Test()
 operation JordanWignerUCCDTermPQRSTest() : Unit {
     // test using Exp(2.0 (a^\dag_0 a^\dag_1 a_3 a_4 - h.c.))
-    let term0 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [0, 1, 2, 4] }];
+    let term0 = [NewJordanWignerInputState(2.0, 0.0, [0, 1, 2, 4])];
     let state0 = [0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1], term0, state0);
 
     // test using Exp(2.0 (a^\dag_0 a^\dag_1 a_3 a_4 - h.c.))
-    let term1 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [0, 1, 2, 4] }];
+    let term1 = [NewJordanWignerInputState(2.0, 0.0, [0, 1, 2, 4])];
     let state1 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term1, state1);
 
     // test using Exp(2.0 (a^\dag_1 a^\dag_0 a_2 a_4 - h.c.))
-    let term2 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [1, 0, 2, 4] }];
+    let term2 = [NewJordanWignerInputState(2.0, 0.0, [1, 0, 2, 4])];
     let state2 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term2, state2);
 
     // test using Exp(2.0 (a^\dag_1 a^\dag_0 a_2 a_4 - h.c.))
-    let term3 = [new JordanWignerInputState { Amplitude = (-2.0, 0.0), FermionIndices = [4, 2, 1, 0] }];
+    let term3 = [NewJordanWignerInputState(-2.0, 0.0, [4, 2, 1, 0])];
     let state3 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 1, 3], term2, state2);
 }
@@ -339,11 +341,11 @@ operation JordanWignerUCCDTermPQRSTest() : Unit {
 @Config(Unrestricted)
 // @Test()
 operation JordanWignerUCCDTermPRQSTest() : Unit {
-    let term0 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [2, 0, 4, 1] }];
+    let term0 = [NewJordanWignerInputState(2.0, 0.0, [2, 0, 4, 1])];
     let state0 = [0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 2], term0, state0);
 
-    let term1 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [2, 0, 4, 1] }];
+    let term1 = [NewJordanWignerInputState(2.0, 0.0, [2, 0, 4, 1])];
     let state1 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,-0.909297, 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 2, 3], term1, state1);
 }
@@ -351,9 +353,39 @@ operation JordanWignerUCCDTermPRQSTest() : Unit {
 @Config(Unrestricted)
 @Test()
 operation JordanWignerUCCDTermPRSQTest() : Unit {
-    let term3 = [new JordanWignerInputState { Amplitude = (2.0, 0.0), FermionIndices = [0, 4, 2, 3] }];
+    let term3 = [NewJordanWignerInputState(2.0, 0.0, [0, 4, 2, 3])];
     let state3 = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.909297, 0., 0., 0., 0.,-0.416147, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
     JordanWignerUCCTermTestHelper(5, [0, 4], term3, state3);
+}
+
+@Config(Unrestricted)
+@Test()
+function ComputeJordanWignerBitString_0Test() : Unit {
+    let nFermions = 5;
+    let fermionIndices = [0, 3];
+    let expectedBitString = [false, true, true, false, false];
+    let bitString = ComputeJordanWignerBitString(nFermions, fermionIndices);
+    Fact(bitString == expectedBitString, "Bit strings not equal");
+}
+
+@Config(Unrestricted)
+@Test()
+function ComputeJordanWignerBitString_1Test() : Unit {
+    let nFermions = 7;
+    let fermionIndices = [0, 4, 2, 6];
+    let expectedBitString = [false, true, false, false, false, true, false];
+    let bitString = ComputeJordanWignerBitString(nFermions, fermionIndices);
+    Fact(bitString == expectedBitString, "Bit strings not equal");
+}
+
+@Config(Unrestricted)
+@Test()
+function ComputeJordanWignerPauliZString_0Test() : Unit {
+    let nFermions = 7;
+    let fermionIndices = [0, 4, 2, 6];
+    let expectedBitString = [PauliI, PauliZ, PauliI, PauliI, PauliI, PauliZ, PauliI];
+    let bitString = ComputeJordanWignerPauliZString(nFermions, fermionIndices);
+    Fact(bitString == expectedBitString, "Bit strings not equal");
 }
 
 
@@ -363,5 +395,12 @@ function NearEqualityFactD(actual : Double, expected : Double) : Unit {
     let delta = actual - expected;
     if (delta > tolerance or delta < -tolerance) {
         fail $"Values were not equal within tolerance\nActual: {actual}, Expected: {expected}, Tolerance: {tolerance}";
+    }
+}
+
+function NewJordanWignerInputState(re : Double, im : Double, indices : Int[]) : JordanWignerInputState {
+    new JordanWignerInputState {
+        Amplitude = new Complex { Real = re, Imag = im },
+        FermionIndices = indices
     }
 }

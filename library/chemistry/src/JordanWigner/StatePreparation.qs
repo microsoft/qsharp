@@ -6,15 +6,16 @@ export
     PrepareSparseMultiConfigurationalState,
     PrepareUnitaryCoupledClusterState;
 
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorEvolutionSet;
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorGeneratorSystem;
-import JordanWigner.Utils.JordanWignerInputState;
-import JordanWigner.Utils.TrotterSimulationAlgorithm;
 import Std.Arrays.*;
 import Std.Convert.ComplexAsComplexPolar;
 import Std.Convert.IntAsDouble;
 import Std.StatePreparation.PreparePureStateD;
 import Std.Math.*;
+
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorEvolutionSet;
+import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorGeneratorSystem;
+import JordanWigner.Utils.JordanWignerInputState;
+import JordanWigner.Utils.TrotterSimulationAlgorithm;
 import Utils.EvolutionGenerator;
 
 operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits : Qubit[]) : Unit {
@@ -31,8 +32,7 @@ operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits 
         if IsEmpty(terms) {
             // Do nothing, as there are no terms to prepare.
         } elif Length(terms) == 1 {
-            let (_, qubitIndices) = terms[0]!;
-            PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices, qubits);
+            PrepareSingleConfigurationalStateSingleSiteOccupation(terms[0].FermionIndices, qubits);
         } else {
             PrepareSparseMultiConfigurationalState(qs => I(qs[0]), terms, qubits);
         }
@@ -87,18 +87,20 @@ operation PrepareSparseMultiConfigurationalState(
 ) : Unit {
     let nExcitations = Length(excitations);
 
-    mutable coefficientsSqrtAbs = [0.0, size = nExcitations];
-    mutable coefficientsNewComplexPolar = Repeated(new ComplexPolar { Magnitude = 0.0, Argument = 0.0 }, nExcitations);
-    mutable applyFlips = [[], size = nExcitations];
+    mutable coefficientsSqrtAbs = [];
+    mutable coefficientsNewComplexPolar = [];
+    mutable applyFlips = [];
 
     for idx in 0..nExcitations - 1 {
-        let ((r, i), excitation) = excitations[idx]!;
-        coefficientsSqrtAbs w/= idx <- Sqrt(AbsComplexPolar(ComplexAsComplexPolar(new Complex { Real = r, Imag = i })));
-        coefficientsNewComplexPolar w/= idx <- new ComplexPolar {
-            Magnitude = coefficientsSqrtAbs[idx],
-            Argument = ArgComplexPolar(ComplexAsComplexPolar(new Complex { Real = r, Imag = i }))
-        };
-        applyFlips w/= idx <- excitation;
+        let amplitudePolar = ComplexAsComplexPolar(excitations[idx].Amplitude);
+        let sqrAbsAmplitude = Sqrt(AbsComplexPolar(amplitudePolar));
+
+        coefficientsSqrtAbs += [sqrAbsAmplitude];
+        coefficientsNewComplexPolar += [new ComplexPolar {
+            Magnitude = sqrAbsAmplitude,
+            Argument = ArgComplexPolar(amplitudePolar)
+        }];
+        applyFlips += [excitations[idx].FermionIndices];
     }
 
     let nBitsIndices = Ceiling(Lg(IntAsDouble(nExcitations)));

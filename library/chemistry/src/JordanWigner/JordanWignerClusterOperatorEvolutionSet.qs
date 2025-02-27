@@ -5,10 +5,11 @@ export
     JordanWignerClusterOperatorEvolutionSet,
     JordanWignerClusterOperatorGeneratorSystem;
 
-import JordanWigner.Utils.JordanWignerInputState;
 import Std.Arrays.IndexRange;
 import Std.Math.Max;
 import Std.Math.Min;
+
+import JordanWigner.Utils.JordanWignerInputState;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 
@@ -28,19 +29,20 @@ import Utils.GeneratorSystem;
 ///
 /// # Example
 /// ```qsharp
-/// let bitString = ComputeJordanWignerBitString(6, [0,1,2,6]) ;
-/// // bitString is [false, false, false ,true, true, true, false].
+/// let bitString = ComputeJordanWignerBitString(5, [0, 3]) ;
+/// // bitString is [false, true, true, false, false].
 /// ```
 function ComputeJordanWignerBitString(nFermions : Int, idxFermions : Int[]) : Bool[] {
     if Length(idxFermions) % 2 != 0 {
         fail $"ComputeJordanWignerString failed. `idxFermions` must contain an even number of terms.";
     }
 
-    mutable zString = [false, size = nFermions];
+    mutable zString = Repeated(false, nFermions);
     for fermionIdx in idxFermions {
         if fermionIdx >= nFermions {
             fail $"ComputeJordanWignerString failed. fermionIdx {fermionIdx} out of range.";
         }
+        // NOTE: This could be optimized
         for idx in 0..fermionIdx {
             zString w/= idx <- not zString[idx];
         }
@@ -67,7 +69,12 @@ function ComputeJordanWignerPauliZString(nFermions : Int, idxFermions : Int[]) :
 
 // Identical to `ComputeJordanWignerPauliZString`, except that some
 // specified elements are substituted.
-function ComputeJordanWignerPauliString(nFermions : Int, idxFermions : Int[], pauliReplacements : Pauli[]) : Pauli[] {
+function ComputeJordanWignerPauliString(
+    nFermions : Int,
+    idxFermions : Int[],
+    pauliReplacements : Pauli[]
+) : Pauli[] {
+
     mutable pauliString = ComputeJordanWignerPauliZString(nFermions, idxFermions);
 
     for idx in IndexRange(idxFermions) {
@@ -89,8 +96,14 @@ function ComputeJordanWignerPauliString(nFermions : Int, idxFermions : Int[], pa
 /// Duration of time-evolution.
 /// ## qubits
 /// Qubits of Hamiltonian.
-operation ApplyJordanWignerClusterOperatorPQTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+operation ApplyJordanWignerClusterOperatorPQTerm(
+    term : GeneratorIndex,
+    stepSize : Double,
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
+
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let p = idxFermions[0];
     let q = idxFermions[1];
     if p == q {
@@ -117,8 +130,14 @@ operation ApplyJordanWignerClusterOperatorPQTerm(term : GeneratorIndex, stepSize
 /// Duration of time-evolution.
 /// ## qubits
 /// Qubits of Hamiltonian.
-operation ApplyJordanWignerClusterOperatorPQRSTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, coeff), idxFermions) = term!;
+operation ApplyJordanWignerClusterOperatorPQRSTerm(
+    term : GeneratorIndex,
+    stepSize : Double,
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
+
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let p = idxFermions[0];
     let q = idxFermions[1];
     let r = idxFermions[2];
@@ -146,8 +165,8 @@ function JordanWignerClusterOperatorPQRSTermSigns(indices : Int[]) : (Int[], Dou
     let q = indices[1];
     let r = indices[2];
     let s = indices[3];
-    mutable sorted = [0, size = 4];
-    mutable signs = [0.0, size = 8];
+    mutable sorted = [0, 0, 0, 0];
+    mutable signs = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
     mutable sign = 1.0;
 
     if (p > q) {
@@ -199,12 +218,18 @@ function JordanWignerClusterOperatorPQRSTermSigns(indices : Int[]) : (Int[], Dou
 ///
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
-function JordanWignerClusterOperatorGeneratorSystem(data : JordanWignerInputState[]) : GeneratorSystem {
-    new GeneratorSystem { NumEntries = Length(data), EntryAt = JordanWignerStateAsGeneratorIndex(data, _) }
+function JordanWignerClusterOperatorGeneratorSystem(
+    data : JordanWignerInputState[]
+) : GeneratorSystem {
+    new GeneratorSystem {
+        NumEntries = Length(data),
+        EntryAt = JordanWignerStateAsGeneratorIndex(data, _)
+    }
 }
 
 function JordanWignerStateAsGeneratorIndex(data : JordanWignerInputState[], idx : Int) : GeneratorIndex {
-    let ((real, imaginary), idxFermions) = data[idx]!;
+    let real = data[idx].Amplitude.Real;
+    let idxFermions = data[idx].FermionIndices;
 
     if Length(idxFermions) == 2 {
         // PQ term
@@ -229,8 +254,13 @@ function JordanWignerStateAsGeneratorIndex(data : JordanWignerInputState[], idx 
 /// Dummy variable to match signature of simulation algorithms.
 /// ## qubits
 /// Register acted upon by time-evolution operator.
-operation JordanWignerClusterOperatorImpl(generatorIndex : GeneratorIndex, stepSize : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxTermType, idxDoubles), idxFermions) = generatorIndex!;
+operation JordanWignerClusterOperatorImpl(
+    generatorIndex : GeneratorIndex,
+    stepSize : Double,
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
+
+    let (idxTermType, _) = generatorIndex.Term;
     let termType = idxTermType[0];
 
     if termType == 0 {
