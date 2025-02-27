@@ -334,7 +334,7 @@ extends:
 
                     if ($vswherePath) {
                         Write-Host "Found vswhere.exe at: $vswherePath"
-                        $vs_installer = & vswherePath -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find vs_installer.exe
+                        $vs_installer = & $vswherePath -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find vs_installer.exe
                         if ($vs_installer) {
                             & $vs_installer modify --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --passive --norestart
                         } else {
