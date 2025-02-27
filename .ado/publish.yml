@@ -314,8 +314,27 @@ extends:
             inputs:
               targetType: 'inline'
               script: |
-                $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-                & $vswhere --wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
+                # Search for vswhere.exe on the C:\ drive
+                $vswherePath = Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+
+                if ($vswherePath) {
+                    Write-Host "Found vswhere.exe at: $vswherePath"
+
+                    # Check each environment variable as a folder
+                    foreach ($envVar in [System.Environment]::GetEnvironmentVariables().Keys) {
+                        $envPath = [System.Environment]::GetEnvironmentVariable($envVar)
+                        if ($envPath -and (Test-Path $envPath)) {
+                            $fullPath = Join-Path -Path $envPath -ChildPath "vswhere.exe"
+                            if (Test-Path $fullPath) {
+                                Write-Host "vswhere.exe found in environment variable path: $envVar"
+                            }
+                        }
+                    }
+                } else {
+                    Write-Host "vswhere.exe not found on the C:\ drive."
+                }
+                #$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+                #& $vswhere --wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
             displayName: Install C++ Build Tools on Windows Arm64
             condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
