@@ -19,7 +19,7 @@ use crate::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
         CalibrationGrammarStmt, CalibrationStmt, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclaration, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
+        ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
         Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
         GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
         Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, MeasureStmt, Pragma,
@@ -28,10 +28,7 @@ use crate::{
         TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
-    lex::{
-        cooked::{Literal, Type},
-        Delim, TokenKind,
-    },
+    lex::{cooked::Type, Delim, TokenKind},
 };
 
 use super::{prim::token, ParserContext};
@@ -97,7 +94,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     } else if let Some(stmt) = opt(s, parse_barrier)? {
         Box::new(StmtKind::Barrier(stmt))
     } else if let Some(stmt) = opt(s, parse_delay)? {
-        Box::new(StmtKind::DelayStmt(stmt))
+        Box::new(StmtKind::Delay(stmt))
     } else if let Some(stmt) = opt(s, parse_reset)? {
         Box::new(StmtKind::Reset(stmt))
     } else if let Some(stmt) = opt(s, parse_measure_stmt)? {
@@ -539,7 +536,7 @@ fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
         token(s, TokenKind::Eq)?;
         let init_expr = expr::expr(s)?;
         recovering_semi(s);
-        let decl = ConstantDeclaration {
+        let decl = ConstantDeclStmt {
             span: s.span(lo),
             r#type: ty,
             identifier,
@@ -1093,24 +1090,29 @@ fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     })
 }
 
-fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
-    let stmt = *parse(s)?;
-    match &*stmt.kind {
-        StmtKind::Barrier(_)
-        | StmtKind::Break(_)
-        | StmtKind::DelayStmt(_)
-        | StmtKind::Reset(_)
-        | StmtKind::GateCall(_)
-        | StmtKind::GPhase(_) => Ok(stmt),
-        _ => {
-            s.push_error(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span)));
-            Ok(Stmt {
-                span: stmt.span,
-                annotations: stmt.annotations,
-                kind: Box::new(StmtKind::Err),
-            })
-        }
-    }
+/// Grammar: `BOX designator? scope`.
+fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Box))?;
+    let duration = opt(s, designator)?;
+    let body = parse_box_body(s)?;
+
+    Ok(BoxStmt {
+        span: s.span(lo),
+        duration,
+        body,
+    })
+}
+
+fn parse_box_body(s: &mut ParserContext) -> Result<List<Stmt>> {
+    token(s, TokenKind::Open(Delim::Brace))?;
+    let stmts = barrier(
+        s,
+        &[TokenKind::Close(Delim::Brace)],
+        parse_many_boxable_stmt,
+    )?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
+    Ok(stmts)
 }
 
 fn parse_many_boxable_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
@@ -1130,15 +1132,28 @@ fn parse_many_boxable_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
     Ok(list_from_iter(stmts?))
 }
 
-fn parse_box_body(s: &mut ParserContext) -> Result<List<Stmt>> {
-    token(s, TokenKind::Open(Delim::Brace))?;
-    let stmts = barrier(
-        s,
-        &[TokenKind::Close(Delim::Brace)],
-        parse_many_boxable_stmt,
-    )?;
-    recovering_token(s, TokenKind::Close(Delim::Brace));
-    Ok(stmts)
+/// These "boxable" stmts were taken from the reference parser at
+/// <https://github.com/openqasm/openqasm/blob/main/source/openqasm/openqasm3/ast.py>.
+/// Search for the definition of `Box` there, and then for all the classes
+/// inhereting from `QuantumStatement`.
+fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
+    let stmt = *parse(s)?;
+    match &*stmt.kind {
+        StmtKind::Barrier(_)
+        | StmtKind::Delay(_)
+        | StmtKind::Reset(_)
+        | StmtKind::GateCall(_)
+        | StmtKind::GPhase(_)
+        | StmtKind::Box(_) => Ok(stmt),
+        _ => {
+            s.push_error(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span)));
+            Ok(Stmt {
+                span: stmt.span,
+                annotations: stmt.annotations,
+                kind: Box::new(StmtKind::Err),
+            })
+        }
+    }
 }
 
 /// In QASM3, it is hard to disambiguate between a quantum-gate-call missing modifiers
@@ -1406,20 +1421,6 @@ fn parse_barrier(s: &mut ParserContext) -> Result<BarrierStmt> {
     Ok(BarrierStmt {
         span: s.span(lo),
         qubits,
-    })
-}
-
-/// Grammar: `BOX designator? scope`.
-fn parse_box(s: &mut ParserContext) -> Result<BoxStmt> {
-    let lo = s.peek().span.lo;
-    token(s, TokenKind::Keyword(Keyword::Box))?;
-    let duration = opt(s, designator)?;
-    let body = parse_box_body(s)?;
-
-    Ok(BoxStmt {
-        span: s.span(lo),
-        duration,
-        body,
     })
 }
 
