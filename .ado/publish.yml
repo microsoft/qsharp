@@ -334,7 +334,7 @@ extends:
 
                     if ($vswherePath) {
                         Write-Host "Found vswhere.exe at: $vswherePath"
-                        & $vswherePath --wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
+                        & $vswherePath --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows11SDK.22621 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.VC.CMake.Project --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
                     } else {
                         Write-Host "vswhere.exe not found in AGENT_HOMEDIRECTORY."
                     }
