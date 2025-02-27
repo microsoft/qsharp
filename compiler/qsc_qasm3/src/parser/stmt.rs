@@ -200,20 +200,20 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
     token(s, TokenKind::Keyword(Keyword::Include))?;
     let next = s.peek();
 
-    let v = expr::lit(s)?;
-    if let Some(v) = v {
-        if let LiteralKind::String(v) = v.kind {
-            let r = IncludeStmt {
+    let lit = expr::lit(s)?;
+    recovering_semi(s);
+
+    if let Some(lit) = lit {
+        if let LiteralKind::String(v) = lit.kind {
+            return Ok(StmtKind::Include(IncludeStmt {
                 span: s.span(lo),
                 filename: v.to_string(),
-            };
-            recovering_semi(s);
-            return Ok(StmtKind::Include(r));
+            }));
         }
     };
     Err(Error::new(ErrorKind::Rule(
-        "include statement",
-        TokenKind::Literal(Literal::String),
+        "string literal",
+        next.kind,
         next.span,
     )))
 }
@@ -1296,22 +1296,23 @@ fn gate_operand_list(s: &mut ParserContext) -> Result<List<GateOperand>> {
 fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGrammarStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::DefCalGrammar))?;
-    let next = s.peek();
-    let v = expr::lit(s)?;
 
-    if let Some(v) = v {
-        recovering_semi(s);
-        if let LiteralKind::String(v) = v.kind {
+    let next = s.peek();
+    let lit = expr::lit(s)?;
+
+    recovering_semi(s);
+    if let Some(lit) = lit {
+        if let LiteralKind::String(name) = lit.kind {
             return Ok(CalibrationGrammarStmt {
                 span: s.span(lo),
-                name: v.to_string(),
+                name: name.to_string(),
             });
         }
     };
 
     Err(Error::new(ErrorKind::Rule(
-        "calibration grammar statement",
-        TokenKind::Literal(Literal::String),
+        "string literal",
+        next.kind,
         next.span,
     )))
 }
