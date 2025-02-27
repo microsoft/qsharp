@@ -325,6 +325,12 @@ extends:
                 # foreach ($path in $vswherePath) {
                 #     Write-Host "Found vswhere.exe at: $path"
                 # }
+                # Search for vs_installer.exe on the C:\ drive
+                Write-Host "Searching for vs_installer.exe on the C:\ drive..."
+                $vs_installer = @(Get-ChildItem -Path C:\ -Filter "vs_installer.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+                foreach ($path in $vs_installer) {
+                    Write-Host "Found vs_installer.exe at: $path"
+                }
                 # Get the path stored in the AGENT_HOMEDIRECTORY environment variable
                 $agentHomeDirectory = $env:AGENT_HOMEDIRECTORY
 
