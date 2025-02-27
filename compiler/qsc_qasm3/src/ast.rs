@@ -413,7 +413,7 @@ pub enum StmtKind {
     For(ForStmt),
     If(IfStmt),
     GateCall(GateCall),
-    GPhase(QuantumPhase),
+    GPhase(GPhase),
     Include(IncludeStmt),
     IODeclaration(IODeclaration),
     Measure(MeasureStmt),
@@ -1195,19 +1195,26 @@ impl Display for GateCall {
 }
 
 #[derive(Clone, Debug)]
-pub struct QuantumPhase {
+pub struct GPhase {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
-    pub arg: Expr,
-    pub qubits: List<Box<Identifier>>,
+    pub args: List<Expr>,
+    pub qubits: List<GateOperand>,
+    pub duration: Option<Expr>,
 }
 
-impl Display for QuantumPhase {
+impl Display for GPhase {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "QuantumPhase {}: {}", self.span, self.arg)?;
+        write!(indent, "GPhase {}:", self.span)?;
+        for arg in &self.args {
+            write!(indent, "\n{arg}")?;
+        }
         for qubit in &self.qubits {
             write!(indent, "\n{qubit}")?;
+        }
+        if let Some(duration) = &self.duration {
+            write!(indent, "\n{duration}")?;
         }
         Ok(())
     }
