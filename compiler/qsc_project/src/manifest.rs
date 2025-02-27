@@ -9,7 +9,7 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
-pub use qsc_linter::LintConfig;
+pub use qsc_linter::LintOrGroupConfig;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ pub struct Manifest {
     #[serde(default)]
     pub language_features: Vec<String>,
     #[serde(default)]
-    pub lints: Vec<LintConfig>,
+    pub lints: Vec<LintOrGroupConfig>,
     #[serde(default)]
     pub dependencies: FxHashMap<String, PackageRef>,
     #[serde(default)]
