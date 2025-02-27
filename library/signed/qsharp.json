@@ -6,7 +6,7 @@
       "github": {
         "owner": "Microsoft",
         "repo": "qsharp",
-        "ref": "v1.13",
+        "ref": "v1.14.0",
         "path": "library/qtest"
       }
     }
