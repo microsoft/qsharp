@@ -53,7 +53,18 @@ fn gate_no_qubits() {
         "inv @ H;",
         &expect![[r#"
             Stmt [0-8]
-                StmtKind: GateCall [0-8]: Ident [6-7] "H""#]],
+                StmtKind: GateCall [0-8]: Ident [6-7] "H"
+
+            [
+                Error(
+                    MissingGateCallOperands(
+                        Span {
+                            lo: 0,
+                            hi: 8,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
