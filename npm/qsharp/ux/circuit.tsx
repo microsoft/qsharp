@@ -75,12 +75,16 @@ function ZoomableCircuit(props: {
         props.isEditable,
         props.editCallback,
       );
+
+      if (!props.isEditable) {
+        const initialZoom = calculateZoomToFit(container, svg as SVGElement);
+        // Set the initial zoom level
+        setZoomLevel(initialZoom);
+        // Resize the SVG to fit
+        updateWidth();
+      }
+
       // Calculate the initial zoom level based on the container width
-      const initialZoom = calculateZoomToFit(container, svg as SVGElement);
-      // Set the initial zoom level
-      setZoomLevel(initialZoom);
-      // Resize the SVG to fit
-      updateWidth();
       // Disable "rendering" text
       setRendering(false);
     } else if (!props.isEditable) {
