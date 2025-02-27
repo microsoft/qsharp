@@ -41,16 +41,25 @@ fn measure_hardware_qubit() {
 }
 
 #[test]
-fn measure_arrow() {
+fn measure_arrow_into_ident() {
     check(
         parse,
-        "measure q[2] -> a[4];",
+        "measure q -> a;",
         &expect![[r#"
-        Stmt [0-21]
-            StmtKind: MeasureStmt [0-21]: MeasureExpr [0-7]: GateOperand IndexedIdent [8-12]: Ident [8-9] "q"[
-            IndexElement:
-                IndexSetItem Expr [10-11]: Lit: Int(2)], IndexedIdent [16-20]: Ident [16-17] "a"[
-            IndexElement:
-                IndexSetItem Expr [18-19]: Lit: Int(4)]"#]],
+            Stmt [0-15]
+                StmtKind: MeasureStmt [0-15]: MeasureExpr [0-7]: GateOperand IndexedIdent [8-9]: Ident [8-9] "q"[], IndexedIdent [13-14]: Ident [13-14] "a"[]"#]],
+    );
+}
+
+#[test]
+fn measure_arrow_into_indented_ident() {
+    check(
+        parse,
+        "measure q -> a[1];",
+        &expect![[r#"
+            Stmt [0-18]
+                StmtKind: MeasureStmt [0-18]: MeasureExpr [0-7]: GateOperand IndexedIdent [8-9]: Ident [8-9] "q"[], IndexedIdent [13-17]: Ident [13-14] "a"[
+                IndexElement:
+                    IndexSetItem Expr [15-16]: Lit: Int(1)]"#]],
     );
 }
