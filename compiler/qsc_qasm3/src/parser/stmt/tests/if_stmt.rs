@@ -17,10 +17,9 @@ fn simple_if_stmt() {
     ",
         &expect![[r#"
             Stmt [5-67]
-                StmtKind: IfStmt [5-67]: Expr [8-16]: Paren:
-                    Expr [9-15]: BinOp (Eq):
-                        Expr [9-10]: Ident [9-10] "x"
-                        Expr [14-15]: Ident [14-15] "y"
+                StmtKind: IfStmt [5-67]: Expr [9-15]: BinOp (Eq):
+                    Expr [9-10]: Ident [9-10] "x"
+                    Expr [14-15]: Ident [14-15] "y"
                 Stmt [27-33]
                     StmtKind: ExprStmt [27-33]: Expr [27-32]: Assign:
                         Expr [27-28]: Ident [27-28] "a"
@@ -44,10 +43,9 @@ fn if_stmt_missing_else() {
     ",
         &expect![[r#"
             Stmt [5-39]
-                StmtKind: IfStmt [5-39]: Expr [8-16]: Paren:
-                    Expr [9-15]: BinOp (Eq):
-                        Expr [9-10]: Ident [9-10] "x"
-                        Expr [14-15]: Ident [14-15] "y"
+                StmtKind: IfStmt [5-39]: Expr [9-15]: BinOp (Eq):
+                    Expr [9-10]: Ident [9-10] "x"
+                    Expr [14-15]: Ident [14-15] "y"
                 Stmt [27-33]
                     StmtKind: ExprStmt [27-33]: Expr [27-32]: Assign:
                         Expr [27-28]: Ident [27-28] "a"
@@ -76,15 +74,13 @@ fn nested_if_stmts() {
     ",
         &expect![[r#"
             Stmt [5-215]
-                StmtKind: IfStmt [5-215]: Expr [8-16]: Paren:
-                    Expr [9-15]: BinOp (Eq):
-                        Expr [9-10]: Ident [9-10] "x"
-                        Expr [14-15]: Ident [14-15] "y"
+                StmtKind: IfStmt [5-215]: Expr [9-15]: BinOp (Eq):
+                    Expr [9-10]: Ident [9-10] "x"
+                    Expr [14-15]: Ident [14-15] "y"
                 Stmt [27-107]
-                    StmtKind: IfStmt [27-107]: Expr [30-40]: Paren:
-                        Expr [31-39]: BinOp (Eq):
-                            Expr [31-33]: Ident [31-33] "x1"
-                            Expr [37-39]: Ident [37-39] "y1"
+                    StmtKind: IfStmt [27-107]: Expr [31-39]: BinOp (Eq):
+                        Expr [31-33]: Ident [31-33] "x1"
+                        Expr [37-39]: Ident [37-39] "y1"
                     Stmt [55-61]
                         StmtKind: ExprStmt [55-61]: Expr [55-60]: Assign:
                             Expr [55-56]: Ident [55-56] "a"
@@ -96,10 +92,9 @@ fn nested_if_stmts() {
                             Expr [95-96]: Lit: Int(1)
                 Else:
                 Stmt [129-209]
-                    StmtKind: IfStmt [129-209]: Expr [132-142]: Paren:
-                        Expr [133-141]: BinOp (Eq):
-                            Expr [133-135]: Ident [133-135] "x2"
-                            Expr [139-141]: Ident [139-141] "y2"
+                    StmtKind: IfStmt [129-209]: Expr [133-141]: BinOp (Eq):
+                        Expr [133-135]: Ident [133-135] "x2"
+                        Expr [139-141]: Ident [139-141] "y2"
                     Stmt [157-163]
                         StmtKind: ExprStmt [157-163]: Expr [157-162]: Assign:
                             Expr [157-158]: Ident [157-158] "a"
