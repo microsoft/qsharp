@@ -47,7 +47,7 @@ fn gate_multiple_qubits() {
 }
 
 #[test]
-fn gate_no_qubits() {
+fn gate_with_no_qubits() {
     check(
         parse,
         "inv @ H;",
@@ -113,44 +113,50 @@ fn gate_call_ctrl_inv_modifiers() {
 }
 
 #[test]
-fn function_call_plus_ident() {
+fn binary_expr_qubit() {
     check(
         parse,
         "Name(2, 3) + a q;",
         &expect![[r#"
-        Stmt [0-15]
-            StmtKind: ExprStmt [0-15]: Expr [0-14]: BinOp (Add):
-                Expr [0-10]: FunctionCall [0-10]: Ident [0-4] "Name"
-                    Expr [5-6]: Lit: Int(2)
-                    Expr [8-9]: Lit: Int(3)
-                Expr [13-14]: Ident [13-14] "a""#]],
+            Error(
+                ExpectedItem(
+                    Identifier,
+                    Span {
+                        lo: 0,
+                        hi: 14,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
 #[test]
-fn function_call() {
+fn parametrized_gate_call() {
     check(
         parse,
         "Name(2, 3) q;",
         &expect![[r#"
-        Stmt [0-11]
-            StmtKind: ExprStmt [0-11]: Expr [0-10]: FunctionCall [0-10]: Ident [0-4] "Name"
+            Stmt [0-13]
+                StmtKind: GateCall [0-13]: Ident [0-4] "Name"
                 Expr [5-6]: Lit: Int(2)
-                Expr [8-9]: Lit: Int(3)"#]],
+                Expr [8-9]: Lit: Int(3)
+                GateOperand IndexedIdent [11-12]: Ident [11-12] "q"[]"#]],
     );
 }
 
 #[test]
-fn indexed_function_call() {
+fn parametrized_gate_call_with_designator() {
     check(
         parse,
         "Name(2, 3)[1] q;",
         &expect![[r#"
-        Stmt [0-14]
-            StmtKind: ExprStmt [0-14]: Expr [0-13]: IndexExpr [10-13]: Expr [0-10]: FunctionCall [0-10]: Ident [0-4] "Name"
+            Stmt [0-16]
+                StmtKind: GateCall [0-16]: Ident [0-4] "Name"
                 Expr [5-6]: Lit: Int(2)
-                Expr [8-9]: Lit: Int(3), IndexElement:
-                IndexSetItem Expr [11-12]: Lit: Int(1)"#]],
+                Expr [8-9]: Lit: Int(3)
+                GateOperand IndexedIdent [14-15]: Ident [14-15] "q"[]
+                Expr [11-12]: Lit: Int(1)"#]],
     );
 }
 
@@ -160,12 +166,15 @@ fn multi_indexed_gate_call() {
         parse,
         "Name(2, 3)[1, 0] q;",
         &expect![[r#"
-        Stmt [0-17]
-            StmtKind: ExprStmt [0-17]: Expr [0-16]: IndexExpr [10-16]: Expr [0-10]: FunctionCall [0-10]: Ident [0-4] "Name"
-                Expr [5-6]: Lit: Int(2)
-                Expr [8-9]: Lit: Int(3), IndexElement:
-                IndexSetItem Expr [11-12]: Lit: Int(1)
-                IndexSetItem Expr [14-15]: Lit: Int(0)"#]],
+            Error(
+                InvalidGateCallDesignator(
+                    Span {
+                        lo: 10,
+                        hi: 16,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
