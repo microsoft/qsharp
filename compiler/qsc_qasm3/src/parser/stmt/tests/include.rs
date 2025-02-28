@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn include_with_no_literal() {
-    check(parse, "include;", &expect![[r#"
+    check(
+        parse,
+        "include;",
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -17,12 +20,16 @@ fn include_with_no_literal() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn include_with_non_string_literal() {
-    check(parse, "include 5;", &expect![[r#"
+    check(
+        parse,
+        "include 5;",
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -37,5 +44,6 @@ fn include_with_non_string_literal() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
