@@ -319,10 +319,7 @@ fn lit_float_trailing_exp_dot() {
 
 #[test]
 fn lit_int_hexadecimal_dot() {
-    check_expr(
-        "0x123.45",
-        &expect!["Expr [0-5]: Lit: Int(291)"],
-    );
+    check_expr("0x123.45", &expect!["Expr [0-5]: Lit: Int(291)"]);
 }
 
 #[test]
@@ -1105,5 +1102,20 @@ fn measure_indexed_identifier() {
             IndexSetItem Expr [15-16]: Lit: Int(1)
         IndexElement:
             IndexSetItem Expr [18-19]: Lit: Int(2)]"#]],
+    );
+}
+
+#[test]
+fn addition_of_casts() {
+    check_expr(
+        "bit(0) + bit(1)",
+        &expect![[r#"
+        Expr [0-15]: BinOp (Add):
+            Expr [0-6]: Cast [0-6]:
+                ClassicalType [0-3]: BitType
+                Expr [4-5]: Lit: Int(0)
+            Expr [9-15]: Cast [9-15]:
+                ClassicalType [9-12]: BitType
+                Expr [13-14]: Lit: Int(1)"#]],
     );
 }
