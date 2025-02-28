@@ -320,21 +320,23 @@ extends:
                 #     Get-ChildItem -Path $path -Recurse -Filter "*.exe" | ForEach-Object { Write-Host $_.FullName }
                 # }
                 #Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -Recurse | ForEach-Object { Write-Host $_.FullName }
-
+                $vswhere = "C:\vss-agent\4.251.0\externals\vswhere\vswhere.exe"
+                & $vswhere -legacy -prerelease -format json
+                & $vswhere -legacy -prerelease
                 # Get all environment variables
-                $envVars = Get-ChildItem Env:
-                foreach ($envVar in $envVars) {
-                    Write-Host "$($envVar.Name) = $($envVar.Value)"
-                    $path = "$($envVar.Value)"
-                    if (![string]::IsNullOrEmpty($path) -and (Test-Path $path)) {
-                        Write-Host "Checking for $path"
-                        try {
-                            Get-ChildItem -Path $path -Recurse -Filter "*.exe" -ErrorAction Continue | ForEach-Object { Write-Host $_.FullName }
-                        } catch {
-                            Write-Host "Error encountered: $_"
-                        }
-                    }
-                }
+                # $envVars = Get-ChildItem Env:
+                # foreach ($envVar in $envVars) {
+                #     Write-Host "$($envVar.Name) = $($envVar.Value)"
+                #     $path = "$($envVar.Value)"
+                #     if (![string]::IsNullOrEmpty($path) -and (Test-Path $path)) {
+                #         Write-Host "Checking for $path"
+                #         try {
+                #             Get-ChildItem -Path $path -Recurse -Filter "*.exe" -ErrorAction Continue | ForEach-Object { Write-Host $_.FullName }
+                #         } catch {
+                #             Write-Host "Error encountered: $_"
+                #         }
+                #     }
+                # }
                 # Search for vswhere.exe on the C:\ drive
                 # $vswherePath = @(Get-ChildItem -Path C:\ -Filter "vswhere.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
                 # foreach ($path in $vswherePath) {
