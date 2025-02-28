@@ -140,29 +140,15 @@ fn const_complex_decl_complex_lit() {
 }
 
 #[test]
-#[ignore = "need binary operator support for const complex number exprs"]
 fn const_complex_decl_complex_binary_lit() {
     check(
         parse,
         "const complex c = 23.5 + 1.7im;",
         &expect![[r#"
-            Stmt [0-22]
-                StmtKind: ConstantDeclaration [0-22]: ClassicalType [6-13]: ComplexType [6-13], Ident [14-15] "c", ExprStmt [18-22]: Expr [18-22]: Lit: Float(23.5)
-
-            [
-                Error(
-                    Token(
-                        Semicolon,
-                        ClosedBinOp(
-                            Plus,
-                        ),
-                        Span {
-                            lo: 23,
-                            hi: 24,
-                        },
-                    ),
-                ),
-            ]"#]],
+            Stmt [0-31]
+                StmtKind: ConstantDeclaration [0-31]: ClassicalType [6-13]: ComplexType [6-13], Ident [14-15] "c", Expr [18-30]: BinOp (Add):
+                    Expr [18-22]: Lit: Float(23.5)
+                    Expr [25-30]: Lit: Imaginary(1.7)"#]],
     );
 }
 
@@ -517,47 +503,28 @@ fn duration_decl() {
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_ns_lit() {
     check(
         parse,
         "duration d = 1000ns;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-20]
+                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ns)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_us_lit() {
     check(
         parse,
         "duration d = 1000us;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-20]
+                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_uus_lit() {
     // uus is for µ, disabling the lint must be done at the
     // crate level, so using uus here in the test name.
@@ -565,96 +532,52 @@ fn duration_decl_uus_lit() {
         parse,
         "duration d = 1000µs;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 20,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-21]
+                StmtKind: ClassicalDeclarationStmt [0-21]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-20]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_ms_lit() {
     check(
         parse,
         "duration d = 1000ms;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-20]
+                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ms)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_s_lit() {
     check(
         parse,
         "duration d = 1000s;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 18,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-19]
+                StmtKind: ClassicalDeclarationStmt [0-19]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-18]: Lit: Duration(1000.0, S)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn duration_decl_dt_lit() {
     check(
         parse,
         "duration d = 1000dt;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 13,
-                        hi: 19,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-20]
+                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Dt)"#]],
     );
 }
 
 #[test]
-#[ignore = "unimplemented: timing literal"]
 fn const_duration_decl_dt_lit() {
     check(
         parse,
         "const duration d = 10dt;",
         &expect![[r#"
-            Error(
-                Lit(
-                    "unimplemented: timing literal",
-                    Span {
-                        lo: 19,
-                        hi: 23,
-                    },
-                ),
-            )
-        "#]],
+            Stmt [0-24]
+                StmtKind: ConstantDeclaration [0-24]: ClassicalType [6-14]: Duration, Ident [15-16] "d", Expr [19-23]: Lit: Duration(10.0, Dt)"#]],
     );
 }
 
