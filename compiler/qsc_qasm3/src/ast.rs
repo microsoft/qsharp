@@ -957,6 +957,16 @@ pub enum TypeDef {
     ArrayReference(ArrayReferenceType),
 }
 
+impl TypeDef {
+    pub fn span(&self) -> Span {
+        match self {
+            TypeDef::Scalar(ident) => ident.span,
+            TypeDef::Array(array) => array.span,
+            TypeDef::ArrayReference(array) => array.span,
+        }
+    }
+}
+
 impl Display for TypeDef {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

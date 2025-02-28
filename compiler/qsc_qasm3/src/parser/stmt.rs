@@ -18,7 +18,7 @@ use crate::{
     ast::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
         ArrayReferenceType, ArrayType, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
-        CalibrationGrammarStmt, CalibrationStmt, ClassicalDeclarationStmt, ComplexType,
+        CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt, ComplexType,
         ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
         Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
         GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
@@ -33,6 +33,7 @@ use crate::{
 
 use super::{prim::token, ParserContext};
 
+#[allow(clippy::too_many_lines)]
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     if let Some(pragma) = opt(s, parse_pragma)? {
@@ -57,7 +58,35 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(decl)
     } else if let Some(include) = opt(s, parse_include)? {
         Box::new(include)
-    } else if let Some(decl) = opt(s, parse_local)? {
+    } else if let Some(ty) = opt(s, scalar_or_array_type)? {
+        if matches!(s.peek().kind, TokenKind::Identifier) {
+            Box::new(parse_non_constant_classical_decl(s, ty, lo)?)
+        } else {
+            token(s, TokenKind::Open(Delim::Paren))?;
+            let arg = expr::expr(s)?;
+            recovering_token(s, TokenKind::Close(Delim::Paren));
+            let cast_expr = Expr {
+                span: s.span(lo),
+                kind: Box::new(ExprKind::Cast(Cast {
+                    span: s.span(lo),
+                    r#type: ty,
+                    arg,
+                })),
+            };
+            Box::new(StmtKind::ExprStmt(ExprStmt {
+                span: s.span(lo),
+                expr: cast_expr,
+            }))
+        }
+    } else if let Some(decl) = opt(s, parse_constant_classical_decl)? {
+        Box::new(decl)
+    } else if let Some(decl) = opt(s, parse_quantum_decl)? {
+        Box::new(decl)
+    } else if let Some(decl) = opt(s, parse_io_decl)? {
+        Box::new(decl)
+    } else if let Some(decl) = opt(s, qreg_decl)? {
+        Box::new(decl)
+    } else if let Some(decl) = opt(s, creg_decl)? {
         Box::new(decl)
     } else if let Some(decl) = opt(s, parse_extern)? {
         Box::new(decl)
@@ -79,7 +108,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::End(stmt))
     } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
         Box::new(stmt_kind)
-    } else if let Some(stmt) = opt(s, parse_expression_stmt)? {
+    } else if let Some(stmt) = opt(s, |s| parse_expression_stmt(s, None))? {
         Box::new(StmtKind::ExprStmt(stmt))
     } else if let Some(alias) = opt(s, parse_alias_stmt)? {
         Box::new(StmtKind::Alias(alias))
@@ -260,29 +289,6 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
         identifier,
         value,
     })
-}
-
-// qreg and creg are separate from classical and quantum declarations
-// simply for performance reasons. The latter are more common and old
-// style declarations should be rare.
-fn parse_local(s: &mut ParserContext) -> Result<StmtKind> {
-    if let Some(decl) = opt(s, parse_classical_decl)? {
-        Ok(decl)
-    } else if let Some(decl) = opt(s, parse_quantum_decl)? {
-        Ok(decl)
-    } else if let Some(decl) = opt(s, parse_io_decl)? {
-        Ok(decl)
-    } else if let Some(decl) = opt(s, qreg_decl)? {
-        Ok(decl)
-    } else if let Some(decl) = opt(s, creg_decl)? {
-        Ok(decl)
-    } else {
-        Err(Error::new(ErrorKind::Rule(
-            "local declaration",
-            s.peek().kind,
-            s.peek().span,
-        )))
-    }
 }
 
 fn parse_extern(s: &mut ParserContext) -> Result<StmtKind> {
@@ -520,47 +526,45 @@ pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     )))
 }
 
-fn parse_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
-    let lo = s.peek().span.lo;
-    let is_const = if s.peek().kind == TokenKind::Keyword(crate::keyword::Keyword::Const) {
-        s.advance();
-        true
-    } else {
-        false
-    };
-    let ty = scalar_or_array_type(s)?;
-
+fn parse_non_constant_classical_decl(
+    s: &mut ParserContext,
+    ty: TypeDef,
+    lo: u32,
+) -> Result<StmtKind> {
     let identifier = Box::new(prim::ident(s)?);
-
-    let stmt = if is_const {
-        token(s, TokenKind::Eq)?;
-        let init_expr = expr::expr(s)?;
-        recovering_semi(s);
-        let decl = ConstantDeclStmt {
-            span: s.span(lo),
-            r#type: ty,
-            identifier,
-            init_expr,
-        };
-        StmtKind::ConstDecl(decl)
+    let init_expr = if s.peek().kind == TokenKind::Eq {
+        s.advance();
+        Some(expr::value_expr(s)?)
     } else {
-        let init_expr = if s.peek().kind == TokenKind::Eq {
-            s.advance();
-            Some(expr::value_expr(s)?)
-        } else {
-            None
-        };
-        recovering_semi(s);
-        let decl = ClassicalDeclarationStmt {
-            span: s.span(lo),
-            r#type: ty,
-            identifier,
-            init_expr,
-        };
-        StmtKind::ClassicalDecl(decl)
+        None
+    };
+    recovering_semi(s);
+    let decl = ClassicalDeclarationStmt {
+        span: s.span(lo),
+        r#type: ty,
+        identifier,
+        init_expr,
     };
 
-    Ok(stmt)
+    Ok(StmtKind::ClassicalDecl(decl))
+}
+
+fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
+    let lo = s.peek().span.lo;
+    token(s, TokenKind::Keyword(Keyword::Const))?;
+    let ty = scalar_or_array_type(s)?;
+    let identifier = Box::new(prim::ident(s)?);
+    token(s, TokenKind::Eq)?;
+    let init_expr = expr::expr(s)?;
+    recovering_semi(s);
+    let decl = ConstantDeclStmt {
+        span: s.span(lo),
+        r#type: ty,
+        identifier,
+        init_expr,
+    };
+
+    Ok(StmtKind::ConstDecl(decl))
 }
 
 pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
@@ -880,7 +884,8 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
 
     // Controlling expression.
     token(s, TokenKind::Open(Delim::Paren))?;
-    let controlling_expr = expr::paren_expr(s, lo)?;
+    let controlling_expr = expr::expr(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
 
     // Open cases bracket.
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -940,9 +945,10 @@ fn parse_block_or_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
 pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::If))?;
-    let paren_expr_lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Paren))?;
-    let condition = expr::paren_expr(s, paren_expr_lo)?;
+    let condition = expr::expr(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
+
     let if_block = parse_block_or_stmt(s)?;
     let else_block = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Else)))?.is_some() {
         Some(parse_block_or_stmt(s)?)
@@ -1027,9 +1033,9 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
 pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::While))?;
-    let paren_expr_lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Paren))?;
-    let while_condition = expr::paren_expr(s, paren_expr_lo)?;
+    let while_condition = expr::expr(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
     let block = parse_block_or_stmt(s)?;
 
     Ok(WhileLoop {
@@ -1064,9 +1070,13 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
 }
 
 /// Grammar: `expression SEMICOLON`.
-fn parse_expression_stmt(s: &mut ParserContext) -> Result<ExprStmt> {
+fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<ExprStmt> {
     let lo = s.peek().span.lo;
-    let expr = expr::expr(s)?;
+    let expr = if let Some(lhs) = lhs {
+        expr::expr_with_lhs(s, lhs)?
+    } else {
+        expr::expr(s)?
+    };
     recovering_semi(s);
     Ok(ExprStmt {
         span: s.span(lo),
