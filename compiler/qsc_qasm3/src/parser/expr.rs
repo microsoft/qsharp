@@ -68,10 +68,12 @@ enum OpName {
     Keyword(Keyword),
 }
 
+// TODO: This seems to be an unnecessary wrapper.
+//       We ended up removing the OpContext::Stmt variant.
+//       Consider removing.
 #[derive(Clone, Copy)]
 enum OpContext {
     Precedence(u8),
-    Stmt,
 }
 
 #[derive(Clone, Copy)]
@@ -86,14 +88,13 @@ pub(super) fn expr(s: &mut ParserContext) -> Result<Expr> {
     expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Expr> {
-    expr_op(s, OpContext::Stmt)
+pub(super) fn expr_with_lhs(s: &mut ParserContext, lhs: Expr) -> Result<Expr> {
+    expr_op_with_lhs(s, OpContext::Precedence(0), lhs)
 }
 
 fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
     let lo = s.peek().span.lo;
-
-    let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
+    let lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
         Expr {
@@ -107,10 +108,13 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
         expr_base(s)?
     };
 
-    let min_precedence = match context {
-        OpContext::Precedence(p) => p,
-        OpContext::Stmt => 0,
-    };
+    expr_op_with_lhs(s, context, lhs)
+}
+
+fn expr_op_with_lhs(s: &mut ParserContext, context: OpContext, mut lhs: Expr) -> Result<Expr> {
+    let lo = lhs.span.lo;
+
+    let OpContext::Precedence(min_precedence) = context;
 
     while let Some(op) = infix_op(op_name(s)) {
         if op.precedence < min_precedence {
@@ -166,15 +170,9 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
             Ok(Some(r#type)) => {
                 // If we have a type, we expect to see a
                 // parenthesized expression next.
-                token(s, TokenKind::Open(Delim::Paren))?;
-                let arg = paren_expr(s, lo)?;
                 Ok(Expr {
                     span: s.span(lo),
-                    kind: Box::new(ExprKind::Cast(Cast {
-                        span: s.span(lo),
-                        r#type,
-                        arg,
-                    })),
+                    kind: Box::new(cast_op(s, r#type)?),
                 })
             }
             Ok(None) => {
@@ -468,13 +466,10 @@ fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
 }
 
 fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
-    let lo = match &r#type {
-        TypeDef::Scalar(ident) => ident.span.lo,
-        TypeDef::Array(array) => array.span.lo,
-        TypeDef::ArrayReference(array) => array.span.lo,
-    };
-    let arg = paren_expr(s, lo)?;
-    token(s, TokenKind::Close(Delim::Paren))?;
+    let lo = r#type.span().lo;
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let arg = expr(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
     Ok(ExprKind::Cast(Cast {
         span: s.span(lo),
         r#type,
