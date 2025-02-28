@@ -328,7 +328,11 @@ extends:
                     $path = "$($envVar.Value)"
                     if(Test-Path $path) {
                         Write-Host "Checking for $path"
-                        Get-ChildItem -Path $path -Recurse -Filter "*.exe" | ForEach-Object { Write-Host $_.FullName }
+                        try {
+                            Get-ChildItem -Path $path -Recurse -Filter "*.exe" -ErrorAction Continue | ForEach-Object { Write-Host $_.FullName }
+                        } catch {
+                            Write-Host "Error encountered: $_"
+                        }
                     }
                 }
                 # Search for vswhere.exe on the C:\ drive
