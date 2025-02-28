@@ -22,10 +22,10 @@ use crate::{
         ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
         Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
         GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
-        Identifier, IfStmt, IncludeStmt, IntType, List, LiteralKind, MeasureStmt, Pragma,
-        QuantumGateDefinition, QuantumGateModifier, QubitDeclaration, RangeDefinition, ResetStmt,
-        ReturnStmt, ScalarType, ScalarTypeKind, Stmt, StmtKind, SwitchStmt, TypeDef,
-        TypedParameter, UIntType, WhileLoop,
+        Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSetItem, IntType, List,
+        LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
+        QubitDeclaration, RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt,
+        StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
@@ -1158,10 +1158,14 @@ fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
 
 /// In QASM3, it is hard to disambiguate between a quantum-gate-call missing modifiers
 /// and expression statements. Consider the following expressions:
-///  1. `Rx(2, 3) q0;`
-///  2. `Rx(2, 3) + q0;`
-///  3. `Rx(2, 3);`
-///  4. `Rx;`
+///  1. `Ident(2, 3) a;`
+///  2. `Ident(2, 3) + a * b;`
+///  3. `Ident(2, 3);`
+///  4. `Ident(2, 3)[1];`
+///  5. `Ident;`
+///  6. `Ident[4us] q;`
+///  7. `Ident[4];`
+///  8. `Ident q;`
 ///
 /// (1) is a quantum-gate-call, (2) is a binary operation, (3) is a function call, and
 /// (4) is an identifer. We don't know for sure until we see the what is beyond the gate
@@ -1184,10 +1188,19 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         return Ok(StmtKind::GPhase(gphase));
     }
 
+    // 1. ident = ...
+    // 2. parameters? = ... Option<List>
+    // 3. designator? = ...
+    // 4. qubits = ... -> qubits.is_empty()
+
+    // cases: (no qubits)
+    //   ident + parameters -> function call
+    //   ident + designator -> indexed ident
+
     // As explained in the docstring, we parse the gate using the expr parser.
     let gate_or_expr = expr::expr(s)?;
 
-    let duration = opt(s, designator)?;
+    let mut duration = opt(s, designator)?;
     let qubits = gate_operand_list(s)?;
     recovering_semi(s);
 
@@ -1199,9 +1212,11 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         }));
     }
 
+    // Reinterpret the function call or ident as a gate call.
     let (name, args) = match *gate_or_expr.kind {
         ExprKind::FunctionCall(FunctionCall { name, args, .. }) => (name, args),
-        ExprKind::Ident(ident) => (Identifier::Ident(Box::new(ident)), Default::default()),
+        ExprKind::Ident(ident) => (ident, Default::default()),
+        ExprKind::IndexExpr(index_expr) => reinterpret_index_expr(index_expr, &mut duration)?,
         _ => {
             return Err(Error::new(ErrorKind::ExpectedItem(
                 TokenKind::Identifier,
@@ -1222,6 +1237,49 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         qubits,
         duration,
     }))
+}
+
+/// This helper function reinterprets an indexed expression as
+/// a gate call. There are two valid cases we are interested in:
+///  1. Ident[4]
+///  2. Ident(2, 3)[4]
+///
+/// Case (1) is an indexed identifier, in which case we want to
+/// reinterpret it as a gate followed by a designator.
+/// Case (2) is an indexed function call, in which case we want to
+/// reinterpret it as a parametrized gate followed by a designator.
+fn reinterpret_index_expr(
+    index_expr: IndexExpr,
+    duration: &mut Option<Expr>,
+) -> Result<(Ident, List<Expr>)> {
+    let IndexExpr {
+        collection, index, ..
+    } = index_expr;
+
+    if let IndexElement::IndexSet(set) = index {
+        if set.len() == 1 {
+            let first_elt: IndexSetItem = (*set[0]).clone();
+            if let IndexSetItem::Expr(expr) = first_elt {
+                if duration.is_none() {
+                    match *collection.kind {
+                        ExprKind::Ident(name) => {
+                            *duration = Some(expr);
+                            return Ok((name, Default::default()));
+                        }
+                        ExprKind::FunctionCall(FunctionCall { name, args, .. }) => {
+                            *duration = Some(expr);
+                            return Ok((name, args));
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+    }
+
+    Err(Error::new(ErrorKind::InvalidGateCallDesignator(
+        index_expr.span,
+    )))
 }
 
 fn parse_gphase(
@@ -1427,7 +1485,7 @@ fn parse_barrier(s: &mut ParserContext) -> Result<BarrierStmt> {
 /// Grammar: `DELAY designator gateOperandList? SEMICOLON`.
 fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
     let lo = s.peek().span.lo;
-    token(s, TokenKind::Delay)?;
+    token(s, TokenKind::Keyword(Keyword::Delay))?;
     let duration = designator(s)?;
     let qubits = gate_operand_list(s)?;
     recovering_semi(s);
@@ -1442,7 +1500,7 @@ fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
 /// Grammar: `RESET gateOperand SEMICOLON`.
 fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
     let lo = s.peek().span.lo;
-    token(s, TokenKind::Reset)?;
+    token(s, TokenKind::Keyword(Keyword::Reset))?;
     let operand = Box::new(gate_operand(s)?);
     recovering_semi(s);
 

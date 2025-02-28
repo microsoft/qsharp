@@ -35,8 +35,6 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::NegCtrl => Some("negctrl".to_string()),
         TokenKind::Dim => Some("dim".to_string()),
         TokenKind::DurationOf => Some("durationof".to_string()),
-        TokenKind::Delay => Some("delay".to_string()),
-        TokenKind::Reset => Some("reset".to_string()),
         TokenKind::Measure => Some("measure".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
