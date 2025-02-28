@@ -111,3 +111,64 @@ fn gate_call_ctrl_inv_modifiers() {
                 GateOperand IndexedIdent [35-37]: Ident [35-37] "q0"[]"#]],
     );
 }
+
+#[test]
+fn function_call_plus_ident() {
+    check(parse, "Name(2, 3) + a;", &expect![]);
+}
+
+#[test]
+fn function_call() {
+    check(parse, "Name(2, 3);", &expect![]);
+}
+
+#[test]
+fn indexed_function_call() {
+    check(parse, "Name(2, 3)[1];", &expect![]);
+}
+
+#[test]
+fn multi_indexed_function_call() {
+    check(parse, "Name(2, 3)[1, 0];", &expect![]);
+}
+
+#[test]
+fn ident() {
+    check(parse, "Name;", &expect![]);
+}
+
+#[test]
+fn gate_call_with_designator() {
+    check(
+        parse,
+        "H[2us] q;",
+        &expect![[r#"
+            Stmt [0-9]
+                StmtKind: GateCall [0-9]: Ident [0-1] "H"
+                GateOperand IndexedIdent [7-8]: Ident [7-8] "q"[]
+                Expr [2-5]: Lit: Duration(2.0, Us)"#]],
+    );
+}
+
+#[test]
+fn gate_call_with_invalid_designator() {
+    check(
+        parse,
+        "H[2us][3] q;",
+        &expect![[r#"
+            Error(
+                InvalidGateCallDesignator(
+                    Span {
+                        lo: 6,
+                        hi: 9,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn index_expr() {
+    check(parse, "Name[1];", &expect![]);
+}
