@@ -462,7 +462,7 @@ fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
     token(s, TokenKind::Close(Delim::Paren))?;
     Ok(ExprKind::FunctionCall(FunctionCall {
         span: s.span(lo),
-        name: ast::Identifier::Ident(Box::new(ident)),
+        name: ident,
         args: args.into_iter().map(Box::new).collect(),
     }))
 }

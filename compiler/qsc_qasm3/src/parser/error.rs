@@ -131,6 +131,9 @@ pub enum ErrorKind {
     #[error("gphase gate requires exactly one angle")]
     #[diagnostic(code("Qasm3.Parse.GPhaseInvalidArguments"))]
     GPhaseInvalidArguments(#[label] Span),
+    #[error("invalid gate call designator")]
+    #[diagnostic(code("Qasm3.Parse.InvalidGateCallDesignator"))]
+    InvalidGateCallDesignator(#[label] Span),
 }
 
 impl ErrorKind {
@@ -152,6 +155,7 @@ impl ErrorKind {
             Self::MissingGateCallOperands(span) => Self::MissingGateCallOperands(span + offset),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
             Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
+            Self::InvalidGateCallDesignator(span) => Self::InvalidGateCallDesignator(span + offset),
         }
     }
 }
