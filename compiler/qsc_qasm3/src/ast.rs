@@ -1171,7 +1171,7 @@ impl Display for ExternDecl {
 pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
-    pub name: Identifier,
+    pub name: Ident,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
@@ -1768,7 +1768,7 @@ impl Display for BinaryOpExpr {
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub span: Span,
-    pub name: Identifier,
+    pub name: Ident,
     pub args: List<Expr>,
 }
 
