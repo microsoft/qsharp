@@ -1,31 +1,72 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::parser::tests::check;
-
 use super::expr;
+use crate::{
+    ast::StmtKind,
+    parser::{scan::ParserContext, stmt, tests::check, Parser},
+};
+use expect_test::{expect, Expect};
 
-use expect_test::expect;
+fn check_map<T>(
+    mut parser: impl Parser<T>,
+    input: &str,
+    expect: &Expect,
+    f: impl FnOnce(&T) -> String,
+) {
+    let mut scanner = ParserContext::new(input);
+    let result = parser(&mut scanner);
+    let errors = scanner.into_errors();
+    match result {
+        Ok(value) if errors.is_empty() => expect.assert_eq(&f(&value)),
+        Ok(value) => expect.assert_eq(&format!("{}\n\n{errors:#?}", f(&value))),
+        Err(error) if errors.is_empty() => expect.assert_debug_eq(&error),
+        Err(error) => expect.assert_eq(&format!("{error:#?}\n\n{errors:#?}")),
+    }
+}
+
+/// This function checks two things:
+///   1. That the input `Expr` is parsed correctly.
+///   2. That if we add a semicolon at the end it parses correctly as a `ExprStmt`
+///      containing the same `Expr` inside.
+fn check_expr(input: &str, expect: &Expect) {
+    // Do the usual expect test check.
+    check(expr, input, expect);
+
+    // Parse the expr with the expr parser.
+    let expr = expr(&mut ParserContext::new(input)).map(Some);
+
+    // Add a semicolon and parser with the stmt parser.
+    let expr_stmt = stmt::parse(&mut ParserContext::new(&format!("{input};")));
+
+    // Extract the inner expr.
+    let inner_expr = expr_stmt.map(|ok| match *ok.kind {
+        StmtKind::ExprStmt(expr) => Some(expr.expr),
+        _ => None,
+    });
+
+    // Check that they are equal.
+    assert_eq!(format!("{expr:?}"), format!("{inner_expr:?}"));
+}
 
 #[test]
 fn lit_int() {
-    check(expr, "123", &expect!["Expr [0-3]: Lit: Int(123)"]);
+    check_expr("123", &expect!["Expr [0-3]: Lit: Int(123)"]);
 }
 
 #[test]
 fn lit_int_underscore() {
-    check(expr, "123_456", &expect!["Expr [0-7]: Lit: Int(123456)"]);
+    check_expr("123_456", &expect!["Expr [0-7]: Lit: Int(123456)"]);
 }
 
 #[test]
 fn lit_int_leading_zero() {
-    check(expr, "0123", &expect!["Expr [0-4]: Lit: Int(123)"]);
+    check_expr("0123", &expect!["Expr [0-4]: Lit: Int(123)"]);
 }
 
 #[test]
 fn lit_int_max() {
-    check(
-        expr,
+    check_expr(
         "9_223_372_036_854_775_807",
         &expect!["Expr [0-25]: Lit: Int(9223372036854775807)"],
     );
@@ -38,8 +79,7 @@ fn lit_int_max() {
 // of i64::MIN also need to be tested.
 #[test]
 fn lit_int_overflow_min() {
-    check(
-        expr,
+    check_expr(
         "9_223_372_036_854_775_808",
         &expect!["Expr [0-25]: Lit: Int(-9223372036854775808)"],
     );
@@ -47,8 +87,7 @@ fn lit_int_overflow_min() {
 
 #[test]
 fn lit_int_overflow_min_hexadecimal() {
-    check(
-        expr,
+    check_expr(
         "0x8000000000000000",
         &expect!["Expr [0-18]: Lit: Int(-9223372036854775808)"],
     );
@@ -56,8 +95,7 @@ fn lit_int_overflow_min_hexadecimal() {
 
 #[test]
 fn lit_int_overflow_min_binary() {
-    check(
-        expr,
+    check_expr(
         "0b1000000000000000000000000000000000000000000000000000000000000000",
         &expect!["Expr [0-66]: Lit: Int(-9223372036854775808)"],
     );
@@ -65,8 +103,7 @@ fn lit_int_overflow_min_binary() {
 
 #[test]
 fn lit_int_too_big_for_i64() {
-    check(
-        expr,
+    check_expr(
         "9_223_372_036_854_775_809",
         &expect!["Expr [0-25]: Lit: BigInt(9223372036854775809)"],
     );
@@ -74,8 +111,7 @@ fn lit_int_too_big_for_i64() {
 
 #[test]
 fn lit_int_too_big_hexadecimal_promotes_to_bigint() {
-    check(
-        expr,
+    check_expr(
         "0x8000000000000001",
         &expect!["Expr [0-18]: Lit: BigInt(9223372036854775809)"],
     );
@@ -83,8 +119,7 @@ fn lit_int_too_big_hexadecimal_promotes_to_bigint() {
 
 #[test]
 fn lit_int_too_big_binary_promotes_to_bigint() {
-    check(
-        expr,
+    check_expr(
         "0b1000000000000000000000000000000000000000000000000000000000000001",
         &expect!["Expr [0-66]: Lit: BigInt(9223372036854775809)"],
     );
@@ -95,10 +130,8 @@ fn lit_int_too_big_binary_promotes_to_bigint() {
 // of i64::MIN. This will wrap to a negative value, and then negate of i64::MIN is i64::MIN, so
 // the correct value is achieved at runtime.
 #[test]
-#[ignore = "Re-enable when we support unary ops"]
 fn lit_int_min() {
-    check(
-        expr,
+    check_expr(
         "-9_223_372_036_854_775_808",
         &expect![[r#"
             Expr [0-26]: UnOp (Neg):
@@ -108,23 +141,22 @@ fn lit_int_min() {
 
 #[test]
 fn lit_int_hexadecimal() {
-    check(expr, "0x1a2b3c", &expect!["Expr [0-8]: Lit: Int(1715004)"]);
+    check_expr("0x1a2b3c", &expect!["Expr [0-8]: Lit: Int(1715004)"]);
 }
 
 #[test]
 fn lit_int_octal() {
-    check(expr, "0o1234567", &expect!["Expr [0-9]: Lit: Int(342391)"]);
+    check_expr("0o1234567", &expect!["Expr [0-9]: Lit: Int(342391)"]);
 }
 
 #[test]
 fn lit_int_binary() {
-    check(expr, "0b10110", &expect!["Expr [0-7]: Lit: Int(22)"]);
+    check_expr("0b10110", &expect!["Expr [0-7]: Lit: Int(22)"]);
 }
 
 #[test]
 fn lit_bigint_hexadecimal() {
-    check(
-        expr,
+    check_expr(
         "0x1a2b3c1a2b3c1a2b3c1a",
         &expect!["Expr [0-22]: Lit: BigInt(123579069371309093501978)"],
     );
@@ -132,8 +164,7 @@ fn lit_bigint_hexadecimal() {
 
 #[test]
 fn lit_bigint_hexadecimal_capital_x() {
-    check(
-        expr,
+    check_expr(
         "0X1a2b3c1a2b3c1a2b3c1a",
         &expect!["Expr [0-22]: Lit: BigInt(123579069371309093501978)"],
     );
@@ -141,8 +172,7 @@ fn lit_bigint_hexadecimal_capital_x() {
 
 #[test]
 fn lit_bigint_octal() {
-    check(
-        expr,
+    check_expr(
         "0o1234567123456712345671234",
         &expect!["Expr [0-27]: Lit: BigInt(6167970861177743307420)"],
     );
@@ -150,8 +180,7 @@ fn lit_bigint_octal() {
 
 #[test]
 fn lit_bigint_octal_capital_o() {
-    check(
-        expr,
+    check_expr(
         "0O1234567123456712345671234",
         &expect!["Expr [0-27]: Lit: BigInt(6167970861177743307420)"],
     );
@@ -159,8 +188,7 @@ fn lit_bigint_octal_capital_o() {
 
 #[test]
 fn lit_bigint_binary() {
-    check(
-        expr,
+    check_expr(
         "0b1011010110101101011010110101101011010110101101011010110101101011",
         &expect!["Expr [0-66]: Lit: BigInt(13091237729729359211)"],
     );
@@ -168,8 +196,7 @@ fn lit_bigint_binary() {
 
 #[test]
 fn lit_bigint_binary_capital_b() {
-    check(
-        expr,
+    check_expr(
         "0B1011010110101101011010110101101011010110101101011010110101101011",
         &expect!["Expr [0-66]: Lit: BigInt(13091237729729359211)"],
     );
@@ -177,37 +204,32 @@ fn lit_bigint_binary_capital_b() {
 
 #[test]
 fn lit_float() {
-    check(expr, "1.23", &expect!["Expr [0-4]: Lit: Float(1.23)"]);
+    check_expr("1.23", &expect!["Expr [0-4]: Lit: Float(1.23)"]);
 }
 
 #[test]
 fn lit_float_leading_dot() {
-    check(expr, ".23", &expect!["Expr [0-3]: Lit: Float(0.23)"]);
+    check_expr(".23", &expect!["Expr [0-3]: Lit: Float(0.23)"]);
 }
 
 #[test]
 fn lit_float_trailing_dot() {
-    check(expr, "1.", &expect!["Expr [0-2]: Lit: Float(1.0)"]);
+    check_expr("1.", &expect!["Expr [0-2]: Lit: Float(1.0)"]);
 }
 
 #[test]
 fn lit_float_underscore() {
-    check(
-        expr,
-        "123_456.78",
-        &expect!["Expr [0-10]: Lit: Float(123456.78)"],
-    );
+    check_expr("123_456.78", &expect!["Expr [0-10]: Lit: Float(123456.78)"]);
 }
 
 #[test]
 fn lit_float_leading_zero() {
-    check(expr, "0.23", &expect!["Expr [0-4]: Lit: Float(0.23)"]);
+    check_expr("0.23", &expect!["Expr [0-4]: Lit: Float(0.23)"]);
 }
 
 #[test]
 fn lit_float_trailing_exp_0() {
-    check(
-        expr,
+    check_expr(
         "0e",
         &expect![[r#"
             Error(
@@ -225,8 +247,7 @@ fn lit_float_trailing_exp_0() {
 
 #[test]
 fn lit_float_trailing_exp_1() {
-    check(
-        expr,
+    check_expr(
         "1e",
         &expect![[r#"
             Error(
@@ -244,8 +265,7 @@ fn lit_float_trailing_exp_1() {
 
 #[test]
 fn lit_float_trailing_dot_trailing_exp() {
-    check(
-        expr,
+    check_expr(
         "1.e",
         &expect![[r#"
             Error(
@@ -263,8 +283,7 @@ fn lit_float_trailing_dot_trailing_exp() {
 
 #[test]
 fn lit_float_dot_trailing_exp() {
-    check(
-        expr,
+    check_expr(
         "1.2e",
         &expect![[r#"
             Error(
@@ -282,8 +301,7 @@ fn lit_float_dot_trailing_exp() {
 
 #[test]
 fn lit_float_trailing_exp_dot() {
-    check(
-        expr,
+    check_expr(
         "1e.",
         &expect![[r#"
             Error(
@@ -300,55 +318,26 @@ fn lit_float_trailing_exp_dot() {
 }
 
 #[test]
-#[ignore = "Re-enable when we support more than literals"]
 fn lit_int_hexadecimal_dot() {
-    check(
-        expr,
+    check_expr(
         "0x123.45",
-        &expect![[r#"
-            Expr [0-6]: Field:
-                Expr [0-5]: Lit: Int(291)
-                Err
-
-           [
-                Error(
-                    Rule(
-                        "identifier",
-                        Int(
-                            Decimal,
-                        ),
-                        Span {
-                            lo: 6,
-                            hi: 8,
-                        },
-                    ),
-                ),
-            ]"#]],
+        &expect!["Expr [0-5]: Lit: Int(291)"],
     );
 }
 
 #[test]
 fn lit_string() {
-    check(
-        expr,
-        r#""foo""#,
-        &expect![[r#"Expr [0-5]: Lit: String("foo")"#]],
-    );
+    check_expr(r#""foo""#, &expect![[r#"Expr [0-5]: Lit: String("foo")"#]]);
 }
 
 #[test]
 fn lit_string_single_quote() {
-    check(
-        expr,
-        r#"'foo'"#,
-        &expect![[r#"Expr [0-5]: Lit: String("foo")"#]],
-    );
+    check_expr(r#"'foo'"#, &expect![[r#"Expr [0-5]: Lit: String("foo")"#]]);
 }
 
 #[test]
 fn lit_string_escape_quote() {
-    check(
-        expr,
+    check_expr(
         r#""foo\"bar""#,
         &expect![[r#"Expr [0-10]: Lit: String("foo\"bar")"#]],
     );
@@ -356,8 +345,7 @@ fn lit_string_escape_quote() {
 
 #[test]
 fn lit_string_single_quote_escape_double_quote() {
-    check(
-        expr,
+    check_expr(
         r#"'foo\"bar'"#,
         &expect![[r#"Expr [0-10]: Lit: String("foo\"bar")"#]],
     );
@@ -365,80 +353,47 @@ fn lit_string_single_quote_escape_double_quote() {
 
 #[test]
 fn lit_string_escape_backslash() {
-    check(
-        expr,
-        r#""\\""#,
-        &expect![[r#"Expr [0-4]: Lit: String("\\")"#]],
-    );
+    check_expr(r#""\\""#, &expect![[r#"Expr [0-4]: Lit: String("\\")"#]]);
 }
 
 #[test]
 fn lit_string_single_quote_escape_backslash() {
-    check(
-        expr,
-        r#"'\\'"#,
-        &expect![[r#"Expr [0-4]: Lit: String("\\")"#]],
-    );
+    check_expr(r#"'\\'"#, &expect![[r#"Expr [0-4]: Lit: String("\\")"#]]);
 }
 
 #[test]
 fn lit_string_escape_newline() {
-    check(
-        expr,
-        r#""\n""#,
-        &expect![[r#"Expr [0-4]: Lit: String("\n")"#]],
-    );
+    check_expr(r#""\n""#, &expect![[r#"Expr [0-4]: Lit: String("\n")"#]]);
 }
 
 #[test]
 fn lit_string_single_quote_escape_newline() {
-    check(
-        expr,
-        r#"'\n'"#,
-        &expect![[r#"Expr [0-4]: Lit: String("\n")"#]],
-    );
+    check_expr(r#"'\n'"#, &expect![[r#"Expr [0-4]: Lit: String("\n")"#]]);
 }
 
 #[test]
 fn lit_string_escape_carriage_return() {
-    check(
-        expr,
-        r#""\r""#,
-        &expect![[r#"Expr [0-4]: Lit: String("\r")"#]],
-    );
+    check_expr(r#""\r""#, &expect![[r#"Expr [0-4]: Lit: String("\r")"#]]);
 }
 
 #[test]
 fn lit_string_single_quote_escape_carriage_return() {
-    check(
-        expr,
-        r#"'\r'"#,
-        &expect![[r#"Expr [0-4]: Lit: String("\r")"#]],
-    );
+    check_expr(r#"'\r'"#, &expect![[r#"Expr [0-4]: Lit: String("\r")"#]]);
 }
 
 #[test]
 fn lit_string_escape_tab() {
-    check(
-        expr,
-        r#""\t""#,
-        &expect![[r#"Expr [0-4]: Lit: String("\t")"#]],
-    );
+    check_expr(r#""\t""#, &expect![[r#"Expr [0-4]: Lit: String("\t")"#]]);
 }
 
 #[test]
 fn lit_string_single_quote_escape_tab() {
-    check(
-        expr,
-        r#"'\t'"#,
-        &expect![[r#"Expr [0-4]: Lit: String("\t")"#]],
-    );
+    check_expr(r#"'\t'"#, &expect![[r#"Expr [0-4]: Lit: String("\t")"#]]);
 }
 
 #[test]
 fn lit_string_unknown_escape() {
-    check(
-        expr,
+    check_expr(
         r#""\x""#,
         &expect![[r#"
             Error(
@@ -488,23 +443,22 @@ fn lit_string_unmatched_quote() {
 
 #[test]
 fn lit_string_empty() {
-    check(expr, r#""""#, &expect![[r#"Expr [0-2]: Lit: String("")"#]]);
+    check_expr(r#""""#, &expect![[r#"Expr [0-2]: Lit: String("")"#]]);
 }
 
 #[test]
 fn lit_false() {
-    check(expr, "false", &expect!["Expr [0-5]: Lit: Bool(false)"]);
+    check_expr("false", &expect!["Expr [0-5]: Lit: Bool(false)"]);
 }
 
 #[test]
 fn lit_true() {
-    check(expr, "true", &expect!["Expr [0-4]: Lit: Bool(true)"]);
+    check_expr("true", &expect!["Expr [0-4]: Lit: Bool(true)"]);
 }
 
 #[test]
 fn lit_bitstring() {
-    check(
-        expr,
+    check_expr(
         r#""101010101""#,
         &expect![[r#"Expr [0-11]: Lit: Bitstring("101010101")"#]],
     );
@@ -512,8 +466,7 @@ fn lit_bitstring() {
 
 #[test]
 fn lit_bitstring_preserves_leading_zeroes() {
-    check(
-        expr,
+    check_expr(
         r#""00011000""#,
         &expect![[r#"Expr [0-10]: Lit: Bitstring("00011000")"#]],
     );
@@ -521,8 +474,7 @@ fn lit_bitstring_preserves_leading_zeroes() {
 
 #[test]
 fn lit_bitstring_separators() {
-    check(
-        expr,
+    check_expr(
         r#""10_10_10_101""#,
         &expect![[r#"Expr [0-14]: Lit: Bitstring("101010101")"#]],
     );
@@ -562,50 +514,37 @@ fn lit_bitstring_unmatched_quote() {
 
 #[test]
 fn lit_float_imag() {
-    check(
-        expr,
-        r#"10.3im"#,
-        &expect!["Expr [0-6]: Lit: Imaginary(10.3)"],
-    );
+    check_expr(r#"10.3im"#, &expect!["Expr [0-6]: Lit: Imaginary(10.3)"]);
 }
 
 #[test]
 fn lit_float_imag_with_spacing() {
-    check(
-        expr,
-        r#"10.3  im"#,
-        &expect!["Expr [0-8]: Lit: Imaginary(10.3)"],
-    );
+    check_expr(r#"10.3  im"#, &expect!["Expr [0-8]: Lit: Imaginary(10.3)"]);
 }
 
 #[test]
 fn lit_int_imag() {
-    check(expr, r#"10"#, &expect!["Expr [0-2]: Lit: Int(10)"]);
+    check_expr(r#"10im"#, &expect!["Expr [0-4]: Lit: Imaginary(10.0)"]);
 }
 
 #[test]
 fn lit_int_imag_with_spacing() {
-    check(
-        expr,
-        r#"10  im"#,
-        &expect!["Expr [0-6]: Lit: Imaginary(10.0)"],
-    );
+    check_expr(r#"10  im"#, &expect!["Expr [0-6]: Lit: Imaginary(10.0)"]);
 }
 
 #[test]
 fn lit_float_imag_leading_dot() {
-    check(expr, ".23im", &expect!["Expr [0-5]: Lit: Imaginary(0.23)"]);
+    check_expr(".23im", &expect!["Expr [0-5]: Lit: Imaginary(0.23)"]);
 }
 
 #[test]
 fn lit_float_imag_trailing_dot() {
-    check(expr, "1.im", &expect!["Expr [0-4]: Lit: Imaginary(1.0)"]);
+    check_expr("1.im", &expect!["Expr [0-4]: Lit: Imaginary(1.0)"]);
 }
 
 #[test]
 fn lit_float_imag_underscore() {
-    check(
-        expr,
+    check_expr(
         "123_456.78im",
         &expect!["Expr [0-12]: Lit: Imaginary(123456.78)"],
     );
@@ -613,13 +552,12 @@ fn lit_float_imag_underscore() {
 
 #[test]
 fn lit_float_imag_leading_zero() {
-    check(expr, "0.23im", &expect!["Expr [0-6]: Lit: Imaginary(0.23)"]);
+    check_expr("0.23im", &expect!["Expr [0-6]: Lit: Imaginary(0.23)"]);
 }
 
 #[test]
 fn pratt_parsing_mul_add() {
-    check(
-        expr,
+    check_expr(
         "1 + 2 * 3",
         &expect![[r#"
             Expr [0-9]: BinOp (Add):
@@ -632,8 +570,7 @@ fn pratt_parsing_mul_add() {
 
 #[test]
 fn pratt_parsing_parens() {
-    check(
-        expr,
+    check_expr(
         "(1 + 2) * 3",
         &expect![[r#"
             Expr [0-11]: BinOp (Mul):
@@ -647,8 +584,7 @@ fn pratt_parsing_parens() {
 
 #[test]
 fn prat_parsing_mul_unary() {
-    check(
-        expr,
+    check_expr(
         "2 * -3",
         &expect![[r#"
             Expr [0-6]: BinOp (Mul):
@@ -660,8 +596,7 @@ fn prat_parsing_mul_unary() {
 
 #[test]
 fn prat_parsing_unary_mul() {
-    check(
-        expr,
+    check_expr(
         "-2 * 3",
         &expect![[r#"
             Expr [0-6]: BinOp (Mul):
@@ -673,8 +608,7 @@ fn prat_parsing_unary_mul() {
 
 #[test]
 fn prat_parsing_exp_funcall() {
-    check(
-        expr,
+    check_expr(
         "2 ** square(3)",
         &expect![[r#"
             Expr [0-14]: BinOp (Exp):
@@ -686,8 +620,7 @@ fn prat_parsing_exp_funcall() {
 
 #[test]
 fn prat_parsing_funcall_exp() {
-    check(
-        expr,
+    check_expr(
         "square(2) ** 3",
         &expect![[r#"
             Expr [0-14]: BinOp (Exp):
@@ -699,8 +632,7 @@ fn prat_parsing_funcall_exp() {
 
 #[test]
 fn prat_parsing_funcall_exp_arg() {
-    check(
-        expr,
+    check_expr(
         "square(2 ** 3)",
         &expect![[r#"
             Expr [0-14]: FunctionCall [0-14]: Ident [0-6] "square"
@@ -712,8 +644,7 @@ fn prat_parsing_funcall_exp_arg() {
 
 #[test]
 fn funcall() {
-    check(
-        expr,
+    check_expr(
         "square(2)",
         &expect![[r#"
             Expr [0-9]: FunctionCall [0-9]: Ident [0-6] "square"
@@ -723,8 +654,7 @@ fn funcall() {
 
 #[test]
 fn funcall_multiple_args() {
-    check(
-        expr,
+    check_expr(
         "square(2, 3)",
         &expect![[r#"
             Expr [0-12]: FunctionCall [0-12]: Ident [0-6] "square"
@@ -735,8 +665,7 @@ fn funcall_multiple_args() {
 
 #[test]
 fn funcall_multiple_args_trailing_comma() {
-    check(
-        expr,
+    check_expr(
         "square(2, 3,)",
         &expect![[r#"
             Expr [0-13]: FunctionCall [0-13]: Ident [0-6] "square"
@@ -747,11 +676,10 @@ fn funcall_multiple_args_trailing_comma() {
 
 #[test]
 fn cast_to_bit() {
-    check(
-        expr,
+    check_expr(
         "bit(0)",
         &expect![[r#"
-            Expr [0-3]: Cast [0-6]:
+            Expr [0-6]: Cast [0-6]:
                 ClassicalType [0-3]: BitType
                 Expr [4-5]: Lit: Int(0)"#]],
     );
@@ -759,11 +687,10 @@ fn cast_to_bit() {
 
 #[test]
 fn cast_to_bit_with_designator() {
-    check(
-        expr,
+    check_expr(
         "bit[4](0)",
         &expect![[r#"
-            Expr [0-6]: Cast [0-9]:
+            Expr [0-9]: Cast [0-9]:
                 ClassicalType [0-6]: BitType [0-6]: Expr [4-5]: Lit: Int(4)
                 Expr [7-8]: Lit: Int(0)"#]],
     );
@@ -771,11 +698,10 @@ fn cast_to_bit_with_designator() {
 
 #[test]
 fn cast_to_int() {
-    check(
-        expr,
+    check_expr(
         "int(0)",
         &expect![[r#"
-            Expr [0-3]: Cast [0-6]:
+            Expr [0-6]: Cast [0-6]:
                 ClassicalType [0-3]: IntType [0-3]
                 Expr [4-5]: Lit: Int(0)"#]],
     );
@@ -783,11 +709,10 @@ fn cast_to_int() {
 
 #[test]
 fn cast_to_int_with_designator() {
-    check(
-        expr,
+    check_expr(
         "int[64](0)",
         &expect![[r#"
-            Expr [0-7]: Cast [0-10]:
+            Expr [0-10]: Cast [0-10]:
                 ClassicalType [0-7]: IntType[Expr [4-6]: Lit: Int(64)]: [0-7]
                 Expr [8-9]: Lit: Int(0)"#]],
     );
@@ -795,11 +720,10 @@ fn cast_to_int_with_designator() {
 
 #[test]
 fn cast_to_uint() {
-    check(
-        expr,
+    check_expr(
         "uint(0)",
         &expect![[r#"
-            Expr [0-4]: Cast [0-7]:
+            Expr [0-7]: Cast [0-7]:
                 ClassicalType [0-4]: UIntType [0-4]
                 Expr [5-6]: Lit: Int(0)"#]],
     );
@@ -807,11 +731,10 @@ fn cast_to_uint() {
 
 #[test]
 fn cast_to_uint_with_designator() {
-    check(
-        expr,
+    check_expr(
         "uint[64](0)",
         &expect![[r#"
-            Expr [0-8]: Cast [0-11]:
+            Expr [0-11]: Cast [0-11]:
                 ClassicalType [0-8]: UIntType[Expr [5-7]: Lit: Int(64)]: [0-8]
                 Expr [9-10]: Lit: Int(0)"#]],
     );
@@ -819,11 +742,10 @@ fn cast_to_uint_with_designator() {
 
 #[test]
 fn cast_to_float() {
-    check(
-        expr,
+    check_expr(
         "float(0)",
         &expect![[r#"
-            Expr [0-5]: Cast [0-8]:
+            Expr [0-8]: Cast [0-8]:
                 ClassicalType [0-5]: FloatType [0-5]
                 Expr [6-7]: Lit: Int(0)"#]],
     );
@@ -831,11 +753,10 @@ fn cast_to_float() {
 
 #[test]
 fn cast_to_float_with_designator() {
-    check(
-        expr,
+    check_expr(
         "float[64](0)",
         &expect![[r#"
-            Expr [0-9]: Cast [0-12]:
+            Expr [0-12]: Cast [0-12]:
                 ClassicalType [0-9]: FloatType[Expr [6-8]: Lit: Int(64)]: [0-9]
                 Expr [10-11]: Lit: Int(0)"#]],
     );
@@ -843,11 +764,10 @@ fn cast_to_float_with_designator() {
 
 #[test]
 fn cast_to_complex() {
-    check(
-        expr,
+    check_expr(
         "complex[float](0)",
         &expect![[r#"
-            Expr [0-14]: Cast [0-17]:
+            Expr [0-17]: Cast [0-17]:
                 ClassicalType [0-14]: ComplexType[float[FloatType [8-13]]]: [0-14]
                 Expr [15-16]: Lit: Int(0)"#]],
     );
@@ -855,11 +775,10 @@ fn cast_to_complex() {
 
 #[test]
 fn cast_to_complex_with_designator() {
-    check(
-        expr,
+    check_expr(
         "complex[float[64]](0)",
         &expect![[r#"
-            Expr [0-18]: Cast [0-21]:
+            Expr [0-21]: Cast [0-21]:
                 ClassicalType [0-18]: ComplexType[float[FloatType[Expr [14-16]: Lit: Int(64)]: [8-17]]]: [0-18]
                 Expr [19-20]: Lit: Int(0)"#]],
     );
@@ -867,11 +786,10 @@ fn cast_to_complex_with_designator() {
 
 #[test]
 fn cast_to_bool() {
-    check(
-        expr,
+    check_expr(
         "bool(0)",
         &expect![[r#"
-            Expr [0-4]: Cast [0-7]:
+            Expr [0-7]: Cast [0-7]:
                 ClassicalType [0-4]: BoolType
                 Expr [5-6]: Lit: Int(0)"#]],
     );
@@ -879,11 +797,10 @@ fn cast_to_bool() {
 
 #[test]
 fn cast_to_duration() {
-    check(
-        expr,
+    check_expr(
         "duration(0)",
         &expect![[r#"
-            Expr [0-8]: Cast [0-11]:
+            Expr [0-11]: Cast [0-11]:
                 ClassicalType [0-8]: Duration
                 Expr [9-10]: Lit: Int(0)"#]],
     );
@@ -891,11 +808,10 @@ fn cast_to_duration() {
 
 #[test]
 fn cast_to_stretch() {
-    check(
-        expr,
+    check_expr(
         "stretch(0)",
         &expect![[r#"
-            Expr [0-7]: Cast [0-10]:
+            Expr [0-10]: Cast [0-10]:
                 ClassicalType [0-7]: Stretch
                 Expr [8-9]: Lit: Int(0)"#]],
     );
@@ -903,11 +819,10 @@ fn cast_to_stretch() {
 
 #[test]
 fn cast_to_int_array() {
-    check(
-        expr,
+    check_expr(
         "array[int[64], 4](0)",
         &expect![[r#"
-            Expr [0-17]: Cast [0-20]:
+            Expr [0-20]: Cast [0-20]:
                 ArrayType [0-17]: ArrayBaseTypeKind IntType[Expr [10-12]: Lit: Int(64)]: [6-13]
                 Expr [15-16]: Lit: Int(4)
                 Expr [18-19]: Lit: Int(0)"#]],
@@ -916,11 +831,10 @@ fn cast_to_int_array() {
 
 #[test]
 fn cast_to_uint_array() {
-    check(
-        expr,
+    check_expr(
         "array[uint[64], 4](0)",
         &expect![[r#"
-            Expr [0-18]: Cast [0-21]:
+            Expr [0-21]: Cast [0-21]:
                 ArrayType [0-18]: ArrayBaseTypeKind UIntType[Expr [11-13]: Lit: Int(64)]: [6-14]
                 Expr [16-17]: Lit: Int(4)
                 Expr [19-20]: Lit: Int(0)"#]],
@@ -929,11 +843,10 @@ fn cast_to_uint_array() {
 
 #[test]
 fn cast_to_float_array() {
-    check(
-        expr,
+    check_expr(
         "array[float[64], 4](0)",
         &expect![[r#"
-            Expr [0-19]: Cast [0-22]:
+            Expr [0-22]: Cast [0-22]:
                 ArrayType [0-19]: ArrayBaseTypeKind FloatType[Expr [12-14]: Lit: Int(64)]: [6-15]
                 Expr [17-18]: Lit: Int(4)
                 Expr [20-21]: Lit: Int(0)"#]],
@@ -942,11 +855,10 @@ fn cast_to_float_array() {
 
 #[test]
 fn cast_to_angle_array() {
-    check(
-        expr,
+    check_expr(
         "array[angle[64], 4](0)",
         &expect![[r#"
-            Expr [0-19]: Cast [0-22]:
+            Expr [0-22]: Cast [0-22]:
                 ArrayType [0-19]: ArrayBaseTypeKind AngleType [6-15]: Expr [12-14]: Lit: Int(64)
                 Expr [17-18]: Lit: Int(4)
                 Expr [20-21]: Lit: Int(0)"#]],
@@ -955,11 +867,10 @@ fn cast_to_angle_array() {
 
 #[test]
 fn cast_to_bool_array() {
-    check(
-        expr,
+    check_expr(
         "array[bool, 4](0)",
         &expect![[r#"
-            Expr [0-14]: Cast [0-17]:
+            Expr [0-17]: Cast [0-17]:
                 ArrayType [0-14]: ArrayBaseTypeKind BoolType
                 Expr [12-13]: Lit: Int(4)
                 Expr [15-16]: Lit: Int(0)"#]],
@@ -968,11 +879,10 @@ fn cast_to_bool_array() {
 
 #[test]
 fn cast_to_duration_array() {
-    check(
-        expr,
+    check_expr(
         "array[duration, 4](0)",
         &expect![[r#"
-            Expr [0-18]: Cast [0-21]:
+            Expr [0-21]: Cast [0-21]:
                 ArrayType [0-18]: ArrayBaseTypeKind DurationType
                 Expr [16-17]: Lit: Int(4)
                 Expr [19-20]: Lit: Int(0)"#]],
@@ -981,11 +891,10 @@ fn cast_to_duration_array() {
 
 #[test]
 fn cast_to_complex_array() {
-    check(
-        expr,
+    check_expr(
         "array[complex[float[32]], 4](0)",
         &expect![[r#"
-            Expr [0-28]: Cast [0-31]:
+            Expr [0-31]: Cast [0-31]:
                 ArrayType [0-28]: ArrayBaseTypeKind ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24]
                 Expr [26-27]: Lit: Int(4)
                 Expr [29-30]: Lit: Int(0)"#]],
@@ -994,8 +903,7 @@ fn cast_to_complex_array() {
 
 #[test]
 fn index_expr() {
-    check(
-        expr,
+    check_expr(
         "foo[1]",
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1005,8 +913,7 @@ fn index_expr() {
 
 #[test]
 fn index_set() {
-    check(
-        expr,
+    check_expr(
         "foo[{1, 4, 5}]",
         &expect![[r#"
             Expr [0-14]: IndexExpr [3-14]: Expr [0-3]: Ident [0-3] "foo", IndexElement DiscreteSet [4-13]:
@@ -1018,8 +925,7 @@ fn index_set() {
 
 #[test]
 fn index_multiple_ranges() {
-    check(
-        expr,
+    check_expr(
         "foo[1:5, 3:7, 4:8]",
         &expect![[r#"
             Expr [0-18]: IndexExpr [3-18]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1040,8 +946,7 @@ fn index_multiple_ranges() {
 
 #[test]
 fn index_range() {
-    check(
-        expr,
+    check_expr(
         "foo[1:5:2]",
         &expect![[r#"
             Expr [0-10]: IndexExpr [3-10]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1054,8 +959,7 @@ fn index_range() {
 
 #[test]
 fn index_full_range() {
-    check(
-        expr,
+    check_expr(
         "foo[:]",
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1068,8 +972,7 @@ fn index_full_range() {
 
 #[test]
 fn index_range_start() {
-    check(
-        expr,
+    check_expr(
         "foo[1:]",
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1082,8 +985,7 @@ fn index_range_start() {
 
 #[test]
 fn index_range_end() {
-    check(
-        expr,
+    check_expr(
         "foo[:5]",
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1096,8 +998,7 @@ fn index_range_end() {
 
 #[test]
 fn index_range_step() {
-    check(
-        expr,
+    check_expr(
         "foo[:2:]",
         &expect![[r#"
             Expr [0-8]: IndexExpr [3-8]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
@@ -1135,8 +1036,7 @@ fn lit_array() {
 
 #[test]
 fn assignment_and_unop() {
-    check(
-        expr,
+    check_expr(
         "c = a && !b",
         &expect![[r#"
             Expr [0-11]: Assign:
@@ -1150,8 +1050,7 @@ fn assignment_and_unop() {
 
 #[test]
 fn assignment_unop_and() {
-    check(
-        expr,
+    check_expr(
         "d = !a && b",
         &expect![[r#"
             Expr [0-11]: Assign:

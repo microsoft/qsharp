@@ -170,9 +170,10 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
             Ok(Some(r#type)) => {
                 // If we have a type, we expect to see a
                 // parenthesized expression next.
+                let kind = Box::new(cast_op(s, r#type)?);
                 Ok(Expr {
                     span: s.span(lo),
-                    kind: Box::new(cast_op(s, r#type)?),
+                    kind,
                 })
             }
             Ok(None) => {

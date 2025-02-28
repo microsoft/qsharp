@@ -66,17 +66,17 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
             let arg = expr::expr(s)?;
             recovering_token(s, TokenKind::Close(Delim::Paren));
             let cast_expr = Expr {
-                span: s.span(lo),
+                span: s.span(ty.span().lo),
                 kind: Box::new(ExprKind::Cast(Cast {
-                    span: s.span(lo),
+                    span: s.span(ty.span().lo),
                     r#type: ty,
                     arg,
                 })),
             };
-            Box::new(StmtKind::ExprStmt(ExprStmt {
-                span: s.span(lo),
-                expr: cast_expr,
-            }))
+            Box::new(StmtKind::ExprStmt(parse_expression_stmt(
+                s,
+                Some(cast_expr),
+            )?))
         }
     } else if let Some(decl) = opt(s, parse_constant_classical_decl)? {
         Box::new(decl)
@@ -1071,7 +1071,6 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
 
 /// Grammar: `expression SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<ExprStmt> {
-    let lo = s.peek().span.lo;
     let expr = if let Some(lhs) = lhs {
         expr::expr_with_lhs(s, lhs)?
     } else {
@@ -1079,7 +1078,7 @@ fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<Exp
     };
     recovering_semi(s);
     Ok(ExprStmt {
-        span: s.span(lo),
+        span: s.span(expr.span.lo),
         expr,
     })
 }
