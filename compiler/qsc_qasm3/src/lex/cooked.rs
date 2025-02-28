@@ -100,8 +100,6 @@ pub enum TokenKind {
     NegCtrl,
     Dim,
     DurationOf,
-    Delay,
-    Reset,
     Measure,
 
     Literal(Literal),
@@ -159,8 +157,6 @@ impl Display for TokenKind {
             TokenKind::NegCtrl => write!(f, "negctrl"),
             TokenKind::Dim => write!(f, "dim"),
             TokenKind::DurationOf => write!(f, "durationof"),
-            TokenKind::Delay => write!(f, "delay"),
-            TokenKind::Reset => write!(f, "reset"),
             TokenKind::Measure => write!(f, "measure"),
             TokenKind::Literal(literal) => write!(f, "literal `{literal}`"),
             TokenKind::Open(Delim::Brace) => write!(f, "`{{`"),
@@ -749,8 +745,6 @@ impl<'a> Lexer<'a> {
             "negctrl" => TokenKind::NegCtrl,
             "dim" => TokenKind::Dim,
             "durationof" => TokenKind::DurationOf,
-            "delay" => TokenKind::Delay,
-            "reset" => TokenKind::Reset,
             "measure" => TokenKind::Measure,
             ident => {
                 if let Ok(keyword) = ident.parse::<Keyword>() {
