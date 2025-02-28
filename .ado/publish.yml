@@ -326,7 +326,7 @@ extends:
                 foreach ($envVar in $envVars) {
                     Write-Host "$($envVar.Name) = $($envVar.Value)"
                     $path = "$($envVar.Value)"
-                    if(Test-Path $path) {
+                    if (![string]::IsNullOrEmpty($path) -and (Test-Path $path)) {
                         Write-Host "Checking for $path"
                         try {
                             Get-ChildItem -Path $path -Recurse -Filter "*.exe" -ErrorAction Continue | ForEach-Object { Write-Host $_.FullName }
