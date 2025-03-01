@@ -554,19 +554,14 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => {
                 // after reading a decimal number or a float there could be a whitespace
                 // followed by a fragment, which will change the type of the literal.
-                match (self.first(), self.second()) {
-                    (Some(raw::TokenKind::LiteralFragment(fragment)), _)
-                    | (
-                        Some(raw::TokenKind::Whitespace),
-                        Some(raw::TokenKind::LiteralFragment(fragment)),
-                    ) => {
+                self.next_if_eq(raw::TokenKind::Whitespace);
+
+                match self.first() {
+                    Some(raw::TokenKind::LiteralFragment(fragment)) => {
                         use self::Literal::{Imaginary, Timing};
                         use TokenKind::Literal;
 
-                        // if first() was a whitespace, we need to consume an extra token
-                        if self.first() == Some(raw::TokenKind::Whitespace) {
-                            self.next();
-                        }
+                        // Consume the fragment.
                         self.next();
 
                         Ok(Some(match fragment {

@@ -364,6 +364,37 @@ fn imag_with_whitespace() {
 }
 
 #[test]
+fn imag_with_whitespace_semicolon() {
+    check(
+        "123 im;",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Imaginary,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Semicolon,
+                        span: Span {
+                            lo: 6,
+                            hi: 7,
+                        },
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn negative_imag() {
     check(
         "-123im",
