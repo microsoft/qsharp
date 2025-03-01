@@ -1277,7 +1277,9 @@ fn hardware_qubit_with_underscore_in_the_middle() {
 
 #[test]
 fn decimal_space_imag_semicolon() {
-    check("10  im;", &expect![[r#"
+    check(
+        "10  im;",
+        &expect![[r#"
         [
             Token {
                 kind: Number(
@@ -1304,5 +1306,6 @@ fn decimal_space_imag_semicolon() {
                 offset: 6,
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
