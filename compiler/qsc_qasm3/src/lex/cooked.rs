@@ -461,14 +461,6 @@ impl<'a> Lexer<'a> {
         self.tokens.peek().map(|i| i.kind)
     }
 
-    /// Returns the second token ahead of the cursor without consuming it. This is slower
-    /// than [`first`] and should be avoided when possible.
-    fn second(&self) -> Option<raw::TokenKind> {
-        let mut tokens = self.tokens.clone();
-        tokens.next();
-        tokens.next().map(|i| i.kind)
-    }
-
     /// Consumes the characters while they satisfy `f`. Returns the last character eaten, if any.
     fn eat_while(&mut self, mut f: impl FnMut(raw::TokenKind) -> bool) -> Option<raw::TokenKind> {
         let mut last_eaten: Option<raw::Token> = None;
@@ -554,26 +546,31 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => {
                 // after reading a decimal number or a float there could be a whitespace
                 // followed by a fragment, which will change the type of the literal.
+                let numeric_part_hi = self.offset();
                 self.next_if_eq(raw::TokenKind::Whitespace);
 
-                match self.first() {
-                    Some(raw::TokenKind::LiteralFragment(fragment)) => {
-                        use self::Literal::{Imaginary, Timing};
-                        use TokenKind::Literal;
+                if let Some(raw::TokenKind::LiteralFragment(fragment)) = self.first() {
+                    use self::Literal::{Imaginary, Timing};
+                    use TokenKind::Literal;
 
-                        // Consume the fragment.
-                        self.next();
+                    // Consume the fragment.
+                    self.next();
 
-                        Ok(Some(match fragment {
-                            raw::LiteralFragmentKind::Imag => Literal(Imaginary),
-                            raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
-                            raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
-                            raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
-                            raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
-                            raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
-                        }))
-                    }
-                    _ => Ok(Some(number.into())),
+                    Ok(Some(match fragment {
+                        raw::LiteralFragmentKind::Imag => Literal(Imaginary),
+                        raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
+                        raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
+                        raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
+                        raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
+                        raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
+                    }))
+                } else {
+                    let kind: TokenKind = number.into();
+                    let span = Span {
+                        lo: token.offset,
+                        hi: numeric_part_hi,
+                    };
+                    return Ok(Some(Token { kind, span }));
                 }
             }
             raw::TokenKind::Single(Single::Sharp) => {
