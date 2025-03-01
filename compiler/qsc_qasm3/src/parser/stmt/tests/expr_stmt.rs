@@ -117,8 +117,8 @@ fn cast_expr() {
         parse,
         "bit(0);",
         &expect![[r#"
-            Stmt [0-6]
-                StmtKind: ExprStmt [0-6]: Expr [0-6]: Cast [0-6]:
+            Stmt [0-7]
+                StmtKind: ExprStmt [0-7]: Expr [0-6]: Cast [0-6]:
                     ClassicalType [0-3]: BitType
                     Expr [4-5]: Lit: Int(0)"#]],
     );
@@ -130,8 +130,8 @@ fn cast_expr_with_designator() {
         parse,
         "bit[45](0);",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ExprStmt [0-10]: Expr [0-10]: Cast [0-10]:
+            Stmt [0-11]
+                StmtKind: ExprStmt [0-11]: Expr [0-10]: Cast [0-10]:
                     ClassicalType [0-7]: BitType [0-7]: Expr [4-6]: Lit: Int(45)
                     Expr [8-9]: Lit: Int(0)"#]],
     );
