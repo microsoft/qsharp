@@ -4,26 +4,9 @@
 use super::expr;
 use crate::{
     ast::StmtKind,
-    parser::{scan::ParserContext, stmt, tests::check, Parser},
+    parser::{scan::ParserContext, stmt, tests::check},
 };
 use expect_test::{expect, Expect};
-
-fn check_map<T>(
-    mut parser: impl Parser<T>,
-    input: &str,
-    expect: &Expect,
-    f: impl FnOnce(&T) -> String,
-) {
-    let mut scanner = ParserContext::new(input);
-    let result = parser(&mut scanner);
-    let errors = scanner.into_errors();
-    match result {
-        Ok(value) if errors.is_empty() => expect.assert_eq(&f(&value)),
-        Ok(value) => expect.assert_eq(&format!("{}\n\n{errors:#?}", f(&value))),
-        Err(error) if errors.is_empty() => expect.assert_debug_eq(&error),
-        Err(error) => expect.assert_eq(&format!("{error:#?}\n\n{errors:#?}")),
-    }
-}
 
 /// This function checks two things:
 ///   1. That the input `Expr` is parsed correctly.
