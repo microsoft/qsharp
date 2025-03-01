@@ -536,6 +536,17 @@ fn lit_float_imag_leading_zero() {
 }
 
 #[test]
+fn pratt_parsing_binary_expr() {
+    check_expr(
+        "1 + 2",
+        &expect![[r#"
+            Expr [0-5]: BinOp (Add):
+                Expr [0-1]: Lit: Int(1)
+                Expr [4-5]: Lit: Int(2)"#]],
+    );
+}
+
+#[test]
 fn pratt_parsing_mul_add() {
     check_expr(
         "1 + 2 * 3",
