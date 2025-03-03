@@ -409,30 +409,28 @@ fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
 }
 
 fn timing_literal(lexeme: &str, token: Token, kind: TimingLiteralKind) -> Result<Option<Lit>> {
-    {
-        let lexeme = lexeme
-            .chars()
-            .filter(|x| *x != '_')
-            .take_while(|x| x.is_numeric() || *x == '.')
-            .collect::<String>();
+    let lexeme = lexeme
+        .chars()
+        .filter(|x| *x != '_')
+        .take_while(|x| x.is_numeric() || *x == '.')
+        .collect::<String>();
 
-        let value = lexeme
-            .parse()
-            .map_err(|_| Error::new(ErrorKind::Lit("timing", token.span)))?;
+    let value = lexeme
+        .parse()
+        .map_err(|_| Error::new(ErrorKind::Lit("timing", token.span)))?;
 
-        let unit = match kind {
-            TimingLiteralKind::Dt => TimeUnit::Dt,
-            TimingLiteralKind::Ns => TimeUnit::Ns,
-            TimingLiteralKind::Us => TimeUnit::Us,
-            TimingLiteralKind::Ms => TimeUnit::Ms,
-            TimingLiteralKind::S => TimeUnit::S,
-        };
+    let unit = match kind {
+        TimingLiteralKind::Dt => TimeUnit::Dt,
+        TimingLiteralKind::Ns => TimeUnit::Ns,
+        TimingLiteralKind::Us => TimeUnit::Us,
+        TimingLiteralKind::Ms => TimeUnit::Ms,
+        TimingLiteralKind::S => TimeUnit::S,
+    };
 
-        Ok(Some(Lit {
-            span: token.span,
-            kind: LiteralKind::Duration { value, unit },
-        }))
-    }
+    Ok(Some(Lit {
+        span: token.span,
+        kind: LiteralKind::Duration { value, unit },
+    }))
 }
 
 pub(crate) fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
