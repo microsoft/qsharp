@@ -6,6 +6,10 @@ export
     QubitizationOracle,
     OptimizedQubitizationOracle;
 
+import Std.Convert.IntAsDouble;
+import Std.Math.Ceiling;
+import Std.Math.Lg;
+
 import JordanWigner.JordanWignerBlockEncoding.JordanWignerBlockEncodingGeneratorSystem;
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerFermionEvolutionSet;
 import JordanWigner.JordanWignerEvolutionSet.JordanWignerGeneratorSystem;
@@ -13,11 +17,7 @@ import JordanWigner.JordanWignerOptimizedBlockEncoding.JordanWignerOptimizedBloc
 import JordanWigner.JordanWignerOptimizedBlockEncoding.PauliBlockEncoding;
 import JordanWigner.JordanWignerOptimizedBlockEncoding.QuantumWalkByQubitization;
 import JordanWigner.Utils.JordanWignerEncodingData;
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
 import JordanWigner.Utils.TrotterSimulationAlgorithm;
-import Std.Convert.IntAsDouble;
-import Std.Math.Ceiling;
-import Std.Math.Lg;
 import Utils.EvolutionGenerator;
 
 // Convenience functions for performing simulation.
@@ -50,10 +50,9 @@ function TrotterStepOracle(jwHamiltonian : JordanWignerEncodingData, trotterStep
 
 function QubitizationOracleSeperatedRegisters(jwHamiltonian : JordanWignerEncodingData) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
     let generatorSystem = JordanWignerBlockEncodingGeneratorSystem(jwHamiltonian.Terms);
-    let (nTerms, genIdxFunction) = generatorSystem!;
     let (oneNorm, blockEncodingReflection) = PauliBlockEncoding(generatorSystem);
     let nTargetRegisterQubits = jwHamiltonian.NumQubits;
-    let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(nTerms)));
+    let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(generatorSystem.NumEntries)));
     return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
 }
 

@@ -23,6 +23,22 @@
     {
       "lint": "needlessParens",
       "level": "error"
+    },
+    {
+      "lint": "doubleEquality",
+      "level": "error"
+    },
+    {
+      "lint": "redundantSemicolons",
+      "level": "error"
+    },
+    {
+      "lint": "discourageChainAssignment",
+      "level": "error"
+    },
+    {
+      "lint": "needlessOperation",
+      "level": "error"
     }
   ],
   "files": [

@@ -28,6 +28,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 import { CircuitEditorProvider } from "./circuitEditor.js";
 
 export async function activate(
@@ -83,6 +84,7 @@ export async function activate(
   registerWebViewCommands(context);
   initFileSystem(context);
   initProjectCreator(context);
+  registerCopilotPanel(context);
 
   log.info("Q# extension activated.");
 

@@ -13,12 +13,6 @@ export
     QuantumWalkByQubitization,
     PauliBlockEncoding;
 
-import JordanWigner.OptimizedBEOperator.JordanWignerSelect;
-import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitCount;
-import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitManager;
-import JordanWigner.Utils.JWOptimizedHTerms;
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
-import JordanWigner.Utils.RangeAsIntArray;
 import Std.Arrays.*;
 import Std.Math.*;
 import Std.Convert.IntAsDouble;
@@ -26,6 +20,13 @@ import Std.Arithmetic.ApplyIfGreaterLE;
 import Std.StatePreparation.PreparePureStateD;
 import Std.StatePreparation.PrepareUniformSuperposition;
 import Std.Diagnostics.Fact;
+
+import JordanWigner.OptimizedBEOperator.JordanWignerSelect;
+import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitCount;
+import JordanWigner.OptimizedBEOperator.JordanWignerSelectQubitManager;
+import JordanWigner.Utils.JWOptimizedHTerms;
+import JordanWigner.Utils.MultiplexOperationsFromGenerator;
+import JordanWigner.Utils.RangeAsIntArray;
 import Utils.GeneratorIndex;
 import Utils.GeneratorSystem;
 import Utils.HTermToGenIdx;
@@ -52,22 +53,13 @@ struct OptimizedBEGeneratorSystem {
     SelectTerm : (Int -> OptimizedBETermIndex)
 }
 
-// Get OptimizedBETermIndex coefficients
-function GetOptimizedBETermIndexCoeff(term : OptimizedBETermIndex) : Double {
-    let (a, b, c, d, e, f) = term!;
-    return a;
-}
-
 
 // Get OptimizedBEGeneratorSystem coefficients
 function OptimizedBEGeneratorSystemCoeff(optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem) : Double[] {
-    let (nTerms, oneNorm, intToGenIdx) = optimizedBEGeneratorSystem!;
-    mutable coefficients = [0.0, size = nTerms];
-
-    for idx in 0..nTerms - 1 {
-        coefficients w/= idx <- GetOptimizedBETermIndexCoeff(intToGenIdx(idx));
+    mutable coefficients = [];
+    for idx in 0..optimizedBEGeneratorSystem.NumTerms - 1 {
+        coefficients += [optimizedBEGeneratorSystem.SelectTerm(idx).Coefficient];
     }
-
     return coefficients;
 }
 
@@ -83,7 +75,8 @@ function OptimizedBEGeneratorSystemCoeff(optimizedBEGeneratorSystem : OptimizedB
 /// # Output
 /// `GeneratorIndex[]` expressing Z term as Pauli terms.
 function ZTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let signQubit = coeff[0] < 0.0;
     let selectZControlRegisters = [true];
     let optimizedBEControlRegisters = [];
@@ -111,7 +104,8 @@ function ZTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
 /// # Output
 /// `GeneratorIndex[]` expressing ZZ term as Pauli terms.
 function ZZTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let signQubit = coeff[0] < 0.0;
     let selectZControlRegisters = [true, true];
     let optimizedBEControlRegisters = [];
@@ -139,7 +133,8 @@ function ZZTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
 /// # Output
 /// `GeneratorIndex[]` expressing PQ term as Pauli terms.
 function PQTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let sign = coeff[0] < 0.0;
     let selectZControlRegisters = [];
     let optimizedBEControlRegisters = [true, true];
@@ -167,7 +162,8 @@ function PQTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
 /// # Output
 /// `GeneratorIndex[]` expressing PQ or PQQR term as Pauli terms.
 function PQandPQQRTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex {
-    let ((idxTermType, coeff), idxFermions) = term!;
+    let (_, coeff) = term.Term;
+    let idxFermions = term.Subsystem;
     let sign = coeff[0] < 0.0;
 
     if Length(idxFermions) == 2 {
@@ -203,7 +199,8 @@ function PQandPQQRTermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermInde
 /// # Output
 /// `GeneratorIndex[]` expressing PQRS term as Pauli terms.
 function V0123TermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex[] {
-    let ((idxTermType, v0123), idxFermions) = term!;
+    let (_, v0123) = term.Term;
+    let idxFermions = term.Subsystem;
     let qubitsPQ = idxFermions[0..1];
     let qubitsRS = idxFermions[2..3];
     let qubitsPQJW = RangeAsIntArray(qubitsPQ[0] + 1..qubitsPQ[1] - 1);
@@ -256,7 +253,10 @@ function V0123TermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex[] 
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
 function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : OptimizedBEGeneratorSystem {
-    let (ZData, ZZData, PQandPQQRData, h0123Data) = data!;
+    let ZData = data.HTerm0;
+    let ZZData = data.HTerm1;
+    let PQandPQQRData = data.HTerm2;
+    let h0123Data = data.HTerm3;
     mutable majIdxes = Repeated(
         new OptimizedBETermIndex {
             Coefficient = 0.0,
@@ -307,7 +307,7 @@ function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : Optim
     mutable oneNorm = 0.0;
 
     for idx in 0..finalIdx - 1 {
-        oneNorm = oneNorm + AbsD(GetOptimizedBETermIndexCoeff(majIdxes[idx]));
+        oneNorm = oneNorm + AbsD(majIdxes[idx].Coefficient);
     }
 
     let majIdxes = majIdxes[0..finalIdx - 1];
@@ -324,15 +324,15 @@ operation ToJordanWignerSelectInput(
     pauliBasesIdx : Qubit[],
     indexRegisters : Qubit[][]
 ) : Unit is Adj + Ctl {
-    let (nTerms, oneNorm, intToGenIdx) = optimizedBEGeneratorSystem!;
-    let (coeff, signQubitSet, selectZControlRegistersSet, OptimizedBEControlRegistersSet, pauliBasesSet, indexRegistersSet) = (intToGenIdx(idx))!;
+    let optimizedBETermIndex = optimizedBEGeneratorSystem.SelectTerm(idx);
 
     // Write bit to apply - signQubit
-    if (signQubitSet == true) {
+    if optimizedBETermIndex.UseSignQubit {
         X(signQubit);
     }
 
     // Write bit to activate selectZ operator
+    let selectZControlRegistersSet = optimizedBETermIndex.ZControlRegisterMask;
     for i in IndexRange(selectZControlRegistersSet) {
         if selectZControlRegistersSet[i] {
             X(selectZControlRegisters[i]);
@@ -340,18 +340,21 @@ operation ToJordanWignerSelectInput(
     }
 
     // Write bit to activate OptimizedBEXY operator
-    for i in IndexRange(OptimizedBEControlRegistersSet) {
-        if OptimizedBEControlRegistersSet[i] {
+    let optimizedBEControlRegistersSet = optimizedBETermIndex.OptimizedControlRegisterMask;
+    for i in IndexRange(optimizedBEControlRegistersSet) {
+        if optimizedBEControlRegistersSet[i] {
             X(optimizedBEControlRegisters[i]);
         }
     }
 
     // Write bitstring to apply desired XZ... or YZ... Pauli string
+    let indexRegistersSet = optimizedBETermIndex.RegisterIndices;
     for i in IndexRange(indexRegistersSet) {
         ApplyXorInPlace(indexRegistersSet[i], indexRegisters[i]);
     }
 
     // Crete state to select uniform superposition of X and Y operators.
+    let pauliBasesSet = optimizedBETermIndex.PauliBases;
     if Length(pauliBasesSet) == 2 {
         // for PQ or PQQR terms, create |00> + |11>
         ApplyXorInPlace(0, pauliBasesIdx);
@@ -385,66 +388,163 @@ operation ToPauliBases(idx : Int, pauliBases : Qubit[]) : Unit is Adj + Ctl {
 }
 
 // This prepares the state that selects _JordanWignerSelect_;
-operation JordanWignerOptimizedBlockEncodingStatePrep(targetError : Double, optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem, qROMIdxRegister : Qubit[], qROMGarbage : Qubit[], signQubit : Qubit, selectZControlRegisters : Qubit[], optimizedBEControlRegisters : Qubit[], pauliBases : Qubit[], pauliBasesIdx : Qubit[], indexRegisters : Qubit[][]) : Unit is Adj + Ctl {
-    let (nTerms, _, _) = optimizedBEGeneratorSystem!;
+operation JordanWignerOptimizedBlockEncodingStatePrep(
+    targetError : Double,
+    optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem,
+    qROMIdxRegister : Qubit[],
+    qROMGarbage : Qubit[],
+    signQubit : Qubit,
+    selectZControlRegisters : Qubit[],
+    optimizedBEControlRegisters : Qubit[],
+    pauliBases : Qubit[],
+    pauliBasesIdx : Qubit[],
+    indexRegisters : Qubit[][]
+) : Unit is Adj + Ctl {
+
     let coefficients = OptimizedBEGeneratorSystemCoeff(optimizedBEGeneratorSystem);
     let purifiedState = PurifiedMixedState(targetError, coefficients);
-    let unitaryGenerator = (nTerms, idx -> ToJordanWignerSelectInput(idx, optimizedBEGeneratorSystem, _, _, _, _, _));
+    let unitaryGenerator = (
+        optimizedBEGeneratorSystem.NumTerms,
+        idx -> ToJordanWignerSelectInput(idx, optimizedBEGeneratorSystem, _, _, _, _, _)
+    );
     let pauliBasesUnitaryGenerator = (5, idx -> (qs => ToPauliBases(idx, qs)));
 
     purifiedState.Prepare(qROMIdxRegister, [], qROMGarbage);
-    MultiplexOperationsFromGenerator(unitaryGenerator, qROMIdxRegister, (signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBasesIdx, indexRegisters));
+    MultiplexOperationsFromGenerator(
+        unitaryGenerator,
+        qROMIdxRegister,
+        (signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBasesIdx, indexRegisters)
+    );
     MultiplexOperationsFromGenerator(pauliBasesUnitaryGenerator, pauliBasesIdx, pauliBases);
 }
 
-function JordanWignerOptimizedBlockEncodingQubitManager(targetError : Double, nCoeffs : Int, nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[]) : ((Qubit[], Qubit[], Qubit, Qubit[], Qubit[], Qubit[], Qubit[], Qubit[][]), (Qubit, Qubit[], Qubit[], Qubit[], Qubit[][]), Qubit[]) {
+function JordanWignerOptimizedBlockEncodingQubitManager(
+    targetError : Double,
+    nCoeffs : Int,
+    nZ : Int,
+    nMaj : Int,
+    nIdxRegQubits : Int,
+    ctrlRegister : Qubit[]
+) : (
+    (Qubit[], Qubit[], Qubit, Qubit[], Qubit[], Qubit[], Qubit[], Qubit[][]),
+    (Qubit, Qubit[], Qubit[], Qubit[], Qubit[][]),
+    Qubit[]
+) {
+
     let requirements = PurifiedMixedStateRequirements(targetError, nCoeffs);
     let parts = Partitioned([requirements.NumIndexQubits, requirements.NumGarbageQubits], ctrlRegister);
     let ((qROMIdx, qROMGarbage), rest0) = ((parts[0], parts[1]), parts[2]);
     let ((signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, indexRegisters, tmp), rest1) = JordanWignerSelectQubitManager(nZ, nMaj, nIdxRegQubits, rest0, []);
     let registers = Partitioned([3], rest1);
     let pauliBasesIdx = registers[0];
-    return ((qROMIdx, qROMGarbage, signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, pauliBasesIdx, indexRegisters), (signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, indexRegisters), registers[1]);
+    return (
+        (qROMIdx, qROMGarbage, signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, pauliBasesIdx, indexRegisters),
+        (signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, indexRegisters),
+        registers[1]
+    );
 }
 
-function JordanWignerOptimizedBlockEncodingQubitCount(targetError : Double, nCoeffs : Int, nZ : Int, nMaj : Int, nIdxRegQubits : Int, nTarget : Int) : ((Int, Int), (Int, Int, Int, Int, Int, Int, Int, Int[], Int)) {
+function JordanWignerOptimizedBlockEncodingQubitCount(
+    targetError : Double,
+    nCoeffs : Int,
+    nZ : Int,
+    nMaj : Int,
+    nIdxRegQubits : Int,
+    nTarget : Int
+) : (
+    (Int, Int),
+    (Int, Int, Int, Int, Int, Int, Int, Int[], Int)
+) {
+
     let (nSelectTotal, (a0, a1, a2, a3, a4)) = JordanWignerSelectQubitCount(nZ, nMaj, nIdxRegQubits);
-    let (nQROMTotal, b0, b1) = PurifiedMixedStateRequirements(targetError, nCoeffs)!;
+    let requirements = PurifiedMixedStateRequirements(targetError, nCoeffs);
     let pauliBasesIdx = 3;
-    return (((nSelectTotal + nQROMTotal) + pauliBasesIdx, nTarget), (b0, b1, a0, a1, a2, a3, pauliBasesIdx, a4, nTarget));
+    return (
+        ((nSelectTotal + requirements.NumTotalQubits) + pauliBasesIdx, nTarget),
+        (requirements.NumIndexQubits, requirements.NumGarbageQubits, a0, a1, a2, a3, pauliBasesIdx, a4, nTarget)
+    );
 }
 
 
-operation JordanWignerOptimizedBlockEncodingStatePrepWrapper(targetError : Double, nCoeffs : Int, optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem, nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[]) : Unit is Adj + Ctl {
+operation JordanWignerOptimizedBlockEncodingStatePrepWrapper(
+    targetError : Double,
+    nCoeffs : Int,
+    optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem,
+    nZ : Int,
+    nMaj : Int,
+    nIdxRegQubits : Int,
+    ctrlRegister : Qubit[]
+) : Unit is Adj + Ctl {
+
     let (statePrepRegister, selectRegister, rest) = JordanWignerOptimizedBlockEncodingQubitManager(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, ctrlRegister);
     let statePrepOp = JordanWignerOptimizedBlockEncodingStatePrep(targetError, optimizedBEGeneratorSystem, _, _, _, _, _, _, _, _);
     statePrepOp(statePrepRegister);
 }
 
 
-operation JordanWignerOptimizedBlockEncodingSelect(targetError : Double, nCoeffs : Int, optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem, nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[], targetRegister : Qubit[]) : Unit is Adj + Ctl {
+operation JordanWignerOptimizedBlockEncodingSelect(
+    targetError : Double,
+    nCoeffs : Int,
+    optimizedBEGeneratorSystem : OptimizedBEGeneratorSystem,
+    nZ : Int,
+    nMaj : Int,
+    nIdxRegQubits : Int,
+    ctrlRegister : Qubit[],
+    targetRegister : Qubit[]
+) : Unit is Adj + Ctl {
+
     let (statePrepRegister, selectRegister, rest) = JordanWignerOptimizedBlockEncodingQubitManager(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, ctrlRegister);
     let selectOp = JordanWignerSelect(_, _, _, _, _, targetRegister);
     selectOp(selectRegister);
 }
 
 
-function JordanWignerOptimizedBlockEncoding(targetError : Double, data : JWOptimizedHTerms, nSpinOrbitals : Int) : ((Int, Int), (Double, (Qubit[], Qubit[]) => Unit is Adj + Ctl)) {
+function JordanWignerOptimizedBlockEncoding(
+    targetError : Double,
+    data : JWOptimizedHTerms,
+    nSpinOrbitals : Int
+) : ((Int, Int), (Double, (Qubit[], Qubit[]) => Unit is Adj + Ctl)) {
+
     let nZ = 2;
     let nMaj = 4;
     let optimizedBEGeneratorSystem = OptimizedBlockEncodingGeneratorSystem(data);
-    let (nCoeffs, oneNorm, tmp) = optimizedBEGeneratorSystem!;
+    let nCoeffs = optimizedBEGeneratorSystem.NumTerms;
     let nIdxRegQubits = Ceiling(Lg(IntAsDouble(nSpinOrbitals)));
     let ((nCtrlRegisterQubits, nTargetRegisterQubits), rest) = JordanWignerOptimizedBlockEncodingQubitCount(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, nSpinOrbitals);
-    let statePrepOp = JordanWignerOptimizedBlockEncodingStatePrepWrapper(targetError, nCoeffs, optimizedBEGeneratorSystem, nZ, nMaj, nIdxRegQubits, _);
-    let selectOp = JordanWignerOptimizedBlockEncodingSelect(targetError, nCoeffs, optimizedBEGeneratorSystem, nZ, nMaj, nIdxRegQubits, _, _);
+    let statePrepOp = JordanWignerOptimizedBlockEncodingStatePrepWrapper(
+        targetError,
+        nCoeffs,
+        optimizedBEGeneratorSystem,
+        nZ,
+        nMaj,
+        nIdxRegQubits,
+        _
+    );
+    let selectOp = JordanWignerOptimizedBlockEncodingSelect(
+        targetError,
+        nCoeffs,
+        optimizedBEGeneratorSystem,
+        nZ,
+        nMaj,
+        nIdxRegQubits,
+        _,
+        _
+    );
     let blockEncodingReflection = BlockEncodingByLCU(statePrepOp, selectOp);
-    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection));
+    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (optimizedBEGeneratorSystem.Norm, blockEncodingReflection));
 }
 
-function JordanWignerOptimizedQuantumWalkByQubitization(targetError : Double, data : JWOptimizedHTerms, nSpinOrbitals : Int) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
+function JordanWignerOptimizedQuantumWalkByQubitization(
+    targetError : Double,
+    data : JWOptimizedHTerms,
+    nSpinOrbitals : Int
+) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
+
     let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection)) = JordanWignerOptimizedBlockEncoding(targetError, data, nSpinOrbitals);
-    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
+    return (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, QuantumWalkByQubitization(blockEncodingReflection))
+    );
 }
 
 /// # Summary
@@ -879,14 +979,14 @@ function PauliBlockEncodingInner(
     statePrepUnitary : (Double[] -> (Qubit[] => Unit is Adj + Ctl)),
     multiplexer : ((Int, (Int -> (Qubit[] => Unit is Adj + Ctl))) -> ((Qubit[], Qubit[]) => Unit is Adj + Ctl))
 ) : (Double, (Qubit[], Qubit[]) => Unit is Adj + Ctl) {
-    let (nTerms, intToGenIdx) = generatorSystem!;
-    let op = idx -> Sqrt(AbsD({
-        let ((idxPaulis, coeff), idxQubits) = intToGenIdx(idx)!;
-        coeff[0]
-    }));
+    let nTerms = generatorSystem.NumEntries;
+    let op = idx -> {
+        let (_, coeff) = generatorSystem.EntryAt(idx).Term;
+        Sqrt(AbsD(coeff[0]))
+    };
     let coefficients = Mapped(op, RangeAsIntArray(0..nTerms-1));
     let oneNorm = PNorm(2.0, coefficients)^2.0;
-    let unitaryGenerator = (nTerms, idx -> PauliLCUUnitary(intToGenIdx(idx)));
+    let unitaryGenerator = (nTerms, idx -> PauliLCUUnitary(generatorSystem.EntryAt(idx)));
     let statePreparation = statePrepUnitary(coefficients);
     let selector = multiplexer(unitaryGenerator);
     let blockEncoding = (qs0, qs1) => BlockEncodingByLCU(statePreparation, selector)(qs0, qs1);
@@ -902,7 +1002,8 @@ function PauliLCUUnitary(generatorIndex : GeneratorIndex) : (Qubit[] => Unit is 
 /// # Summary
 /// Used in implementation of `PauliBlockEncoding`
 operation ApplyPauliLCUUnitary(generatorIndex : GeneratorIndex, qubits : Qubit[]) : Unit is Adj + Ctl {
-    let ((idxPaulis, coeff), idxQubits) = generatorIndex!;
+    let (idxPaulis, coeff) = generatorIndex.Term;
+    let idxQubits = generatorIndex.Subsystem;
     let paulis = [PauliI, PauliX, PauliY, PauliZ];
     let pauliString = IntArrayAsPauliArray(idxPaulis);
     let pauliQubits = Subarray(idxQubits, qubits);

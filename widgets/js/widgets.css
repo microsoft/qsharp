@@ -1,0 +1,17 @@
+/* Copyright (c) Microsoft Corporation.
+   Licensed under the MIT License. */
+
+/* Generic element resets */
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  box-sizing: border-box;
+  font-size: 16px;
+}
