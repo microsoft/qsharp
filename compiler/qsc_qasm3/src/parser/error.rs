@@ -101,6 +101,9 @@ pub enum ErrorKind {
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qasm3.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
+    #[error("invalid classical statement in box")]
+    #[diagnostic(code("Qasm3.Parse.ClassicalStmtInBox"))]
+    ClassicalStmtInBox(#[label] Span),
     #[error("expected {0}, found {1}")]
     #[diagnostic(code("Qasm3.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
@@ -119,9 +122,18 @@ pub enum ErrorKind {
     #[error("missing switch statement case labels")]
     #[diagnostic(code("Qasm3.Parse.MissingSwitchCaseLabels"))]
     MissingSwitchCaseLabels(#[label] Span),
+    #[error("missing switch statement case labels")]
+    #[diagnostic(code("Qasm3.Parse.MissingGateCallOperands"))]
+    MissingGateCallOperands(#[label] Span),
     #[error("expected an item or closing brace, found {0}")]
     #[diagnostic(code("Qasm3.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
+    #[error("gphase gate requires exactly one angle")]
+    #[diagnostic(code("Qasm3.Parse.GPhaseInvalidArguments"))]
+    GPhaseInvalidArguments(#[label] Span),
+    #[error("invalid gate call designator")]
+    #[diagnostic(code("Qasm3.Parse.InvalidGateCallDesignator"))]
+    InvalidGateCallDesignator(#[label] Span),
 }
 
 impl ErrorKind {
@@ -132,6 +144,7 @@ impl ErrorKind {
             Self::Escape(ch, span) => Self::Escape(ch, span + offset),
             Self::Token(expected, actual, span) => Self::Token(expected, actual, span + offset),
             Self::Rule(name, token, span) => Self::Rule(name, token, span + offset),
+            Self::ClassicalStmtInBox(span) => Self::ClassicalStmtInBox(span + offset),
             Self::Convert(expected, actual, span) => Self::Convert(expected, actual, span + offset),
             Self::MissingSemi(span) => Self::MissingSemi(span + offset),
             Self::MissingParens(span) => Self::MissingParens(span + offset),
@@ -139,7 +152,10 @@ impl ErrorKind {
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
             Self::MissingSwitchCases(span) => Self::MissingSwitchCases(span + offset),
             Self::MissingSwitchCaseLabels(span) => Self::MissingSwitchCaseLabels(span + offset),
+            Self::MissingGateCallOperands(span) => Self::MissingGateCallOperands(span + offset),
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
+            Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
+            Self::InvalidGateCallDesignator(span) => Self::InvalidGateCallDesignator(span + offset),
         }
     }
 }

@@ -17,13 +17,13 @@ use qsc_data_structures::span::Span;
 use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
-        Expr, ExprKind, ExprStmt, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement,
-        IndexExpr, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr,
-        RangeDefinition, TypeDef, UnaryOp, ValueExpression, Version,
+        Expr, ExprKind, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr,
+        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
+        TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
-        cooked::{ComparisonOp, Literal},
+        cooked::{ComparisonOp, Literal, TimingLiteralKind},
         ClosedBinOp, Delim, Radix, Token, TokenKind,
     },
     parser::{
@@ -59,17 +59,21 @@ enum OpKind {
     Index,
 }
 
-// TODO: This seems to be an unnecessary wrapper. Consider removing.
+// TODO: This seems to be an unnecessary wrapper.
+//       OpName::Keyword is never used.
+//       Consider removing.
 #[derive(Clone, Copy)]
 enum OpName {
     Token(TokenKind),
     Keyword(Keyword),
 }
 
+// TODO: This seems to be an unnecessary wrapper.
+//       We ended up removing the OpContext::Stmt variant.
+//       Consider removing.
 #[derive(Clone, Copy)]
 enum OpContext {
     Precedence(u8),
-    Stmt,
 }
 
 #[derive(Clone, Copy)]
@@ -84,14 +88,13 @@ pub(super) fn expr(s: &mut ParserContext) -> Result<Expr> {
     expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Expr> {
-    expr_op(s, OpContext::Stmt)
+pub(super) fn expr_with_lhs(s: &mut ParserContext, lhs: Expr) -> Result<Expr> {
+    expr_op_with_lhs(s, OpContext::Precedence(0), lhs)
 }
 
 fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
     let lo = s.peek().span.lo;
-
-    let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
+    let lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
         Expr {
@@ -105,10 +108,13 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
         expr_base(s)?
     };
 
-    let min_precedence = match context {
-        OpContext::Precedence(p) => p,
-        OpContext::Stmt => 0,
-    };
+    expr_op_with_lhs(s, context, lhs)
+}
+
+fn expr_op_with_lhs(s: &mut ParserContext, context: OpContext, mut lhs: Expr) -> Result<Expr> {
+    let lo = lhs.span.lo;
+
+    let OpContext::Precedence(min_precedence) = context;
 
     while let Some(op) = infix_op(op_name(s)) {
         if op.precedence < min_precedence {
@@ -164,15 +170,10 @@ fn expr_base(s: &mut ParserContext) -> Result<Expr> {
             Ok(Some(r#type)) => {
                 // If we have a type, we expect to see a
                 // parenthesized expression next.
-                token(s, TokenKind::Open(Delim::Paren))?;
-                let arg = paren_expr(s, lo)?;
+                let kind = Box::new(cast_op(s, r#type)?);
                 Ok(Expr {
                     span: s.span(lo),
-                    kind: Box::new(ExprKind::Cast(Cast {
-                        span: s.span(lo),
-                        r#type,
-                        arg,
-                    })),
+                    kind,
                 })
             }
             Ok(None) => {
@@ -308,10 +309,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                     span: token.span,
                 }))
             }
-            Literal::Timing(_timing_literal_kind) => Err(Error::new(ErrorKind::Lit(
-                "unimplemented: timing literal",
-                token.span,
-            ))),
+            Literal::Timing(kind) => timing_literal(lexeme, token, kind),
         },
         TokenKind::Keyword(Keyword::True) => Ok(Some(Lit {
             kind: LiteralKind::Bool(true),
@@ -410,6 +408,31 @@ fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
     }
 }
 
+fn timing_literal(lexeme: &str, token: Token, kind: TimingLiteralKind) -> Result<Option<Lit>> {
+    let lexeme = lexeme
+        .chars()
+        .filter(|x| *x != '_')
+        .take_while(|x| x.is_numeric() || *x == '.')
+        .collect::<String>();
+
+    let value = lexeme
+        .parse()
+        .map_err(|_| Error::new(ErrorKind::Lit("timing", token.span)))?;
+
+    let unit = match kind {
+        TimingLiteralKind::Dt => TimeUnit::Dt,
+        TimingLiteralKind::Ns => TimeUnit::Ns,
+        TimingLiteralKind::Us => TimeUnit::Us,
+        TimingLiteralKind::Ms => TimeUnit::Ms,
+        TimingLiteralKind::S => TimeUnit::S,
+    };
+
+    Ok(Some(Lit {
+        span: token.span,
+        kind: LiteralKind::Duration { value, unit },
+    }))
+}
+
 pub(crate) fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
     let (mut exprs, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
@@ -436,19 +459,16 @@ fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
     token(s, TokenKind::Close(Delim::Paren))?;
     Ok(ExprKind::FunctionCall(FunctionCall {
         span: s.span(lo),
-        name: ast::Identifier::Ident(Box::new(ident)),
+        name: ident,
         args: args.into_iter().map(Box::new).collect(),
     }))
 }
 
 fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
-    let lo = match &r#type {
-        TypeDef::Scalar(ident) => ident.span.lo,
-        TypeDef::Array(array) => array.span.lo,
-        TypeDef::ArrayReference(array) => array.span.lo,
-    };
-    let arg = paren_expr(s, lo)?;
-    token(s, TokenKind::Close(Delim::Paren))?;
+    let lo = r#type.span().lo;
+    token(s, TokenKind::Open(Delim::Paren))?;
+    let arg = expr(s)?;
+    recovering_token(s, TokenKind::Close(Delim::Paren));
     Ok(ExprKind::Cast(Cast {
         span: s.span(lo),
         r#type,
@@ -673,15 +693,11 @@ fn unescape(s: &str) -> std::result::Result<String, usize> {
     Ok(buf)
 }
 
-pub(super) fn designator(s: &mut ParserContext) -> Result<ExprStmt> {
-    let lo = s.peek().span.lo;
+pub(super) fn designator(s: &mut ParserContext) -> Result<Expr> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let expr = expr(s)?;
-    token(s, TokenKind::Close(Delim::Bracket))?;
-    Ok(ExprStmt {
-        span: s.span(lo),
-        expr,
-    })
+    recovering_token(s, TokenKind::Close(Delim::Bracket));
+    Ok(expr)
 }
 
 /// A literal array is a list of literal array elements.
@@ -708,30 +724,24 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
 }
 
 pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
-    let lo = s.peek().span.lo;
     if let Some(measurement) = opt(s, measure_expr)? {
         return Ok(Box::new(ValueExpression::Measurement(measurement)));
     }
 
-    let expr = if let Some(expr) = opt(s, expr_stmt)? {
+    let expr = if let Some(expr) = opt(s, expr)? {
         expr
     } else {
         lit_array(s)?
     };
 
-    let stmt = ExprStmt {
-        span: s.span(lo),
-        expr,
-    };
-
-    Ok(Box::new(ValueExpression::Expr(stmt)))
+    Ok(Box::new(ValueExpression::Expr(expr)))
 }
 
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
     seq(s, expr).map(|pair| pair.0)
 }
 
-fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
+pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Measure)?;
 
@@ -741,7 +751,7 @@ fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     })
 }
 
-fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
+pub(crate) fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
     if let Some(indexed_ident) = opt(s, indexed_identifier)? {
         return Ok(GateOperand::IndexedIdent(Box::new(indexed_ident)));
     }
@@ -759,7 +769,7 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
     })
 }
 
-fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
+pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
     let indices = list_from_iter(many(s, index_operand)?);

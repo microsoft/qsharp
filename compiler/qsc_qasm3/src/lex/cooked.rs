@@ -100,8 +100,6 @@ pub enum TokenKind {
     NegCtrl,
     Dim,
     DurationOf,
-    Delay,
-    Reset,
     Measure,
 
     Literal(Literal),
@@ -125,6 +123,8 @@ pub enum TokenKind {
     PlusPlus,
     /// `->`
     Arrow,
+    /// `@`
+    At,
 
     // Operators,
     ClosedBinOp(ClosedBinOp),
@@ -157,8 +157,6 @@ impl Display for TokenKind {
             TokenKind::NegCtrl => write!(f, "negctrl"),
             TokenKind::Dim => write!(f, "dim"),
             TokenKind::DurationOf => write!(f, "durationof"),
-            TokenKind::Delay => write!(f, "delay"),
-            TokenKind::Reset => write!(f, "reset"),
             TokenKind::Measure => write!(f, "measure"),
             TokenKind::Literal(literal) => write!(f, "literal `{literal}`"),
             TokenKind::Open(Delim::Brace) => write!(f, "`{{`"),
@@ -173,6 +171,7 @@ impl Display for TokenKind {
             TokenKind::Comma => write!(f, "`,`"),
             TokenKind::PlusPlus => write!(f, "`++`"),
             TokenKind::Arrow => write!(f, "`->`"),
+            TokenKind::At => write!(f, "`@`"),
             TokenKind::ClosedBinOp(op) => write!(f, "`{op}`"),
             TokenKind::BinOpEq(op) => write!(f, "`{op}=`"),
             TokenKind::ComparisonOp(op) => write!(f, "`{op}`"),
@@ -404,6 +403,12 @@ pub(crate) struct Lexer<'a> {
 
     // This uses a `Peekable` iterator over the raw lexer, which allows for one token lookahead.
     tokens: Peekable<raw::Lexer<'a>>,
+
+    /// This flag is used to detect annotations at the
+    /// beginning of a file. Normally annotations are
+    /// detected because there is a Newline followed by an `@`,
+    /// but there is no newline at the beginning of a file.
+    beginning_of_file: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -415,6 +420,7 @@ impl<'a> Lexer<'a> {
                 .try_into()
                 .expect("input length should fit into u32"),
             tokens: raw::Lexer::new(input).peekable(),
+            beginning_of_file: true,
         }
     }
 
@@ -453,14 +459,6 @@ impl<'a> Lexer<'a> {
     /// but if you know you want to consume the token if it matches, use [`next_if_eq`] instead.
     fn first(&mut self) -> Option<raw::TokenKind> {
         self.tokens.peek().map(|i| i.kind)
-    }
-
-    /// Returns the second token ahead of the cursor without consuming it. This is slower
-    /// than [`first`] and should be avoided when possible.
-    fn second(&self) -> Option<raw::TokenKind> {
-        let mut tokens = self.tokens.clone();
-        tokens.next();
-        tokens.next().map(|i| i.kind)
     }
 
     /// Consumes the characters while they satisfy `f`. Returns the last character eaten, if any.
@@ -503,8 +501,27 @@ impl<'a> Lexer<'a> {
                     hi: token.offset,
                 }))
             }
-            raw::TokenKind::Comment(_) | raw::TokenKind::Newline | raw::TokenKind::Whitespace => {
-                Ok(None)
+            raw::TokenKind::Comment(_) | raw::TokenKind::Whitespace => Ok(None),
+            raw::TokenKind::Newline => {
+                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
+                self.next_if_eq(raw::TokenKind::Whitespace);
+                match self.tokens.peek() {
+                    Some(token) if token.kind == raw::TokenKind::Single(Single::At) => {
+                        let token = self.tokens.next().expect("self.tokens.peek() was Some(_)");
+                        let complete = TokenKind::Annotation;
+                        self.expect(raw::TokenKind::Ident, complete);
+                        self.eat_to_end_of_line();
+                        let kind = Some(complete);
+                        return Ok(kind.map(|kind| {
+                            let span = Span {
+                                lo: token.offset,
+                                hi: self.offset(),
+                            };
+                            Token { kind, span }
+                        }));
+                    }
+                    _ => Ok(None),
+                }
             }
             raw::TokenKind::Ident => {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
@@ -529,31 +546,31 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => {
                 // after reading a decimal number or a float there could be a whitespace
                 // followed by a fragment, which will change the type of the literal.
-                match (self.first(), self.second()) {
-                    (Some(raw::TokenKind::LiteralFragment(fragment)), _)
-                    | (
-                        Some(raw::TokenKind::Whitespace),
-                        Some(raw::TokenKind::LiteralFragment(fragment)),
-                    ) => {
-                        use self::Literal::{Imaginary, Timing};
-                        use TokenKind::Literal;
+                let numeric_part_hi = self.offset();
+                self.next_if_eq(raw::TokenKind::Whitespace);
 
-                        // if first() was a whitespace, we need to consume an extra token
-                        if self.first() == Some(raw::TokenKind::Whitespace) {
-                            self.next();
-                        }
-                        self.next();
+                if let Some(raw::TokenKind::LiteralFragment(fragment)) = self.first() {
+                    use self::Literal::{Imaginary, Timing};
+                    use TokenKind::Literal;
 
-                        Ok(Some(match fragment {
-                            raw::LiteralFragmentKind::Imag => Literal(Imaginary),
-                            raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
-                            raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
-                            raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
-                            raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
-                            raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
-                        }))
-                    }
-                    _ => Ok(Some(number.into())),
+                    // Consume the fragment.
+                    self.next();
+
+                    Ok(Some(match fragment {
+                        raw::LiteralFragmentKind::Imag => Literal(Imaginary),
+                        raw::LiteralFragmentKind::Dt => Literal(Timing(TimingLiteralKind::Dt)),
+                        raw::LiteralFragmentKind::Ns => Literal(Timing(TimingLiteralKind::Ns)),
+                        raw::LiteralFragmentKind::Us => Literal(Timing(TimingLiteralKind::Us)),
+                        raw::LiteralFragmentKind::Ms => Literal(Timing(TimingLiteralKind::Ms)),
+                        raw::LiteralFragmentKind::S => Literal(Timing(TimingLiteralKind::S)),
+                    }))
+                } else {
+                    let kind: TokenKind = number.into();
+                    let span = Span {
+                        lo: token.offset,
+                        hi: numeric_part_hi,
+                    };
+                    return Ok(Some(Token { kind, span }));
                 }
             }
             raw::TokenKind::Single(Single::Sharp) => {
@@ -620,11 +637,14 @@ impl<'a> Lexer<'a> {
                 }
             }
             Single::At => {
-                // AnnotationKeyword: '@' Identifier ('.' Identifier)* ->  pushMode(EAT_TO_LINE_END);
-                let complete = TokenKind::Annotation;
-                self.expect(raw::TokenKind::Ident, complete);
-                self.eat_to_end_of_line();
-                Ok(complete)
+                if self.beginning_of_file {
+                    let complete = TokenKind::Annotation;
+                    self.expect(raw::TokenKind::Ident, complete);
+                    self.eat_to_end_of_line();
+                    Ok(complete)
+                } else {
+                    Ok(TokenKind::At)
+                }
             }
             Single::Bang => {
                 if self.next_if_eq_single(Single::Eq) {
@@ -717,8 +737,6 @@ impl<'a> Lexer<'a> {
             "negctrl" => TokenKind::NegCtrl,
             "dim" => TokenKind::Dim,
             "durationof" => TokenKind::DurationOf,
-            "delay" => TokenKind::Delay,
-            "reset" => TokenKind::Reset,
             "measure" => TokenKind::Measure,
             ident => {
                 if let Ok(keyword) = ident.parse::<Keyword>() {
@@ -739,9 +757,15 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(token) = self.tokens.next() {
             match self.cook(&token) {
-                Ok(None) => {}
-                Ok(Some(token)) => return Some(Ok(token)),
-                Err(err) => return Some(Err(err)),
+                Ok(None) => self.beginning_of_file = false,
+                Ok(Some(token)) => {
+                    self.beginning_of_file = false;
+                    return Some(Ok(token));
+                }
+                Err(err) => {
+                    self.beginning_of_file = false;
+                    return Some(Err(err));
+                }
             }
         }
 

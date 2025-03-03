@@ -1274,3 +1274,38 @@ fn hardware_qubit_with_underscore_in_the_middle() {
         "#]],
     );
 }
+
+#[test]
+fn decimal_space_imag_semicolon() {
+    check(
+        "10  im;",
+        &expect![[r#"
+        [
+            Token {
+                kind: Number(
+                    Int(
+                        Decimal,
+                    ),
+                ),
+                offset: 0,
+            },
+            Token {
+                kind: Whitespace,
+                offset: 2,
+            },
+            Token {
+                kind: LiteralFragment(
+                    Imag,
+                ),
+                offset: 4,
+            },
+            Token {
+                kind: Single(
+                    Semi,
+                ),
+                offset: 6,
+            },
+        ]
+    "#]],
+    );
+}

@@ -35,11 +35,10 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::NegCtrl => Some("negctrl".to_string()),
         TokenKind::Dim => Some("dim".to_string()),
         TokenKind::DurationOf => Some("durationof".to_string()),
-        TokenKind::Delay => Some("delay".to_string()),
-        TokenKind::Reset => Some("reset".to_string()),
         TokenKind::Measure => Some("measure".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
+        TokenKind::At => Some("@".to_string()),
         TokenKind::ClosedBinOp(op) => Some(op.to_string()),
         TokenKind::BinOpEq(super::ClosedBinOp::AmpAmp | super::ClosedBinOp::BarBar)
         | TokenKind::Literal(_)
@@ -361,6 +360,37 @@ fn imag_with_whitespace() {
             ),
         ]
     "#]],
+    );
+}
+
+#[test]
+fn imag_with_whitespace_semicolon() {
+    check(
+        "123 im;",
+        &expect![[r#"
+            [
+                Ok(
+                    Token {
+                        kind: Literal(
+                            Imaginary,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 6,
+                        },
+                    },
+                ),
+                Ok(
+                    Token {
+                        kind: Semicolon,
+                        span: Span {
+                            lo: 6,
+                            hi: 7,
+                        },
+                    },
+                ),
+            ]
+        "#]],
     );
 }
 
