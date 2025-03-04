@@ -1460,6 +1460,7 @@ dependencies = [
  "futures",
  "log",
  "miette",
+ "qsc_circuit",
  "qsc_data_structures",
  "qsc_linter",
  "qsc_project",
