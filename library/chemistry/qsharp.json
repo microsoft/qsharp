@@ -42,17 +42,19 @@
     }
   ],
   "files": [
+    "src/Generators.qs",
+    "src/MixedStatePreparation.qs",
     "src/Tests.qs",
+    "src/Trotterization.qs",
     "src/Utils.qs",
-    "src/JordanWigner/Convenience.qs",
-    "src/JordanWigner/ConvenienceVQE.qs",
-    "src/JordanWigner/JordanWignerBlockEncoding.qs",
-    "src/JordanWigner/JordanWignerClusterOperatorEvolutionSet.qs",
-    "src/JordanWigner/JordanWignerEvolutionSet.qs",
-    "src/JordanWigner/JordanWignerOptimizedBlockEncoding.qs",
-    "src/JordanWigner/JordanWignerVQE.qs",
+    "src/JordanWigner/Oracles.qs",
+    "src/JordanWigner/VQE.qs",
+    "src/JordanWigner/Data.qs",
+    "src/JordanWigner/BlockEncoding.qs",
+    "src/JordanWigner/ClusterOperatorEvolutionSet.qs",
+    "src/JordanWigner/EvolutionSet.qs",
+    "src/JordanWigner/OptimizedBlockEncoding.qs",
     "src/JordanWigner/OptimizedBEOperator.qs",
-    "src/JordanWigner/StatePreparation.qs",
-    "src/JordanWigner/Utils.qs"
+    "src/JordanWigner/StatePreparation.qs"
   ]
 }

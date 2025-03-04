@@ -10,21 +10,17 @@ import Std.Diagnostics.CheckAllZero;
 import Std.Diagnostics.CheckZero;
 import Std.Diagnostics.DumpRegister;
 import Std.Diagnostics.Fact;
-import Std.Math.Ceiling;
-import Std.Math.Complex;
-import Std.Math.ComplexPolar;
-import Std.Math.Lg;
-import Std.Math.Sqrt;
+import Std.Math.*;
 import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorPQRSTermSigns;
+import JordanWigner.ClusterOperatorEvolutionSet.JWClusterOperatorPQRSTermSigns;
+import JordanWigner.ClusterOperatorEvolutionSet.ComputeJWBitString;
+import JordanWigner.ClusterOperatorEvolutionSet.ComputeJWPauliZString;
 import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
 import JordanWigner.OptimizedBEOperator.SelectZ;
 import JordanWigner.StatePreparation.PrepareSparseMultiConfigurationalState;
 import JordanWigner.StatePreparation.PrepareUnitaryCoupledClusterState;
-import JordanWigner.Utils.JordanWignerInputState;
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.ComputeJordanWignerBitString;
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.ComputeJordanWignerPauliZString;
+import JordanWigner.Data.JordanWignerInputState;
 
 @Config(Unrestricted)
 @Test()
@@ -267,7 +263,7 @@ function JordanWignerClusterOperatorPQRSTermSignsTestHelper(idx : Int) : (Int[],
 function JordanWignerClusterOperatorPQRSTermSignsTest() : Unit {
     for idx in 0..7 {
         let (testCase, expectedSigns, expectedGlobalSign) = JordanWignerClusterOperatorPQRSTermSignsTestHelper(idx);
-        let (sortedIndices, signs, globalSign) = JordanWignerClusterOperatorPQRSTermSigns(testCase);
+        let (sortedIndices, signs, globalSign) = JWClusterOperatorPQRSTermSigns(testCase);
 
         let p = sortedIndices[0];
         let q = sortedIndices[1];
@@ -364,7 +360,7 @@ function ComputeJordanWignerBitString_0Test() : Unit {
     let nFermions = 5;
     let fermionIndices = [0, 3];
     let expectedBitString = [false, true, true, false, false];
-    let bitString = ComputeJordanWignerBitString(nFermions, fermionIndices);
+    let bitString = ComputeJWBitString(nFermions, fermionIndices);
     Fact(bitString == expectedBitString, "Bit strings not equal");
 }
 
@@ -374,7 +370,7 @@ function ComputeJordanWignerBitString_1Test() : Unit {
     let nFermions = 7;
     let fermionIndices = [0, 4, 2, 6];
     let expectedBitString = [false, true, false, false, false, true, false];
-    let bitString = ComputeJordanWignerBitString(nFermions, fermionIndices);
+    let bitString = ComputeJWBitString(nFermions, fermionIndices);
     Fact(bitString == expectedBitString, "Bit strings not equal");
 }
 
@@ -384,7 +380,7 @@ function ComputeJordanWignerPauliZString_0Test() : Unit {
     let nFermions = 7;
     let fermionIndices = [0, 4, 2, 6];
     let expectedBitString = [PauliI, PauliZ, PauliI, PauliI, PauliI, PauliZ, PauliI];
-    let bitString = ComputeJordanWignerPauliZString(nFermions, fermionIndices);
+    let bitString = ComputeJWPauliZString(nFermions, fermionIndices);
     Fact(bitString == expectedBitString, "Bit strings not equal");
 }
 

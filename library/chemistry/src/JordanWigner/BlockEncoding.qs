@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-export JordanWignerBlockEncodingGeneratorSystem;
+export JWBlockEncodingGeneratorSystem;
 
 import Std.Arrays.IndexRange;
 
-import JordanWigner.Utils.JWOptimizedHTerms;
-import JordanWigner.Utils.RangeAsIntArray;
-import Utils.GeneratorIndex;
-import Utils.GeneratorSystem;
-import Utils.HTermToGenIdx;
+import JordanWigner.Data.JWOptimizedHTerms;
+import Generators.GeneratorIndex;
+import Generators.GeneratorSystem;
+import Generators.HTermToGenIdx;
+import Utils.RangeAsIntArray;
 import Utils.IsNotZero;
 
 // This block encoding for qubitization runs off data optimized for a Jordan–Wigner encoding.
@@ -25,6 +25,67 @@ import Utils.IsNotZero;
 
 // Consider the Hamiltonian H = 0.1 XI + 0.2 IX + 0.3 ZY
 // Its GeneratorTerms are (([1],b),[0]), 0.1),  (([1],b),[1]), 0.2),  (([3,2],b),[0,1]), 0.3).
+
+/// # Summary
+/// Converts a Hamiltonian described by `JWOptimizedHTerms`
+/// to a `GeneratorSystem` expressed in terms of the Pauli
+/// `GeneratorIndex`.
+///
+/// # Input
+/// ## data
+/// Description of Hamiltonian in `JWOptimizedHTerms` format.
+///
+/// # Output
+/// Representation of Hamiltonian as `GeneratorSystem`.
+function JWBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSystem {
+    let ZData = data.HTerm0;
+    let ZZData = data.HTerm1;
+    let PQandPQQRData = data.HTerm2;
+    let h0123Data = data.HTerm3;
+    mutable genIdxes = Repeated(
+        new GeneratorIndex { Term = ([0], [0.0]), Subsystem = [0] },
+        ((Length(ZData) + Length(ZZData)) + 2 * Length(PQandPQQRData)) + 8 * Length(h0123Data)
+    );
+    mutable startIdx = 0;
+
+    for idx in IndexRange(ZData) {
+        // Array of Arrays of Length 1
+        genIdxes w/= idx <- (ZTermToPauliGenIdx(HTermToGenIdx(ZData[idx], [0])))[0];
+    }
+
+    startIdx = Length(ZData);
+
+    for idx in IndexRange(ZZData) {
+        // Array of Arrays of Length 1
+        genIdxes w/= startIdx + idx <- (ZZTermToPauliGenIdx(HTermToGenIdx(ZZData[idx], [1])))[0];
+    }
+
+    startIdx = startIdx + Length(ZZData);
+
+    for idx in IndexRange(PQandPQQRData) {
+
+        // Array of Arrays of Length 2
+        let genArr = PQandPQQRTermToPauliGenIdx(HTermToGenIdx(PQandPQQRData[idx], [2]));
+        genIdxes w/= startIdx + 2 * idx <- genArr[0];
+        genIdxes w/= (startIdx + 2 * idx) + 1 <- genArr[1];
+    }
+
+    startIdx = startIdx + 2 * Length(PQandPQQRData);
+    mutable finalIdx = startIdx;
+
+    for idx in 0..Length(h0123Data) - 1 {
+        // Array of Arrays of Length up to 8
+        let genArr = V0123TermToPauliGenIdx(HTermToGenIdx(h0123Data[idx], [3]));
+
+        for idx0123 in IndexRange(genArr) {
+            genIdxes w/= finalIdx <- genArr[idx0123];
+            finalIdx += 1;
+        }
+    }
+
+    let genIdxes = genIdxes[0..finalIdx - 1];
+    return new GeneratorSystem { NumEntries = finalIdx, EntryAt = idx -> genIdxes[idx] };
+}
 
 /// # Summary
 /// Converts a `GeneratorIndex` describing a Z term to
@@ -151,65 +212,4 @@ function V0123TermToPauliGenIdx(term : GeneratorIndex) : GeneratorIndex[] {
     }
 
     return genIdxes[0..nonZero - 1];
-}
-
-/// # Summary
-/// Converts a Hamiltonian described by `JWOptimizedHTerms`
-/// to a `GeneratorSystem` expressed in terms of the Pauli
-/// `GeneratorIndex`.
-///
-/// # Input
-/// ## data
-/// Description of Hamiltonian in `JWOptimizedHTerms` format.
-///
-/// # Output
-/// Representation of Hamiltonian as `GeneratorSystem`.
-function JordanWignerBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : GeneratorSystem {
-    let ZData = data.HTerm0;
-    let ZZData = data.HTerm1;
-    let PQandPQQRData = data.HTerm2;
-    let h0123Data = data.HTerm3;
-    mutable genIdxes = Repeated(
-        new GeneratorIndex { Term = ([0], [0.0]), Subsystem = [0] },
-        ((Length(ZData) + Length(ZZData)) + 2 * Length(PQandPQQRData)) + 8 * Length(h0123Data)
-    );
-    mutable startIdx = 0;
-
-    for idx in IndexRange(ZData) {
-        // Array of Arrays of Length 1
-        genIdxes w/= idx <- (ZTermToPauliGenIdx(HTermToGenIdx(ZData[idx], [0])))[0];
-    }
-
-    startIdx = Length(ZData);
-
-    for idx in IndexRange(ZZData) {
-        // Array of Arrays of Length 1
-        genIdxes w/= startIdx + idx <- (ZZTermToPauliGenIdx(HTermToGenIdx(ZZData[idx], [1])))[0];
-    }
-
-    startIdx = startIdx + Length(ZZData);
-
-    for idx in IndexRange(PQandPQQRData) {
-
-        // Array of Arrays of Length 2
-        let genArr = PQandPQQRTermToPauliGenIdx(HTermToGenIdx(PQandPQQRData[idx], [2]));
-        genIdxes w/= startIdx + 2 * idx <- genArr[0];
-        genIdxes w/= (startIdx + 2 * idx) + 1 <- genArr[1];
-    }
-
-    startIdx = startIdx + 2 * Length(PQandPQQRData);
-    mutable finalIdx = startIdx;
-
-    for idx in 0..Length(h0123Data) - 1 {
-        // Array of Arrays of Length up to 8
-        let genArr = V0123TermToPauliGenIdx(HTermToGenIdx(h0123Data[idx], [3]));
-
-        for idx0123 in IndexRange(genArr) {
-            genIdxes w/= finalIdx <- genArr[idx0123];
-            finalIdx += 1;
-        }
-    }
-
-    let genIdxes = genIdxes[0..finalIdx - 1];
-    return new GeneratorSystem { NumEntries = finalIdx, EntryAt = idx -> genIdxes[idx] };
 }

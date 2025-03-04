@@ -7,7 +7,7 @@ import Std.Arrays.IndexRange;
 import Std.Arrays.Partitioned;
 import Std.Math.Max;
 
-import JordanWigner.Utils.MultiplexOperationsFromGenerator;
+import Generators.MultiplexOperationsFromGenerator;
 
 /// # Summary
 /// Applies a sequence of Z operations and either an X or Y operation to
@@ -101,7 +101,7 @@ operation SelectZ(indexRegister : Qubit[], targetRegister : Qubit[]) : Unit is A
     // releasing the accumulator qubit will throw an error as it will be in the One state.
 }
 
-operation JordanWignerSelect(
+operation JWSelect(
     signQubit : Qubit,
     selectZControlRegisters : Qubit[],
     OptimizedBEControlRegisters : Qubit[],
@@ -120,7 +120,7 @@ operation JordanWignerSelect(
     }
 }
 
-function JordanWignerSelectQubitCount(nZ : Int, nMaj : Int, nIdxRegQubits : Int) : (Int, (Int, Int, Int, Int, Int[])) {
+function JWSelectQubitCount(nZ : Int, nMaj : Int, nIdxRegQubits : Int) : (Int, (Int, Int, Int, Int, Int[])) {
     let signQubit = 1;
     let selectZControlRegisters = nZ;
     let OptimizedBEControlRegisters = nMaj;
@@ -130,8 +130,8 @@ function JordanWignerSelectQubitCount(nZ : Int, nMaj : Int, nIdxRegQubits : Int)
     return (nTotal, (signQubit, selectZControlRegisters, OptimizedBEControlRegisters, pauliBases, indexRegisters));
 }
 
-function JordanWignerSelectQubitManager(nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[], targetRegister : Qubit[]) : ((Qubit, Qubit[], Qubit[], Qubit[], Qubit[][], Qubit[]), Qubit[]) {
-    let (nTotal, (a, b, c, d, e)) = JordanWignerSelectQubitCount(nZ, nMaj, nIdxRegQubits);
+function JWSelectQubitManager(nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[], targetRegister : Qubit[]) : ((Qubit, Qubit[], Qubit[], Qubit[], Qubit[][], Qubit[]), Qubit[]) {
+    let (nTotal, (a, b, c, d, e)) = JWSelectQubitCount(nZ, nMaj, nIdxRegQubits);
     let split = [a, b, c, d] + e;
     let registers = Partitioned(split, ctrlRegister);
     let signQubit = registers[0];
