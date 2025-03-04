@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// while we work through the conversion, allow dead code to avoid warnings
-#![allow(dead_code)]
-
 pub(crate) mod collector;
 #[cfg(test)]
 mod tests;

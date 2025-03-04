@@ -7,8 +7,8 @@ use crate::{
 };
 use qsc_data_structures::span::Span;
 
-use super::error::Error;
 use super::error::ErrorKind;
+use super::Error;
 
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
@@ -106,7 +106,7 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    pub(super) fn into_errors(self) -> Vec<Error> {
+    pub(super) fn into_errors(self) -> Vec<super::Error> {
         self.scanner.into_errors()
     }
 

@@ -13,6 +13,9 @@ use crate::{
 
 use super::ParserContext;
 
+#[cfg(test)]
+pub(crate) mod tests;
+
 pub(super) fn parse(s: &mut ParserContext) -> Result<Program> {
     let lo = s.peek().span.lo;
     let version = opt(s, parse_version)?;

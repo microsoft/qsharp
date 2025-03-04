@@ -10,6 +10,8 @@ use std::{
     rc::Rc,
 };
 
+use crate::semantic::symbols::SymbolId;
+
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
     level: usize,
@@ -37,7 +39,6 @@ pub(crate) fn list_from_iter<T>(vals: impl IntoIterator<Item = T>) -> List<T> {
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    pub span: Span,
     pub statements: List<Stmt>,
     pub version: Option<Version>,
 }
@@ -45,7 +46,6 @@ pub struct Program {
 impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Program {}:", self.span)?;
         indent = set_indentation(indent, 1);
         if let Some(version) = &self.version {
             write!(indent, "\nVersion {version}")?;
@@ -336,7 +336,7 @@ impl Display for HardwareQubit {
 
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
-    pub ident: Identifier,
+    pub symbol_id: SymbolId,
     pub exprs: List<Expr>,
     pub span: Span,
 }
@@ -344,21 +344,12 @@ pub struct AliasDeclStmt {
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Alias {}: {}", self.span, self.ident)?;
+        write!(indent, "Alias {}: {}", self.span, self.symbol_id)?;
         indent = set_indentation(indent, 1);
         for expr in &*self.exprs {
             write!(indent, "\n{expr}")?;
         }
         Ok(())
-    }
-}
-
-impl AliasDeclStmt {
-    fn get_name(&self) -> &str {
-        match &self.ident {
-            Identifier::Ident(ident) => ident.name.as_ref(),
-            Identifier::IndexedIdent(ident) => ident.name.name.as_ref(),
-        }
     }
 }
 
@@ -655,6 +646,7 @@ impl Display for ExprStmt {
 pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
+    pub ty: super::types::Type,
 }
 
 impl WithSpan for Expr {
@@ -1613,7 +1605,7 @@ pub enum ExprKind {
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
-    Ident(Ident),
+    Ident(SymbolId),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
     Lit(Lit),
@@ -1764,7 +1756,7 @@ pub enum LiteralKind {
     Bool(bool),
     Duration { value: f64, unit: TimeUnit },
     Float(f64),
-    Imaginary(f64),
+    Complex(f64, f64),
     Int(i64),
     BigInt(BigInt),
     String(Rc<str>),
@@ -1790,7 +1782,7 @@ impl Display for LiteralKind {
                 write!(f, "Duration({value:?}, {unit:?})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
-            LiteralKind::Imaginary(value) => write!(f, "Imaginary({value:?})"),
+            LiteralKind::Complex(real, img) => write!(f, "Imaginary({real:?}{img:?})"),
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
             LiteralKind::String(s) => write!(f, "String({s:?})"),
