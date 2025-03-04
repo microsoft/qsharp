@@ -1,16 +1,16 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 export JWBlockEncodingGeneratorSystem;
 
 import Std.Arrays.IndexRange;
 
-import JordanWigner.Data.JWOptimizedHTerms;
 import Generators.GeneratorIndex;
 import Generators.GeneratorSystem;
 import Generators.HTermToGenIdx;
-import Utils.RangeAsIntArray;
 import Utils.IsNotZero;
+import Utils.RangeAsIntArray;
+import JordanWigner.Data.JWOptimizedHTerms;
 
 // This block encoding for qubitization runs off data optimized for a Jordan–Wigner encoding.
 // This collects terms Z, ZZ, PQandPQQR, hpqrs separately.

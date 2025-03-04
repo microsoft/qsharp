@@ -15,8 +15,8 @@ import Std.Math.Complex;
 
 import JordanWigner.EvolutionSet.JWGeneratorSystem;
 import JordanWigner.StatePreparation.PrepareTrialState;
-import JordanWigner.Data.JordanWignerEncodingData;
-import JordanWigner.Data.JordanWignerInputState;
+import JordanWigner.Data.JWEncodingData;
+import JordanWigner.Data.JWInputState;
 import JordanWigner.Data.JWOptimizedHTerms;
 
 /// # Summary
@@ -51,10 +51,10 @@ operation EstimateEnergyWrapper(
     mutable jwInputState = [];
     for entry in inputState2 {
         let ((r, i), idicies) = entry;
-        jwInputState += [new JordanWignerInputState { Amplitude = new Complex { Real = r, Imag = i }, FermionIndices = idicies }];
+        jwInputState += [new JWInputState { Amplitude = new Complex { Real = r, Imag = i }, FermionIndices = idicies }];
     }
     let inputState = (inputState1, jwInputState);
-    let jwHamiltonian = new JordanWignerEncodingData {
+    let jwHamiltonian = new JWEncodingData {
         NumQubits = nQubits,
         Terms = jwTerms,
         InputState = inputState,
@@ -78,7 +78,7 @@ operation EstimateEnergyWrapper(
 /// # Output
 /// The estimated energy of the molecule
 operation EstimateEnergy(
-    jwHamiltonian : JordanWignerEncodingData,
+    jwHamiltonian : JWEncodingData,
     nSamples : Int
 ) : Double {
 

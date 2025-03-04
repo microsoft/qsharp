@@ -13,7 +13,7 @@ import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 
 import JordanWigner.ClusterOperatorEvolutionSet.JWClusterOperatorEvolutionSet;
 import JordanWigner.ClusterOperatorEvolutionSet.JWClusterOperatorGeneratorSystem;
-import JordanWigner.Data.JordanWignerInputState;
+import JordanWigner.Data.JWInputState;
 import Trotterization.TrotterSimulationAlgorithm;
 import Generators.EvolutionGenerator;
 
@@ -32,7 +32,7 @@ import Generators.EvolutionGenerator;
 /// Qubits of Hamiltonian.
 operation PrepareSparseMultiConfigurationalState(
     initialStatePreparation : (Qubit[] => Unit),
-    excitations : JordanWignerInputState[],
+    excitations : JWInputState[],
     qubits : Qubit[]
 ) : Unit {
     let nExcitations = Length(excitations);
@@ -88,7 +88,7 @@ operation PrepareSparseMultiConfigurationalState(
 /// Qubits of Hamiltonian.
 operation PrepareUnitaryCoupledClusterState(
     initialStatePreparation : (Qubit[] => Unit),
-    clusterOperator : JordanWignerInputState[],
+    clusterOperator : JWInputState[],
     trotterStepSize : Double,
     qubits : Qubit[]
 ) : Unit {
@@ -105,7 +105,7 @@ operation PrepareUnitaryCoupledClusterState(
 }
 
 operation PrepareTrialState(
-    stateData : (Int, JordanWignerInputState[]),
+    stateData : (Int, JWInputState[]),
     qubits : Qubit[]
 ) : Unit {
     let (stateType, terms) = stateData;

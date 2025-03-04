@@ -20,7 +20,7 @@ import JordanWigner.OptimizedBEOperator.OptimizedBEXY;
 import JordanWigner.OptimizedBEOperator.SelectZ;
 import JordanWigner.StatePreparation.PrepareSparseMultiConfigurationalState;
 import JordanWigner.StatePreparation.PrepareUnitaryCoupledClusterState;
-import JordanWigner.Data.JordanWignerInputState;
+import JordanWigner.Data.JWInputState;
 
 @Config(Unrestricted)
 @Test()
@@ -284,7 +284,7 @@ function DoublesToComplexPolar(input : Double[]) : ComplexPolar[] {
 }
 
 @Config(Unrestricted)
-operation JordanWignerUCCTermTestHelper(nQubits : Int, excitations : Int[], term : JordanWignerInputState[], result : Double[]) : Unit {
+operation JordanWignerUCCTermTestHelper(nQubits : Int, excitations : Int[], term : JWInputState[], result : Double[]) : Unit {
     use qubits = Qubit[nQubits];
     for idx in excitations {
         X(qubits[idx]);
@@ -394,8 +394,8 @@ function NearEqualityFactD(actual : Double, expected : Double) : Unit {
     }
 }
 
-function NewJordanWignerInputState(re : Double, im : Double, indices : Int[]) : JordanWignerInputState {
-    new JordanWignerInputState {
+function NewJordanWignerInputState(re : Double, im : Double, indices : Int[]) : JWInputState {
+    new JWInputState {
         Amplitude = new Complex { Real = re, Imag = im },
         FermionIndices = indices
     }

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 export TrotterStepOracle;
@@ -15,7 +15,7 @@ import JordanWigner.EvolutionSet.JWGeneratorSystem;
 import JordanWigner.OptimizedBlockEncoding.JWOptimizedBlockEncoding;
 import JordanWigner.OptimizedBlockEncoding.PauliBlockEncoding;
 import JordanWigner.OptimizedBlockEncoding.QuantumWalkByQubitization;
-import JordanWigner.Data.JordanWignerEncodingData;
+import JordanWigner.Data.JWEncodingData;
 import Trotterization.TrotterSimulationAlgorithm;
 import Generators.EvolutionGenerator;
 
@@ -26,7 +26,7 @@ import Generators.EvolutionGenerator;
 ///
 /// # Input
 /// ## jwHamiltonian
-/// Hamiltonian described by `JordanWignerEncodingData` format.
+/// Hamiltonian described by `JWEncodingData` format.
 /// ## trotterStepSize
 /// Step size of Trotter integrator.
 /// ## trotterOrder
@@ -37,7 +37,7 @@ import Generators.EvolutionGenerator;
 /// `Double` is `1.0/trotterStepSize`, and the operation
 /// is the Trotter step.
 function TrotterStepOracle(
-    jwHamiltonian : JordanWignerEncodingData,
+    jwHamiltonian : JWEncodingData,
     trotterStepSize : Double,
     trotterOrder : Int
 ) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
@@ -50,15 +50,17 @@ function TrotterStepOracle(
     return (nTargetRegisterQubits, (rescaleFactor, oracle));
 }
 
-
 function QubitizationOracleSeperatedRegisters(
-    jwHamiltonian : JordanWignerEncodingData
+    jwHamiltonian : JWEncodingData
 ) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
     let generatorSystem = JWBlockEncodingGeneratorSystem(jwHamiltonian.Terms);
     let (oneNorm, blockEncodingReflection) = PauliBlockEncoding(generatorSystem);
     let nTargetRegisterQubits = jwHamiltonian.NumQubits;
     let nCtrlRegisterQubits = Ceiling(Lg(IntAsDouble(generatorSystem.NumEntries)));
-    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
+    return (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, QuantumWalkByQubitization(blockEncodingReflection))
+    );
 }
 
 /// # Summary
@@ -66,29 +68,36 @@ function QubitizationOracleSeperatedRegisters(
 ///
 /// # Input
 /// ## jwHamiltonian
-/// Hamiltonian described by `JordanWignerEncodingData` format.
+/// Hamiltonian described by `JWEncodingData` format.
 ///
 /// # Output
 /// A tuple where: `Int` is the number of qubits allocated,
 /// `Double` is the one-norm of Hamiltonian coefficients, and the operation
 /// is the Quantum walk created by Qubitization.
 function QubitizationOracle(
-    jwHamiltonian : JordanWignerEncodingData
+    jwHamiltonian : JWEncodingData
 ) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = QubitizationOracleSeperatedRegisters(jwHamiltonian);
+    let (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, oracle)
+    ) = QubitizationOracleSeperatedRegisters(jwHamiltonian);
     let nQubits = nCtrlRegisterQubits + nTargetRegisterQubits;
     return (nQubits, (oneNorm, ApplyOracleOnRegisterParts(oracle, nTargetRegisterQubits, _)));
 }
 
-
 function OptimizedQubitizationOracleSeperatedRegisters(
-    jwHamiltonian : JordanWignerEncodingData,
+    jwHamiltonian : JWEncodingData,
     targetError : Double
 ) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection)) = JWOptimizedBlockEncoding(targetError, jwHamiltonian.Terms, jwHamiltonian.NumQubits);
-    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, QuantumWalkByQubitization(blockEncodingReflection)));
+    let (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, blockEncodingReflection)
+    ) = JWOptimizedBlockEncoding(targetError, jwHamiltonian.Terms, jwHamiltonian.NumQubits);
+    return (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, QuantumWalkByQubitization(blockEncodingReflection))
+    );
 }
-
 
 /// # Summary
 /// Returns T-count optimized Qubitization operation
@@ -96,7 +105,7 @@ function OptimizedQubitizationOracleSeperatedRegisters(
 ///
 /// # Input
 /// ## jwHamiltonian
-/// Hamiltonian described by `JordanWignerEncodingData` format.
+/// Hamiltonian described by `JWEncodingData` format.
 /// ## targetError
 /// Error of auxillary state preparation step.
 ///
@@ -105,14 +114,16 @@ function OptimizedQubitizationOracleSeperatedRegisters(
 /// `Double` is the one-norm of Hamiltonian coefficients, and the operation
 /// is the Quantum walk created by Qubitization.
 function OptimizedQubitizationOracle(
-    jwHamiltonian : JordanWignerEncodingData,
+    jwHamiltonian : JWEncodingData,
     targetError : Double
 ) : (Int, (Double, (Qubit[] => Unit is Adj + Ctl))) {
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, oracle)) = OptimizedQubitizationOracleSeperatedRegisters(jwHamiltonian, targetError);
+    let (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, oracle)
+    ) = OptimizedQubitizationOracleSeperatedRegisters(jwHamiltonian, targetError);
     let nQubits = nCtrlRegisterQubits + nTargetRegisterQubits;
     return (nQubits, (oneNorm, ApplyOracleOnRegisterParts(oracle, nTargetRegisterQubits, _)));
 }
-
 
 operation ApplyOracleOnRegisterParts(
     oracle : ((Qubit[], Qubit[]) => Unit is Adj + Ctl),

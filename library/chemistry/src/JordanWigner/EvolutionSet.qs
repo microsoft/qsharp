@@ -113,9 +113,6 @@ function AddGeneratorSystems(generatorSystemA : GeneratorSystem, generatorSystem
     return new GeneratorSystem { NumEntries = nTermsA + nTermsB, EntryAt = generatorIndexFunction };
 }
 
-
-
-
 // Consider the Hamiltonian H = 0.1 XI + 0.2 IX + 0.3 ZY
 // Its GeneratorTerms are (([1],b),[0]), 0.1),  (([1],b),[1]), 0.2),  (([3,2],b),[0,1]), 0.3).
 
@@ -136,7 +133,6 @@ operation ApplyZTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[])
     Exp([PauliZ], angle, [qubit]);
 }
 
-
 /// # Summary
 /// Applies time-evolution by a ZZ term described by a `GeneratorIndex`.
 ///
@@ -154,7 +150,6 @@ operation ApplyZZTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]
     Exp([PauliZ, PauliZ], angle, qubitsZZ);
 }
 
-
 /// # Summary
 /// Applies time-evolution by a PQ term described by a `GeneratorIndex`.
 ///
@@ -167,7 +162,12 @@ operation ApplyZZTerm(term : GeneratorIndex, stepSize : Double, qubits : Qubit[]
 /// Optional parity qubits that flip the sign of time-evolution.
 /// ## qubits
 /// Qubits of Hamiltonian.
-operation ApplyPQTerm(term : GeneratorIndex, stepSize : Double, extraParityQubits : Qubit[], qubits : Qubit[]) : Unit is Adj + Ctl {
+operation ApplyPQTerm(
+    term : GeneratorIndex,
+    stepSize : Double,
+    extraParityQubits : Qubit[],
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
     let (_, coeff) = term.Term;
     let idxFermions = term.Subsystem;
     let angle = (1.0 * coeff[0]) * stepSize;
@@ -180,7 +180,6 @@ operation ApplyPQTerm(term : GeneratorIndex, stepSize : Double, extraParityQubit
         Exp(op + padding, angle, qubitsPQ + qubitsJW + extraParityQubits);
     }
 }
-
 
 /// # Summary
 /// Applies time-evolution by a PQ or PQQR term described by a `GeneratorIndex`.
@@ -219,7 +218,6 @@ operation ApplyPQandPQQRTerm(term : GeneratorIndex, stepSize : Double, qubits : 
     }
 }
 
-
 /// # Summary
 /// Applies time-evolution by a PQRS term described by a given index.
 ///
@@ -238,11 +236,24 @@ operation Apply0123Term(term : GeneratorIndex, stepSize : Double, qubits : Qubit
     let qubitsRS = Subarray(idxFermions[2..3], qubits);
     let qubitsPQJW = qubits[idxFermions[0] + 1..idxFermions[1] - 1];
     let qubitsRSJW = qubits[idxFermions[2] + 1..idxFermions[3] - 1];
-    let ops = [[PauliX, PauliX, PauliX, PauliX], [PauliX, PauliX, PauliY, PauliY], [PauliX, PauliY, PauliX, PauliY], [PauliY, PauliX, PauliX, PauliY], [PauliY, PauliY, PauliY, PauliY], [PauliY, PauliY, PauliX, PauliX], [PauliY, PauliX, PauliY, PauliX], [PauliX, PauliY, PauliY, PauliX]];
+    let ops = [
+        [PauliX, PauliX, PauliX, PauliX],
+        [PauliX, PauliX, PauliY, PauliY],
+        [PauliX, PauliY, PauliX, PauliY],
+        [PauliY, PauliX, PauliX, PauliY],
+        [PauliY, PauliY, PauliY, PauliY],
+        [PauliY, PauliY, PauliX, PauliX],
+        [PauliY, PauliX, PauliY, PauliX],
+        [PauliX, PauliY, PauliY, PauliX]
+    ];
 
     for idxOp in IndexRange(ops) {
         if (IsNotZero(v0123[idxOp % 4])) {
-            Exp(ops[idxOp] + Repeated(PauliZ, Length(qubitsPQJW) + Length(qubitsRSJW)), angle * v0123[idxOp % 4], ((qubitsPQ + qubitsRS) + qubitsPQJW) + qubitsRSJW);
+            Exp(
+                ops[idxOp] + Repeated(PauliZ, Length(qubitsPQJW) + Length(qubitsRSJW)),
+                angle * v0123[idxOp % 4],
+                ((qubitsPQ + qubitsRS) + qubitsPQJW) + qubitsRSJW
+            );
         }
     }
 }

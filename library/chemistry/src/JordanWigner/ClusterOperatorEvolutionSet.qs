@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 export JWClusterOperatorEvolutionSet;
@@ -8,9 +8,9 @@ import Std.Arrays.IndexRange;
 import Std.Math.Max;
 import Std.Math.Min;
 
-import JordanWigner.Data.JordanWignerInputState;
 import Generators.GeneratorIndex;
 import Generators.GeneratorSystem;
+import JordanWigner.Data.JWInputState;
 
 /// # Summary
 /// Computes Z component of Jordan–Wigner string between
@@ -118,7 +118,6 @@ operation ApplyJWClusterOperatorPQTerm(
     }
 }
 
-
 /// # Summary
 /// Applies time-evolution by a cluster operator PQRS term described by a `GeneratorIndex`.
 ///
@@ -218,7 +217,7 @@ function JWClusterOperatorPQRSTermSigns(indices : Int[]) : (Int[], Double[], Dou
 /// # Output
 /// Representation of Hamiltonian as `GeneratorSystem`.
 function JWClusterOperatorGeneratorSystem(
-    data : JordanWignerInputState[]
+    data : JWInputState[]
 ) : GeneratorSystem {
     new GeneratorSystem {
         NumEntries = Length(data),
@@ -226,7 +225,7 @@ function JWClusterOperatorGeneratorSystem(
     }
 }
 
-function JWStateAsGeneratorIndex(data : JordanWignerInputState[], idx : Int) : GeneratorIndex {
+function JWStateAsGeneratorIndex(data : JWInputState[], idx : Int) : GeneratorIndex {
     let real = data[idx].Amplitude.Real;
     let idxFermions = data[idx].FermionIndices;
 

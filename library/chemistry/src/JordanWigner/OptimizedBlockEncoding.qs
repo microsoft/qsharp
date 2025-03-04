@@ -16,14 +16,14 @@ import Std.Arithmetic.ApplyIfGreaterLE;
 import Std.StatePreparation.PreparePureStateD;
 import Std.Diagnostics.Fact;
 
+import Generators.GeneratorIndex;
+import Generators.GeneratorSystem;
+import Generators.HTermToGenIdx;
+import Generators.MultiplexOperationsFromGenerator;
 import JordanWigner.OptimizedBEOperator.JWSelect;
 import JordanWigner.OptimizedBEOperator.JWSelectQubitCount;
 import JordanWigner.OptimizedBEOperator.JWSelectQubitManager;
 import JordanWigner.Data.JWOptimizedHTerms;
-import Generators.MultiplexOperationsFromGenerator;
-import Generators.GeneratorIndex;
-import Generators.GeneratorSystem;
-import Generators.HTermToGenIdx;
 import MixedStatePreparation.PurifiedMixedState;
 import MixedStatePreparation.PurifiedMixedStateRequirements;
 import Utils.RangeAsIntArray;
@@ -61,7 +61,14 @@ function JWOptimizedBlockEncoding(
     let optimizedBEGeneratorSystem = OptimizedBlockEncodingGeneratorSystem(data);
     let nCoeffs = optimizedBEGeneratorSystem.NumTerms;
     let nIdxRegQubits = Ceiling(Lg(IntAsDouble(nSpinOrbitals)));
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), rest) = JWOptimizedBlockEncodingQubitCount(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, nSpinOrbitals);
+    let ((nCtrlRegisterQubits, nTargetRegisterQubits), rest) = JWOptimizedBlockEncodingQubitCount(
+        targetError,
+        nCoeffs,
+        nZ,
+        nMaj,
+        nIdxRegQubits,
+        nSpinOrbitals
+    );
     let statePrepOp = JWOptimizedBlockEncodingStatePrepWrapper(
         targetError,
         nCoeffs,
@@ -82,7 +89,10 @@ function JWOptimizedBlockEncoding(
         _
     );
     let blockEncodingReflection = BlockEncodingByLCU(statePrepOp, selectOp);
-    return ((nCtrlRegisterQubits, nTargetRegisterQubits), (optimizedBEGeneratorSystem.Norm, blockEncodingReflection));
+    return (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (optimizedBEGeneratorSystem.Norm, blockEncodingReflection)
+    );
 }
 
 // Get OptimizedBEGeneratorSystem coefficients
@@ -236,7 +246,16 @@ function V0123TermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex[] 
     let qubitsRS = idxFermions[2..3];
     let qubitsPQJW = RangeAsIntArray(qubitsPQ[0] + 1..qubitsPQ[1] - 1);
     let qubitsRSJW = RangeAsIntArray(qubitsRS[0] + 1..qubitsRS[1] - 1);
-    let ops = [[1, 1, 1, 1], [1, 1, 2, 2], [1, 2, 1, 2], [1, 2, 2, 1], [2, 2, 2, 2], [2, 2, 1, 1], [2, 1, 2, 1], [2, 1, 1, 2]];
+    let ops = [
+        [1, 1, 1, 1],
+        [1, 1, 2, 2],
+        [1, 2, 1, 2],
+        [1, 2, 2, 1],
+        [2, 2, 2, 2],
+        [2, 2, 1, 1],
+        [2, 1, 2, 1],
+        [2, 1, 1, 2]
+    ];
     mutable majIdxes = Repeated(
         new OptimizedBETermIndex {
             Coefficient = 0.0,
@@ -342,7 +361,11 @@ function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : Optim
     }
 
     let majIdxes = majIdxes[0..finalIdx - 1];
-    return new OptimizedBEGeneratorSystem { NumTerms = finalIdx, Norm = oneNorm, SelectTerm = idx -> majIdxes[idx] };
+    return new OptimizedBEGeneratorSystem {
+        NumTerms = finalIdx,
+        Norm = oneNorm,
+        SelectTerm = idx -> majIdxes[idx]
+    };
 }
 
 
@@ -465,7 +488,14 @@ function JWOptimizedBlockEncodingQubitManager(
     let requirements = PurifiedMixedStateRequirements(targetError, nCoeffs);
     let parts = Partitioned([requirements.NumIndexQubits, requirements.NumGarbageQubits], ctrlRegister);
     let ((qROMIdx, qROMGarbage), rest0) = ((parts[0], parts[1]), parts[2]);
-    let ((signQubit, selectZControlRegisters, optimizedBEControlRegisters, pauliBases, indexRegisters, tmp), rest1) = JWSelectQubitManager(nZ, nMaj, nIdxRegQubits, rest0, []);
+    let ((
+        signQubit,
+        selectZControlRegisters,
+        optimizedBEControlRegisters,
+        pauliBases,
+        indexRegisters,
+        tmp
+    ), rest1) = JWSelectQubitManager(nZ, nMaj, nIdxRegQubits, rest0, []);
     let registers = Partitioned([3], rest1);
     let pauliBasesIdx = registers[0];
     return (
@@ -507,7 +537,14 @@ operation JWOptimizedBlockEncodingStatePrepWrapper(
     ctrlRegister : Qubit[]
 ) : Unit is Adj + Ctl {
 
-    let (statePrepRegister, _, _) = JWOptimizedBlockEncodingQubitManager(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, ctrlRegister);
+    let (statePrepRegister, _, _) = JWOptimizedBlockEncodingQubitManager(
+        targetError,
+        nCoeffs,
+        nZ,
+        nMaj,
+        nIdxRegQubits,
+        ctrlRegister
+    );
     let statePrepOp = JWOptimizedBlockEncodingStatePrep(targetError, optimizedBEGeneratorSystem, _, _, _, _, _, _, _, _);
     statePrepOp(statePrepRegister);
 }
@@ -524,7 +561,14 @@ operation JWOptimizedBlockEncodingSelect(
     targetRegister : Qubit[]
 ) : Unit is Adj + Ctl {
 
-    let (statePrepRegister, selectRegister, rest) = JWOptimizedBlockEncodingQubitManager(targetError, nCoeffs, nZ, nMaj, nIdxRegQubits, ctrlRegister);
+    let (statePrepRegister, selectRegister, rest) = JWOptimizedBlockEncodingQubitManager(
+        targetError,
+        nCoeffs,
+        nZ,
+        nMaj,
+        nIdxRegQubits,
+        ctrlRegister
+    );
     let selectOp = JWSelect(_, _, _, _, _, targetRegister);
     selectOp(selectRegister);
 }
@@ -536,7 +580,10 @@ function JWOptimizedQuantumWalkByQubitization(
     nSpinOrbitals : Int
 ) : ((Int, Int), (Double, ((Qubit[], Qubit[]) => Unit is Adj + Ctl))) {
 
-    let ((nCtrlRegisterQubits, nTargetRegisterQubits), (oneNorm, blockEncodingReflection)) = JWOptimizedBlockEncoding(targetError, data, nSpinOrbitals);
+    let (
+        (nCtrlRegisterQubits, nTargetRegisterQubits),
+        (oneNorm, blockEncodingReflection)
+    ) = JWOptimizedBlockEncoding(targetError, data, nSpinOrbitals);
     return (
         (nCtrlRegisterQubits, nTargetRegisterQubits),
         (oneNorm, QuantumWalkByQubitization(blockEncodingReflection))
@@ -607,7 +654,9 @@ operation ApplyBlockEncodingByLCU<'T, 'S>(
 /// # References
 /// - [Hamiltonian Simulation by Qubitization](https://arxiv.org/abs/1610.06546)
 ///   Guang Hao Low, Isaac L. Chuang
-function QuantumWalkByQubitization(blockEncoding : (Qubit[], Qubit[]) => Unit is Adj + Ctl) : ((Qubit[], Qubit[]) => Unit is Adj + Ctl) {
+function QuantumWalkByQubitization(
+    blockEncoding : (Qubit[], Qubit[]) => Unit is Adj + Ctl
+) : ((Qubit[], Qubit[]) => Unit is Adj + Ctl) {
     return ApplyQuantumWalkByQubitization(blockEncoding, _, _);
 }
 
@@ -649,7 +698,11 @@ operation ApplyQuantumWalkByQubitization(
 /// and constructing a multiply-controlled unitary `PrepareArbitraryStateD` and `MultiplexOperationsFromGenerator`.
 function PauliBlockEncoding(generatorSystem : GeneratorSystem) : (Double, (Qubit[], Qubit[]) => Unit is Adj + Ctl) {
     let multiplexer = unitaryGenerator -> MultiplexOperationsFromGenerator(unitaryGenerator, _, _);
-    return PauliBlockEncodingInner(generatorSystem, coeff -> (qs => PreparePureStateD(coeff, Reversed(qs))), multiplexer);
+    return PauliBlockEncodingInner(
+        generatorSystem,
+        coeff -> (qs => PreparePureStateD(coeff, Reversed(qs))),
+        multiplexer
+    );
 }
 
 /// # Summary

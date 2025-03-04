@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 export OptimizedBEXY;
@@ -37,7 +37,11 @@ import Generators.MultiplexOperationsFromGenerator;
 /// # References
 /// - [Encoding Electronic Spectra in Quantum Circuits with Linear T Complexity](https://arxiv.org/abs/1805.03662)
 ///   Ryan Babbush, Craig Gidney, Dominic W. Berry, Nathan Wiebe, Jarrod McClean, Alexandru Paler, Austin Fowler, Hartmut Neven
-operation OptimizedBEXY(pauliBasis : Qubit, indexRegister : Qubit[], targetRegister : Qubit[]) : Unit is Adj + Ctl {
+operation OptimizedBEXY(
+    pauliBasis : Qubit,
+    indexRegister : Qubit[],
+    targetRegister : Qubit[]
+) : Unit is Adj + Ctl {
     let unitaryGenerator = (Length(targetRegister), idx -> OptimizedBEXYImpl(idx, _, _, _));
 
     use accumulator = Qubit();
@@ -51,7 +55,12 @@ operation OptimizedBEXY(pauliBasis : Qubit, indexRegister : Qubit[], targetRegis
 }
 
 // Subroutine of OptimizedBEXY.
-operation OptimizedBEXYImpl(targetIndex : Int, pauliBasis : Qubit, accumulator : Qubit, targetRegister : Qubit[]) : Unit is Adj + Ctl {
+operation OptimizedBEXYImpl(
+    targetIndex : Int,
+    pauliBasis : Qubit,
+    accumulator : Qubit,
+    targetRegister : Qubit[]
+) : Unit is Adj + Ctl {
 
     body (...) {
         // This should always be called as a controlled operation.
@@ -112,7 +121,10 @@ operation JWSelect(
     Z(signQubit);
 
     for idxRegister in IndexRange(OptimizedBEControlRegisters) {
-        Controlled OptimizedBEXY([OptimizedBEControlRegisters[idxRegister]], (pauliBases[idxRegister], indexRegisters[idxRegister], targetRegister));
+        Controlled OptimizedBEXY(
+            [OptimizedBEControlRegisters[idxRegister]],
+            (pauliBases[idxRegister], indexRegisters[idxRegister], targetRegister)
+        );
     }
 
     for idxRegister in IndexRange(selectZControlRegisters) {
@@ -130,7 +142,13 @@ function JWSelectQubitCount(nZ : Int, nMaj : Int, nIdxRegQubits : Int) : (Int, (
     return (nTotal, (signQubit, selectZControlRegisters, OptimizedBEControlRegisters, pauliBases, indexRegisters));
 }
 
-function JWSelectQubitManager(nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlRegister : Qubit[], targetRegister : Qubit[]) : ((Qubit, Qubit[], Qubit[], Qubit[], Qubit[][], Qubit[]), Qubit[]) {
+function JWSelectQubitManager(
+    nZ : Int,
+    nMaj : Int,
+    nIdxRegQubits : Int,
+    ctrlRegister : Qubit[],
+    targetRegister : Qubit[]
+) : ((Qubit, Qubit[], Qubit[], Qubit[], Qubit[][], Qubit[]), Qubit[]) {
     let (nTotal, (a, b, c, d, e)) = JWSelectQubitCount(nZ, nMaj, nIdxRegQubits);
     let split = [a, b, c, d] + e;
     let registers = Partitioned(split, ctrlRegister);
@@ -140,8 +158,8 @@ function JWSelectQubitManager(nZ : Int, nMaj : Int, nIdxRegQubits : Int, ctrlReg
     let pauliBases = registers[3];
     let indexRegistersTmp = registers[4..(4 + Length(e)) - 1];
     let rest = registers[Length(registers) - 1];
-    mutable indexRegisters = [];
 
+    mutable indexRegisters = [];
     for idx in IndexRange(e) {
         indexRegisters += [indexRegistersTmp[idx]];
     }

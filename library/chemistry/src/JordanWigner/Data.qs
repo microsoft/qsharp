@@ -1,9 +1,9 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 export JWOptimizedHTerms;
-export JordanWignerInputState;
-export JordanWignerEncodingData;
+export JWInputState;
+export JWEncodingData;
 
 import Std.Math.*;
 
@@ -22,7 +22,7 @@ struct JWOptimizedHTerms {
 /// # Summary
 /// Represents preparation of the initial state
 /// The meaning of the data represented is determined by the algorithm that receives it.
-struct JordanWignerInputState {
+struct JWInputState {
     Amplitude : Complex,
     FermionIndices : Int[],
 }
@@ -30,9 +30,9 @@ struct JordanWignerInputState {
 /// # Summary
 /// Format of data to represent all information for Hamiltonian simulation.
 /// The meaning of the data represented is determined by the algorithm that receives it.
-struct JordanWignerEncodingData {
+struct JWEncodingData {
     NumQubits : Int,
     Terms : JWOptimizedHTerms,
-    InputState : (Int, JordanWignerInputState[]),
+    InputState : (Int, JWInputState[]),
     EnergyOffset : Double,
 }
