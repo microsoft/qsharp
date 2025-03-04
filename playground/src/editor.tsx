@@ -255,7 +255,7 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel =
       monaco.editor.getModel(
-        monaco.Uri.parse(props.kataSection?.id ?? "main.qs"),
+        monaco.Uri.parse("main.qs"),
       ) ??
       monaco.editor.createModel(
         "",
