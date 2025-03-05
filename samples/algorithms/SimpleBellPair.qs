@@ -27,7 +27,7 @@ operation Main() : (Result, Result) {
 /// Prepare Bell pair |Φ+⟩ = (|00⟩+|11⟩)/√2 on two qubits.
 /// Qubits are assumed to be in |00⟩ state.
 operation PrepareBellPair(q1 : Qubit, q2 : Qubit) : Unit {
-    // Set qubit `q1` in superposition of |0⟩ and |1⟩ by applying the Hadamard gate.
+    // Set qubit `q1` in superposition of |0⟩ and |1⟩ by applying a Hadamard gate.
     H(q1);
 
     // Entangle the two qubits `q1` and `q2` using the `CNOT` gate.
