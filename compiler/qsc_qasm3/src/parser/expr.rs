@@ -18,8 +18,8 @@ use crate::{
     ast::{
         self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
         Expr, ExprKind, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr,
-        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
-        TypeDef, UnaryOp, ValueExpression, Version,
+        IndexSet, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition,
+        TimeUnit, TypeDef, UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -291,7 +291,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
 
                 Ok(Some(Lit {
                     span: token.span,
-                    kind: LiteralKind::Bitstring(value, width),
+                    kind: LiteralKind::Bitstring { value, width },
                 }))
             }
             Literal::Imaginary => {
@@ -492,13 +492,13 @@ fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
         Ok(Some(v)) => IndexElement::DiscreteSet(v),
         Err(err) => return Err(err),
         Ok(None) => {
+            let lo = s.peek().span.lo;
             let (exprs, _) = seq(s, index_set_item)?;
-            let exprs = exprs
-                .into_iter()
-                .map(Box::new)
-                .collect::<Vec<_>>()
-                .into_boxed_slice();
-            IndexElement::IndexSet(exprs)
+            let exprs = list_from_iter(exprs);
+            IndexElement::IndexSet(IndexSet {
+                span: s.span(lo),
+                values: exprs,
+            })
         }
     };
     Ok(index)
@@ -556,7 +556,7 @@ pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
     recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(DiscreteSet {
         span: s.span(lo),
-        values: exprs.into_boxed_slice(),
+        values: list_from_iter(exprs),
     })
 }
 

@@ -11,11 +11,17 @@ fn gphase() {
         parse,
         "gphase(pi / 2);",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: GPhase [0-15]:
-                Expr [7-13]: BinOp (Div):
-                    Expr [7-9]: Ident [7-9] "pi"
-                    Expr [12-13]: Lit: Int(2)"#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: GPhase [0-15]:
+                    modifiers: <empty>
+                    args:
+                        Expr [7-13]: BinaryOpExpr:
+                            op: Div
+                            lhs: Expr [7-9]: Ident [7-9] "pi"
+                            rhs: Expr [12-13]: Lit: Int(2)
+                    duration: <none>
+                    qubits: <empty>"#]],
     );
 }
 
@@ -25,10 +31,17 @@ fn gphase_qubit_ident() {
         parse,
         "gphase(a) q0;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: GPhase [0-13]:
-                Expr [7-8]: Ident [7-8] "a"
-                GateOperand IndexedIdent [10-12]: Ident [10-12] "q0"[]"#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: GPhase [0-13]:
+                    modifiers: <empty>
+                    args:
+                        Expr [7-8]: Ident [7-8] "a"
+                    duration: <none>
+                    qubits:
+                        IndexedIdent [10-12]:
+                            name: Ident [10-12] "q0"
+                            indices: <empty>"#]],
     );
 }
 
@@ -38,12 +51,20 @@ fn gphase_qubit_register() {
         parse,
         "gphase(a) q[2];",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: GPhase [0-15]:
-                Expr [7-8]: Ident [7-8] "a"
-                GateOperand IndexedIdent [10-14]: Ident [10-11] "q"[
-                IndexElement:
-                    IndexSetItem Expr [12-13]: Lit: Int(2)]"#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: GPhase [0-15]:
+                    modifiers: <empty>
+                    args:
+                        Expr [7-8]: Ident [7-8] "a"
+                    duration: <none>
+                    qubits:
+                        IndexedIdent [10-14]:
+                            name: Ident [10-11] "q"
+                            indices:
+                                IndexSet [12-13]:
+                                    values:
+                                        Expr [12-13]: Lit: Int(2)"#]],
     );
 }
 
@@ -53,13 +74,23 @@ fn gphase_multiple_qubits() {
         parse,
         "gphase(a) q0, q[4];",
         &expect![[r#"
-            Stmt [0-19]
-                StmtKind: GPhase [0-19]:
-                Expr [7-8]: Ident [7-8] "a"
-                GateOperand IndexedIdent [10-12]: Ident [10-12] "q0"[]
-                GateOperand IndexedIdent [14-18]: Ident [14-15] "q"[
-                IndexElement:
-                    IndexSetItem Expr [16-17]: Lit: Int(4)]"#]],
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: GPhase [0-19]:
+                    modifiers: <empty>
+                    args:
+                        Expr [7-8]: Ident [7-8] "a"
+                    duration: <none>
+                    qubits:
+                        IndexedIdent [10-12]:
+                            name: Ident [10-12] "q0"
+                            indices: <empty>
+                        IndexedIdent [14-18]:
+                            name: Ident [14-15] "q"
+                            indices:
+                                IndexSet [16-17]:
+                                    values:
+                                        Expr [16-17]: Lit: Int(4)"#]],
     );
 }
 
@@ -69,8 +100,13 @@ fn gphase_no_arguments() {
         parse,
         "gphase;",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: GPhase [0-7]:
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: GPhase [0-7]:
+                    modifiers: <empty>
+                    args: <empty>
+                    duration: <none>
+                    qubits: <empty>
 
             [
                 Error(
@@ -91,11 +127,17 @@ fn gphase_with_parameters() {
         parse,
         "gphase(pi / 2);",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: GPhase [0-15]:
-                Expr [7-13]: BinOp (Div):
-                    Expr [7-9]: Ident [7-9] "pi"
-                    Expr [12-13]: Lit: Int(2)"#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: GPhase [0-15]:
+                    modifiers: <empty>
+                    args:
+                        Expr [7-13]: BinaryOpExpr:
+                            op: Div
+                            lhs: Expr [7-9]: Ident [7-9] "pi"
+                            rhs: Expr [12-13]: Lit: Int(2)
+                    duration: <none>
+                    qubits: <empty>"#]],
     );
 }
 
@@ -105,9 +147,15 @@ fn gphase_inv_modifier() {
         parse,
         "inv @ gphase(a);",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: GPhase [0-16]:
-                Expr [13-14]: Ident [13-14] "a""#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: GPhase [0-16]:
+                    modifiers:
+                        QuantumGateModifier [0-5]: Inv
+                    args:
+                        Expr [13-14]: Ident [13-14] "a"
+                    duration: <none>
+                    qubits: <empty>"#]],
     );
 }
 
@@ -117,11 +165,21 @@ fn gphase_ctrl_inv_modifiers() {
         parse,
         "ctrl @ inv @ gphase(pi / 2) q0;",
         &expect![[r#"
-            Stmt [0-31]
-                StmtKind: GPhase [0-31]:
-                Expr [20-26]: BinOp (Div):
-                    Expr [20-22]: Ident [20-22] "pi"
-                    Expr [25-26]: Lit: Int(2)
-                GateOperand IndexedIdent [28-30]: Ident [28-30] "q0"[]"#]],
+            Stmt [0-31]:
+                annotations: <empty>
+                kind: GPhase [0-31]:
+                    modifiers:
+                        QuantumGateModifier [0-6]: Ctrl None
+                        QuantumGateModifier [7-12]: Inv
+                    args:
+                        Expr [20-26]: BinaryOpExpr:
+                            op: Div
+                            lhs: Expr [20-22]: Ident [20-22] "pi"
+                            rhs: Expr [25-26]: Lit: Int(2)
+                    duration: <none>
+                    qubits:
+                        IndexedIdent [28-30]:
+                            name: Ident [28-30] "q0"
+                            indices: <empty>"#]],
     );
 }

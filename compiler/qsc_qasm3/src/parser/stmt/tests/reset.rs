@@ -11,8 +11,12 @@ fn reset_ident() {
         parse,
         "reset a;",
         &expect![[r#"
-        Stmt [0-8]
-            StmtKind: ResetStmt [0-8]: GateOperand IndexedIdent [6-7]: Ident [6-7] "a"[]"#]],
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: ResetStmt [0-8]:
+                    operand: IndexedIdent [6-7]:
+                        name: Ident [6-7] "a"
+                        indices: <empty>"#]],
     );
 }
 
@@ -22,10 +26,15 @@ fn reset_indexed_ident() {
         parse,
         "reset a[1];",
         &expect![[r#"
-        Stmt [0-11]
-            StmtKind: ResetStmt [0-11]: GateOperand IndexedIdent [6-10]: Ident [6-7] "a"[
-            IndexElement:
-                IndexSetItem Expr [8-9]: Lit: Int(1)]"#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ResetStmt [0-11]:
+                    operand: IndexedIdent [6-10]:
+                        name: Ident [6-7] "a"
+                        indices:
+                            IndexSet [8-9]:
+                                values:
+                                    Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -35,7 +44,9 @@ fn reset_hardware_qubit() {
         parse,
         "reset $42;",
         &expect![[r#"
-        Stmt [0-10]
-            StmtKind: ResetStmt [0-10]: GateOperand HardwareQubit [6-9]: 42"#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ResetStmt [0-10]:
+                    operand: HardwareQubit [6-9]: 42"#]],
     );
 }
