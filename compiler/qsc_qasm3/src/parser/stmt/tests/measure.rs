@@ -14,6 +14,10 @@ fn measure_identifier() {
             Stmt [0-10]:
                 annotations: <empty>
                 kind: MeasureStmt [0-10]:
+                    measurement: MeasureExpr [0-7]:
+                        operand: GateOperand IndexedIdent [8-9]:
+                            name: Ident [8-9] "q"
+                            indices: <empty>
                     target: <none>"#]],
     );
 }
@@ -27,6 +31,12 @@ fn measure_indented_ident() {
             Stmt [0-13]:
                 annotations: <empty>
                 kind: MeasureStmt [0-13]:
+                    measurement: MeasureExpr [0-7]:
+                        operand: GateOperand IndexedIdent [8-12]:
+                            name: Ident [8-9] "q"
+                            indices:
+                                IndexElement:
+                                    IndexSetItem Expr [10-11]: Lit: Int(2)
                     target: <none>"#]],
     );
 }
@@ -40,6 +50,8 @@ fn measure_hardware_qubit() {
             Stmt [0-12]:
                 annotations: <empty>
                 kind: MeasureStmt [0-12]:
+                    measurement: MeasureExpr [0-7]:
+                        operand: GateOperand HardwareQubit [8-11]: 42
                     target: <none>"#]],
     );
 }
@@ -53,6 +65,10 @@ fn measure_arrow_into_ident() {
             Stmt [0-15]:
                 annotations: <empty>
                 kind: MeasureStmt [0-15]:
+                    measurement: MeasureExpr [0-7]:
+                        operand: GateOperand IndexedIdent [8-9]:
+                            name: Ident [8-9] "q"
+                            indices: <empty>
                     target: IndexedIdent [13-14]:
                         name: Ident [13-14] "a"
                         indices: <empty>"#]],
@@ -68,6 +84,10 @@ fn measure_arrow_into_indented_ident() {
             Stmt [0-18]:
                 annotations: <empty>
                 kind: MeasureStmt [0-18]:
+                    measurement: MeasureExpr [0-7]:
+                        operand: GateOperand IndexedIdent [8-9]:
+                            name: Ident [8-9] "q"
+                            indices: <empty>
                     target: IndexedIdent [13-17]:
                         name: Ident [13-14] "a"
                         indices:

@@ -911,7 +911,8 @@ fn measure_hardware_qubit_decl() {
                     type: ScalarType [0-3]: BitType [0-3]:
                         size: <none>
                     ident: Ident [4-7] "res"
-                    init_expr: ValueExpression MeasureExpr [10-17]: GateOperand HardwareQubit [18-21]: 12"#]],
+                    init_expr: ValueExpression MeasureExpr [10-17]:
+                        operand: GateOperand HardwareQubit [18-21]: 12"#]],
     );
 }
 
@@ -927,12 +928,13 @@ fn measure_register_decl() {
                     type: ScalarType [0-3]: BitType [0-3]:
                         size: <none>
                     ident: Ident [4-7] "res"
-                    init_expr: ValueExpression MeasureExpr [10-17]: GateOperand IndexedIdent [18-30]:
-                        name: Ident [18-24] "qubits"
-                        indices:
-                            IndexElement:
-                                IndexSetItem Expr [25-26]: Lit: Int(2)
-                            IndexElement:
-                                IndexSetItem Expr [28-29]: Lit: Int(3)"#]],
+                    init_expr: ValueExpression MeasureExpr [10-17]:
+                        operand: GateOperand IndexedIdent [18-30]:
+                            name: Ident [18-24] "qubits"
+                            indices:
+                                IndexElement:
+                                    IndexSetItem Expr [25-26]: Lit: Int(2)
+                                IndexElement:
+                                    IndexSetItem Expr [28-29]: Lit: Int(3)"#]],
     );
 }

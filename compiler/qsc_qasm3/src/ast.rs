@@ -172,9 +172,11 @@ pub struct MeasureExpr {
 
 impl Display for MeasureExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "MeasureExpr {}: {}", self.span, self.operand)
+        writeln_header(f, "MeasureExpr", self.span)?;
+        write_field(f, "operand", &self.operand)
     }
 }
+
 /// A binary operator.
 #[derive(Clone, Copy, Debug)]
 pub enum BinOp {
@@ -1121,6 +1123,7 @@ pub struct MeasureStmt {
 impl Display for MeasureStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "MeasureStmt", self.span)?;
+        writeln_field(f, "measurement", &self.measurement)?;
         write_opt_field(f, "target", self.target.as_ref())
     }
 }
