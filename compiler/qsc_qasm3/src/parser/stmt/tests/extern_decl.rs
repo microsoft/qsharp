@@ -119,6 +119,7 @@ fn readonly_array_arg_with_int_dims() {
                     ident: Ident [7-8] "x"
                     parameters:
                         [9-38]: ArrayReferenceType [9-38]:
+                            mutability: ReadOnly
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
                             dimensions:
@@ -141,6 +142,7 @@ fn readonly_array_arg_with_dim() {
                     ident: Ident [7-8] "x"
                     parameters:
                         [9-41]: ArrayReferenceType [9-41]:
+                            mutability: ReadOnly
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
                             dimensions:
@@ -162,6 +164,7 @@ fn mutable_array_arg() {
                     ident: Ident [7-8] "x"
                     parameters:
                         [9-40]: ArrayReferenceType [9-40]:
+                            mutability: Mutable
                             base_type: ArrayBaseTypeKind IntType [23-29]:
                                 size: Expr [27-28]: Lit: Int(8)
                             dimensions:

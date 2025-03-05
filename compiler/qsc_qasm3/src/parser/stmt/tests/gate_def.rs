@@ -208,7 +208,7 @@ fn two_qubits_two_classical_with_body() {
                                 type: ScalarType [23-32]: FloatType [23-32]:
                                     size: Expr [29-31]: Lit: Int(32)
                                 ident: Ident [33-34] "x"
-                                init_expr: ValueExpression Expr [37-42]: BinaryOpExpr:
+                                init_expr: Expr [37-42]: BinaryOpExpr:
                                     op: Sub
                                     lhs: Expr [37-38]: Ident [37-38] "a"
                                     rhs: Expr [41-42]: Ident [41-42] "b""#]],

@@ -95,7 +95,7 @@ fn while_loop_with_continue_stmt() {
                                     rhs: Expr [34-35]: Lit: Int(0)
                         Stmt [45-54]:
                             annotations: <empty>
-                            kind: Continue [45-54]"#]],
+                            kind: ContinueStmt [45-54]"#]],
     );
 }
 
@@ -125,6 +125,6 @@ fn while_loop_with_break_stmt() {
                                     rhs: Expr [34-35]: Lit: Int(0)
                         Stmt [45-51]:
                             annotations: <empty>
-                            kind: Break [45-51]"#]],
+                            kind: BreakStmt [45-51]"#]],
     );
 }

@@ -35,8 +35,8 @@ fn measure_indented_ident() {
                         operand: GateOperand IndexedIdent [8-12]:
                             name: Ident [8-9] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [10-11]: Lit: Int(2)
+                                IndexSet:
+                                    Expr [10-11]: Lit: Int(2)
                     target: <none>"#]],
     );
 }
@@ -91,7 +91,7 @@ fn measure_arrow_into_indented_ident() {
                     target: IndexedIdent [13-17]:
                         name: Ident [13-14] "a"
                         indices:
-                            IndexElement:
-                                IndexSetItem Expr [15-16]: Lit: Int(1)"#]],
+                            IndexSet:
+                                Expr [15-16]: Lit: Int(1)"#]],
     );
 }

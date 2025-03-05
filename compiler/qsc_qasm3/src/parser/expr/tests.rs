@@ -955,8 +955,8 @@ fn index_expr() {
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem Expr [4-5]: Lit: Int(1)"#]],
+                index: IndexSet:
+                    Expr [4-5]: Lit: Int(1)"#]],
     );
 }
 
@@ -967,7 +967,7 @@ fn index_set() {
         &expect![[r#"
             Expr [0-14]: IndexExpr [3-14]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement DiscreteSet [4-13]:
+                index: DiscreteSet [4-13]:
                     values:
                         Expr [5-6]: Lit: Int(1)
                         Expr [8-9]: Lit: Int(4)
@@ -982,16 +982,16 @@ fn index_multiple_ranges() {
         &expect![[r#"
             Expr [0-18]: IndexExpr [3-18]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-7]:
+                index: IndexSet:
+                    RangeDefinition [4-7]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: <none>
                         end: Expr [6-7]: Lit: Int(5)
-                    IndexSetItem RangeDefinition [9-12]:
+                    RangeDefinition [9-12]:
                         start: Expr [9-10]: Lit: Int(3)
                         step: <none>
                         end: Expr [11-12]: Lit: Int(7)
-                    IndexSetItem RangeDefinition [14-17]:
+                    RangeDefinition [14-17]:
                         start: Expr [14-15]: Lit: Int(4)
                         step: <none>
                         end: Expr [16-17]: Lit: Int(8)"#]],
@@ -1005,8 +1005,8 @@ fn index_range() {
         &expect![[r#"
             Expr [0-10]: IndexExpr [3-10]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-9]:
+                index: IndexSet:
+                    RangeDefinition [4-9]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: Expr [6-7]: Lit: Int(5)
                         end: Expr [8-9]: Lit: Int(2)"#]],
@@ -1020,8 +1020,8 @@ fn index_full_range() {
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-5]:
+                index: IndexSet:
+                    RangeDefinition [4-5]:
                         start: <none>
                         step: <none>
                         end: <none>"#]],
@@ -1035,8 +1035,8 @@ fn index_range_start() {
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-6]:
+                index: IndexSet:
+                    RangeDefinition [4-6]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: <none>
                         end: <none>"#]],
@@ -1050,8 +1050,8 @@ fn index_range_end() {
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-6]:
+                index: IndexSet:
+                    RangeDefinition [4-6]:
                         start: <none>
                         step: <none>
                         end: Expr [5-6]: Lit: Int(5)"#]],
@@ -1065,8 +1065,8 @@ fn index_range_step() {
         &expect![[r#"
             Expr [0-8]: IndexExpr [3-8]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement:
-                    IndexSetItem RangeDefinition [4-7]:
+                index: IndexSet:
+                    RangeDefinition [4-7]:
                         start: <none>
                         step: Expr [5-6]: Lit: Int(2)
                         end: <none>"#]],
@@ -1155,10 +1155,10 @@ fn indexed_identifier() {
             IndexedIdent [0-9]:
                 name: Ident [0-3] "arr"
                 indices:
-                    IndexElement:
-                        IndexSetItem Expr [4-5]: Lit: Int(1)
-                    IndexElement:
-                        IndexSetItem Expr [7-8]: Lit: Int(2)"#]],
+                    IndexSet:
+                        Expr [4-5]: Lit: Int(1)
+                    IndexSet:
+                        Expr [7-8]: Lit: Int(2)"#]],
     );
 }
 
@@ -1183,10 +1183,10 @@ fn measure_indexed_identifier() {
                 operand: GateOperand IndexedIdent [8-20]:
                     name: Ident [8-14] "qubits"
                     indices:
-                        IndexElement:
-                            IndexSetItem Expr [15-16]: Lit: Int(1)
-                        IndexElement:
-                            IndexSetItem Expr [18-19]: Lit: Int(2)"#]],
+                        IndexSet:
+                            Expr [15-16]: Lit: Int(1)
+                        IndexSet:
+                            Expr [18-19]: Lit: Int(2)"#]],
     );
 }
 

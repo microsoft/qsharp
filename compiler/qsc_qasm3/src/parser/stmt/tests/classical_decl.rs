@@ -35,7 +35,7 @@ fn bit_decl_bit_lit() {
                     type: ScalarType [0-3]: BitType [0-3]:
                         size: <none>
                     ident: Ident [4-5] "b"
-                    init_expr: ValueExpression Expr [8-9]: Lit: Int(1)"#]],
+                    init_expr: Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -83,7 +83,7 @@ fn bit_array_decl_bit_lit() {
                     type: ScalarType [0-6]: BitType [0-6]:
                         size: Expr [4-5]: Lit: Int(2)
                     ident: Ident [7-8] "b"
-                    init_expr: ValueExpression Expr [11-15]: Lit: Bitstring("11")"#]],
+                    init_expr: Expr [11-15]: Lit: Bitstring("11")"#]],
     );
 }
 
@@ -129,7 +129,7 @@ fn bool_decl_int_lit() {
                 kind: ClassicalDeclarationStmt [0-11]:
                     type: ScalarType [0-4]: BoolType
                     ident: Ident [5-6] "b"
-                    init_expr: ValueExpression Expr [9-10]: Lit: Int(1)"#]],
+                    init_expr: Expr [9-10]: Lit: Int(1)"#]],
     );
 }
 
@@ -176,7 +176,7 @@ fn complex_decl_complex_lit() {
                     type: ScalarType [0-7]: ComplexType [0-7]:
                         base_size: <none>
                     ident: Ident [8-9] "c"
-                    init_expr: ValueExpression Expr [12-15]: Lit: Imaginary(1.0)"#]],
+                    init_expr: Expr [12-15]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -267,7 +267,7 @@ fn complex_sized_decl_complex_lit() {
                         base_size: FloatType [8-17]:
                             size: Expr [14-16]: Lit: Int(32)
                     ident: Ident [19-20] "c"
-                    init_expr: ValueExpression Expr [23-26]: Lit: Imaginary(1.0)"#]],
+                    init_expr: Expr [23-26]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -316,7 +316,7 @@ fn int_decl_int_lit() {
                     type: ScalarType [0-3]: IntType [0-3]:
                         size: <none>
                     ident: Ident [4-5] "i"
-                    init_expr: ValueExpression Expr [8-9]: Lit: Int(1)"#]],
+                    init_expr: Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -364,7 +364,7 @@ fn int_sized_decl_int_lit() {
                     type: ScalarType [0-7]: IntType [0-7]:
                         size: Expr [4-6]: Lit: Int(32)
                     ident: Ident [8-9] "i"
-                    init_expr: ValueExpression Expr [12-13]: Lit: Int(1)"#]],
+                    init_expr: Expr [12-13]: Lit: Int(1)"#]],
     );
 }
 
@@ -412,7 +412,7 @@ fn uint_decl_uint_lit() {
                     type: ScalarType [0-4]: UIntType [0-4]:
                         size: <none>
                     ident: Ident [5-6] "i"
-                    init_expr: ValueExpression Expr [9-10]: Lit: Int(1)"#]],
+                    init_expr: Expr [9-10]: Lit: Int(1)"#]],
     );
 }
 
@@ -460,7 +460,7 @@ fn uint_sized_decl_uint_lit() {
                     type: ScalarType [0-8]: UIntType [0-8]:
                         size: Expr [5-7]: Lit: Int(32)
                     ident: Ident [9-10] "i"
-                    init_expr: ValueExpression Expr [13-14]: Lit: Int(1)"#]],
+                    init_expr: Expr [13-14]: Lit: Int(1)"#]],
     );
 }
 
@@ -508,7 +508,7 @@ fn float_decl_float_lit() {
                     type: ScalarType [0-5]: FloatType [0-5]:
                         size: <none>
                     ident: Ident [6-7] "f"
-                    init_expr: ValueExpression Expr [10-11]: Lit: Int(1)"#]],
+                    init_expr: Expr [10-11]: Lit: Int(1)"#]],
     );
 }
 
@@ -556,7 +556,7 @@ fn float_sized_decl_float_lit() {
                     type: ScalarType [0-9]: FloatType [0-9]:
                         size: Expr [6-8]: Lit: Int(32)
                     ident: Ident [10-11] "f"
-                    init_expr: ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
+                    init_expr: Expr [14-17]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -604,7 +604,7 @@ fn angle_decl_angle_lit() {
                     type: ScalarType [0-5]: AngleType [0-5]:
                         size: <none>
                     ident: Ident [6-7] "a"
-                    init_expr: ValueExpression Expr [10-13]: Lit: Float(1.0)"#]],
+                    init_expr: Expr [10-13]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -672,7 +672,7 @@ fn angle_sized_decl_angle_lit() {
                     type: ScalarType [0-9]: AngleType [0-9]:
                         size: Expr [6-8]: Lit: Int(32)
                     ident: Ident [10-11] "a"
-                    init_expr: ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
+                    init_expr: Expr [14-17]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -718,7 +718,7 @@ fn duration_decl_ns_lit() {
                 kind: ClassicalDeclarationStmt [0-20]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ns)"#]],
+                    init_expr: Expr [13-19]: Lit: Duration(1000.0, Ns)"#]],
     );
 }
 
@@ -733,7 +733,7 @@ fn duration_decl_us_lit() {
                 kind: ClassicalDeclarationStmt [0-20]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Us)"#]],
+                    init_expr: Expr [13-19]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
@@ -750,7 +750,7 @@ fn duration_decl_uus_lit() {
                 kind: ClassicalDeclarationStmt [0-21]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-20]: Lit: Duration(1000.0, Us)"#]],
+                    init_expr: Expr [13-20]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
@@ -765,7 +765,7 @@ fn duration_decl_ms_lit() {
                 kind: ClassicalDeclarationStmt [0-20]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ms)"#]],
+                    init_expr: Expr [13-19]: Lit: Duration(1000.0, Ms)"#]],
     );
 }
 
@@ -780,7 +780,7 @@ fn duration_decl_s_lit() {
                 kind: ClassicalDeclarationStmt [0-19]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-18]: Lit: Duration(1000.0, S)"#]],
+                    init_expr: Expr [13-18]: Lit: Duration(1000.0, S)"#]],
     );
 }
 
@@ -795,7 +795,7 @@ fn duration_decl_dt_lit() {
                 kind: ClassicalDeclarationStmt [0-20]:
                     type: ScalarType [0-8]: Duration
                     ident: Ident [9-10] "d"
-                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Dt)"#]],
+                    init_expr: Expr [13-19]: Lit: Duration(1000.0, Dt)"#]],
     );
 }
 
@@ -844,7 +844,7 @@ fn empty_array_decl() {
                         dimensions:
                             Expr [11-12]: Lit: Int(0)
                     ident: Ident [14-17] "arr"
-                    init_expr: ValueExpression Expr [20-22]: Lit:     Array: <empty>"#]],
+                    init_expr: Expr [20-22]: Lit:     Array: <empty>"#]],
     );
 }
 
@@ -863,7 +863,7 @@ fn simple_array_decl() {
                         dimensions:
                             Expr [15-16]: Lit: Int(3)
                     ident: Ident [18-21] "arr"
-                    init_expr: ValueExpression Expr [24-33]: Lit:     Array:
+                    init_expr: Expr [24-33]: Lit:     Array:
                             Expr [25-26]: Lit: Int(1)
                             Expr [28-29]: Lit: Int(2)
                             Expr [31-32]: Lit: Int(3)"#]],
@@ -886,7 +886,7 @@ fn nested_array_decl() {
                             Expr [15-16]: Lit: Int(3)
                             Expr [18-19]: Lit: Int(2)
                     ident: Ident [21-24] "arr"
-                    init_expr: ValueExpression Expr [27-51]: Lit:     Array:
+                    init_expr: Expr [27-51]: Lit:     Array:
                             Expr [28-34]: Lit:     Array:
                                     Expr [29-30]: Lit: Int(1)
                                     Expr [32-33]: Lit: Int(2)
@@ -911,7 +911,7 @@ fn measure_hardware_qubit_decl() {
                     type: ScalarType [0-3]: BitType [0-3]:
                         size: <none>
                     ident: Ident [4-7] "res"
-                    init_expr: ValueExpression MeasureExpr [10-17]:
+                    init_expr: MeasureExpr [10-17]:
                         operand: GateOperand HardwareQubit [18-21]: 12"#]],
     );
 }
@@ -928,13 +928,13 @@ fn measure_register_decl() {
                     type: ScalarType [0-3]: BitType [0-3]:
                         size: <none>
                     ident: Ident [4-7] "res"
-                    init_expr: ValueExpression MeasureExpr [10-17]:
+                    init_expr: MeasureExpr [10-17]:
                         operand: GateOperand IndexedIdent [18-30]:
                             name: Ident [18-24] "qubits"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [25-26]: Lit: Int(2)
-                                IndexElement:
-                                    IndexSetItem Expr [28-29]: Lit: Int(3)"#]],
+                                IndexSet:
+                                    Expr [25-26]: Lit: Int(2)
+                                IndexSet:
+                                    Expr [28-29]: Lit: Int(3)"#]],
     );
 }

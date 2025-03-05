@@ -88,8 +88,8 @@ fn indexed_function_call() {
                             args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexElement:
-                            IndexSetItem Expr [11-12]: Lit: Int(1)"#]],
+                        index: IndexSet:
+                            Expr [11-12]: Lit: Int(1)"#]],
     );
 }
 
@@ -108,9 +108,9 @@ fn multi_indexed_function_call() {
                             args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexElement:
-                            IndexSetItem Expr [11-12]: Lit: Int(1)
-                            IndexSetItem Expr [14-15]: Lit: Int(0)"#]],
+                        index: IndexSet:
+                            Expr [11-12]: Lit: Int(1)
+                            Expr [14-15]: Lit: Int(0)"#]],
     );
 }
 
@@ -138,8 +138,8 @@ fn index_expr() {
                 kind: ExprStmt [0-8]:
                     expr: Expr [0-7]: IndexExpr [4-7]:
                         collection: Expr [0-4]: Ident [0-4] "Name"
-                        index: IndexElement:
-                            IndexSetItem Expr [5-6]: Lit: Int(1)"#]],
+                        index: IndexSet:
+                            Expr [5-6]: Lit: Int(1)"#]],
     );
 }
 

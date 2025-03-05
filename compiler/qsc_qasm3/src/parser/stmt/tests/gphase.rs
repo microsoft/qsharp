@@ -62,8 +62,8 @@ fn gphase_qubit_register() {
                         GateOperand IndexedIdent [10-14]:
                             name: Ident [10-11] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [12-13]: Lit: Int(2)"#]],
+                                IndexSet:
+                                    Expr [12-13]: Lit: Int(2)"#]],
     );
 }
 
@@ -87,8 +87,8 @@ fn gphase_multiple_qubits() {
                         GateOperand IndexedIdent [14-18]:
                             name: Ident [14-15] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [16-17]: Lit: Int(4)"#]],
+                                IndexSet:
+                                    Expr [16-17]: Lit: Int(4)"#]],
     );
 }
 

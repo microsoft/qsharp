@@ -312,7 +312,7 @@ pub struct AliasDeclStmt {
 
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "Alias", self.span)?;
+        writeln_header(f, "AliasDeclStmt", self.span)?;
         writeln_field(f, "ident", &self.ident)?;
         write_list_field(f, "exprs", &self.exprs)
     }
@@ -481,7 +481,7 @@ pub struct BarrierStmt {
 
 impl Display for BarrierStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "Barrier", self.span)?;
+        writeln_header(f, "BarrierStmt", self.span)?;
         write_list_field(f, "operands", &self.qubits)
     }
 }
@@ -929,6 +929,7 @@ pub struct ArrayReferenceType {
 impl Display for ArrayReferenceType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ArrayReferenceType", self.span)?;
+        writeln_field(f, "mutability", &self.mutability)?;
         writeln_field(f, "base_type", &self.base_type)?;
         writeln_list_field(f, "dimensions", &self.dimensions)
     }
@@ -1092,7 +1093,7 @@ pub struct DelayStmt {
 
 impl Display for DelayStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DelayInstruction", self.span)?;
+        writeln_header(f, "DelayStmt", self.span)?;
         writeln_field(f, "duration", &self.duration)?;
         write_list_field(f, "qubits", &self.qubits)
     }
@@ -1154,8 +1155,8 @@ pub enum ValueExpression {
 impl Display for ValueExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ValueExpression::Expr(expr) => write!(f, "ValueExpression {expr}"),
-            ValueExpression::Measurement(measure) => write!(f, "ValueExpression {measure}"),
+            ValueExpression::Expr(expr) => write!(f, "{expr}"),
+            ValueExpression::Measurement(measure) => write!(f, "{measure}"),
         }
     }
 }
@@ -1608,9 +1609,9 @@ pub enum IndexElement {
 impl Display for IndexElement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            IndexElement::DiscreteSet(set) => write!(f, "IndexElement {set}"),
+            IndexElement::DiscreteSet(set) => write!(f, "{set}"),
             IndexElement::IndexSet(items) => {
-                write!(f, "IndexElement:")?;
+                write!(f, "IndexSet:")?;
                 write_indented_list(f, items)
             }
         }
@@ -1635,8 +1636,8 @@ impl WithSpan for IndexSetItem {
 impl Display for IndexSetItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            IndexSetItem::RangeDefinition(range) => write!(f, "IndexSetItem {range}"),
-            IndexSetItem::Expr(expr) => write!(f, "IndexSetItem {expr}"),
+            IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
+            IndexSetItem::Expr(expr) => write!(f, "{expr}"),
             IndexSetItem::Err => write!(f, "Err"),
         }
     }
@@ -1689,7 +1690,7 @@ pub struct BreakStmt {
 
 impl Display for BreakStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Break {}", self.span)
+        write!(f, "BreakStmt {}", self.span)
     }
 }
 
@@ -1700,7 +1701,7 @@ pub struct ContinueStmt {
 
 impl Display for ContinueStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Continue {}", self.span)
+        write!(f, "ContinueStmt {}", self.span)
     }
 }
 
@@ -1711,6 +1712,6 @@ pub struct EndStmt {
 
 impl Display for EndStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "End {}", self.span)
+        write!(f, "EndStmt {}", self.span)
     }
 }

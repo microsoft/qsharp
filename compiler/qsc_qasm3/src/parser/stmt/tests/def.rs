@@ -134,7 +134,7 @@ fn classical_subroutine() {
                         Stmt [31-45]:
                             annotations: <empty>
                             kind: ReturnStmt [31-45]:
-                                expr: ValueExpression Expr [38-44]: BinaryOpExpr:
+                                expr: Expr [38-44]: BinaryOpExpr:
                                     op: Exp
                                     lhs: Expr [38-39]: Ident [38-39] "x"
                                     rhs: Expr [43-44]: Lit: Int(2)"#]],
@@ -194,7 +194,7 @@ fn old_style_args() {
                         Stmt [58-72]:
                             annotations: <empty>
                             kind: ReturnStmt [58-72]:
-                                expr: ValueExpression Expr [65-71]: BinaryOpExpr:
+                                expr: Expr [65-71]: BinaryOpExpr:
                                     op: Exp
                                     lhs: Expr [65-66]: Ident [65-66] "x"
                                     rhs: Expr [70-71]: Lit: Int(2)"#]],
@@ -214,6 +214,7 @@ fn readonly_array_arg_with_int_dims() {
                     parameters:
                         TypedParameter::ArrayReference [18-55]:
                             type: ArrayReferenceType [18-47]:
+                                mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
                                 dimensions:
@@ -239,6 +240,7 @@ fn readonly_array_arg_with_dim() {
                     parameters:
                         TypedParameter::ArrayReference [19-59]:
                             type: ArrayReferenceType [19-51]:
+                                mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [34-40]:
                                     size: Expr [38-39]: Lit: Int(8)
                                 dimensions:
@@ -263,6 +265,7 @@ fn mutable_array_arg() {
                     parameters:
                         TypedParameter::ArrayReference [19-58]:
                             type: ArrayReferenceType [19-50]:
+                                mutability: Mutable
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
                                 dimensions:

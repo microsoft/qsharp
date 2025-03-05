@@ -157,7 +157,7 @@ fn multiple_cases() {
                                     type: ScalarType [41-44]: IntType [41-44]:
                                         size: <none>
                                     ident: Ident [45-46] "x"
-                                    init_expr: ValueExpression Expr [49-50]: Lit: Int(0)
+                                    init_expr: Expr [49-50]: Lit: Int(0)
                     SwitchCase [64-85]:
                         labels:
                             Expr [69-70]: Lit: Int(1)
@@ -168,7 +168,7 @@ fn multiple_cases() {
                                     type: ScalarType [73-76]: IntType [73-76]:
                                         size: <none>
                                     ident: Ident [77-78] "y"
-                                    init_expr: ValueExpression Expr [81-82]: Lit: Int(1)
+                                    init_expr: Expr [81-82]: Lit: Int(1)
                 default_case: <none>"#]],
     );
 }

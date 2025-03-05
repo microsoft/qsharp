@@ -196,7 +196,7 @@ fn for_loop_with_continue_stmt() {
                                     rhs: Expr [42-43]: Lit: Int(0)
                         Stmt [53-62]:
                             annotations: <empty>
-                            kind: Continue [53-62]"#]],
+                            kind: ContinueStmt [53-62]"#]],
     );
 }
 
@@ -230,6 +230,6 @@ fn for_loop_with_break_stmt() {
                                     rhs: Expr [42-43]: Lit: Int(0)
                         Stmt [53-59]:
                             annotations: <empty>
-                            kind: Break [53-59]"#]],
+                            kind: BreakStmt [53-59]"#]],
     );
 }

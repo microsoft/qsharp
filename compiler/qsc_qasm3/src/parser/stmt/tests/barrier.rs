@@ -13,7 +13,7 @@ fn barrier() {
         &expect![[r#"
             Stmt [0-20]:
                 annotations: <empty>
-                kind: Barrier [0-20]:
+                kind: BarrierStmt [0-20]:
                     operands:
                         GateOperand IndexedIdent [8-9]:
                             name: Ident [8-9] "r"
@@ -21,8 +21,8 @@ fn barrier() {
                         GateOperand IndexedIdent [11-15]:
                             name: Ident [11-12] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [13-14]: Lit: Int(0)
+                                IndexSet:
+                                    Expr [13-14]: Lit: Int(0)
                         GateOperand HardwareQubit [17-19]: 2"#]],
     );
 }
@@ -35,7 +35,7 @@ fn barrier_no_args() {
         &expect![[r#"
             Stmt [0-8]:
                 annotations: <empty>
-                kind: Barrier [0-8]:
+                kind: BarrierStmt [0-8]:
                     operands: <empty>"#]],
     );
 }

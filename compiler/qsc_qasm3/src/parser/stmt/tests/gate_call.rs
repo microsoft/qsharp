@@ -42,8 +42,8 @@ fn gate_call_qubit_register() {
                         GateOperand IndexedIdent [2-6]:
                             name: Ident [2-3] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [4-5]: Lit: Int(2)"#]],
+                                IndexSet:
+                                    Expr [4-5]: Lit: Int(2)"#]],
     );
 }
 
@@ -67,8 +67,8 @@ fn gate_multiple_qubits() {
                         GateOperand IndexedIdent [9-13]:
                             name: Ident [9-10] "q"
                             indices:
-                                IndexElement:
-                                    IndexSetItem Expr [11-12]: Lit: Int(4)"#]],
+                                IndexSet:
+                                    Expr [11-12]: Lit: Int(4)"#]],
     );
 }
 
