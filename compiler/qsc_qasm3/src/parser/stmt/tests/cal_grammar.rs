@@ -11,8 +11,10 @@ fn defcalgrammar() {
         parse,
         r#"defcalgrammar "openpulse";"#,
         &expect![[r#"
-        Stmt [0-26]
-            StmtKind: CalibrationGrammarStmt [0-26]: openpulse"#]],
+            Stmt [0-26]:
+                annotations: <empty>
+                kind: CalibrationGrammarStmt [0-26]:
+                    name: openpulse"#]],
     );
 }
 
