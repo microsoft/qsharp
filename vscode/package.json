@@ -460,6 +460,20 @@
           "dark": "./resources/file-icon-dark.svg"
         },
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "qsc",
+        "aliases": [
+          "Q# Circuit",
+          "qsc"
+        ],
+        "extensions": [
+          ".qsc"
+        ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        }
       }
     ],
     "grammars": [
@@ -531,7 +545,7 @@
         "displayName": "Quantum Circuit",
         "selector": [
           {
-            "filenamePattern": "*.qviz"
+            "filenamePattern": "*.qsc"
           }
         ],
         "priority": "default"
