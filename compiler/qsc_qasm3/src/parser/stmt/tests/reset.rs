@@ -14,7 +14,7 @@ fn reset_ident() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: ResetStmt [0-8]:
-                    operand: GateOperand IndexedIdent [6-7]:
+                    operand: IndexedIdent [6-7]:
                         name: Ident [6-7] "a"
                         indices: <empty>"#]],
     );
@@ -29,11 +29,12 @@ fn reset_indexed_ident() {
             Stmt [0-11]:
                 annotations: <empty>
                 kind: ResetStmt [0-11]:
-                    operand: GateOperand IndexedIdent [6-10]:
+                    operand: IndexedIdent [6-10]:
                         name: Ident [6-7] "a"
                         indices:
-                            IndexSet:
-                                Expr [8-9]: Lit: Int(1)"#]],
+                            IndexSet [8-9]:
+                                values:
+                                    Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -46,6 +47,6 @@ fn reset_hardware_qubit() {
             Stmt [0-10]:
                 annotations: <empty>
                 kind: ResetStmt [0-10]:
-                    operand: GateOperand HardwareQubit [6-9]: 42"#]],
+                    operand: HardwareQubit [6-9]: 42"#]],
     );
 }

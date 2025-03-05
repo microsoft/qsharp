@@ -912,7 +912,7 @@ fn measure_hardware_qubit_decl() {
                         size: <none>
                     ident: Ident [4-7] "res"
                     init_expr: MeasureExpr [10-17]:
-                        operand: GateOperand HardwareQubit [18-21]: 12"#]],
+                        operand: HardwareQubit [18-21]: 12"#]],
     );
 }
 
@@ -929,12 +929,14 @@ fn measure_register_decl() {
                         size: <none>
                     ident: Ident [4-7] "res"
                     init_expr: MeasureExpr [10-17]:
-                        operand: GateOperand IndexedIdent [18-30]:
+                        operand: IndexedIdent [18-30]:
                             name: Ident [18-24] "qubits"
                             indices:
-                                IndexSet:
-                                    Expr [25-26]: Lit: Int(2)
-                                IndexSet:
-                                    Expr [28-29]: Lit: Int(3)"#]],
+                                IndexSet [25-26]:
+                                    values:
+                                        Expr [25-26]: Lit: Int(2)
+                                IndexSet [28-29]:
+                                    values:
+                                        Expr [28-29]: Lit: Int(3)"#]],
     );
 }

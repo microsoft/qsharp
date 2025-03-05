@@ -41,7 +41,7 @@ impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Program", self.span)?;
         writeln_opt_field(f, "version", self.version.as_ref())?;
-        write_list_field(f, "program stmts", &self.statements)
+        write_list_field(f, "statements", &self.statements)
     }
 }
 
@@ -278,8 +278,8 @@ pub enum GateOperand {
 impl Display for GateOperand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            GateOperand::IndexedIdent(ident) => write!(f, "GateOperand {ident}"),
-            GateOperand::HardwareQubit(qubit) => write!(f, "GateOperand {qubit}"),
+            GateOperand::IndexedIdent(ident) => write!(f, "{ident}"),
+            GateOperand::HardwareQubit(qubit) => write!(f, "{qubit}"),
             GateOperand::Err => write!(f, "Error"),
         }
     }
@@ -318,43 +318,10 @@ impl Display for AliasDeclStmt {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Assign {
-    pub ident: Box<Identifier>,
-    pub expr: Box<AssignmentExpr>,
-    pub span: Span,
-}
-
-impl Display for Assign {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Assign {}: {}, {}", self.span, self.ident, self.expr)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AssignOp {
-    pub op: BinOp,
-    pub ident: Box<Identifier>,
-    pub expr: Box<AssignmentExpr>,
-    pub span: Span,
-}
-
-impl Display for AssignOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "AssignOp {}: {}, {}, {}",
-            self.span, self.op, self.ident, self.expr
-        )
-    }
-}
-
 /// A statement kind.
 #[derive(Clone, Debug, Default)]
 pub enum StmtKind {
     Alias(AliasDeclStmt),
-    Assign(Assign),
-    AssignOp(AssignOp),
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Break(BreakStmt),
@@ -395,8 +362,6 @@ impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             StmtKind::Alias(alias) => write!(f, "{alias}"),
-            StmtKind::Assign(assign) => write!(f, "{assign}"),
-            StmtKind::AssignOp(assign_op) => write!(f, "{assign_op}"),
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
             StmtKind::Break(break_stmt) => write!(f, "{break_stmt}"),
@@ -612,6 +577,19 @@ pub struct DiscreteSet {
 impl Display for DiscreteSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DiscreteSet", self.span)?;
+        write_list_field(f, "values", &self.values)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IndexSet {
+    pub span: Span,
+    pub values: List<IndexSetItem>,
+}
+
+impl Display for IndexSet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "IndexSet", self.span)?;
         write_list_field(f, "values", &self.values)
     }
 }
@@ -996,7 +974,7 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Box<Ident>,
+    pub qubit: Ident,
     pub size: Option<Expr>,
 }
 
@@ -1132,8 +1110,8 @@ impl Display for MeasureStmt {
 #[derive(Clone, Debug)]
 pub struct ClassicalDeclarationStmt {
     pub span: Span,
-    pub r#type: TypeDef,
-    pub identifier: Box<Ident>,
+    pub r#type: Box<TypeDef>,
+    pub identifier: Ident,
     pub init_expr: Option<Box<ValueExpression>>,
 }
 
@@ -1221,19 +1199,17 @@ impl Display for CalibrationStmt {
 
 #[derive(Clone, Debug)]
 pub enum TypedParameter {
-    Scalar(ScalarType, Box<Ident>, Span),
-    Quantum(Option<Expr>, Box<Ident>, Span),
-    ArrayReference(ArrayReferenceType, Box<Ident>, Span),
+    Scalar(ScalarTypedParameter),
+    Quantum(QuantumTypedParameter),
+    ArrayReference(ArrayTypedParameter),
 }
 
 impl WithSpan for TypedParameter {
     fn with_span(self, span: Span) -> Self {
         match self {
-            TypedParameter::Scalar(scalar, ident, _) => TypedParameter::Scalar(scalar, ident, span),
-            TypedParameter::Quantum(expr, ident, _) => TypedParameter::Quantum(expr, ident, span),
-            TypedParameter::ArrayReference(array, ident, _) => {
-                TypedParameter::ArrayReference(array, ident, span)
-            }
+            Self::Scalar(param) => Self::Scalar(param.with_span(span)),
+            Self::Quantum(param) => Self::Quantum(param.with_span(span)),
+            Self::ArrayReference(param) => Self::ArrayReference(param.with_span(span)),
         }
     }
 }
@@ -1241,28 +1217,94 @@ impl WithSpan for TypedParameter {
 impl Display for TypedParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            TypedParameter::Scalar(scalar, ident, span) => {
-                writeln_header(f, "TypedParameter::Scalar", *span)?;
-                writeln_field(f, "type", scalar)?;
-                write_field(f, "ident", ident)
-            }
-            TypedParameter::Quantum(expr, ident, span) => {
-                writeln_header(f, "TypedParameter::Quantum", *span)?;
-                writeln_opt_field(f, "size", expr.as_ref())?;
-                write_field(f, "ident", ident)
-            }
-            TypedParameter::ArrayReference(array, ident, span) => {
-                writeln_header(f, "TypedParameter::ArrayReference", *span)?;
-                writeln_field(f, "type", array)?;
-                write_field(f, "ident", ident)
-            }
+            Self::Scalar(param) => write!(f, "{param}"),
+            Self::Quantum(param) => write!(f, "{param}"),
+            Self::ArrayReference(param) => write!(f, "{param}"),
         }
     }
 }
 
 impl Default for TypedParameter {
     fn default() -> Self {
-        TypedParameter::Scalar(ScalarType::default(), Box::default(), Span::default())
+        Self::Scalar(ScalarTypedParameter {
+            span: Span::default(),
+            ident: Ident::default(),
+            r#type: Box::default(),
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ScalarTypedParameter {
+    pub span: Span,
+    pub r#type: Box<ScalarType>,
+    pub ident: Ident,
+}
+
+impl Display for ScalarTypedParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ScalarTypedParameter", self.span)?;
+        writeln_field(f, "type", &self.r#type)?;
+        write_field(f, "ident", &self.ident)
+    }
+}
+
+impl WithSpan for ScalarTypedParameter {
+    fn with_span(self, span: Span) -> Self {
+        let Self { r#type, ident, .. } = self;
+        Self {
+            span,
+            r#type,
+            ident,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QuantumTypedParameter {
+    pub span: Span,
+    pub size: Option<Expr>,
+    pub ident: Ident,
+}
+
+impl Display for QuantumTypedParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "QuantumTypedParameter", self.span)?;
+        writeln_opt_field(f, "size", self.size.as_ref())?;
+        write_field(f, "ident", &self.ident)
+    }
+}
+
+impl WithSpan for QuantumTypedParameter {
+    fn with_span(self, span: Span) -> Self {
+        let Self { size, ident, .. } = self;
+        Self { span, size, ident }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ArrayTypedParameter {
+    pub span: Span,
+    pub r#type: Box<ArrayReferenceType>,
+    pub ident: Ident,
+}
+
+impl Display for ArrayTypedParameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "ArrayTypedParameter", self.span)?;
+        writeln_field(f, "type", &self.r#type)?;
+        write_field(f, "ident", &self.ident)
+    }
+}
+
+impl WithSpan for ArrayTypedParameter {
+    fn with_span(self, span: Span) -> Self {
+        let Self { r#type, ident, .. } = self;
+        Self {
+            span,
+            r#type,
+            ident,
+        }
     }
 }
 
@@ -1603,17 +1645,14 @@ impl fmt::Display for Version {
 #[derive(Clone, Debug)]
 pub enum IndexElement {
     DiscreteSet(DiscreteSet),
-    IndexSet(List<IndexSetItem>),
+    IndexSet(IndexSet),
 }
 
 impl Display for IndexElement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             IndexElement::DiscreteSet(set) => write!(f, "{set}"),
-            IndexElement::IndexSet(items) => {
-                write!(f, "IndexSet:")?;
-                write_indented_list(f, items)
-            }
+            IndexElement::IndexSet(set) => write!(f, "{set}"),
         }
     }
 }

@@ -56,7 +56,7 @@ fn missing_args_with_delim_error() {
                 kind: DefStmt [0-12]:
                     ident: Ident [4-5] "x"
                     parameters:
-                        TypedParameter::Scalar [6-6]:
+                        ScalarTypedParameter [6-6]:
                             type: ScalarType [0-0]: Err
                             ident: Ident [0-0] ""
                     return_type: <none>
@@ -86,14 +86,14 @@ fn args_with_extra_delim_err_ty() {
                 kind: DefStmt [0-23]:
                     ident: Ident [4-5] "x"
                     parameters:
-                        TypedParameter::Scalar [6-11]:
+                        ScalarTypedParameter [6-11]:
                             type: ScalarType [6-9]: IntType [6-9]:
                                 size: <none>
                             ident: Ident [10-11] "a"
-                        TypedParameter::Scalar [12-12]:
+                        ScalarTypedParameter [12-12]:
                             type: ScalarType [0-0]: Err
                             ident: Ident [0-0] ""
-                        TypedParameter::Scalar [13-18]:
+                        ScalarTypedParameter [13-18]:
                             type: ScalarType [13-16]: IntType [13-16]:
                                 size: <none>
                             ident: Ident [17-18] "b"
@@ -124,7 +124,7 @@ fn classical_subroutine() {
                 kind: DefStmt [0-47]:
                     ident: Ident [4-10] "square"
                     parameters:
-                        TypedParameter::Scalar [11-20]:
+                        ScalarTypedParameter [11-20]:
                             type: ScalarType [11-18]: IntType [11-18]:
                                 size: Expr [15-17]: Lit: Int(32)
                             ident: Ident [19-20] "x"
@@ -152,10 +152,10 @@ fn quantum_args() {
                 kind: DefStmt [0-35]:
                     ident: Ident [4-5] "x"
                     parameters:
-                        TypedParameter::Quantum [6-13]:
+                        QuantumTypedParameter [6-13]:
                             size: <none>
                             ident: Ident [12-13] "q"
-                        TypedParameter::Quantum [15-30]:
+                        QuantumTypedParameter [15-30]:
                             size: Expr [21-22]: Ident [21-22] "n"
                             ident: Ident [24-30] "qubits"
                     return_type: <none>
@@ -174,18 +174,18 @@ fn old_style_args() {
                 kind: DefStmt [0-74]:
                     ident: Ident [4-8] "test"
                     parameters:
-                        TypedParameter::Scalar [9-15]:
+                        ScalarTypedParameter [9-15]:
                             type: ScalarType [9-15]: BitType [9-15]:
                                 size: <none>
                             ident: Ident [14-15] "c"
-                        TypedParameter::Quantum [17-23]:
+                        QuantumTypedParameter [17-23]:
                             size: <none>
                             ident: Ident [22-23] "q"
-                        TypedParameter::Scalar [25-35]:
+                        ScalarTypedParameter [25-35]:
                             type: ScalarType [25-35]: BitType [25-35]:
                                 size: Expr [33-34]: Lit: Int(2)
                             ident: Ident [30-32] "c2"
-                        TypedParameter::Quantum [37-47]:
+                        QuantumTypedParameter [37-47]:
                             size: Expr [45-46]: Lit: Int(4)
                             ident: Ident [42-44] "q4"
                     return_type: ScalarType [52-55]: IntType [52-55]:
@@ -212,7 +212,7 @@ fn readonly_array_arg_with_int_dims() {
                 kind: DefStmt [0-59]:
                     ident: Ident [4-17] "specified_sub"
                     parameters:
-                        TypedParameter::ArrayReference [18-55]:
+                        ArrayTypedParameter [18-55]:
                             type: ArrayReferenceType [18-47]:
                                 mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
@@ -238,7 +238,7 @@ fn readonly_array_arg_with_dim() {
                 kind: DefStmt [0-63]:
                     ident: Ident [4-18] "arr_subroutine"
                     parameters:
-                        TypedParameter::ArrayReference [19-59]:
+                        ArrayTypedParameter [19-59]:
                             type: ArrayReferenceType [19-51]:
                                 mutability: ReadOnly
                                 base_type: ArrayBaseTypeKind IntType [34-40]:
@@ -263,7 +263,7 @@ fn mutable_array_arg() {
                 kind: DefStmt [0-62]:
                     ident: Ident [4-18] "mut_subroutine"
                     parameters:
-                        TypedParameter::ArrayReference [19-58]:
+                        ArrayTypedParameter [19-58]:
                             type: ArrayReferenceType [19-50]:
                                 mutability: Mutable
                                 base_type: ArrayBaseTypeKind IntType [33-39]:

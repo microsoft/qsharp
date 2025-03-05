@@ -39,7 +39,7 @@ fn gphase_qubit_ident() {
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
                     qubits:
-                        GateOperand IndexedIdent [10-12]:
+                        IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
                             indices: <empty>"#]],
     );
@@ -59,11 +59,12 @@ fn gphase_qubit_register() {
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
                     qubits:
-                        GateOperand IndexedIdent [10-14]:
+                        IndexedIdent [10-14]:
                             name: Ident [10-11] "q"
                             indices:
-                                IndexSet:
-                                    Expr [12-13]: Lit: Int(2)"#]],
+                                IndexSet [12-13]:
+                                    values:
+                                        Expr [12-13]: Lit: Int(2)"#]],
     );
 }
 
@@ -81,14 +82,15 @@ fn gphase_multiple_qubits() {
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
                     qubits:
-                        GateOperand IndexedIdent [10-12]:
+                        IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
                             indices: <empty>
-                        GateOperand IndexedIdent [14-18]:
+                        IndexedIdent [14-18]:
                             name: Ident [14-15] "q"
                             indices:
-                                IndexSet:
-                                    Expr [16-17]: Lit: Int(4)"#]],
+                                IndexSet [16-17]:
+                                    values:
+                                        Expr [16-17]: Lit: Int(4)"#]],
     );
 }
 
@@ -176,7 +178,7 @@ fn gphase_ctrl_inv_modifiers() {
                             rhs: Expr [25-26]: Lit: Int(2)
                     duration: <none>
                     qubits:
-                        GateOperand IndexedIdent [28-30]:
+                        IndexedIdent [28-30]:
                             name: Ident [28-30] "q0"
                             indices: <empty>"#]],
     );

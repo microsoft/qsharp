@@ -28,7 +28,7 @@ fn box_stmt() {
                                 args: <empty>
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [21-23]:
+                                    IndexedIdent [21-23]:
                                         name: Ident [21-23] "q0"
                                         indices: <empty>
                         Stmt [33-44]:
@@ -40,7 +40,7 @@ fn box_stmt() {
                                     Expr [36-39]: Lit: Float(2.4)
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [41-43]:
+                                    IndexedIdent [41-43]:
                                         name: Ident [41-43] "q1"
                                         indices: <empty>"#]],
     );
@@ -69,7 +69,7 @@ fn box_stmt_with_designator() {
                                 args: <empty>
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [26-28]:
+                                    IndexedIdent [26-28]:
                                         name: Ident [26-28] "q0"
                                         indices: <empty>
                         Stmt [38-49]:
@@ -81,7 +81,7 @@ fn box_stmt_with_designator() {
                                     Expr [41-44]: Lit: Float(2.4)
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [46-48]:
+                                    IndexedIdent [46-48]:
                                         name: Ident [46-48] "q1"
                                         indices: <empty>"#]],
     );
@@ -110,7 +110,7 @@ fn box_stmt_with_invalid_instruction() {
                                 args: <empty>
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [16-18]:
+                                    IndexedIdent [16-18]:
                                         name: Ident [16-18] "q0"
                                         indices: <empty>
                         Stmt [28-34]:
@@ -124,7 +124,7 @@ fn box_stmt_with_invalid_instruction() {
                                 args: <empty>
                                 duration: <none>
                                 qubits:
-                                    GateOperand IndexedIdent [45-47]:
+                                    IndexedIdent [45-47]:
                                         name: Ident [45-47] "q1"
                                         indices: <empty>
 
