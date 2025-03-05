@@ -13,15 +13,42 @@ fn simple_for_loop() {
         a = 0;
     }",
         &expect![[r#"
-            Stmt [5-50]
-                StmtKind: ForStmt [5-50]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", DiscreteSet [18-27]:
-                    Expr [19-20]: Lit: Int(1)
-                    Expr [22-23]: Lit: Int(2)
-                    Expr [25-26]: Lit: Int(3)
-                Stmt [38-44]
-                    StmtKind: ExprStmt [38-44]: Expr [38-43]: Assign:
-                        Expr [38-39]: Ident [38-39] "a"
-                        Expr [42-43]: Lit: Int(0)"#]],
+            Stmt [5-50]:
+                annotations: <empty>
+                kind: ForStmt [5-50]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: DiscreteSet [18-27]:
+                        values:
+                            Expr [19-20]: Lit: Int(1)
+                            Expr [22-23]: Lit: Int(2)
+                            Expr [25-26]: Lit: Int(3)
+                    block:
+                        Stmt [38-44]:
+                            annotations: <empty>
+                            kind: ExprStmt [38-44]:
+                                expr: Expr [38-43]: AssignExpr:
+                                    lhs: Expr [38-39]: Ident [38-39] "a"
+                                    rhs: Expr [42-43]: Lit: Int(0)"#]],
+    );
+}
+
+#[test]
+fn empty_for_loop() {
+    check(
+        parse,
+        "for int x in {} {}",
+        &expect![[r#"
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: ForStmt [0-18]:
+                    variable_type: ScalarType [4-7]: IntType [4-7]:
+                        size: <none>
+                    variable_name: Ident [8-9] "x"
+                    iterable: DiscreteSet [13-15]:
+                        values: <empty>
+                    block: <empty>"#]],
     );
 }
 
@@ -34,15 +61,24 @@ fn simple_for_loop_stmt_body() {
         a = 0;
     ",
         &expect![[r#"
-            Stmt [5-42]
-                StmtKind: ForStmt [5-42]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", DiscreteSet [18-27]:
-                    Expr [19-20]: Lit: Int(1)
-                    Expr [22-23]: Lit: Int(2)
-                    Expr [25-26]: Lit: Int(3)
-                Stmt [36-42]
-                    StmtKind: ExprStmt [36-42]: Expr [36-41]: Assign:
-                        Expr [36-37]: Ident [36-37] "a"
-                        Expr [40-41]: Lit: Int(0)"#]],
+            Stmt [5-42]:
+                annotations: <empty>
+                kind: ForStmt [5-42]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: DiscreteSet [18-27]:
+                        values:
+                            Expr [19-20]: Lit: Int(1)
+                            Expr [22-23]: Lit: Int(2)
+                            Expr [25-26]: Lit: Int(3)
+                    block:
+                        Stmt [36-42]:
+                            annotations: <empty>
+                            kind: ExprStmt [36-42]:
+                                expr: Expr [36-41]: AssignExpr:
+                                    lhs: Expr [36-37]: Ident [36-37] "a"
+                                    rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
 
@@ -55,15 +91,23 @@ fn for_loop_range() {
         a = 0;
     }",
         &expect![[r#"
-            Stmt [5-48]
-                StmtKind: ForStmt [5-48]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", Range: [18-25]
-                    start: Expr [19-20]: Lit: Int(0)
-                    step: Expr [21-22]: Lit: Int(2)
-                    end: Expr [23-24]: Lit: Int(7)
-                Stmt [36-42]
-                    StmtKind: ExprStmt [36-42]: Expr [36-41]: Assign:
-                        Expr [36-37]: Ident [36-37] "a"
-                        Expr [40-41]: Lit: Int(0)"#]],
+            Stmt [5-48]:
+                annotations: <empty>
+                kind: ForStmt [5-48]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: RangeDefinition [18-25]:
+                        start: Expr [19-20]: Lit: Int(0)
+                        step: Expr [21-22]: Lit: Int(2)
+                        end: Expr [23-24]: Lit: Int(7)
+                    block:
+                        Stmt [36-42]:
+                            annotations: <empty>
+                            kind: ExprStmt [36-42]:
+                                expr: Expr [36-41]: AssignExpr:
+                                    lhs: Expr [36-37]: Ident [36-37] "a"
+                                    rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
 
@@ -76,15 +120,23 @@ fn for_loop_range_no_step() {
         a = 0;
     }",
         &expect![[r#"
-            Stmt [5-46]
-                StmtKind: ForStmt [5-46]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", Range: [18-23]
-                    start: Expr [19-20]: Lit: Int(0)
-                    <no step>
-                    end: Expr [21-22]: Lit: Int(7)
-                Stmt [34-40]
-                    StmtKind: ExprStmt [34-40]: Expr [34-39]: Assign:
-                        Expr [34-35]: Ident [34-35] "a"
-                        Expr [38-39]: Lit: Int(0)"#]],
+            Stmt [5-46]:
+                annotations: <empty>
+                kind: ForStmt [5-46]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: RangeDefinition [18-23]:
+                        start: Expr [19-20]: Lit: Int(0)
+                        step: <none>
+                        end: Expr [21-22]: Lit: Int(7)
+                    block:
+                        Stmt [34-40]:
+                            annotations: <empty>
+                            kind: ExprStmt [34-40]:
+                                expr: Expr [34-39]: AssignExpr:
+                                    lhs: Expr [34-35]: Ident [34-35] "a"
+                                    rhs: Expr [38-39]: Lit: Int(0)"#]],
     );
 }
 
@@ -97,12 +149,20 @@ fn for_loop_expr() {
         a = 0;
     }",
         &expect![[r#"
-            Stmt [5-43]
-                StmtKind: ForStmt [5-43]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", Expr [18-20]: Ident [18-20] "xs"
-                Stmt [31-37]
-                    StmtKind: ExprStmt [31-37]: Expr [31-36]: Assign:
-                        Expr [31-32]: Ident [31-32] "a"
-                        Expr [35-36]: Lit: Int(0)"#]],
+            Stmt [5-43]:
+                annotations: <empty>
+                kind: ForStmt [5-43]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: Expr [18-20]: Ident [18-20] "xs"
+                    block:
+                        Stmt [31-37]:
+                            annotations: <empty>
+                            kind: ExprStmt [31-37]:
+                                expr: Expr [31-36]: AssignExpr:
+                                    lhs: Expr [31-32]: Ident [31-32] "a"
+                                    rhs: Expr [35-36]: Lit: Int(0)"#]],
     );
 }
 
@@ -116,17 +176,27 @@ fn for_loop_with_continue_stmt() {
         continue;
     }",
         &expect![[r#"
-            Stmt [5-68]
-                StmtKind: ForStmt [5-68]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", DiscreteSet [18-27]:
-                    Expr [19-20]: Lit: Int(1)
-                    Expr [22-23]: Lit: Int(2)
-                    Expr [25-26]: Lit: Int(3)
-                Stmt [38-44]
-                    StmtKind: ExprStmt [38-44]: Expr [38-43]: Assign:
-                        Expr [38-39]: Ident [38-39] "a"
-                        Expr [42-43]: Lit: Int(0)
-                Stmt [53-62]
-                    StmtKind: Continue [53-62]"#]],
+            Stmt [5-68]:
+                annotations: <empty>
+                kind: ForStmt [5-68]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: DiscreteSet [18-27]:
+                        values:
+                            Expr [19-20]: Lit: Int(1)
+                            Expr [22-23]: Lit: Int(2)
+                            Expr [25-26]: Lit: Int(3)
+                    block:
+                        Stmt [38-44]:
+                            annotations: <empty>
+                            kind: ExprStmt [38-44]:
+                                expr: Expr [38-43]: AssignExpr:
+                                    lhs: Expr [38-39]: Ident [38-39] "a"
+                                    rhs: Expr [42-43]: Lit: Int(0)
+                        Stmt [53-62]:
+                            annotations: <empty>
+                            kind: ContinueStmt [53-62]"#]],
     );
 }
 
@@ -140,16 +210,26 @@ fn for_loop_with_break_stmt() {
         break;
     }",
         &expect![[r#"
-            Stmt [5-65]
-                StmtKind: ForStmt [5-65]: ClassicalType [9-12]: IntType [9-12], Ident [13-14] "x", DiscreteSet [18-27]:
-                    Expr [19-20]: Lit: Int(1)
-                    Expr [22-23]: Lit: Int(2)
-                    Expr [25-26]: Lit: Int(3)
-                Stmt [38-44]
-                    StmtKind: ExprStmt [38-44]: Expr [38-43]: Assign:
-                        Expr [38-39]: Ident [38-39] "a"
-                        Expr [42-43]: Lit: Int(0)
-                Stmt [53-59]
-                    StmtKind: Break [53-59]"#]],
+            Stmt [5-65]:
+                annotations: <empty>
+                kind: ForStmt [5-65]:
+                    variable_type: ScalarType [9-12]: IntType [9-12]:
+                        size: <none>
+                    variable_name: Ident [13-14] "x"
+                    iterable: DiscreteSet [18-27]:
+                        values:
+                            Expr [19-20]: Lit: Int(1)
+                            Expr [22-23]: Lit: Int(2)
+                            Expr [25-26]: Lit: Int(3)
+                    block:
+                        Stmt [38-44]:
+                            annotations: <empty>
+                            kind: ExprStmt [38-44]:
+                                expr: Expr [38-43]: AssignExpr:
+                                    lhs: Expr [38-39]: Ident [38-39] "a"
+                                    rhs: Expr [42-43]: Lit: Int(0)
+                        Stmt [53-59]:
+                            annotations: <empty>
+                            kind: BreakStmt [53-59]"#]],
     );
 }

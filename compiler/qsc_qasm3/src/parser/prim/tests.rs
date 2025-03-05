@@ -87,7 +87,14 @@ fn ident_keyword() {
 
 #[test]
 fn path_single() {
-    check(path, "Foo", &expect![[r#"Path [0-3] (Ident [0-3] "Foo")"#]]);
+    check(
+        path,
+        "Foo",
+        &expect![[r#"
+        Path [0-3]:
+            name: Ident [0-3] "Foo"
+            segments: <none>"#]],
+    );
 }
 
 #[test]
@@ -97,8 +104,9 @@ fn path_double() {
         "Foo.Bar",
         &expect![[r#"
             Path [0-7]:
-                Ident [0-3] "Foo"
-                Ident [4-7] "Bar""#]],
+                name: Ident [4-7] "Bar"
+                segments:
+                    Ident [0-3] "Foo""#]],
     );
 }
 
@@ -109,9 +117,10 @@ fn path_triple() {
         "Foo.Bar.Baz",
         &expect![[r#"
             Path [0-11]:
-                Ident [0-3] "Foo"
-                Ident [4-7] "Bar"
-                Ident [8-11] "Baz""#]],
+                name: Ident [8-11] "Baz"
+                segments:
+                    Ident [0-3] "Foo"
+                    Ident [4-7] "Bar""#]],
     );
 }
 
@@ -121,9 +130,9 @@ fn path_trailing_dot() {
         path,
         "Foo.Bar.",
         &expect![[r#"
-            Err IncompletePath [0-8]:
-                Ident [0-3] "Foo"
-                Ident [4-7] "Bar"
+            Err IncompletePath [0-8]:    segments:
+                    Ident [0-3] "Foo"
+                    Ident [4-7] "Bar"
 
             [
                 Error(
@@ -146,9 +155,9 @@ fn path_followed_by_keyword() {
         path,
         "Foo.Bar.in",
         &expect![[r#"
-            Err IncompletePath [0-10]:
-                Ident [0-3] "Foo"
-                Ident [4-7] "Bar"
+            Err IncompletePath [0-10]:    segments:
+                    Ident [0-3] "Foo"
+                    Ident [4-7] "Bar"
 
             [
                 Error(
@@ -174,8 +183,9 @@ fn opt_succeed() {
         "Foo.Bar",
         &expect![[r#"
             Path [0-7]:
-                Ident [0-3] "Foo"
-                Ident [4-7] "Bar""#]],
+                name: Ident [4-7] "Bar"
+                segments:
+                    Ident [0-3] "Foo""#]],
     );
 }
 
@@ -190,8 +200,8 @@ fn opt_fail_consume() {
         |s| opt(s, path),
         "Foo.$",
         &expect![[r#"
-            Err IncompletePath [0-5]:
-                Ident [0-3] "Foo"
+            Err IncompletePath [0-5]:    segments:
+                    Ident [0-3] "Foo"
 
             [
                 Error(
