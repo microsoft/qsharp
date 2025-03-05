@@ -87,10 +87,14 @@ fn ident_keyword() {
 
 #[test]
 fn path_single() {
-    check(path, "Foo", &expect![[r#"
+    check(
+        path,
+        "Foo",
+        &expect![[r#"
         Path [0-3]:
             name: Ident [0-3] "Foo"
-            segments: <none>"#]]);
+            segments: <none>"#]],
+    );
 }
 
 #[test]
@@ -101,7 +105,7 @@ fn path_double() {
         &expect![[r#"
             Path [0-7]:
                 name: Ident [4-7] "Bar"
-                segments: 
+                segments:
                     Ident [0-3] "Foo""#]],
     );
 }
@@ -114,7 +118,7 @@ fn path_triple() {
         &expect![[r#"
             Path [0-11]:
                 name: Ident [8-11] "Baz"
-                segments: 
+                segments:
                     Ident [0-3] "Foo"
                     Ident [4-7] "Bar""#]],
     );
@@ -126,7 +130,7 @@ fn path_trailing_dot() {
         path,
         "Foo.Bar.",
         &expect![[r#"
-            Err IncompletePath [0-8]:    segments: 
+            Err IncompletePath [0-8]:    segments:
                     Ident [0-3] "Foo"
                     Ident [4-7] "Bar"
 
@@ -151,7 +155,7 @@ fn path_followed_by_keyword() {
         path,
         "Foo.Bar.in",
         &expect![[r#"
-            Err IncompletePath [0-10]:    segments: 
+            Err IncompletePath [0-10]:    segments:
                     Ident [0-3] "Foo"
                     Ident [4-7] "Bar"
 
@@ -180,7 +184,7 @@ fn opt_succeed() {
         &expect![[r#"
             Path [0-7]:
                 name: Ident [4-7] "Bar"
-                segments: 
+                segments:
                     Ident [0-3] "Foo""#]],
     );
 }
@@ -196,7 +200,7 @@ fn opt_fail_consume() {
         |s| opt(s, path),
         "Foo.$",
         &expect![[r#"
-            Err IncompletePath [0-5]:    segments: 
+            Err IncompletePath [0-5]:    segments:
                     Ident [0-3] "Foo"
 
             [
