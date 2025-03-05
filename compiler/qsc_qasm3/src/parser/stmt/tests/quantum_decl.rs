@@ -13,8 +13,11 @@ fn quantum_decl() {
         parse,
         "qubit q;",
         &expect![[r#"
-            Stmt [0-8]
-                StmtKind: QubitDeclaration [0-8]: Ident [6-7] "q""#]],
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: QubitDeclaration [0-8]:
+                    ident: Ident [6-7] "q"
+                    size: <none>"#]],
     );
 }
 
@@ -26,9 +29,14 @@ fn annotated_quantum_decl() {
         @a.b.c 123
         qubit q;"#,
         &expect![[r#"
-            Stmt [9-36]
-                Annotation [9-19]: (a.b.c, 123)
-                StmtKind: QubitDeclaration [28-36]: Ident [34-35] "q""#]],
+            Stmt [9-36]:
+                annotations:
+                    Annotation [9-19]:
+                        identifier: "a.b.c"
+                        value: "123"
+                kind: QubitDeclaration [28-36]:
+                    ident: Ident [34-35] "q"
+                    size: <none>"#]],
     );
 }
 
@@ -42,11 +50,20 @@ fn multi_annotated_quantum_decl() {
         @a.b.c 123
         qubit q;"#,
         &expect![[r#"
-            Stmt [9-108]
-                Annotation [9-57]: (g.h, dolor sit amet, consectetur adipiscing elit)
-                Annotation [66-72]: (d.e.f)
-                Annotation [81-91]: (a.b.c, 123)
-                StmtKind: QubitDeclaration [100-108]: Ident [106-107] "q""#]],
+            Stmt [9-108]:
+                annotations:
+                    Annotation [9-57]:
+                        identifier: "g.h"
+                        value: "dolor sit amet, consectetur adipiscing elit"
+                    Annotation [66-72]:
+                        identifier: "d.e.f"
+                        value: <none>
+                    Annotation [81-91]:
+                        identifier: "a.b.c"
+                        value: "123"
+                kind: QubitDeclaration [100-108]:
+                    ident: Ident [106-107] "q"
+                    size: <none>"#]],
     );
 }
 
@@ -76,8 +93,11 @@ fn quantum_decl_with_designator() {
         parse,
         "qubit[5] qubits;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: QubitDeclaration [0-16]: Ident [9-15] "qubits", Expr [6-7]: Lit: Int(5)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: QubitDeclaration [0-16]:
+                    ident: Ident [9-15] "qubits"
+                    size: Expr [6-7]: Lit: Int(5)"#]],
     );
 }
 
