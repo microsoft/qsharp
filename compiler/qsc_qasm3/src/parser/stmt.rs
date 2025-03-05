@@ -17,15 +17,16 @@ use super::{
 use crate::{
     ast::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, BarrierStmt, BitType, Block, BoxStmt, BreakStmt,
-        CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt, ComplexType,
-        ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet,
-        Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt, FunctionCall,
-        GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword, Ident,
-        Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSetItem, IntType, List,
-        LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
-        QubitDeclaration, RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt,
-        StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+        ArrayReferenceType, ArrayType, ArrayTypedParameter, BarrierStmt, BitType, Block, BoxStmt,
+        BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
+        ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt,
+        EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt,
+        FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword,
+        Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSetItem, IntType,
+        List, LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
+        QuantumTypedParameter, QubitDeclaration, RangeDefinition, ResetStmt, ReturnStmt,
+        ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt,
+        TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
@@ -359,10 +360,18 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
 
     let kind = if let Ok(ty) = scalar_type(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::Scalar(ty, Box::new(ident), s.span(lo))
+        TypedParameter::Scalar(ScalarTypedParameter {
+            span: s.span(lo),
+            r#type: Box::new(ty),
+            ident,
+        })
     } else if let Ok(size) = qubit_type(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::Quantum(size, Box::new(ident), s.span(lo))
+        TypedParameter::Quantum(QuantumTypedParameter {
+            span: s.span(lo),
+            size,
+            ident,
+        })
     } else if let Ok((ident, size)) = creg_type(s) {
         let ty = ScalarType {
             span: s.span(lo),
@@ -371,12 +380,24 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
                 span: s.span(lo),
             }),
         };
-        TypedParameter::Scalar(ty, ident, s.span(lo))
+        TypedParameter::Scalar(ScalarTypedParameter {
+            span: s.span(lo),
+            r#type: Box::new(ty),
+            ident,
+        })
     } else if let Ok((ident, size)) = qreg_type(s) {
-        TypedParameter::Quantum(size, ident, s.span(lo))
+        TypedParameter::Quantum(QuantumTypedParameter {
+            span: s.span(lo),
+            size,
+            ident,
+        })
     } else if let Ok(ty) = array_reference_ty(s) {
         let ident = prim::ident(s)?;
-        TypedParameter::ArrayReference(ty, Box::new(ident), s.span(lo))
+        TypedParameter::ArrayReference(ArrayTypedParameter {
+            span: s.span(lo),
+            r#type: Box::new(ty),
+            ident,
+        })
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "argument definition",
@@ -472,7 +493,7 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
-        qubit: Box::new(ident),
+        qubit: ident,
         size,
     }))
 }
@@ -531,7 +552,7 @@ fn parse_non_constant_classical_decl(
     ty: TypeDef,
     lo: u32,
 ) -> Result<StmtKind> {
-    let identifier = Box::new(prim::ident(s)?);
+    let identifier = prim::ident(s)?;
     let init_expr = if s.peek().kind == TokenKind::Eq {
         s.advance();
         Some(expr::value_expr(s)?)
@@ -541,7 +562,7 @@ fn parse_non_constant_classical_decl(
     recovering_semi(s);
     let decl = ClassicalDeclarationStmt {
         span: s.span(lo),
-        r#type: ty,
+        r#type: Box::new(ty),
         identifier,
         init_expr,
     };
@@ -654,13 +675,13 @@ fn creg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::ClassicalDecl(ClassicalDeclarationStmt {
         span: s.span(lo),
-        r#type: TypeDef::Scalar(ScalarType {
+        r#type: Box::new(TypeDef::Scalar(ScalarType {
             span: s.span(lo),
             kind: ScalarTypeKind::Bit(BitType {
                 size,
                 span: s.span(lo),
             }),
-        }),
+        })),
         identifier,
         init_expr: None,
     }))
@@ -683,16 +704,16 @@ fn extern_creg_type(s: &mut ParserContext) -> Result<Option<Expr>> {
     Ok(size)
 }
 
-fn creg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<Expr>)> {
+fn creg_type(s: &mut ParserContext) -> Result<(Ident, Option<Expr>)> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::CReg))?;
-    let name = Box::new(prim::ident(s)?);
+    let name = prim::ident(s)?;
     let size = opt(s, designator)?;
     Ok((name, size))
 }
 
-fn qreg_type(s: &mut ParserContext) -> Result<(Box<Ident>, Option<Expr>)> {
+fn qreg_type(s: &mut ParserContext) -> Result<(Ident, Option<Expr>)> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::QReg))?;
-    let name = Box::new(prim::ident(s)?);
+    let name = prim::ident(s)?;
     let size = opt(s, designator)?;
     Ok((name, size))
 }
@@ -911,7 +932,7 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     })
 }
 
-fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
+fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Case))?;
 
@@ -921,7 +942,12 @@ fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
     }
 
     let block = parse_block(s).map(|block| *block)?;
-    Ok((list_from_iter(controlling_label), block))
+
+    Ok(SwitchCase {
+        span: s.span(lo),
+        labels: list_from_iter(controlling_label),
+        block,
+    })
 }
 
 fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
@@ -1266,8 +1292,8 @@ fn reinterpret_index_expr(
     } = index_expr;
 
     if let IndexElement::IndexSet(set) = index {
-        if set.len() == 1 {
-            let first_elt: IndexSetItem = (*set[0]).clone();
+        if set.values.len() == 1 {
+            let first_elt: IndexSetItem = (*set.values[0]).clone();
             if let IndexSetItem::Expr(expr) = first_elt {
                 if duration.is_none() {
                     match *collection.kind {

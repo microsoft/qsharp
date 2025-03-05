@@ -38,7 +38,8 @@ fn cal_block_accept_any_tokens_inside() {
         .314
     }",
         &expect![[r#"
-            Stmt [5-69]
-                StmtKind: CalibrationStmt [5-69]"#]],
+            Stmt [5-69]:
+                annotations: <empty>
+                kind: CalibrationStmt [5-69]"#]],
     );
 }
