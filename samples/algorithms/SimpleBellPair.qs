@@ -1,0 +1,34 @@
+/// # Sample
+/// Simple Bell Pair
+///
+/// # Description
+/// Bell pairs are specific quantum states of two qubits that represent
+/// the simplest (and maximal) examples of quantum entanglement. This sample
+/// prepares |Φ+⟩ = (|00⟩+|11⟩)/√2. For other Bell states see BellState.qs
+operation Main() : (Result, Result) {
+    // Allocate the two qubits that will be used to create a Bell pair.
+    use q1 = Qubit();
+    use q2 = Qubit();
+
+    // Create Bell pair by calling `PrepareBellPair` operation defined below.
+    PrepareBellPair(q1, q2);
+
+    // Show the state of qubits using the `DumpMachine` function.
+    Std.Diagnostics.DumpMachine();
+
+    // Measure the two qubits and reset them.
+    (MResetZ(q1), MResetZ(q2))
+
+    // Qubits `q1` and `q2` are automatically released at the end of the block.
+}
+
+/// # Summary
+/// Prepare Bell pair |Φ+⟩ = (|00⟩+|11⟩)/√2 on two qubits.
+/// Qubits are assumed to be in |00> state.
+operation PrepareBellPair(q1 : Qubit, q2 : Qubit) : Unit {
+    // Set qubit `q1` in superposition of |0⟩ and |1⟩ by applying the Hadamard gate.
+    H(q1);
+
+    // Entangle the two qubits `q1` and `q2` using the `CNOT` gate.
+    CNOT(q1, q2);
+}
