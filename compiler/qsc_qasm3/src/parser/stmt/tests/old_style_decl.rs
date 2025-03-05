@@ -13,8 +13,13 @@ fn creg_decl() {
         parse,
         "creg c;",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: ClassicalDeclarationStmt [0-7]: ClassicalType [0-7]: BitType, Ident [5-6] "c""#]],
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-7]:
+                    type: ScalarType [0-7]: BitType [0-7]:
+                        size: <none>
+                    ident: Ident [5-6] "c"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -24,8 +29,13 @@ fn creg_array_decl() {
         parse,
         "creg c[n];",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-10]: BitType [0-10]: Expr [7-8]: Ident [7-8] "n", Ident [5-6] "c""#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-10]: BitType [0-10]:
+                        size: Expr [7-8]: Ident [7-8] "n"
+                    ident: Ident [5-6] "c"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -35,8 +45,11 @@ fn qreg_decl() {
         parse,
         "qreg q;",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: QubitDeclaration [0-7]: Ident [5-6] "q""#]],
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: QubitDeclaration [0-7]:
+                    ident: Ident [5-6] "q"
+                    size: <none>"#]],
     );
 }
 
@@ -46,7 +59,10 @@ fn qreg_array_decl() {
         parse,
         "qreg q[n];",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: QubitDeclaration [0-10]: Ident [5-6] "q", Expr [7-8]: Ident [7-8] "n""#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: QubitDeclaration [0-10]:
+                    ident: Ident [5-6] "q"
+                    size: Expr [7-8]: Ident [7-8] "n""#]],
     );
 }
