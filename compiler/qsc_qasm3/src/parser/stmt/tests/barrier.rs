@@ -14,14 +14,14 @@ fn barrier() {
             Stmt [0-20]:
                 annotations: <empty>
                 kind: Barrier [0-20]:
-                    operands: 
+                    operands:
                         GateOperand IndexedIdent [8-9]:
                             name: Ident [8-9] "r"
                             indices: <empty>
                         GateOperand IndexedIdent [11-15]:
                             name: Ident [11-12] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [13-14]: Lit: Int(0)
                         GateOperand HardwareQubit [17-19]: 2"#]],
     );

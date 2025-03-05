@@ -45,7 +45,7 @@ fn bit_param_bit_ret_decl() {
                 annotations: <empty>
                 kind: ExternDecl [0-21]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-12]: ScalarType [9-12]: BitType [9-12]:
                             size: <none>
                     return_type: ScalarType [17-20]: BitType [17-20]:
@@ -63,7 +63,7 @@ fn sized_bit_param_bit_ret_decl() {
                 annotations: <empty>
                 kind: ExternDecl [0-24]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-15]: ScalarType [9-15]: BitType [9-15]:
                             size: Expr [13-14]: Ident [13-14] "n"
                     return_type: ScalarType [20-23]: BitType [20-23]:
@@ -81,7 +81,7 @@ fn sized_creg_param_bit_ret_decl() {
                 annotations: <empty>
                 kind: ExternDecl [0-25]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-16]: ScalarType [9-16]: BitType [9-16]:
                             size: Expr [14-15]: Ident [14-15] "n"
                     return_type: ScalarType [21-24]: BitType [21-24]:
@@ -99,7 +99,7 @@ fn creg_param_bit_ret_decl() {
                 annotations: <empty>
                 kind: ExternDecl [0-22]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-13]: ScalarType [9-13]: BitType [9-13]:
                             size: <none>
                     return_type: ScalarType [18-21]: BitType [18-21]:
@@ -117,11 +117,11 @@ fn readonly_array_arg_with_int_dims() {
                 annotations: <empty>
                 kind: ExternDecl [0-40]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-38]: ArrayReferenceType [9-38]:
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
-                            dimensions: 
+                            dimensions:
                                 Expr [32-33]: Lit: Int(2)
                                 Expr [35-37]: Lit: Int(10)
 
@@ -139,11 +139,11 @@ fn readonly_array_arg_with_dim() {
                 annotations: <empty>
                 kind: ExternDecl [0-43]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-41]: ArrayReferenceType [9-41]:
                             base_type: ArrayBaseTypeKind IntType [24-30]:
                                 size: Expr [28-29]: Lit: Int(8)
-                            dimensions: 
+                            dimensions:
                                 Expr [39-40]: Lit: Int(1)
 
                     return_type: <none>"#]],
@@ -160,11 +160,11 @@ fn mutable_array_arg() {
                 annotations: <empty>
                 kind: ExternDecl [0-42]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-40]: ArrayReferenceType [9-40]:
                             base_type: ArrayBaseTypeKind IntType [23-29]:
                                 size: Expr [27-28]: Lit: Int(8)
-                            dimensions: 
+                            dimensions:
                                 Expr [38-39]: Lit: Int(1)
 
                     return_type: <none>"#]],
@@ -201,11 +201,11 @@ fn annotation() {
         extern x(creg) -> bit;"#,
         &expect![[r#"
             Stmt [0-47]:
-                annotations: 
+                annotations:
                     Annotation [0-16]: (test.annotation)
                 kind: ExternDecl [25-47]:
                     ident: Ident [32-33] "x"
-                    parameters: 
+                    parameters:
                         [34-38]: ScalarType [34-38]: BitType [34-38]:
                             size: <none>
                     return_type: ScalarType [43-46]: BitType [43-46]:
@@ -243,7 +243,7 @@ fn missing_args_with_delim_error() {
                 annotations: <empty>
                 kind: ExternDecl [0-12]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-9]: ScalarType [0-0]: Err
                     return_type: <none>
 
@@ -270,7 +270,7 @@ fn args_with_extra_delim_err_ty() {
                 annotations: <empty>
                 kind: ExternDecl [0-19]:
                     ident: Ident [7-8] "x"
-                    parameters: 
+                    parameters:
                         [9-12]: ScalarType [9-12]: IntType [9-12]:
                             size: <none>
                         [13-13]: ScalarType [0-0]: Err

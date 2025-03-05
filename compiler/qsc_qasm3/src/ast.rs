@@ -969,9 +969,11 @@ pub struct Pragma {
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let identifier = format!("\"{}\"", self.identifier);
+        let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Pragma", self.span)?;
-        writeln_field(f, "identifier", &self.identifier)?;
-        write_opt_field(f, "value", self.value.as_ref())
+        writeln_field(f, "identifier", &identifier)?;
+        write_opt_field(f, "value", value.as_ref())
     }
 }
 
@@ -1605,7 +1607,7 @@ impl Display for IndexElement {
         match self {
             IndexElement::DiscreteSet(set) => write!(f, "IndexElement {set}"),
             IndexElement::IndexSet(items) => {
-                write!(f, "IndexElement: ")?;
+                write!(f, "IndexElement:")?;
                 write_indented_list(f, items)
             }
         }

@@ -70,8 +70,8 @@ fn measure_arrow_into_indented_ident() {
                 kind: MeasureStmt [0-18]:
                     target: IndexedIdent [13-17]:
                         name: Ident [13-14] "a"
-                        indices: 
-                            IndexElement: 
+                        indices:
+                            IndexElement:
                                 IndexSetItem Expr [15-16]: Lit: Int(1)"#]],
     );
 }

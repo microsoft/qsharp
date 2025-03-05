@@ -55,7 +55,7 @@ fn missing_args_with_delim_error() {
                 annotations: <empty>
                 kind: DefStmt [0-12]:
                     ident: Ident [4-5] "x"
-                    parameters: 
+                    parameters:
                         TypedParameter::Scalar [6-6]:
                             type: ScalarType [0-0]: Err
                             ident: Ident [0-0] ""
@@ -85,7 +85,7 @@ fn args_with_extra_delim_err_ty() {
                 annotations: <empty>
                 kind: DefStmt [0-23]:
                     ident: Ident [4-5] "x"
-                    parameters: 
+                    parameters:
                         TypedParameter::Scalar [6-11]:
                             type: ScalarType [6-9]: IntType [6-9]:
                                 size: <none>
@@ -123,14 +123,14 @@ fn classical_subroutine() {
                 annotations: <empty>
                 kind: DefStmt [0-47]:
                     ident: Ident [4-10] "square"
-                    parameters: 
+                    parameters:
                         TypedParameter::Scalar [11-20]:
                             type: ScalarType [11-18]: IntType [11-18]:
                                 size: Expr [15-17]: Lit: Int(32)
                             ident: Ident [19-20] "x"
                     return_type: ScalarType [25-28]: IntType [25-28]:
                         size: <none>
-                    body: Block [29-47]: 
+                    body: Block [29-47]:
                         Stmt [31-45]:
                             annotations: <empty>
                             kind: ReturnStmt [31-45]:
@@ -151,7 +151,7 @@ fn quantum_args() {
                 annotations: <empty>
                 kind: DefStmt [0-35]:
                     ident: Ident [4-5] "x"
-                    parameters: 
+                    parameters:
                         TypedParameter::Quantum [6-13]:
                             size: <none>
                             ident: Ident [12-13] "q"
@@ -173,7 +173,7 @@ fn old_style_args() {
                 annotations: <empty>
                 kind: DefStmt [0-74]:
                     ident: Ident [4-8] "test"
-                    parameters: 
+                    parameters:
                         TypedParameter::Scalar [9-15]:
                             type: ScalarType [9-15]: BitType [9-15]:
                                 size: <none>
@@ -190,7 +190,7 @@ fn old_style_args() {
                             ident: Ident [42-44] "q4"
                     return_type: ScalarType [52-55]: IntType [52-55]:
                         size: <none>
-                    body: Block [56-74]: 
+                    body: Block [56-74]:
                         Stmt [58-72]:
                             annotations: <empty>
                             kind: ReturnStmt [58-72]:
@@ -211,12 +211,12 @@ fn readonly_array_arg_with_int_dims() {
                 annotations: <empty>
                 kind: DefStmt [0-59]:
                     ident: Ident [4-17] "specified_sub"
-                    parameters: 
+                    parameters:
                         TypedParameter::ArrayReference [18-55]:
                             type: ArrayReferenceType [18-47]:
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
-                                dimensions: 
+                                dimensions:
                                     Expr [41-42]: Lit: Int(2)
                                     Expr [44-46]: Lit: Int(10)
 
@@ -236,12 +236,12 @@ fn readonly_array_arg_with_dim() {
                 annotations: <empty>
                 kind: DefStmt [0-63]:
                     ident: Ident [4-18] "arr_subroutine"
-                    parameters: 
+                    parameters:
                         TypedParameter::ArrayReference [19-59]:
                             type: ArrayReferenceType [19-51]:
                                 base_type: ArrayBaseTypeKind IntType [34-40]:
                                     size: Expr [38-39]: Lit: Int(8)
-                                dimensions: 
+                                dimensions:
                                     Expr [49-50]: Lit: Int(1)
 
                             ident: Ident [52-59] "arr_arg"
@@ -260,12 +260,12 @@ fn mutable_array_arg() {
                 annotations: <empty>
                 kind: DefStmt [0-62]:
                     ident: Ident [4-18] "mut_subroutine"
-                    parameters: 
+                    parameters:
                         TypedParameter::ArrayReference [19-58]:
                             type: ArrayReferenceType [19-50]:
                                 base_type: ArrayBaseTypeKind IntType [33-39]:
                                     size: Expr [37-38]: Lit: Int(8)
-                                dimensions: 
+                                dimensions:
                                     Expr [48-49]: Lit: Int(1)
 
                             ident: Ident [51-58] "arr_arg"

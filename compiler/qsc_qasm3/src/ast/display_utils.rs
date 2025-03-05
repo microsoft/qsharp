@@ -32,7 +32,7 @@ where
 {
     let mut iter = vals.into_iter().peekable();
     if iter.peek().is_none() {
-        write!(f, "<empty>")
+        write!(f, " <empty>")
     } else {
         for elt in iter {
             write!(f, "\n{elt}")?;
@@ -52,7 +52,7 @@ where
 {
     let mut iter = vals.into_iter().peekable();
     if iter.peek().is_none() {
-        write!(f, "<empty>")
+        write!(f, " <empty>")
     } else {
         let mut indent = with_indentation(f);
         for elt in iter {
@@ -63,7 +63,7 @@ where
 }
 
 pub(super) fn write_header(f: &mut impl Write, name: &str, span: super::Span) -> fmt::Result {
-    write!(f, "{name} {span}: ")
+    write!(f, "{name} {span}:")
 }
 
 pub(super) fn writeln_header(f: &mut impl Write, name: &str, span: super::Span) -> fmt::Result {
@@ -76,8 +76,7 @@ pub(super) fn write_field<T: Display>(
     val: &T,
 ) -> fmt::Result {
     let mut indent = with_indentation(f);
-    write!(indent, "{field_name}: ")?;
-    write!(indent, "{val}")
+    write!(indent, "{field_name}: {val}")
 }
 
 pub(super) fn writeln_field<T: Display>(
@@ -121,7 +120,7 @@ where
     I: IntoIterator<Item = &'itemref T>,
 {
     let mut indent = with_indentation(f);
-    write!(indent, "{field_name}: ")?;
+    write!(indent, "{field_name}:")?;
     let mut indent = set_indentation(indent, 2);
     write_list(&mut indent, vals)
 }

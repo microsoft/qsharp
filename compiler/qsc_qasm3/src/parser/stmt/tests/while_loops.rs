@@ -20,7 +20,7 @@ fn simple_while() {
                         op: Neq
                         lhs: Expr [12-13]: Ident [12-13] "x"
                         rhs: Expr [17-18]: Lit: Int(2)
-                    block: 
+                    block:
                         Stmt [30-36]:
                             annotations: <empty>
                             kind: ExprStmt [30-36]:
@@ -59,7 +59,7 @@ fn while_stmt_body() {
                         op: Neq
                         lhs: Expr [12-13]: Ident [12-13] "x"
                         rhs: Expr [17-18]: Lit: Int(2)
-                    block: 
+                    block:
                         Stmt [28-34]:
                             annotations: <empty>
                             kind: ExprStmt [28-34]:
@@ -86,7 +86,7 @@ fn while_loop_with_continue_stmt() {
                         op: Neq
                         lhs: Expr [12-13]: Ident [12-13] "x"
                         rhs: Expr [17-18]: Lit: Int(2)
-                    block: 
+                    block:
                         Stmt [30-36]:
                             annotations: <empty>
                             kind: ExprStmt [30-36]:
@@ -116,7 +116,7 @@ fn while_loop_with_break_stmt() {
                         op: Neq
                         lhs: Expr [12-13]: Ident [12-13] "x"
                         rhs: Expr [17-18]: Lit: Int(2)
-                    block: 
+                    block:
                         Stmt [30-36]:
                             annotations: <empty>
                             kind: ExprStmt [30-36]:

@@ -18,7 +18,7 @@ fn gate_call() {
                     name: Ident [0-1] "H"
                     args: <empty>
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [2-4]:
                             name: Ident [2-4] "q0"
                             indices: <empty>"#]],
@@ -38,11 +38,11 @@ fn gate_call_qubit_register() {
                     name: Ident [0-1] "H"
                     args: <empty>
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [2-6]:
                             name: Ident [2-3] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [4-5]: Lit: Int(2)"#]],
     );
 }
@@ -60,14 +60,14 @@ fn gate_multiple_qubits() {
                     name: Ident [0-4] "CNOT"
                     args: <empty>
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [5-7]:
                             name: Ident [5-7] "q0"
                             indices: <empty>
                         GateOperand IndexedIdent [9-13]:
                             name: Ident [9-10] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [11-12]: Lit: Int(4)"#]],
     );
 }
@@ -81,7 +81,7 @@ fn gate_with_no_qubits() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: GateCall [0-8]:
-                    modifiers: 
+                    modifiers:
                         QuantumGateModifier [0-5]: Inv
                     name: Ident [6-7] "H"
                     args: <empty>
@@ -112,13 +112,13 @@ fn gate_call_with_parameters() {
                 kind: GateCall [0-14]:
                     modifiers: <empty>
                     name: Ident [0-2] "Rx"
-                    args: 
+                    args:
                         Expr [3-9]: BinaryOpExpr:
                             op: Div
                             lhs: Expr [3-5]: Ident [3-5] "pi"
                             rhs: Expr [8-9]: Lit: Int(2)
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [11-13]:
                             name: Ident [11-13] "q0"
                             indices: <empty>"#]],
@@ -134,12 +134,12 @@ fn gate_call_inv_modifier() {
             Stmt [0-11]:
                 annotations: <empty>
                 kind: GateCall [0-11]:
-                    modifiers: 
+                    modifiers:
                         QuantumGateModifier [0-5]: Inv
                     name: Ident [6-7] "H"
                     args: <empty>
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [8-10]:
                             name: Ident [8-10] "q0"
                             indices: <empty>"#]],
@@ -155,17 +155,17 @@ fn gate_call_ctrl_inv_modifiers() {
             Stmt [0-38]:
                 annotations: <empty>
                 kind: GateCall [0-38]:
-                    modifiers: 
+                    modifiers:
                         QuantumGateModifier [0-9]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
                         QuantumGateModifier [10-15]: Inv
                     name: Ident [16-18] "Rx"
-                    args: 
+                    args:
                         Expr [19-25]: BinaryOpExpr:
                             op: Div
                             lhs: Expr [19-21]: Ident [19-21] "pi"
                             rhs: Expr [24-25]: Lit: Int(2)
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [27-29]:
                             name: Ident [27-29] "c1"
                             indices: <empty>
@@ -208,11 +208,11 @@ fn parametrized_gate_call() {
                 kind: GateCall [0-13]:
                     modifiers: <empty>
                     name: Ident [0-4] "Name"
-                    args: 
+                    args:
                         Expr [5-6]: Lit: Int(2)
                         Expr [8-9]: Lit: Int(3)
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [11-12]:
                             name: Ident [11-12] "q"
                             indices: <empty>"#]],
@@ -230,11 +230,11 @@ fn parametrized_gate_call_with_designator() {
                 kind: GateCall [0-16]:
                     modifiers: <empty>
                     name: Ident [0-4] "Name"
-                    args: 
+                    args:
                         Expr [5-6]: Lit: Int(2)
                         Expr [8-9]: Lit: Int(3)
                     duration: Expr [11-12]: Lit: Int(1)
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [14-15]:
                             name: Ident [14-15] "q"
                             indices: <empty>"#]],
@@ -272,7 +272,7 @@ fn gate_call_with_designator() {
                     name: Ident [0-1] "H"
                     args: <empty>
                     duration: Expr [2-5]: Lit: Duration(2.0, Us)
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [7-8]:
                             name: Ident [7-8] "q"
                             indices: <empty>"#]],

@@ -50,7 +50,7 @@ fn one_qubit_no_classical() {
                 kind: Gate [0-14]:
                     ident: Ident [5-9] "c0q1"
                     parameters: <empty>
-                    qubits: 
+                    qubits:
                         Ident [10-11] "a"
                     body: Block [12-14]: <empty>"#]],
     );
@@ -67,7 +67,7 @@ fn two_qubits_no_classical() {
                 kind: Gate [0-17]:
                     ident: Ident [5-9] "c0q2"
                     parameters: <empty>
-                    qubits: 
+                    qubits:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
                     body: Block [15-17]: <empty>"#]],
@@ -85,7 +85,7 @@ fn three_qubits_trailing_comma_no_classical() {
                 kind: Gate [0-21]:
                     ident: Ident [5-9] "c0q3"
                     parameters: <empty>
-                    qubits: 
+                    qubits:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
                         Ident [16-17] "c"
@@ -103,7 +103,7 @@ fn no_qubits_one_classical() {
                 annotations: <empty>
                 kind: Gate [0-15]:
                     ident: Ident [5-9] "c1q0"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
                     qubits: <empty>
                     body: Block [13-15]: <empty>"#]],
@@ -120,7 +120,7 @@ fn no_qubits_two_classical() {
                 annotations: <empty>
                 kind: Gate [0-18]:
                     ident: Ident [5-9] "c2q0"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
                     qubits: <empty>
@@ -138,7 +138,7 @@ fn no_qubits_three_classical() {
                 annotations: <empty>
                 kind: Gate [0-21]:
                     ident: Ident [5-9] "c3q0"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
                         Ident [16-17] "c"
@@ -157,9 +157,9 @@ fn one_qubit_one_classical() {
                 annotations: <empty>
                 kind: Gate [0-17]:
                     ident: Ident [5-9] "c1q1"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
-                    qubits: 
+                    qubits:
                         Ident [13-14] "b"
                     body: Block [15-17]: <empty>"#]],
     );
@@ -175,10 +175,10 @@ fn two_qubits_two_classical() {
                 annotations: <empty>
                 kind: Gate [0-23]:
                     ident: Ident [5-9] "c2q2"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
-                    qubits: 
+                    qubits:
                         Ident [16-17] "c"
                         Ident [19-20] "d"
                     body: Block [21-23]: <empty>"#]],
@@ -195,13 +195,13 @@ fn two_qubits_two_classical_with_body() {
                 annotations: <empty>
                 kind: Gate [0-45]:
                     ident: Ident [5-9] "c2q2"
-                    parameters: 
+                    parameters:
                         Ident [10-11] "a"
                         Ident [13-14] "b"
-                    qubits: 
+                    qubits:
                         Ident [16-17] "c"
                         Ident [19-20] "d"
-                    body: Block [21-45]: 
+                    body: Block [21-45]:
                         Stmt [23-43]:
                             annotations: <empty>
                             kind: ClassicalDeclarationStmt [23-43]:

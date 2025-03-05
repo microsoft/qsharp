@@ -15,7 +15,7 @@ fn gphase() {
                 annotations: <empty>
                 kind: GPhase [0-15]:
                     modifiers: <empty>
-                    args: 
+                    args:
                         Expr [7-13]: BinaryOpExpr:
                             op: Div
                             lhs: Expr [7-9]: Ident [7-9] "pi"
@@ -35,10 +35,10 @@ fn gphase_qubit_ident() {
                 annotations: <empty>
                 kind: GPhase [0-13]:
                     modifiers: <empty>
-                    args: 
+                    args:
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
                             indices: <empty>"#]],
@@ -55,14 +55,14 @@ fn gphase_qubit_register() {
                 annotations: <empty>
                 kind: GPhase [0-15]:
                     modifiers: <empty>
-                    args: 
+                    args:
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [10-14]:
                             name: Ident [10-11] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [12-13]: Lit: Int(2)"#]],
     );
 }
@@ -77,17 +77,17 @@ fn gphase_multiple_qubits() {
                 annotations: <empty>
                 kind: GPhase [0-19]:
                     modifiers: <empty>
-                    args: 
+                    args:
                         Expr [7-8]: Ident [7-8] "a"
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
                             indices: <empty>
                         GateOperand IndexedIdent [14-18]:
                             name: Ident [14-15] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [16-17]: Lit: Int(4)"#]],
     );
 }
@@ -129,7 +129,7 @@ fn gphase_with_parameters() {
                 annotations: <empty>
                 kind: GPhase [0-15]:
                     modifiers: <empty>
-                    args: 
+                    args:
                         Expr [7-13]: BinaryOpExpr:
                             op: Div
                             lhs: Expr [7-9]: Ident [7-9] "pi"
@@ -148,9 +148,9 @@ fn gphase_inv_modifier() {
             Stmt [0-16]:
                 annotations: <empty>
                 kind: GPhase [0-16]:
-                    modifiers: 
+                    modifiers:
                         QuantumGateModifier [0-5]: Inv
-                    args: 
+                    args:
                         Expr [13-14]: Ident [13-14] "a"
                     duration: <none>
                     qubits: <empty>"#]],
@@ -166,16 +166,16 @@ fn gphase_ctrl_inv_modifiers() {
             Stmt [0-31]:
                 annotations: <empty>
                 kind: GPhase [0-31]:
-                    modifiers: 
+                    modifiers:
                         QuantumGateModifier [0-6]: Ctrl None
                         QuantumGateModifier [7-12]: Inv
-                    args: 
+                    args:
                         Expr [20-26]: BinaryOpExpr:
                             op: Div
                             lhs: Expr [20-22]: Ident [20-22] "pi"
                             rhs: Expr [25-26]: Lit: Int(2)
                     duration: <none>
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [28-30]:
                             name: Ident [28-30] "q0"
                             indices: <empty>"#]],

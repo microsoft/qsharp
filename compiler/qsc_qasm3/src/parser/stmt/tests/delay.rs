@@ -15,16 +15,16 @@ fn delay() {
                 annotations: <empty>
                 kind: DelayInstruction [0-20]:
                     duration: Expr [6-7]: Ident [6-7] "a"
-                    qubits: 
+                    qubits:
                         GateOperand IndexedIdent [9-13]:
                             name: Ident [9-10] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [11-12]: Lit: Int(0)
                         GateOperand IndexedIdent [15-19]:
                             name: Ident [15-16] "q"
-                            indices: 
-                                IndexElement: 
+                            indices:
+                                IndexElement:
                                     IndexSetItem Expr [17-18]: Lit: Int(1)"#]],
     );
 }

@@ -31,8 +31,8 @@ fn reset_indexed_ident() {
                 kind: ResetStmt [0-11]:
                     operand: GateOperand IndexedIdent [6-10]:
                         name: Ident [6-7] "a"
-                        indices: 
-                            IndexElement: 
+                        indices:
+                            IndexElement:
                                 IndexSetItem Expr [8-9]: Lit: Int(1)"#]],
     );
 }

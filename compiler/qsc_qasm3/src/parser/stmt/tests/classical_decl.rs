@@ -841,7 +841,7 @@ fn empty_array_decl() {
                     type: ArrayType [0-13]:
                         base_type: ArrayBaseTypeKind IntType [6-9]:
                             size: <none>
-                        dimensions: 
+                        dimensions:
                             Expr [11-12]: Lit: Int(0)
                     ident: Ident [14-17] "arr"
                     init_expr: ValueExpression Expr [20-22]: Lit:     Array: <empty>"#]],
@@ -860,10 +860,10 @@ fn simple_array_decl() {
                     type: ArrayType [0-17]:
                         base_type: ArrayBaseTypeKind IntType [6-13]:
                             size: Expr [10-12]: Lit: Int(32)
-                        dimensions: 
+                        dimensions:
                             Expr [15-16]: Lit: Int(3)
                     ident: Ident [18-21] "arr"
-                    init_expr: ValueExpression Expr [24-33]: Lit:     Array: 
+                    init_expr: ValueExpression Expr [24-33]: Lit:     Array:
                             Expr [25-26]: Lit: Int(1)
                             Expr [28-29]: Lit: Int(2)
                             Expr [31-32]: Lit: Int(3)"#]],
@@ -882,18 +882,18 @@ fn nested_array_decl() {
                     type: ArrayType [0-20]:
                         base_type: ArrayBaseTypeKind IntType [6-13]:
                             size: Expr [10-12]: Lit: Int(32)
-                        dimensions: 
+                        dimensions:
                             Expr [15-16]: Lit: Int(3)
                             Expr [18-19]: Lit: Int(2)
                     ident: Ident [21-24] "arr"
-                    init_expr: ValueExpression Expr [27-51]: Lit:     Array: 
-                            Expr [28-34]: Lit:     Array: 
+                    init_expr: ValueExpression Expr [27-51]: Lit:     Array:
+                            Expr [28-34]: Lit:     Array:
                                     Expr [29-30]: Lit: Int(1)
                                     Expr [32-33]: Lit: Int(2)
-                            Expr [36-42]: Lit:     Array: 
+                            Expr [36-42]: Lit:     Array:
                                     Expr [37-38]: Lit: Int(3)
                                     Expr [40-41]: Lit: Int(4)
-                            Expr [44-50]: Lit:     Array: 
+                            Expr [44-50]: Lit:     Array:
                                     Expr [45-46]: Lit: Int(5)
                                     Expr [48-49]: Lit: Int(6)"#]],
     );
@@ -929,10 +929,10 @@ fn measure_register_decl() {
                     ident: Ident [4-7] "res"
                     init_expr: ValueExpression MeasureExpr [10-17]: GateOperand IndexedIdent [18-30]:
                         name: Ident [18-24] "qubits"
-                        indices: 
-                            IndexElement: 
+                        indices:
+                            IndexElement:
                                 IndexSetItem Expr [25-26]: Lit: Int(2)
-                            IndexElement: 
+                            IndexElement:
                                 IndexSetItem Expr [28-29]: Lit: Int(3)"#]],
     );
 }

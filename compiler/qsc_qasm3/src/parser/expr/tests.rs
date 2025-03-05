@@ -616,7 +616,7 @@ fn prat_parsing_exp_funcall() {
                 lhs: Expr [0-1]: Lit: Int(2)
                 rhs: Expr [5-14]: FunctionCall [5-14]:
                     name: Ident [5-11] "square"
-                    args: 
+                    args:
                         Expr [12-13]: Lit: Int(3)"#]],
     );
 }
@@ -630,7 +630,7 @@ fn prat_parsing_funcall_exp() {
                 op: Exp
                 lhs: Expr [0-9]: FunctionCall [0-9]:
                     name: Ident [0-6] "square"
-                    args: 
+                    args:
                         Expr [7-8]: Lit: Int(2)
                 rhs: Expr [13-14]: Lit: Int(3)"#]],
     );
@@ -643,7 +643,7 @@ fn prat_parsing_funcall_exp_arg() {
         &expect![[r#"
             Expr [0-14]: FunctionCall [0-14]:
                 name: Ident [0-6] "square"
-                args: 
+                args:
                     Expr [7-13]: BinaryOpExpr:
                         op: Exp
                         lhs: Expr [7-8]: Lit: Int(2)
@@ -658,7 +658,7 @@ fn funcall() {
         &expect![[r#"
             Expr [0-9]: FunctionCall [0-9]:
                 name: Ident [0-6] "square"
-                args: 
+                args:
                     Expr [7-8]: Lit: Int(2)"#]],
     );
 }
@@ -670,7 +670,7 @@ fn funcall_multiple_args() {
         &expect![[r#"
             Expr [0-12]: FunctionCall [0-12]:
                 name: Ident [0-6] "square"
-                args: 
+                args:
                     Expr [7-8]: Lit: Int(2)
                     Expr [10-11]: Lit: Int(3)"#]],
     );
@@ -683,7 +683,7 @@ fn funcall_multiple_args_trailing_comma() {
         &expect![[r#"
             Expr [0-13]: FunctionCall [0-13]:
                 name: Ident [0-6] "square"
-                args: 
+                args:
                     Expr [7-8]: Lit: Int(2)
                     Expr [10-11]: Lit: Int(3)"#]],
     );
@@ -853,7 +853,7 @@ fn cast_to_int_array() {
                 type: ArrayType [0-17]:
                     base_type: ArrayBaseTypeKind IntType [6-13]:
                         size: Expr [10-12]: Lit: Int(64)
-                    dimensions: 
+                    dimensions:
                         Expr [15-16]: Lit: Int(4)
                 arg: Expr [18-19]: Lit: Int(0)"#]],
     );
@@ -868,7 +868,7 @@ fn cast_to_uint_array() {
                 type: ArrayType [0-18]:
                     base_type: ArrayBaseTypeKind UIntType [6-14]:
                         size: Expr [11-13]: Lit: Int(64)
-                    dimensions: 
+                    dimensions:
                         Expr [16-17]: Lit: Int(4)
                 arg: Expr [19-20]: Lit: Int(0)"#]],
     );
@@ -883,7 +883,7 @@ fn cast_to_float_array() {
                 type: ArrayType [0-19]:
                     base_type: ArrayBaseTypeKind FloatType [6-15]:
                         size: Expr [12-14]: Lit: Int(64)
-                    dimensions: 
+                    dimensions:
                         Expr [17-18]: Lit: Int(4)
                 arg: Expr [20-21]: Lit: Int(0)"#]],
     );
@@ -898,7 +898,7 @@ fn cast_to_angle_array() {
                 type: ArrayType [0-19]:
                     base_type: ArrayBaseTypeKind AngleType [6-15]:
                         size: Expr [12-14]: Lit: Int(64)
-                    dimensions: 
+                    dimensions:
                         Expr [17-18]: Lit: Int(4)
                 arg: Expr [20-21]: Lit: Int(0)"#]],
     );
@@ -912,7 +912,7 @@ fn cast_to_bool_array() {
             Expr [0-17]: Cast [0-17]:
                 type: ArrayType [0-14]:
                     base_type: ArrayBaseTypeKind BoolType
-                    dimensions: 
+                    dimensions:
                         Expr [12-13]: Lit: Int(4)
                 arg: Expr [15-16]: Lit: Int(0)"#]],
     );
@@ -926,7 +926,7 @@ fn cast_to_duration_array() {
             Expr [0-21]: Cast [0-21]:
                 type: ArrayType [0-18]:
                     base_type: ArrayBaseTypeKind DurationType
-                    dimensions: 
+                    dimensions:
                         Expr [16-17]: Lit: Int(4)
                 arg: Expr [19-20]: Lit: Int(0)"#]],
     );
@@ -942,7 +942,7 @@ fn cast_to_complex_array() {
                     base_type: ArrayBaseTypeKind ComplexType [6-24]:
                         base_size: FloatType [14-23]:
                             size: Expr [20-22]: Lit: Int(32)
-                    dimensions: 
+                    dimensions:
                         Expr [26-27]: Lit: Int(4)
                 arg: Expr [29-30]: Lit: Int(0)"#]],
     );
@@ -955,7 +955,7 @@ fn index_expr() {
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem Expr [4-5]: Lit: Int(1)"#]],
     );
 }
@@ -968,7 +968,7 @@ fn index_set() {
             Expr [0-14]: IndexExpr [3-14]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexElement DiscreteSet [4-13]:
-                    values: 
+                    values:
                         Expr [5-6]: Lit: Int(1)
                         Expr [8-9]: Lit: Int(4)
                         Expr [11-12]: Lit: Int(5)"#]],
@@ -982,7 +982,7 @@ fn index_multiple_ranges() {
         &expect![[r#"
             Expr [0-18]: IndexExpr [3-18]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-7]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: <none>
@@ -1005,7 +1005,7 @@ fn index_range() {
         &expect![[r#"
             Expr [0-10]: IndexExpr [3-10]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-9]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: Expr [6-7]: Lit: Int(5)
@@ -1020,7 +1020,7 @@ fn index_full_range() {
         &expect![[r#"
             Expr [0-6]: IndexExpr [3-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-5]:
                         start: <none>
                         step: <none>
@@ -1035,7 +1035,7 @@ fn index_range_start() {
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-6]:
                         start: Expr [4-5]: Lit: Int(1)
                         step: <none>
@@ -1050,7 +1050,7 @@ fn index_range_end() {
         &expect![[r#"
             Expr [0-7]: IndexExpr [3-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-6]:
                         start: <none>
                         step: <none>
@@ -1065,7 +1065,7 @@ fn index_range_step() {
         &expect![[r#"
             Expr [0-8]: IndexExpr [3-8]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
-                index: IndexElement: 
+                index: IndexElement:
                     IndexSetItem RangeDefinition [4-7]:
                         start: <none>
                         step: Expr [5-6]: Lit: Int(2)
@@ -1080,7 +1080,7 @@ fn set_expr() {
         "{2, 3, 4}",
         &expect![[r#"
             DiscreteSet [0-9]:
-                values: 
+                values:
                     Expr [1-2]: Lit: Int(2)
                     Expr [4-5]: Lit: Int(3)
                     Expr [7-8]: Lit: Int(4)"#]],
@@ -1093,10 +1093,10 @@ fn lit_array() {
         super::lit_array,
         "{{2, {5}}, 1 + z}",
         &expect![[r#"
-            Expr [0-17]: Lit:     Array: 
-                    Expr [1-9]: Lit:     Array: 
+            Expr [0-17]: Lit:     Array:
+                    Expr [1-9]: Lit:     Array:
                             Expr [2-3]: Lit: Int(2)
-                            Expr [5-8]: Lit:     Array: 
+                            Expr [5-8]: Lit:     Array:
                                     Expr [6-7]: Lit: Int(5)
                     Expr [11-16]: BinaryOpExpr:
                         op: Add
@@ -1154,10 +1154,10 @@ fn indexed_identifier() {
         &expect![[r#"
             IndexedIdent [0-9]:
                 name: Ident [0-3] "arr"
-                indices: 
-                    IndexElement: 
+                indices:
+                    IndexElement:
                         IndexSetItem Expr [4-5]: Lit: Int(1)
-                    IndexElement: 
+                    IndexElement:
                         IndexSetItem Expr [7-8]: Lit: Int(2)"#]],
     );
 }
@@ -1179,10 +1179,10 @@ fn measure_indexed_identifier() {
         &expect![[r#"
             MeasureExpr [0-7]: GateOperand IndexedIdent [8-20]:
                 name: Ident [8-14] "qubits"
-                indices: 
-                    IndexElement: 
+                indices:
+                    IndexElement:
                         IndexSetItem Expr [15-16]: Lit: Int(1)
-                    IndexElement: 
+                    IndexElement:
                         IndexSetItem Expr [18-19]: Lit: Int(2)"#]],
     );
 }

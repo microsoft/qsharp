@@ -23,14 +23,14 @@ fn simple_if_stmt() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block: 
+                    if_block:
                         Stmt [27-33]:
                             annotations: <empty>
                             kind: ExprStmt [27-33]:
                                 expr: Expr [27-32]: AssignExpr:
                                     lhs: Expr [27-28]: Ident [27-28] "a"
                                     rhs: Expr [31-32]: Lit: Int(0)
-                    else_block: 
+                    else_block:
                         Stmt [55-61]:
                             annotations: <empty>
                             kind: ExprStmt [55-61]:
@@ -57,7 +57,7 @@ fn if_stmt_missing_else() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block: 
+                    if_block:
                         Stmt [27-33]:
                             annotations: <empty>
                             kind: ExprStmt [27-33]:
@@ -95,7 +95,7 @@ fn nested_if_stmts() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block: 
+                    if_block:
                         Stmt [27-107]:
                             annotations: <empty>
                             kind: IfStmt [27-107]:
@@ -103,21 +103,21 @@ fn nested_if_stmts() {
                                     op: Eq
                                     lhs: Expr [31-33]: Ident [31-33] "x1"
                                     rhs: Expr [37-39]: Ident [37-39] "y1"
-                                if_block: 
+                                if_block:
                                     Stmt [55-61]:
                                         annotations: <empty>
                                         kind: ExprStmt [55-61]:
                                             expr: Expr [55-60]: AssignExpr:
                                                 lhs: Expr [55-56]: Ident [55-56] "a"
                                                 rhs: Expr [59-60]: Lit: Int(0)
-                                else_block: 
+                                else_block:
                                     Stmt [91-97]:
                                         annotations: <empty>
                                         kind: ExprStmt [91-97]:
                                             expr: Expr [91-96]: AssignExpr:
                                                 lhs: Expr [91-92]: Ident [91-92] "a"
                                                 rhs: Expr [95-96]: Lit: Int(1)
-                    else_block: 
+                    else_block:
                         Stmt [129-209]:
                             annotations: <empty>
                             kind: IfStmt [129-209]:
@@ -125,14 +125,14 @@ fn nested_if_stmts() {
                                     op: Eq
                                     lhs: Expr [133-135]: Ident [133-135] "x2"
                                     rhs: Expr [139-141]: Ident [139-141] "y2"
-                                if_block: 
+                                if_block:
                                     Stmt [157-163]:
                                         annotations: <empty>
                                         kind: ExprStmt [157-163]:
                                             expr: Expr [157-162]: AssignExpr:
                                                 lhs: Expr [157-158]: Ident [157-158] "a"
                                                 rhs: Expr [161-162]: Lit: Int(2)
-                                else_block: 
+                                else_block:
                                     Stmt [193-199]:
                                         annotations: <empty>
                                         kind: ExprStmt [193-199]:

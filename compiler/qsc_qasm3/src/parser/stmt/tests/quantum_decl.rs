@@ -30,7 +30,7 @@ fn annotated_quantum_decl() {
         qubit q;"#,
         &expect![[r#"
             Stmt [9-36]:
-                annotations: 
+                annotations:
                     Annotation [9-19]: (a.b.c, 123)
                 kind: QubitDeclaration [28-36]:
                     ident: Ident [34-35] "q"
@@ -49,7 +49,7 @@ fn multi_annotated_quantum_decl() {
         qubit q;"#,
         &expect![[r#"
             Stmt [9-108]:
-                annotations: 
+                annotations:
                     Annotation [9-57]: (g.h, dolor sit amet, consectetur adipiscing elit)
                     Annotation [66-72]: (d.e.f)
                     Annotation [81-91]: (a.b.c, 123)

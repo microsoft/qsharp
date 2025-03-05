@@ -16,8 +16,8 @@ fn pragma_decl() {
             Stmt [0-15]:
                 annotations: <empty>
                 kind: Pragma [0-15]:
-                    identifier: a.b.d
-                    value: 23"#]],
+                    identifier: "a.b.d"
+                    value: "23""#]],
     );
 }
 
@@ -30,7 +30,7 @@ fn pragma_decl_ident_only() {
             Stmt [0-12]:
                 annotations: <empty>
                 kind: Pragma [0-12]:
-                    identifier: a.b.d
+                    identifier: "a.b.d"
                     value: <none>"#]],
     );
 }
@@ -44,7 +44,7 @@ fn pragma_decl_missing_ident() {
             Stmt [0-7]:
                 annotations: <empty>
                 kind: Pragma [0-7]:
-                    identifier: 
+                    identifier: ""
                     value: <none>
 
             [
@@ -71,8 +71,8 @@ fn legacy_pragma_decl() {
             Stmt [0-16]:
                 annotations: <empty>
                 kind: Pragma [0-16]:
-                    identifier: a
-                    value: a.b.d 23"#]],
+                    identifier: "a"
+                    value: "a.b.d 23""#]],
     );
 }
 
@@ -85,8 +85,8 @@ fn legacy_pragma_decl_ident_only() {
             Stmt [0-13]:
                 annotations: <empty>
                 kind: Pragma [0-13]:
-                    identifier: a
-                    value: a.b.d"#]],
+                    identifier: "a"
+                    value: "a.b.d""#]],
     );
 }
 
@@ -99,7 +99,7 @@ fn legacy_pragma_ws_after_hash() {
             Stmt [2-14]:
                 annotations: <empty>
                 kind: Pragma [2-14]:
-                    identifier: a.b.d
+                    identifier: "a.b.d"
                     value: <none>
 
             [
@@ -129,7 +129,7 @@ fn legacy_pragma_decl_missing_ident() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: Pragma [0-8]:
-                    identifier: a
-                    value: "#]],
+                    identifier: "a"
+                    value: """#]],
     );
 }

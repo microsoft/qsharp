@@ -17,9 +17,9 @@ fn simple_switch() {
         &expect![[r#"
             SwitchStmt [9-72]:
                 target: Expr [17-18]: Ident [17-18] "x"
-                cases: 
+                cases:
                     SwitchCase [32-41]:
-                        labels: 
+                        labels:
                             Expr [37-38]: Lit: Int(1)
                         block: Block [39-41]: <empty>
                 default_case: Block [60-62]: <empty>"#]],
@@ -92,9 +92,9 @@ fn no_default() {
         &expect![[r#"
             SwitchStmt [9-54]:
                 target: Expr [17-18]: Ident [17-18] "x"
-                cases: 
+                cases:
                     SwitchCase [32-44]:
-                        labels: 
+                        labels:
                             Expr [37-38]: Lit: Int(0)
                             Expr [40-41]: Lit: Int(1)
                         block: Block [42-44]: <empty>
@@ -114,7 +114,7 @@ fn case_with_no_labels() {
         &expect![[r#"
             SwitchStmt [9-49]:
                 target: Expr [17-18]: Ident [17-18] "x"
-                cases: 
+                cases:
                     SwitchCase [32-39]:
                         labels: <empty>
                         block: Block [37-39]: <empty>
@@ -146,11 +146,11 @@ fn multiple_cases() {
         &expect![[r#"
             SwitchStmt [9-95]:
                 target: Expr [17-18]: Ident [17-18] "x"
-                cases: 
+                cases:
                     SwitchCase [32-53]:
-                        labels: 
+                        labels:
                             Expr [37-38]: Lit: Int(0)
-                        block: Block [39-53]: 
+                        block: Block [39-53]:
                             Stmt [41-51]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [41-51]:
@@ -159,9 +159,9 @@ fn multiple_cases() {
                                     ident: Ident [45-46] "x"
                                     init_expr: ValueExpression Expr [49-50]: Lit: Int(0)
                     SwitchCase [64-85]:
-                        labels: 
+                        labels:
                             Expr [69-70]: Lit: Int(1)
-                        block: Block [71-85]: 
+                        block: Block [71-85]:
                             Stmt [73-83]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [73-83]:

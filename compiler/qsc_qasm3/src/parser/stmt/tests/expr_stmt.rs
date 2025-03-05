@@ -49,7 +49,7 @@ fn function_call_plus_ident() {
                         op: Add
                         lhs: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
-                            args: 
+                            args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
                         rhs: Expr [13-14]: Ident [13-14] "a""#]],
@@ -67,7 +67,7 @@ fn function_call() {
                 kind: ExprStmt [0-11]:
                     expr: Expr [0-10]: FunctionCall [0-10]:
                         name: Ident [0-4] "Name"
-                        args: 
+                        args:
                             Expr [5-6]: Lit: Int(2)
                             Expr [8-9]: Lit: Int(3)"#]],
     );
@@ -85,10 +85,10 @@ fn indexed_function_call() {
                     expr: Expr [0-13]: IndexExpr [10-13]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
-                            args: 
+                            args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexElement: 
+                        index: IndexElement:
                             IndexSetItem Expr [11-12]: Lit: Int(1)"#]],
     );
 }
@@ -105,10 +105,10 @@ fn multi_indexed_function_call() {
                     expr: Expr [0-16]: IndexExpr [10-16]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
-                            args: 
+                            args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexElement: 
+                        index: IndexElement:
                             IndexSetItem Expr [11-12]: Lit: Int(1)
                             IndexSetItem Expr [14-15]: Lit: Int(0)"#]],
     );
@@ -138,7 +138,7 @@ fn index_expr() {
                 kind: ExprStmt [0-8]:
                     expr: Expr [0-7]: IndexExpr [4-7]:
                         collection: Expr [0-4]: Ident [0-4] "Name"
-                        index: IndexElement: 
+                        index: IndexElement:
                             IndexSetItem Expr [5-6]: Lit: Int(1)"#]],
     );
 }
