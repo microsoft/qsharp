@@ -16,13 +16,13 @@ fn simple_switch() {
     ",
         &expect![[r#"
             SwitchStmt [9-72]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                Cases:
-                    Labels:
-                        Expr [37-38]: Lit: Int(1)
-                    Block [39-41]: <empty>
-                    Default Case:
-                    Block [60-62]: <empty>"#]],
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: 
+                    SwitchCase [32-41]:
+                        labels: 
+                            Expr [37-38]: Lit: Int(1)
+                        block: Block [39-41]: <empty>
+                default_case: Block [60-62]: <empty>"#]],
     );
 }
 
@@ -35,9 +35,9 @@ fn no_cases_no_default() {
     ",
         &expect![[r#"
             SwitchStmt [9-22]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                <no cases>
-                <no default>
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: <empty>
+                default_case: <none>
 
             [
                 Error(
@@ -63,10 +63,9 @@ fn no_cases() {
     ",
         &expect![[r#"
             SwitchStmt [9-52]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                <no cases>
-                Default Case:
-                    Block [40-42]: <empty>
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: <empty>
+                default_case: Block [40-42]: <empty>
 
             [
                 Error(
@@ -92,13 +91,14 @@ fn no_default() {
     ",
         &expect![[r#"
             SwitchStmt [9-54]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                Cases:
-                    Labels:
-                        Expr [37-38]: Lit: Int(0)
-                        Expr [40-41]: Lit: Int(1)
-                    Block [42-44]: <empty>
-                    <no default>"#]],
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: 
+                    SwitchCase [32-44]:
+                        labels: 
+                            Expr [37-38]: Lit: Int(0)
+                            Expr [40-41]: Lit: Int(1)
+                        block: Block [42-44]: <empty>
+                default_case: <none>"#]],
     );
 }
 
@@ -113,11 +113,12 @@ fn case_with_no_labels() {
     ",
         &expect![[r#"
             SwitchStmt [9-49]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                Cases:
-                    <no labels>
-                    Block [37-39]: <empty>
-                    <no default>
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: 
+                    SwitchCase [32-39]:
+                        labels: <empty>
+                        block: Block [37-39]: <empty>
+                default_case: <none>
 
             [
                 Error(
@@ -144,18 +145,30 @@ fn multiple_cases() {
     ",
         &expect![[r#"
             SwitchStmt [9-95]:
-                Target: Expr [17-18]: Ident [17-18] "x"
-                Cases:
-                    Labels:
-                        Expr [37-38]: Lit: Int(0)
-                    Block [39-53]:
-                        Stmt [41-51]
-                            StmtKind: ClassicalDeclarationStmt [41-51]: ClassicalType [41-44]: IntType [41-44], Ident [45-46] "x", ValueExpression Expr [49-50]: Lit: Int(0)
-                    Labels:
-                        Expr [69-70]: Lit: Int(1)
-                    Block [71-85]:
-                        Stmt [73-83]
-                            StmtKind: ClassicalDeclarationStmt [73-83]: ClassicalType [73-76]: IntType [73-76], Ident [77-78] "y", ValueExpression Expr [81-82]: Lit: Int(1)
-                    <no default>"#]],
+                target: Expr [17-18]: Ident [17-18] "x"
+                cases: 
+                    SwitchCase [32-53]:
+                        labels: 
+                            Expr [37-38]: Lit: Int(0)
+                        block: Block [39-53]: 
+                            Stmt [41-51]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [41-51]:
+                                    type: ScalarType [41-44]: IntType [41-44]:
+                                        size: <none>
+                                    ident: Ident [45-46] "x"
+                                    init_expr: ValueExpression Expr [49-50]: Lit: Int(0)
+                    SwitchCase [64-85]:
+                        labels: 
+                            Expr [69-70]: Lit: Int(1)
+                        block: Block [71-85]: 
+                            Stmt [73-83]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [73-83]:
+                                    type: ScalarType [73-76]: IntType [73-76]:
+                                        size: <none>
+                                    ident: Ident [77-78] "y"
+                                    init_expr: ValueExpression Expr [81-82]: Lit: Int(1)
+                default_case: <none>"#]],
     );
 }

@@ -16,19 +16,27 @@ fn simple_if_stmt() {
     }
     ",
         &expect![[r#"
-            Stmt [5-67]
-                StmtKind: IfStmt [5-67]: Expr [9-15]: BinOp (Eq):
-                    Expr [9-10]: Ident [9-10] "x"
-                    Expr [14-15]: Ident [14-15] "y"
-                Stmt [27-33]
-                    StmtKind: ExprStmt [27-33]: Expr [27-32]: Assign:
-                        Expr [27-28]: Ident [27-28] "a"
-                        Expr [31-32]: Lit: Int(0)
-                Else:
-                Stmt [55-61]
-                    StmtKind: ExprStmt [55-61]: Expr [55-60]: Assign:
-                        Expr [55-56]: Ident [55-56] "a"
-                        Expr [59-60]: Lit: Int(1)"#]],
+            Stmt [5-67]:
+                annotations: <empty>
+                kind: IfStmt [5-67]:
+                    condition: Expr [9-15]: BinaryOpExpr:
+                        op: Eq
+                        lhs: Expr [9-10]: Ident [9-10] "x"
+                        rhs: Expr [14-15]: Ident [14-15] "y"
+                    if_block: 
+                        Stmt [27-33]:
+                            annotations: <empty>
+                            kind: ExprStmt [27-33]:
+                                expr: Expr [27-32]: AssignExpr:
+                                    lhs: Expr [27-28]: Ident [27-28] "a"
+                                    rhs: Expr [31-32]: Lit: Int(0)
+                    else_block: 
+                        Stmt [55-61]:
+                            annotations: <empty>
+                            kind: ExprStmt [55-61]:
+                                expr: Expr [55-60]: AssignExpr:
+                                    lhs: Expr [55-56]: Ident [55-56] "a"
+                                    rhs: Expr [59-60]: Lit: Int(1)"#]],
     );
 }
 
@@ -42,14 +50,21 @@ fn if_stmt_missing_else() {
     }
     ",
         &expect![[r#"
-            Stmt [5-39]
-                StmtKind: IfStmt [5-39]: Expr [9-15]: BinOp (Eq):
-                    Expr [9-10]: Ident [9-10] "x"
-                    Expr [14-15]: Ident [14-15] "y"
-                Stmt [27-33]
-                    StmtKind: ExprStmt [27-33]: Expr [27-32]: Assign:
-                        Expr [27-28]: Ident [27-28] "a"
-                        Expr [31-32]: Lit: Int(0)"#]],
+            Stmt [5-39]:
+                annotations: <empty>
+                kind: IfStmt [5-39]:
+                    condition: Expr [9-15]: BinaryOpExpr:
+                        op: Eq
+                        lhs: Expr [9-10]: Ident [9-10] "x"
+                        rhs: Expr [14-15]: Ident [14-15] "y"
+                    if_block: 
+                        Stmt [27-33]:
+                            annotations: <empty>
+                            kind: ExprStmt [27-33]:
+                                expr: Expr [27-32]: AssignExpr:
+                                    lhs: Expr [27-28]: Ident [27-28] "a"
+                                    rhs: Expr [31-32]: Lit: Int(0)
+                    else_block: <none>"#]],
     );
 }
 
@@ -73,36 +88,56 @@ fn nested_if_stmts() {
     }
     ",
         &expect![[r#"
-            Stmt [5-215]
-                StmtKind: IfStmt [5-215]: Expr [9-15]: BinOp (Eq):
-                    Expr [9-10]: Ident [9-10] "x"
-                    Expr [14-15]: Ident [14-15] "y"
-                Stmt [27-107]
-                    StmtKind: IfStmt [27-107]: Expr [31-39]: BinOp (Eq):
-                        Expr [31-33]: Ident [31-33] "x1"
-                        Expr [37-39]: Ident [37-39] "y1"
-                    Stmt [55-61]
-                        StmtKind: ExprStmt [55-61]: Expr [55-60]: Assign:
-                            Expr [55-56]: Ident [55-56] "a"
-                            Expr [59-60]: Lit: Int(0)
-                    Else:
-                    Stmt [91-97]
-                        StmtKind: ExprStmt [91-97]: Expr [91-96]: Assign:
-                            Expr [91-92]: Ident [91-92] "a"
-                            Expr [95-96]: Lit: Int(1)
-                Else:
-                Stmt [129-209]
-                    StmtKind: IfStmt [129-209]: Expr [133-141]: BinOp (Eq):
-                        Expr [133-135]: Ident [133-135] "x2"
-                        Expr [139-141]: Ident [139-141] "y2"
-                    Stmt [157-163]
-                        StmtKind: ExprStmt [157-163]: Expr [157-162]: Assign:
-                            Expr [157-158]: Ident [157-158] "a"
-                            Expr [161-162]: Lit: Int(2)
-                    Else:
-                    Stmt [193-199]
-                        StmtKind: ExprStmt [193-199]: Expr [193-198]: Assign:
-                            Expr [193-194]: Ident [193-194] "a"
-                            Expr [197-198]: Lit: Int(3)"#]],
+            Stmt [5-215]:
+                annotations: <empty>
+                kind: IfStmt [5-215]:
+                    condition: Expr [9-15]: BinaryOpExpr:
+                        op: Eq
+                        lhs: Expr [9-10]: Ident [9-10] "x"
+                        rhs: Expr [14-15]: Ident [14-15] "y"
+                    if_block: 
+                        Stmt [27-107]:
+                            annotations: <empty>
+                            kind: IfStmt [27-107]:
+                                condition: Expr [31-39]: BinaryOpExpr:
+                                    op: Eq
+                                    lhs: Expr [31-33]: Ident [31-33] "x1"
+                                    rhs: Expr [37-39]: Ident [37-39] "y1"
+                                if_block: 
+                                    Stmt [55-61]:
+                                        annotations: <empty>
+                                        kind: ExprStmt [55-61]:
+                                            expr: Expr [55-60]: AssignExpr:
+                                                lhs: Expr [55-56]: Ident [55-56] "a"
+                                                rhs: Expr [59-60]: Lit: Int(0)
+                                else_block: 
+                                    Stmt [91-97]:
+                                        annotations: <empty>
+                                        kind: ExprStmt [91-97]:
+                                            expr: Expr [91-96]: AssignExpr:
+                                                lhs: Expr [91-92]: Ident [91-92] "a"
+                                                rhs: Expr [95-96]: Lit: Int(1)
+                    else_block: 
+                        Stmt [129-209]:
+                            annotations: <empty>
+                            kind: IfStmt [129-209]:
+                                condition: Expr [133-141]: BinaryOpExpr:
+                                    op: Eq
+                                    lhs: Expr [133-135]: Ident [133-135] "x2"
+                                    rhs: Expr [139-141]: Ident [139-141] "y2"
+                                if_block: 
+                                    Stmt [157-163]:
+                                        annotations: <empty>
+                                        kind: ExprStmt [157-163]:
+                                            expr: Expr [157-162]: AssignExpr:
+                                                lhs: Expr [157-158]: Ident [157-158] "a"
+                                                rhs: Expr [161-162]: Lit: Int(2)
+                                else_block: 
+                                    Stmt [193-199]:
+                                        annotations: <empty>
+                                        kind: ExprStmt [193-199]:
+                                            expr: Expr [193-198]: AssignExpr:
+                                                lhs: Expr [193-194]: Ident [193-194] "a"
+                                                rhs: Expr [197-198]: Lit: Int(3)"#]],
     );
 }

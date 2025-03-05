@@ -38,7 +38,8 @@ fn cal_block_accept_any_tokens_inside() {
         .314
     }",
         &expect![[r#"
-            Stmt [5-88]
-                StmtKind: DefCalStmt [5-88]"#]],
+            Stmt [5-88]:
+                annotations: <empty>
+                kind: DefCalStmt [5-88]"#]],
     );
 }

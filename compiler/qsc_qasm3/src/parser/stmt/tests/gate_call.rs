@@ -11,9 +11,17 @@ fn gate_call() {
         parse,
         "H q0;",
         &expect![[r#"
-            Stmt [0-5]
-                StmtKind: GateCall [0-5]: Ident [0-1] "H"
-                GateOperand IndexedIdent [2-4]: Ident [2-4] "q0"[]"#]],
+            Stmt [0-5]:
+                annotations: <empty>
+                kind: GateCall [0-5]:
+                    modifiers: <empty>
+                    name: Ident [0-1] "H"
+                    args: <empty>
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [2-4]:
+                            name: Ident [2-4] "q0"
+                            indices: <empty>"#]],
     );
 }
 
@@ -23,11 +31,19 @@ fn gate_call_qubit_register() {
         parse,
         "H q[2];",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: GateCall [0-7]: Ident [0-1] "H"
-                GateOperand IndexedIdent [2-6]: Ident [2-3] "q"[
-                IndexElement:
-                    IndexSetItem Expr [4-5]: Lit: Int(2)]"#]],
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: GateCall [0-7]:
+                    modifiers: <empty>
+                    name: Ident [0-1] "H"
+                    args: <empty>
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [2-6]:
+                            name: Ident [2-3] "q"
+                            indices: 
+                                IndexElement: 
+                                    IndexSetItem Expr [4-5]: Lit: Int(2)"#]],
     );
 }
 
@@ -37,12 +53,22 @@ fn gate_multiple_qubits() {
         parse,
         "CNOT q0, q[4];",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: GateCall [0-14]: Ident [0-4] "CNOT"
-                GateOperand IndexedIdent [5-7]: Ident [5-7] "q0"[]
-                GateOperand IndexedIdent [9-13]: Ident [9-10] "q"[
-                IndexElement:
-                    IndexSetItem Expr [11-12]: Lit: Int(4)]"#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: GateCall [0-14]:
+                    modifiers: <empty>
+                    name: Ident [0-4] "CNOT"
+                    args: <empty>
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [5-7]:
+                            name: Ident [5-7] "q0"
+                            indices: <empty>
+                        GateOperand IndexedIdent [9-13]:
+                            name: Ident [9-10] "q"
+                            indices: 
+                                IndexElement: 
+                                    IndexSetItem Expr [11-12]: Lit: Int(4)"#]],
     );
 }
 
@@ -52,8 +78,15 @@ fn gate_with_no_qubits() {
         parse,
         "inv @ H;",
         &expect![[r#"
-            Stmt [0-8]
-                StmtKind: GateCall [0-8]: Ident [6-7] "H"
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: GateCall [0-8]:
+                    modifiers: 
+                        QuantumGateModifier [0-5]: Inv
+                    name: Ident [6-7] "H"
+                    args: <empty>
+                    duration: <none>
+                    qubits: <empty>
 
             [
                 Error(
@@ -74,12 +107,21 @@ fn gate_call_with_parameters() {
         parse,
         "Rx(pi / 2) q0;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: GateCall [0-14]: Ident [0-2] "Rx"
-                Expr [3-9]: BinOp (Div):
-                    Expr [3-5]: Ident [3-5] "pi"
-                    Expr [8-9]: Lit: Int(2)
-                GateOperand IndexedIdent [11-13]: Ident [11-13] "q0"[]"#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: GateCall [0-14]:
+                    modifiers: <empty>
+                    name: Ident [0-2] "Rx"
+                    args: 
+                        Expr [3-9]: BinaryOpExpr:
+                            op: Div
+                            lhs: Expr [3-5]: Ident [3-5] "pi"
+                            rhs: Expr [8-9]: Lit: Int(2)
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [11-13]:
+                            name: Ident [11-13] "q0"
+                            indices: <empty>"#]],
     );
 }
 
@@ -89,9 +131,18 @@ fn gate_call_inv_modifier() {
         parse,
         "inv @ H q0;",
         &expect![[r#"
-            Stmt [0-11]
-                StmtKind: GateCall [0-11]: Ident [6-7] "H"
-                GateOperand IndexedIdent [8-10]: Ident [8-10] "q0"[]"#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: GateCall [0-11]:
+                    modifiers: 
+                        QuantumGateModifier [0-5]: Inv
+                    name: Ident [6-7] "H"
+                    args: <empty>
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [8-10]:
+                            name: Ident [8-10] "q0"
+                            indices: <empty>"#]],
     );
 }
 
@@ -101,14 +152,29 @@ fn gate_call_ctrl_inv_modifiers() {
         parse,
         "ctrl(2) @ inv @ Rx(pi / 2) c1, c2, q0;",
         &expect![[r#"
-            Stmt [0-38]
-                StmtKind: GateCall [0-38]: Ident [16-18] "Rx"
-                Expr [19-25]: BinOp (Div):
-                    Expr [19-21]: Ident [19-21] "pi"
-                    Expr [24-25]: Lit: Int(2)
-                GateOperand IndexedIdent [27-29]: Ident [27-29] "c1"[]
-                GateOperand IndexedIdent [31-33]: Ident [31-33] "c2"[]
-                GateOperand IndexedIdent [35-37]: Ident [35-37] "q0"[]"#]],
+            Stmt [0-38]:
+                annotations: <empty>
+                kind: GateCall [0-38]:
+                    modifiers: 
+                        QuantumGateModifier [0-9]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
+                        QuantumGateModifier [10-15]: Inv
+                    name: Ident [16-18] "Rx"
+                    args: 
+                        Expr [19-25]: BinaryOpExpr:
+                            op: Div
+                            lhs: Expr [19-21]: Ident [19-21] "pi"
+                            rhs: Expr [24-25]: Lit: Int(2)
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [27-29]:
+                            name: Ident [27-29] "c1"
+                            indices: <empty>
+                        GateOperand IndexedIdent [31-33]:
+                            name: Ident [31-33] "c2"
+                            indices: <empty>
+                        GateOperand IndexedIdent [35-37]:
+                            name: Ident [35-37] "q0"
+                            indices: <empty>"#]],
     );
 }
 
@@ -137,11 +203,19 @@ fn parametrized_gate_call() {
         parse,
         "Name(2, 3) q;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: GateCall [0-13]: Ident [0-4] "Name"
-                Expr [5-6]: Lit: Int(2)
-                Expr [8-9]: Lit: Int(3)
-                GateOperand IndexedIdent [11-12]: Ident [11-12] "q"[]"#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: GateCall [0-13]:
+                    modifiers: <empty>
+                    name: Ident [0-4] "Name"
+                    args: 
+                        Expr [5-6]: Lit: Int(2)
+                        Expr [8-9]: Lit: Int(3)
+                    duration: <none>
+                    qubits: 
+                        GateOperand IndexedIdent [11-12]:
+                            name: Ident [11-12] "q"
+                            indices: <empty>"#]],
     );
 }
 
@@ -151,12 +225,19 @@ fn parametrized_gate_call_with_designator() {
         parse,
         "Name(2, 3)[1] q;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: GateCall [0-16]: Ident [0-4] "Name"
-                Expr [5-6]: Lit: Int(2)
-                Expr [8-9]: Lit: Int(3)
-                GateOperand IndexedIdent [14-15]: Ident [14-15] "q"[]
-                Expr [11-12]: Lit: Int(1)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: GateCall [0-16]:
+                    modifiers: <empty>
+                    name: Ident [0-4] "Name"
+                    args: 
+                        Expr [5-6]: Lit: Int(2)
+                        Expr [8-9]: Lit: Int(3)
+                    duration: Expr [11-12]: Lit: Int(1)
+                    qubits: 
+                        GateOperand IndexedIdent [14-15]:
+                            name: Ident [14-15] "q"
+                            indices: <empty>"#]],
     );
 }
 
@@ -184,10 +265,17 @@ fn gate_call_with_designator() {
         parse,
         "H[2us] q;",
         &expect![[r#"
-            Stmt [0-9]
-                StmtKind: GateCall [0-9]: Ident [0-1] "H"
-                GateOperand IndexedIdent [7-8]: Ident [7-8] "q"[]
-                Expr [2-5]: Lit: Duration(2.0, Us)"#]],
+            Stmt [0-9]:
+                annotations: <empty>
+                kind: GateCall [0-9]:
+                    modifiers: <empty>
+                    name: Ident [0-1] "H"
+                    args: <empty>
+                    duration: Expr [2-5]: Lit: Duration(2.0, Us)
+                    qubits: 
+                        GateOperand IndexedIdent [7-8]:
+                            name: Ident [7-8] "q"
+                            indices: <empty>"#]],
     );
 }
 

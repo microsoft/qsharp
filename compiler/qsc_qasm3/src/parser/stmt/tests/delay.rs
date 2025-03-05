@@ -11,13 +11,20 @@ fn delay() {
         parse,
         "delay[a] q[0], q[1];",
         &expect![[r#"
-        Stmt [0-20]
-            StmtKind: DelayInstruction [0-20]: Expr [6-7]: Ident [6-7] "a"
-            GateOperand IndexedIdent [9-13]: Ident [9-10] "q"[
-            IndexElement:
-                IndexSetItem Expr [11-12]: Lit: Int(0)]
-            GateOperand IndexedIdent [15-19]: Ident [15-16] "q"[
-            IndexElement:
-                IndexSetItem Expr [17-18]: Lit: Int(1)]"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: DelayInstruction [0-20]:
+                    duration: Expr [6-7]: Ident [6-7] "a"
+                    qubits: 
+                        GateOperand IndexedIdent [9-13]:
+                            name: Ident [9-10] "q"
+                            indices: 
+                                IndexElement: 
+                                    IndexSetItem Expr [11-12]: Lit: Int(0)
+                        GateOperand IndexedIdent [15-19]:
+                            name: Ident [15-16] "q"
+                            indices: 
+                                IndexElement: 
+                                    IndexSetItem Expr [17-18]: Lit: Int(1)"#]],
     );
 }

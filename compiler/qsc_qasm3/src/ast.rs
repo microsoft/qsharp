@@ -4,27 +4,19 @@
 // while we work through the conversion, allow dead code to avoid warnings
 #![allow(dead_code)]
 
-use indenter::{indented, Indented};
+mod display_utils;
+
+use display_utils::{
+    write_field, write_header, write_indented_list, write_list_field, write_opt_field,
+    write_opt_list_field, writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
+};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
-    fmt::{self, Display, Formatter, Write},
+    fmt::{self, Display, Formatter},
     hash::Hash,
     rc::Rc,
 };
-
-fn set_indentation<'a, 'b>(
-    indent: Indented<'a, Formatter<'b>>,
-    level: usize,
-) -> Indented<'a, Formatter<'b>> {
-    match level {
-        0 => indent.with_str(""),
-        1 => indent.with_str("    "),
-        2 => indent.with_str("        "),
-        3 => indent.with_str("            "),
-        _ => unimplemented!("indentation level not supported"),
-    }
-}
 
 // TODO: Profile this with iai-callgrind in a large OpenQASM3
 //       sample to verify that is actually faster than using Vec<T>.
@@ -47,16 +39,9 @@ pub struct Program {
 
 impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Program {}:", self.span)?;
-        indent = set_indentation(indent, 1);
-        if let Some(version) = &self.version {
-            write!(indent, "\nVersion {version}")?;
-        }
-        for stmt in &self.statements {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "Program", self.span)?;
+        writeln_opt_field(f, "version", self.version.as_ref())?;
+        write_list_field(f, "program stmts", &self.statements)
     }
 }
 
@@ -69,14 +54,9 @@ pub struct Stmt {
 
 impl Display for Stmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Stmt {}", self.span)?;
-        indent = set_indentation(indent, 1);
-        for annotation in &self.annotations {
-            write!(indent, "\n{annotation}")?;
-        }
-        write!(indent, "\n{}", self.kind)?;
-        Ok(())
+        writeln_header(f, "Stmt", self.span)?;
+        writeln_list_field(f, "annotations", &self.annotations)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -118,18 +98,13 @@ impl Default for PathKind {
 impl Display for PathKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            PathKind::Ok(path) => write!(f, "{path}")?,
+            PathKind::Ok(path) => write!(f, "{path}"),
             PathKind::Err(Some(incomplete_path)) => {
-                let mut indent = set_indentation(indented(f), 0);
-                write!(indent, "Err IncompletePath {}:", incomplete_path.span)?;
-                indent = set_indentation(indent, 1);
-                for part in &incomplete_path.segments {
-                    write!(indent, "\n{part}")?;
-                }
+                write!(f, "Err IncompletePath {}:", incomplete_path.span)?;
+                write_list_field(f, "segments", &incomplete_path.segments)
             }
-            PathKind::Err(None) => write!(f, "Err",)?,
+            PathKind::Err(None) => write!(f, "Err",),
         }
-        Ok(())
     }
 }
 
@@ -162,20 +137,9 @@ pub struct Path {
 
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.segments.is_none() {
-            write!(f, "Path {} ({})", self.span, self.name)?;
-        } else {
-            let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Path {}:", self.span)?;
-            indent = set_indentation(indent, 1);
-            if let Some(parts) = &self.segments {
-                for part in parts {
-                    write!(indent, "\n{part}")?;
-                }
-            }
-            write!(indent, "\n{}", self.name)?;
-        }
-        Ok(())
+        writeln_header(f, "Path", self.span)?;
+        writeln_field(f, "name", &self.name)?;
+        write_opt_list_field(f, "segments", self.segments.as_ref())
     }
 }
 
@@ -339,20 +303,16 @@ impl Display for HardwareQubit {
 
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
+    pub span: Span,
     pub ident: Identifier,
     pub exprs: List<Expr>,
-    pub span: Span,
 }
 
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Alias {}: {}", self.span, self.ident)?;
-        indent = set_indentation(indent, 1);
-        for expr in &*self.exprs {
-            write!(indent, "\n{expr}")?;
-        }
-        Ok(())
+        writeln_header(f, "Alias", self.span)?;
+        writeln_field(f, "ident", &self.ident)?;
+        write_list_field(f, "exprs", &self.exprs)
     }
 }
 
@@ -431,7 +391,6 @@ pub enum StmtKind {
 
 impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "StmtKind: ")?;
         match self {
             StmtKind::Alias(alias) => write!(f, "{alias}"),
             StmtKind::Assign(assign) => write!(f, "{assign}"),
@@ -479,7 +438,8 @@ pub struct CalibrationGrammarStmt {
 
 impl Display for CalibrationGrammarStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CalibrationGrammarStmt {}: {}", self.span, self.name)
+        writeln_header(f, "CalibrationGrammarStmt", self.span)?;
+        write_field(f, "name", &self.name)
     }
 }
 
@@ -504,18 +464,10 @@ pub struct IfStmt {
 
 impl Display for IfStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "IfStmt {}: {}", self.span, self.condition)?;
-        for stmt in &self.if_block {
-            write!(indent, "\n{stmt}")?;
-        }
-        if let Some(else_block) = &self.else_block {
-            write!(indent, "\nElse:")?;
-            for stmt in else_block {
-                write!(indent, "\n{stmt}")?;
-            }
-        }
-        Ok(())
+        writeln_header(f, "IfStmt", self.span)?;
+        writeln_field(f, "condition", &self.condition)?;
+        writeln_list_field(f, "if_block", &self.if_block)?;
+        write_opt_list_field(f, "else_block", self.else_block.as_ref())
     }
 }
 
@@ -527,12 +479,8 @@ pub struct BarrierStmt {
 
 impl Display for BarrierStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Barrier {}: [", self.span)?;
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        write!(indent, "]")
+        writeln_header(f, "Barrier", self.span)?;
+        write_list_field(f, "operands", &self.qubits)
     }
 }
 
@@ -544,7 +492,8 @@ pub struct ResetStmt {
 
 impl Display for ResetStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ResetStmt {}: {}", self.span, self.operand)
+        writeln_header(f, "ResetStmt", self.span)?;
+        write_field(f, "operand", &self.operand)
     }
 }
 
@@ -559,17 +508,8 @@ pub struct Block {
 
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if self.stmts.is_empty() {
-            write!(f, "Block {}: <empty>", self.span)?;
-        } else {
-            let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Block {}:", self.span)?;
-            indent = set_indentation(indent, 1);
-            for s in &self.stmts {
-                write!(indent, "\n{s}")?;
-            }
-        }
-        Ok(())
+        write_header(f, "Block", self.span)?;
+        write_indented_list(f, &self.stmts)
     }
 }
 
@@ -624,12 +564,9 @@ pub struct IndexedIdent {
 
 impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "IndexedIdent {}: {}[", self.span, self.name)?;
-
-        for index in &self.indices {
-            write!(f, "\n{index}")?;
-        }
-        write!(f, "]")
+        writeln_header(f, "IndexedIdent", self.span)?;
+        writeln_field(f, "name", &self.name)?;
+        write_list_field(f, "indices", &self.indices)
     }
 }
 
@@ -641,7 +578,8 @@ pub struct ExprStmt {
 
 impl Display for ExprStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ExprStmt {}: {}", self.span, self.expr)
+        writeln_header(f, "ExprStmt", self.span)?;
+        write_field(f, "expr", &self.expr)
     }
 }
 
@@ -666,18 +604,13 @@ impl Display for Expr {
 #[derive(Clone, Debug)]
 pub struct DiscreteSet {
     pub span: Span,
-    pub values: Box<[Expr]>,
+    pub values: List<Expr>,
 }
 
 impl Display for DiscreteSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "DiscreteSet {}:", self.span)?;
-        indent = set_indentation(indent, 1);
-        for value in &self.values {
-            write!(indent, "\n{value}")?;
-        }
-        Ok(())
+        writeln_header(f, "DiscreteSet", self.span)?;
+        write_list_field(f, "values", &self.values)
     }
 }
 
@@ -687,6 +620,15 @@ pub struct RangeDefinition {
     pub start: Option<Expr>,
     pub end: Option<Expr>,
     pub step: Option<Expr>,
+}
+
+impl Display for RangeDefinition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "RangeDefinition", self.span)?;
+        writeln_opt_field(f, "start", self.start.as_ref())?;
+        writeln_opt_field(f, "step", self.step.as_ref())?;
+        write_opt_field(f, "end", self.end.as_ref())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -793,7 +735,7 @@ pub struct ScalarType {
 
 impl Display for ScalarType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ClassicalType {}: {}", self.span, self.kind)
+        write!(f, "ScalarType {}: {}", self.span, self.kind)
     }
 }
 
@@ -856,97 +798,79 @@ impl Display for ArrayBaseTypeKind {
 
 #[derive(Clone, Debug)]
 pub struct IntType {
-    pub size: Option<Expr>,
     pub span: Span,
+    pub size: Option<Expr>,
 }
 
 impl Display for IntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(f, "IntType[{}]: {}", size, self.span)
-        } else {
-            write!(f, "IntType {}", self.span)
-        }
+        writeln_header(f, "IntType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct UIntType {
-    pub size: Option<Expr>,
     pub span: Span,
+    pub size: Option<Expr>,
 }
 
 impl Display for UIntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(f, "UIntType[{}]: {}", size, self.span)
-        } else {
-            write!(f, "UIntType {}", self.span)
-        }
+        writeln_header(f, "UIntType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct FloatType {
-    pub size: Option<Expr>,
     pub span: Span,
+    pub size: Option<Expr>,
 }
 
 impl Display for FloatType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(f, "FloatType[{}]: {}", size, self.span)
-        } else {
-            write!(f, "FloatType {}", self.span)
-        }
+        writeln_header(f, "FloatType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ComplexType {
-    pub base_size: Option<FloatType>,
     pub span: Span,
+    pub base_size: Option<FloatType>,
 }
 
 impl Display for ComplexType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.base_size {
-            write!(f, "ComplexType[float[{}]]: {}", size, self.span)
-        } else {
-            write!(f, "ComplexType {}", self.span)
-        }
+        writeln_header(f, "ComplexType", self.span)?;
+        write_opt_field(f, "base_size", self.base_size.as_ref())
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct AngleType {
-    pub size: Option<Expr>,
     pub span: Span,
+    pub size: Option<Expr>,
 }
 
 impl Display for AngleType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(f, "AngleType {}: {}", self.span, size)
-        } else {
-            write!(f, "AngleType {}", self.span)
-        }
+        writeln_header(f, "AngleType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct BitType {
-    pub size: Option<Expr>,
     pub span: Span,
+    pub size: Option<Expr>,
 }
 
 impl Display for BitType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(f, "BitType {}: {}", self.span, size)
-        } else {
-            write!(f, "BitType")
-        }
+        writeln_header(f, "BitType", self.span)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
@@ -986,12 +910,9 @@ pub struct ArrayType {
 
 impl Display for ArrayType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ArrayType {}: {}", self.span, self.base_type)?;
-        for dimension in &self.dimensions {
-            write!(indent, "\n{dimension}")?;
-        }
-        Ok(())
+        writeln_header(f, "ArrayType", self.span)?;
+        writeln_field(f, "base_type", &self.base_type)?;
+        write_list_field(f, "dimensions", &self.dimensions)
     }
 }
 
@@ -1005,16 +926,9 @@ pub struct ArrayReferenceType {
 
 impl Display for ArrayReferenceType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "ArrayReferenceType {}: {}",
-            self.span, self.base_type
-        )?;
-        for dimension in &self.dimensions {
-            write!(indent, "\n{dimension}")?;
-        }
-        Ok(())
+        writeln_header(f, "ArrayReferenceType", self.span)?;
+        writeln_field(f, "base_type", &self.base_type)?;
+        writeln_list_field(f, "dimensions", &self.dimensions)
     }
 }
 
@@ -1041,7 +955,8 @@ pub struct QuantumArgument {
 
 impl Display for QuantumArgument {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumArgument {}: {:?}", self.span, self.expr)
+        writeln_header(f, "QuantumArgument", self.span)?;
+        write_opt_field(f, "expr", self.expr.as_ref())
     }
 }
 
@@ -1054,28 +969,9 @@ pub struct Pragma {
 
 impl Display for Pragma {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(value) = &self.value {
-            write!(f, "Pragma {}: ({}, {})", self.span, self.identifier, value)
-        } else {
-            write!(f, "Pragma {}: ({})", self.span, self.identifier)
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CompoundStmt {
-    pub span: Span,
-    pub statements: List<Stmt>,
-}
-
-impl Display for CompoundStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "CompoundStmt {}:", self.span)?;
-        for stmt in &self.statements {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "Pragma", self.span)?;
+        writeln_field(f, "identifier", &self.identifier)?;
+        write_opt_field(f, "value", self.value.as_ref())
     }
 }
 
@@ -1087,7 +983,8 @@ pub struct IncludeStmt {
 
 impl Display for IncludeStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "IncludeStmt {}: {}", self.span, self.filename)
+        writeln_header(f, "IncludeStmt", self.span)?;
+        write_field(f, "filename", &self.filename)
     }
 }
 
@@ -1100,15 +997,9 @@ pub struct QubitDeclaration {
 
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(size) = &self.size {
-            write!(
-                f,
-                "QubitDeclaration {}: {}, {}",
-                self.span, self.qubit, size
-            )
-        } else {
-            write!(f, "QubitDeclaration {}: {}", self.span, self.qubit)
-        }
+        writeln_header(f, "QubitDeclaration", self.span)?;
+        writeln_field(f, "ident", &self.qubit)?;
+        write_opt_field(f, "size", self.size.as_ref())
     }
 }
 
@@ -1123,35 +1014,11 @@ pub struct QuantumGateDefinition {
 
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Gate {}: {}", self.span, self.ident)?;
-        write!(indent, "(")?;
-        if self.params.is_empty() {
-            write!(indent, "<no params>")?;
-        } else {
-            let param_str = self
-                .params
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(", ");
-            write!(indent, "{param_str}")?;
-        }
-        write!(indent, ") ")?;
-
-        let qubit_str = self
-            .qubits
-            .iter()
-            .map(std::string::ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(", ");
-        write!(indent, "{qubit_str}")?;
-
-        writeln!(indent)?;
-        for stmt in &self.body.stmts {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "Gate", self.span)?;
+        writeln_field(f, "ident", &self.ident)?;
+        writeln_list_field(f, "parameters", &self.params)?;
+        writeln_list_field(f, "qubits", &self.qubits)?;
+        write_field(f, "body", &self.body)
     }
 }
 
@@ -1165,15 +1032,10 @@ pub struct ExternDecl {
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ExternDecl {}: {}", self.span, self.ident)?;
-        for arg in &self.params {
-            write!(indent, "\n{arg}")?;
-        }
-        if let Some(return_type) = &self.return_type {
-            write!(indent, "\n{return_type}")?;
-        }
-        Ok(())
+        writeln_header(f, "ExternDecl", self.span)?;
+        writeln_field(f, "ident", &self.ident)?;
+        writeln_list_field(f, "parameters", &self.params)?;
+        write_opt_field(f, "return_type", self.return_type.as_ref())
     }
 }
 
@@ -1189,18 +1051,12 @@ pub struct GateCall {
 
 impl Display for GateCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "GateCall {}: {}", self.span, self.name)?;
-        for arg in &self.args {
-            write!(indent, "\n{arg}")?;
-        }
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        if let Some(duration) = &self.duration {
-            write!(indent, "\n{duration}")?;
-        }
-        Ok(())
+        writeln_header(f, "GateCall", self.span)?;
+        writeln_list_field(f, "modifiers", &self.modifiers)?;
+        writeln_field(f, "name", &self.name)?;
+        writeln_list_field(f, "args", &self.args)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
+        write_list_field(f, "qubits", &self.qubits)
     }
 }
 
@@ -1215,18 +1071,11 @@ pub struct GPhase {
 
 impl Display for GPhase {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "GPhase {}:", self.span)?;
-        for arg in &self.args {
-            write!(indent, "\n{arg}")?;
-        }
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        if let Some(duration) = &self.duration {
-            write!(indent, "\n{duration}")?;
-        }
-        Ok(())
+        writeln_header(f, "GPhase", self.span)?;
+        writeln_list_field(f, "modifiers", &self.modifiers)?;
+        writeln_list_field(f, "args", &self.args)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
+        write_list_field(f, "qubits", &self.qubits)
     }
 }
 
@@ -1239,12 +1088,9 @@ pub struct DelayStmt {
 
 impl Display for DelayStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "DelayInstruction {}: {}", self.span, self.duration)?;
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        Ok(())
+        writeln_header(f, "DelayInstruction", self.span)?;
+        writeln_field(f, "duration", &self.duration)?;
+        write_list_field(f, "qubits", &self.qubits)
     }
 }
 
@@ -1257,16 +1103,9 @@ pub struct BoxStmt {
 
 impl Display for BoxStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        if let Some(duration) = &self.duration {
-            write!(indent, "BoxStmt {}: {}", self.span, duration)?;
-        } else {
-            write!(indent, "BoxStmt {}: <no duration>", self.span)?;
-        }
-        for stmt in &self.body {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "BoxStmt", self.span)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
+        write_list_field(f, "body", &self.body)
     }
 }
 
@@ -1279,15 +1118,8 @@ pub struct MeasureStmt {
 
 impl Display for MeasureStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(target) = &self.target {
-            write!(
-                f,
-                "MeasureStmt {}: {}, {}",
-                self.span, self.measurement, target
-            )
-        } else {
-            write!(f, "MeasureStmt {}: {}", self.span, self.measurement)
-        }
+        writeln_header(f, "MeasureStmt", self.span)?;
+        write_opt_field(f, "target", self.target.as_ref())
     }
 }
 
@@ -1301,19 +1133,10 @@ pub struct ClassicalDeclarationStmt {
 
 impl Display for ClassicalDeclarationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(init_expr) = &self.init_expr {
-            write!(
-                f,
-                "ClassicalDeclarationStmt {}: {}, {}, {}",
-                self.span, self.r#type, self.identifier, init_expr
-            )
-        } else {
-            write!(
-                f,
-                "ClassicalDeclarationStmt {}: {}, {}",
-                self.span, self.r#type, self.identifier
-            )
-        }
+        writeln_header(f, "ClassicalDeclarationStmt", self.span)?;
+        writeln_field(f, "type", &self.r#type)?;
+        writeln_field(f, "ident", &self.identifier)?;
+        write_opt_field(f, "init_expr", self.init_expr.as_ref())
     }
 }
 
@@ -1342,11 +1165,10 @@ pub struct IODeclaration {
 
 impl Display for IODeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "IODeclaration {}: {}, {}, {}",
-            self.span, self.io_identifier, self.r#type, self.ident
-        )
+        writeln_header(f, "IODeclaration", self.span)?;
+        writeln_field(f, "io_keyword", &self.io_identifier)?;
+        writeln_field(f, "type", &self.r#type)?;
+        write_field(f, "ident", &self.ident)
     }
 }
 
@@ -1360,11 +1182,10 @@ pub struct ConstantDeclStmt {
 
 impl Display for ConstantDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "ConstantDeclaration {}: {}, {}, {}",
-            self.span, self.r#type, self.identifier, self.init_expr
-        )
+        writeln_header(f, "ConstantDeclStmt", self.span)?;
+        writeln_field(f, "type", &self.r#type)?;
+        writeln_field(f, "ident", &self.identifier)?;
+        write_field(f, "init_expr", &self.init_expr)
     }
 }
 
@@ -1376,11 +1197,8 @@ pub struct CalibrationGrammarDeclaration {
 
 impl Display for CalibrationGrammarDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "CalibrationGrammarDeclaration {}: {}",
-            self.span, self.name
-        )
+        writeln_header(f, "CalibrationGrammarDeclaration", self.span)?;
+        write_field(f, "name", &self.name)
     }
 }
 
@@ -1392,48 +1210,6 @@ pub struct CalibrationStmt {
 impl Display for CalibrationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "CalibrationStmt {}", self.span)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CalibrationDefinition {
-    span: Span,
-    name: Identifier,
-    args: List<CalibrationArgument>,
-    qubits: List<Identifier>,
-    return_type: Option<ScalarType>,
-    body: String,
-}
-
-impl Display for CalibrationDefinition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "CalibrationDefinition {}: {}", self.span, self.name)?;
-        for arg in &self.args {
-            write!(indent, "\n{arg}")?;
-        }
-        for qubit in &self.qubits {
-            write!(indent, "\n{qubit}")?;
-        }
-        if let Some(return_type) = &self.return_type {
-            write!(indent, "\n{return_type}")?;
-        }
-        write!(indent, "\n{}", self.body)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum CalibrationArgument {
-    Classical(ClassicalArgument),
-    Expr(Expr),
-}
-
-impl Display for CalibrationArgument {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            CalibrationArgument::Classical(arg) => write!(f, "CalibrationArgument {arg}"),
-            CalibrationArgument::Expr(expr) => write!(f, "CalibrationArgument {expr}"),
-        }
     }
 }
 
@@ -1460,17 +1236,19 @@ impl Display for TypedParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             TypedParameter::Scalar(scalar, ident, span) => {
-                write!(f, "{span} {ident}: {scalar}")
+                writeln_header(f, "TypedParameter::Scalar", *span)?;
+                writeln_field(f, "type", scalar)?;
+                write_field(f, "ident", ident)
             }
             TypedParameter::Quantum(expr, ident, span) => {
-                if let Some(expr) = expr {
-                    write!(f, "{span} {ident}: qubit[{expr}]")
-                } else {
-                    write!(f, "{span} {ident}: qubit")
-                }
+                writeln_header(f, "TypedParameter::Quantum", *span)?;
+                writeln_opt_field(f, "size", expr.as_ref())?;
+                write_field(f, "ident", ident)
             }
             TypedParameter::ArrayReference(array, ident, span) => {
-                write!(f, "{span} {ident}: {array}")
+                writeln_header(f, "TypedParameter::ArrayReference", *span)?;
+                writeln_field(f, "type", array)?;
+                write_field(f, "ident", ident)
             }
         }
     }
@@ -1493,29 +1271,11 @@ pub struct DefStmt {
 
 impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "DefStmt {}: {}", self.span, self.name)?;
-        write!(indent, "(")?;
-        if self.params.is_empty() {
-            write!(indent, "<no params>")?;
-        } else {
-            let param_str = self
-                .params
-                .iter()
-                .map(std::string::ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(", ");
-            write!(indent, "{param_str}")?;
-        }
-        write!(indent, ") ")?;
-
-        for stmt in &self.body.stmts {
-            write!(indent, "\n{stmt}")?;
-        }
-        if let Some(return_type) = &self.return_type {
-            write!(indent, "\n{return_type}")?;
-        }
-        Ok(())
+        writeln_header(f, "DefStmt", self.span)?;
+        writeln_field(f, "ident", &self.name)?;
+        writeln_list_field(f, "parameters", &self.params)?;
+        writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
+        write_field(f, "body", &self.body)
     }
 }
 
@@ -1528,8 +1288,8 @@ pub enum Operand {
 impl Display for Operand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Operand::Classical(arg) => write!(f, "Operand {arg}"),
-            Operand::Quantum(arg) => write!(f, "Operand {arg}"),
+            Operand::Classical(arg) => write!(f, "{arg}"),
+            Operand::Quantum(arg) => write!(f, "{arg}"),
         }
     }
 }
@@ -1542,11 +1302,8 @@ pub struct ReturnStmt {
 
 impl Display for ReturnStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(expr) = &self.expr {
-            write!(f, "ReturnStmt {}: {}", self.span, expr)
-        } else {
-            write!(f, "ReturnStmt {}: <no expr>", self.span)
-        }
+        writeln_header(f, "ReturnStmt", self.span)?;
+        write_opt_field(f, "expr", self.expr.as_ref())
     }
 }
 
@@ -1559,12 +1316,9 @@ pub struct WhileLoop {
 
 impl Display for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "WhileLoop {}: {}", self.span, self.while_condition)?;
-        for stmt in &self.block {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "WhileLoop", self.span)?;
+        writeln_field(f, "condition", &self.while_condition)?;
+        write_list_field(f, "block", &self.block)
     }
 }
 
@@ -1579,16 +1333,11 @@ pub struct ForStmt {
 
 impl Display for ForStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(
-            indent,
-            "ForStmt {}: {}, {}, {}",
-            self.span, self.r#type, self.identifier, self.set_declaration
-        )?;
-        for stmt in &self.block {
-            write!(indent, "\n{stmt}")?;
-        }
-        Ok(())
+        writeln_header(f, "ForStmt", self.span)?;
+        writeln_field(f, "variable_type", &self.r#type)?;
+        writeln_field(f, "variable_name", &self.identifier)?;
+        writeln_field(f, "iterable", &self.set_declaration)?;
+        write_list_field(f, "block", &self.block)
     }
 }
 
@@ -1603,10 +1352,7 @@ impl Display for EnumerableSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             EnumerableSet::DiscreteSet(set) => write!(f, "{set}"),
-            EnumerableSet::RangeDefinition(range) => {
-                let indent = set_indentation(indented(f), 0);
-                display_range(indent, range)
-            }
+            EnumerableSet::RangeDefinition(range) => write!(f, "{range}"),
             EnumerableSet::Expr(expr) => write!(f, "{expr}"),
         }
     }
@@ -1616,7 +1362,7 @@ impl Display for EnumerableSet {
 pub struct SwitchStmt {
     pub span: Span,
     pub target: Expr,
-    pub cases: List<(List<Expr>, Block)>,
+    pub cases: List<SwitchCase>,
     /// Note that `None` is quite different to `[]` in this case; the latter is
     /// an explicitly empty body, whereas the absence of a default might mean
     /// that the switch is inexhaustive, and a linter might want to complain.
@@ -1625,63 +1371,25 @@ pub struct SwitchStmt {
 
 impl Display for SwitchStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "SwitchStmt {}:", self.span)?;
-        let mut indent = set_indentation(indented(f), 1);
-        write!(indent, "\nTarget: {}", self.target)?;
-        if self.cases.is_empty() {
-            write!(indent, "\n<no cases>")?;
-        } else {
-            write!(indent, "\nCases:")?;
-            for elt in &self.cases {
-                let (labels, block) = &**elt;
-                indent = display_switch_case(indent, labels, block)?;
-            }
-        }
-        if let Some(default) = &self.default {
-            write!(indent, "\nDefault Case:")?;
-            indent = set_indentation(indent, 2);
-            write!(indent, "\n{default}")?;
-        } else {
-            write!(indent, "\n<no default>")?;
-        }
-        Ok(())
+        writeln_header(f, "SwitchStmt", self.span)?;
+        writeln_field(f, "target", &self.target)?;
+        writeln_list_field(f, "cases", &self.cases)?;
+        write_opt_field(f, "default_case", self.default.as_ref())
     }
-}
-
-fn display_switch_case<'a, 'b>(
-    mut indent: Indented<'a, Formatter<'b>>,
-    labels: &List<Expr>,
-    block: &Block,
-) -> Result<Indented<'a, Formatter<'b>>, core::fmt::Error> {
-    indent = set_indentation(indent, 2);
-    if labels.is_empty() {
-        write!(indent, "\n<no labels>")?;
-    } else {
-        write!(indent, "\nLabels:")?;
-        indent = set_indentation(indent, 3);
-        for label in labels {
-            write!(indent, "\n{label}")?;
-        }
-    }
-    indent = set_indentation(indent, 2);
-    write!(indent, "\n{block}")?;
-    Ok(indent)
 }
 
 #[derive(Clone, Debug)]
-pub struct ClassicalAssignment {
+pub struct SwitchCase {
     pub span: Span,
-    pub lvalue: Identifier,
-    pub op: AssignmentOp,
+    pub labels: List<Expr>,
+    pub block: Block,
 }
 
-impl Display for ClassicalAssignment {
+impl Display for SwitchCase {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "ClassicalAssignment {}: {}, {}",
-            self.span, self.lvalue, self.op
-        )
+        writeln_header(f, "SwitchCase", self.span)?;
+        writeln_list_field(f, "labels", &self.labels)?;
+        write_field(f, "block", &self.block)
     }
 }
 
@@ -1704,19 +1412,18 @@ pub enum ExprKind {
 
 impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
         match self {
             ExprKind::Err => write!(f, "Err"),
             ExprKind::Ident(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
-            ExprKind::BinaryOp(expr) => display_bin_op(indent, expr),
+            ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
             ExprKind::Lit(lit) => write!(f, "{lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
-            ExprKind::Cast(cast) => display_cast(indent, cast),
-            ExprKind::IndexExpr(index) => write!(f, "{index}"),
+            ExprKind::Cast(expr) => write!(f, "{expr}"),
+            ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Assign(expr) => write!(f, "{expr}"),
             ExprKind::AssignOp(expr) => write!(f, "{expr}"),
-            ExprKind::Paren(expr) => display_paren(indent, expr),
+            ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
         }
     }
 }
@@ -1729,8 +1436,9 @@ pub struct AssignExpr {
 
 impl Display for AssignExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
-        display_assign(indent, &self.lhs, &self.rhs)
+        writeln!(f, "AssignExpr:")?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        write_field(f, "rhs", &self.rhs)
     }
 }
 
@@ -1743,8 +1451,10 @@ pub struct AssignOpExpr {
 
 impl Display for AssignOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
-        display_assign_op(indent, self.op, &self.lhs, &self.rhs)
+        writeln!(f, "AssignOpExpr:")?;
+        writeln_field(f, "op", &self.op)?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        write_field(f, "rhs", &self.rhs)
     }
 }
 
@@ -1756,8 +1466,9 @@ pub struct UnaryOpExpr {
 
 impl Display for UnaryOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
-        display_un_op(indent, self.op, &self.expr)
+        writeln!(f, "UnaryOpExpr:")?;
+        writeln_field(f, "op", &self.op)?;
+        write_field(f, "expr", &self.expr)
     }
 }
 
@@ -1770,8 +1481,10 @@ pub struct BinaryOpExpr {
 
 impl Display for BinaryOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
-        display_bin_op(indent, self)
+        writeln!(f, "BinaryOpExpr:")?;
+        writeln_field(f, "op", &self.op)?;
+        writeln_field(f, "lhs", &self.lhs)?;
+        write_field(f, "rhs", &self.rhs)
     }
 }
 
@@ -1784,13 +1497,9 @@ pub struct FunctionCall {
 
 impl Display for FunctionCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "FunctionCall {}: {}", self.span, self.name)?;
-        indent = set_indentation(indent, 1);
-        for arg in &self.args {
-            write!(indent, "\n{arg}")?;
-        }
-        Ok(())
+        writeln_header(f, "FunctionCall", self.span)?;
+        writeln_field(f, "name", &self.name)?;
+        write_list_field(f, "args", &self.args)
     }
 }
 
@@ -1803,7 +1512,9 @@ pub struct Cast {
 
 impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Cast {}: {}, {}", self.span, self.r#type, self.arg)
+        writeln_header(f, "Cast", self.span)?;
+        writeln_field(f, "type", &self.r#type)?;
+        write_field(f, "arg", &self.arg)
     }
 }
 
@@ -1816,11 +1527,9 @@ pub struct IndexExpr {
 
 impl Display for IndexExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "IndexExpr {}: {}, {}",
-            self.span, self.collection, self.index
-        )
+        writeln_header(f, "IndexExpr", self.span)?;
+        writeln_field(f, "collection", &self.collection)?;
+        write_field(f, "index", &self.index)
     }
 }
 
@@ -1839,7 +1548,7 @@ impl Display for Lit {
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
     Array(List<Expr>),
-    Bitstring(BigInt, usize),
+    Bitstring { value: BigInt, width: usize },
     Bool(bool),
     Duration { value: f64, unit: TimeUnit },
     Float(f64),
@@ -1852,16 +1561,8 @@ pub enum LiteralKind {
 impl Display for LiteralKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            LiteralKind::Array(exprs) => {
-                let mut indent = set_indentation(indented(f), 0);
-                write!(indent, "Array:")?;
-                indent = set_indentation(indent, 1);
-                for expr in exprs {
-                    write!(indent, "\n{expr:?}")?;
-                }
-                Ok(())
-            }
-            LiteralKind::Bitstring(value, width) => {
+            LiteralKind::Array(exprs) => write_list_field(f, "Array", exprs),
+            LiteralKind::Bitstring { value, width } => {
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
@@ -1904,13 +1605,8 @@ impl Display for IndexElement {
         match self {
             IndexElement::DiscreteSet(set) => write!(f, "IndexElement {set}"),
             IndexElement::IndexSet(items) => {
-                let mut indent = set_indentation(indented(f), 0);
-                write!(indent, "IndexElement:")?;
-                indent = set_indentation(indent, 1);
-                for item in items {
-                    write!(indent, "\n{item}")?;
-                }
-                Ok(())
+                write!(f, "IndexElement: ")?;
+                write_indented_list(f, items)
             }
         }
     }
@@ -1933,30 +1629,10 @@ impl WithSpan for IndexSetItem {
 
 impl Display for IndexSetItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let indent = set_indentation(indented(f), 0);
         match self {
-            IndexSetItem::RangeDefinition(range) => display_range(indent, range),
+            IndexSetItem::RangeDefinition(range) => write!(f, "IndexSetItem {range}"),
             IndexSetItem::Expr(expr) => write!(f, "IndexSetItem {expr}"),
             IndexSetItem::Err => write!(f, "Err"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum AssignmentOp {
-    BinaryOp(BinOp),
-    /// `OpenQASM3` has the `~=` assignment operator.
-    /// This enum variant is meant to capture that.
-    UnaryOp(UnaryOp),
-    Assign,
-}
-
-impl Display for AssignmentOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            AssignmentOp::BinaryOp(op) => write!(f, "AssignmentOp ({op:?})"),
-            AssignmentOp::UnaryOp(op) => write!(f, "AssignmentOp ({op:?})"),
-            AssignmentOp::Assign => write!(f, "AssignmentOp (Assign)"),
         }
     }
 }
@@ -2032,80 +1708,4 @@ impl Display for EndStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "End {}", self.span)
     }
-}
-
-fn display_assign(mut indent: Indented<Formatter>, lhs: &Expr, rhs: &Expr) -> fmt::Result {
-    write!(indent, "Assign:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{lhs}")?;
-    write!(indent, "\n{rhs}")?;
-    Ok(())
-}
-
-fn display_assign_op(
-    mut indent: Indented<Formatter>,
-    op: BinOp,
-    lhs: &Expr,
-    rhs: &Expr,
-) -> fmt::Result {
-    write!(indent, "AssignOp ({op:?}):")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{lhs}")?;
-    write!(indent, "\n{rhs}")?;
-    Ok(())
-}
-
-fn display_bin_op(mut indent: Indented<Formatter>, expr: &BinaryOpExpr) -> fmt::Result {
-    write!(indent, "BinOp ({:?}):", expr.op)?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{}", expr.lhs)?;
-    write!(indent, "\n{}", expr.rhs)?;
-    Ok(())
-}
-
-fn display_un_op(mut indent: Indented<Formatter>, op: UnaryOp, expr: &Expr) -> fmt::Result {
-    write!(indent, "UnOp ({op}):")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{expr}")?;
-    Ok(())
-}
-
-fn display_paren(mut indent: Indented<Formatter>, expr: &Expr) -> fmt::Result {
-    write!(indent, "Paren:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{expr}")?;
-    Ok(())
-}
-fn display_cast(mut indent: Indented<Formatter>, cast: &Cast) -> fmt::Result {
-    let Cast { span, r#type, arg } = cast;
-    write!(indent, "Cast {span}:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{type}\n{arg}")?;
-    Ok(())
-}
-
-fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) -> fmt::Result {
-    write!(indent, "While:")?;
-    indent = set_indentation(indent, 1);
-    write!(indent, "\n{cond}")?;
-    write!(indent, "\n{block}")?;
-    Ok(())
-}
-
-fn display_range(mut indent: Indented<Formatter>, range: &RangeDefinition) -> fmt::Result {
-    write!(indent, "Range: {}", range.span)?;
-    indent = set_indentation(indent, 1);
-    match &range.start {
-        Some(e) => write!(indent, "\nstart: {e}")?,
-        None => write!(indent, "\n<no start>")?,
-    }
-    match &range.step {
-        Some(e) => write!(indent, "\nstep: {e}")?,
-        None => write!(indent, "\n<no step>")?,
-    }
-    match &range.end {
-        Some(e) => write!(indent, "\nend: {e}")?,
-        None => write!(indent, "\n<no end>")?,
-    }
-    Ok(())
 }

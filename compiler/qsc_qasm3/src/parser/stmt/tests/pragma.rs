@@ -13,8 +13,11 @@ fn pragma_decl() {
         parse,
         "pragma a.b.d 23",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: Pragma [0-15]: (a.b.d, 23)"#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: Pragma [0-15]:
+                    identifier: a.b.d
+                    value: 23"#]],
     );
 }
 
@@ -24,8 +27,11 @@ fn pragma_decl_ident_only() {
         parse,
         "pragma a.b.d",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: Pragma [0-12]: (a.b.d)"#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: Pragma [0-12]:
+                    identifier: a.b.d
+                    value: <none>"#]],
     );
 }
 
@@ -35,8 +41,11 @@ fn pragma_decl_missing_ident() {
         parse,
         "pragma ",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: Pragma [0-7]: ()
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: Pragma [0-7]:
+                    identifier: 
+                    value: <none>
 
             [
                 Error(
@@ -59,8 +68,11 @@ fn legacy_pragma_decl() {
         parse,
         "#pragma a.b.d 23",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: Pragma [0-16]: (a, a.b.d 23)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: Pragma [0-16]:
+                    identifier: a
+                    value: a.b.d 23"#]],
     );
 }
 
@@ -70,8 +82,11 @@ fn legacy_pragma_decl_ident_only() {
         parse,
         "#pragma a.b.d",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: Pragma [0-13]: (a, a.b.d)"#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: Pragma [0-13]:
+                    identifier: a
+                    value: a.b.d"#]],
     );
 }
 
@@ -81,8 +96,11 @@ fn legacy_pragma_ws_after_hash() {
         parse,
         "# pragma a.b.d",
         &expect![[r#"
-            Stmt [2-14]
-                StmtKind: Pragma [2-14]: (a.b.d)
+            Stmt [2-14]:
+                annotations: <empty>
+                kind: Pragma [2-14]:
+                    identifier: a.b.d
+                    value: <none>
 
             [
                 Error(
@@ -108,7 +126,10 @@ fn legacy_pragma_decl_missing_ident() {
         parse,
         "#pragma ",
         &expect![[r#"
-            Stmt [0-8]
-                StmtKind: Pragma [0-8]: (a, )"#]],
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: Pragma [0-8]:
+                    identifier: a
+                    value: "#]],
     );
 }

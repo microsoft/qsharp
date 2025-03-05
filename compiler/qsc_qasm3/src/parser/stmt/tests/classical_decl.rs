@@ -13,8 +13,13 @@ fn bit_decl() {
         parse,
         "bit b;",
         &expect![[r#"
-            Stmt [0-6]
-                StmtKind: ClassicalDeclarationStmt [0-6]: ClassicalType [0-3]: BitType, Ident [4-5] "b""#]],
+            Stmt [0-6]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-6]:
+                    type: ScalarType [0-3]: BitType [0-3]:
+                        size: <none>
+                    ident: Ident [4-5] "b"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -24,8 +29,13 @@ fn bit_decl_bit_lit() {
         parse,
         "bit b = 1;",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-3]: BitType, Ident [4-5] "b", ValueExpression Expr [8-9]: Lit: Int(1)"#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-3]: BitType [0-3]:
+                        size: <none>
+                    ident: Ident [4-5] "b"
+                    init_expr: ValueExpression Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -35,8 +45,13 @@ fn const_bit_decl_bit_lit() {
         parse,
         "const bit b = 1;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: ConstantDeclaration [0-16]: ClassicalType [6-9]: BitType, Ident [10-11] "b", Expr [14-15]: Lit: Int(1)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-16]:
+                    type: ScalarType [6-9]: BitType [6-9]:
+                        size: <none>
+                    ident: Ident [10-11] "b"
+                    init_expr: Expr [14-15]: Lit: Int(1)"#]],
     );
 }
 
@@ -46,8 +61,13 @@ fn bit_array_decl() {
         parse,
         "bit[2] b;",
         &expect![[r#"
-            Stmt [0-9]
-                StmtKind: ClassicalDeclarationStmt [0-9]: ClassicalType [0-6]: BitType [0-6]: Expr [4-5]: Lit: Int(2), Ident [7-8] "b""#]],
+            Stmt [0-9]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-9]:
+                    type: ScalarType [0-6]: BitType [0-6]:
+                        size: Expr [4-5]: Lit: Int(2)
+                    ident: Ident [7-8] "b"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -57,8 +77,13 @@ fn bit_array_decl_bit_lit() {
         parse,
         "bit[2] b = \"11\";",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: ClassicalDeclarationStmt [0-16]: ClassicalType [0-6]: BitType [0-6]: Expr [4-5]: Lit: Int(2), Ident [7-8] "b", ValueExpression Expr [11-15]: Lit: Bitstring("11")"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-16]:
+                    type: ScalarType [0-6]: BitType [0-6]:
+                        size: Expr [4-5]: Lit: Int(2)
+                    ident: Ident [7-8] "b"
+                    init_expr: ValueExpression Expr [11-15]: Lit: Bitstring("11")"#]],
     );
 }
 
@@ -68,8 +93,13 @@ fn const_bit_array_decl_bit_lit() {
         parse,
         "const bit[2] b = \"11\";",
         &expect![[r#"
-            Stmt [0-22]
-                StmtKind: ConstantDeclaration [0-22]: ClassicalType [6-12]: BitType [6-12]: Expr [10-11]: Lit: Int(2), Ident [13-14] "b", Expr [17-21]: Lit: Bitstring("11")"#]],
+            Stmt [0-22]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-22]:
+                    type: ScalarType [6-12]: BitType [6-12]:
+                        size: Expr [10-11]: Lit: Int(2)
+                    ident: Ident [13-14] "b"
+                    init_expr: Expr [17-21]: Lit: Bitstring("11")"#]],
     );
 }
 
@@ -79,8 +109,12 @@ fn bool_decl() {
         parse,
         "bool b;",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: ClassicalDeclarationStmt [0-7]: ClassicalType [0-4]: BoolType, Ident [5-6] "b""#]],
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-7]:
+                    type: ScalarType [0-4]: BoolType
+                    ident: Ident [5-6] "b"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -90,8 +124,12 @@ fn bool_decl_int_lit() {
         parse,
         "bool b = 1;",
         &expect![[r#"
-            Stmt [0-11]
-                StmtKind: ClassicalDeclarationStmt [0-11]: ClassicalType [0-4]: BoolType, Ident [5-6] "b", ValueExpression Expr [9-10]: Lit: Int(1)"#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-11]:
+                    type: ScalarType [0-4]: BoolType
+                    ident: Ident [5-6] "b"
+                    init_expr: ValueExpression Expr [9-10]: Lit: Int(1)"#]],
     );
 }
 
@@ -101,8 +139,12 @@ fn const_bool_decl_bool_lit() {
         parse,
         "const bool b = true;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ConstantDeclaration [0-20]: ClassicalType [6-10]: BoolType, Ident [11-12] "b", Expr [15-19]: Lit: Bool(true)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-20]:
+                    type: ScalarType [6-10]: BoolType
+                    ident: Ident [11-12] "b"
+                    init_expr: Expr [15-19]: Lit: Bool(true)"#]],
     );
 }
 
@@ -112,8 +154,13 @@ fn complex_decl() {
         parse,
         "complex c;",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-7]: ComplexType [0-7], Ident [8-9] "c""#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-7]: ComplexType [0-7]:
+                        base_size: <none>
+                    ident: Ident [8-9] "c"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -123,8 +170,13 @@ fn complex_decl_complex_lit() {
         parse,
         "complex c = 1im;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: ClassicalDeclarationStmt [0-16]: ClassicalType [0-7]: ComplexType [0-7], Ident [8-9] "c", ValueExpression Expr [12-15]: Lit: Imaginary(1.0)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-16]:
+                    type: ScalarType [0-7]: ComplexType [0-7]:
+                        base_size: <none>
+                    ident: Ident [8-9] "c"
+                    init_expr: ValueExpression Expr [12-15]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -134,8 +186,13 @@ fn const_complex_decl_complex_lit() {
         parse,
         "const complex c = 1im;",
         &expect![[r#"
-            Stmt [0-22]
-                StmtKind: ConstantDeclaration [0-22]: ClassicalType [6-13]: ComplexType [6-13], Ident [14-15] "c", Expr [18-21]: Lit: Imaginary(1.0)"#]],
+            Stmt [0-22]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-22]:
+                    type: ScalarType [6-13]: ComplexType [6-13]:
+                        base_size: <none>
+                    ident: Ident [14-15] "c"
+                    init_expr: Expr [18-21]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -145,10 +202,16 @@ fn const_complex_decl_complex_binary_lit() {
         parse,
         "const complex c = 23.5 + 1.7im;",
         &expect![[r#"
-            Stmt [0-31]
-                StmtKind: ConstantDeclaration [0-31]: ClassicalType [6-13]: ComplexType [6-13], Ident [14-15] "c", Expr [18-30]: BinOp (Add):
-                    Expr [18-22]: Lit: Float(23.5)
-                    Expr [25-30]: Lit: Imaginary(1.7)"#]],
+            Stmt [0-31]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-31]:
+                    type: ScalarType [6-13]: ComplexType [6-13]:
+                        base_size: <none>
+                    ident: Ident [14-15] "c"
+                    init_expr: Expr [18-30]: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [18-22]: Lit: Float(23.5)
+                        rhs: Expr [25-30]: Lit: Imaginary(1.7)"#]],
     );
 }
 
@@ -158,8 +221,14 @@ fn complex_sized_decl() {
         parse,
         "complex[float[32]] c;",
         &expect![[r#"
-            Stmt [0-21]
-                StmtKind: ClassicalDeclarationStmt [0-21]: ClassicalType [0-18]: ComplexType[float[FloatType[Expr [14-16]: Lit: Int(32)]: [8-17]]]: [0-18], Ident [19-20] "c""#]],
+            Stmt [0-21]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-21]:
+                    type: ScalarType [0-18]: ComplexType [0-18]:
+                        base_size: FloatType [8-17]:
+                            size: Expr [14-16]: Lit: Int(32)
+                    ident: Ident [19-20] "c"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -191,8 +260,14 @@ fn complex_sized_decl_complex_lit() {
         parse,
         "complex[float[32]] c = 1im;",
         &expect![[r#"
-            Stmt [0-27]
-                StmtKind: ClassicalDeclarationStmt [0-27]: ClassicalType [0-18]: ComplexType[float[FloatType[Expr [14-16]: Lit: Int(32)]: [8-17]]]: [0-18], Ident [19-20] "c", ValueExpression Expr [23-26]: Lit: Imaginary(1.0)"#]],
+            Stmt [0-27]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-27]:
+                    type: ScalarType [0-18]: ComplexType [0-18]:
+                        base_size: FloatType [8-17]:
+                            size: Expr [14-16]: Lit: Int(32)
+                    ident: Ident [19-20] "c"
+                    init_expr: ValueExpression Expr [23-26]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -202,8 +277,14 @@ fn const_complex_sized_decl_complex_lit() {
         parse,
         "const complex[float[32]] c = 1im;",
         &expect![[r#"
-            Stmt [0-33]
-                StmtKind: ConstantDeclaration [0-33]: ClassicalType [6-24]: ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24], Ident [25-26] "c", Expr [29-32]: Lit: Imaginary(1.0)"#]],
+            Stmt [0-33]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-33]:
+                    type: ScalarType [6-24]: ComplexType [6-24]:
+                        base_size: FloatType [14-23]:
+                            size: Expr [20-22]: Lit: Int(32)
+                    ident: Ident [25-26] "c"
+                    init_expr: Expr [29-32]: Lit: Imaginary(1.0)"#]],
     );
 }
 
@@ -213,8 +294,13 @@ fn int_decl() {
         parse,
         "int i;",
         &expect![[r#"
-            Stmt [0-6]
-                StmtKind: ClassicalDeclarationStmt [0-6]: ClassicalType [0-3]: IntType [0-3], Ident [4-5] "i""#]],
+            Stmt [0-6]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-6]:
+                    type: ScalarType [0-3]: IntType [0-3]:
+                        size: <none>
+                    ident: Ident [4-5] "i"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -224,8 +310,13 @@ fn int_decl_int_lit() {
         parse,
         "int i = 1;",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-3]: IntType [0-3], Ident [4-5] "i", ValueExpression Expr [8-9]: Lit: Int(1)"#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-3]: IntType [0-3]:
+                        size: <none>
+                    ident: Ident [4-5] "i"
+                    init_expr: ValueExpression Expr [8-9]: Lit: Int(1)"#]],
     );
 }
 
@@ -235,8 +326,13 @@ fn const_int_decl_int_lit() {
         parse,
         "const int i = 1;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: ConstantDeclaration [0-16]: ClassicalType [6-9]: IntType [6-9], Ident [10-11] "i", Expr [14-15]: Lit: Int(1)"#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-16]:
+                    type: ScalarType [6-9]: IntType [6-9]:
+                        size: <none>
+                    ident: Ident [10-11] "i"
+                    init_expr: Expr [14-15]: Lit: Int(1)"#]],
     );
 }
 
@@ -246,8 +342,13 @@ fn int_sized_decl() {
         parse,
         "int[32] i;",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-7]: IntType[Expr [4-6]: Lit: Int(32)]: [0-7], Ident [8-9] "i""#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-7]: IntType [0-7]:
+                        size: Expr [4-6]: Lit: Int(32)
+                    ident: Ident [8-9] "i"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -257,8 +358,13 @@ fn int_sized_decl_int_lit() {
         parse,
         "int[32] i = 1;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: ClassicalDeclarationStmt [0-14]: ClassicalType [0-7]: IntType[Expr [4-6]: Lit: Int(32)]: [0-7], Ident [8-9] "i", ValueExpression Expr [12-13]: Lit: Int(1)"#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-14]:
+                    type: ScalarType [0-7]: IntType [0-7]:
+                        size: Expr [4-6]: Lit: Int(32)
+                    ident: Ident [8-9] "i"
+                    init_expr: ValueExpression Expr [12-13]: Lit: Int(1)"#]],
     );
 }
 
@@ -268,8 +374,13 @@ fn const_int_sized_decl_int_lit() {
         parse,
         "const int[32] i = 1;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ConstantDeclaration [0-20]: ClassicalType [6-13]: IntType[Expr [10-12]: Lit: Int(32)]: [6-13], Ident [14-15] "i", Expr [18-19]: Lit: Int(1)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-20]:
+                    type: ScalarType [6-13]: IntType [6-13]:
+                        size: Expr [10-12]: Lit: Int(32)
+                    ident: Ident [14-15] "i"
+                    init_expr: Expr [18-19]: Lit: Int(1)"#]],
     );
 }
 
@@ -279,8 +390,13 @@ fn uint_decl() {
         parse,
         "uint i;",
         &expect![[r#"
-            Stmt [0-7]
-                StmtKind: ClassicalDeclarationStmt [0-7]: ClassicalType [0-4]: UIntType [0-4], Ident [5-6] "i""#]],
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-7]:
+                    type: ScalarType [0-4]: UIntType [0-4]:
+                        size: <none>
+                    ident: Ident [5-6] "i"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -290,8 +406,13 @@ fn uint_decl_uint_lit() {
         parse,
         "uint i = 1;",
         &expect![[r#"
-            Stmt [0-11]
-                StmtKind: ClassicalDeclarationStmt [0-11]: ClassicalType [0-4]: UIntType [0-4], Ident [5-6] "i", ValueExpression Expr [9-10]: Lit: Int(1)"#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-11]:
+                    type: ScalarType [0-4]: UIntType [0-4]:
+                        size: <none>
+                    ident: Ident [5-6] "i"
+                    init_expr: ValueExpression Expr [9-10]: Lit: Int(1)"#]],
     );
 }
 
@@ -301,8 +422,13 @@ fn const_uint_decl_uint_lit() {
         parse,
         "const uint i = 1;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: ConstantDeclaration [0-17]: ClassicalType [6-10]: UIntType [6-10], Ident [11-12] "i", Expr [15-16]: Lit: Int(1)"#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-17]:
+                    type: ScalarType [6-10]: UIntType [6-10]:
+                        size: <none>
+                    ident: Ident [11-12] "i"
+                    init_expr: Expr [15-16]: Lit: Int(1)"#]],
     );
 }
 
@@ -312,8 +438,13 @@ fn uint_sized_decl() {
         parse,
         "uint[32] i;",
         &expect![[r#"
-            Stmt [0-11]
-                StmtKind: ClassicalDeclarationStmt [0-11]: ClassicalType [0-8]: UIntType[Expr [5-7]: Lit: Int(32)]: [0-8], Ident [9-10] "i""#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-11]:
+                    type: ScalarType [0-8]: UIntType [0-8]:
+                        size: Expr [5-7]: Lit: Int(32)
+                    ident: Ident [9-10] "i"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -323,8 +454,13 @@ fn uint_sized_decl_uint_lit() {
         parse,
         "uint[32] i = 1;",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: ClassicalDeclarationStmt [0-15]: ClassicalType [0-8]: UIntType[Expr [5-7]: Lit: Int(32)]: [0-8], Ident [9-10] "i", ValueExpression Expr [13-14]: Lit: Int(1)"#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-15]:
+                    type: ScalarType [0-8]: UIntType [0-8]:
+                        size: Expr [5-7]: Lit: Int(32)
+                    ident: Ident [9-10] "i"
+                    init_expr: ValueExpression Expr [13-14]: Lit: Int(1)"#]],
     );
 }
 
@@ -334,8 +470,13 @@ fn const_uint_sized_decl_uint_lit() {
         parse,
         "const uint[32] i = 1;",
         &expect![[r#"
-            Stmt [0-21]
-                StmtKind: ConstantDeclaration [0-21]: ClassicalType [6-14]: UIntType[Expr [11-13]: Lit: Int(32)]: [6-14], Ident [15-16] "i", Expr [19-20]: Lit: Int(1)"#]],
+            Stmt [0-21]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-21]:
+                    type: ScalarType [6-14]: UIntType [6-14]:
+                        size: Expr [11-13]: Lit: Int(32)
+                    ident: Ident [15-16] "i"
+                    init_expr: Expr [19-20]: Lit: Int(1)"#]],
     );
 }
 
@@ -345,8 +486,13 @@ fn float_decl() {
         parse,
         "float f;",
         &expect![[r#"
-            Stmt [0-8]
-                StmtKind: ClassicalDeclarationStmt [0-8]: ClassicalType [0-5]: FloatType [0-5], Ident [6-7] "f""#]],
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-8]:
+                    type: ScalarType [0-5]: FloatType [0-5]:
+                        size: <none>
+                    ident: Ident [6-7] "f"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -356,8 +502,13 @@ fn float_decl_float_lit() {
         parse,
         "float f = 1;",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: ClassicalDeclarationStmt [0-12]: ClassicalType [0-5]: FloatType [0-5], Ident [6-7] "f", ValueExpression Expr [10-11]: Lit: Int(1)"#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-12]:
+                    type: ScalarType [0-5]: FloatType [0-5]:
+                        size: <none>
+                    ident: Ident [6-7] "f"
+                    init_expr: ValueExpression Expr [10-11]: Lit: Int(1)"#]],
     );
 }
 
@@ -367,8 +518,13 @@ fn const_float_decl_float_lit() {
         parse,
         "const float f = 1.0;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ConstantDeclaration [0-20]: ClassicalType [6-11]: FloatType [6-11], Ident [12-13] "f", Expr [16-19]: Lit: Float(1.0)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-20]:
+                    type: ScalarType [6-11]: FloatType [6-11]:
+                        size: <none>
+                    ident: Ident [12-13] "f"
+                    init_expr: Expr [16-19]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -378,8 +534,13 @@ fn float_sized_decl() {
         parse,
         "float[32] f;",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: ClassicalDeclarationStmt [0-12]: ClassicalType [0-9]: FloatType[Expr [6-8]: Lit: Int(32)]: [0-9], Ident [10-11] "f""#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-12]:
+                    type: ScalarType [0-9]: FloatType [0-9]:
+                        size: Expr [6-8]: Lit: Int(32)
+                    ident: Ident [10-11] "f"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -389,8 +550,13 @@ fn float_sized_decl_float_lit() {
         parse,
         "float[32] f = 1.0;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: ClassicalDeclarationStmt [0-18]: ClassicalType [0-9]: FloatType[Expr [6-8]: Lit: Int(32)]: [0-9], Ident [10-11] "f", ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-18]:
+                    type: ScalarType [0-9]: FloatType [0-9]:
+                        size: Expr [6-8]: Lit: Int(32)
+                    ident: Ident [10-11] "f"
+                    init_expr: ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -400,8 +566,13 @@ fn const_float_sized_decl_float_lit() {
         parse,
         "const float[32] f = 1;",
         &expect![[r#"
-            Stmt [0-22]
-                StmtKind: ConstantDeclaration [0-22]: ClassicalType [6-15]: FloatType[Expr [12-14]: Lit: Int(32)]: [6-15], Ident [16-17] "f", Expr [20-21]: Lit: Int(1)"#]],
+            Stmt [0-22]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-22]:
+                    type: ScalarType [6-15]: FloatType [6-15]:
+                        size: Expr [12-14]: Lit: Int(32)
+                    ident: Ident [16-17] "f"
+                    init_expr: Expr [20-21]: Lit: Int(1)"#]],
     );
 }
 
@@ -411,8 +582,13 @@ fn angle_decl() {
         parse,
         "angle a;",
         &expect![[r#"
-            Stmt [0-8]
-                StmtKind: ClassicalDeclarationStmt [0-8]: ClassicalType [0-5]: AngleType [0-5], Ident [6-7] "a""#]],
+            Stmt [0-8]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-8]:
+                    type: ScalarType [0-5]: AngleType [0-5]:
+                        size: <none>
+                    ident: Ident [6-7] "a"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -422,8 +598,13 @@ fn angle_decl_angle_lit() {
         parse,
         "angle a = 1.0;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: ClassicalDeclarationStmt [0-14]: ClassicalType [0-5]: AngleType [0-5], Ident [6-7] "a", ValueExpression Expr [10-13]: Lit: Float(1.0)"#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-14]:
+                    type: ScalarType [0-5]: AngleType [0-5]:
+                        size: <none>
+                    ident: Ident [6-7] "a"
+                    init_expr: ValueExpression Expr [10-13]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -453,8 +634,13 @@ fn const_angle_decl_angle_lit() {
         parse,
         "const angle a = 1.0;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ConstantDeclaration [0-20]: ClassicalType [6-11]: AngleType [6-11], Ident [12-13] "a", Expr [16-19]: Lit: Float(1.0)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-20]:
+                    type: ScalarType [6-11]: AngleType [6-11]:
+                        size: <none>
+                    ident: Ident [12-13] "a"
+                    init_expr: Expr [16-19]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -464,8 +650,13 @@ fn angle_sized_decl() {
         parse,
         "angle[32] a;",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: ClassicalDeclarationStmt [0-12]: ClassicalType [0-9]: AngleType [0-9]: Expr [6-8]: Lit: Int(32), Ident [10-11] "a""#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-12]:
+                    type: ScalarType [0-9]: AngleType [0-9]:
+                        size: Expr [6-8]: Lit: Int(32)
+                    ident: Ident [10-11] "a"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -475,8 +666,13 @@ fn angle_sized_decl_angle_lit() {
         parse,
         "angle[32] a = 1.0;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: ClassicalDeclarationStmt [0-18]: ClassicalType [0-9]: AngleType [0-9]: Expr [6-8]: Lit: Int(32), Ident [10-11] "a", ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-18]:
+                    type: ScalarType [0-9]: AngleType [0-9]:
+                        size: Expr [6-8]: Lit: Int(32)
+                    ident: Ident [10-11] "a"
+                    init_expr: ValueExpression Expr [14-17]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -486,8 +682,13 @@ fn const_angle_sized_decl_angle_lit() {
         parse,
         "const angle[32] a = 1.0;",
         &expect![[r#"
-            Stmt [0-24]
-                StmtKind: ConstantDeclaration [0-24]: ClassicalType [6-15]: AngleType [6-15]: Expr [12-14]: Lit: Int(32), Ident [16-17] "a", Expr [20-23]: Lit: Float(1.0)"#]],
+            Stmt [0-24]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-24]:
+                    type: ScalarType [6-15]: AngleType [6-15]:
+                        size: Expr [12-14]: Lit: Int(32)
+                    ident: Ident [16-17] "a"
+                    init_expr: Expr [20-23]: Lit: Float(1.0)"#]],
     );
 }
 
@@ -497,8 +698,12 @@ fn duration_decl() {
         parse,
         "duration d;",
         &expect![[r#"
-            Stmt [0-11]
-                StmtKind: ClassicalDeclarationStmt [0-11]: ClassicalType [0-8]: Duration, Ident [9-10] "d""#]],
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-11]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -508,8 +713,12 @@ fn duration_decl_ns_lit() {
         parse,
         "duration d = 1000ns;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ns)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-20]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ns)"#]],
     );
 }
 
@@ -519,8 +728,12 @@ fn duration_decl_us_lit() {
         parse,
         "duration d = 1000us;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Us)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-20]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
@@ -532,8 +745,12 @@ fn duration_decl_uus_lit() {
         parse,
         "duration d = 1000µs;",
         &expect![[r#"
-            Stmt [0-21]
-                StmtKind: ClassicalDeclarationStmt [0-21]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-20]: Lit: Duration(1000.0, Us)"#]],
+            Stmt [0-21]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-21]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-20]: Lit: Duration(1000.0, Us)"#]],
     );
 }
 
@@ -543,8 +760,12 @@ fn duration_decl_ms_lit() {
         parse,
         "duration d = 1000ms;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ms)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-20]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Ms)"#]],
     );
 }
 
@@ -554,8 +775,12 @@ fn duration_decl_s_lit() {
         parse,
         "duration d = 1000s;",
         &expect![[r#"
-            Stmt [0-19]
-                StmtKind: ClassicalDeclarationStmt [0-19]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-18]: Lit: Duration(1000.0, S)"#]],
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-19]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-18]: Lit: Duration(1000.0, S)"#]],
     );
 }
 
@@ -565,8 +790,12 @@ fn duration_decl_dt_lit() {
         parse,
         "duration d = 1000dt;",
         &expect![[r#"
-            Stmt [0-20]
-                StmtKind: ClassicalDeclarationStmt [0-20]: ClassicalType [0-8]: Duration, Ident [9-10] "d", ValueExpression Expr [13-19]: Lit: Duration(1000.0, Dt)"#]],
+            Stmt [0-20]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-20]:
+                    type: ScalarType [0-8]: Duration
+                    ident: Ident [9-10] "d"
+                    init_expr: ValueExpression Expr [13-19]: Lit: Duration(1000.0, Dt)"#]],
     );
 }
 
@@ -576,8 +805,12 @@ fn const_duration_decl_dt_lit() {
         parse,
         "const duration d = 10dt;",
         &expect![[r#"
-            Stmt [0-24]
-                StmtKind: ConstantDeclaration [0-24]: ClassicalType [6-14]: Duration, Ident [15-16] "d", Expr [19-23]: Lit: Duration(10.0, Dt)"#]],
+            Stmt [0-24]:
+                annotations: <empty>
+                kind: ConstantDeclStmt [0-24]:
+                    type: ScalarType [6-14]: Duration
+                    ident: Ident [15-16] "d"
+                    init_expr: Expr [19-23]: Lit: Duration(10.0, Dt)"#]],
     );
 }
 
@@ -587,8 +820,12 @@ fn stretch_decl() {
         parse,
         "stretch s;",
         &expect![[r#"
-            Stmt [0-10]
-                StmtKind: ClassicalDeclarationStmt [0-10]: ClassicalType [0-7]: Stretch, Ident [8-9] "s""#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-10]:
+                    type: ScalarType [0-7]: Stretch
+                    ident: Ident [8-9] "s"
+                    init_expr: <none>"#]],
     );
 }
 
@@ -598,9 +835,16 @@ fn empty_array_decl() {
         parse,
         "array[int, 0] arr = {};",
         &expect![[r#"
-            Stmt [0-23]
-                StmtKind: ClassicalDeclarationStmt [0-23]: ArrayType [0-13]: ArrayBaseTypeKind IntType [6-9]
-                Expr [11-12]: Lit: Int(0), Ident [14-17] "arr", ValueExpression Expr [20-22]: Lit: Array:"#]],
+            Stmt [0-23]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-23]:
+                    type: ArrayType [0-13]:
+                        base_type: ArrayBaseTypeKind IntType [6-9]:
+                            size: <none>
+                        dimensions: 
+                            Expr [11-12]: Lit: Int(0)
+                    ident: Ident [14-17] "arr"
+                    init_expr: ValueExpression Expr [20-22]: Lit:     Array: <empty>"#]],
     );
 }
 
@@ -610,12 +854,19 @@ fn simple_array_decl() {
         parse,
         "array[int[32], 3] arr = {1, 2, 3};",
         &expect![[r#"
-            Stmt [0-34]
-                StmtKind: ClassicalDeclarationStmt [0-34]: ArrayType [0-17]: ArrayBaseTypeKind IntType[Expr [10-12]: Lit: Int(32)]: [6-13]
-                Expr [15-16]: Lit: Int(3), Ident [18-21] "arr", ValueExpression Expr [24-33]: Lit: Array:
-                    Expr { span: Span { lo: 25, hi: 26 }, kind: Lit(Lit { span: Span { lo: 25, hi: 26 }, kind: Int(1) }) }
-                    Expr { span: Span { lo: 28, hi: 29 }, kind: Lit(Lit { span: Span { lo: 28, hi: 29 }, kind: Int(2) }) }
-                    Expr { span: Span { lo: 31, hi: 32 }, kind: Lit(Lit { span: Span { lo: 31, hi: 32 }, kind: Int(3) }) }"#]],
+            Stmt [0-34]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-34]:
+                    type: ArrayType [0-17]:
+                        base_type: ArrayBaseTypeKind IntType [6-13]:
+                            size: Expr [10-12]: Lit: Int(32)
+                        dimensions: 
+                            Expr [15-16]: Lit: Int(3)
+                    ident: Ident [18-21] "arr"
+                    init_expr: ValueExpression Expr [24-33]: Lit:     Array: 
+                            Expr [25-26]: Lit: Int(1)
+                            Expr [28-29]: Lit: Int(2)
+                            Expr [31-32]: Lit: Int(3)"#]],
     );
 }
 
@@ -625,13 +876,26 @@ fn nested_array_decl() {
         parse,
         "array[int[32], 3, 2] arr = {{1, 2}, {3, 4}, {5, 6}};",
         &expect![[r#"
-            Stmt [0-52]
-                StmtKind: ClassicalDeclarationStmt [0-52]: ArrayType [0-20]: ArrayBaseTypeKind IntType[Expr [10-12]: Lit: Int(32)]: [6-13]
-                Expr [15-16]: Lit: Int(3)
-                Expr [18-19]: Lit: Int(2), Ident [21-24] "arr", ValueExpression Expr [27-51]: Lit: Array:
-                    Expr { span: Span { lo: 28, hi: 34 }, kind: Lit(Lit { span: Span { lo: 28, hi: 34 }, kind: Array([Expr { span: Span { lo: 29, hi: 30 }, kind: Lit(Lit { span: Span { lo: 29, hi: 30 }, kind: Int(1) }) }, Expr { span: Span { lo: 32, hi: 33 }, kind: Lit(Lit { span: Span { lo: 32, hi: 33 }, kind: Int(2) }) }]) }) }
-                    Expr { span: Span { lo: 36, hi: 42 }, kind: Lit(Lit { span: Span { lo: 36, hi: 42 }, kind: Array([Expr { span: Span { lo: 37, hi: 38 }, kind: Lit(Lit { span: Span { lo: 37, hi: 38 }, kind: Int(3) }) }, Expr { span: Span { lo: 40, hi: 41 }, kind: Lit(Lit { span: Span { lo: 40, hi: 41 }, kind: Int(4) }) }]) }) }
-                    Expr { span: Span { lo: 44, hi: 50 }, kind: Lit(Lit { span: Span { lo: 44, hi: 50 }, kind: Array([Expr { span: Span { lo: 45, hi: 46 }, kind: Lit(Lit { span: Span { lo: 45, hi: 46 }, kind: Int(5) }) }, Expr { span: Span { lo: 48, hi: 49 }, kind: Lit(Lit { span: Span { lo: 48, hi: 49 }, kind: Int(6) }) }]) }) }"#]],
+            Stmt [0-52]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-52]:
+                    type: ArrayType [0-20]:
+                        base_type: ArrayBaseTypeKind IntType [6-13]:
+                            size: Expr [10-12]: Lit: Int(32)
+                        dimensions: 
+                            Expr [15-16]: Lit: Int(3)
+                            Expr [18-19]: Lit: Int(2)
+                    ident: Ident [21-24] "arr"
+                    init_expr: ValueExpression Expr [27-51]: Lit:     Array: 
+                            Expr [28-34]: Lit:     Array: 
+                                    Expr [29-30]: Lit: Int(1)
+                                    Expr [32-33]: Lit: Int(2)
+                            Expr [36-42]: Lit:     Array: 
+                                    Expr [37-38]: Lit: Int(3)
+                                    Expr [40-41]: Lit: Int(4)
+                            Expr [44-50]: Lit:     Array: 
+                                    Expr [45-46]: Lit: Int(5)
+                                    Expr [48-49]: Lit: Int(6)"#]],
     );
 }
 
@@ -641,8 +905,13 @@ fn measure_hardware_qubit_decl() {
         parse,
         "bit res = measure $12;",
         &expect![[r#"
-            Stmt [0-22]
-                StmtKind: ClassicalDeclarationStmt [0-22]: ClassicalType [0-3]: BitType, Ident [4-7] "res", ValueExpression MeasureExpr [10-17]: GateOperand HardwareQubit [18-21]: 12"#]],
+            Stmt [0-22]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-22]:
+                    type: ScalarType [0-3]: BitType [0-3]:
+                        size: <none>
+                    ident: Ident [4-7] "res"
+                    init_expr: ValueExpression MeasureExpr [10-17]: GateOperand HardwareQubit [18-21]: 12"#]],
     );
 }
 
@@ -652,11 +921,18 @@ fn measure_register_decl() {
         parse,
         "bit res = measure qubits[2][3];",
         &expect![[r#"
-            Stmt [0-31]
-                StmtKind: ClassicalDeclarationStmt [0-31]: ClassicalType [0-3]: BitType, Ident [4-7] "res", ValueExpression MeasureExpr [10-17]: GateOperand IndexedIdent [18-30]: Ident [18-24] "qubits"[
-                IndexElement:
-                    IndexSetItem Expr [25-26]: Lit: Int(2)
-                IndexElement:
-                    IndexSetItem Expr [28-29]: Lit: Int(3)]"#]],
+            Stmt [0-31]:
+                annotations: <empty>
+                kind: ClassicalDeclarationStmt [0-31]:
+                    type: ScalarType [0-3]: BitType [0-3]:
+                        size: <none>
+                    ident: Ident [4-7] "res"
+                    init_expr: ValueExpression MeasureExpr [10-17]: GateOperand IndexedIdent [18-30]:
+                        name: Ident [18-24] "qubits"
+                        indices: 
+                            IndexElement: 
+                                IndexSetItem Expr [25-26]: Lit: Int(2)
+                            IndexElement: 
+                                IndexSetItem Expr [28-29]: Lit: Int(3)"#]],
     );
 }

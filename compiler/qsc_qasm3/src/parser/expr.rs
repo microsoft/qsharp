@@ -291,7 +291,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
 
                 Ok(Some(Lit {
                     span: token.span,
-                    kind: LiteralKind::Bitstring(value, width),
+                    kind: LiteralKind::Bitstring { value, width },
                 }))
             }
             Literal::Imaginary => {
@@ -556,7 +556,7 @@ pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
     recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(DiscreteSet {
         span: s.span(lo),
-        values: exprs.into_boxed_slice(),
+        values: list_from_iter(exprs),
     })
 }
 

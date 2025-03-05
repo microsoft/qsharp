@@ -117,8 +117,9 @@ fn lit_int_min() {
     check_expr(
         "-9_223_372_036_854_775_808",
         &expect![[r#"
-            Expr [0-26]: UnOp (Neg):
-                Expr [1-26]: Lit: Int(-9223372036854775808)"#]],
+            Expr [0-26]: UnaryOpExpr:
+                op: Neg
+                expr: Expr [1-26]: Lit: Int(-9223372036854775808)"#]],
     );
 }
 
@@ -540,9 +541,10 @@ fn pratt_parsing_binary_expr() {
     check_expr(
         "1 + 2",
         &expect![[r#"
-            Expr [0-5]: BinOp (Add):
-                Expr [0-1]: Lit: Int(1)
-                Expr [4-5]: Lit: Int(2)"#]],
+            Expr [0-5]: BinaryOpExpr:
+                op: Add
+                lhs: Expr [0-1]: Lit: Int(1)
+                rhs: Expr [4-5]: Lit: Int(2)"#]],
     );
 }
 
@@ -551,11 +553,13 @@ fn pratt_parsing_mul_add() {
     check_expr(
         "1 + 2 * 3",
         &expect![[r#"
-            Expr [0-9]: BinOp (Add):
-                Expr [0-1]: Lit: Int(1)
-                Expr [4-9]: BinOp (Mul):
-                    Expr [4-5]: Lit: Int(2)
-                    Expr [8-9]: Lit: Int(3)"#]],
+            Expr [0-9]: BinaryOpExpr:
+                op: Add
+                lhs: Expr [0-1]: Lit: Int(1)
+                rhs: Expr [4-9]: BinaryOpExpr:
+                    op: Mul
+                    lhs: Expr [4-5]: Lit: Int(2)
+                    rhs: Expr [8-9]: Lit: Int(3)"#]],
     );
 }
 
@@ -564,12 +568,13 @@ fn pratt_parsing_parens() {
     check_expr(
         "(1 + 2) * 3",
         &expect![[r#"
-            Expr [0-11]: BinOp (Mul):
-                Expr [0-7]: Paren:
-                    Expr [1-6]: BinOp (Add):
-                        Expr [1-2]: Lit: Int(1)
-                        Expr [5-6]: Lit: Int(2)
-                Expr [10-11]: Lit: Int(3)"#]],
+            Expr [0-11]: BinaryOpExpr:
+                op: Mul
+                lhs: Expr [0-7]: Paren Expr [1-6]: BinaryOpExpr:
+                    op: Add
+                    lhs: Expr [1-2]: Lit: Int(1)
+                    rhs: Expr [5-6]: Lit: Int(2)
+                rhs: Expr [10-11]: Lit: Int(3)"#]],
     );
 }
 
@@ -578,10 +583,12 @@ fn prat_parsing_mul_unary() {
     check_expr(
         "2 * -3",
         &expect![[r#"
-            Expr [0-6]: BinOp (Mul):
-                Expr [0-1]: Lit: Int(2)
-                Expr [4-6]: UnOp (Neg):
-                    Expr [5-6]: Lit: Int(3)"#]],
+            Expr [0-6]: BinaryOpExpr:
+                op: Mul
+                lhs: Expr [0-1]: Lit: Int(2)
+                rhs: Expr [4-6]: UnaryOpExpr:
+                    op: Neg
+                    expr: Expr [5-6]: Lit: Int(3)"#]],
     );
 }
 
@@ -590,10 +597,12 @@ fn prat_parsing_unary_mul() {
     check_expr(
         "-2 * 3",
         &expect![[r#"
-            Expr [0-6]: BinOp (Mul):
-                Expr [0-2]: UnOp (Neg):
-                    Expr [1-2]: Lit: Int(2)
-                Expr [5-6]: Lit: Int(3)"#]],
+            Expr [0-6]: BinaryOpExpr:
+                op: Mul
+                lhs: Expr [0-2]: UnaryOpExpr:
+                    op: Neg
+                    expr: Expr [1-2]: Lit: Int(2)
+                rhs: Expr [5-6]: Lit: Int(3)"#]],
     );
 }
 
@@ -602,10 +611,13 @@ fn prat_parsing_exp_funcall() {
     check_expr(
         "2 ** square(3)",
         &expect![[r#"
-            Expr [0-14]: BinOp (Exp):
-                Expr [0-1]: Lit: Int(2)
-                Expr [5-14]: FunctionCall [5-14]: Ident [5-11] "square"
-                    Expr [12-13]: Lit: Int(3)"#]],
+            Expr [0-14]: BinaryOpExpr:
+                op: Exp
+                lhs: Expr [0-1]: Lit: Int(2)
+                rhs: Expr [5-14]: FunctionCall [5-14]:
+                    name: Ident [5-11] "square"
+                    args: 
+                        Expr [12-13]: Lit: Int(3)"#]],
     );
 }
 
@@ -614,10 +626,13 @@ fn prat_parsing_funcall_exp() {
     check_expr(
         "square(2) ** 3",
         &expect![[r#"
-            Expr [0-14]: BinOp (Exp):
-                Expr [0-9]: FunctionCall [0-9]: Ident [0-6] "square"
-                    Expr [7-8]: Lit: Int(2)
-                Expr [13-14]: Lit: Int(3)"#]],
+            Expr [0-14]: BinaryOpExpr:
+                op: Exp
+                lhs: Expr [0-9]: FunctionCall [0-9]:
+                    name: Ident [0-6] "square"
+                    args: 
+                        Expr [7-8]: Lit: Int(2)
+                rhs: Expr [13-14]: Lit: Int(3)"#]],
     );
 }
 
@@ -626,10 +641,13 @@ fn prat_parsing_funcall_exp_arg() {
     check_expr(
         "square(2 ** 3)",
         &expect![[r#"
-            Expr [0-14]: FunctionCall [0-14]: Ident [0-6] "square"
-                Expr [7-13]: BinOp (Exp):
-                    Expr [7-8]: Lit: Int(2)
-                    Expr [12-13]: Lit: Int(3)"#]],
+            Expr [0-14]: FunctionCall [0-14]:
+                name: Ident [0-6] "square"
+                args: 
+                    Expr [7-13]: BinaryOpExpr:
+                        op: Exp
+                        lhs: Expr [7-8]: Lit: Int(2)
+                        rhs: Expr [12-13]: Lit: Int(3)"#]],
     );
 }
 
@@ -638,8 +656,10 @@ fn funcall() {
     check_expr(
         "square(2)",
         &expect![[r#"
-            Expr [0-9]: FunctionCall [0-9]: Ident [0-6] "square"
-                Expr [7-8]: Lit: Int(2)"#]],
+            Expr [0-9]: FunctionCall [0-9]:
+                name: Ident [0-6] "square"
+                args: 
+                    Expr [7-8]: Lit: Int(2)"#]],
     );
 }
 
@@ -648,9 +668,11 @@ fn funcall_multiple_args() {
     check_expr(
         "square(2, 3)",
         &expect![[r#"
-            Expr [0-12]: FunctionCall [0-12]: Ident [0-6] "square"
-                Expr [7-8]: Lit: Int(2)
-                Expr [10-11]: Lit: Int(3)"#]],
+            Expr [0-12]: FunctionCall [0-12]:
+                name: Ident [0-6] "square"
+                args: 
+                    Expr [7-8]: Lit: Int(2)
+                    Expr [10-11]: Lit: Int(3)"#]],
     );
 }
 
@@ -659,9 +681,11 @@ fn funcall_multiple_args_trailing_comma() {
     check_expr(
         "square(2, 3,)",
         &expect![[r#"
-            Expr [0-13]: FunctionCall [0-13]: Ident [0-6] "square"
-                Expr [7-8]: Lit: Int(2)
-                Expr [10-11]: Lit: Int(3)"#]],
+            Expr [0-13]: FunctionCall [0-13]:
+                name: Ident [0-6] "square"
+                args: 
+                    Expr [7-8]: Lit: Int(2)
+                    Expr [10-11]: Lit: Int(3)"#]],
     );
 }
 
@@ -671,8 +695,9 @@ fn cast_to_bit() {
         "bit(0)",
         &expect![[r#"
             Expr [0-6]: Cast [0-6]:
-                ClassicalType [0-3]: BitType
-                Expr [4-5]: Lit: Int(0)"#]],
+                type: ScalarType [0-3]: BitType [0-3]:
+                    size: <none>
+                arg: Expr [4-5]: Lit: Int(0)"#]],
     );
 }
 
@@ -682,8 +707,9 @@ fn cast_to_bit_with_designator() {
         "bit[4](0)",
         &expect![[r#"
             Expr [0-9]: Cast [0-9]:
-                ClassicalType [0-6]: BitType [0-6]: Expr [4-5]: Lit: Int(4)
-                Expr [7-8]: Lit: Int(0)"#]],
+                type: ScalarType [0-6]: BitType [0-6]:
+                    size: Expr [4-5]: Lit: Int(4)
+                arg: Expr [7-8]: Lit: Int(0)"#]],
     );
 }
 
@@ -693,8 +719,9 @@ fn cast_to_int() {
         "int(0)",
         &expect![[r#"
             Expr [0-6]: Cast [0-6]:
-                ClassicalType [0-3]: IntType [0-3]
-                Expr [4-5]: Lit: Int(0)"#]],
+                type: ScalarType [0-3]: IntType [0-3]:
+                    size: <none>
+                arg: Expr [4-5]: Lit: Int(0)"#]],
     );
 }
 
@@ -704,8 +731,9 @@ fn cast_to_int_with_designator() {
         "int[64](0)",
         &expect![[r#"
             Expr [0-10]: Cast [0-10]:
-                ClassicalType [0-7]: IntType[Expr [4-6]: Lit: Int(64)]: [0-7]
-                Expr [8-9]: Lit: Int(0)"#]],
+                type: ScalarType [0-7]: IntType [0-7]:
+                    size: Expr [4-6]: Lit: Int(64)
+                arg: Expr [8-9]: Lit: Int(0)"#]],
     );
 }
 
@@ -715,8 +743,9 @@ fn cast_to_uint() {
         "uint(0)",
         &expect![[r#"
             Expr [0-7]: Cast [0-7]:
-                ClassicalType [0-4]: UIntType [0-4]
-                Expr [5-6]: Lit: Int(0)"#]],
+                type: ScalarType [0-4]: UIntType [0-4]:
+                    size: <none>
+                arg: Expr [5-6]: Lit: Int(0)"#]],
     );
 }
 
@@ -726,8 +755,9 @@ fn cast_to_uint_with_designator() {
         "uint[64](0)",
         &expect![[r#"
             Expr [0-11]: Cast [0-11]:
-                ClassicalType [0-8]: UIntType[Expr [5-7]: Lit: Int(64)]: [0-8]
-                Expr [9-10]: Lit: Int(0)"#]],
+                type: ScalarType [0-8]: UIntType [0-8]:
+                    size: Expr [5-7]: Lit: Int(64)
+                arg: Expr [9-10]: Lit: Int(0)"#]],
     );
 }
 
@@ -737,8 +767,9 @@ fn cast_to_float() {
         "float(0)",
         &expect![[r#"
             Expr [0-8]: Cast [0-8]:
-                ClassicalType [0-5]: FloatType [0-5]
-                Expr [6-7]: Lit: Int(0)"#]],
+                type: ScalarType [0-5]: FloatType [0-5]:
+                    size: <none>
+                arg: Expr [6-7]: Lit: Int(0)"#]],
     );
 }
 
@@ -748,8 +779,9 @@ fn cast_to_float_with_designator() {
         "float[64](0)",
         &expect![[r#"
             Expr [0-12]: Cast [0-12]:
-                ClassicalType [0-9]: FloatType[Expr [6-8]: Lit: Int(64)]: [0-9]
-                Expr [10-11]: Lit: Int(0)"#]],
+                type: ScalarType [0-9]: FloatType [0-9]:
+                    size: Expr [6-8]: Lit: Int(64)
+                arg: Expr [10-11]: Lit: Int(0)"#]],
     );
 }
 
@@ -759,8 +791,10 @@ fn cast_to_complex() {
         "complex[float](0)",
         &expect![[r#"
             Expr [0-17]: Cast [0-17]:
-                ClassicalType [0-14]: ComplexType[float[FloatType [8-13]]]: [0-14]
-                Expr [15-16]: Lit: Int(0)"#]],
+                type: ScalarType [0-14]: ComplexType [0-14]:
+                    base_size: FloatType [8-13]:
+                        size: <none>
+                arg: Expr [15-16]: Lit: Int(0)"#]],
     );
 }
 
@@ -770,8 +804,10 @@ fn cast_to_complex_with_designator() {
         "complex[float[64]](0)",
         &expect![[r#"
             Expr [0-21]: Cast [0-21]:
-                ClassicalType [0-18]: ComplexType[float[FloatType[Expr [14-16]: Lit: Int(64)]: [8-17]]]: [0-18]
-                Expr [19-20]: Lit: Int(0)"#]],
+                type: ScalarType [0-18]: ComplexType [0-18]:
+                    base_size: FloatType [8-17]:
+                        size: Expr [14-16]: Lit: Int(64)
+                arg: Expr [19-20]: Lit: Int(0)"#]],
     );
 }
 
@@ -781,8 +817,8 @@ fn cast_to_bool() {
         "bool(0)",
         &expect![[r#"
             Expr [0-7]: Cast [0-7]:
-                ClassicalType [0-4]: BoolType
-                Expr [5-6]: Lit: Int(0)"#]],
+                type: ScalarType [0-4]: BoolType
+                arg: Expr [5-6]: Lit: Int(0)"#]],
     );
 }
 
@@ -792,8 +828,8 @@ fn cast_to_duration() {
         "duration(0)",
         &expect![[r#"
             Expr [0-11]: Cast [0-11]:
-                ClassicalType [0-8]: Duration
-                Expr [9-10]: Lit: Int(0)"#]],
+                type: ScalarType [0-8]: Duration
+                arg: Expr [9-10]: Lit: Int(0)"#]],
     );
 }
 
@@ -803,8 +839,8 @@ fn cast_to_stretch() {
         "stretch(0)",
         &expect![[r#"
             Expr [0-10]: Cast [0-10]:
-                ClassicalType [0-7]: Stretch
-                Expr [8-9]: Lit: Int(0)"#]],
+                type: ScalarType [0-7]: Stretch
+                arg: Expr [8-9]: Lit: Int(0)"#]],
     );
 }
 
@@ -814,9 +850,12 @@ fn cast_to_int_array() {
         "array[int[64], 4](0)",
         &expect![[r#"
             Expr [0-20]: Cast [0-20]:
-                ArrayType [0-17]: ArrayBaseTypeKind IntType[Expr [10-12]: Lit: Int(64)]: [6-13]
-                Expr [15-16]: Lit: Int(4)
-                Expr [18-19]: Lit: Int(0)"#]],
+                type: ArrayType [0-17]:
+                    base_type: ArrayBaseTypeKind IntType [6-13]:
+                        size: Expr [10-12]: Lit: Int(64)
+                    dimensions: 
+                        Expr [15-16]: Lit: Int(4)
+                arg: Expr [18-19]: Lit: Int(0)"#]],
     );
 }
 
@@ -826,9 +865,12 @@ fn cast_to_uint_array() {
         "array[uint[64], 4](0)",
         &expect![[r#"
             Expr [0-21]: Cast [0-21]:
-                ArrayType [0-18]: ArrayBaseTypeKind UIntType[Expr [11-13]: Lit: Int(64)]: [6-14]
-                Expr [16-17]: Lit: Int(4)
-                Expr [19-20]: Lit: Int(0)"#]],
+                type: ArrayType [0-18]:
+                    base_type: ArrayBaseTypeKind UIntType [6-14]:
+                        size: Expr [11-13]: Lit: Int(64)
+                    dimensions: 
+                        Expr [16-17]: Lit: Int(4)
+                arg: Expr [19-20]: Lit: Int(0)"#]],
     );
 }
 
@@ -838,9 +880,12 @@ fn cast_to_float_array() {
         "array[float[64], 4](0)",
         &expect![[r#"
             Expr [0-22]: Cast [0-22]:
-                ArrayType [0-19]: ArrayBaseTypeKind FloatType[Expr [12-14]: Lit: Int(64)]: [6-15]
-                Expr [17-18]: Lit: Int(4)
-                Expr [20-21]: Lit: Int(0)"#]],
+                type: ArrayType [0-19]:
+                    base_type: ArrayBaseTypeKind FloatType [6-15]:
+                        size: Expr [12-14]: Lit: Int(64)
+                    dimensions: 
+                        Expr [17-18]: Lit: Int(4)
+                arg: Expr [20-21]: Lit: Int(0)"#]],
     );
 }
 
@@ -850,9 +895,12 @@ fn cast_to_angle_array() {
         "array[angle[64], 4](0)",
         &expect![[r#"
             Expr [0-22]: Cast [0-22]:
-                ArrayType [0-19]: ArrayBaseTypeKind AngleType [6-15]: Expr [12-14]: Lit: Int(64)
-                Expr [17-18]: Lit: Int(4)
-                Expr [20-21]: Lit: Int(0)"#]],
+                type: ArrayType [0-19]:
+                    base_type: ArrayBaseTypeKind AngleType [6-15]:
+                        size: Expr [12-14]: Lit: Int(64)
+                    dimensions: 
+                        Expr [17-18]: Lit: Int(4)
+                arg: Expr [20-21]: Lit: Int(0)"#]],
     );
 }
 
@@ -862,9 +910,11 @@ fn cast_to_bool_array() {
         "array[bool, 4](0)",
         &expect![[r#"
             Expr [0-17]: Cast [0-17]:
-                ArrayType [0-14]: ArrayBaseTypeKind BoolType
-                Expr [12-13]: Lit: Int(4)
-                Expr [15-16]: Lit: Int(0)"#]],
+                type: ArrayType [0-14]:
+                    base_type: ArrayBaseTypeKind BoolType
+                    dimensions: 
+                        Expr [12-13]: Lit: Int(4)
+                arg: Expr [15-16]: Lit: Int(0)"#]],
     );
 }
 
@@ -874,9 +924,11 @@ fn cast_to_duration_array() {
         "array[duration, 4](0)",
         &expect![[r#"
             Expr [0-21]: Cast [0-21]:
-                ArrayType [0-18]: ArrayBaseTypeKind DurationType
-                Expr [16-17]: Lit: Int(4)
-                Expr [19-20]: Lit: Int(0)"#]],
+                type: ArrayType [0-18]:
+                    base_type: ArrayBaseTypeKind DurationType
+                    dimensions: 
+                        Expr [16-17]: Lit: Int(4)
+                arg: Expr [19-20]: Lit: Int(0)"#]],
     );
 }
 
@@ -886,9 +938,13 @@ fn cast_to_complex_array() {
         "array[complex[float[32]], 4](0)",
         &expect![[r#"
             Expr [0-31]: Cast [0-31]:
-                ArrayType [0-28]: ArrayBaseTypeKind ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24]
-                Expr [26-27]: Lit: Int(4)
-                Expr [29-30]: Lit: Int(0)"#]],
+                type: ArrayType [0-28]:
+                    base_type: ArrayBaseTypeKind ComplexType [6-24]:
+                        base_size: FloatType [14-23]:
+                            size: Expr [20-22]: Lit: Int(32)
+                    dimensions: 
+                        Expr [26-27]: Lit: Int(4)
+                arg: Expr [29-30]: Lit: Int(0)"#]],
     );
 }
 
@@ -897,8 +953,10 @@ fn index_expr() {
     check_expr(
         "foo[1]",
         &expect![[r#"
-            Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                IndexSetItem Expr [4-5]: Lit: Int(1)"#]],
+            Expr [0-6]: IndexExpr [3-6]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem Expr [4-5]: Lit: Int(1)"#]],
     );
 }
 
@@ -907,10 +965,13 @@ fn index_set() {
     check_expr(
         "foo[{1, 4, 5}]",
         &expect![[r#"
-            Expr [0-14]: IndexExpr [3-14]: Expr [0-3]: Ident [0-3] "foo", IndexElement DiscreteSet [4-13]:
-                Expr [5-6]: Lit: Int(1)
-                Expr [8-9]: Lit: Int(4)
-                Expr [11-12]: Lit: Int(5)"#]],
+            Expr [0-14]: IndexExpr [3-14]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement DiscreteSet [4-13]:
+                    values: 
+                        Expr [5-6]: Lit: Int(1)
+                        Expr [8-9]: Lit: Int(4)
+                        Expr [11-12]: Lit: Int(5)"#]],
     );
 }
 
@@ -919,19 +980,21 @@ fn index_multiple_ranges() {
     check_expr(
         "foo[1:5, 3:7, 4:8]",
         &expect![[r#"
-            Expr [0-18]: IndexExpr [3-18]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-7]
-                    start: Expr [4-5]: Lit: Int(1)
-                    <no step>
-                    end: Expr [6-7]: Lit: Int(5)
-                Range: [9-12]
-                    start: Expr [9-10]: Lit: Int(3)
-                    <no step>
-                    end: Expr [11-12]: Lit: Int(7)
-                Range: [14-17]
-                    start: Expr [14-15]: Lit: Int(4)
-                    <no step>
-                    end: Expr [16-17]: Lit: Int(8)"#]],
+            Expr [0-18]: IndexExpr [3-18]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-7]:
+                        start: Expr [4-5]: Lit: Int(1)
+                        step: <none>
+                        end: Expr [6-7]: Lit: Int(5)
+                    IndexSetItem RangeDefinition [9-12]:
+                        start: Expr [9-10]: Lit: Int(3)
+                        step: <none>
+                        end: Expr [11-12]: Lit: Int(7)
+                    IndexSetItem RangeDefinition [14-17]:
+                        start: Expr [14-15]: Lit: Int(4)
+                        step: <none>
+                        end: Expr [16-17]: Lit: Int(8)"#]],
     );
 }
 
@@ -940,11 +1003,13 @@ fn index_range() {
     check_expr(
         "foo[1:5:2]",
         &expect![[r#"
-            Expr [0-10]: IndexExpr [3-10]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-9]
-                    start: Expr [4-5]: Lit: Int(1)
-                    step: Expr [6-7]: Lit: Int(5)
-                    end: Expr [8-9]: Lit: Int(2)"#]],
+            Expr [0-10]: IndexExpr [3-10]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-9]:
+                        start: Expr [4-5]: Lit: Int(1)
+                        step: Expr [6-7]: Lit: Int(5)
+                        end: Expr [8-9]: Lit: Int(2)"#]],
     );
 }
 
@@ -953,11 +1018,13 @@ fn index_full_range() {
     check_expr(
         "foo[:]",
         &expect![[r#"
-            Expr [0-6]: IndexExpr [3-6]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-5]
-                    <no start>
-                    <no step>
-                    <no end>"#]],
+            Expr [0-6]: IndexExpr [3-6]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-5]:
+                        start: <none>
+                        step: <none>
+                        end: <none>"#]],
     );
 }
 
@@ -966,11 +1033,13 @@ fn index_range_start() {
     check_expr(
         "foo[1:]",
         &expect![[r#"
-            Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-6]
-                    start: Expr [4-5]: Lit: Int(1)
-                    <no step>
-                    <no end>"#]],
+            Expr [0-7]: IndexExpr [3-7]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-6]:
+                        start: Expr [4-5]: Lit: Int(1)
+                        step: <none>
+                        end: <none>"#]],
     );
 }
 
@@ -979,11 +1048,13 @@ fn index_range_end() {
     check_expr(
         "foo[:5]",
         &expect![[r#"
-            Expr [0-7]: IndexExpr [3-7]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-6]
-                    <no start>
-                    <no step>
-                    end: Expr [5-6]: Lit: Int(5)"#]],
+            Expr [0-7]: IndexExpr [3-7]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-6]:
+                        start: <none>
+                        step: <none>
+                        end: Expr [5-6]: Lit: Int(5)"#]],
     );
 }
 
@@ -992,11 +1063,13 @@ fn index_range_step() {
     check_expr(
         "foo[:2:]",
         &expect![[r#"
-            Expr [0-8]: IndexExpr [3-8]: Expr [0-3]: Ident [0-3] "foo", IndexElement:
-                Range: [4-7]
-                    <no start>
-                    step: Expr [5-6]: Lit: Int(2)
-                    <no end>"#]],
+            Expr [0-8]: IndexExpr [3-8]:
+                collection: Expr [0-3]: Ident [0-3] "foo"
+                index: IndexElement: 
+                    IndexSetItem RangeDefinition [4-7]:
+                        start: <none>
+                        step: Expr [5-6]: Lit: Int(2)
+                        end: <none>"#]],
     );
 }
 
@@ -1006,10 +1079,11 @@ fn set_expr() {
         super::set_expr,
         "{2, 3, 4}",
         &expect![[r#"
-        DiscreteSet [0-9]:
-            Expr [1-2]: Lit: Int(2)
-            Expr [4-5]: Lit: Int(3)
-            Expr [7-8]: Lit: Int(4)"#]],
+            DiscreteSet [0-9]:
+                values: 
+                    Expr [1-2]: Lit: Int(2)
+                    Expr [4-5]: Lit: Int(3)
+                    Expr [7-8]: Lit: Int(4)"#]],
     );
 }
 
@@ -1019,9 +1093,15 @@ fn lit_array() {
         super::lit_array,
         "{{2, {5}}, 1 + z}",
         &expect![[r#"
-            Expr [0-17]: Lit: Array:
-                Expr { span: Span { lo: 1, hi: 9 }, kind: Lit(Lit { span: Span { lo: 1, hi: 9 }, kind: Array([Expr { span: Span { lo: 2, hi: 3 }, kind: Lit(Lit { span: Span { lo: 2, hi: 3 }, kind: Int(2) }) }, Expr { span: Span { lo: 5, hi: 8 }, kind: Lit(Lit { span: Span { lo: 5, hi: 8 }, kind: Array([Expr { span: Span { lo: 6, hi: 7 }, kind: Lit(Lit { span: Span { lo: 6, hi: 7 }, kind: Int(5) }) }]) }) }]) }) }
-                Expr { span: Span { lo: 11, hi: 16 }, kind: BinaryOp(BinaryOpExpr { op: Add, lhs: Expr { span: Span { lo: 11, hi: 12 }, kind: Lit(Lit { span: Span { lo: 11, hi: 12 }, kind: Int(1) }) }, rhs: Expr { span: Span { lo: 15, hi: 16 }, kind: Ident(Ident { span: Span { lo: 15, hi: 16 }, name: "z" }) } }) }"#]],
+            Expr [0-17]: Lit:     Array: 
+                    Expr [1-9]: Lit:     Array: 
+                            Expr [2-3]: Lit: Int(2)
+                            Expr [5-8]: Lit:     Array: 
+                                    Expr [6-7]: Lit: Int(5)
+                    Expr [11-16]: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [11-12]: Lit: Int(1)
+                        rhs: Expr [15-16]: Ident [15-16] "z""#]],
     );
 }
 
@@ -1030,12 +1110,14 @@ fn assignment_and_unop() {
     check_expr(
         "c = a && !b",
         &expect![[r#"
-            Expr [0-11]: Assign:
-                Expr [0-1]: Ident [0-1] "c"
-                Expr [4-11]: BinOp (AndL):
-                    Expr [4-5]: Ident [4-5] "a"
-                    Expr [9-11]: UnOp (NotL):
-                        Expr [10-11]: Ident [10-11] "b""#]],
+            Expr [0-11]: AssignExpr:
+                lhs: Expr [0-1]: Ident [0-1] "c"
+                rhs: Expr [4-11]: BinaryOpExpr:
+                    op: AndL
+                    lhs: Expr [4-5]: Ident [4-5] "a"
+                    rhs: Expr [9-11]: UnaryOpExpr:
+                        op: NotL
+                        expr: Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
@@ -1044,12 +1126,14 @@ fn assignment_unop_and() {
     check_expr(
         "d = !a && b",
         &expect![[r#"
-            Expr [0-11]: Assign:
-                Expr [0-1]: Ident [0-1] "d"
-                Expr [4-11]: BinOp (AndL):
-                    Expr [4-6]: UnOp (NotL):
-                        Expr [5-6]: Ident [5-6] "a"
-                    Expr [10-11]: Ident [10-11] "b""#]],
+            Expr [0-11]: AssignExpr:
+                lhs: Expr [0-1]: Ident [0-1] "d"
+                rhs: Expr [4-11]: BinaryOpExpr:
+                    op: AndL
+                    lhs: Expr [4-6]: UnaryOpExpr:
+                        op: NotL
+                        expr: Expr [5-6]: Ident [5-6] "a"
+                    rhs: Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
@@ -1068,11 +1152,13 @@ fn indexed_identifier() {
         super::indexed_identifier,
         "arr[1][2]",
         &expect![[r#"
-        IndexedIdent [0-9]: Ident [0-3] "arr"[
-        IndexElement:
-            IndexSetItem Expr [4-5]: Lit: Int(1)
-        IndexElement:
-            IndexSetItem Expr [7-8]: Lit: Int(2)]"#]],
+            IndexedIdent [0-9]:
+                name: Ident [0-3] "arr"
+                indices: 
+                    IndexElement: 
+                        IndexSetItem Expr [4-5]: Lit: Int(1)
+                    IndexElement: 
+                        IndexSetItem Expr [7-8]: Lit: Int(2)"#]],
     );
 }
 
@@ -1091,11 +1177,13 @@ fn measure_indexed_identifier() {
         super::measure_expr,
         "measure qubits[1][2]",
         &expect![[r#"
-        MeasureExpr [0-7]: GateOperand IndexedIdent [8-20]: Ident [8-14] "qubits"[
-        IndexElement:
-            IndexSetItem Expr [15-16]: Lit: Int(1)
-        IndexElement:
-            IndexSetItem Expr [18-19]: Lit: Int(2)]"#]],
+            MeasureExpr [0-7]: GateOperand IndexedIdent [8-20]:
+                name: Ident [8-14] "qubits"
+                indices: 
+                    IndexElement: 
+                        IndexSetItem Expr [15-16]: Lit: Int(1)
+                    IndexElement: 
+                        IndexSetItem Expr [18-19]: Lit: Int(2)"#]],
     );
 }
 
@@ -1104,12 +1192,15 @@ fn addition_of_casts() {
     check_expr(
         "bit(0) + bit(1)",
         &expect![[r#"
-        Expr [0-15]: BinOp (Add):
-            Expr [0-6]: Cast [0-6]:
-                ClassicalType [0-3]: BitType
-                Expr [4-5]: Lit: Int(0)
-            Expr [9-15]: Cast [9-15]:
-                ClassicalType [9-12]: BitType
-                Expr [13-14]: Lit: Int(1)"#]],
+            Expr [0-15]: BinaryOpExpr:
+                op: Add
+                lhs: Expr [0-6]: Cast [0-6]:
+                    type: ScalarType [0-3]: BitType [0-3]:
+                        size: <none>
+                    arg: Expr [4-5]: Lit: Int(0)
+                rhs: Expr [9-15]: Cast [9-15]:
+                    type: ScalarType [9-12]: BitType [9-12]:
+                        size: <none>
+                    arg: Expr [13-14]: Lit: Int(1)"#]],
     );
 }

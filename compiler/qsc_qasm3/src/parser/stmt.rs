@@ -25,7 +25,7 @@ use crate::{
         Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSetItem, IntType, List,
         LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
         QubitDeclaration, RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, Stmt,
-        StmtKind, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+        StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
@@ -911,7 +911,7 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     })
 }
 
-fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
+fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Case))?;
 
@@ -921,7 +921,12 @@ fn case_stmt(s: &mut ParserContext) -> Result<(List<Expr>, Block)> {
     }
 
     let block = parse_block(s).map(|block| *block)?;
-    Ok((list_from_iter(controlling_label), block))
+
+    Ok(SwitchCase {
+        span: s.span(lo),
+        labels: list_from_iter(controlling_label),
+        block,
+    })
 }
 
 fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
