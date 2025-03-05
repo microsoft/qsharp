@@ -12,6 +12,7 @@ pub struct CodeWithThresholdAndDistance<Evaluator> {
     evaluator: Evaluator,
     crossing_prefactor: f64,
     error_correction_threshold: f64,
+    distance_coefficient_power: u32,
     max_code_distance: Option<u64>,
 }
 
@@ -20,11 +21,13 @@ impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
         evaluator: Evaluator,
         crossing_prefactor: f64,
         error_correction_threshold: f64,
+        distance_coefficient_power: u32,
     ) -> Self {
         Self {
             evaluator,
             crossing_prefactor,
             error_correction_threshold,
+            distance_coefficient_power,
             max_code_distance: None,
         }
     }
@@ -33,12 +36,14 @@ impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
         evaluator: Evaluator,
         crossing_prefactor: f64,
         error_correction_threshold: f64,
+        distance_coefficient_power: u32,
         max_code_distance: u64,
     ) -> Self {
         Self {
             evaluator,
             crossing_prefactor,
             error_correction_threshold,
+            distance_coefficient_power,
             max_code_distance: Some(max_code_distance),
         }
     }
@@ -57,6 +62,14 @@ impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
 
     pub fn set_error_correction_threshold(&mut self, error_correction_threshold: f64) {
         self.error_correction_threshold = error_correction_threshold;
+    }
+
+    pub fn distance_coefficient_power(&self) -> u32 {
+        self.distance_coefficient_power
+    }
+
+    pub fn set_distance_coefficient_power(&mut self, distance_coefficient_power: u32) {
+        self.distance_coefficient_power = distance_coefficient_power;
     }
 
     pub fn max_code_distance(&self) -> Option<&u64> {
@@ -104,6 +117,7 @@ impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> ErrorCorrection
             ))
         } else {
             Ok(self.crossing_prefactor
+                * (code_distance.pow(self.distance_coefficient_power) as f64)
                 * ((physical_error_rate / self.error_correction_threshold)
                     .powi((*code_distance as i32 + 1) / 2)))
         }
@@ -115,19 +129,25 @@ impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> ErrorCorrection
         qubit: &Self::Qubit,
         required_logical_qubit_error_rate: f64,
     ) -> Result<u64, String> {
-        let physical_error_rate = self.evaluator.physical_error_rate(qubit);
-        let numerator = 2.0 * (self.crossing_prefactor / required_logical_qubit_error_rate).ln();
-        let denominator = (self.error_correction_threshold / physical_error_rate).ln();
+        // if distance coefficient power is 0, the function can be inverted and we can avoid looping over all code parameters
+        if self.distance_coefficient_power == 0 {
+            let physical_error_rate = self.evaluator.physical_error_rate(qubit);
+            let numerator =
+                2.0 * (self.crossing_prefactor / required_logical_qubit_error_rate).ln();
+            let denominator = (self.error_correction_threshold / physical_error_rate).ln();
 
-        let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
+            let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
 
-        if let Some(max_distance) = self.max_code_distance {
-            if max_distance < code_distance {
-                return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
+            if let Some(max_distance) = self.max_code_distance {
+                if max_distance < code_distance {
+                    return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
+                }
             }
-        }
 
-        Ok(code_distance)
+            Ok(code_distance)
+        } else {
+            self.compute_smallest_code_parameter(qubit, required_logical_qubit_error_rate)
+        }
     }
 
     fn code_parameter_range(
