@@ -13,8 +13,13 @@ fn input_bit_decl() {
         parse,
         "input bit b;",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: IODeclaration [0-12]: input, ClassicalType [6-9]: BitType, Ident [10-11] "b""#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: IODeclaration [0-12]:
+                    io_keyword: input
+                    type: ScalarType [6-9]: BitType [6-9]:
+                        size: <none>
+                    ident: Ident [10-11] "b""#]],
     );
 }
 
@@ -24,8 +29,13 @@ fn output_bit_decl() {
         parse,
         "output bit b;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: IODeclaration [0-13]: output, ClassicalType [7-10]: BitType, Ident [11-12] "b""#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: IODeclaration [0-13]:
+                    io_keyword: output
+                    type: ScalarType [7-10]: BitType [7-10]:
+                        size: <none>
+                    ident: Ident [11-12] "b""#]],
     );
 }
 
@@ -35,8 +45,13 @@ fn input_bit_array_decl() {
         parse,
         "input bit[2] b;",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: IODeclaration [0-15]: input, ClassicalType [6-12]: BitType [6-12]: Expr [10-11]: Lit: Int(2), Ident [13-14] "b""#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: IODeclaration [0-15]:
+                    io_keyword: input
+                    type: ScalarType [6-12]: BitType [6-12]:
+                        size: Expr [10-11]: Lit: Int(2)
+                    ident: Ident [13-14] "b""#]],
     );
 }
 
@@ -46,8 +61,13 @@ fn output_bit_array_decl() {
         parse,
         "output bit[2] b;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: output, ClassicalType [7-13]: BitType [7-13]: Expr [11-12]: Lit: Int(2), Ident [14-15] "b""#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: IODeclaration [0-16]:
+                    io_keyword: output
+                    type: ScalarType [7-13]: BitType [7-13]:
+                        size: Expr [11-12]: Lit: Int(2)
+                    ident: Ident [14-15] "b""#]],
     );
 }
 
@@ -57,8 +77,12 @@ fn intput_bool_decl() {
         parse,
         "input bool b;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: IODeclaration [0-13]: input, ClassicalType [6-10]: BoolType, Ident [11-12] "b""#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: IODeclaration [0-13]:
+                    io_keyword: input
+                    type: ScalarType [6-10]: BoolType
+                    ident: Ident [11-12] "b""#]],
     );
 }
 
@@ -68,8 +92,12 @@ fn output_bool_decl() {
         parse,
         "output bool b;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: IODeclaration [0-14]: output, ClassicalType [7-11]: BoolType, Ident [12-13] "b""#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: IODeclaration [0-14]:
+                    io_keyword: output
+                    type: ScalarType [7-11]: BoolType
+                    ident: Ident [12-13] "b""#]],
     );
 }
 
@@ -79,8 +107,13 @@ fn input_complex_decl() {
         parse,
         "input complex c;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: input, ClassicalType [6-13]: ComplexType [6-13], Ident [14-15] "c""#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: IODeclaration [0-16]:
+                    io_keyword: input
+                    type: ScalarType [6-13]: ComplexType [6-13]:
+                        base_size: <none>
+                    ident: Ident [14-15] "c""#]],
     );
 }
 
@@ -90,8 +123,13 @@ fn output_complex_decl() {
         parse,
         "output complex c;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: output, ClassicalType [7-14]: ComplexType [7-14], Ident [15-16] "c""#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: IODeclaration [0-17]:
+                    io_keyword: output
+                    type: ScalarType [7-14]: ComplexType [7-14]:
+                        base_size: <none>
+                    ident: Ident [15-16] "c""#]],
     );
 }
 
@@ -101,8 +139,14 @@ fn input_complex_sized_decl() {
         parse,
         "input complex[float[32]] c;",
         &expect![[r#"
-            Stmt [0-27]
-                StmtKind: IODeclaration [0-27]: input, ClassicalType [6-24]: ComplexType[float[FloatType[Expr [20-22]: Lit: Int(32)]: [14-23]]]: [6-24], Ident [25-26] "c""#]],
+            Stmt [0-27]:
+                annotations: <empty>
+                kind: IODeclaration [0-27]:
+                    io_keyword: input
+                    type: ScalarType [6-24]: ComplexType [6-24]:
+                        base_size: FloatType [14-23]:
+                            size: Expr [20-22]: Lit: Int(32)
+                    ident: Ident [25-26] "c""#]],
     );
 }
 
@@ -112,8 +156,14 @@ fn output_complex_sized_decl() {
         parse,
         "output complex[float[32]] c;",
         &expect![[r#"
-            Stmt [0-28]
-                StmtKind: IODeclaration [0-28]: output, ClassicalType [7-25]: ComplexType[float[FloatType[Expr [21-23]: Lit: Int(32)]: [15-24]]]: [7-25], Ident [26-27] "c""#]],
+            Stmt [0-28]:
+                annotations: <empty>
+                kind: IODeclaration [0-28]:
+                    io_keyword: output
+                    type: ScalarType [7-25]: ComplexType [7-25]:
+                        base_size: FloatType [15-24]:
+                            size: Expr [21-23]: Lit: Int(32)
+                    ident: Ident [26-27] "c""#]],
     );
 }
 
@@ -123,8 +173,13 @@ fn input_int_decl() {
         parse,
         "input int i;",
         &expect![[r#"
-            Stmt [0-12]
-                StmtKind: IODeclaration [0-12]: input, ClassicalType [6-9]: IntType [6-9], Ident [10-11] "i""#]],
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: IODeclaration [0-12]:
+                    io_keyword: input
+                    type: ScalarType [6-9]: IntType [6-9]:
+                        size: <none>
+                    ident: Ident [10-11] "i""#]],
     );
 }
 
@@ -134,8 +189,13 @@ fn output_int_decl() {
         parse,
         "output int i;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: IODeclaration [0-13]: output, ClassicalType [7-10]: IntType [7-10], Ident [11-12] "i""#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: IODeclaration [0-13]:
+                    io_keyword: output
+                    type: ScalarType [7-10]: IntType [7-10]:
+                        size: <none>
+                    ident: Ident [11-12] "i""#]],
     );
 }
 
@@ -145,8 +205,13 @@ fn input_int_sized_decl() {
         parse,
         "input int[32] i;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: input, ClassicalType [6-13]: IntType[Expr [10-12]: Lit: Int(32)]: [6-13], Ident [14-15] "i""#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: IODeclaration [0-16]:
+                    io_keyword: input
+                    type: ScalarType [6-13]: IntType [6-13]:
+                        size: Expr [10-12]: Lit: Int(32)
+                    ident: Ident [14-15] "i""#]],
     );
 }
 
@@ -156,8 +221,13 @@ fn output_int_sized_decl() {
         parse,
         "output int[32] i;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: output, ClassicalType [7-14]: IntType[Expr [11-13]: Lit: Int(32)]: [7-14], Ident [15-16] "i""#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: IODeclaration [0-17]:
+                    io_keyword: output
+                    type: ScalarType [7-14]: IntType [7-14]:
+                        size: Expr [11-13]: Lit: Int(32)
+                    ident: Ident [15-16] "i""#]],
     );
 }
 
@@ -167,8 +237,13 @@ fn input_uint_decl() {
         parse,
         "input uint i;",
         &expect![[r#"
-            Stmt [0-13]
-                StmtKind: IODeclaration [0-13]: input, ClassicalType [6-10]: UIntType [6-10], Ident [11-12] "i""#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: IODeclaration [0-13]:
+                    io_keyword: input
+                    type: ScalarType [6-10]: UIntType [6-10]:
+                        size: <none>
+                    ident: Ident [11-12] "i""#]],
     );
 }
 
@@ -178,8 +253,13 @@ fn output_uint_decl() {
         parse,
         "output uint i;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: IODeclaration [0-14]: output, ClassicalType [7-11]: UIntType [7-11], Ident [12-13] "i""#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: IODeclaration [0-14]:
+                    io_keyword: output
+                    type: ScalarType [7-11]: UIntType [7-11]:
+                        size: <none>
+                    ident: Ident [12-13] "i""#]],
     );
 }
 
@@ -189,8 +269,13 @@ fn input_uint_sized_decl() {
         parse,
         "input uint[32] i;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: input, ClassicalType [6-14]: UIntType[Expr [11-13]: Lit: Int(32)]: [6-14], Ident [15-16] "i""#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: IODeclaration [0-17]:
+                    io_keyword: input
+                    type: ScalarType [6-14]: UIntType [6-14]:
+                        size: Expr [11-13]: Lit: Int(32)
+                    ident: Ident [15-16] "i""#]],
     );
 }
 
@@ -200,8 +285,13 @@ fn output_uint_sized_decl() {
         parse,
         "output uint[32] i;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: output, ClassicalType [7-15]: UIntType[Expr [12-14]: Lit: Int(32)]: [7-15], Ident [16-17] "i""#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: IODeclaration [0-18]:
+                    io_keyword: output
+                    type: ScalarType [7-15]: UIntType [7-15]:
+                        size: Expr [12-14]: Lit: Int(32)
+                    ident: Ident [16-17] "i""#]],
     );
 }
 
@@ -211,8 +301,13 @@ fn input_float_decl() {
         parse,
         "input float f;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: IODeclaration [0-14]: input, ClassicalType [6-11]: FloatType [6-11], Ident [12-13] "f""#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: IODeclaration [0-14]:
+                    io_keyword: input
+                    type: ScalarType [6-11]: FloatType [6-11]:
+                        size: <none>
+                    ident: Ident [12-13] "f""#]],
     );
 }
 
@@ -222,8 +317,13 @@ fn output_float_decl() {
         parse,
         "output float f;",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: IODeclaration [0-15]: output, ClassicalType [7-12]: FloatType [7-12], Ident [13-14] "f""#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: IODeclaration [0-15]:
+                    io_keyword: output
+                    type: ScalarType [7-12]: FloatType [7-12]:
+                        size: <none>
+                    ident: Ident [13-14] "f""#]],
     );
 }
 
@@ -233,8 +333,13 @@ fn input_float_sized_decl() {
         parse,
         "input float[32] f;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: FloatType[Expr [12-14]: Lit: Int(32)]: [6-15], Ident [16-17] "f""#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: IODeclaration [0-18]:
+                    io_keyword: input
+                    type: ScalarType [6-15]: FloatType [6-15]:
+                        size: Expr [12-14]: Lit: Int(32)
+                    ident: Ident [16-17] "f""#]],
     );
 }
 
@@ -244,8 +349,13 @@ fn output_float_sized_decl() {
         parse,
         "output float[32] f;",
         &expect![[r#"
-            Stmt [0-19]
-                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: FloatType[Expr [13-15]: Lit: Int(32)]: [7-16], Ident [17-18] "f""#]],
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: IODeclaration [0-19]:
+                    io_keyword: output
+                    type: ScalarType [7-16]: FloatType [7-16]:
+                        size: Expr [13-15]: Lit: Int(32)
+                    ident: Ident [17-18] "f""#]],
     );
 }
 
@@ -255,8 +365,13 @@ fn input_angle_decl() {
         parse,
         "input angle a;",
         &expect![[r#"
-            Stmt [0-14]
-                StmtKind: IODeclaration [0-14]: input, ClassicalType [6-11]: AngleType [6-11], Ident [12-13] "a""#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: IODeclaration [0-14]:
+                    io_keyword: input
+                    type: ScalarType [6-11]: AngleType [6-11]:
+                        size: <none>
+                    ident: Ident [12-13] "a""#]],
     );
 }
 
@@ -266,8 +381,13 @@ fn output_angle_decl() {
         parse,
         "output angle a;",
         &expect![[r#"
-            Stmt [0-15]
-                StmtKind: IODeclaration [0-15]: output, ClassicalType [7-12]: AngleType [7-12], Ident [13-14] "a""#]],
+            Stmt [0-15]:
+                annotations: <empty>
+                kind: IODeclaration [0-15]:
+                    io_keyword: output
+                    type: ScalarType [7-12]: AngleType [7-12]:
+                        size: <none>
+                    ident: Ident [13-14] "a""#]],
     );
 }
 
@@ -277,8 +397,13 @@ fn input_angle_sized_decl() {
         parse,
         "input angle[32] a;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: input, ClassicalType [6-15]: AngleType [6-15]: Expr [12-14]: Lit: Int(32), Ident [16-17] "a""#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: IODeclaration [0-18]:
+                    io_keyword: input
+                    type: ScalarType [6-15]: AngleType [6-15]:
+                        size: Expr [12-14]: Lit: Int(32)
+                    ident: Ident [16-17] "a""#]],
     );
 }
 
@@ -288,8 +413,13 @@ fn output_angle_sized_decl() {
         parse,
         "output angle[32] a;",
         &expect![[r#"
-            Stmt [0-19]
-                StmtKind: IODeclaration [0-19]: output, ClassicalType [7-16]: AngleType [7-16]: Expr [13-15]: Lit: Int(32), Ident [17-18] "a""#]],
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: IODeclaration [0-19]:
+                    io_keyword: output
+                    type: ScalarType [7-16]: AngleType [7-16]:
+                        size: Expr [13-15]: Lit: Int(32)
+                    ident: Ident [17-18] "a""#]],
     );
 }
 
@@ -299,8 +429,12 @@ fn input_duration_decl() {
         parse,
         "input duration d;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: input, ClassicalType [6-14]: Duration, Ident [15-16] "d""#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: IODeclaration [0-17]:
+                    io_keyword: input
+                    type: ScalarType [6-14]: Duration
+                    ident: Ident [15-16] "d""#]],
     );
 }
 
@@ -310,8 +444,12 @@ fn output_duration_decl() {
         parse,
         "output duration d;",
         &expect![[r#"
-            Stmt [0-18]
-                StmtKind: IODeclaration [0-18]: output, ClassicalType [7-15]: Duration, Ident [16-17] "d""#]],
+            Stmt [0-18]:
+                annotations: <empty>
+                kind: IODeclaration [0-18]:
+                    io_keyword: output
+                    type: ScalarType [7-15]: Duration
+                    ident: Ident [16-17] "d""#]],
     );
 }
 
@@ -321,8 +459,12 @@ fn input_stretch_decl() {
         parse,
         "input stretch s;",
         &expect![[r#"
-            Stmt [0-16]
-                StmtKind: IODeclaration [0-16]: input, ClassicalType [6-13]: Stretch, Ident [14-15] "s""#]],
+            Stmt [0-16]:
+                annotations: <empty>
+                kind: IODeclaration [0-16]:
+                    io_keyword: input
+                    type: ScalarType [6-13]: Stretch
+                    ident: Ident [14-15] "s""#]],
     );
 }
 
@@ -332,7 +474,11 @@ fn output_stretch_decl() {
         parse,
         "output stretch s;",
         &expect![[r#"
-            Stmt [0-17]
-                StmtKind: IODeclaration [0-17]: output, ClassicalType [7-14]: Stretch, Ident [15-16] "s""#]],
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: IODeclaration [0-17]:
+                    io_keyword: output
+                    type: ScalarType [7-14]: Stretch
+                    ident: Ident [15-16] "s""#]],
     );
 }
