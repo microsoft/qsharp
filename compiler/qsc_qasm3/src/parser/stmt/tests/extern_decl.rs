@@ -205,7 +205,9 @@ fn annotation() {
         &expect![[r#"
             Stmt [0-47]:
                 annotations:
-                    Annotation [0-16]: (test.annotation)
+                    Annotation [0-16]:
+                        identifier: "test.annotation"
+                        value: <none>
                 kind: ExternDecl [25-47]:
                     ident: Ident [32-33] "x"
                     parameters:

@@ -68,15 +68,11 @@ pub struct Annotation {
 }
 impl Display for Annotation {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(value) = &self.value {
-            write!(
-                f,
-                "Annotation {}: ({}, {})",
-                self.span, self.identifier, value
-            )
-        } else {
-            write!(f, "Annotation {}: ({})", self.span, self.identifier)
-        }
+        let identifier = format!("\"{}\"", self.identifier);
+        let value = self.value.as_ref().map(|val| format!("\"{val}\""));
+        writeln_header(f, "Annotation", self.span)?;
+        writeln_field(f, "identifier", &identifier)?;
+        write_opt_field(f, "value", value.as_ref())
     }
 }
 

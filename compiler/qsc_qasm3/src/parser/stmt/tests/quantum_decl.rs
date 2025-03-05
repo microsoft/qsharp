@@ -31,7 +31,9 @@ fn annotated_quantum_decl() {
         &expect![[r#"
             Stmt [9-36]:
                 annotations:
-                    Annotation [9-19]: (a.b.c, 123)
+                    Annotation [9-19]:
+                        identifier: "a.b.c"
+                        value: "123"
                 kind: QubitDeclaration [28-36]:
                     ident: Ident [34-35] "q"
                     size: <none>"#]],
@@ -50,9 +52,15 @@ fn multi_annotated_quantum_decl() {
         &expect![[r#"
             Stmt [9-108]:
                 annotations:
-                    Annotation [9-57]: (g.h, dolor sit amet, consectetur adipiscing elit)
-                    Annotation [66-72]: (d.e.f)
-                    Annotation [81-91]: (a.b.c, 123)
+                    Annotation [9-57]:
+                        identifier: "g.h"
+                        value: "dolor sit amet, consectetur adipiscing elit"
+                    Annotation [66-72]:
+                        identifier: "d.e.f"
+                        value: <none>
+                    Annotation [81-91]:
+                        identifier: "a.b.c"
+                        value: "123"
                 kind: QubitDeclaration [100-108]:
                     ident: Ident [106-107] "q"
                     size: <none>"#]],
