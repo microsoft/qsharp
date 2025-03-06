@@ -10,6 +10,7 @@ export default [
     { title: "Minimal", file: "./language/GettingStarted.qs", shots: 100 },
     { title: "Superposition", file: "./algorithms/Superposition.qs", shots: 100 },
     { title: "Entanglement", file: "./algorithms/Entanglement.qs", shots: 100 },
+    { title: "Simple Bell Pair", file: "./algorithms/SimpleBellPair.qs", shots: 1000 },
     { title: "Bell States", file: "./algorithms/BellState.qs", shots: 100 },
     { title: "Teleportation", file: "./algorithms/Teleportation.qs", shots: 1 },
     { title: "Random Bit", file: "./algorithms/RandomBit.qs", shots: 100 },

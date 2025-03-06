@@ -254,6 +254,16 @@ pub const SHOR_EXPECT_DEBUG: Expect = expect![[r#"
     Found factor=17
     Found factorization 187 = 17 * 11
     (17, 11)"#]];
+pub const SIMPLEBELLPAIR_EXPECT: Expect = expect![[r#"
+    STATE:
+    |00⟩: 0.7071+0.0000𝑖
+    |11⟩: 0.7071+0.0000𝑖
+    (Zero, Zero)"#]];
+pub const SIMPLEBELLPAIR_EXPECT_DEBUG: Expect = expect![[r#"
+    STATE:
+    |00⟩: 0.7071+0.0000𝑖
+    |11⟩: 0.7071+0.0000𝑖
+    (Zero, Zero)"#]];
 pub const SIMPLEISING_EXPECT: Expect =
     expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
 pub const SIMPLEISING_EXPECT_DEBUG: Expect =
