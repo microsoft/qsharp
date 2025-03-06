@@ -154,6 +154,11 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
+        },
+        {
+          "command": "qsharp-vscode.setTargetProfile",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
@@ -417,7 +422,8 @@
       {
         "command": "qsharp-vscode.setTargetProfile",
         "category": "Q#",
-        "title": "Set the Azure Quantum QIR target profile"
+        "title": "Set the Azure Quantum QIR target profile",
+        "icon": "$(play-circle)"
       },
       {
         "command": "qsharp-vscode.createNotebook",
