@@ -16,7 +16,7 @@ pub struct CodeWithThresholdAndDistance<Evaluator> {
     max_code_distance: Option<u64>,
 }
 
-impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
+impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> CodeWithThresholdAndDistance<Evaluator> {
     pub fn new(
         evaluator: Evaluator,
         crossing_prefactor: f64,
@@ -87,6 +87,29 @@ impl<Evaluator> CodeWithThresholdAndDistance<Evaluator> {
     pub fn evaluator_mut(&mut self) -> &mut Evaluator {
         &mut self.evaluator
     }
+
+    /// When the distance coefficient power is 0, the function can be easily
+    /// inverted and we can avoid looping over all code parameters
+    fn compute_smallest_code_parameter_with_inverse_formula(
+        &self,
+        qubit: &Evaluator::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<u64, String> {
+        // Compute code distance d (Equation (E2) in paper)
+        let physical_error_rate = self.evaluator.physical_error_rate(qubit);
+        let numerator = 2.0 * (self.crossing_prefactor / required_logical_error_rate).ln();
+        let denominator = (self.error_correction_threshold / physical_error_rate).ln();
+
+        let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
+
+        if let Some(max_distance) = self.max_code_distance {
+            if max_distance < code_distance {
+                return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
+            }
+        }
+
+        Ok(code_distance)
+    }
 }
 
 impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> ErrorCorrection
@@ -123,28 +146,16 @@ impl<Evaluator: CodeWithThresholdAndDistanceEvaluator> ErrorCorrection
         }
     }
 
-    // Compute code distance d (Equation (E2) in paper)
     fn compute_code_parameter(
         &self,
         qubit: &Self::Qubit,
         required_logical_qubit_error_rate: f64,
     ) -> Result<u64, String> {
-        // if distance coefficient power is 0, the function can be inverted and we can avoid looping over all code parameters
         if self.distance_coefficient_power == 0 {
-            let physical_error_rate = self.evaluator.physical_error_rate(qubit);
-            let numerator =
-                2.0 * (self.crossing_prefactor / required_logical_qubit_error_rate).ln();
-            let denominator = (self.error_correction_threshold / physical_error_rate).ln();
-
-            let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
-
-            if let Some(max_distance) = self.max_code_distance {
-                if max_distance < code_distance {
-                    return Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {max_distance}; try increasing the total logical error budget"));
-                }
-            }
-
-            Ok(code_distance)
+            self.compute_smallest_code_parameter_with_inverse_formula(
+                qubit,
+                required_logical_qubit_error_rate,
+            )
         } else {
             self.compute_smallest_code_parameter(qubit, required_logical_qubit_error_rate)
         }
