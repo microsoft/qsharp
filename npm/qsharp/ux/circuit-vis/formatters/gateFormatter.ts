@@ -29,15 +29,18 @@ import {
 /**
  * Given an array of operations (in metadata format), return the SVG representation.
  *
- * @param opsMetadata Array of Metadata representation of operations.
+ * @param opsMetadata 2D array of Metadata representation of operations.
  * @param nestedDepth Depth of nested operations (used in classically controlled and grouped operations).
  *
  * @returns SVG representation of operations.
  */
-const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
-  const formattedGates: SVGElement[] = opsMetadata.map((metadata) =>
-    _formatGate(metadata, nestedDepth),
-  );
+const formatGates = (
+  opsMetadata: Metadata[][],
+  nestedDepth = 0,
+): SVGElement => {
+  const formattedGates: SVGElement[] = opsMetadata
+    .map((col) => col.map((metadata) => formatGate(metadata, nestedDepth)))
+    .flat();
   return group(formattedGates);
 };
 
@@ -49,7 +52,7 @@ const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
  *
  * @returns SVG representation of gate.
  */
-const _formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
+const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
   const { type, x, controlsY, targetsY, label, displayArgs, width } = metadata;
   switch (type) {
     case GateType.Measure:
@@ -62,6 +65,10 @@ const _formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
       );
     case GateType.X:
       return _createGate([_x(metadata, nestedDepth)], metadata, nestedDepth);
+    case GateType.Reset:
+      return _createGate([_ket("0", metadata)], metadata, nestedDepth);
+    case GateType.ResetOne:
+      return _createGate([_ket("1", metadata)], metadata, nestedDepth);
     case GateType.Swap:
       return controlsY.length > 0
         ? _controlledGate(metadata, nestedDepth)
@@ -317,6 +324,7 @@ const _swap = (metadata: Metadata, nestedDepth: number): SVGElement => {
   const vertLine: SVGElement = line(x, ys[0], x, ys[1]);
   return group([bg, ...crosses, vertLine]);
 };
+
 /**
  * Creates the SVG for an X gate
  *
@@ -328,6 +336,20 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
   const ys = targetsY.flatMap((y) => y as number[]);
   return _oplus(x, ys[0]);
 };
+
+/**
+ * Creates the SVG for a ket notation (e.g "|0⟩" or "|1⟩") gate.
+ *
+ * @param label    The label for the ket notation (e.g., "0" or "1").
+ * @param metadata The metadata object containing information about the gate's position and appearance.
+ *
+ * @returns SVG representation of the ket notation gate.
+ */
+const _ket = (label: string, metadata: Metadata): SVGElement => {
+  const { x, targetsY, displayArgs, width } = metadata;
+  return _unitary(`|${label}〉`, x, targetsY as number[][], width, displayArgs);
+};
+
 /**
  * Generates cross for display in SWAP gate.
  *
@@ -439,7 +461,7 @@ const _groupedOperations = (
   const box: SVGElement = dashedBox(x1, y1, x2, y2);
   const elems: SVGElement[] = [box];
   if (children != null)
-    elems.push(formatGates(children as Metadata[], nestedDepth + 1));
+    elems.push(formatGates(children as Metadata[][], nestedDepth + 1));
   return _createGate(elems, metadata, nestedDepth);
 };
 
@@ -457,7 +479,7 @@ const _classicalControlled = (
 ): SVGElement => {
   const { controlsY, dataAttributes } = metadata;
   const targetsY: number[] = metadata.targetsY as number[];
-  const children: Metadata[][] = metadata.children as Metadata[][];
+  const children: Metadata[][][] = metadata.children as Metadata[][][];
   let { x, width } = metadata;
 
   const controlY = controlsY[0];
@@ -543,15 +565,4 @@ const _controlCircle = (
     class: "classically-controlled-btn",
   });
 
-export {
-  formatGates,
-  _formatGate,
-  _createGate,
-  _zoomButton,
-  _measure,
-  _unitary,
-  _swap,
-  _controlledGate,
-  _groupedOperations,
-  _classicalControlled,
-};
+export { formatGates, formatGate };

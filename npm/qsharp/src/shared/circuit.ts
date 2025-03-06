@@ -4,13 +4,32 @@
 import { Register } from "./register.js";
 
 /**
+ * Current format version.
+ */
+export const CURRENT_VERSION = "1.0.0";
+
+/**
  * Circuit to be visualized.
  */
 export interface Circuit {
+  version: string;
   /** Array of qubit resources. */
   qubits: Qubit[];
-  operations: Operation[];
+  operations: Operation[][];
 }
+
+/**
+ * Update circuit to current formate version.
+ */
+export const updateToCurrentVersion = (circuit: Circuit): Circuit => {
+  if (circuit.version === CURRENT_VERSION) {
+    return circuit;
+  }
+  return {
+    ...circuit,
+    version: CURRENT_VERSION,
+  };
+};
 
 /**
  * Represents a unique qubit resource bit.
@@ -52,15 +71,17 @@ export interface Operation {
   /** Formatted gate arguments to be displayed. */
   displayArgs?: string;
   /** Nested operations within this operation. */
-  children?: Operation[];
+  children?: Operation[][];
+  /** Number of columns to span. */
+  columnWidth?: number;
   /** Whether gate is a measurement operation. */
-  isMeasurement: boolean;
+  isMeasurement?: boolean;
   /** Whether gate is a conditional operation. */
-  isConditional: boolean;
+  isConditional?: boolean;
   /** Whether gate is a controlled operation. */
-  isControlled: boolean;
+  isControlled?: boolean;
   /** Whether gate is an adjoint operation. */
-  isAdjoint: boolean;
+  isAdjoint?: boolean;
   /** Control registers the gate acts on. */
   controls?: Register[];
   /** Target registers the gate acts on. */

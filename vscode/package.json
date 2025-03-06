@@ -460,6 +460,20 @@
           "dark": "./resources/file-icon-dark.svg"
         },
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "qsc",
+        "aliases": [
+          "Q# Circuit",
+          "qsc"
+        ],
+        "extensions": [
+          ".qsc"
+        ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        }
       }
     ],
     "grammars": [
@@ -524,7 +538,19 @@
       "[qsharp]": {
         "debug.saveBeforeStart": "none"
       }
-    }
+    },
+    "customEditors": [
+      {
+        "viewType": "qsharp-webview.circuit",
+        "displayName": "Quantum Circuit",
+        "selector": [
+          {
+            "filenamePattern": "*.qsc"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
   },
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",
