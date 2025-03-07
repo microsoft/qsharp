@@ -44,6 +44,8 @@ pub struct ProtocolSpecification {
     #[serde(default)]
     pub(crate) crossing_prefactor: Option<f64>,
     #[serde(default)]
+    pub(crate) distance_coefficient_power: Option<u32>,
+    #[serde(default)]
     pub(crate) logical_cycle_time: Option<String>,
     #[serde(default)]
     pub(crate) physical_qubits_per_logical_qubit: Option<String>,
@@ -57,6 +59,7 @@ impl Default for ProtocolSpecification {
             name: "surface_code".into(),
             crossing_prefactor: None,
             error_correction_threshold: None,
+            distance_coefficient_power: None,
             logical_cycle_time: None,
             physical_qubits_per_logical_qubit: None,
             max_code_distance: default_max_code_distance(),
@@ -236,7 +239,7 @@ pub fn load_protocol_from_specification(
 }
 
 fn base_protocol(
-    model: &mut ProtocolSpecification,
+    model: &ProtocolSpecification,
     qubit: &PhysicalQubit,
 ) -> crate::system::Result<(CodeWithThresholdAndDistance<ProtocolEvaluator>, bool)> {
     if model.name == "surface_code" || model.name == "surfaceCode" || model.name == "surface-code" {
@@ -259,6 +262,8 @@ fn base_protocol(
         let crossing_prefactor = model
             .crossing_prefactor
             .ok_or_else(|| CannotParseJSON(serde::de::Error::missing_field("crossingPrefactor")))?;
+
+        let distance_coefficient_power = model.distance_coefficient_power.unwrap_or(0);
 
         let logical_cycle_time_expr = model
             .logical_cycle_time
@@ -296,6 +301,7 @@ fn base_protocol(
                 evaluator,
                 crossing_prefactor,
                 error_correction_threshold,
+                distance_coefficient_power,
                 max_code_distance,
             ),
             false,
@@ -321,6 +327,12 @@ fn update_default_from_specification(
         code.set_crossing_prefactor(crossing_prefactor);
     } else {
         model.crossing_prefactor = Some(code.crossing_prefactor());
+    }
+
+    if let Some(distance_coefficient_power) = model.distance_coefficient_power {
+        code.set_distance_coefficient_power(distance_coefficient_power);
+    } else {
+        model.distance_coefficient_power = Some(code.distance_coefficient_power());
     }
 
     if let Some(logical_cycle_time) = model.logical_cycle_time.as_ref() {
@@ -395,6 +407,7 @@ pub fn surface_code_gate_based() -> CodeWithThresholdAndDistance<ProtocolEvaluat
         },
         crossing_prefactor,
         error_correction_threshold,
+        0,
         MAX_CODE_DISTANCE,
     )
 }
@@ -435,6 +448,7 @@ pub fn surface_code_measurement_based() -> CodeWithThresholdAndDistance<Protocol
         },
         crossing_prefactor,
         error_correction_threshold,
+        0,
         MAX_CODE_DISTANCE,
     )
 }
@@ -475,6 +489,7 @@ pub fn floquet_code() -> CodeWithThresholdAndDistance<ProtocolEvaluator> {
         },
         crossing_prefactor,
         error_correction_threshold,
+        0,
         MAX_CODE_DISTANCE,
     )
 }

@@ -66,6 +66,21 @@ pub trait ErrorCorrection {
         qubit: &Self::Qubit,
         required_logical_error_rate: f64,
     ) -> Result<Self::Parameter, String> {
+        self.compute_smallest_code_parameter(qubit, required_logical_error_rate)
+    }
+
+    /// Default implementation for `Self::compute_code_parameter` in which the
+    /// smallest code parameter that satisfies the required logical error rate
+    /// is returned.
+    ///
+    /// This method assumes that the code parameters that are returned from
+    /// `Self::code_parameter_range` are ordered by the logical error rate per
+    /// qubit, starting from the largest one.
+    fn compute_smallest_code_parameter(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
         for parameter in self.code_parameter_range(None) {
             if let (Ok(probability), Ok(logical_qubits)) = (
                 self.logical_error_rate(qubit, &parameter),
@@ -105,7 +120,7 @@ pub trait ErrorCorrection {
                 if (probability / (logical_qubits as f64) <= required_logical_error_rate)
                     && best
                         .as_ref()
-                        .map_or(true, |&(_, pq)| physical_qubits_per_logical_qubits < pq)
+                        .is_none_or(|&(_, pq)| physical_qubits_per_logical_qubits < pq)
                 {
                     best = Some((parameter, physical_qubits_per_logical_qubits));
                 }
@@ -137,7 +152,7 @@ pub trait ErrorCorrection {
                 self.logical_cycle_time(qubit, &parameter),
             ) {
                 if (probability / (logical_qubits as f64) <= required_logical_error_rate)
-                    && best.as_ref().map_or(true, |&(_, t)| logical_cycle_time < t)
+                    && best.as_ref().is_none_or(|&(_, t)| logical_cycle_time < t)
                 {
                     best = Some((parameter, logical_cycle_time));
                 }

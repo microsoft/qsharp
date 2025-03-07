@@ -222,7 +222,7 @@ impl<
             // ensures that the first code parameter is always tried. After
             // that, the last code parameter governs the reuse of the magic
             // state factory.
-            if last_code_parameter.as_ref().map_or(true, |d| {
+            if last_code_parameter.as_ref().is_none_or(|d| {
                 self.ftp
                     .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
                     .is_gt()
@@ -293,7 +293,7 @@ impl<
 
                 if best_estimation_result
                     .as_ref()
-                    .map_or(true, |r| result.physical_qubits() < r.physical_qubits())
+                    .is_none_or(|r| result.physical_qubits() < r.physical_qubits())
                 {
                     best_estimation_result = Some(result);
                 }
@@ -372,7 +372,7 @@ impl<
             // ensures that the first code parameter is always tried. After
             // that, the last code parameter governs the reuse of the magic
             // state factory.
-            if last_code_parameter.as_ref().map_or(true, |d| {
+            if last_code_parameter.as_ref().is_none_or(|d| {
                 self.ftp
                     .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
                     .is_gt()
@@ -443,7 +443,7 @@ impl<
 
                 if best_estimation_result
                     .as_ref()
-                    .map_or(true, |r| result.runtime() < r.runtime())
+                    .is_none_or(|r| result.runtime() < r.runtime())
                 {
                     best_estimation_result = Some(result);
                 }
