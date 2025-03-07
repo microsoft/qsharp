@@ -6,12 +6,11 @@ import { Register } from "./register.js";
 /**
  * Current format version.
  */
-export const CURRENT_VERSION = "1.0.0";
+export const CURRENT_VERSION = 1;
 
 export interface CircuitGroup {
   circuits: Circuit[];
-  version?: string;
-  name?: string;
+  version?: number;
 }
 
 /**
