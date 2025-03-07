@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import { Register } from "./register.js";
+
 /**
  * Current format version.
  */
@@ -42,7 +44,8 @@ export interface Qubit {
   measurements?: { name?: string }[];
 }
 
-type Component = Operation | ControlFlow;
+//type Component = Operation | ControlFlow;
+type Component = Operation;
 
 /**
  * Represents an operation and the registers it acts on.
@@ -90,15 +93,15 @@ export interface ControlFlow {
   relatedFlows?: ControlFlow[];
 
   /** Nested components within this control-flow. */
-  components: Component[][];
+  operations: Component[][];
 }
 
 /**
  * Represents a register resource.
  */
-export interface Register {
-  /** Qubit register ID. */
-  qId: number;
-  /** Classical register ID (if classical register). */
-  cId?: number;
-}
+// export interface Register {
+//   /** Qubit register ID. */
+//   qId: number;
+//   /** Classical register ID (if classical register). */
+//   cId?: number;
+// }

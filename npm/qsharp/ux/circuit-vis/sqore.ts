@@ -13,7 +13,7 @@ import { svgNS } from "./constants";
 import { extensionDraggable } from "./draggable";
 import { extensionEvents } from "./events";
 import { extensionPanel, PanelOptions } from "./panel";
-import { updateToCurrentVersion } from "../../src/shared/circuit";
+import { CircuitGroup, updateToCurrentVersion } from "./circuit";
 
 /**
  * Contains metadata for visualization.
@@ -43,6 +43,7 @@ type Extension = {
  * Entrypoint class for rendering circuit visualizations.
  */
 export class Sqore {
+  circuitGroup: CircuitGroup;
   circuit: Circuit;
   style: StyleConfig = {};
   gateRegistry: GateRegistry = {};
@@ -52,11 +53,23 @@ export class Sqore {
   /**
    * Initializes Sqore object with custom styles.
    *
-   * @param circuit Circuit to be visualized.
+   * @param circuitGroup Group of circuits to be visualized.
    * @param style Custom visualization style.
    */
-  constructor(circuit: Circuit, style: StyleConfig | string = {}) {
-    this.circuit = updateToCurrentVersion(circuit);
+  constructor(circuitGroup: CircuitGroup, style: StyleConfig | string = {}) {
+    const circuits = updateToCurrentVersion(circuitGroup);
+    if (
+      circuits == null ||
+      circuits.circuits == null ||
+      circuits.circuits.length === 0
+    ) {
+      throw new Error(
+        `No circuit found in file. Please provide a valid circuit.`,
+      );
+    }
+    this.circuitGroup = circuits;
+    // For now we only visualize the first circuit in the group
+    this.circuit = circuits.circuits[0];
     this.style = this.getStyle(style);
     this.extensions = [];
   }
@@ -191,7 +204,7 @@ export class Sqore {
       return result;
     };
 
-    const { qubits, operations } = circuit;
+    const { qubits, operations: operations } = circuit;
     const { qubitWires, registers, svgHeight } = formatInputs(qubits);
     const { metadataArray, svgWidth } = processOperations(
       operations,
@@ -482,7 +495,7 @@ export class Sqore {
     return this;
   }
 
-  public useOnCircuitChange(callback: (circuit: Circuit) => void): Sqore {
+  public useOnCircuitChange(callback: (fileData: CircuitGroup) => void): Sqore {
     const extensionOnCircuitChange = (
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _container: HTMLElement,
@@ -490,20 +503,24 @@ export class Sqore {
       _sqore: Sqore,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       _useRefresh: () => void,
-    ) => callback(this.minimizeCiruit(this.circuit));
+    ) => callback(this.minimizeCircuits(this.circuitGroup));
     this.extensions = [...this.extensions, extensionOnCircuitChange];
     return this;
   }
 
   // Note: I'm unsure that this is the right place in code to do this.
 
-  // Minimize the circuit to remove dataAttributes
-  minimizeCiruit(circuit: Circuit): Circuit {
-    const minimizedCircuit: Circuit = JSON.parse(JSON.stringify(circuit));
-    minimizedCircuit.operations.forEach((col) =>
-      col.forEach(this.minimizeOperation),
+  // Minimize the circuits in a circuit group to remove dataAttributes
+  minimizeCircuits(circuitGroup: CircuitGroup): CircuitGroup {
+    const minimizedCircuits: CircuitGroup = JSON.parse(
+      JSON.stringify(circuitGroup),
     );
-    return minimizedCircuit;
+    minimizedCircuits.circuits.forEach((circuit) => {
+      circuit.operations.forEach((col) => {
+        col.forEach(this.minimizeOperation);
+      });
+    });
+    return minimizedCircuits;
   }
 
   // Minimize the operation to remove dataAttributes

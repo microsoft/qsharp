@@ -8,25 +8,32 @@ import { Register } from "./register.js";
  */
 export const CURRENT_VERSION = "1.0.0";
 
+export interface CircuitGroup {
+  circuits: Circuit[];
+  version?: string;
+  name?: string;
+}
+
 /**
  * Circuit to be visualized.
  */
 export interface Circuit {
-  version: string;
   /** Array of qubit resources. */
   qubits: Qubit[];
   operations: Operation[][];
 }
 
 /**
- * Update circuit to current formate version.
+ * Update circuit group to current format version.
  */
-export const updateToCurrentVersion = (circuit: Circuit): Circuit => {
-  if (circuit.version === CURRENT_VERSION) {
-    return circuit;
+export const updateToCurrentVersion = (
+  circuits: CircuitGroup,
+): CircuitGroup => {
+  if (circuits.version === CURRENT_VERSION) {
+    return circuits;
   }
   return {
-    ...circuit,
+    ...circuits,
     version: CURRENT_VERSION,
   };
 };

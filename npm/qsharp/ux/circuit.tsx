@@ -5,7 +5,7 @@ import * as qviz from "./circuit-vis";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
-import { CURRENT_VERSION } from "../src/shared/circuit";
+import { CURRENT_VERSION } from "./circuit-vis/circuit";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -14,22 +14,42 @@ import { CURRENT_VERSION } from "../src/shared/circuit";
 const MAX_OPERATIONS = 10000;
 const MAX_QUBITS = 1000;
 
+// For now we only support one circuit at a time.
+const MAX_CIRCUITS = 1;
+
 // This component is shared by the Python widget and the VS Code panel
 export function Circuit(props: {
-  circuit?: qviz.Circuit;
+  circuit?: qviz.CircuitGroup;
   isEditable: boolean;
-  editCallback?: (circuit: qviz.Circuit) => void;
+  editCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
-  const circuit = props.circuit ?? {
+  const emptyCircuit = {
     operations: [],
     qubits: [],
-    version: CURRENT_VERSION,
   };
+
+  const emptyCircuitGroup = {
+    version: CURRENT_VERSION,
+    circuits: [emptyCircuit],
+  };
+
+  const circuitGroup =
+    props.circuit === undefined ||
+    props.circuit.circuits === undefined ||
+    props.circuit.circuits.length === 0
+      ? emptyCircuitGroup
+      : props.circuit;
+
+  const circuit = circuitGroup.circuits[0];
+
+  if (circuit.operations === undefined) circuit.operations = [];
+  if (circuit.qubits === undefined) circuit.qubits = [];
 
   if (circuit.operations === undefined) circuit.operations = [];
   if (circuit.qubits === undefined) circuit.qubits = [];
 
   const unrenderable =
+    circuitGroup.circuits.length > MAX_CIRCUITS ||
     (!props.isEditable && circuit.qubits.length === 0) ||
     circuit.operations.length > MAX_OPERATIONS ||
     circuit.qubits.length > MAX_QUBITS;
@@ -42,16 +62,16 @@ export function Circuit(props: {
           operations={circuit.operations.length}
         />
       ) : (
-        <ZoomableCircuit {...props} circuit={circuit} />
+        <ZoomableCircuit {...props} circuitGroup={circuitGroup} />
       )}
     </div>
   );
 }
 
 function ZoomableCircuit(props: {
-  circuit: qviz.Circuit;
+  circuitGroup: qviz.CircuitGroup;
   isEditable: boolean;
-  editCallback?: (circuit: qviz.Circuit) => void;
+  editCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
   const circuitDiv = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -63,14 +83,14 @@ function ZoomableCircuit(props: {
     setRendering(true);
     const container = circuitDiv.current!;
     container.innerHTML = "";
-  }, [props.circuit]);
+  }, [props.circuitGroup]);
 
   useEffect(() => {
     if (rendering) {
       const container = circuitDiv.current!;
-      // Draw the circuit - may take a while for large circuits
-      const svg = renderCircuit(
-        props.circuit,
+      // Draw the circuits - may take a while for large circuits
+      const svg = renderCircuits(
+        props.circuitGroup,
         container,
         props.isEditable,
         props.editCallback,
@@ -109,7 +129,7 @@ function ZoomableCircuit(props: {
       </div>
       <div>
         {rendering
-          ? `Rendering diagram with ${props.circuit.operations.length} gates...`
+          ? `Rendering diagram with ${props.circuitGroup.circuits[0].operations.length} gates...`
           : ""}
       </div>
       <div class="qs-circuit" ref={circuitDiv}></div>
@@ -154,20 +174,20 @@ function ZoomableCircuit(props: {
     }
   }
 
-  function renderCircuit(
-    circuit: qviz.Circuit,
+  function renderCircuits(
+    circuitGroup: qviz.CircuitGroup,
     container: HTMLDivElement,
     isEditable: boolean,
-    editCallback?: (circuit: qviz.Circuit) => void,
+    editCallback?: (fileData: qviz.CircuitGroup) => void,
   ) {
     if (isEditable) {
-      let circuitPanel = qviz.create(circuit).useDraggable().usePanel();
+      let circuitPanel = qviz.create(circuitGroup).useDraggable().usePanel();
       if (editCallback) {
         circuitPanel = circuitPanel.useOnCircuitChange(editCallback);
       }
       circuitPanel.useEvents().draw(container);
     } else {
-      qviz.create(circuit).draw(container);
+      qviz.create(circuitGroup).draw(container);
     }
     // circuit-vis hardcodes the styles in the SVG.
     // Remove the style elements -- we'll define the styles in our own CSS.
