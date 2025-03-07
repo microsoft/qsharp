@@ -70,7 +70,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
                 span: s.span(ty.span().lo),
                 kind: Box::new(ExprKind::Cast(Cast {
                     span: s.span(ty.span().lo),
-                    r#type: ty,
+                    ty,
                     arg,
                 })),
             };
@@ -362,7 +362,7 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
         let ident = prim::ident(s)?;
         TypedParameter::Scalar(ScalarTypedParameter {
             span: s.span(lo),
-            r#type: Box::new(ty),
+            ty: Box::new(ty),
             ident,
         })
     } else if let Ok(size) = qubit_type(s) {
@@ -382,7 +382,7 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
         };
         TypedParameter::Scalar(ScalarTypedParameter {
             span: s.span(lo),
-            r#type: Box::new(ty),
+            ty: Box::new(ty),
             ident,
         })
     } else if let Ok((ident, size)) = qreg_type(s) {
@@ -395,7 +395,7 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
         let ident = prim::ident(s)?;
         TypedParameter::ArrayReference(ArrayTypedParameter {
             span: s.span(lo),
-            r#type: Box::new(ty),
+            ty: Box::new(ty),
             ident,
         })
     } else {
@@ -527,7 +527,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let decl = IODeclaration {
         span: s.span(lo),
         io_identifier: kind,
-        r#type: ty,
+        ty,
         ident,
     };
     Ok(StmtKind::IODeclaration(decl))
@@ -562,7 +562,7 @@ fn parse_non_constant_classical_decl(
     recovering_semi(s);
     let decl = ClassicalDeclarationStmt {
         span: s.span(lo),
-        r#type: Box::new(ty),
+        ty: Box::new(ty),
         identifier,
         init_expr,
     };
@@ -580,7 +580,7 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     let decl = ConstantDeclStmt {
         span: s.span(lo),
-        r#type: ty,
+        ty,
         identifier,
         init_expr,
     };
@@ -675,7 +675,7 @@ fn creg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::ClassicalDecl(ClassicalDeclarationStmt {
         span: s.span(lo),
-        r#type: Box::new(TypeDef::Scalar(ScalarType {
+        ty: Box::new(TypeDef::Scalar(ScalarType {
             span: s.span(lo),
             kind: ScalarTypeKind::Bit(BitType {
                 size,
@@ -1039,7 +1039,7 @@ fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
 pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::For))?;
-    let r#type = scalar_type(s)?;
+    let ty = scalar_type(s)?;
     let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
     token(s, TokenKind::Keyword(Keyword::In))?;
     let set_declaration = Box::new(for_loop_iterable_expr(s)?);
@@ -1047,7 +1047,7 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
 
     Ok(ForStmt {
         span: s.span(lo),
-        r#type,
+        ty,
         identifier,
         set_declaration,
         block,
