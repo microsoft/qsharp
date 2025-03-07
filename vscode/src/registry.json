@@ -82,7 +82,10 @@
         "github": {
           "owner": "fedimser",
           "repo": "quant-arith-re",
-          "path": ""
+          "refs": [
+            { "ref": "main", "notes": "nightly, unstable" }
+          ],
+          "path": "lib"
         }
       }
     }
