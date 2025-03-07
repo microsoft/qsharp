@@ -1,13 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub(crate) mod display_utils;
-
-use display_utils::{
-    write_field, write_header, write_indented_list, write_list_field, write_opt_field,
-    write_opt_list_field, writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
-};
-
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
@@ -16,28 +9,27 @@ use std::{
     rc::Rc,
 };
 
-// TODO: Profile this with iai-callgrind in a large OpenQASM3
-//       sample to verify that is actually faster than using Vec<T>.
-//       Even though Box<T> uses less stack space, it reduces cache
-//       locality, because now you need to be jumping around in
-//       memory to read contiguous elements of a list.
-/// An alternative to `Vec<T>` that uses less stack space.
-pub(crate) type List<T> = Box<[Box<T>]>;
-
-pub(crate) fn list_from_iter<T>(vals: impl IntoIterator<Item = T>) -> List<T> {
-    vals.into_iter().map(Box::new).collect()
-}
+use crate::{
+    ast::{
+        display_utils::{
+            write_field, write_header, write_indented_list, write_list_field, write_opt_field,
+            write_opt_list_field, writeln_field, writeln_header, writeln_list_field,
+            writeln_opt_field,
+        },
+        List,
+    },
+    semantic::symbols::SymbolId,
+};
 
 #[derive(Clone, Debug)]
 pub struct Program {
-    pub span: Span,
     pub statements: List<Stmt>,
     pub version: Option<Version>,
 }
 
 impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "Program", self.span)?;
+        writeln!(f, "Program:")?;
         writeln_opt_field(f, "version", self.version.as_ref())?;
         write_list_field(f, "statements", &self.statements)
     }
@@ -295,15 +287,15 @@ impl WithSpan for HardwareQubit {
 
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
-    pub span: Span,
-    pub ident: Identifier,
+    pub symbol_id: SymbolId,
     pub exprs: List<Expr>,
+    pub span: Span,
 }
 
 impl Display for AliasDeclStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AliasDeclStmt", self.span)?;
-        writeln_field(f, "ident", &self.ident)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "exprs", &self.exprs)
     }
 }
@@ -314,13 +306,9 @@ pub enum StmtKind {
     Alias(AliasDeclStmt),
     Barrier(BarrierStmt),
     Box(BoxStmt),
-    Break(BreakStmt),
     Block(Box<Block>),
-    Cal(CalibrationStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
-    ConstDecl(ConstantDeclStmt),
-    Continue(ContinueStmt),
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
@@ -354,13 +342,9 @@ impl Display for StmtKind {
             StmtKind::Alias(alias) => write!(f, "{alias}"),
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
-            StmtKind::Break(break_stmt) => write!(f, "{break_stmt}"),
             StmtKind::Block(block) => write!(f, "{block}"),
-            StmtKind::Cal(cal) => write!(f, "{cal}"),
             StmtKind::CalibrationGrammar(grammar) => write!(f, "{grammar}"),
             StmtKind::ClassicalDecl(decl) => write!(f, "{decl}"),
-            StmtKind::ConstDecl(decl) => write!(f, "{decl}"),
-            StmtKind::Continue(continue_stmt) => write!(f, "{continue_stmt}"),
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
@@ -476,15 +460,6 @@ pub enum Identifier {
     IndexedIdent(Box<IndexedIdent>),
 }
 
-impl Identifier {
-    pub fn span(&self) -> Span {
-        match self {
-            Identifier::Ident(ident) => ident.span,
-            Identifier::IndexedIdent(ident) => ident.span,
-        }
-    }
-}
-
 impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -559,6 +534,7 @@ impl Display for ExprStmt {
 pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
+    pub ty: super::types::Type,
 }
 
 impl WithSpan for Expr {
@@ -569,7 +545,9 @@ impl WithSpan for Expr {
 
 impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Expr {}: {}", self.span, self.kind)
+        writeln_header(f, "Expr", self.span)?;
+        writeln_field(f, "ty", &self.ty)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -986,7 +964,7 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Ident,
+    pub qubit: Box<Ident>,
     pub size: Option<Expr>,
 }
 
@@ -1122,17 +1100,17 @@ impl Display for MeasureStmt {
 #[derive(Clone, Debug)]
 pub struct ClassicalDeclarationStmt {
     pub span: Span,
-    pub ty: Box<TypeDef>,
-    pub identifier: Ident,
-    pub init_expr: Option<Box<ValueExpression>>,
+    pub ty_span: Span,
+    pub symbol_id: SymbolId,
+    pub init_expr: Box<ValueExpression>,
 }
 
 impl Display for ClassicalDeclarationStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ClassicalDeclarationStmt", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
-        writeln_field(f, "ident", &self.identifier)?;
-        write_opt_field(f, "init_expr", self.init_expr.as_ref())
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
+        write_field(f, "init_expr", self.init_expr.as_ref())
     }
 }
 
@@ -1169,47 +1147,6 @@ impl Display for IODeclaration {
 }
 
 #[derive(Clone, Debug)]
-pub struct ConstantDeclStmt {
-    pub span: Span,
-    pub ty: TypeDef,
-    pub identifier: Box<Ident>,
-    pub init_expr: Expr,
-}
-
-impl Display for ConstantDeclStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ConstantDeclStmt", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
-        writeln_field(f, "ident", &self.identifier)?;
-        write_field(f, "init_expr", &self.init_expr)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CalibrationGrammarDeclaration {
-    span: Span,
-    name: String,
-}
-
-impl Display for CalibrationGrammarDeclaration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "CalibrationGrammarDeclaration", self.span)?;
-        write_field(f, "name", &self.name)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct CalibrationStmt {
-    pub span: Span,
-}
-
-impl Display for CalibrationStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CalibrationStmt {}", self.span)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub enum TypedParameter {
     Scalar(ScalarTypedParameter),
     Quantum(QuantumTypedParameter),
@@ -1235,7 +1172,6 @@ impl Display for TypedParameter {
         }
     }
 }
-
 impl Default for TypedParameter {
     fn default() -> Self {
         Self::Scalar(ScalarTypedParameter {
@@ -1437,10 +1373,10 @@ pub enum ExprKind {
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
-    Ident(Ident),
+    Ident(SymbolId),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
-    Lit(Lit),
+    Lit(LiteralKind),
     FunctionCall(FunctionCall),
     Cast(Cast),
     IndexExpr(IndexExpr),
@@ -1454,7 +1390,7 @@ impl Display for ExprKind {
             ExprKind::Ident(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
-            ExprKind::Lit(lit) => write!(f, "{lit}"),
+            ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
@@ -1543,15 +1479,15 @@ impl Display for FunctionCall {
 #[derive(Clone, Debug)]
 pub struct Cast {
     pub span: Span,
-    pub ty: TypeDef,
-    pub arg: Expr,
+    pub ty: crate::semantic::types::Type,
+    pub expr: Expr,
 }
 
 impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Cast", self.span)?;
         writeln_field(f, "type", &self.ty)?;
-        write_field(f, "arg", &self.arg)
+        write_field(f, "expr", &self.expr)
     }
 }
 
@@ -1571,25 +1507,13 @@ impl Display for IndexExpr {
 }
 
 #[derive(Clone, Debug)]
-pub struct Lit {
-    pub span: Span,
-    pub kind: LiteralKind,
-}
-
-impl Display for Lit {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Lit: {}", self.kind)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub enum LiteralKind {
     Array(List<Expr>),
     Bitstring(BigInt, u32),
     Bool(bool),
     Duration(f64, TimeUnit),
     Float(f64),
-    Imaginary(f64),
+    Complex(f64, f64),
     Int(i64),
     BigInt(BigInt),
     String(Rc<str>),
@@ -1604,11 +1528,12 @@ impl Display for LiteralKind {
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
+            LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
             LiteralKind::Duration(value, unit) => {
                 write!(f, "Duration({value:?}, {unit:?})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
-            LiteralKind::Imaginary(value) => write!(f, "Imaginary({value:?})"),
+
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
             LiteralKind::String(s) => write!(f, "String({s:?})"),
@@ -1719,34 +1644,12 @@ impl Display for TimeUnit {
 }
 
 #[derive(Clone, Debug)]
-pub struct BreakStmt {
-    pub span: Span,
-}
-
-impl Display for BreakStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "BreakStmt {}", self.span)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ContinueStmt {
-    pub span: Span,
-}
-
-impl Display for ContinueStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ContinueStmt {}", self.span)
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct EndStmt {
     pub span: Span,
 }
 
 impl Display for EndStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "EndStmt {}", self.span)
+        write!(f, "End {}", self.span)
     }
 }
