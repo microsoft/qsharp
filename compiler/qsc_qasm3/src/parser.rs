@@ -14,6 +14,7 @@ pub(crate) mod tests;
 
 mod completion;
 mod error;
+pub use error::Error;
 mod expr;
 mod prgm;
 mod prim;
@@ -37,39 +38,40 @@ impl QasmParseResult {
         self.source.has_errors()
     }
 
-    pub fn all_errors(&self) -> Vec<WithSource<crate::parser::error::Error>> {
+    pub fn all_errors(&self) -> Vec<WithSource<crate::Error>> {
         let mut self_errors = self.errors();
         let include_errors = self
             .source
             .includes()
             .iter()
             .flat_map(QasmSource::all_errors)
-            .map(|e| self.map_error(e));
+            .map(|e| self.map_error(e))
+            .collect::<Vec<_>>();
 
         self_errors.extend(include_errors);
         self_errors
     }
 
     #[must_use]
-    pub fn errors(&self) -> Vec<WithSource<crate::parser::error::Error>> {
+    pub fn errors(&self) -> Vec<WithSource<crate::Error>> {
         self.source
             .errors()
             .iter()
             .map(|e| self.map_error(e.clone()))
-            .collect()
+            .collect::<Vec<_>>()
     }
 
-    fn map_error(
-        &self,
-        error: crate::parser::error::Error,
-    ) -> WithSource<crate::parser::error::Error> {
+    fn map_error(&self, error: Error) -> WithSource<crate::Error> {
         let path = self.source.path().display().to_string();
         let source = self.source_map.find_by_name(&path);
         let offset = source.map_or(0, |source| source.offset);
 
         let offset_error = error.with_offset(offset);
 
-        WithSource::from_map(&self.source_map, offset_error)
+        WithSource::from_map(
+            &self.source_map,
+            crate::Error(crate::ErrorKind::Parser(offset_error)),
+        )
     }
 }
 
@@ -101,9 +103,7 @@ fn create_source_map(source: &QasmSource) -> SourceMap {
     for include in source.includes() {
         collect_source_files(include, &mut files);
     }
-    // Map the main source file to the entry point expression
-    // This may be incorrect, but it's the best we can do for now.
-    SourceMap::new(files, Some(Arc::from(source.source())))
+    SourceMap::new(files, None)
 }
 
 /// Recursively collect all source files from the includes
@@ -128,7 +128,7 @@ pub struct QasmSource {
     /// The parsed AST of the source file or any parse errors.
     program: Program,
     /// Any parse errors that occurred.
-    errors: Vec<crate::parser::error::Error>,
+    errors: Vec<Error>,
     /// Any included files that were resolved.
     /// Note that this is a recursive structure.
     included: Vec<QasmSource>,
@@ -139,7 +139,7 @@ impl QasmSource {
         source: T,
         file_path: P,
         program: Program,
-        errors: Vec<crate::parser::error::Error>,
+        errors: Vec<Error>,
         included: Vec<QasmSource>,
     ) -> QasmSource {
         QasmSource {
@@ -160,7 +160,7 @@ impl QasmSource {
     }
 
     #[must_use]
-    pub fn all_errors(&self) -> Vec<crate::parser::error::Error> {
+    pub fn all_errors(&self) -> Vec<crate::parser::Error> {
         let mut self_errors = self.errors();
         let include_errors = self.includes().iter().flat_map(QasmSource::all_errors);
         self_errors.extend(include_errors);
@@ -183,7 +183,7 @@ impl QasmSource {
     }
 
     #[must_use]
-    pub fn errors(&self) -> Vec<crate::parser::error::Error> {
+    pub fn errors(&self) -> Vec<crate::parser::Error> {
         self.errors.clone()
     }
 
@@ -222,7 +222,7 @@ where
 fn parse_source_and_includes<P: AsRef<str>, R>(
     source: P,
     resolver: &R,
-) -> miette::Result<(Program, Vec<crate::parser::error::Error>, Vec<QasmSource>)>
+) -> miette::Result<(Program, Vec<Error>, Vec<QasmSource>)>
 where
     R: SourceResolver,
 {
@@ -258,7 +258,7 @@ pub(crate) trait Parser<T>: FnMut(&mut ParserContext) -> Result<T> {}
 
 impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 
-pub fn parse(input: &str) -> Result<(Program, Vec<crate::parser::error::Error>)> {
+pub fn parse(input: &str) -> Result<(Program, Vec<Error>)> {
     let mut scanner = ParserContext::new(input);
     let program = prgm::parse(&mut scanner)?;
     Ok((program, scanner.into_errors()))

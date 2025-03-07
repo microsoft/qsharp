@@ -1151,6 +1151,7 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
             wrap_array_ty_by_dims(dims, ty)
         }
+        crate::types::Type::Err => Ty::default(),
     }
 }
 
