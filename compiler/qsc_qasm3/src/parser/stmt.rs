@@ -1266,7 +1266,7 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
         )?));
     }
 
-    // We parse the recovering semi after we call parse_expr_stmt
+    // We parse the recovering semi after we call parse_expr_stmt.
     recovering_semi(s);
 
     // Reinterpret the function call or ident as a gate call.
