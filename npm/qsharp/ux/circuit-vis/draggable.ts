@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Operation } from "./circuit";
+import { ComponentGrid, Operation } from "./circuit";
 import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
@@ -18,7 +18,7 @@ import {
 interface Context {
   container: HTMLElement;
   svg: SVGElement;
-  operations: Operation[][];
+  operationGrid: ComponentGrid;
   wireData: number[];
   renderFn: () => void;
   paddingY: number;
@@ -43,7 +43,7 @@ const extensionDraggable = (
   const context: Context = {
     container: container,
     svg,
-    operations: sqore.circuit.operations,
+    operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),
     renderFn: useRefresh,
     paddingY: 20,
@@ -212,7 +212,7 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.classList.add("dropzone-layer");
   dropzoneLayer.style.display = "none";
 
-  const { container, operations, wireData, paddingY } = context;
+  const { container, operationGrid, wireData, paddingY } = context;
   if (wireData.length === 0) return dropzoneLayer; // Return early if there are no wires
   const elems = getHostElems(container);
 
@@ -288,10 +288,10 @@ const _dropzoneLayer = (context: Context) => {
 
   // Create dropzones for each intersection of columns and wires
   sortedColWidths.forEach(([colIndex, colWidth]) => {
-    const columnOps = operations[colIndex];
+    const columnOps = operationGrid[colIndex];
     let wireIndex = 0;
 
-    columnOps.forEach((op, opIndex) => {
+    columnOps.components.forEach((op, opIndex) => {
       const [minTarget, maxTarget] = getMinMaxRegIdx(op, wireData.length);
       // Add dropzones before the first target
       while (wireIndex <= maxTarget) {
@@ -312,14 +312,20 @@ const _dropzoneLayer = (context: Context) => {
     // Add dropzones after the last target
     while (wireIndex < wireData.length) {
       dropzoneLayer.appendChild(
-        _makeDropzoneBox(wireIndex, colIndex, colWidth, columnOps.length, true),
+        _makeDropzoneBox(
+          wireIndex,
+          colIndex,
+          colWidth,
+          columnOps.components.length,
+          true,
+        ),
       );
       dropzoneLayer.appendChild(
         _makeDropzoneBox(
           wireIndex,
           colIndex,
           colWidth,
-          columnOps.length,
+          columnOps.components.length,
           false,
         ),
       );

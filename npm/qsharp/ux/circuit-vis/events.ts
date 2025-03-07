@@ -3,7 +3,7 @@
 
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import { Operation, Qubit } from "./circuit";
+import { ComponentGrid, Operation, Qubit } from "./circuit";
 import { Sqore } from "./sqore";
 import { defaultGateDictionary } from "./panel";
 import {
@@ -44,7 +44,7 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
-  operations: Operation[][];
+  operationGrid: ComponentGrid;
   qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;
@@ -65,7 +65,7 @@ class CircuitEvents {
       ".dropzone-layer",
     ) as SVGGElement;
 
-    this.operations = sqore.circuit.operations;
+    this.operationGrid = sqore.circuit.componentGrid;
     this.qubits = sqore.circuit.qubits;
 
     this.wireData = getWireData(this.container);
@@ -239,7 +239,7 @@ class CircuitEvents {
         if (elem.getAttribute("data-expanded") !== "true") {
           selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = findOperation(
-            this.operations,
+            this.operationGrid,
             selectedLocation,
           );
         }
@@ -312,7 +312,7 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
-        const originalOperations = cloneDeep(this.operations);
+        const originalGrid = cloneDeep(this.operationGrid);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
         const insertNewColumn =
           dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
@@ -364,7 +364,7 @@ class CircuitEvents {
         this.selectedOperation = null;
         this.movingControl = false;
 
-        if (isEqual(originalOperations, this.operations) === false)
+        if (isEqual(originalGrid, this.operationGrid) === false)
           this.renderFn();
       });
     });
@@ -409,7 +409,7 @@ class CircuitEvents {
           }
           return false;
         };
-        findAndRemoveOperations(this.operations, check);
+        findAndRemoveOperations(this.operationGrid, check);
         this.qubits.pop();
         this.renderFn();
       });

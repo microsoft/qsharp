@@ -19,8 +19,16 @@ export interface CircuitGroup {
 export interface Circuit {
   /** Array of qubit resources. */
   qubits: Qubit[];
-  operations: Operation[][];
+  componentGrid: ComponentGrid;
 }
+
+export type ComponentGrid = Column[];
+
+export interface Column {
+  components: Component[];
+}
+
+export type Component = Operation;
 
 /**
  * Update circuit group to current format version.
@@ -77,7 +85,7 @@ export interface Operation {
   /** Formatted gate arguments to be displayed. */
   displayArgs?: string;
   /** Nested operations within this operation. */
-  children?: Operation[][];
+  children?: ComponentGrid;
   /** Number of columns to span. */
   columnWidth?: number;
   /** Whether gate is a measurement operation. */

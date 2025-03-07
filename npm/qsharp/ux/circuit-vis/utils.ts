@@ -8,7 +8,7 @@ import {
   labelFontSize,
   argsFontSize,
 } from "./constants";
-import { Operation } from "./circuit";
+import { ComponentGrid, Operation } from "./circuit";
 import { Register } from "./register";
 
 /**
@@ -99,7 +99,7 @@ const getChildTargets = (operation: Operation): Register[] | [] => {
       // If there is more children, keep adding more to registers
       if (operation.children) {
         operation.children.forEach((col) =>
-          col.forEach((child) => {
+          col.components.forEach((child) => {
             _recurse(child);
           }),
         );
@@ -112,7 +112,7 @@ const getChildTargets = (operation: Operation): Register[] | [] => {
 
   // Recursively walkthrough all children to populate registers
   operation.children.forEach((col) =>
-    col.forEach((child) => {
+    col.components.forEach((child) => {
       _recurse(child);
     }),
   );
@@ -188,12 +188,12 @@ const findLocation = (hostElem: SVGElement) => {
 /**
  * Find the parent operation of the operation specified by location.
  *
- * @param operations The array of operations to search through.
+ * @param componentGrid The grid of components to search through.
  * @param location The location string of the operation.
  * @returns The parent operation or null if not found.
  */
 const findParentOperation = (
-  operations: Operation[][],
+  componentGrid: ComponentGrid,
   location: string | null,
 ): Operation | null => {
   if (!location) return null;
@@ -204,33 +204,35 @@ const findParentOperation = (
 
   if (lastIndex == null) return null;
 
-  let parentOperation = operations;
+  let parentOperation = componentGrid;
   for (const index of indexes) {
     parentOperation =
-      parentOperation[index[0]][index[1]].children || parentOperation;
+      parentOperation[index[0]].components[index[1]].children ||
+      parentOperation;
   }
-  return parentOperation[lastIndex[0]][lastIndex[1]];
+  return parentOperation[lastIndex[0]].components[lastIndex[1]];
 };
 
 /**
- * Find the parent array of an operation based on its location.
+ * Find the parent component grid of an operation based on its location.
  *
- * @param operations The array of operations to search through.
+ * @param componentGrid The grid of components to search through.
  * @param location The location string of the operation.
- * @returns The parent array of operations or null if not found.
+ * @returns The parent grid of components or null if not found.
  */
 const findParentArray = (
-  operations: Operation[][],
+  componentGrid: ComponentGrid,
   location: string | null,
-): Operation[][] | null => {
+): ComponentGrid | null => {
   if (!location) return null;
 
   const indexes = locationStringToIndexes(location);
   indexes.pop(); // The last index refers to the operation itself, remove it so that the last index instead refers to the parent operation
 
-  let parentArray = operations;
+  let parentArray = componentGrid;
   for (const index of indexes) {
-    parentArray = parentArray[index[0]][index[1]].children || parentArray;
+    parentArray =
+      parentArray[index[0]].components[index[1]].children || parentArray;
   }
   return parentArray;
 };
@@ -238,22 +240,22 @@ const findParentArray = (
 /**
  * Find an operation based on its location.
  *
- * @param operations The array of operations to search through.
+ * @param componentGrid The grid of components to search through.
  * @param location The location string of the operation.
  * @returns The operation or null if not found.
  */
 const findOperation = (
-  operations: Operation[][],
+  componentGrid: ComponentGrid,
   location: string | null,
 ): Operation | null => {
   if (!location) return null;
 
   const index = locationStringToIndexes(location).pop();
-  const operationParent = findParentArray(operations, location);
+  const operationParent = findParentArray(componentGrid, location);
 
   if (operationParent == null || index == null) return null;
 
-  return operationParent[index[0]][index[1]];
+  return operationParent[index[0]].components[index[1]];
 };
 
 /**********************

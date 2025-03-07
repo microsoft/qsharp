@@ -28,7 +28,7 @@ const addContextMenuToHostElem = (
     if (!gateElem) return;
     const selectedLocation = gateElem.getAttribute("data-location");
     const selectedOperation = findOperation(
-      circuitEvents.operations,
+      circuitEvents.operationGrid,
       selectedLocation,
     );
     if (!selectedOperation || !selectedLocation) return;

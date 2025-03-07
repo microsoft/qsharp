@@ -8,35 +8,37 @@ import {
   controlBtnOffset,
   groupBoxPadding,
 } from "./constants";
-import { Operation, ConditionalRender } from "./circuit";
+import { ComponentGrid, Operation, ConditionalRender } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { Register, RegisterMap, RegisterType } from "./register";
 import { getGateWidth } from "./utils";
 
 /**
- * Takes in a list of operations and maps them to `metadata` objects which
+ * Takes in a component grid and maps the operations to `metadata` objects which
  * contains information for formatting the corresponding SVG.
  *
- * @param operations Array of operations.
+ * @param componentGrid Grid of circuit components.
  * @param registers  Mapping from qubit IDs to register metadata.
  *
  * @returns An object containing `metadataArray` (2D Array of Metadata objects) and
  *          `svgWidth` which is the width of the entire SVG.
  */
 const processOperations = (
-  operations: Operation[][],
+  componentGrid: ComponentGrid,
   registers: RegisterMap,
 ): { metadataArray: Metadata[][]; svgWidth: number } => {
-  if (operations.length === 0) return { metadataArray: [], svgWidth: startX };
-  const numColumns: number = operations.length;
+  if (componentGrid.length === 0)
+    return { metadataArray: [], svgWidth: startX };
+  const numColumns: number = componentGrid.length;
   const columnsWidths: number[] = new Array(numColumns).fill(minGateWidth);
 
   // Get classical registers and their starting column index
-  const classicalRegs: [number, Register][] = _getClassicalRegStart(operations);
+  const classicalRegs: [number, Register][] =
+    _getClassicalRegStart(componentGrid);
 
   // Map operation index to gate metadata for formatting later
-  const opsMetadata: Metadata[][] = operations.map((col, colIndex) =>
-    col.map((op) => {
+  const opsMetadata: Metadata[][] = componentGrid.map((col, colIndex) =>
+    col.components.map((op) => {
       const metadata: Metadata = _opToMetadata(op, registers);
 
       if (
@@ -90,14 +92,16 @@ const processOperations = (
 /**
  * Retrieves the starting index of each classical register.
  *
- * @param ops     Array of operations.
+ * @param componentGrid Grid of circuit components.
  *
  * @returns Array of classical register and their starting column indices in the form [[column, register]].
  */
-const _getClassicalRegStart = (ops: Operation[][]): [number, Register][] => {
+const _getClassicalRegStart = (
+  componentGrid: ComponentGrid,
+): [number, Register][] => {
   const clsRegs: [number, Register][] = [];
-  ops.forEach((col, colIndex) => {
-    col.forEach((op) => {
+  componentGrid.forEach((col, colIndex) => {
+    col.components.forEach((op) => {
       if (op.isMeasurement) {
         const targetClsRegs: Register[] = op.targets.filter(
           (reg) => reg.type === RegisterType.Classical,
@@ -159,21 +163,25 @@ const _opToMetadata = (
       );
 
     // Gates to display when classical bit is 0.
-    const onZeroOps: Operation[][] = children
-      .map((col) =>
-        col.filter((op) => op.conditionalRender !== ConditionalRender.OnOne),
-      )
-      .filter((col) => col.length > 0);
+    const onZeroOps: ComponentGrid = children
+      .map((col) => ({
+        components: col.components.filter(
+          (op) => op.conditionalRender === ConditionalRender.OnZero,
+        ),
+      }))
+      .filter((col) => col.components.length > 0);
     let childrenInstrs = processOperations(onZeroOps, registers);
     const zeroGates: Metadata[][] = childrenInstrs.metadataArray;
     const zeroChildWidth: number = childrenInstrs.svgWidth;
 
     // Gates to display when classical bit is 1.
-    const onOneOps: Operation[][] = children
-      .map((col) =>
-        col.filter((op) => op.conditionalRender !== ConditionalRender.OnZero),
-      )
-      .filter((col) => col.length > 0);
+    const onOneOps: ComponentGrid = children
+      .map((col) => ({
+        components: col.components.filter(
+          (op) => op.conditionalRender !== ConditionalRender.OnZero,
+        ),
+      }))
+      .filter((col) => col.components.length > 0);
     childrenInstrs = processOperations(onOneOps, registers);
     const oneGates: Metadata[][] = childrenInstrs.metadataArray;
     const oneChildWidth: number = childrenInstrs.svgWidth;
@@ -418,14 +426,18 @@ const _offsetChildrenX = (
 const operationListToGrid = (
   operations: Operation[],
   registers: Register[],
-): Operation[][] => {
+): ComponentGrid => {
   operations.forEach((op) => {
     if (op.children && op.children.length == 1) {
-      op.children = operationListToGrid(op.children[0], registers);
+      op.children = operationListToGrid(op.children[0].components, registers);
     }
   });
 
-  return _removePadding(_operationListToPaddedArray(operations, registers));
+  return _removePadding(_operationListToPaddedArray(operations, registers)).map(
+    (col) => ({
+      components: col,
+    }),
+  );
 };
 
 /**

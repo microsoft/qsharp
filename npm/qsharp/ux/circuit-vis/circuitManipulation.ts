@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Operation } from "./circuit";
+import { ComponentGrid, Operation } from "./circuit";
 import { CircuitEvents } from "./events";
 import { RegisterType } from "./register";
 import {
@@ -74,17 +74,17 @@ const _moveX = (
   insertNewColumn: boolean = false,
 ): Operation | null => {
   const sourceOperation = findOperation(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     sourceLocation,
   );
   if (!insertNewColumn && sourceLocation === targetLocation)
     return sourceOperation;
   const sourceOperationParent = findParentArray(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     sourceLocation,
   );
   const targetOperationParent = findParentArray(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     targetLocation,
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
@@ -151,7 +151,7 @@ const _moveY = (
 
   // Update parent operation targets
   const parentOperation = findParentOperation(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     sourceLocation,
   );
   if (parentOperation) {
@@ -177,7 +177,7 @@ const addOperation = (
   insertNewColumn: boolean = false,
 ): Operation | null => {
   const targetOperationParent = findParentArray(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     targetLocation,
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
@@ -217,11 +217,11 @@ const removeOperation = (
   sourceLocation: string,
 ) => {
   const sourceOperation = findOperation(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     sourceLocation,
   );
   const sourceOperationParent = findParentArray(
-    circuitEvents.operations,
+    circuitEvents.operationGrid,
     sourceLocation,
   );
 
@@ -234,29 +234,29 @@ const removeOperation = (
 /**
  * Find and remove operations in-place based on a predicate function.
  *
- * @param operations The array of operations to search through.
+ * @param componentGrid The grid of components to search through.
  * @param pred The predicate function to determine which operations to remove.
  */
 const findAndRemoveOperations = (
-  operations: Operation[][],
+  componentGrid: ComponentGrid,
   pred: (op: Operation) => boolean,
 ) => {
   const inPlaceFilter = (
-    ops: Operation[][],
+    grid: ComponentGrid,
     pred: (op: Operation) => boolean,
   ) => {
     let i = 0;
-    while (i < ops.length) {
+    while (i < grid.length) {
       let j = 0;
-      while (j < ops[i].length) {
-        if (!pred(ops[i][j])) {
-          ops[i].splice(j, 1);
+      while (j < grid[i].components.length) {
+        if (!pred(grid[i].components[j])) {
+          grid[i].components.splice(j, 1);
         } else {
           j++;
         }
       }
-      if (ops[i].length === 0) {
-        ops.splice(i, 1);
+      if (grid[i].components.length === 0) {
+        grid.splice(i, 1);
       } else {
         i++;
       }
@@ -271,7 +271,7 @@ const findAndRemoveOperations = (
     return false;
   };
 
-  inPlaceFilter(operations, (op) => !recursivePred(op));
+  inPlaceFilter(componentGrid, (op) => !recursivePred(op));
 };
 
 /**
@@ -328,7 +328,7 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be added.
- * @param targetOperationParent The parent array where the operation will be added.
+ * @param targetOperationParent The parent grid where the operation will be added.
  * @param targetLastIndex The index within the parent array where the operation will be added.
  * @param targetWire The wire index to add the operation to.
  * @param insertNewColumn Whether to insert a new column when adding the operation.
@@ -337,7 +337,7 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
 const _addOp = (
   circuitEvents: CircuitEvents,
   sourceOperation: Operation,
-  targetOperationParent: Operation[][],
+  targetOperationParent: ComponentGrid,
   targetLastIndex: [number, number],
   targetWire: number,
   insertNewColumn: boolean = false,
@@ -350,12 +350,18 @@ const _addOp = (
   }
   const [colIndex, opIndex] = targetLastIndex;
   if (targetOperationParent[colIndex] == null) {
-    targetOperationParent[colIndex] = [];
+    targetOperationParent[colIndex] = { components: [] };
   }
   if (insertNewColumn) {
-    targetOperationParent.splice(colIndex, 0, [newSourceOperation]);
+    targetOperationParent.splice(colIndex, 0, {
+      components: [newSourceOperation],
+    });
   } else {
-    targetOperationParent[colIndex].splice(opIndex, 0, newSourceOperation);
+    targetOperationParent[colIndex].components.splice(
+      opIndex,
+      0,
+      newSourceOperation,
+    );
   }
   return newSourceOperation;
 };
@@ -365,12 +371,12 @@ const _addOp = (
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be removed.
- * @param sourceOperationParent The parent array from which the operation will be removed.
+ * @param sourceOperationParent The parent grid from which the operation will be removed.
  */
 const _removeOp = (
   circuitEvents: CircuitEvents,
   sourceOperation: Operation,
-  sourceOperationParent: Operation[][],
+  sourceOperationParent: ComponentGrid,
 ) => {
   if (sourceOperation.dataAttributes === undefined) {
     sourceOperation.dataAttributes = { removed: "true" };
@@ -381,13 +387,13 @@ const _removeOp = (
   // Find and remove the operation in sourceOperationParent
   for (let colIndex = 0; colIndex < sourceOperationParent.length; colIndex++) {
     const col = sourceOperationParent[colIndex];
-    const indexToRemove = col.findIndex(
+    const indexToRemove = col.components.findIndex(
       (operation) =>
         operation.dataAttributes && operation.dataAttributes["removed"],
     );
     if (indexToRemove !== -1) {
-      col.splice(indexToRemove, 1);
-      if (col.length === 0) {
+      col.components.splice(indexToRemove, 1);
+      if (col.components.length === 0) {
         sourceOperationParent.splice(colIndex, 1);
       }
       break;
@@ -440,8 +446,8 @@ const _removeMeasurementLines = (
   for (const target of sourceOperation.targets) {
     const qubit = circuitEvents.qubits[target.qId];
     if (qubit.numChildren != undefined && target.cId != undefined) {
-      for (const col of circuitEvents.operations) {
-        for (const op of col) {
+      for (const col of circuitEvents.operationGrid) {
+        for (const op of col.components) {
           if (op.controls) {
             for (const control of op.controls) {
               if (

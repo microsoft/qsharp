@@ -23,12 +23,12 @@ export function Circuit(props: {
   isEditable: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
-  const emptyCircuit = {
-    operations: [],
+  const emptyCircuit: qviz.Circuit = {
     qubits: [],
+    componentGrid: [],
   };
 
-  const emptyCircuitGroup = {
+  const emptyCircuitGroup: qviz.CircuitGroup = {
     version: CURRENT_VERSION,
     circuits: [emptyCircuit],
   };
@@ -42,16 +42,16 @@ export function Circuit(props: {
 
   const circuit = circuitGroup.circuits[0];
 
-  if (circuit.operations === undefined) circuit.operations = [];
+  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
   if (circuit.qubits === undefined) circuit.qubits = [];
 
-  if (circuit.operations === undefined) circuit.operations = [];
+  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
   if (circuit.qubits === undefined) circuit.qubits = [];
 
   const unrenderable =
     circuitGroup.circuits.length > MAX_CIRCUITS ||
     (!props.isEditable && circuit.qubits.length === 0) ||
-    circuit.operations.length > MAX_OPERATIONS ||
+    circuit.componentGrid.length > MAX_OPERATIONS ||
     circuit.qubits.length > MAX_QUBITS;
 
   return (
@@ -59,7 +59,7 @@ export function Circuit(props: {
       {unrenderable ? (
         <Unrenderable
           qubits={circuit.qubits.length}
-          operations={circuit.operations.length}
+          operations={circuit.componentGrid.length}
         />
       ) : (
         <ZoomableCircuit {...props} circuitGroup={circuitGroup} />
@@ -129,7 +129,7 @@ function ZoomableCircuit(props: {
       </div>
       <div>
         {rendering
-          ? `Rendering diagram with ${props.circuitGroup.circuits[0].operations.length} gates...`
+          ? `Rendering diagram with ${props.circuitGroup.circuits[0].componentGrid.length} gates...`
           : ""}
       </div>
       <div class="qs-circuit" ref={circuitDiv}></div>

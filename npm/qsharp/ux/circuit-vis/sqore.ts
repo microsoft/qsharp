@@ -5,7 +5,15 @@ import { formatInputs } from "./formatters/inputFormatter";
 import { formatGates } from "./formatters/gateFormatter";
 import { formatRegisters } from "./formatters/registerFormatter";
 import { processOperations } from "./process";
-import { ConditionalRender, Circuit, Operation } from "./circuit";
+import {
+  ConditionalRender,
+  Circuit,
+  CircuitGroup,
+  ComponentGrid,
+  Operation,
+  Column,
+  updateToCurrentVersion,
+} from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { StyleConfig, style, STYLES } from "./styles";
 import { createUUID } from "./utils";
@@ -13,7 +21,6 @@ import { svgNS } from "./constants";
 import { extensionDraggable } from "./draggable";
 import { extensionEvents } from "./events";
 import { extensionPanel, PanelOptions } from "./panel";
-import { CircuitGroup, updateToCurrentVersion } from "./circuit";
 
 /**
  * Contains metadata for visualization.
@@ -123,29 +130,31 @@ export class Sqore {
     const renderDepth = this.renderDepth;
 
     // Assign unique locations to each operation
-    _circuit.operations.forEach((col, colIndex) =>
-      col.forEach((op, i) => this.fillGateRegistry(op, `${colIndex},${i}`)),
+    _circuit.componentGrid.forEach((col, colIndex) =>
+      col.components.forEach((op, i) =>
+        this.fillGateRegistry(op, `${colIndex},${i}`),
+      ),
     );
 
     // Render operations starting at given depth
-    _circuit.operations = this.selectOpsAtDepth(
-      _circuit.operations,
+    _circuit.componentGrid = this.selectOpsAtDepth(
+      _circuit.componentGrid,
       renderDepth,
     );
 
     // If only one top-level operation, expand automatically:
     if (
-      _circuit.operations.length == 1 &&
-      _circuit.operations[0].length == 1 &&
-      _circuit.operations[0][0].dataAttributes != null &&
+      _circuit.componentGrid.length == 1 &&
+      _circuit.componentGrid[0].components.length == 1 &&
+      _circuit.componentGrid[0].components[0].dataAttributes != null &&
       Object.prototype.hasOwnProperty.call(
-        _circuit.operations[0][0].dataAttributes,
+        _circuit.componentGrid[0].components[0].dataAttributes,
         "location",
       )
     ) {
       const location: string =
-        _circuit.operations[0][0].dataAttributes["location"];
-      this.expandOperation(_circuit.operations, location);
+        _circuit.componentGrid[0].components[0].dataAttributes["location"];
+      this.expandOperation(_circuit.componentGrid, location);
     }
 
     // Create visualization components
@@ -204,10 +213,10 @@ export class Sqore {
       return result;
     };
 
-    const { qubits, operations: operations } = circuit;
+    const { qubits, componentGrid } = circuit;
     const { qubitWires, registers, svgHeight } = formatInputs(qubits);
     const { metadataArray, svgWidth } = processOperations(
-      operations,
+      componentGrid,
       registers,
     );
     const formattedGates: SVGElement = formatGates(metadataArray);
@@ -285,7 +294,7 @@ export class Sqore {
     operation.dataAttributes["zoom-out"] = "false";
     this.gateRegistry[location] = operation;
     operation.children?.forEach((col, colIndex) =>
-      col.forEach((childOp, i) => {
+      col.components.forEach((childOp, i) => {
         this.fillGateRegistry(childOp, `${location}-${colIndex},${i}`);
         if (childOp.dataAttributes == null) childOp.dataAttributes = {};
         // Children operations can be zoomed out
@@ -301,42 +310,42 @@ export class Sqore {
   /**
    * Pick out operations that are at or below `renderDepth`.
    *
-   * @param operations List of circuit operations.
+   * @param componentGrid Circuit components.
    * @param renderDepth Initial layer depth at which to render gates.
    *
-   * @returns List of operations at or below specified depth.
+   * @returns Grid of components at or below specified depth.
    */
   private selectOpsAtDepth(
-    operations: Operation[][],
+    componentGrid: ComponentGrid,
     renderDepth: number,
-  ): Operation[][] {
+  ): ComponentGrid {
     if (renderDepth < 0)
       throw new Error(
         `Invalid renderDepth of ${renderDepth}. Needs to be >= 0.`,
       );
-    if (renderDepth === 0) return operations;
-    const selectedOps: Operation[][] = [];
-    operations.forEach((col) => {
+    if (renderDepth === 0) return componentGrid;
+    const selectedOps: ComponentGrid = [];
+    componentGrid.forEach((col) => {
       const selectedCol: Operation[] = [];
-      const extraCols: Operation[][] = [];
-      col.forEach((op) => {
+      const extraCols: Column[] = [];
+      col.components.forEach((op) => {
         if (op.children != null) {
           const selectedChildren = this.selectOpsAtDepth(
             op.children,
             renderDepth - 1,
           );
           if (selectedChildren.length > 0) {
-            selectedCol.push(...selectedChildren[0]);
+            selectedCol.push(...selectedChildren[0].components);
             selectedChildren.slice(1).forEach((col, colIndex) => {
               if (extraCols[colIndex] == null) extraCols[colIndex] = col;
               // NOTE: I'm unsure if this is a safe way to combine column arrays
-              else extraCols[colIndex].push(...col);
+              else extraCols[colIndex].components.push(...col.components);
             });
           }
         } else {
           selectedCol.push(op);
         }
-        selectedOps.push(selectedCol);
+        selectedOps.push({ components: selectedCol });
         if (extraCols.length > 0) {
           selectedOps.push(...extraCols);
         }
@@ -420,9 +429,9 @@ export class Sqore {
           ctrl.parentElement?.getAttribute("data-location");
         if (typeof gateId == "string") {
           if (ctrl.classList.contains("gate-collapse")) {
-            this.collapseOperation(circuit.operations, gateId);
+            this.collapseOperation(circuit.componentGrid, gateId);
           } else if (ctrl.classList.contains("gate-expand")) {
-            this.expandOperation(circuit.operations, gateId);
+            this.expandOperation(circuit.componentGrid, gateId);
           }
           this.renderCircuit(container, circuit);
 
@@ -435,13 +444,16 @@ export class Sqore {
   /**
    * Expand selected operation for zoom-in interaction.
    *
-   * @param operations List of circuit operations.
+   * @param componentGrid Grid of circuit components.
    * @param location Location of operation to expand.
    *
    */
-  private expandOperation(operations: Operation[][], location: string): void {
-    operations.forEach((col) =>
-      col.forEach((op) => {
+  private expandOperation(
+    componentGrid: ComponentGrid,
+    location: string,
+  ): void {
+    componentGrid.forEach((col) =>
+      col.components.forEach((op) => {
         if (op.conditionalRender === ConditionalRender.AsGroup)
           this.expandOperation(op.children || [], location);
         if (op.dataAttributes == null) return op;
@@ -457,16 +469,16 @@ export class Sqore {
   /**
    * Collapse selected operation for zoom-out interaction.
    *
-   * @param operations List of circuit operations.
+   * @param componentGrid Grid of circuit components.
    * @param parentLoc Location of operation to collapse.
    *
    */
   private collapseOperation(
-    operations: Operation[][],
+    componentGrid: ComponentGrid,
     parentLoc: string,
   ): void {
-    operations.forEach((col) =>
-      col.forEach((op) => {
+    componentGrid.forEach((col) =>
+      col.components.forEach((op) => {
         if (op.conditionalRender === ConditionalRender.AsGroup)
           this.collapseOperation(op.children || [], parentLoc);
         if (op.dataAttributes == null) return op;
@@ -516,8 +528,8 @@ export class Sqore {
       JSON.stringify(circuitGroup),
     );
     minimizedCircuits.circuits.forEach((circuit) => {
-      circuit.operations.forEach((col) => {
-        col.forEach(this.minimizeOperation);
+      circuit.componentGrid.forEach((col) => {
+        col.components.forEach(this.minimizeOperation);
       });
     });
     return minimizedCircuits;
@@ -526,7 +538,9 @@ export class Sqore {
   // Minimize the operation to remove dataAttributes
   minimizeOperation = (operation: Operation): void => {
     if (operation.children !== undefined) {
-      operation.children.forEach((col) => col.forEach(this.minimizeOperation));
+      operation.children.forEach((col) =>
+        col.components.forEach(this.minimizeOperation),
+      );
     }
     operation.dataAttributes = undefined;
   };
