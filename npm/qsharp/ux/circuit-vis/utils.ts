@@ -119,15 +119,12 @@ const getChildTargets = (operation: Operation): Register[] | [] => {
 
   // Extract qIds from array of object
   // i.e. [{qId: 0}, {qId: 1}, {qId: 1}] -> [0, 1, 1]
-  const qIds = registers.map((register) => register.qId);
+  const qIds = registers.map((register) => register.qubit);
   const uniqueQIds = Array.from(new Set(qIds));
 
   // Transform array of numbers into array of qId object
   // i.e. [0, 1] -> [{qId: 0}, {qId: 1}]
-  return uniqueQIds.map((qId) => ({
-    qId,
-    type: 0,
-  }));
+  return uniqueQIds.map((qId) => ({ qubit: qId }));
 };
 
 /**

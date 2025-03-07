@@ -11,7 +11,6 @@ import {
 } from "./constants";
 import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
-import { RegisterType } from "./register";
 import { Sqore } from "./sqore";
 import { getGateWidth } from "./utils";
 
@@ -278,53 +277,53 @@ interface GateDictionary {
 const defaultGateDictionary: GateDictionary = {
   RX: {
     gate: "Rx",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   RY: {
     gate: "Ry",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   RZ: {
     gate: "Rz",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   X: {
     gate: "X",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   Y: {
     gate: "Y",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   Z: {
     gate: "Z",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   H: {
     gate: "H",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   S: {
     gate: "S",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   T: {
     gate: "T",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   Measure: {
     gate: "Measure",
     isMeasurement: true,
-    controls: [{ qId: 0, type: RegisterType.Qubit }],
-    targets: [{ qId: 0, type: RegisterType.Classical, cId: 0 }],
+    controls: [{ qubit: 0 }],
+    targets: [{ qubit: 0, result: 0 }],
   },
   Reset: {
     gate: "|0〉",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
   ResetX: {
     gate: "|1〉",
-    targets: [{ qId: 0, type: RegisterType.Qubit }],
+    targets: [{ qubit: 0 }],
   },
 };
 

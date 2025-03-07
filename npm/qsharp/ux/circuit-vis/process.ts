@@ -10,7 +10,7 @@ import {
 } from "./constants";
 import { ComponentGrid, Operation, ConditionalRender } from "./circuit";
 import { Metadata, GateType } from "./metadata";
-import { Register, RegisterMap, RegisterType } from "./register";
+import { Register, RegisterMap } from "./register";
 import { getGateWidth } from "./utils";
 
 /**
@@ -52,14 +52,14 @@ const processOperations = (
         const classicalRegY: number[] = classicalRegs
           .filter(([regCol]) => regCol <= colIndex)
           .map(([, reg]) => {
-            if (reg.cId == null)
+            if (reg.result == null)
               throw new Error("Could not find cId for classical register.");
-            const { children } = registers[reg.qId];
+            const { children } = registers[reg.qubit];
             if (children == null)
               throw new Error(
-                `Failed to find classical registers for qubit ID ${reg.qId}.`,
+                `Failed to find classical registers for qubit ID ${reg.qubit}.`,
               );
-            return children[reg.cId].y;
+            return children[reg.result].y;
           });
 
         metadata.targetsY = _splitTargetsY(
@@ -104,7 +104,7 @@ const _getClassicalRegStart = (
     col.components.forEach((op) => {
       if (op.isMeasurement) {
         const targetClsRegs: Register[] = op.targets.filter(
-          (reg) => reg.type === RegisterType.Classical,
+          ({ result }) => result !== undefined,
         );
         targetClsRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
       }
@@ -254,30 +254,22 @@ const _opToMetadata = (
  * @returns The y coord of give register.
  */
 const _getRegY = (reg: Register, registers: RegisterMap): number => {
-  const { type, qId, cId } = reg;
+  const { qubit: qId, result } = reg;
   if (!Object.prototype.hasOwnProperty.call(registers, qId))
     throw new Error(`ERROR: Qubit register with ID ${qId} not found.`);
   const { y, children } = registers[qId];
-  switch (type) {
-    case undefined:
-    case RegisterType.Qubit:
-      return y;
-    case RegisterType.Classical:
-      if (children == null)
-        throw new Error(
-          `ERROR: No classical registers found for qubit ID ${qId}.`,
-        );
-      if (cId == null)
-        throw new Error(
-          `ERROR: No ID defined for classical register associated with qubit ID ${qId}.`,
-        );
-      if (children.length <= cId)
-        throw new Error(
-          `ERROR: Classical register ID ${cId} invalid for qubit ID ${qId} with ${children.length} classical register(s).`,
-        );
-      return children[cId].y;
-    default:
-      throw new Error(`ERROR: Unknown register type ${type}.`);
+  if (result == null) {
+    return y;
+  } else {
+    if (children == null)
+      throw new Error(
+        `ERROR: No classical registers found for qubit ID ${qId}.`,
+      );
+    if (children.length <= result)
+      throw new Error(
+        `ERROR: Classical register ID ${result} invalid for qubit ID ${qId} with ${children.length} classical register(s).`,
+      );
+    return children[result].y;
   }
 };
 
@@ -306,8 +298,9 @@ const _splitTargetsY = (
   // Sort targets and classicalRegY by ascending y value
   targets = targets.slice();
   targets.sort((a, b) => {
-    const posDiff: number = qIdPosition[a.qId] - qIdPosition[b.qId];
-    if (posDiff === 0 && a.cId != null && b.cId != null) return a.cId - b.cId;
+    const posDiff: number = qIdPosition[a.qubit] - qIdPosition[b.qubit];
+    if (posDiff === 0 && a.result != null && b.result != null)
+      return a.result - b.result;
     else return posDiff;
   });
   classicalRegY = classicalRegY.slice();
@@ -318,7 +311,7 @@ const _splitTargetsY = (
 
   return targets.reduce((groups: number[][], target: Register) => {
     const y = _getRegY(target, registers);
-    const pos = qIdPosition[target.qId];
+    const pos = qIdPosition[target.qubit];
 
     // Split into new group if one of the following holds:
     //      1. First target register
@@ -525,11 +518,11 @@ const getMinMaxRegIdx = (
   const { targets, controls } = operation;
   const ctrls: Register[] = controls || [];
   const qRegs: Register[] = [...ctrls, ...targets].filter(
-    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
+    ({ result }) => result === undefined,
   );
-  const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
+  const qRegIdxList: number[] = qRegs.map(({ qubit: qId }) => qId);
   const clsControls: Register[] = ctrls.filter(
-    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
+    ({ result }) => result !== undefined,
   );
   const isClassicallyControlled: boolean = clsControls.length > 0;
   if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
@@ -560,7 +553,8 @@ const _groupOperations = (
 ): number[][] => {
   // NOTE: We get the max ID instead of just number of keys because there can be a qubit ID that
   // isn't acted upon and thus does not show up as a key in registers.
-  const maxQId: number = Math.max(-1, ...registers.map(({ qId }) => qId)) + 1;
+  const maxQId: number =
+    Math.max(-1, ...registers.map(({ qubit }) => qubit)) + 1;
   const groupedOps: number[][] = Array.from(Array(maxQId), () => new Array(0));
   operations.forEach((operation, instrIdx) => {
     const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, maxQId);

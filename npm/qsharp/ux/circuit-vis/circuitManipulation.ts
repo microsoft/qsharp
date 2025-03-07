@@ -3,7 +3,6 @@
 
 import { ComponentGrid, Operation } from "./circuit";
 import { CircuitEvents } from "./events";
-import { RegisterType } from "./register";
 import {
   findOperation,
   findParentArray,
@@ -137,15 +136,15 @@ const _moveY = (
   } else {
     if (movingControl) {
       sourceOperation.controls?.forEach((control) => {
-        if (control.qId === sourceWire) {
-          control.qId = targetWire;
+        if (control.qubit === sourceWire) {
+          control.qubit = targetWire;
         }
       });
       sourceOperation.controls = sourceOperation.controls?.sort(
-        (a, b) => a.qId - b.qId,
+        (a, b) => a.qubit - b.qubit,
       );
     } else {
-      sourceOperation.targets = [{ qId: targetWire, type: RegisterType.Qubit }];
+      sourceOperation.targets = [{ qubit: targetWire }];
     }
   }
 
@@ -198,9 +197,7 @@ const addOperation = (
     insertNewColumn,
   );
   if (!newSourceOperation.isMeasurement) {
-    newSourceOperation.targets = [
-      { qId: targetWire, type: RegisterType.Qubit },
-    ];
+    newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
   return newSourceOperation;
@@ -286,14 +283,11 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
     op.controls = [];
   }
   const existingControl = op.controls.find(
-    (control) => control.qId === wireIndex,
+    (control) => control.qubit === wireIndex,
   );
   if (!existingControl) {
-    op.controls.push({
-      qId: wireIndex,
-      type: RegisterType.Qubit,
-    });
-    op.controls.sort((a, b) => a.qId - b.qId);
+    op.controls.push({ qubit: wireIndex });
+    op.controls.sort((a, b) => a.qubit - b.qubit);
     op.isControlled = true;
     return true;
   }
@@ -310,7 +304,7 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
 const removeControl = (op: Operation, wireIndex: number): boolean => {
   if (op.controls) {
     const controlIndex = op.controls.findIndex(
-      (control) => control.qId === wireIndex,
+      (control) => control.qubit === wireIndex,
     );
     if (controlIndex !== -1) {
       op.controls.splice(controlIndex, 1);
@@ -417,20 +411,17 @@ const _addMeasurementLine = (
   sourceOperation: Operation,
   targetQubitWire: number,
 ) => {
-  const newNumChildren = circuitEvents.qubits[targetQubitWire].numChildren
-    ? circuitEvents.qubits[targetQubitWire].numChildren + 1
+  const newNumResults = circuitEvents.qubits[targetQubitWire].numResults
+    ? circuitEvents.qubits[targetQubitWire].numResults + 1
     : 1;
-  circuitEvents.qubits[targetQubitWire].numChildren = newNumChildren;
+  circuitEvents.qubits[targetQubitWire].numResults = newNumResults;
   sourceOperation.targets = [
     {
-      qId: targetQubitWire,
-      type: RegisterType.Classical,
-      cId: newNumChildren - 1,
+      qubit: targetQubitWire,
+      result: newNumResults - 1,
     },
   ];
-  sourceOperation.controls = [
-    { qId: targetQubitWire, type: RegisterType.Qubit },
-  ];
+  sourceOperation.controls = [{ qubit: targetQubitWire }];
 };
 
 /**
@@ -444,33 +435,33 @@ const _removeMeasurementLines = (
   sourceOperation: Operation,
 ) => {
   for (const target of sourceOperation.targets) {
-    const qubit = circuitEvents.qubits[target.qId];
-    if (qubit.numChildren != undefined && target.cId != undefined) {
+    const qubit = circuitEvents.qubits[target.qubit];
+    if (qubit.numResults != undefined && target.result != undefined) {
       for (const col of circuitEvents.operationGrid) {
         for (const op of col.components) {
           if (op.controls) {
             for (const control of op.controls) {
               if (
-                control.qId === target.qId &&
-                control.cId &&
-                control.cId > target.cId
+                control.qubit === target.qubit &&
+                control.result &&
+                control.result > target.result
               ) {
-                control.cId--;
+                control.result--;
               }
             }
           }
           for (const targetReg of op.targets) {
             if (
-              targetReg.qId === target.qId &&
-              targetReg.cId &&
-              targetReg.cId > target.cId
+              targetReg.qubit === target.qubit &&
+              targetReg.result &&
+              targetReg.result > target.result
             ) {
-              targetReg.cId--;
+              targetReg.result--;
             }
           }
         }
       }
-      qubit.numChildren--;
+      qubit.numResults--;
     }
   }
 };

@@ -51,29 +51,8 @@ export const updateToCurrentVersion = (
 export interface Qubit {
   /** Qubit ID. */
   id: number;
-  /** Number of classical registers attached to quantum register. */
-  numChildren?: number;
-}
-
-/**
- * Conditions on when to render the given operation.
- */
-export enum ConditionalRender {
-  /** Always rendered. */
-  Always,
-  /** Render classically-controlled operation when measurement is a zero. */
-  OnZero,
-  /** Render classically-controlled operation when measurement is a one. */
-  OnOne,
-  /** Render operation as a group of its nested operations. */
-  AsGroup,
-}
-
-/**
- * Custom data attributes (e.g. data-{attr}="{val}")
- */
-export interface DataAttributes {
-  [attr: string]: string;
+  /** Number of measurement results associated to the qubit. */
+  numResults?: number;
 }
 
 /**
@@ -102,6 +81,28 @@ export interface Operation {
   targets: Register[];
   /** Specify conditions on when to render operation. */
   conditionalRender?: ConditionalRender;
-  /** Custom data attributes to attach to gate element. */
+  /** Custom data attributes to attach to gate element.
+  Note that this is never written to file, so it is not part of the circuit schema */
   dataAttributes?: DataAttributes;
+}
+
+/**
+ * Conditions on when to render the given operation.
+ */
+export enum ConditionalRender {
+  /** Always rendered. */
+  Always,
+  /** Render classically-controlled operation when measurement is a zero. */
+  OnZero,
+  /** Render classically-controlled operation when measurement is a one. */
+  OnOne,
+  /** Render operation as a group of its nested operations. */
+  AsGroup,
+}
+
+/**
+ * Custom data attributes (e.g. data-{attr}="{val}")
+ */
+export interface DataAttributes {
+  [attr: string]: string;
 }

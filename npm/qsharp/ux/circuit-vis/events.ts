@@ -148,7 +148,7 @@ class CircuitEvents {
             this.selectedWire != null
           ) {
             const controlIndex = this.selectedOperation.controls.findIndex(
-              (control) => control.qId === this.selectedWire,
+              (control) => control.qubit === this.selectedWire,
             );
             if (controlIndex !== -1)
               this.selectedOperation.controls.splice(controlIndex, 1);
@@ -398,12 +398,12 @@ class CircuitEvents {
     ) {
       removeQubitLineButton.addEventListener("click", () => {
         const check = (op: Operation) => {
-          if (op.targets.some((reg) => reg.qId == this.qubits.length - 1)) {
+          if (op.targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
             return true;
           }
           if (
             op.controls &&
-            op.controls.some((reg) => reg.qId == this.qubits.length - 1)
+            op.controls.some((reg) => reg.qubit == this.qubits.length - 1)
           ) {
             return true;
           }
@@ -434,10 +434,10 @@ class CircuitEvents {
     // Create dropzones for each wire that isn't already a target or control
     for (let wireIndex = 0; wireIndex < this.wireData.length; wireIndex++) {
       const isTarget = this.selectedOperation?.targets.some(
-        (target) => target.qId === wireIndex,
+        (target) => target.qubit === wireIndex,
       );
       const isControl = this.selectedOperation?.controls?.some(
-        (control) => control.qId === wireIndex,
+        (control) => control.qubit === wireIndex,
       );
 
       if (!isTarget && !isControl) {
@@ -479,14 +479,17 @@ class CircuitEvents {
       const dropzone = createWireDropzone(
         this.circuitSvg,
         this.wireData,
-        control.qId,
+        control.qubit,
       );
       dropzone.addEventListener("mousedown", (ev: MouseEvent) =>
         ev.stopPropagation(),
       );
       dropzone.addEventListener("click", () => {
         if (this.selectedOperation != null) {
-          const successful = removeControl(this.selectedOperation, control.qId);
+          const successful = removeControl(
+            this.selectedOperation,
+            control.qubit,
+          );
           this.selectedOperation = null;
           this.container.classList.remove("removing-control");
           if (successful) {
