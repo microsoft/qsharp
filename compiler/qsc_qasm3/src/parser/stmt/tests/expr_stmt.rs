@@ -34,6 +34,77 @@ fn identifier_plus_number() {
     );
 }
 
+#[test]
+fn assignment() {
+    check(
+        parse,
+        "a = 1;",
+        &expect![[r#"
+        Stmt [0-6]:
+            annotations: <empty>
+            kind: ExprStmt [0-6]:
+                expr: Expr [0-5]: AssignExpr:
+                    lhs: Expr [0-1]: Ident [0-1] "a"
+                    rhs: Expr [4-5]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn binary_assignment() {
+    check(
+        parse,
+        "a += 1;",
+        &expect![[r#"
+        Stmt [0-7]:
+            annotations: <empty>
+            kind: ExprStmt [0-7]:
+                expr: Expr [0-6]: AssignOpExpr:
+                    op: Add
+                    lhs: Expr [0-1]: Ident [0-1] "a"
+                    rhs: Expr [5-6]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn assignment_and_unop() {
+    check(
+        parse,
+        "c = a && !b;",
+        &expect![[r#"
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: ExprStmt [0-12]:
+                    expr: Expr [0-11]: AssignExpr:
+                        lhs: Expr [0-1]: Ident [0-1] "c"
+                        rhs: Expr [4-11]: BinaryOpExpr:
+                            op: AndL
+                            lhs: Expr [4-5]: Ident [4-5] "a"
+                            rhs: Expr [9-11]: UnaryOpExpr:
+                                op: NotL
+                                expr: Expr [10-11]: Ident [10-11] "b""#]],
+    );
+}
+
+#[test]
+fn assignment_unop_and() {
+    check(
+        parse,
+        "d = !a && b;",
+        &expect![[r#"
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: ExprStmt [0-12]:
+                    expr: Expr [0-11]: AssignExpr:
+                        lhs: Expr [0-1]: Ident [0-1] "d"
+                        rhs: Expr [4-11]: BinaryOpExpr:
+                            op: AndL
+                            lhs: Expr [4-6]: UnaryOpExpr:
+                                op: NotL
+                                expr: Expr [5-6]: Ident [5-6] "a"
+                            rhs: Expr [10-11]: Ident [10-11] "b""#]],
+    );
+}
+
 // These are negative unit tests for gate calls:
 
 #[test]
