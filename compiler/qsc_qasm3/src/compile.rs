@@ -36,8 +36,8 @@ use crate::symbols::Symbol;
 use crate::symbols::SymbolTable;
 use crate::types::{get_indexed_type, get_qsharp_gate_name, GateModifier, QasmTypedExpr};
 use crate::{
-    CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QubitSemantics,
-    SemanticError, SemanticErrorKind,
+    semantic::SemanticErrorKind, CompilerConfig, OperationSignature, OutputSemantics, ProgramType,
+    QubitSemantics,
 };
 
 use ast::NodeId;
@@ -2915,11 +2915,21 @@ impl QasmCompiler {
             Type::AngleArray(_) => todo!("AngleArray to Q# type"),
             Type::ComplexArray(_) => todo!("ComplexArray to Q# type"),
             Type::BoolArray(dims) => Some(crate::types::Type::BoolArray(dims.into(), is_const)),
-            Type::Gate(cargs, qargs) => Some(crate::types::Type::Callable(
-                crate::types::CallableKind::Operation,
-                *cargs,
-                *qargs,
-            )),
+            Type::Gate(cargs, qargs) => {
+                if let (Ok(cargs), Ok(qargs)) = (u32::try_from(*cargs), u32::try_from(*qargs)) {
+                    Some(crate::types::Type::Callable(
+                        crate::types::CallableKind::Operation,
+                        cargs,
+                        qargs,
+                    ))
+                } else {
+                    let message = format!(
+                        "Gate with {cargs} control and {qargs} qubits has too many arguments"
+                    );
+                    self.push_unsupported_error_message(message, node);
+                    None
+                }
+            }
             Type::Range => Some(crate::types::Type::Range),
             Type::Set => todo!("Set to Q# type"),
             Type::Void => Some(crate::types::Type::Tuple(vec![])),
@@ -3087,7 +3097,7 @@ impl QasmCompiler {
                 },
                 Some(expr) => {
                     let span = span_for_syntax_node(expr.syntax());
-                    let kind = SemanticErrorKind::DesignatorMustBeIntLiteral(span);
+                    let kind = SemanticErrorKind::DesignatorMustBePositiveIntLiteral(span);
                     self.push_semantic_error(kind);
                     return None;
                 }
@@ -3298,7 +3308,7 @@ impl QasmCompiler {
                     if let Ok(value) = value.try_into() {
                         let value: i64 = value;
                         let expr = build_lit_int_expr(value, span);
-                        let ty = Type::Int(None, IsConst::True);
+                        let ty = Type::UInt(None, IsConst::True);
                         return Some(QasmTypedExpr { ty, expr });
                     }
                 }
@@ -3914,7 +3924,9 @@ impl QasmCompiler {
         node: &SyntaxNode,
     ) {
         let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::Unimplemented(message.as_ref().to_string(), span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::Unimplemented(message.as_ref().to_string(), span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3924,7 +3936,7 @@ impl QasmCompiler {
     pub fn push_missing_symbol_error<S: AsRef<str>>(&mut self, name: S, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
         let kind = SemanticErrorKind::UndefinedSymbol(name.as_ref().to_string(), span);
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3938,7 +3950,7 @@ impl QasmCompiler {
 
     /// Pushes a semantic error with the given kind.
     pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3946,7 +3958,9 @@ impl QasmCompiler {
     /// Pushes an unsupported error with the supplied message.
     pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::NotSupported(message.as_ref().to_string(), span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::NotSupported(message.as_ref().to_string(), span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3955,7 +3969,9 @@ impl QasmCompiler {
     pub fn push_calibration_error(&mut self, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
         let text = node.text().to_string();
-        let kind = crate::ErrorKind::CalibrationsNotSupported(text, span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::CalibrationsNotSupported(text, span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
