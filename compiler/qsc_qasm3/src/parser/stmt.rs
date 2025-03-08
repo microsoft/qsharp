@@ -17,16 +17,16 @@ use super::{
 use crate::{
     ast::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, ArrayTypedParameter, BarrierStmt, BitType, Block, BoxStmt,
-        BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
-        ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt,
-        EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter, FloatType, ForStmt,
-        FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand, IODeclaration, IOKeyword,
-        Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSetItem, IntType,
-        List, LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition, QuantumGateModifier,
-        QuantumTypedParameter, QubitDeclaration, RangeDefinition, ResetStmt, ReturnStmt,
-        ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt,
-        TypeDef, TypedParameter, UIntType, WhileLoop,
+        ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignExpr, BarrierStmt, BitType,
+        Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
+        ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
+        DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
+        FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
+        IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
+        IndexSetItem, IntType, List, LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition,
+        QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, RangeDefinition, ResetStmt,
+        ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase,
+        SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
@@ -1095,10 +1095,30 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
     Ok(EndStmt { span: s.span(lo) })
 }
 
-/// Grammar: `expression SEMICOLON`.
+/// Grammar: `(expression | assignExpr | AssignOpExpr) SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<ExprStmt> {
     let expr = if let Some(lhs) = lhs {
-        expr::expr_with_lhs(s, lhs)?
+        if opt(s, |s| token(s, TokenKind::Eq))?.is_some() {
+            let rhs = expr::expr(s)?;
+            Expr {
+                span: s.span(lhs.span.lo),
+                kind: Box::new(ExprKind::Assign(AssignExpr { lhs, rhs })),
+            }
+        } else if let TokenKind::BinOpEq(op) = s.peek().kind {
+            s.advance();
+            let op = expr::closed_bin_op(op);
+            let rhs = expr::expr(s)?;
+            Expr {
+                span: s.span(lhs.span.lo),
+                kind: Box::new(ExprKind::AssignOp(crate::ast::AssignOpExpr {
+                    op,
+                    lhs,
+                    rhs,
+                })),
+            }
+        } else {
+            expr::expr_with_lhs(s, lhs)?
+        }
     } else {
         expr::expr(s)?
     };
@@ -1237,15 +1257,17 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
 
     let mut duration = opt(s, designator)?;
     let qubits = gate_operand_list(s)?;
-    recovering_semi(s);
 
     // If didn't parse modifiers, a duration, nor qubit args then this is an expr, not a gate call.
     if modifiers.is_empty() && duration.is_none() && qubits.is_empty() {
-        return Ok(StmtKind::ExprStmt(ExprStmt {
-            span: s.span(lo),
-            expr: gate_or_expr,
-        }));
+        return Ok(StmtKind::ExprStmt(parse_expression_stmt(
+            s,
+            Some(gate_or_expr),
+        )?));
     }
+
+    // We parse the recovering semi after we call parse_expr_stmt.
+    recovering_semi(s);
 
     // Reinterpret the function call or ident as a gate call.
     let (name, args) = match *gate_or_expr.kind {
