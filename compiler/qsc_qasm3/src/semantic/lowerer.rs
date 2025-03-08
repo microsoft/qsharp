@@ -4,6 +4,12 @@
 use std::ops::ShlAssign;
 use std::path::PathBuf;
 
+use super::types::binop_requires_int_conversion_for_type;
+use super::types::binop_requires_symmetric_int_conversion;
+use super::types::is_complex_binop_supported;
+use super::types::promote_to_uint_ty;
+use super::types::requires_symmetric_conversion;
+use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
 use super::types::unary_op_can_be_applied_to_type;
 use super::types::Type;
@@ -337,9 +343,8 @@ impl Lowerer {
             .iter()
             .filter_map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();
-        // TODO: handle multiple rhs
-        // TODO: validate consistency of rhs types
         let first = rhs.first().expect("missing rhs");
+
         let symbol = Symbol {
             name: name.to_string(),
             ty: first.ty.clone(),
@@ -347,10 +352,24 @@ impl Lowerer {
             span: alias.ident.span(),
             io_kind: IOKind::Default,
         };
-        let Ok(symbol_id) = self.symbols.insert_symbol(symbol) else {
-            self.push_redefined_symbol_error(name, alias.span);
+
+        let symbol_id = self.symbols.insert_symbol(symbol);
+        if symbol_id.is_err() {
+            self.push_redefined_symbol_error(name, alias.ident.span());
+        }
+
+        if rhs.iter().any(|expr| expr.ty != first.ty) {
+            let tys = rhs
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let kind = SemanticErrorKind::InconsistentTypesInAlias(tys, alias.span);
+            self.push_semantic_error(kind);
             return None;
-        };
+        }
+
+        let symbol_id = symbol_id.ok()?;
 
         if rhs.len() != alias.exprs.len() {
             // we failed
@@ -373,9 +392,8 @@ impl Lowerer {
                 self.push_unimplemented_error_message("assignop expr", expr.span);
                 None
             }
-            crate::ast::ExprKind::BinaryOp(_) => {
-                self.push_unimplemented_error_message("binary op expr", expr.span);
-                None
+            crate::ast::ExprKind::BinaryOp(bin_op_expr) => {
+                self.lower_binary_op_expr(bin_op_expr, expr.span)
             }
             crate::ast::ExprKind::Cast(_) => {
                 self.push_unimplemented_error_message("cast expr", expr.span);
@@ -834,8 +852,11 @@ impl Lowerer {
     }
 
     fn lower_expr_stmt(&mut self, stmt: &crate::ast::ExprStmt) -> Option<super::ast::ExprStmt> {
-        self.push_unimplemented_error_message("expr stmt", stmt.span);
-        None
+        let expr = self.lower_expr(&stmt.expr)?;
+        Some(super::ast::ExprStmt {
+            span: stmt.span,
+            expr,
+        })
     }
 
     fn lower_extern(&mut self, stmt: &crate::ast::ExternDecl) -> Option<super::ast::ExternDecl> {
@@ -863,9 +884,20 @@ impl Lowerer {
         None
     }
 
+    /// This function is always a indication of a error. Either the
+    /// program is declaring include in a non-global scope or the
+    /// include is not handled in `self.lower_source` properly.
     fn lower_include(&mut self, stmt: &crate::ast::IncludeStmt) -> Option<super::ast::IncludeStmt> {
-        self.push_unimplemented_error_message("include stmt", stmt.span);
-        None
+        // if we are not in the root we should not be able to include
+        if !self.symbols.is_current_scope_global() {
+            let name = stmt.filename.to_string();
+            let kind = SemanticErrorKind::IncludeNotInGlobalScope(name, stmt.span);
+            self.push_semantic_error(kind);
+            return None;
+        }
+        // if we are at the root and we have an include, we should have
+        // already handled it and we are in an invalid state
+        panic!("Include should have been handled in lower_source")
     }
 
     fn lower_io_decl(
@@ -1208,11 +1240,12 @@ impl Lowerer {
         if types_equal_except_const(ty, &rhs.ty) {
             // literals are always const, so we can safely return
             // the const ty
-            return Some(super::ast::Expr {
-                span: rhs.span,
-                kind: rhs.kind.clone(),
-                ty: ty.as_const(),
-            });
+            if rhs.ty.is_const() {
+                return Some(rhs.clone());
+            }
+            // the lsh is supposed to be const but is being initialized
+            // to a non-const value, we can't allow this
+            return None;
         }
         assert!(can_cast_literal(ty, &rhs.ty) || can_cast_literal_with_value_knowledge(ty, kind));
         let lhs_ty = ty.clone();
@@ -1505,12 +1538,12 @@ impl Lowerer {
     fn cast_expr_to_type(
         &mut self,
         ty: &Type,
-        rhs: &super::ast::Expr,
+        expr: &super::ast::Expr,
         span: Span,
     ) -> Option<super::ast::Expr> {
-        let cast_expr = self.try_cast_expr_to_type(ty, rhs, span);
+        let cast_expr = self.try_cast_expr_to_type(ty, expr, span);
         if cast_expr.is_none() {
-            let rhs_ty_name = format!("{:?}", rhs.ty);
+            let rhs_ty_name = format!("{:?}", expr.ty);
             let lhs_ty_name = format!("{ty:?}");
             let kind = SemanticErrorKind::CannotCast(rhs_ty_name, lhs_ty_name, span);
             self.push_semantic_error(kind);
@@ -1521,18 +1554,18 @@ impl Lowerer {
     fn try_cast_expr_to_type(
         &mut self,
         ty: &Type,
-        rhs: &super::ast::Expr,
+        expr: &super::ast::Expr,
         span: Span,
     ) -> Option<super::ast::Expr> {
-        if *ty == rhs.ty {
+        if *ty == expr.ty {
             // Base case, we shouldn't have gotten here
             // but if we did, we can just return the rhs
-            return Some(rhs.clone());
+            return Some(expr.clone());
         }
-        if types_equal_except_const(ty, &rhs.ty) {
-            if rhs.ty.is_const() {
+        if types_equal_except_const(ty, &expr.ty) {
+            if expr.ty.is_const() {
                 // lhs isn't const, but rhs is, we can just return the rhs
-                return Some(rhs.clone());
+                return Some(expr.clone());
             }
             // the lsh is supposed to be const but is being initialized
             // to a non-const value, we can't allow this
@@ -1541,21 +1574,21 @@ impl Lowerer {
         // if the target type is wider, we can try to relax the rhs type
         // We only do this for float and complex. Int types
         // require extra handling for BigInts
-        match (ty, &rhs.ty) {
+        match (ty, &expr.ty) {
             (Type::Float(w1, _), Type::Float(w2, _))
             | (Type::Complex(w1, _), Type::Complex(w2, _)) => {
                 if w1.is_none() && w2.is_some() {
                     return Some(super::ast::Expr {
-                        span: rhs.span,
-                        kind: rhs.kind.clone(),
+                        span: expr.span,
+                        kind: expr.kind.clone(),
                         ty: ty.clone(),
                     });
                 }
 
                 if *w1 >= *w2 {
                     return Some(super::ast::Expr {
-                        span: rhs.span,
-                        kind: rhs.kind.clone(),
+                        span: expr.span,
+                        kind: expr.kind.clone(),
                         ty: ty.clone(),
                     });
                 }
@@ -1565,14 +1598,14 @@ impl Lowerer {
         // Casting of literals is handled elsewhere. This is for casting expressions
         // which cannot be bypassed and must be handled by built-in Q# casts from
         // the standard library.
-        match &rhs.ty {
-            Type::Angle(_, _) => self.cast_angle_expr_to_type(ty, rhs, span),
-            Type::Bit(_) => self.cast_bit_expr_to_type(ty, rhs, span),
-            Type::Bool(_) => Self::cast_bool_expr_to_type(ty, rhs),
-            Type::Complex(_, _) => cast_complex_expr_to_type(ty, rhs),
-            Type::Float(_, _) => self.cast_float_expr_to_type(ty, rhs, span),
-            Type::Int(_, _) | Type::UInt(_, _) => Self::cast_int_expr_to_type(ty, rhs),
-            Type::BitArray(dims, _) => Self::cast_bitarray_expr_to_type(dims, ty, rhs),
+        match &expr.ty {
+            Type::Angle(_, _) => self.cast_angle_expr_to_type(ty, expr, span),
+            Type::Bit(_) => self.cast_bit_expr_to_type(ty, expr, span),
+            Type::Bool(_) => Self::cast_bool_expr_to_type(ty, expr),
+            Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
+            Type::Float(_, _) => self.cast_float_expr_to_type(ty, expr, span),
+            Type::Int(_, _) | Type::UInt(_, _) => Self::cast_int_expr_to_type(ty, expr),
+            Type::BitArray(dims, _) => Self::cast_bitarray_expr_to_type(dims, ty, expr),
             _ => None,
         }
     }
@@ -1737,6 +1770,228 @@ impl Lowerer {
         } else {
             None
         }
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn lower_binary_op_expr(
+        &mut self,
+        expr: &crate::ast::BinaryOpExpr,
+        span: Span,
+    ) -> Option<super::ast::Expr> {
+        let op = expr.op.into();
+        let lhs = self.lower_expr(&expr.lhs);
+        let rhs = self.lower_expr(&expr.rhs);
+        // once we've compiled both sides, we can check if they failed
+        // and return None if they did so that the error is propagated
+        let (lhs, rhs) = (lhs?, rhs?);
+
+        if lhs.ty.is_quantum() {
+            let kind = SemanticErrorKind::QuantumTypesInBinaryExpression(lhs.span);
+            self.push_semantic_error(kind);
+        }
+
+        if rhs.ty.is_quantum() {
+            let kind = SemanticErrorKind::QuantumTypesInBinaryExpression(rhs.span);
+            self.push_semantic_error(kind);
+        }
+
+        let left_type = lhs.ty.clone();
+        let right_type = rhs.ty.clone();
+
+        if Self::binop_requires_bitwise_conversion(expr.op, &left_type) {
+            // if the operator requires bitwise conversion, we need to determine
+            // what size of UInt to promote to. If we can't promote to a UInt, we
+            // push an error and return None.
+            let (ty, lhs_uint_promotion, rhs_uint_promotion) =
+                promote_to_uint_ty(&left_type, &right_type);
+            let Some(ty) = ty else {
+                let target_ty = Type::UInt(None, false);
+                if lhs_uint_promotion.is_none() {
+                    let target_str: String = format!("{target_ty:?}");
+                    let kind = SemanticErrorKind::CannotCast(
+                        format!("{left_type:?}"),
+                        target_str,
+                        lhs.span,
+                    );
+                    self.push_semantic_error(kind);
+                }
+                if rhs_uint_promotion.is_none() {
+                    let target_str: String = format!("{target_ty:?}");
+                    let kind = SemanticErrorKind::CannotCast(
+                        format!("{right_type:?}"),
+                        target_str,
+                        rhs.span,
+                    );
+                    self.push_semantic_error(kind);
+                }
+                return None;
+            };
+            // Now that we know the effective Uint type, we can cast the lhs and rhs
+            // so that operations can be performed on them.
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span)?;
+            // only cast the rhs if the operator requires symmetric conversion
+            let new_rhs = if Self::binop_requires_bitwise_symmetric_conversion(expr.op) {
+                self.cast_expr_to_type(&ty, &rhs, rhs.span)?
+            } else {
+                rhs
+            };
+
+            let bin_expr = super::ast::BinaryOpExpr {
+                lhs: new_lhs,
+                rhs: new_rhs,
+                op: expr.op.into(),
+            };
+            let kind = super::ast::ExprKind::BinaryOp(bin_expr);
+            let expr = super::ast::Expr {
+                span,
+                kind: Box::new(kind),
+                ty,
+            };
+
+            let final_expr = self.cast_expr_to_type(&left_type, &expr, span)?;
+            return Some(final_expr);
+        }
+
+        // for int, uint, float, and complex, the lesser of the two types is cast to
+        // the greater of the two. Within each level of complex and float, types with
+        // greater width are greater than types with lower width.
+        // complex > float > int/uint
+        // Q# has built-in functions: IntAsDouble, IntAsBigInt to handle two cases.
+        // If the width of a float is greater than 64, we can't represent it as a double.
+
+        let (lhs, rhs, ty) = if matches!(expr.op, crate::ast::BinOp::AndL | crate::ast::BinOp::OrL)
+        {
+            let ty = Type::Bool(false);
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span)?;
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs, rhs.span)?;
+            (new_lhs, new_rhs, ty)
+        } else if binop_requires_int_conversion_for_type(expr.op, &left_type, &rhs.ty) {
+            let ty = Type::Int(None, false);
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span)?;
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs, lhs.span)?;
+            (new_lhs, new_rhs, ty)
+        } else if requires_symmetric_conversion(expr.op) {
+            let promoted_type = try_promote_with_casting(&left_type, &right_type);
+            let new_left = if promoted_type == left_type {
+                lhs
+            } else {
+                match &lhs.kind.as_ref() {
+                    super::ast::ExprKind::Lit(kind) => {
+                        if can_cast_literal(&promoted_type, &left_type)
+                            || can_cast_literal_with_value_knowledge(&promoted_type, kind)
+                        {
+                            self.coerce_literal_expr_to_type(&promoted_type, &lhs, kind)?
+                        } else {
+                            self.cast_expr_to_type(&promoted_type, &lhs, lhs.span)?
+                        }
+                    }
+                    _ => self.cast_expr_to_type(&promoted_type, &lhs, lhs.span)?,
+                }
+            };
+            let new_right = if promoted_type == right_type {
+                rhs
+            } else {
+                match &rhs.kind.as_ref() {
+                    super::ast::ExprKind::Lit(kind) => {
+                        if can_cast_literal(&promoted_type, &right_type)
+                            || can_cast_literal_with_value_knowledge(&promoted_type, kind)
+                        {
+                            self.coerce_literal_expr_to_type(&promoted_type, &rhs, kind)?
+                        } else {
+                            self.cast_expr_to_type(&promoted_type, &rhs, rhs.span)?
+                        }
+                    }
+                    _ => self.cast_expr_to_type(&promoted_type, &rhs, rhs.span)?,
+                }
+            };
+            (new_left, new_right, promoted_type)
+        } else if binop_requires_symmetric_int_conversion(expr.op) {
+            let ty = Type::Int(None, false);
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs, rhs.span)?;
+            (lhs, new_rhs, left_type)
+        } else {
+            (lhs, rhs, left_type)
+        };
+
+        // now that we have the lhs and rhs expressions, we can create the binary expression
+        // but we need to check if the chosen operator is supported by the types after
+        // promotion and conversion.
+
+        let expr = if matches!(ty, Type::Complex(..)) {
+            if is_complex_binop_supported(expr.op) {
+                // TODO: How do we handle complex binary expressions?
+                // this is going to be a call to a built-in function
+                // that doesn't map to qasm def semantics
+                self.push_unimplemented_error_message("complex binary exprs", span);
+                None
+            } else {
+                let kind = SemanticErrorKind::OperatorNotSupportedForTypes(
+                    format!("{:?}", expr.op),
+                    format!("{ty:?}"),
+                    format!("{ty:?}"),
+                    span,
+                );
+                self.push_semantic_error(kind);
+                None
+            }
+        } else {
+            let bin_expr = super::ast::BinaryOpExpr { op, lhs, rhs };
+            let kind = super::ast::ExprKind::BinaryOp(bin_expr);
+            let expr = super::ast::Expr {
+                span,
+                kind: Box::new(kind),
+                ty: ty.clone(),
+            };
+            Some(expr)
+        };
+
+        let ty = match op {
+            super::ast::BinOp::AndL
+            | super::ast::BinOp::Eq
+            | super::ast::BinOp::Gt
+            | super::ast::BinOp::Gte
+            | super::ast::BinOp::Lt
+            | super::ast::BinOp::Lte
+            | super::ast::BinOp::Neq
+            | super::ast::BinOp::OrL => Type::Bool(false),
+            _ => ty,
+        };
+        let expr = expr?;
+        self.cast_expr_to_type(&ty, &expr, span)
+    }
+
+    fn binop_requires_bitwise_conversion(op: crate::ast::BinOp, left_type: &Type) -> bool {
+        if (matches!(
+            op,
+            crate::ast::BinOp::AndB | crate::ast::BinOp::OrB | crate::ast::BinOp::XorB
+        ) && matches!(
+            left_type,
+            Type::Bit(..)
+                | Type::UInt(..)
+                | Type::Angle(..)
+                | Type::BitArray(ArrayDimensions::One(_), _)
+        )) {
+            return true;
+        }
+        if (matches!(op, crate::ast::BinOp::Shl | crate::ast::BinOp::Shr)
+            && matches!(
+                left_type,
+                Type::Bit(..)
+                    | Type::UInt(..)
+                    | Type::Angle(..)
+                    | Type::BitArray(ArrayDimensions::One(_), _)
+            ))
+        {
+            return true;
+        }
+        false
+    }
+
+    fn binop_requires_bitwise_symmetric_conversion(op: crate::ast::BinOp) -> bool {
+        matches!(
+            op,
+            crate::ast::BinOp::AndB | crate::ast::BinOp::OrB | crate::ast::BinOp::XorB
+        )
     }
 }
 

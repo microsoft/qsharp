@@ -3,6 +3,8 @@
 
 pub mod decls;
 
+pub mod expression;
+
 use std::path::Path;
 use std::sync::Arc;
 

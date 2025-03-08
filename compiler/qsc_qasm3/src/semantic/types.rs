@@ -362,6 +362,13 @@ impl Type {
             _ => self.clone(),
         }
     }
+
+    pub(crate) fn is_quantum(&self) -> bool {
+        matches!(
+            self,
+            Type::HardwareQubit | Type::Qubit | Type::QubitArray(_)
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -672,4 +679,143 @@ pub(crate) fn unary_op_can_be_applied_to_type(op: crate::ast::UnaryOp, ty: &Type
             matches!(ty, Type::Int(_, _) | Type::Float(_, _) | Type::Angle(_, _))
         }
     }
+}
+
+/// Bit arrays can be compared, but need to be converted to int first
+pub(crate) fn binop_requires_int_conversion_for_type(
+    op: crate::ast::BinOp,
+    lhs: &Type,
+    rhs: &Type,
+) -> bool {
+    match op {
+        crate::ast::BinOp::Eq
+        | crate::ast::BinOp::Gt
+        | crate::ast::BinOp::Gte
+        | crate::ast::BinOp::Lt
+        | crate::ast::BinOp::Lte
+        | crate::ast::BinOp::Neq => match (lhs, rhs) {
+            (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _)) => {
+                match (lhs_dims, rhs_dims) {
+                    (ArrayDimensions::One(lhs_size), ArrayDimensions::One(rhs_size)) => {
+                        lhs_size == rhs_size
+                    }
+                    _ => false,
+                }
+            }
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+/// Symmetric arithmetic conversions are applied to:
+/// binary arithmetic *, /, %, +, -
+/// relational operators <, >, <=, >=, ==, !=
+/// binary bitwise arithmetic &, ^, |,
+pub(crate) fn requires_symmetric_conversion(op: crate::ast::BinOp) -> bool {
+    match op {
+        crate::ast::BinOp::Add
+        | crate::ast::BinOp::AndB
+        | crate::ast::BinOp::AndL
+        | crate::ast::BinOp::Div
+        | crate::ast::BinOp::Eq
+        | crate::ast::BinOp::Exp
+        | crate::ast::BinOp::Gt
+        | crate::ast::BinOp::Gte
+        | crate::ast::BinOp::Lt
+        | crate::ast::BinOp::Lte
+        | crate::ast::BinOp::Mod
+        | crate::ast::BinOp::Mul
+        | crate::ast::BinOp::Neq
+        | crate::ast::BinOp::OrB
+        | crate::ast::BinOp::OrL
+        | crate::ast::BinOp::Sub
+        | crate::ast::BinOp::XorB => true,
+        crate::ast::BinOp::Shl | crate::ast::BinOp::Shr => false,
+    }
+}
+
+pub(crate) fn try_promote_with_casting(left_type: &Type, right_type: &Type) -> Type {
+    let promoted_type = promote_types(left_type, right_type);
+
+    if promoted_type != Type::Void {
+        return promoted_type;
+    }
+    if let Some(value) = try_promote_bitarray_to_int(left_type, right_type) {
+        return value;
+    }
+    // simple promotion failed, try a lossless cast
+    // each side to double
+    let promoted_rhs = promote_types(&Type::Float(None, false), right_type);
+    let promoted_lhs = promote_types(left_type, &Type::Float(None, false));
+
+    match (promoted_lhs, promoted_rhs) {
+        (Type::Void, Type::Void) => Type::Float(None, false),
+        (Type::Void, promoted_rhs) => promoted_rhs,
+        (promoted_lhs, Type::Void) => promoted_lhs,
+        (promoted_lhs, promoted_rhs) => {
+            // return the greater of the two promoted types
+            if matches!(promoted_lhs, Type::Complex(..)) {
+                promoted_lhs
+            } else if matches!(promoted_rhs, Type::Complex(..)) {
+                promoted_rhs
+            } else if matches!(promoted_lhs, Type::Float(..)) {
+                promoted_lhs
+            } else if matches!(promoted_rhs, Type::Float(..)) {
+                promoted_rhs
+            } else {
+                Type::Float(None, false)
+            }
+        }
+    }
+}
+
+fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Type> {
+    if matches!(
+        (left_type, right_type),
+        (Type::Int(..) | Type::UInt(..), Type::BitArray(..))
+    ) {
+        let Type::BitArray(ArrayDimensions::One(size), _) = right_type else {
+            return None;
+        };
+
+        if left_type.width() != Some(*size) {
+            return None;
+        }
+
+        return Some(left_type.clone());
+    }
+
+    if matches!(
+        (left_type, right_type),
+        (Type::BitArray(..), Type::Int(..) | Type::UInt(..))
+    ) {
+        let Type::BitArray(ArrayDimensions::One(size), _) = left_type else {
+            return None;
+        };
+
+        if right_type.width() != Some(*size) {
+            return None;
+        }
+
+        return Some(right_type.clone());
+    }
+    None
+}
+
+// integer promotions are applied only to both operands of
+// the shift operators << and >>
+pub(crate) fn binop_requires_symmetric_int_conversion(op: crate::ast::BinOp) -> bool {
+    matches!(op, crate::ast::BinOp::Shl | crate::ast::BinOp::Shr)
+}
+
+pub(crate) fn is_complex_binop_supported(op: crate::ast::BinOp) -> bool {
+    matches!(
+        op,
+        crate::ast::BinOp::Add
+            | crate::ast::BinOp::Sub
+            | crate::ast::BinOp::Mul
+            | crate::ast::BinOp::Div
+            | crate::ast::BinOp::Exp
+    )
 }

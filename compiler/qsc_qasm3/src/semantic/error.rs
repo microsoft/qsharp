@@ -78,6 +78,9 @@ pub enum SemanticErrorKind {
     #[error("For statements must have a body or statement.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
+    #[error("Inconsisten types in alias expression: {0}.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.InconsistentTypesInAlias"))]
+    InconsistentTypesInAlias(String, #[label] Span),
     #[error("If statement missing {0} expression.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.IfStmtMissingExpression"))]
     IfStmtMissingExpression(String, #[label] Span),
@@ -240,6 +243,9 @@ impl SemanticErrorKind {
             }
             Self::ForStatementsMustHaveABodyOrStatement(span) => {
                 Self::ForStatementsMustHaveABodyOrStatement(span + offset)
+            }
+            Self::InconsistentTypesInAlias(name, span) => {
+                Self::InconsistentTypesInAlias(name, span + offset)
             }
             Self::IfStmtMissingExpression(name, span) => {
                 Self::IfStmtMissingExpression(name, span + offset)

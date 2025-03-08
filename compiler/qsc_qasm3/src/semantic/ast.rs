@@ -218,6 +218,32 @@ impl Display for BinOp {
     }
 }
 
+impl From<crate::ast::BinOp> for BinOp {
+    fn from(value: crate::ast::BinOp) -> Self {
+        match value {
+            crate::ast::BinOp::Add => BinOp::Add,
+            crate::ast::BinOp::AndB => BinOp::AndB,
+            crate::ast::BinOp::AndL => BinOp::AndL,
+            crate::ast::BinOp::Div => BinOp::Div,
+            crate::ast::BinOp::Eq => BinOp::Eq,
+            crate::ast::BinOp::Exp => BinOp::Exp,
+            crate::ast::BinOp::Gt => BinOp::Gt,
+            crate::ast::BinOp::Gte => BinOp::Gte,
+            crate::ast::BinOp::Lt => BinOp::Lt,
+            crate::ast::BinOp::Lte => BinOp::Lte,
+            crate::ast::BinOp::Mod => BinOp::Mod,
+            crate::ast::BinOp::Mul => BinOp::Mul,
+            crate::ast::BinOp::Neq => BinOp::Neq,
+            crate::ast::BinOp::OrB => BinOp::OrB,
+            crate::ast::BinOp::OrL => BinOp::OrL,
+            crate::ast::BinOp::Shl => BinOp::Shl,
+            crate::ast::BinOp::Shr => BinOp::Shr,
+            crate::ast::BinOp::Sub => BinOp::Sub,
+            crate::ast::BinOp::XorB => BinOp::XorB,
+        }
+    }
+}
+
 /// A unary operator.
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
@@ -1450,6 +1476,15 @@ pub struct BinaryOpExpr {
     pub op: BinOp,
     pub lhs: Expr,
     pub rhs: Expr,
+}
+
+impl BinaryOpExpr {
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.lhs.span.lo,
+            hi: self.rhs.span.hi,
+        }
+    }
 }
 
 impl Display for BinaryOpExpr {
