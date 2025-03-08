@@ -19,6 +19,7 @@ mod gate_def;
 mod gphase;
 mod if_stmt;
 mod include;
+mod invalid_stmts;
 mod io_decl;
 mod measure;
 mod old_style_decl;
