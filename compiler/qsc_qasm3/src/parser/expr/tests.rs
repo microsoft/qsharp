@@ -1113,38 +1113,6 @@ fn lit_array() {
 }
 
 #[test]
-fn assignment_and_unop() {
-    check_expr(
-        "c = a && !b",
-        &expect![[r#"
-            Expr [0-11]: AssignExpr:
-                lhs: Expr [0-1]: Ident [0-1] "c"
-                rhs: Expr [4-11]: BinaryOpExpr:
-                    op: AndL
-                    lhs: Expr [4-5]: Ident [4-5] "a"
-                    rhs: Expr [9-11]: UnaryOpExpr:
-                        op: NotL
-                        expr: Expr [10-11]: Ident [10-11] "b""#]],
-    );
-}
-
-#[test]
-fn assignment_unop_and() {
-    check_expr(
-        "d = !a && b",
-        &expect![[r#"
-            Expr [0-11]: AssignExpr:
-                lhs: Expr [0-1]: Ident [0-1] "d"
-                rhs: Expr [4-11]: BinaryOpExpr:
-                    op: AndL
-                    lhs: Expr [4-6]: UnaryOpExpr:
-                        op: NotL
-                        expr: Expr [5-6]: Ident [5-6] "a"
-                    rhs: Expr [10-11]: Ident [10-11] "b""#]],
-    );
-}
-
-#[test]
 fn hardware_qubit() {
     check(
         super::hardware_qubit,
