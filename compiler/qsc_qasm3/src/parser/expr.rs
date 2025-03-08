@@ -13,10 +13,10 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     ast::{
-        self, list_from_iter, AssignExpr, AssignOpExpr, BinOp, BinaryOpExpr, Cast, DiscreteSet,
-        Expr, ExprKind, FunctionCall, GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr,
-        IndexSet, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition,
-        TimeUnit, TypeDef, UnaryOp, ValueExpression, Version,
+        self, list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
+        GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet, IndexSetItem,
+        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit, TypeDef,
+        UnaryOp, ValueExpression, Version,
     },
     keyword::Keyword,
     lex::{
@@ -49,8 +49,6 @@ struct InfixOp {
 }
 
 enum OpKind {
-    Assign,
-    AssignBinary(BinOp),
     Binary(BinOp, Assoc),
     Funcall,
     Index,
@@ -120,14 +118,6 @@ fn expr_op_with_lhs(s: &mut ParserContext, context: OpContext, mut lhs: Expr) ->
 
         s.advance();
         let kind = match op.kind {
-            OpKind::Assign => {
-                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
-                Box::new(ExprKind::Assign(AssignExpr { lhs, rhs }))
-            }
-            OpKind::AssignBinary(kind) => {
-                let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
-                Box::new(ExprKind::AssignOp(AssignOpExpr { op: kind, lhs, rhs }))
-            }
             OpKind::Binary(kind, assoc) => {
                 let precedence = next_precedence(op.precedence, assoc);
                 let rhs = expr_op(s, OpContext::Precedence(precedence))?;
@@ -645,15 +635,11 @@ fn infix_op(name: OpName) -> Option<InfixOp> {
             kind: OpKind::Index,
             precedence: 13,
         }),
-        TokenKind::Eq => Some(InfixOp {
-            kind: OpKind::Assign,
-            precedence: 0,
-        }),
         _ => None,
     }
 }
 
-fn closed_bin_op(op: ClosedBinOp) -> BinOp {
+pub(crate) fn closed_bin_op(op: ClosedBinOp) -> BinOp {
     match op {
         ClosedBinOp::Amp => BinOp::AndB,
         ClosedBinOp::AmpAmp => BinOp::AndL,
