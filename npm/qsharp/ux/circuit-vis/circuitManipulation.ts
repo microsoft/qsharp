@@ -288,7 +288,6 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
   if (!existingControl) {
     op.controls.push({ qubit: wireIndex });
     op.controls.sort((a, b) => a.qubit - b.qubit);
-    op.isControlled = true;
     return true;
   }
   return false;
@@ -308,9 +307,6 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
     );
     if (controlIndex !== -1) {
       op.controls.splice(controlIndex, 1);
-      if (op.controls.length === 0) {
-        op.isControlled = false;
-      }
       return true;
     }
   }

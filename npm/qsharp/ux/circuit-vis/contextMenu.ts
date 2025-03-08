@@ -81,14 +81,14 @@ const addContextMenuToHostElem = (
         (userInput) => {
           if (userInput !== null) {
             if (userInput == "") {
-              selectedOperation.displayArgs = undefined;
+              selectedOperation.args = undefined;
             } else {
-              selectedOperation.displayArgs = userInput;
+              selectedOperation.args = [userInput];
             }
           }
           circuitEvents.renderFn();
         },
-        selectedOperation.displayArgs,
+        selectedOperation.args?.[0],
       );
     });
 

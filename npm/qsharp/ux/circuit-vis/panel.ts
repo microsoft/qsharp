@@ -202,9 +202,9 @@ const toMetadata = (
     width: -1,
   };
 
-  if (operation == null) return metadata;
+  if (operation === undefined) return metadata;
 
-  const { gate, displayArgs, isMeasurement, isControlled } = operation;
+  const { gate, args, isMeasurement, controls } = operation;
 
   // Note: there are a lot of special cases here.
   // It would be good if we could generalize metadata the logic a bit better.
@@ -213,7 +213,7 @@ const toMetadata = (
     metadata.controlsY = [target];
   } else if (gate === "SWAP") {
     metadata.type = GateType.Swap;
-  } else if (isControlled) {
+  } else if (controls && controls.length > 0) {
     metadata.type = gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
     metadata.label = gate;
     if (gate !== "X") {
@@ -228,7 +228,7 @@ const toMetadata = (
     metadata.targetsY = [[target]];
   }
 
-  if (displayArgs != null) metadata.displayArgs = displayArgs;
+  if (args !== undefined && args.length > 0) metadata.displayArgs = args[0];
 
   metadata.width = getGateWidth(metadata);
   metadata.x = x + 1 + metadata.width / 2; // offset by 1 for left padding

@@ -140,10 +140,9 @@ const _opToMetadata = (
   const {
     gate,
     dataAttributes,
-    displayArgs,
+    args,
     isMeasurement,
     isConditional,
-    isControlled,
     isAdjoint,
     controls,
     targets,
@@ -217,7 +216,7 @@ const _opToMetadata = (
     metadata.type = GateType.Measure;
   } else if (gate === "SWAP") {
     metadata.type = GateType.Swap;
-  } else if (isControlled) {
+  } else if (controls && controls.length > 0) {
     metadata.type = gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
     metadata.label = gate;
   } else if (gate === "X") {
@@ -233,7 +232,7 @@ const _opToMetadata = (
   if (isAdjoint && metadata.label.length > 0) metadata.label += "'";
 
   // If gate has extra arguments, display them
-  if (displayArgs != null) metadata.displayArgs = displayArgs;
+  if (args !== undefined && args.length > 0) metadata.displayArgs = args[0];
 
   // Set gate width
   metadata.width = getGateWidth(metadata);

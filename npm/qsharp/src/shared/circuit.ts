@@ -61,18 +61,14 @@ export interface Qubit {
 export interface Operation {
   /** Gate label. */
   gate: string;
-  /** Formatted gate arguments to be displayed. */
-  displayArgs?: string;
+  /** Formatted gate arguments. */
+  args?: string[];
   /** Nested operations within this operation. */
   children?: ComponentGrid;
-  /** Number of columns to span. */
-  columnWidth?: number;
   /** Whether gate is a measurement operation. */
   isMeasurement?: boolean;
   /** Whether gate is a conditional operation. */
   isConditional?: boolean;
-  /** Whether gate is a controlled operation. */
-  isControlled?: boolean;
   /** Whether gate is an adjoint operation. */
   isAdjoint?: boolean;
   /** Control registers the gate acts on. */
