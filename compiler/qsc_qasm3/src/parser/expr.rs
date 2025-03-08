@@ -12,29 +12,26 @@ use num_traits::Num;
 use qsc_data_structures::span::Span;
 
 use crate::{
-    ast::{
-        self, list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
-        GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet, IndexSetItem,
-        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit, TypeDef,
-        UnaryOp, ValueExpression, Version,
-    },
     keyword::Keyword,
     lex::{
         cooked::{ComparisonOp, Literal, TimingLiteralKind},
         ClosedBinOp, Delim, Radix, Token, TokenKind,
-    },
-    parser::{
-        completion::WordKinds,
-        prim::{shorten, token},
-        scan::ParserContext,
     },
 };
 
 use crate::parser::Result;
 
 use super::{
+    ast::{
+        list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
+        GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet, IndexSetItem,
+        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit, TypeDef,
+        UnaryOp, UnaryOpExpr, ValueExpression, Version,
+    },
+    completion::WordKinds,
     error::{Error, ErrorKind},
-    prim::{ident, many, opt, recovering_token, seq, FinalSep},
+    prim::{ident, many, opt, recovering_token, seq, shorten, token, FinalSep},
+    scan::ParserContext,
     stmt::scalar_or_array_type,
 };
 
@@ -94,7 +91,7 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
         let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
         Expr {
             span: s.span(lo),
-            kind: Box::new(ExprKind::UnaryOp(ast::UnaryOpExpr {
+            kind: Box::new(ExprKind::UnaryOp(UnaryOpExpr {
                 op: op.kind,
                 expr: rhs,
             })),
@@ -444,7 +441,7 @@ pub(crate) fn paren_expr(s: &mut ParserContext, lo: u32) -> Result<Expr> {
     })
 }
 
-fn funcall(s: &mut ParserContext, ident: ast::Ident) -> Result<ExprKind> {
+fn funcall(s: &mut ParserContext, ident: Ident) -> Result<ExprKind> {
     let lo = ident.span.lo;
     let (args, _) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;

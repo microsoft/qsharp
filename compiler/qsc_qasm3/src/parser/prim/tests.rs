@@ -3,9 +3,9 @@
 
 use super::{ident, opt, seq};
 use crate::{
-    ast::PathKind,
     keyword::Keyword,
     lex::TokenKind,
+    parser::ast::PathKind,
     parser::{
         completion::WordKinds,
         error::{Error, ErrorKind},
