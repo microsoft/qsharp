@@ -3,12 +3,12 @@
 
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import { ComponentGrid, Operation, Qubit } from "./circuit";
+import { Component, ComponentGrid, Operation, Qubit } from "./circuit";
 import { Sqore } from "./sqore";
 import { defaultGateDictionary } from "./panel";
 import {
   getGateLocationString,
-  findOperation,
+  findComponent,
   getToolboxElems,
   getGateElems,
   getHostElems,
@@ -17,11 +17,11 @@ import {
 import { addContextMenuToHostElem } from "./contextMenu";
 import {
   addControl,
-  addOperation,
-  findAndRemoveOperations,
-  moveOperation,
+  addComponent,
+  findAndRemoveComponents,
+  moveComponent,
   removeControl,
-  removeOperation,
+  removeComponent,
 } from "./circuitManipulation";
 import {
   createGhostElement,
@@ -44,13 +44,13 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
-  operationGrid: ComponentGrid;
+  componentGrid: ComponentGrid;
   qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
   private wireData: number[];
-  private selectedOperation: Operation | null;
+  private selectedComponent: Component | null;
   private selectedWire: number | null;
   private movingControl: boolean;
   private mouseUpOnCircuit: boolean;
@@ -65,11 +65,11 @@ class CircuitEvents {
       ".dropzone-layer",
     ) as SVGGElement;
 
-    this.operationGrid = sqore.circuit.componentGrid;
+    this.componentGrid = sqore.circuit.componentGrid;
     this.qubits = sqore.circuit.qubits;
 
     this.wireData = getWireData(this.container);
-    this.selectedOperation = null;
+    this.selectedComponent = null;
     this.selectedWire = null;
 
     this.movingControl = false;
@@ -99,21 +99,21 @@ class CircuitEvents {
    ***************************/
 
   documentKeydownHandler = (ev: KeyboardEvent) => {
-    const selectedLocation = this.selectedOperation
-      ? getGateLocationString(this.selectedOperation)
+    const selectedLocation = this.selectedComponent
+      ? getGateLocationString(this.selectedComponent)
       : null;
     if (ev.ctrlKey && selectedLocation) {
       this.container.classList.remove("moving");
       this.container.classList.add("copying");
     } else if (ev.key == "Delete" && selectedLocation) {
-      removeOperation(this, selectedLocation);
+      removeComponent(this, selectedLocation);
       this.renderFn();
     }
   };
 
   documentKeyupHandler = (ev: KeyboardEvent) => {
-    const selectedLocation = this.selectedOperation
-      ? getGateLocationString(this.selectedOperation)
+    const selectedLocation = this.selectedComponent
+      ? getGateLocationString(this.selectedComponent)
       : null;
     if (ev.ctrlKey && selectedLocation) {
       this.container.classList.remove("copying");
@@ -134,27 +134,28 @@ class CircuitEvents {
         this.container.removeChild(ghostElem);
       }
 
-      // Handle deleting operations that have been dragged outside the circuit
+      // Handle deleting components that have been dragged outside the circuit
       if (!this.mouseUpOnCircuit && this.dragging && !copying) {
-        const selectedLocation = this.selectedOperation
-          ? getGateLocationString(this.selectedOperation)
+        const selectedLocation = this.selectedComponent
+          ? getGateLocationString(this.selectedComponent)
           : null;
-        if (this.selectedOperation != null && selectedLocation != null) {
+        if (this.selectedComponent != null && selectedLocation != null) {
           // We are dragging a gate with a location (not from toolbox) out side the circuit
-          // If we are moving a control, remove it from the selectedOperation
+          // If we are moving a control, remove it from the selectedComponent
           if (
             this.movingControl &&
-            this.selectedOperation.controls != null &&
+            this.selectedComponent.type === "Operation" &&
+            this.selectedComponent.controls != null &&
             this.selectedWire != null
           ) {
-            const controlIndex = this.selectedOperation.controls.findIndex(
+            const controlIndex = this.selectedComponent.controls.findIndex(
               (control) => control.qubit === this.selectedWire,
             );
             if (controlIndex !== -1)
-              this.selectedOperation.controls.splice(controlIndex, 1);
+              this.selectedComponent.controls.splice(controlIndex, 1);
           } else {
-            // Otherwise, remove the selectedOperation
-            removeOperation(this, selectedLocation);
+            // Otherwise, remove the selectedComponent
+            removeComponent(this, selectedLocation);
           }
           this.renderFn();
         }
@@ -238,31 +239,31 @@ class CircuitEvents {
         let selectedLocation = null;
         if (elem.getAttribute("data-expanded") !== "true") {
           selectedLocation = elem.getAttribute("data-location");
-          this.selectedOperation = findOperation(
-            this.operationGrid,
+          this.selectedComponent = findComponent(
+            this.componentGrid,
             selectedLocation,
           );
         }
         if (ev.button !== 0) return;
         ev.stopPropagation();
         removeAllWireDropzones(this.circuitSvg);
-        if (this.selectedOperation == null || !selectedLocation) return;
+        if (this.selectedComponent == null || !selectedLocation) return;
 
         this.dragging = true;
         createGhostElement(
           ev,
           this.container,
-          this.selectedOperation,
+          this.selectedComponent,
           this.movingControl,
         );
 
-        // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
-        if (this.selectedOperation.dataAttributes == null) {
-          this.selectedOperation.dataAttributes = {
+        // ToDo: This shouldn't be necessary. Find out why all the components are missing their dataAttributes from sqore
+        if (this.selectedComponent.dataAttributes == null) {
+          this.selectedComponent.dataAttributes = {
             location: selectedLocation,
           };
         } else {
-          this.selectedOperation.dataAttributes["location"] = selectedLocation;
+          this.selectedComponent.dataAttributes["location"] = selectedLocation;
         }
 
         this.container.classList.add("moving");
@@ -278,9 +279,9 @@ class CircuitEvents {
     const elem = ev.currentTarget as HTMLElement;
     const type = elem.getAttribute("data-type");
     if (type == null) return;
-    this.selectedOperation = defaultGateDictionary[type];
+    this.selectedComponent = defaultGateDictionary[type];
     this.dragging = true;
-    createGhostElement(ev, this.container, this.selectedOperation, false);
+    createGhostElement(ev, this.container, this.selectedComponent, false);
   };
 
   /**
@@ -312,7 +313,7 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
-        const originalGrid = cloneDeep(this.operationGrid);
+        const originalGrid = cloneDeep(this.componentGrid);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
         const insertNewColumn =
           dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
@@ -324,31 +325,31 @@ class CircuitEvents {
         if (
           targetLoc == null ||
           targetWire == null ||
-          this.selectedOperation == null
+          this.selectedComponent == null
         )
           return;
-        const sourceLocation = getGateLocationString(this.selectedOperation);
+        const sourceLocation = getGateLocationString(this.selectedComponent);
 
         if (sourceLocation == null) {
-          // Add a new operation from the toolbox
-          addOperation(
+          // Add a new component from the toolbox
+          addComponent(
             this,
-            this.selectedOperation,
+            this.selectedComponent,
             targetLoc,
             targetWire,
             insertNewColumn,
           );
         } else if (sourceLocation && this.selectedWire != null) {
           if (copying) {
-            addOperation(
+            addComponent(
               this,
-              this.selectedOperation,
+              this.selectedComponent,
               targetLoc,
               targetWire,
               insertNewColumn,
             );
           } else {
-            moveOperation(
+            moveComponent(
               this,
               sourceLocation,
               targetLoc,
@@ -361,10 +362,10 @@ class CircuitEvents {
         }
 
         this.selectedWire = null;
-        this.selectedOperation = null;
+        this.selectedComponent = null;
         this.movingControl = false;
 
-        if (isEqual(originalGrid, this.operationGrid) === false)
+        if (isEqual(originalGrid, this.componentGrid) === false)
           this.renderFn();
       });
     });
@@ -374,7 +375,7 @@ class CircuitEvents {
    * Add event listeners for the buttons to add or remove qubit lines.
    * The add button will append a new qubit line to the circuit.
    * The remove button will remove the last qubit line from the circuit,
-   * along with any operations associated with it.
+   * along with any components associated with it.
    */
   _addQubitLineControlEvents() {
     const addQubitLineButton = this.container.querySelector(".add-qubit-line");
@@ -397,19 +398,23 @@ class CircuitEvents {
       !removeQubitLineButton.hasAttribute("data-event-added")
     ) {
       removeQubitLineButton.addEventListener("click", () => {
-        const check = (op: Operation) => {
-          if (op.targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
+        const check = (comp: Component) => {
+          const targets =
+            comp.type === "Measurement" ? comp.results : comp.targets;
+          if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
             return true;
           }
+          const controls =
+            comp.type === "Measurement" ? comp.qubits : comp.controls;
           if (
-            op.controls &&
-            op.controls.some((reg) => reg.qubit == this.qubits.length - 1)
+            controls &&
+            controls.some((reg) => reg.qubit == this.qubits.length - 1)
           ) {
             return true;
           }
           return false;
         };
-        findAndRemoveOperations(this.operationGrid, check);
+        findAndRemoveComponents(this.componentGrid, check);
         this.qubits.pop();
         this.renderFn();
       });
@@ -428,15 +433,15 @@ class CircuitEvents {
    * @param selectedOperation - The operation to which the control will be added.
    */
   _startAddingControl(selectedOperation: Operation) {
-    this.selectedOperation = selectedOperation;
+    this.selectedComponent = selectedOperation;
     this.container.classList.add("adding-control");
 
     // Create dropzones for each wire that isn't already a target or control
     for (let wireIndex = 0; wireIndex < this.wireData.length; wireIndex++) {
-      const isTarget = this.selectedOperation?.targets.some(
+      const isTarget = this.selectedComponent?.targets.some(
         (target) => target.qubit === wireIndex,
       );
-      const isControl = this.selectedOperation?.controls?.some(
+      const isControl = this.selectedComponent?.controls?.some(
         (control) => control.qubit === wireIndex,
       );
 
@@ -450,9 +455,12 @@ class CircuitEvents {
           ev.stopPropagation(),
         );
         dropzone.addEventListener("click", () => {
-          if (this.selectedOperation != null) {
-            const successful = addControl(this.selectedOperation, wireIndex);
-            this.selectedOperation = null;
+          if (
+            this.selectedComponent != null &&
+            this.selectedComponent.type === "Operation"
+          ) {
+            const successful = addControl(this.selectedComponent, wireIndex);
+            this.selectedComponent = null;
             this.container.classList.remove("adding-control");
             if (successful) {
               this.renderFn();
@@ -471,11 +479,11 @@ class CircuitEvents {
    * @param selectedOperation - The operation from which the control will be removed.
    */
   _startRemovingControl(selectedOperation: Operation) {
-    this.selectedOperation = selectedOperation;
+    this.selectedComponent = selectedOperation;
     this.container.classList.add("removing-control");
 
     // Create dropzones only for wires that the selectedOperation has a control
-    this.selectedOperation.controls?.forEach((control) => {
+    this.selectedComponent.controls?.forEach((control) => {
       const dropzone = createWireDropzone(
         this.circuitSvg,
         this.wireData,
@@ -485,12 +493,15 @@ class CircuitEvents {
         ev.stopPropagation(),
       );
       dropzone.addEventListener("click", () => {
-        if (this.selectedOperation != null) {
+        if (
+          this.selectedComponent != null &&
+          this.selectedComponent.type === "Operation"
+        ) {
           const successful = removeControl(
-            this.selectedOperation,
+            this.selectedComponent,
             control.qubit,
           );
-          this.selectedOperation = null;
+          this.selectedComponent = null;
           this.container.classList.remove("removing-control");
           if (successful) {
             this.renderFn();

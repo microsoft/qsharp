@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { removeControl, removeOperation } from "./circuitManipulation";
+import { removeControl, removeComponent } from "./circuitManipulation";
 import { CircuitEvents } from "./events";
-import { findGateElem, findOperation } from "./utils";
+import { findGateElem, findComponent } from "./utils";
 
 /**
  * Adds a context menu to a host element in the circuit visualization.
@@ -27,11 +27,11 @@ const addContextMenuToHostElem = (
     const gateElem = findGateElem(hostElem);
     if (!gateElem) return;
     const selectedLocation = gateElem.getAttribute("data-location");
-    const selectedOperation = findOperation(
-      circuitEvents.operationGrid,
+    const selectedComponent = findComponent(
+      circuitEvents.componentGrid,
       selectedLocation,
     );
-    if (!selectedOperation || !selectedLocation) return;
+    if (!selectedComponent || !selectedLocation) return;
 
     const contextMenu = document.createElement("div");
     contextMenu.classList.add("context-menu");
@@ -47,12 +47,14 @@ const addContextMenuToHostElem = (
     });
 
     const adjointOption = _createContextMenuItem("Toggle Adjoint", () => {
-      selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
+      if (selectedComponent.type !== "Operation") return;
+      selectedComponent.isAdjoint = !selectedComponent.isAdjoint;
       circuitEvents.renderFn();
     });
 
     const addControlOption = _createContextMenuItem("Add control", () => {
-      circuitEvents._startAddingControl(selectedOperation);
+      if (selectedComponent.type !== "Operation") return;
+      circuitEvents._startAddingControl(selectedComponent);
     });
 
     let removeControlOption: HTMLDivElement | null = null;
@@ -60,19 +62,21 @@ const addContextMenuToHostElem = (
     const dataWire = dataWireStr != null ? parseInt(dataWireStr) : null;
     const isControl =
       hostElem.classList.contains("control-dot") && dataWire != null;
-    // The Remove Control option is different when targeting a control element directly.
-    if (isControl) {
-      removeControlOption = _createContextMenuItem("Remove control", () => {
-        removeControl(selectedOperation, dataWire);
-        circuitEvents.renderFn();
-      });
-    } else if (
-      selectedOperation.controls &&
-      selectedOperation.controls.length > 0
-    ) {
-      removeControlOption = _createContextMenuItem("Remove control", () => {
-        circuitEvents._startRemovingControl(selectedOperation);
-      });
+    if (selectedComponent.type === "Operation") {
+      // The Remove Control option is different when targeting a control element directly.
+      if (isControl) {
+        removeControlOption = _createContextMenuItem("Remove control", () => {
+          removeControl(selectedComponent, dataWire);
+          circuitEvents.renderFn();
+        });
+      } else if (
+        selectedComponent.controls &&
+        selectedComponent.controls.length > 0
+      ) {
+        removeControlOption = _createContextMenuItem("Remove control", () => {
+          circuitEvents._startRemovingControl(selectedComponent);
+        });
+      }
     }
 
     const promptArgOption = _createContextMenuItem("Edit Argument", () => {
@@ -81,31 +85,31 @@ const addContextMenuToHostElem = (
         (userInput) => {
           if (userInput !== null) {
             if (userInput == "") {
-              selectedOperation.args = undefined;
+              selectedComponent.args = undefined;
             } else {
-              selectedOperation.args = [userInput];
+              selectedComponent.args = [userInput];
             }
           }
           circuitEvents.renderFn();
         },
-        selectedOperation.args?.[0],
+        selectedComponent.args?.[0],
       );
     });
 
     const deleteOption = _createContextMenuItem("Delete", () => {
-      removeOperation(circuitEvents, selectedLocation);
+      removeComponent(circuitEvents, selectedLocation);
       circuitEvents.renderFn();
     });
 
     if (isControl && removeControlOption) {
       contextMenu.appendChild(removeControlOption!);
     } else if (
-      selectedOperation.isMeasurement ||
-      selectedOperation.gate == "|0〉" ||
-      selectedOperation.gate == "|1〉"
+      selectedComponent.type === "Measurement" ||
+      selectedComponent.gate == "|0〉" ||
+      selectedComponent.gate == "|1〉"
     ) {
       contextMenu.appendChild(deleteOption);
-    } else if (selectedOperation.gate == "X") {
+    } else if (selectedComponent.gate == "X") {
       contextMenu.appendChild(addControlOption);
       if (removeControlOption) {
         contextMenu.appendChild(removeControlOption);

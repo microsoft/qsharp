@@ -8,7 +8,7 @@ import {
   labelFontSize,
   argsFontSize,
 } from "./constants";
-import { ComponentGrid, Operation } from "./circuit";
+import { Component, ComponentGrid } from "./circuit";
 import { Register } from "./register";
 
 /**
@@ -77,10 +77,10 @@ const _getStringWidth = (
 };
 
 /**
- * Find targets of an operation's children by recursively walking
+ * Find targets of an component's children by recursively walking
  * through all of its children's controls and targets.
  * Note that this intensionally ignores the direct targets of the
- * operation itself.
+ * component itself.
  *
  * Example:
  * Gate Foo contains gate H and gate RX.
@@ -88,19 +88,24 @@ const _getStringWidth = (
  * qIds of Gate RX are 1, 2
  * This should return [{qId: 1}, {qId: 2}]
  *
- * @param operation The operation to find targets for.
+ * @param component The component to find targets for.
  * @returns An array of registers with unique qIds.
  */
-const getChildTargets = (operation: Operation): Register[] | [] => {
-  const _recurse = (operation: Operation) => {
-    registers.push(...operation.targets);
-    if (operation.controls) {
-      registers.push(...operation.controls);
+const getChildTargets = (component: Component): Register[] | [] => {
+  const _recurse = (component: Component) => {
+    if (component.type === "Measurement") {
+      registers.push(...component.qubits);
+      registers.push(...component.results);
+    } else if (component.type === "Operation") {
+      registers.push(...component.targets);
+      if (component.controls) {
+        registers.push(...component.controls);
+      }
     }
 
     // If there is more children, keep adding more to registers
-    if (operation.children) {
-      operation.children.forEach((col) =>
+    if (component.children) {
+      component.children.forEach((col) =>
         col.components.forEach((child) => {
           _recurse(child);
         }),
@@ -109,10 +114,10 @@ const getChildTargets = (operation: Operation): Register[] | [] => {
   };
 
   const registers: Register[] = [];
-  if (operation.children == null) return [];
+  if (component.children == null) return [];
 
   // Recursively walkthrough all children to populate registers
-  operation.children.forEach((col) =>
+  component.children.forEach((col) =>
     col.components.forEach((child) => {
       _recurse(child);
     }),
@@ -148,14 +153,14 @@ const locationStringToIndexes = (location: string): [number, number][] => {
 };
 
 /**
- * Gets the location of an operation, if it has one.
+ * Gets the location of a component, if it has one.
  *
- * @param operation The operation to get the location for.
- * @returns The location string of the operation, or null if it doesn't have one.
+ * @param component The component to get the location for.
+ * @returns The location string of the component, or null if it doesn't have one.
  */
-const getGateLocationString = (operation: Operation): string | null => {
-  if (operation.dataAttributes == null) return null;
-  return operation.dataAttributes["location"];
+const getGateLocationString = (component: Component): string | null => {
+  if (component.dataAttributes == null) return null;
+  return component.dataAttributes["location"];
 };
 
 /**********************
@@ -184,16 +189,16 @@ const findLocation = (hostElem: SVGElement) => {
 };
 
 /**
- * Find the parent operation of the operation specified by location.
+ * Find the parent component of the component specified by location.
  *
  * @param componentGrid The grid of components to search through.
- * @param location The location string of the operation.
- * @returns The parent operation or null if not found.
+ * @param location The location string of the component.
+ * @returns The parent component or null if not found.
  */
-const findParentOperation = (
+const findParentComponent = (
   componentGrid: ComponentGrid,
   location: string | null,
-): Operation | null => {
+): Component | null => {
   if (!location) return null;
 
   const indexes = locationStringToIndexes(location);
@@ -202,20 +207,20 @@ const findParentOperation = (
 
   if (lastIndex == null) return null;
 
-  let parentOperation = componentGrid;
+  let parentComponent = componentGrid;
   for (const index of indexes) {
-    parentOperation =
-      parentOperation[index[0]].components[index[1]].children ||
-      parentOperation;
+    parentComponent =
+      parentComponent[index[0]].components[index[1]].children ||
+      parentComponent;
   }
-  return parentOperation[lastIndex[0]].components[lastIndex[1]];
+  return parentComponent[lastIndex[0]].components[lastIndex[1]];
 };
 
 /**
- * Find the parent component grid of an operation based on its location.
+ * Find the parent component grid of a component based on its location.
  *
  * @param componentGrid The grid of components to search through.
- * @param location The location string of the operation.
+ * @param location The location string of the component.
  * @returns The parent grid of components or null if not found.
  */
 const findParentArray = (
@@ -225,7 +230,7 @@ const findParentArray = (
   if (!location) return null;
 
   const indexes = locationStringToIndexes(location);
-  indexes.pop(); // The last index refers to the operation itself, remove it so that the last index instead refers to the parent operation
+  indexes.pop(); // The last index refers to the component itself, remove it so that the last index instead refers to the parent component
 
   let parentArray = componentGrid;
   for (const index of indexes) {
@@ -236,24 +241,24 @@ const findParentArray = (
 };
 
 /**
- * Find an operation based on its location.
+ * Find a component based on its location.
  *
  * @param componentGrid The grid of components to search through.
- * @param location The location string of the operation.
- * @returns The operation or null if not found.
+ * @param location The location string of the component.
+ * @returns The component or null if not found.
  */
-const findOperation = (
+const findComponent = (
   componentGrid: ComponentGrid,
   location: string | null,
-): Operation | null => {
+): Component | null => {
   if (!location) return null;
 
   const index = locationStringToIndexes(location).pop();
-  const operationParent = findParentArray(componentGrid, location);
+  const componentParent = findParentArray(componentGrid, location);
 
-  if (operationParent == null || index == null) return null;
+  if (componentParent == null || index == null) return null;
 
-  return operationParent[index[0]].components[index[1]];
+  return componentParent[index[0]].components[index[1]];
 };
 
 /**********************
@@ -329,14 +334,14 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
 export {
   createUUID,
   getGateWidth,
-  getChildTargets as getGateTargets,
+  getChildTargets,
   locationStringToIndexes,
   getGateLocationString,
   findGateElem,
   findLocation,
-  findParentOperation,
+  findParentComponent,
   findParentArray,
-  findOperation,
+  findComponent,
   getWireData,
   getToolboxElems,
   getHostElems,

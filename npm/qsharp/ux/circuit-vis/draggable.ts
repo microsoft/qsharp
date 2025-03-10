@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ComponentGrid, Operation } from "./circuit";
+import { Component, ComponentGrid } from "./circuit";
 import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
@@ -56,23 +56,23 @@ const extensionDraggable = (
 };
 
 /**
- * Creates a ghost element for dragging operations in the circuit visualization.
+ * Creates a ghost element for dragging components in the circuit visualization.
  *
  * @param ev The mouse event that triggered the creation of the ghost element.
  * @param container The HTML container element where the ghost element will be appended.
- * @param selectedOperation The operation that is being dragged.
- * @param isControl A boolean indicating if the ghost element is for a control operation.
+ * @param selectedComponent The component that is being dragged.
+ * @param isControl A boolean indicating if the ghost element is for an operation's control.
  */
 const createGhostElement = (
   ev: MouseEvent,
   container: HTMLElement,
-  selectedOperation: Operation,
+  selectedComponent: Component,
   isControl: boolean,
 ) => {
   const ghost = isControl
     ? controlDot(20, 20)
     : (() => {
-        const ghostMetadata = toMetadata(selectedOperation, 0, 0);
+        const ghostMetadata = toMetadata(selectedComponent, 0, 0);
         return formatGate(ghostMetadata).cloneNode(true) as SVGElement;
       })();
 

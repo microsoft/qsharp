@@ -4,15 +4,15 @@
 import { formatInputs } from "./formatters/inputFormatter";
 import { formatGates } from "./formatters/gateFormatter";
 import { formatRegisters } from "./formatters/registerFormatter";
-import { processOperations } from "./process";
+import { processComponent } from "./process";
 import {
   ConditionalRender,
   Circuit,
   CircuitGroup,
   ComponentGrid,
-  Operation,
   Column,
   updateToCurrentVersion,
+  Component,
 } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { StyleConfig, style, STYLES } from "./styles";
@@ -35,11 +35,11 @@ interface ComposedSqore {
 }
 
 /**
- * Defines the mapping of unique location to each operation. Used for enabling
+ * Defines the mapping of unique location to each component. Used for enabling
  * interactivity.
  */
 type GateRegistry = {
-  [location: string]: Operation;
+  [location: string]: Component;
 };
 
 type Extension = {
@@ -129,20 +129,20 @@ export class Sqore {
       circuit ?? JSON.parse(JSON.stringify(this.circuit));
     const renderDepth = this.renderDepth;
 
-    // Assign unique locations to each operation
+    // Assign unique locations to each component
     _circuit.componentGrid.forEach((col, colIndex) =>
-      col.components.forEach((op, i) =>
-        this.fillGateRegistry(op, `${colIndex},${i}`),
+      col.components.forEach((comp, i) =>
+        this.fillGateRegistry(comp, `${colIndex},${i}`),
       ),
     );
 
-    // Render operations starting at given depth
-    _circuit.componentGrid = this.selectOpsAtDepth(
+    // Render components starting at given depth
+    _circuit.componentGrid = this.selectCompsAtDepth(
       _circuit.componentGrid,
       renderDepth,
     );
 
-    // If only one top-level operation, expand automatically:
+    // If only one top-level component, expand automatically:
     if (
       _circuit.componentGrid.length == 1 &&
       _circuit.componentGrid[0].components.length == 1 &&
@@ -154,10 +154,10 @@ export class Sqore {
     ) {
       const location: string =
         _circuit.componentGrid[0].components[0].dataAttributes["location"];
-      this.expandOperation(_circuit.componentGrid, location);
+      this.expandComponent(_circuit.componentGrid, location);
     }
 
-    // Create visualization components
+    // Create visualization graphics
     const composedSqore: ComposedSqore = this.compose(_circuit);
     const svg: SVGElement = this.generateSvg(composedSqore);
     this.setViewBox(svg);
@@ -215,7 +215,7 @@ export class Sqore {
 
     const { qubits, componentGrid } = circuit;
     const { qubitWires, registers, svgHeight } = formatInputs(qubits);
-    const { metadataArray, svgWidth } = processOperations(
+    const { metadataArray, svgWidth } = processComponent(
       componentGrid,
       registers,
     );
@@ -278,44 +278,44 @@ export class Sqore {
   }
 
   /**
-   * Depth-first traversal to assign unique location string to `operation`.
-   * The operation is assigned the location `location` and its `i`th child
+   * Depth-first traversal to assign unique location string to `component`.
+   * The component is assigned the location `location` and its `i`th child
    * in its `colIndex` column is recursively given the location
    * `${location}-${colIndex},${i}`.
    *
-   * @param operation Operation to be assigned.
-   * @param location: Location to assign to `operation`.
+   * @param component Component to be assigned.
+   * @param location: Location to assign to `component`.
    *
    */
-  private fillGateRegistry(operation: Operation, location: string): void {
-    if (operation.dataAttributes == null) operation.dataAttributes = {};
-    operation.dataAttributes["location"] = location;
-    // By default, operations cannot be zoomed-out
-    operation.dataAttributes["zoom-out"] = "false";
-    this.gateRegistry[location] = operation;
-    operation.children?.forEach((col, colIndex) =>
-      col.components.forEach((childOp, i) => {
-        this.fillGateRegistry(childOp, `${location}-${colIndex},${i}`);
-        if (childOp.dataAttributes == null) childOp.dataAttributes = {};
-        // Children operations can be zoomed out
-        childOp.dataAttributes["zoom-out"] = "true";
+  private fillGateRegistry(component: Component, location: string): void {
+    if (component.dataAttributes == null) component.dataAttributes = {};
+    component.dataAttributes["location"] = location;
+    // By default, components cannot be zoomed-out
+    component.dataAttributes["zoom-out"] = "false";
+    this.gateRegistry[location] = component;
+    component.children?.forEach((col, colIndex) =>
+      col.components.forEach((childComp, i) => {
+        this.fillGateRegistry(childComp, `${location}-${colIndex},${i}`);
+        if (childComp.dataAttributes == null) childComp.dataAttributes = {};
+        // Children components can be zoomed out
+        childComp.dataAttributes["zoom-out"] = "true";
       }),
     );
-    // Composite operations can be zoomed in
-    operation.dataAttributes["zoom-in"] = (
-      operation.children != null
+    // Composite components can be zoomed in
+    component.dataAttributes["zoom-in"] = (
+      component.children != null
     ).toString();
   }
 
   /**
-   * Pick out operations that are at or below `renderDepth`.
+   * Pick out components that are at or below `renderDepth`.
    *
    * @param componentGrid Circuit components.
    * @param renderDepth Initial layer depth at which to render gates.
    *
    * @returns Grid of components at or below specified depth.
    */
-  private selectOpsAtDepth(
+  private selectCompsAtDepth(
     componentGrid: ComponentGrid,
     renderDepth: number,
   ): ComponentGrid {
@@ -324,14 +324,14 @@ export class Sqore {
         `Invalid renderDepth of ${renderDepth}. Needs to be >= 0.`,
       );
     if (renderDepth === 0) return componentGrid;
-    const selectedOps: ComponentGrid = [];
+    const selectedComps: ComponentGrid = [];
     componentGrid.forEach((col) => {
-      const selectedCol: Operation[] = [];
+      const selectedCol: Component[] = [];
       const extraCols: Column[] = [];
-      col.components.forEach((op) => {
-        if (op.children != null) {
-          const selectedChildren = this.selectOpsAtDepth(
-            op.children,
+      col.components.forEach((comp) => {
+        if (comp.children != null) {
+          const selectedChildren = this.selectCompsAtDepth(
+            comp.children,
             renderDepth - 1,
           );
           if (selectedChildren.length > 0) {
@@ -343,15 +343,15 @@ export class Sqore {
             });
           }
         } else {
-          selectedCol.push(op);
+          selectedCol.push(comp);
         }
-        selectedOps.push({ components: selectedCol });
+        selectedComps.push({ components: selectedCol });
         if (extraCols.length > 0) {
-          selectedOps.push(...extraCols);
+          selectedComps.push(...extraCols);
         }
       });
     });
-    return selectedOps;
+    return selectedComps;
   }
 
   /**
@@ -367,7 +367,7 @@ export class Sqore {
   }
 
   /**
-   * Add interactive click handlers for classically-controlled operations.
+   * Add interactive click handlers for classically-controlled components.
    *
    * @param container HTML element containing visualized circuit.
    *
@@ -429,9 +429,9 @@ export class Sqore {
           ctrl.parentElement?.getAttribute("data-location");
         if (typeof gateId == "string") {
           if (ctrl.classList.contains("gate-collapse")) {
-            this.collapseOperation(circuit.componentGrid, gateId);
+            this.collapseComponent(circuit.componentGrid, gateId);
           } else if (ctrl.classList.contains("gate-expand")) {
-            this.expandOperation(circuit.componentGrid, gateId);
+            this.expandComponent(circuit.componentGrid, gateId);
           }
           this.renderCircuit(container, circuit);
 
@@ -442,51 +442,51 @@ export class Sqore {
   }
 
   /**
-   * Expand selected operation for zoom-in interaction.
+   * Expand selected component for zoom-in interaction.
    *
    * @param componentGrid Grid of circuit components.
-   * @param location Location of operation to expand.
+   * @param location Location of component to expand.
    *
    */
-  private expandOperation(
+  private expandComponent(
     componentGrid: ComponentGrid,
     location: string,
   ): void {
     componentGrid.forEach((col) =>
-      col.components.forEach((op) => {
-        if (op.conditionalRender === ConditionalRender.AsGroup)
-          this.expandOperation(op.children || [], location);
-        if (op.dataAttributes == null) return op;
-        const opId: string = op.dataAttributes["location"];
-        if (opId === location && op.children != null) {
-          op.conditionalRender = ConditionalRender.AsGroup;
-          op.dataAttributes["expanded"] = "true";
+      col.components.forEach((comp) => {
+        if (comp.conditionalRender === ConditionalRender.AsGroup)
+          this.expandComponent(comp.children || [], location);
+        if (comp.dataAttributes == null) return comp;
+        const opId: string = comp.dataAttributes["location"];
+        if (opId === location && comp.children != null) {
+          comp.conditionalRender = ConditionalRender.AsGroup;
+          comp.dataAttributes["expanded"] = "true";
         }
       }),
     );
   }
 
   /**
-   * Collapse selected operation for zoom-out interaction.
+   * Collapse selected component for zoom-out interaction.
    *
    * @param componentGrid Grid of circuit components.
-   * @param parentLoc Location of operation to collapse.
+   * @param parentLoc Location of component to collapse.
    *
    */
-  private collapseOperation(
+  private collapseComponent(
     componentGrid: ComponentGrid,
     parentLoc: string,
   ): void {
     componentGrid.forEach((col) =>
-      col.components.forEach((op) => {
-        if (op.conditionalRender === ConditionalRender.AsGroup)
-          this.collapseOperation(op.children || [], parentLoc);
-        if (op.dataAttributes == null) return op;
-        const opId: string = op.dataAttributes["location"];
+      col.components.forEach((comp) => {
+        if (comp.conditionalRender === ConditionalRender.AsGroup)
+          this.collapseComponent(comp.children || [], parentLoc);
+        if (comp.dataAttributes == null) return comp;
+        const opId: string = comp.dataAttributes["location"];
         // Collapse parent gate and its children
         if (opId.startsWith(parentLoc)) {
-          op.conditionalRender = ConditionalRender.Always;
-          delete op.dataAttributes["expanded"];
+          comp.conditionalRender = ConditionalRender.Always;
+          delete comp.dataAttributes["expanded"];
         }
       }),
     );
@@ -529,19 +529,19 @@ export class Sqore {
     );
     minimizedCircuits.circuits.forEach((circuit) => {
       circuit.componentGrid.forEach((col) => {
-        col.components.forEach(this.minimizeOperation);
+        col.components.forEach(this.minimizeComponent);
       });
     });
     return minimizedCircuits;
   }
 
-  // Minimize the operation to remove dataAttributes
-  minimizeOperation = (operation: Operation): void => {
-    if (operation.children !== undefined) {
-      operation.children.forEach((col) =>
-        col.components.forEach(this.minimizeOperation),
+  // Minimize the component to remove dataAttributes
+  minimizeComponent = (component: Component): void => {
+    if (component.children !== undefined) {
+      component.children.forEach((col) =>
+        col.components.forEach(this.minimizeComponent),
       );
     }
-    operation.dataAttributes = undefined;
+    component.dataAttributes = undefined;
   };
 }

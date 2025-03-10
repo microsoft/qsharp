@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Operation } from "./circuit";
+import { Component } from "./circuit";
 import {
   gateHeight,
   horizontalGap,
@@ -181,14 +181,14 @@ const _title = (text: string): HTMLElement => {
 };
 
 /**
- * Wrapper to generate metadata based on _opToMetadata with mock registers and limited support
- * @param operation     Operation object
+ * Wrapper to generate metadata based on _compToMetadata with mock registers and limited support
+ * @param component     Component object
  * @param x             x coordinate at starting point from the left
  * @param y             y coordinate at starting point from the top
- * @returns             Metata object
+ * @returns             Metadata object
  */
 const toMetadata = (
-  operation: Operation | undefined,
+  component: Component | undefined,
   x: number,
   y: number,
 ): Metadata => {
@@ -202,9 +202,11 @@ const toMetadata = (
     width: -1,
   };
 
-  if (operation === undefined) return metadata;
+  if (component === undefined) return metadata;
 
-  const { gate, args, isMeasurement, controls } = operation;
+  const isMeasurement = component.type === "Measurement";
+  const controls = isMeasurement ? undefined : component.controls;
+  const { gate, args } = component;
 
   // Note: there are a lot of special cases here.
   // It would be good if we could generalize metadata the logic a bit better.
@@ -238,10 +240,10 @@ const toMetadata = (
 
 /**
  * Generate an SVG gate element for the Toolbox panel based on the type of gate.
- * This function retrieves the operation metadata from the gate dictionary,
+ * This function retrieves the component metadata from the gate dictionary,
  * formats the gate, and returns the corresponding SVG element.
  *
- * @param gateDictionary - The dictionary containing gate operations.
+ * @param gateDictionary - The dictionary containing gate components.
  * @param type - The type of gate. Example: 'H' or 'X'.
  * @param x - The x coordinate at the starting point from the left.
  * @param y - The y coordinate at the starting point from the top.
@@ -254,9 +256,9 @@ const _gate = (
   x: number,
   y: number,
 ): SVGElement => {
-  const operation = gateDictionary[type];
-  if (operation == null) throw new Error(`Gate ${type} not available`);
-  const metadata = toMetadata(operation, x, y);
+  const gate = gateDictionary[type];
+  if (gate == null) throw new Error(`Gate ${type} not available`);
+  const metadata = toMetadata(gate, x, y);
   metadata.dataAttributes = { type: type };
   const gateElem = formatGate(metadata).cloneNode(true) as SVGElement;
   gateElem.setAttribute("toolbox-item", "true");
@@ -268,7 +270,7 @@ const _gate = (
  * Interface for gate dictionary
  */
 interface GateDictionary {
-  [index: string]: Operation;
+  [index: string]: Component;
 }
 
 /**
@@ -276,52 +278,63 @@ interface GateDictionary {
  */
 const defaultGateDictionary: GateDictionary = {
   RX: {
+    type: "Operation",
     gate: "Rx",
     targets: [{ qubit: 0 }],
   },
   RY: {
+    type: "Operation",
     gate: "Ry",
     targets: [{ qubit: 0 }],
   },
   RZ: {
+    type: "Operation",
     gate: "Rz",
     targets: [{ qubit: 0 }],
   },
   X: {
+    type: "Operation",
     gate: "X",
     targets: [{ qubit: 0 }],
   },
   Y: {
+    type: "Operation",
     gate: "Y",
     targets: [{ qubit: 0 }],
   },
   Z: {
+    type: "Operation",
     gate: "Z",
     targets: [{ qubit: 0 }],
   },
   H: {
+    type: "Operation",
     gate: "H",
     targets: [{ qubit: 0 }],
   },
   S: {
+    type: "Operation",
     gate: "S",
     targets: [{ qubit: 0 }],
   },
   T: {
+    type: "Operation",
     gate: "T",
     targets: [{ qubit: 0 }],
   },
   Measure: {
+    type: "Measurement",
     gate: "Measure",
-    isMeasurement: true,
-    controls: [{ qubit: 0 }],
-    targets: [{ qubit: 0, result: 0 }],
+    qubits: [{ qubit: 0 }],
+    results: [{ qubit: 0, result: 0 }],
   },
   Reset: {
+    type: "Operation",
     gate: "|0〉",
     targets: [{ qubit: 0 }],
   },
   ResetX: {
+    type: "Operation",
     gate: "|1〉",
     targets: [{ qubit: 0 }],
   },
