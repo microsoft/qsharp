@@ -252,7 +252,7 @@ fn multi_indexed_gate_call() {
             Error(
                 InvalidGateCallDesignator(
                     Span {
-                        lo: 10,
+                        lo: 0,
                         hi: 16,
                     },
                 ),

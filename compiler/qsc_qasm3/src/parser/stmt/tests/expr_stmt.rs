@@ -241,7 +241,7 @@ fn indexed_function_call() {
             Stmt [0-14]:
                 annotations: <empty>
                 kind: ExprStmt [0-14]:
-                    expr: Expr [0-13]: IndexExpr [10-13]:
+                    expr: Expr [0-13]: IndexExpr [0-13]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
                             args:
@@ -262,7 +262,7 @@ fn multi_indexed_function_call() {
             Stmt [0-17]:
                 annotations: <empty>
                 kind: ExprStmt [0-17]:
-                    expr: Expr [0-16]: IndexExpr [10-16]:
+                    expr: Expr [0-16]: IndexExpr [0-16]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
                             args:
