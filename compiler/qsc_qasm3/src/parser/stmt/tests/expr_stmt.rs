@@ -70,6 +70,28 @@ fn index_assignment() {
 }
 
 #[test]
+fn multi_index_assignment() {
+    check(
+        parse,
+        "a[0][1] = 1;",
+        &expect![[r#"
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: AssignStmt [0-12]:
+                    lhs: IndexedIdent [0-7]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                            IndexSet [5-6]:
+                                values:
+                                    Expr [5-6]: Lit: Int(1)
+                    rhs: Expr [10-11]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
 fn assignment_op() {
     check(
         parse,
@@ -103,6 +125,29 @@ fn index_assignment_op() {
                                 values:
                                     Expr [2-3]: Lit: Int(0)
                     rhs: Expr [8-9]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn multi_index_assignment_op() {
+    check(
+        parse,
+        "a[0][1] += 1;",
+        &expect![[r#"
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: AssignOpStmt [0-13]:
+                    op: Add
+                    lhs: IndexedIdent [0-7]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                            IndexSet [5-6]:
+                                values:
+                                    Expr [5-6]: Lit: Int(1)
+                    rhs: Expr [11-12]: Lit: Int(1)"#]],
     );
 }
 
@@ -257,6 +302,34 @@ fn index_expr() {
                         index: IndexSet [5-6]:
                             values:
                                 Expr [5-6]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn index_expr_with_multiple_index_operators_errors() {
+    check(
+        parse,
+        "Name[1][2];",
+        &expect![[r#"
+        Stmt [0-11]:
+            annotations: <empty>
+            kind: ExprStmt [0-11]:
+                expr: Expr [0-10]: IndexExpr [0-10]:
+                    collection: Expr [0-4]: Ident [0-4] "Name"
+                    index: IndexSet [5-6]:
+                        values:
+                            Expr [5-6]: Lit: Int(1)
+
+        [
+            Error(
+                MultipleIndexOperators(
+                    Span {
+                        lo: 0,
+                        hi: 10,
+                    },
+                ),
+            ),
+        ]"#]],
     );
 }
 
