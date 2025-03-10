@@ -27,10 +27,11 @@ fn simple_for_loop() {
                     block:
                         Stmt [38-44]:
                             annotations: <empty>
-                            kind: ExprStmt [38-44]:
-                                expr: Expr [38-43]: AssignExpr:
-                                    lhs: Expr [38-39]: Ident [38-39] "a"
-                                    rhs: Expr [42-43]: Lit: Int(0)"#]],
+                            kind: AssignStmt [38-44]:
+                                lhs: IndexedIdent [38-39]:
+                                    name: Ident [38-39] "a"
+                                    indices: <empty>
+                                rhs: Expr [42-43]: Lit: Int(0)"#]],
     );
 }
 
@@ -75,10 +76,11 @@ fn simple_for_loop_stmt_body() {
                     block:
                         Stmt [36-42]:
                             annotations: <empty>
-                            kind: ExprStmt [36-42]:
-                                expr: Expr [36-41]: AssignExpr:
-                                    lhs: Expr [36-37]: Ident [36-37] "a"
-                                    rhs: Expr [40-41]: Lit: Int(0)"#]],
+                            kind: AssignStmt [36-42]:
+                                lhs: IndexedIdent [36-37]:
+                                    name: Ident [36-37] "a"
+                                    indices: <empty>
+                                rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
 
@@ -104,10 +106,11 @@ fn for_loop_range() {
                     block:
                         Stmt [36-42]:
                             annotations: <empty>
-                            kind: ExprStmt [36-42]:
-                                expr: Expr [36-41]: AssignExpr:
-                                    lhs: Expr [36-37]: Ident [36-37] "a"
-                                    rhs: Expr [40-41]: Lit: Int(0)"#]],
+                            kind: AssignStmt [36-42]:
+                                lhs: IndexedIdent [36-37]:
+                                    name: Ident [36-37] "a"
+                                    indices: <empty>
+                                rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
 
@@ -133,10 +136,11 @@ fn for_loop_range_no_step() {
                     block:
                         Stmt [34-40]:
                             annotations: <empty>
-                            kind: ExprStmt [34-40]:
-                                expr: Expr [34-39]: AssignExpr:
-                                    lhs: Expr [34-35]: Ident [34-35] "a"
-                                    rhs: Expr [38-39]: Lit: Int(0)"#]],
+                            kind: AssignStmt [34-40]:
+                                lhs: IndexedIdent [34-35]:
+                                    name: Ident [34-35] "a"
+                                    indices: <empty>
+                                rhs: Expr [38-39]: Lit: Int(0)"#]],
     );
 }
 
@@ -159,10 +163,11 @@ fn for_loop_expr() {
                     block:
                         Stmt [31-37]:
                             annotations: <empty>
-                            kind: ExprStmt [31-37]:
-                                expr: Expr [31-36]: AssignExpr:
-                                    lhs: Expr [31-32]: Ident [31-32] "a"
-                                    rhs: Expr [35-36]: Lit: Int(0)"#]],
+                            kind: AssignStmt [31-37]:
+                                lhs: IndexedIdent [31-32]:
+                                    name: Ident [31-32] "a"
+                                    indices: <empty>
+                                rhs: Expr [35-36]: Lit: Int(0)"#]],
     );
 }
 
@@ -190,10 +195,11 @@ fn for_loop_with_continue_stmt() {
                     block:
                         Stmt [38-44]:
                             annotations: <empty>
-                            kind: ExprStmt [38-44]:
-                                expr: Expr [38-43]: AssignExpr:
-                                    lhs: Expr [38-39]: Ident [38-39] "a"
-                                    rhs: Expr [42-43]: Lit: Int(0)
+                            kind: AssignStmt [38-44]:
+                                lhs: IndexedIdent [38-39]:
+                                    name: Ident [38-39] "a"
+                                    indices: <empty>
+                                rhs: Expr [42-43]: Lit: Int(0)
                         Stmt [53-62]:
                             annotations: <empty>
                             kind: ContinueStmt [53-62]"#]],
@@ -224,10 +230,11 @@ fn for_loop_with_break_stmt() {
                     block:
                         Stmt [38-44]:
                             annotations: <empty>
-                            kind: ExprStmt [38-44]:
-                                expr: Expr [38-43]: AssignExpr:
-                                    lhs: Expr [38-39]: Ident [38-39] "a"
-                                    rhs: Expr [42-43]: Lit: Int(0)
+                            kind: AssignStmt [38-44]:
+                                lhs: IndexedIdent [38-39]:
+                                    name: Ident [38-39] "a"
+                                    indices: <empty>
+                                rhs: Expr [42-43]: Lit: Int(0)
                         Stmt [53-59]:
                             annotations: <empty>
                             kind: BreakStmt [53-59]"#]],

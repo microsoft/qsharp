@@ -17,8 +17,8 @@ use super::{
 use crate::{
     ast::{
         list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignExpr, BarrierStmt, BitType,
-        Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
+        ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt,
+        BitType, Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
         ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
         DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
         FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
@@ -107,6 +107,81 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Break(stmt))
     } else if let Some(stmt) = opt(s, parse_end_stmt)? {
         Box::new(StmtKind::End(stmt))
+    } else if let Some(indexed_ident) = opt(s, indexed_identifier)? {
+        if s.peek().kind == TokenKind::Eq {
+            s.advance();
+            let expr = expr::expr(s)?;
+            recovering_semi(s);
+            Box::new(StmtKind::Assign(AssignStmt {
+                span: s.span(lo),
+                lhs: indexed_ident,
+                rhs: expr,
+            }))
+        } else if let TokenKind::BinOpEq(op) = s.peek().kind {
+            s.advance();
+            let op = expr::closed_bin_op(op);
+            let expr = expr::expr(s)?;
+            recovering_semi(s);
+            Box::new(StmtKind::AssignOp(AssignOpStmt {
+                span: s.span(lo),
+                op,
+                lhs: indexed_ident,
+                rhs: expr,
+            }))
+        } else if s.peek().kind == TokenKind::Open(Delim::Paren) {
+            if !indexed_ident.indices.is_empty() {
+                s.push_error(Error::new(ErrorKind::Convert(
+                    "Ident",
+                    "IndexedIdent",
+                    indexed_ident.span,
+                )));
+            }
+
+            let ident = indexed_ident.name;
+
+            s.advance();
+            let (args, _) = seq(s, expr::expr)?;
+            token(s, TokenKind::Close(Delim::Paren))?;
+
+            let funcall = Expr {
+                span: s.span(lo),
+                kind: Box::new(ExprKind::FunctionCall(FunctionCall {
+                    span: s.span(lo),
+                    name: ident,
+                    args: args.into_iter().map(Box::new).collect(),
+                })),
+            };
+
+            let expr = expr::expr_with_lhs(s, funcall)?;
+
+            Box::new(parse_gate_call_with_expr(s, expr)?)
+        } else {
+            let kind = if indexed_ident.indices.is_empty() {
+                ExprKind::Ident(indexed_ident.name)
+            } else {
+                if indexed_ident.indices.len() > 1 {
+                    s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
+                        indexed_ident.span,
+                    )));
+                }
+
+                ExprKind::IndexExpr(IndexExpr {
+                    span: indexed_ident.span,
+                    collection: Expr {
+                        span: indexed_ident.name.span,
+                        kind: Box::new(ExprKind::Ident(indexed_ident.name)),
+                    },
+                    index: *indexed_ident.indices[0].clone(),
+                })
+            };
+
+            let expr = Expr {
+                span: indexed_ident.span,
+                kind: Box::new(kind),
+            };
+
+            Box::new(parse_gate_call_with_expr(s, expr)?)
+        }
     } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
         Box::new(stmt_kind)
     } else if let Some(stmt) = opt(s, |s| parse_expression_stmt(s, None))? {
@@ -1098,27 +1173,7 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
 /// Grammar: `(expression | assignExpr | AssignOpExpr) SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<ExprStmt> {
     let expr = if let Some(lhs) = lhs {
-        if opt(s, |s| token(s, TokenKind::Eq))?.is_some() {
-            let rhs = expr::expr(s)?;
-            Expr {
-                span: s.span(lhs.span.lo),
-                kind: Box::new(ExprKind::Assign(AssignExpr { lhs, rhs })),
-            }
-        } else if let TokenKind::BinOpEq(op) = s.peek().kind {
-            s.advance();
-            let op = expr::closed_bin_op(op);
-            let rhs = expr::expr(s)?;
-            Expr {
-                span: s.span(lhs.span.lo),
-                kind: Box::new(ExprKind::AssignOp(crate::ast::AssignOpExpr {
-                    op,
-                    lhs,
-                    rhs,
-                })),
-            }
-        } else {
-            expr::expr_with_lhs(s, lhs)?
-        }
+        expr::expr_with_lhs(s, lhs)?
     } else {
         expr::expr(s)?
     };
@@ -1289,6 +1344,51 @@ fn parse_gate_call_stmt(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::GateCall(GateCall {
         span: s.span(lo),
         modifiers,
+        name,
+        args,
+        qubits,
+        duration,
+    }))
+}
+
+/// This parser is used to disambiguate statements starting with an index
+/// identifier. It is a simplified version of `parse_gate_call_stmt`.
+fn parse_gate_call_with_expr(s: &mut ParserContext, gate_or_expr: Expr) -> Result<StmtKind> {
+    let lo = gate_or_expr.span.lo;
+    let mut duration = opt(s, designator)?;
+    let qubits = gate_operand_list(s)?;
+
+    // If didn't parse modifiers, a duration, nor qubit args then this is an expr, not a gate call.
+    if duration.is_none() && qubits.is_empty() {
+        return Ok(StmtKind::ExprStmt(parse_expression_stmt(
+            s,
+            Some(gate_or_expr),
+        )?));
+    }
+
+    // We parse the recovering semi after we call parse_expr_stmt.
+    recovering_semi(s);
+
+    // Reinterpret the function call or ident as a gate call.
+    let (name, args) = match *gate_or_expr.kind {
+        ExprKind::FunctionCall(FunctionCall { name, args, .. }) => (name, args),
+        ExprKind::Ident(ident) => (ident, Default::default()),
+        ExprKind::IndexExpr(index_expr) => reinterpret_index_expr(index_expr, &mut duration)?,
+        _ => {
+            return Err(Error::new(ErrorKind::ExpectedItem(
+                TokenKind::Identifier,
+                gate_or_expr.span,
+            )))
+        }
+    };
+
+    if qubits.is_empty() {
+        s.push_error(Error::new(ErrorKind::MissingGateCallOperands(s.span(lo))));
+    }
+
+    Ok(StmtKind::GateCall(GateCall {
+        span: s.span(lo),
+        modifiers: Default::default(),
         name,
         args,
         qubits,

@@ -287,14 +287,27 @@ fn gate_call_with_invalid_designator() {
         parse,
         "H[2us][3] q;",
         &expect![[r#"
-            Error(
-                InvalidGateCallDesignator(
-                    Span {
-                        lo: 6,
-                        hi: 9,
-                    },
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: GateCall [0-12]:
+                    modifiers: <empty>
+                    name: Ident [0-1] "H"
+                    args: <empty>
+                    duration: Expr [2-5]: Lit: Duration(2.0, Us)
+                    qubits:
+                        IndexedIdent [10-11]:
+                            name: Ident [10-11] "q"
+                            indices: <empty>
+
+            [
+                Error(
+                    MultipleIndexOperators(
+                        Span {
+                            lo: 0,
+                            hi: 9,
+                        },
+                    ),
                 ),
-            )
-        "#]],
+            ]"#]],
     );
 }
