@@ -232,6 +232,7 @@ const _opToMetadata = (
   if (isAdjoint && metadata.label.length > 0) metadata.label += "'";
 
   // If gate has extra arguments, display them
+  // For now, we only display the first argument
   if (args !== undefined && args.length > 0) metadata.displayArgs = args[0];
 
   // Set gate width
