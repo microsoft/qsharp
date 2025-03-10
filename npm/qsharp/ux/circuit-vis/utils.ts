@@ -96,14 +96,15 @@ const getChildTargets = (operation: Operation): Register[] | [] => {
     registers.push(...operation.targets);
     if (operation.controls) {
       registers.push(...operation.controls);
-      // If there is more children, keep adding more to registers
-      if (operation.children) {
-        operation.children.forEach((col) =>
-          col.components.forEach((child) => {
-            _recurse(child);
-          }),
-        );
-      }
+    }
+
+    // If there is more children, keep adding more to registers
+    if (operation.children) {
+      operation.children.forEach((col) =>
+        col.components.forEach((child) => {
+          _recurse(child);
+        }),
+      );
     }
   };
 
