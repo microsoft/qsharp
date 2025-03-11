@@ -30,7 +30,24 @@ fn if_condition_missing_parens() {
 
 #[test]
 fn decl_in_if_condition() {
-    check(parse, "if (int[8] myvar = 1) { x $0; }", &expect![]);
+    check(
+        parse,
+        "if (int[8] myvar = 1) { x $0; }",
+        &expect![[r#"
+        Error(
+            Token(
+                Open(
+                    Paren,
+                ),
+                Identifier,
+                Span {
+                    lo: 11,
+                    hi: 16,
+                },
+            ),
+        )
+    "#]],
+    );
 }
 
 #[test]
@@ -105,20 +122,84 @@ fn binary_op_assignment_in_if_condition() {
 
 #[test]
 fn empty_if_block() {
-    check(parse, "if (true);", &expect![]);
+    check(
+        parse,
+        "if (true);",
+        &expect![[r#"
+        Stmt [0-10]:
+            annotations: <empty>
+            kind: IfStmt [0-10]:
+                condition: Expr [4-8]: Lit: Bool(true)
+                if_block:
+                    Stmt [9-10]:
+                        annotations: <empty>
+                        kind: Empty
+                else_block: <none>"#]],
+    );
 }
 
 #[test]
 fn empty_if_block_else() {
-    check(parse, "if (true) else x $0;", &expect![]);
+    check(
+        parse,
+        "if (true) else x $0;",
+        &expect![[r#"
+        Error(
+            Rule(
+                "statement",
+                Keyword(
+                    Else,
+                ),
+                Span {
+                    lo: 10,
+                    hi: 14,
+                },
+            ),
+        )
+    "#]],
+    );
 }
 
 #[test]
 fn empty_if_block_else_with_condition() {
-    check(parse, "if (true) else (false) x $0;", &expect![]);
+    check(
+        parse,
+        "if (true) else (false) x $0;",
+        &expect![[r#"
+        Error(
+            Rule(
+                "statement",
+                Keyword(
+                    Else,
+                ),
+                Span {
+                    lo: 10,
+                    hi: 14,
+                },
+            ),
+        )
+    "#]],
+    );
 }
 
 #[test]
 fn reset_in_if_condition() {
-    check(parse, "if (reset $0) { x $1; }", &expect![]);
+    check(
+        parse,
+        "if (reset $0) { x $1; }",
+        &expect![[r#"
+        Error(
+            Rule(
+                "expression",
+                Keyword(
+                    Reset,
+                ),
+                Span {
+                    lo: 4,
+                    hi: 9,
+                },
+            ),
+        )
+    "#]],
+    );
 }
