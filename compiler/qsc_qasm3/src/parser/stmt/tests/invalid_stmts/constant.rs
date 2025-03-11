@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn const_decl_missing_type_and_init() {
-    check(parse, "const myvar;", &expect![[r#"
+    check(
+        parse,
+        "const myvar;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -17,12 +20,16 @@ fn const_decl_missing_type_and_init() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn const_decl_eq_missing_type_and_init() {
-    check(parse, "const myvar = ;", &expect![[r#"
+    check(
+        parse,
+        "const myvar = ;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -33,12 +40,16 @@ fn const_decl_eq_missing_type_and_init() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn const_decl_missing_type() {
-    check(parse, "const myvar = 8.0;", &expect![[r#"
+    check(
+        parse,
+        "const myvar = 8.0;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -49,12 +60,16 @@ fn const_decl_missing_type() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_input() {
-    check(parse, "input const myvar = 8;", &expect![[r#"
+    check(
+        parse,
+        "input const myvar = 8;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -67,12 +82,16 @@ fn invalid_input() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_output() {
-    check(parse, "output const myvar = 8;", &expect![[r#"
+    check(
+        parse,
+        "output const myvar = 8;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -85,12 +104,16 @@ fn invalid_output() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_const_input() {
-    check(parse, "const input myvar = 8;", &expect![[r#"
+    check(
+        parse,
+        "const input myvar = 8;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -103,12 +126,16 @@ fn invalid_const_input() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_const_output() {
-    check(parse, "const output myvar = 8;", &expect![[r#"
+    check(
+        parse,
+        "const output myvar = 8;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -121,5 +148,6 @@ fn invalid_const_output() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }

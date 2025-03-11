@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn input_missing_ident() {
-    check(parse, "input int[8];", &expect![[r#"
+    check(
+        parse,
+        "input int[8];",
+        &expect![[r#"
         Error(
             Rule(
                 "identifier",
@@ -17,12 +20,16 @@ fn input_missing_ident() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn output_missing_ident() {
-    check(parse, "output int[8];", &expect![[r#"
+    check(
+        parse,
+        "output int[8];",
+        &expect![[r#"
         Error(
             Rule(
                 "identifier",
@@ -33,12 +40,16 @@ fn output_missing_ident() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn input_qreg_missing_ident() {
-    check(parse, "input qreg myvar[4];", &expect![[r#"
+    check(
+        parse,
+        "input qreg myvar[4];",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -51,12 +62,16 @@ fn input_qreg_missing_ident() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn output_qreg_missing_ident() {
-    check(parse, "output qreg myvar[4];", &expect![[r#"
+    check(
+        parse,
+        "output qreg myvar[4];",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -69,12 +84,16 @@ fn output_qreg_missing_ident() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn initialized_input() {
-    check(parse, "input int[8] myvar = 32;", &expect![[r#"
+    check(
+        parse,
+        "input int[8] myvar = 32;",
+        &expect![[r#"
         Stmt [0-18]:
             annotations: <empty>
             kind: IODeclaration [0-18]:
@@ -94,12 +113,16 @@ fn initialized_input() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn initialized_output() {
-    check(parse, "output int[8] myvar = 32;", &expect![[r#"
+    check(
+        parse,
+        "output int[8] myvar = 32;",
+        &expect![[r#"
         Stmt [0-19]:
             annotations: <empty>
             kind: IODeclaration [0-19]:
@@ -119,12 +142,16 @@ fn initialized_output() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn input_missing_type() {
-    check(parse, "input myvar;", &expect![[r#"
+    check(
+        parse,
+        "input myvar;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -135,12 +162,16 @@ fn input_missing_type() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn output_missing_type() {
-    check(parse, "output myvar;", &expect![[r#"
+    check(
+        parse,
+        "output myvar;",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar or array type",
@@ -151,5 +182,6 @@ fn output_missing_type() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }

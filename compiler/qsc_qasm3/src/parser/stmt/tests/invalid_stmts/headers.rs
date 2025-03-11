@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn invalid_version_type() {
-    check(parse, "OPENQASM int;", &expect![[r#"
+    check(
+        parse,
+        "OPENQASM int;",
+        &expect![[r#"
         Error(
             Rule(
                 "statement",
@@ -19,12 +22,16 @@ fn invalid_version_type() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_version_literal() {
-    check(parse, "OPENQASM 'hello, world';", &expect![[r#"
+    check(
+        parse,
+        "OPENQASM 'hello, world';",
+        &expect![[r#"
         Error(
             Rule(
                 "statement",
@@ -37,12 +44,16 @@ fn invalid_version_literal() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_version_missing_dot() {
-    check(parse, "OPENQASM 3 3;", &expect![[r#"
+    check(
+        parse,
+        "OPENQASM 3 3;",
+        &expect![[r#"
         Error(
             Rule(
                 "statement",
@@ -55,12 +66,16 @@ fn invalid_version_missing_dot() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn invalid_version() {
-    check(parse, "OPENQASM 3.x;", &expect![[r#"
+    check(
+        parse,
+        "OPENQASM 3.x;",
+        &expect![[r#"
         Error(
             Rule(
                 "statement",
@@ -73,12 +88,16 @@ fn invalid_version() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn include_int() {
-    check(parse, "include 3;", &expect![[r#"
+    check(
+        parse,
+        "include 3;",
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -93,12 +112,16 @@ fn include_int() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn include_include() {
-    check(parse, "include include;", &expect![[r#"
+    check(
+        parse,
+        "include include;",
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -125,12 +148,16 @@ fn include_include() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn include_def() {
-    check(parse, "include def;", &expect![[r#"
+    check(
+        parse,
+        "include def;",
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -157,12 +184,16 @@ fn include_def() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn unclosed_string() {
-    check(parse, r#"include "hello;"#, &expect![[r#"
+    check(
+        parse,
+        r#"include "hello;"#,
+        &expect![[r#"
         Error(
             Rule(
                 "string literal",
@@ -195,5 +226,6 @@ fn unclosed_string() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }

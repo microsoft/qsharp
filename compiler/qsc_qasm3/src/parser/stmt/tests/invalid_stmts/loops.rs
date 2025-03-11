@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn for_missing_var_type() {
-    check(parse, "for myvar in { 1, 2, 3 };", &expect![[r#"
+    check(
+        parse,
+        "for myvar in { 1, 2, 3 };",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -17,7 +20,8 @@ fn for_missing_var_type() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -42,7 +46,10 @@ fn for_multiple_vars() {
 
 #[test]
 fn for_missing_var_type_and_invalid_collection() {
-    check(parse, "for myvar in { x $0; } { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for myvar in { x $0; } { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -53,12 +60,16 @@ fn for_missing_var_type_and_invalid_collection() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_missing_var_type_and_keyword_in_collection() {
-    check(parse, "for myvar in for { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for myvar in for { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -69,12 +80,16 @@ fn for_missing_var_type_and_keyword_in_collection() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_bad_syntax() {
-    check(parse, "for myvar { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for myvar { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -85,12 +100,16 @@ fn for_bad_syntax() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_with_while_syntax() {
-    check(parse, "for (true) { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for (true) { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -103,12 +122,16 @@ fn for_with_while_syntax() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_missing_var_and_collection() {
-    check(parse, "for { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -121,12 +144,16 @@ fn for_missing_var_and_collection() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_invalid_var_name() {
-    check(parse, "for for in { 1, 2, 3 } { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for for in { 1, 2, 3 } { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -139,12 +166,16 @@ fn for_invalid_var_name() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn for_missing_var() {
-    check(parse, "for in { 1, 2, 3 } { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "for in { 1, 2, 3 } { x $0; }",
+        &expect![[r#"
         Error(
             Rule(
                 "scalar type",
@@ -157,12 +188,16 @@ fn for_missing_var() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn while_missing_parens() {
-    check(parse, "while true { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "while true { x $0; }",
+        &expect![[r#"
         Error(
             Token(
                 Open(
@@ -177,12 +212,16 @@ fn while_missing_parens() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn while_multi_condition() {
-    check(parse, "while (true) (true) { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "while (true) (true) { x $0; }",
+        &expect![[r#"
         Stmt [0-19]:
             annotations: <empty>
             kind: WhileLoop [0-19]:
@@ -206,12 +245,16 @@ fn while_multi_condition() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn while_with_for_syntax() {
-    check(parse, "while x in { 1, 2, 3 } { x $0; }", &expect![[r#"
+    check(
+        parse,
+        "while x in { 1, 2, 3 } { x $0; }",
+        &expect![[r#"
         Error(
             Token(
                 Open(
@@ -224,12 +267,16 @@ fn while_with_for_syntax() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn while_missing_body() {
-    check(parse, "while (true);", &expect![[r#"
+    check(
+        parse,
+        "while (true);",
+        &expect![[r#"
         Stmt [0-13]:
             annotations: <empty>
             kind: WhileLoop [0-13]:
@@ -237,5 +284,6 @@ fn while_missing_body() {
                 block:
                     Stmt [12-13]:
                         annotations: <empty>
-                        kind: Empty"#]]);
+                        kind: Empty"#]],
+    );
 }

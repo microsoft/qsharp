@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn measure_multiple_qubits() {
-    check(parse, "measure $0, $1;", &expect![[r#"
+    check(
+        parse,
+        "measure $0, $1;",
+        &expect![[r#"
         Stmt [0-10]:
             annotations: <empty>
             kind: MeasureStmt [0-10]:
@@ -25,12 +28,16 @@ fn measure_multiple_qubits() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn assign_measure_multiple_qubits() {
-    check(parse, "a[0:1] = measure $0, $1;", &expect![[r#"
+    check(
+        parse,
+        "a[0:1] = measure $0, $1;",
+        &expect![[r#"
         Error(
             Rule(
                 "expression",
@@ -41,12 +48,16 @@ fn assign_measure_multiple_qubits() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn assign_arrow() {
-    check(parse, "a = measure $0 -> b;", &expect![[r#"
+    check(
+        parse,
+        "a = measure $0 -> b;",
+        &expect![[r#"
         Error(
             Rule(
                 "expression",
@@ -57,12 +68,16 @@ fn assign_arrow() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn initialized_creg() {
-    check(parse, "creg a[1] = measure $0;", &expect![[r#"
+    check(
+        parse,
+        "creg a[1] = measure $0;",
+        &expect![[r#"
         Stmt [0-9]:
             annotations: <empty>
             kind: ClassicalDeclarationStmt [0-9]:
@@ -82,12 +97,16 @@ fn initialized_creg() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn invalid_arrow_target() {
-    check(parse, "measure $0 -> creg a[1];", &expect![[r#"
+    check(
+        parse,
+        "measure $0 -> creg a[1];",
+        &expect![[r#"
         Error(
             Rule(
                 "identifier",
@@ -100,8 +119,12 @@ fn invalid_arrow_target() {
                 },
             ),
         )
-    "#]]);
-    check(parse, "measure $0 -> bit[1] a;", &expect![[r#"
+    "#]],
+    );
+    check(
+        parse,
+        "measure $0 -> bit[1] a;",
+        &expect![[r#"
         Error(
             Rule(
                 "identifier",
@@ -114,12 +137,16 @@ fn invalid_arrow_target() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn measure_cant_be_used_in_sub_expressions() {
-    check(parse, "a = 2 * measure $0;", &expect![[r#"
+    check(
+        parse,
+        "a = 2 * measure $0;",
+        &expect![[r#"
         Error(
             Rule(
                 "expression",
@@ -130,8 +157,12 @@ fn measure_cant_be_used_in_sub_expressions() {
                 },
             ),
         )
-    "#]]);
-    check(parse, "a = (measure $0) + (measure $1);", &expect![[r#"
+    "#]],
+    );
+    check(
+        parse,
+        "a = (measure $0) + (measure $1);",
+        &expect![[r#"
         Error(
             Token(
                 Close(
@@ -144,5 +175,6 @@ fn measure_cant_be_used_in_sub_expressions() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }

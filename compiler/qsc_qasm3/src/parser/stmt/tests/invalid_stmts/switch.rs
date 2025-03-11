@@ -6,7 +6,10 @@ use expect_test::expect;
 
 #[test]
 fn missing_target() {
-    check(parse, "switch () {}", &expect![[r#"
+    check(
+        parse,
+        "switch () {}",
+        &expect![[r#"
         Error(
             Rule(
                 "expression",
@@ -19,12 +22,16 @@ fn missing_target() {
                 },
             ),
         )
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
 fn missing_cases() {
-    check(parse, "switch (i) { x $0 }", &expect![[r#"
+    check(
+        parse,
+        "switch (i) { x $0 }",
+        &expect![[r#"
         Stmt [0-19]:
             annotations: <empty>
             kind: SwitchStmt [0-19]:
@@ -53,12 +60,16 @@ fn missing_cases() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn missing_case_labels() {
-    check(parse, "switch (i) { case {} }", &expect![[r#"
+    check(
+        parse,
+        "switch (i) { case {} }",
+        &expect![[r#"
         Stmt [0-22]:
             annotations: <empty>
             kind: SwitchStmt [0-22]:
@@ -78,12 +89,16 @@ fn missing_case_labels() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn invalid_label_sequence() {
-    check(parse, "switch (i) { case 1,, {} }", &expect![[r#"
+    check(
+        parse,
+        "switch (i) { case 1,, {} }",
+        &expect![[r#"
         Stmt [0-26]:
             annotations: <empty>
             kind: SwitchStmt [0-26]:
@@ -105,12 +120,16 @@ fn invalid_label_sequence() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn default_case_with_label() {
-    check(parse, "switch (i) { default 0 {} }", &expect![[r#"
+    check(
+        parse,
+        "switch (i) { default 0 {} }",
+        &expect![[r#"
         Error(
             Token(
                 Open(
@@ -137,12 +156,16 @@ fn default_case_with_label() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
 fn bad_case_syntax() {
-    check(parse, "switch (i) { default, default {} }", &expect![[r#"
+    check(
+        parse,
+        "switch (i) { default, default {} }",
+        &expect![[r#"
         Error(
             Token(
                 Open(
@@ -165,5 +188,6 @@ fn bad_case_syntax() {
                     },
                 ),
             ),
-        ]"#]]);
+        ]"#]],
+    );
 }
