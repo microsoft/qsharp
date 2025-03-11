@@ -195,7 +195,7 @@ fn disambiguate_type(s: &mut ParserContext, ty: TypeDef) -> Result<StmtKind> {
 
 /// This helper function allows us to disambiguate between
 /// assignments, assignment operations, gate calls, and
-/// expr_stmts beginning with an ident or a function call
+/// `expr_stmts` beginning with an ident or a function call
 /// when reading an `Ident`.
 fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Result<StmtKind> {
     let lo = indexed_ident.span.lo;
@@ -553,6 +553,8 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
     Ok(kind)
 }
 
+/// Grammar:
+/// `(READONLY | MUTABLE) ARRAY LBRACKET scalarType COMMA (expressionList | DIM EQUALS expression) RBRACKET`.
 fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     let lo = s.peek().span.lo;
 
@@ -589,6 +591,7 @@ fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     })
 }
 
+/// Grammar: `ARROW scalarType`.
 fn return_sig(s: &mut ParserContext) -> Result<ScalarType> {
     token(s, TokenKind::Arrow)?;
     scalar_type(s)
@@ -645,6 +648,7 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
+/// Grammar: `QUBIT designator?`.
 fn qubit_type(s: &mut ParserContext<'_>) -> Result<Option<Expr>> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Qubit))?;
     let size = opt(s, designator)?;
@@ -681,6 +685,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::IODeclaration(decl))
 }
 
+/// Grammar `(scalarType | arrayType)`.
 pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     if let Ok(v) = scalar_type(s) {
         return Ok(TypeDef::Scalar(v));
@@ -738,6 +743,8 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::ConstDecl(decl))
 }
 
+/// The Spec and the grammar differ in the base type for arrays. We followed the Spec.
+/// Grammar: `ARRAY LBRACKET arrayBaseType COMMA expressionList RBRACKET`.
 pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Type(Type::Array))?;
@@ -754,6 +761,17 @@ pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
     })
 }
 
+/// The Spec for 3.0, main Spec, and the grammar differ in the base type for arrays.
+/// We followed the main Spec.
+/// Grammar:
+/// | INT designator?
+/// | UINT designator?
+/// | FLOAT designator?
+/// | ANGLE designator?
+/// | BOOL
+/// | DURATION
+/// | COMPLEX (LBRACKET scalarType RBRACKET)?
+/// Reference: <https://openqasm.com/language/types.html#arrays>.
 pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
     if let Ok(v) = array_angle_type(s) {
         return Ok(v);
@@ -784,6 +802,18 @@ pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind
     )))
 }
 
+/// Grammar:
+/// ```g4
+/// BIT designator?
+/// | INT designator?
+/// | UINT designator?
+/// | FLOAT designator?
+/// | ANGLE designator?
+/// | BOOL
+/// | DURATION
+/// | STRETCH
+/// | COMPLEX (LBRACKET scalarType RBRACKET)?
+/// ```
 pub(super) fn scalar_type(s: &mut ParserContext) -> Result<ScalarType> {
     if let Ok(v) = scalar_bit_type(s) {
         return Ok(v);
@@ -1196,7 +1226,8 @@ fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
     }
 }
 
-/// Grammar: `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
+/// Grammar:
+/// `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
 pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let lo = s.peek().span.lo;
@@ -1526,7 +1557,8 @@ fn reinterpret_index_expr(
     )))
 }
 
-/// Grammar: `gateModifier* GPHASE (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON`
+/// Grammar:
+/// `gateModifier* GPHASE (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON`
 fn parse_gphase(
     s: &mut ParserContext,
     lo: u32,
