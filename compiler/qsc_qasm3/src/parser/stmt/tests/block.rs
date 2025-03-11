@@ -5,10 +5,10 @@ use crate::parser::stmt::parse_block;
 use crate::parser::tests::check;
 use expect_test::expect;
 
-
 #[test]
 fn nested_blocks() {
-    check(parse_block,
+    check(
+        parse_block,
         "
     {
         {
@@ -17,7 +17,8 @@ fn nested_blocks() {
                 x = 2;
             }
         }
-    }", &expect![[r#"
+    }",
+        &expect![[r#"
         Block [5-106]:
             Stmt [15-100]:
                 annotations: <empty>
@@ -38,5 +39,6 @@ fn nested_blocks() {
                                     lhs: IndexedIdent [70-71]:
                                         name: Ident [70-71] "x"
                                         indices: <empty>
-                                    rhs: Expr [74-75]: Lit: Int(2)"#]]);
+                                    rhs: Expr [74-75]: Lit: Int(2)"#]],
+    );
 }
