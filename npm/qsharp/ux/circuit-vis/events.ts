@@ -144,7 +144,7 @@ class CircuitEvents {
           // If we are moving a control, remove it from the selectedOperation
           if (
             this.movingControl &&
-            this.selectedOperation.kind === "Unitary" &&
+            this.selectedOperation.kind === "unitary" &&
             this.selectedOperation.controls != null &&
             this.selectedWire != null
           ) {
@@ -399,11 +399,11 @@ class CircuitEvents {
     ) {
       removeQubitLineButton.addEventListener("click", () => {
         const check = (op: Operation) => {
-          const targets = op.kind === "Measurement" ? op.results : op.targets;
+          const targets = op.kind === "measurement" ? op.results : op.targets;
           if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
             return true;
           }
-          const controls = op.kind === "Measurement" ? op.qubits : op.controls;
+          const controls = op.kind === "measurement" ? op.qubits : op.controls;
           if (
             controls &&
             controls.some((reg) => reg.qubit == this.qubits.length - 1)
@@ -455,7 +455,7 @@ class CircuitEvents {
         dropzone.addEventListener("click", () => {
           if (
             this.selectedOperation != null &&
-            this.selectedOperation.kind === "Unitary"
+            this.selectedOperation.kind === "unitary"
           ) {
             const successful = addControl(this.selectedOperation, wireIndex);
             this.selectedOperation = null;
@@ -493,7 +493,7 @@ class CircuitEvents {
       dropzone.addEventListener("click", () => {
         if (
           this.selectedOperation != null &&
-          this.selectedOperation.kind === "Unitary"
+          this.selectedOperation.kind === "unitary"
         ) {
           const successful = removeControl(
             this.selectedOperation,

@@ -57,7 +57,7 @@ const addContextMenuToHostElem = (
     });
 
     if (
-      selectedOperation.kind === "Measurement" ||
+      selectedOperation.kind === "measurement" ||
       selectedOperation.gate == "|0〉" ||
       selectedOperation.gate == "|1〉"
     ) {
@@ -73,13 +73,13 @@ const addContextMenuToHostElem = (
       contextMenu.appendChild(removeControlOption!);
     } else {
       const adjointOption = _createContextMenuItem("Toggle Adjoint", () => {
-        if (selectedOperation.kind !== "Unitary") return;
+        if (selectedOperation.kind !== "unitary") return;
         selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
         circuitEvents.renderFn();
       });
 
       const addControlOption = _createContextMenuItem("Add control", () => {
-        if (selectedOperation.kind !== "Unitary") return;
+        if (selectedOperation.kind !== "unitary") return;
         circuitEvents._startAddingControl(selectedOperation);
       });
 

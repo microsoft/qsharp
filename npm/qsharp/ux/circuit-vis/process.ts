@@ -63,9 +63,9 @@ const processOperations = (
           });
 
         const targets =
-          op.kind === "Measurement"
+          op.kind === "measurement"
             ? op.qubits
-            : op.kind == "Unitary"
+            : op.kind == "unitary"
               ? op.targets
               : [];
 
@@ -105,7 +105,7 @@ const _getClassicalRegStart = (
   const clsRegs: [number, Register][] = [];
   componentGrid.forEach((col, colIndex) => {
     col.components.forEach((op) => {
-      if (op.kind === "Measurement") {
+      if (op.kind === "measurement") {
         const resultRegs: Register[] = op.results.filter(
           ({ result }) => result !== undefined,
         );
@@ -140,7 +140,7 @@ const _opToMetadata = (
 
   if (op == null) return metadata;
 
-  const isMeasurement = op.kind === "Measurement";
+  const isMeasurement = op.kind === "measurement";
   const isAdjoint = isMeasurement ? false : (op.isAdjoint ?? false);
   const controls = isMeasurement ? op.qubits : op.controls;
   const targets = isMeasurement ? op.results : op.targets;
@@ -520,7 +520,7 @@ const getMinMaxRegIdx = (
   maxQId: number,
 ): [number, number] => {
   const { targets, controls } =
-    operation.kind === "Measurement"
+    operation.kind === "measurement"
       ? { targets: operation.results, controls: operation.qubits }
       : { targets: operation.targets, controls: operation.controls };
   const ctrls: Register[] = controls || [];

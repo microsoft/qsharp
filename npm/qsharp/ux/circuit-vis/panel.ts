@@ -204,7 +204,7 @@ const toMetadata = (
 
   if (operation === undefined) return metadata;
 
-  const isMeasurement = operation.kind === "Measurement";
+  const isMeasurement = operation.kind === "measurement";
   const controls = isMeasurement ? undefined : operation.controls;
   const { gate, args } = operation;
 
@@ -281,7 +281,7 @@ interface GateDictionary {
  */
 const _makeUnitary = (gate: string): Unitary => {
   return {
-    kind: "Unitary",
+    kind: "unitary",
     gate: gate,
     targets: [{ qubit: 0 }],
   };
@@ -301,7 +301,7 @@ const defaultGateDictionary: GateDictionary = {
   S: _makeUnitary("S"),
   T: _makeUnitary("T"),
   Measure: {
-    kind: "Measurement",
+    kind: "measurement",
     gate: "Measure",
     qubits: [{ qubit: 0 }],
     results: [{ qubit: 0, result: 0 }],

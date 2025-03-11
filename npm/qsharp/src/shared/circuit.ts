@@ -78,7 +78,7 @@ export interface BaseOperation {
 
 export interface Measurement extends BaseOperation {
   /** Discriminator for the Operation type */
-  kind: "Measurement";
+  kind: "measurement";
   qubits: Register[];
   results: Register[];
 }
@@ -88,7 +88,7 @@ export interface Measurement extends BaseOperation {
  */
 export interface Unitary extends BaseOperation {
   /** Discriminator for the Operation type */
-  kind: "Unitary";
+  kind: "unitary";
   /** Target registers the gate acts on. */
   targets: Register[];
   /** Control registers the gate acts on. */

@@ -93,10 +93,10 @@ const _getStringWidth = (
  */
 const getChildTargets = (operation: Operation): Register[] | [] => {
   const _recurse = (operation: Operation) => {
-    if (operation.kind === "Measurement") {
+    if (operation.kind === "measurement") {
       registers.push(...operation.qubits);
       registers.push(...operation.results);
-    } else if (operation.kind === "Unitary") {
+    } else if (operation.kind === "unitary") {
       registers.push(...operation.targets);
       if (operation.controls) {
         registers.push(...operation.controls);

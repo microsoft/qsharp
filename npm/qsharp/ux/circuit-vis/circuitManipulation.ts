@@ -130,7 +130,7 @@ const _moveY = (
   targetWire: number,
   movingControl: boolean,
 ): void => {
-  if (sourceOperation.kind === "Measurement") {
+  if (sourceOperation.kind === "measurement") {
     _removeMeasurementLines(circuitEvents, sourceOperation);
     _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
   } else {
@@ -154,11 +154,11 @@ const _moveY = (
     sourceLocation,
   );
   if (parentOperation) {
-    if (parentOperation.kind === "Measurement") {
+    if (parentOperation.kind === "measurement") {
       // Note: this is very confusing with measurements. Maybe the right thing to do
       // will become more apparent if we implement expandable measurements.
       parentOperation.results = getChildTargets(parentOperation);
-    } else if (parentOperation.kind === "Unitary") {
+    } else if (parentOperation.kind === "unitary") {
       parentOperation.targets = getChildTargets(parentOperation);
     }
   }
@@ -202,7 +202,7 @@ const addOperation = (
     targetWire,
     insertNewColumn,
   );
-  if (newSourceOperation.kind === "Unitary") {
+  if (newSourceOperation.kind === "unitary") {
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
@@ -341,7 +341,7 @@ const _addOp = (
   const newSourceOperation: Operation = JSON.parse(
     JSON.stringify(sourceOperation),
   );
-  if (newSourceOperation.kind === "Measurement") {
+  if (newSourceOperation.kind === "measurement") {
     _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
   }
   const [colIndex, opIndex] = targetLastIndex;
@@ -396,7 +396,7 @@ const _removeOp = (
     }
   }
 
-  if (sourceOperation.kind === "Measurement") {
+  if (sourceOperation.kind === "measurement") {
     _removeMeasurementLines(circuitEvents, sourceOperation);
   }
 };
@@ -442,7 +442,7 @@ const _removeMeasurementLines = (
       for (const col of circuitEvents.componentGrid) {
         for (const comp of col.components) {
           const controls =
-            comp.kind === "Measurement" ? comp.qubits : comp.controls;
+            comp.kind === "measurement" ? comp.qubits : comp.controls;
           if (controls) {
             for (const control of controls) {
               if (
@@ -455,7 +455,7 @@ const _removeMeasurementLines = (
             }
           }
           const targets =
-            comp.kind === "Measurement" ? comp.results : comp.targets;
+            comp.kind === "measurement" ? comp.results : comp.targets;
           for (const targetReg of targets) {
             if (
               targetReg.qubit === result.qubit &&
