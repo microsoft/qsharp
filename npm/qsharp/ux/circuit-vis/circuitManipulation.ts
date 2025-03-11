@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ComponentGrid, Operation } from "./circuit";
+import { ComponentGrid, Measurement, Operation, Unitary } from "./circuit";
 import { CircuitEvents } from "./events";
 import {
   findOperation,
   findParentArray,
   findParentOperation,
-  getGateTargets,
+  getChildTargets,
   locationStringToIndexes,
 } from "./utils";
 
@@ -73,17 +73,17 @@ const _moveX = (
   insertNewColumn: boolean = false,
 ): Operation | null => {
   const sourceOperation = findOperation(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     sourceLocation,
   );
   if (!insertNewColumn && sourceLocation === targetLocation)
     return sourceOperation;
   const sourceOperationParent = findParentArray(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     sourceLocation,
   );
   const targetOperationParent = findParentArray(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     targetLocation,
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
@@ -130,7 +130,7 @@ const _moveY = (
   targetWire: number,
   movingControl: boolean,
 ): void => {
-  if (sourceOperation.isMeasurement) {
+  if (sourceOperation.kind === "Measurement") {
     _removeMeasurementLines(circuitEvents, sourceOperation);
     _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
   } else {
@@ -150,11 +150,17 @@ const _moveY = (
 
   // Update parent operation targets
   const parentOperation = findParentOperation(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     sourceLocation,
   );
   if (parentOperation) {
-    parentOperation.targets = getGateTargets(parentOperation);
+    if (parentOperation.kind === "Measurement") {
+      // Note: this is very confusing with measurements. Maybe the right thing to do
+      // will become more apparent if we implement expandable measurements.
+      parentOperation.results = getChildTargets(parentOperation);
+    } else if (parentOperation.kind === "Unitary") {
+      parentOperation.targets = getChildTargets(parentOperation);
+    }
   }
 };
 
@@ -176,7 +182,7 @@ const addOperation = (
   insertNewColumn: boolean = false,
 ): Operation | null => {
   const targetOperationParent = findParentArray(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     targetLocation,
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
@@ -196,7 +202,7 @@ const addOperation = (
     targetWire,
     insertNewColumn,
   );
-  if (!newSourceOperation.isMeasurement) {
+  if (newSourceOperation.kind === "Unitary") {
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
@@ -214,11 +220,11 @@ const removeOperation = (
   sourceLocation: string,
 ) => {
   const sourceOperation = findOperation(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     sourceLocation,
   );
   const sourceOperationParent = findParentArray(
-    circuitEvents.operationGrid,
+    circuitEvents.componentGrid,
     sourceLocation,
   );
 
@@ -274,11 +280,11 @@ const findAndRemoveOperations = (
 /**
  * Add a control to the specified operation on the given wire index.
  *
- * @param op The operation to which the control will be added.
+ * @param op The unitary operation to which the control will be added.
  * @param wireIndex The index of the wire where the control will be added.
  * @returns True if the control was added, false if it already existed.
  */
-const addControl = (op: Operation, wireIndex: number): boolean => {
+const addControl = (op: Unitary, wireIndex: number): boolean => {
   if (!op.controls) {
     op.controls = [];
   }
@@ -296,11 +302,11 @@ const addControl = (op: Operation, wireIndex: number): boolean => {
 /**
  * Remove a control from the specified operation on the given wire index.
  *
- * @param op The operation from which the control will be removed.
+ * @param op The unitary operation from which the control will be removed.
  * @param wireIndex The index of the wire where the control will be removed.
  * @returns True if the control was removed, false if it did not exist.
  */
-const removeControl = (op: Operation, wireIndex: number): boolean => {
+const removeControl = (op: Unitary, wireIndex: number): boolean => {
   if (op.controls) {
     const controlIndex = op.controls.findIndex(
       (control) => control.qubit === wireIndex,
@@ -335,7 +341,7 @@ const _addOp = (
   const newSourceOperation: Operation = JSON.parse(
     JSON.stringify(sourceOperation),
   );
-  if (newSourceOperation.isMeasurement) {
+  if (newSourceOperation.kind === "Measurement") {
     _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
   }
   const [colIndex, opIndex] = targetLastIndex;
@@ -390,67 +396,71 @@ const _removeOp = (
     }
   }
 
-  if (sourceOperation.isMeasurement) {
+  if (sourceOperation.kind === "Measurement") {
     _removeMeasurementLines(circuitEvents, sourceOperation);
   }
 };
 
 /**
- * Add a measurement line to the circuit and attach the source operation.
+ * Add a measurement line to the circuit and attach the source measurement.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param sourceOperation The operation to which the measurement line will be added.
+ * @param sourceMeasurement The measurement gate to which the measurement line will be added.
  * @param targetQubitWire The wire index to add the measurement line to.
  */
 const _addMeasurementLine = (
   circuitEvents: CircuitEvents,
-  sourceOperation: Operation,
+  sourceMeasurement: Measurement,
   targetQubitWire: number,
 ) => {
   const newNumResults = circuitEvents.qubits[targetQubitWire].numResults
     ? circuitEvents.qubits[targetQubitWire].numResults + 1
     : 1;
   circuitEvents.qubits[targetQubitWire].numResults = newNumResults;
-  sourceOperation.targets = [
+  sourceMeasurement.results = [
     {
       qubit: targetQubitWire,
       result: newNumResults - 1,
     },
   ];
-  sourceOperation.controls = [{ qubit: targetQubitWire }];
+  sourceMeasurement.qubits = [{ qubit: targetQubitWire }];
 };
 
 /**
  * Removes all measurement lines of a measure from the circuit and adjust the cIds of the other measurements.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param sourceOperation The operation from which the measurement lines will be removed.
+ * @param sourceMeasurement The measurement gate from which the measurement lines will be removed.
  */
 const _removeMeasurementLines = (
   circuitEvents: CircuitEvents,
-  sourceOperation: Operation,
+  sourceMeasurement: Measurement,
 ) => {
-  for (const target of sourceOperation.targets) {
-    const qubit = circuitEvents.qubits[target.qubit];
-    if (qubit.numResults != undefined && target.result != undefined) {
-      for (const col of circuitEvents.operationGrid) {
-        for (const op of col.components) {
-          if (op.controls) {
-            for (const control of op.controls) {
+  for (const result of sourceMeasurement.results) {
+    const qubit = circuitEvents.qubits[result.qubit];
+    if (qubit.numResults != undefined && result.result != undefined) {
+      for (const col of circuitEvents.componentGrid) {
+        for (const comp of col.components) {
+          const controls =
+            comp.kind === "Measurement" ? comp.qubits : comp.controls;
+          if (controls) {
+            for (const control of controls) {
               if (
-                control.qubit === target.qubit &&
+                control.qubit === result.qubit &&
                 control.result &&
-                control.result > target.result
+                control.result > result.result
               ) {
                 control.result--;
               }
             }
           }
-          for (const targetReg of op.targets) {
+          const targets =
+            comp.kind === "Measurement" ? comp.results : comp.targets;
+          for (const targetReg of targets) {
             if (
-              targetReg.qubit === target.qubit &&
+              targetReg.qubit === result.qubit &&
               targetReg.result &&
-              targetReg.result > target.result
+              targetReg.result > result.result
             ) {
               targetReg.result--;
             }

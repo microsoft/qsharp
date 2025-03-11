@@ -56,31 +56,51 @@ export interface Qubit {
 }
 
 /**
- * Represents an operation and the registers it acts on.
+ * Base type for operations.
  */
-export interface Operation {
+export interface BaseOperation {
   /** Gate label. */
   gate: string;
   /** Formatted gate arguments. */
   args?: string[];
   /** Nested operations within this operation. */
   children?: ComponentGrid;
-  /** Whether gate is a measurement operation. */
-  isMeasurement?: boolean;
-  /** Whether gate is a conditional operation. */
-  isConditional?: boolean;
-  /** Whether gate is an adjoint operation. */
-  isAdjoint?: boolean;
-  /** Control registers the gate acts on. */
-  controls?: Register[];
-  /** Target registers the gate acts on. */
-  targets: Register[];
-  /** Specify conditions on when to render operation. */
-  conditionalRender?: ConditionalRender;
+
   /** Custom data attributes to attach to gate element.
   Note that this is never written to file, so it is not part of the circuit schema */
   dataAttributes?: DataAttributes;
+
+  /** Whether gate is a conditional operation. */
+  isConditional?: boolean;
+  /** Specify conditions on when to render operation. */
+  conditionalRender?: ConditionalRender;
 }
+
+export interface Measurement extends BaseOperation {
+  /** Discriminator for the Operation type */
+  kind: "Measurement";
+  qubits: Register[];
+  results: Register[];
+}
+
+/**
+ * Represents an operation and the registers it acts on.
+ */
+export interface Unitary extends BaseOperation {
+  /** Discriminator for the Operation type */
+  kind: "Unitary";
+  /** Target registers the gate acts on. */
+  targets: Register[];
+  /** Control registers the gate acts on. */
+  controls?: Register[];
+  /** Whether gate is an adjoint operation. */
+  isAdjoint?: boolean;
+}
+
+/**
+ * Union type for operations.
+ */
+export type Operation = Unitary | Measurement;
 
 /**
  * Conditions on when to render the given operation.
