@@ -7,7 +7,6 @@ use expect_test::expect;
 #[test]
 fn exceed_max_operations() {
     let mut builder = Builder::new(Config {
-        base_profile: false,
         max_operations: 2,
     });
 
@@ -32,7 +31,6 @@ fn exceed_max_operations() {
 #[test]
 fn exceed_max_operations_deferred_measurements() {
     let mut builder = Builder::new(Config {
-        base_profile: true, // deferred measurements
         max_operations: 2,
     });
 
@@ -48,11 +46,10 @@ fn exceed_max_operations_deferred_measurements() {
 
     // The current behavior is to silently truncate the circuit
     // if it exceeds the maximum allowed number of operations.
-    // The measurement will be dropped.
+    // The second X will be dropped.
     expect![[r#"
-        q_0    ── X ──
-
-        q_1    ── X ──
+        q_0    ── X ──── M ──
+                         ╘═══
     "#]]
     .assert_eq(&circuit.to_string());
 }

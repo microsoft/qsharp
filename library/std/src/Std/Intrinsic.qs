@@ -265,38 +265,6 @@ operation I(target : Qubit) : Unit is Adj + Ctl {
 /// ```qsharp
 /// Measure([PauliZ], [qubit]);
 /// ```
-@Config(QubitReset)
-operation M(qubit : Qubit) : Result {
-    __quantum__qis__m__body(qubit)
-}
-
-/// # Summary
-/// Performs a measurement of a single qubit in the
-/// Pauli _Z_ basis.
-///
-/// # Input
-/// ## qubit
-/// Qubit to be measured.
-///
-/// # Output
-/// `Zero` if the +1 eigenvalue is observed, and `One` if
-/// the -1 eigenvalue is observed.
-///
-/// # Remarks
-/// The output result is given by
-/// the distribution
-/// $$
-/// \begin{align}
-///     \Pr(\texttt{Zero} | \ket{\psi}) =
-///         \braket{\psi | 0} \braket{0 | \psi}.
-/// \end{align}
-/// $$
-///
-/// Equivalent to:
-/// ```qsharp
-/// Measure([PauliZ], [qubit]);
-/// ```
-@Config(not QubitReset)
 operation M(qubit : Qubit) : Result {
     Measure([PauliZ], [qubit])
 }
@@ -326,7 +294,6 @@ operation M(qubit : Qubit) : Result {
 /// $N$ is the `Length(bases)`.
 /// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
 /// observed measurement effect is $(-1)^d$.
-@Config(QubitReset)
 operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
     if Length(bases) != Length(qubits) {
         fail "Arrays 'bases' and 'qubits' must be of the same length.";
@@ -348,50 +315,6 @@ operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         }
         __quantum__qis__mresetz__body(aux)
     }
-}
-
-/// # Summary
-/// Performs a joint measurement of one or more qubits in the
-/// specified Pauli bases.
-///
-/// If the basis array and qubit array are different lengths, then the
-/// operation will fail.
-///
-/// # Input
-/// ## bases
-/// Array of single-qubit Pauli values indicating the tensor product
-/// factors on each qubit.
-/// ## qubits
-/// Register of qubits to be measured.
-///
-/// # Output
-/// `Zero` if the +1 eigenvalue is observed, and `One` if
-/// the -1 eigenvalue is observed.
-///
-/// # Remarks
-/// The probability of getting `Zero` is
-/// $\bra{\psi} \frac{I + P_0 \otimes \ldots \otimes P_{N-1}}{2} \ket{\psi}$
-/// where $P_i$ is the $i$-th element of `bases`, and where
-/// $N$ is the `Length(bases)`.
-/// That is, measurement returns a `Result` $d$ such that the eigenvalue of the
-/// observed measurement effect is $(-1)^d$.
-@Config(not QubitReset)
-operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
-    if Length(bases) != Length(qubits) {
-        fail "Arrays 'bases' and 'qubits' must be of the same length.";
-    }
-    // Because Base Profile does not allow qubit reuse, we always allocate a new qubit
-    // and use entanglement to measure the state while collapsing the original target(s) and
-    // leaving it available for later operations.
-    use aux = Qubit();
-    within {
-        H(aux);
-    } apply {
-        for i in 0..Length(bases) - 1 {
-            EntangleForJointMeasure(bases[i], aux, qubits[i]);
-        }
-    }
-    __quantum__qis__mresetz__body(aux)
 }
 
 /// # Summary

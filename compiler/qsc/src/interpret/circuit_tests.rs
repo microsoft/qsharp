@@ -202,11 +202,10 @@ fn m_base_profile() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── H ──── Z ────────────────
-        q_1    ── H ──── ● ──── H ──── M ──
-                                       ╘═══
-    "]]
+    expect![[r#"
+        q_0    ── H ──── M ──
+                         ╘═══
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -597,14 +596,12 @@ fn operation_with_qubits_base_profile() {
         .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── H ──── ● ──── Z ──────────────────────────────
-        q_1    ───────── X ─────┼──────────── Z ────────────────
-        q_2    ── H ─────────── ● ──── H ─────┼───── M ─────────
-                                              │      ╘══════════
-        q_3    ── H ───────────────────────── ● ──── H ──── M ──
-                                                            ╘═══
-    "]]
+    expect![[r#"
+        q_0    ── H ──── ● ──── M ──
+                         │      ╘═══
+        q_1    ───────── X ──── M ──
+                                ╘═══
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -1071,29 +1068,22 @@ mod debugger_stepping {
         // be generated in Base Profile, but they are here, since
         // when running in tandem with the simulator, the resulting
         // circuit is intended to match the calls into the simulator.
-        //
-        // Note the circuit still looks different than what would be
-        // generated in Unrestricted Profile for the same code,
-        // due to conditional compilation in the standard library.
-        expect![["
+        expect![[r#"
             step:
             step:
             q_0
             step:
             q_0    ── H ──
             step:
-            q_0    ── H ──── Z ─────────────────────────
-            q_1    ── H ──── ● ──── H ──── M ──── |0〉 ──
-                                           ╘════════════
+            q_0    ── H ──── M ──
+                             ╘═══
             step:
-            q_0    ── H ──── Z ──── |0〉 ──────────────────
-            q_1    ── H ──── ● ───── H ───── M ──── |0〉 ──
-                                             ╘════════════
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
             step:
-            q_0    ── H ──── Z ──── |0〉 ──────────────────
-            q_1    ── H ──── ● ───── H ───── M ──── |0〉 ──
-                                             ╘════════════
-        "]]
+            q_0    ── H ──── M ──── |0〉 ──
+                             ╘════════════
+        "#]]
         .assert_eq(&circs);
     }
 
