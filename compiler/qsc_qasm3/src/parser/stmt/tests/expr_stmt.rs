@@ -40,28 +40,114 @@ fn assignment() {
         parse,
         "a = 1;",
         &expect![[r#"
-        Stmt [0-6]:
-            annotations: <empty>
-            kind: ExprStmt [0-6]:
-                expr: Expr [0-5]: AssignExpr:
-                    lhs: Expr [0-1]: Ident [0-1] "a"
+            Stmt [0-6]:
+                annotations: <empty>
+                kind: AssignStmt [0-6]:
+                    lhs: IndexedIdent [0-1]:
+                        name: Ident [0-1] "a"
+                        indices: <empty>
                     rhs: Expr [4-5]: Lit: Int(1)"#]],
     );
 }
 
 #[test]
-fn binary_assignment() {
+fn index_assignment() {
+    check(
+        parse,
+        "a[0] = 1;",
+        &expect![[r#"
+            Stmt [0-9]:
+                annotations: <empty>
+                kind: AssignStmt [0-9]:
+                    lhs: IndexedIdent [0-4]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                    rhs: Expr [7-8]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn multi_index_assignment() {
+    check(
+        parse,
+        "a[0][1] = 1;",
+        &expect![[r#"
+            Stmt [0-12]:
+                annotations: <empty>
+                kind: AssignStmt [0-12]:
+                    lhs: IndexedIdent [0-7]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                            IndexSet [5-6]:
+                                values:
+                                    Expr [5-6]: Lit: Int(1)
+                    rhs: Expr [10-11]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn assignment_op() {
     check(
         parse,
         "a += 1;",
         &expect![[r#"
-        Stmt [0-7]:
-            annotations: <empty>
-            kind: ExprStmt [0-7]:
-                expr: Expr [0-6]: AssignOpExpr:
+            Stmt [0-7]:
+                annotations: <empty>
+                kind: AssignOpStmt [0-7]:
                     op: Add
-                    lhs: Expr [0-1]: Ident [0-1] "a"
+                    lhs: IndexedIdent [0-1]:
+                        name: Ident [0-1] "a"
+                        indices: <empty>
                     rhs: Expr [5-6]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn index_assignment_op() {
+    check(
+        parse,
+        "a[0] += 1;",
+        &expect![[r#"
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: AssignOpStmt [0-10]:
+                    op: Add
+                    lhs: IndexedIdent [0-4]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                    rhs: Expr [8-9]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn multi_index_assignment_op() {
+    check(
+        parse,
+        "a[0][1] += 1;",
+        &expect![[r#"
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: AssignOpStmt [0-13]:
+                    op: Add
+                    lhs: IndexedIdent [0-7]:
+                        name: Ident [0-1] "a"
+                        indices:
+                            IndexSet [2-3]:
+                                values:
+                                    Expr [2-3]: Lit: Int(0)
+                            IndexSet [5-6]:
+                                values:
+                                    Expr [5-6]: Lit: Int(1)
+                    rhs: Expr [11-12]: Lit: Int(1)"#]],
     );
 }
 
@@ -73,15 +159,16 @@ fn assignment_and_unop() {
         &expect![[r#"
             Stmt [0-12]:
                 annotations: <empty>
-                kind: ExprStmt [0-12]:
-                    expr: Expr [0-11]: AssignExpr:
-                        lhs: Expr [0-1]: Ident [0-1] "c"
-                        rhs: Expr [4-11]: BinaryOpExpr:
-                            op: AndL
-                            lhs: Expr [4-5]: Ident [4-5] "a"
-                            rhs: Expr [9-11]: UnaryOpExpr:
-                                op: NotL
-                                expr: Expr [10-11]: Ident [10-11] "b""#]],
+                kind: AssignStmt [0-12]:
+                    lhs: IndexedIdent [0-1]:
+                        name: Ident [0-1] "c"
+                        indices: <empty>
+                    rhs: Expr [4-11]: BinaryOpExpr:
+                        op: AndL
+                        lhs: Expr [4-5]: Ident [4-5] "a"
+                        rhs: Expr [9-11]: UnaryOpExpr:
+                            op: NotL
+                            expr: Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
@@ -93,15 +180,16 @@ fn assignment_unop_and() {
         &expect![[r#"
             Stmt [0-12]:
                 annotations: <empty>
-                kind: ExprStmt [0-12]:
-                    expr: Expr [0-11]: AssignExpr:
-                        lhs: Expr [0-1]: Ident [0-1] "d"
-                        rhs: Expr [4-11]: BinaryOpExpr:
-                            op: AndL
-                            lhs: Expr [4-6]: UnaryOpExpr:
-                                op: NotL
-                                expr: Expr [5-6]: Ident [5-6] "a"
-                            rhs: Expr [10-11]: Ident [10-11] "b""#]],
+                kind: AssignStmt [0-12]:
+                    lhs: IndexedIdent [0-1]:
+                        name: Ident [0-1] "d"
+                        indices: <empty>
+                    rhs: Expr [4-11]: BinaryOpExpr:
+                        op: AndL
+                        lhs: Expr [4-6]: UnaryOpExpr:
+                            op: NotL
+                            expr: Expr [5-6]: Ident [5-6] "a"
+                        rhs: Expr [10-11]: Ident [10-11] "b""#]],
     );
 }
 
@@ -153,7 +241,7 @@ fn indexed_function_call() {
             Stmt [0-14]:
                 annotations: <empty>
                 kind: ExprStmt [0-14]:
-                    expr: Expr [0-13]: IndexExpr [10-13]:
+                    expr: Expr [0-13]: IndexExpr [0-13]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
                             args:
@@ -174,7 +262,7 @@ fn multi_indexed_function_call() {
             Stmt [0-17]:
                 annotations: <empty>
                 kind: ExprStmt [0-17]:
-                    expr: Expr [0-16]: IndexExpr [10-16]:
+                    expr: Expr [0-16]: IndexExpr [0-16]:
                         collection: Expr [0-10]: FunctionCall [0-10]:
                             name: Ident [0-4] "Name"
                             args:
@@ -209,11 +297,39 @@ fn index_expr() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: ExprStmt [0-8]:
-                    expr: Expr [0-7]: IndexExpr [4-7]:
+                    expr: Expr [0-7]: IndexExpr [0-7]:
                         collection: Expr [0-4]: Ident [0-4] "Name"
                         index: IndexSet [5-6]:
                             values:
                                 Expr [5-6]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn index_expr_with_multiple_index_operators_errors() {
+    check(
+        parse,
+        "Name[1][2];",
+        &expect![[r#"
+        Stmt [0-11]:
+            annotations: <empty>
+            kind: ExprStmt [0-11]:
+                expr: Expr [0-10]: IndexExpr [0-10]:
+                    collection: Expr [0-4]: Ident [0-4] "Name"
+                    index: IndexSet [5-6]:
+                        values:
+                            Expr [5-6]: Lit: Int(1)
+
+        [
+            Error(
+                MultipleIndexOperators(
+                    Span {
+                        lo: 0,
+                        hi: 10,
+                    },
+                ),
+            ),
+        ]"#]],
     );
 }
 

@@ -953,7 +953,7 @@ fn index_expr() {
     check_expr(
         "foo[1]",
         &expect![[r#"
-            Expr [0-6]: IndexExpr [3-6]:
+            Expr [0-6]: IndexExpr [0-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-5]:
                     values:
@@ -966,7 +966,7 @@ fn index_set() {
     check_expr(
         "foo[{1, 4, 5}]",
         &expect![[r#"
-            Expr [0-14]: IndexExpr [3-14]:
+            Expr [0-14]: IndexExpr [0-14]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: DiscreteSet [4-13]:
                     values:
@@ -981,7 +981,7 @@ fn index_multiple_ranges() {
     check_expr(
         "foo[1:5, 3:7, 4:8]",
         &expect![[r#"
-            Expr [0-18]: IndexExpr [3-18]:
+            Expr [0-18]: IndexExpr [0-18]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-17]:
                     values:
@@ -1005,7 +1005,7 @@ fn index_range() {
     check_expr(
         "foo[1:5:2]",
         &expect![[r#"
-            Expr [0-10]: IndexExpr [3-10]:
+            Expr [0-10]: IndexExpr [0-10]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-9]:
                     values:
@@ -1021,7 +1021,7 @@ fn index_full_range() {
     check_expr(
         "foo[:]",
         &expect![[r#"
-            Expr [0-6]: IndexExpr [3-6]:
+            Expr [0-6]: IndexExpr [0-6]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-5]:
                     values:
@@ -1037,7 +1037,7 @@ fn index_range_start() {
     check_expr(
         "foo[1:]",
         &expect![[r#"
-            Expr [0-7]: IndexExpr [3-7]:
+            Expr [0-7]: IndexExpr [0-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-6]:
                     values:
@@ -1053,7 +1053,7 @@ fn index_range_end() {
     check_expr(
         "foo[:5]",
         &expect![[r#"
-            Expr [0-7]: IndexExpr [3-7]:
+            Expr [0-7]: IndexExpr [0-7]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-6]:
                     values:
@@ -1069,7 +1069,7 @@ fn index_range_step() {
     check_expr(
         "foo[:2:]",
         &expect![[r#"
-            Expr [0-8]: IndexExpr [3-8]:
+            Expr [0-8]: IndexExpr [0-8]:
                 collection: Expr [0-3]: Ident [0-3] "foo"
                 index: IndexSet [4-7]:
                     values:

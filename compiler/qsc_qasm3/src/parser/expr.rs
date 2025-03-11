@@ -468,7 +468,7 @@ fn cast_op(s: &mut ParserContext, r#type: TypeDef) -> Result<ExprKind> {
 }
 
 fn index_expr(s: &mut ParserContext, lhs: Expr) -> Result<ExprKind> {
-    let lo = s.span(0).hi - 1;
+    let lo = lhs.span.lo;
     let index = index_element(s)?;
     recovering_token(s, TokenKind::Close(Delim::Bracket));
     Ok(ExprKind::IndexExpr(IndexExpr {

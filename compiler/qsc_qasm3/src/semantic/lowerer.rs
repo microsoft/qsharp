@@ -144,6 +144,12 @@ impl Lowerer {
             crate::ast::StmtKind::Alias(stmt) => {
                 super::ast::StmtKind::Alias(self.lower_alias(stmt)?)
             }
+            crate::ast::StmtKind::Assign(stmt) => {
+                super::ast::StmtKind::Assign(self.lower_assign(stmt)?)
+            }
+            crate::ast::StmtKind::AssignOp(stmt) => {
+                super::ast::StmtKind::AssignOp(self.lower_assign_op(stmt)?)
+            }
             crate::ast::StmtKind::Barrier(stmt) => {
                 super::ast::StmtKind::Barrier(self.lower_barrier(stmt)?)
             }
@@ -363,16 +369,21 @@ impl Lowerer {
         })
     }
 
+    fn lower_assign(&mut self, assign: &crate::ast::AssignStmt) -> Option<super::ast::AssignStmt> {
+        self.push_unimplemented_error_message("assign stmt", assign.span);
+        None
+    }
+
+    fn lower_assign_op(
+        &mut self,
+        assign_op: &crate::ast::AssignOpStmt,
+    ) -> Option<super::ast::AssignOpStmt> {
+        self.push_unimplemented_error_message("assign op stmt", assign_op.span);
+        None
+    }
+
     fn lower_expr(&mut self, expr: &crate::ast::Expr) -> Option<super::ast::Expr> {
         match &*expr.kind {
-            crate::ast::ExprKind::Assign(_) => {
-                self.push_unimplemented_error_message("assign expr", expr.span);
-                None
-            }
-            crate::ast::ExprKind::AssignOp(_) => {
-                self.push_unimplemented_error_message("assignop expr", expr.span);
-                None
-            }
             crate::ast::ExprKind::BinaryOp(_) => {
                 self.push_unimplemented_error_message("binary op expr", expr.span);
                 None
