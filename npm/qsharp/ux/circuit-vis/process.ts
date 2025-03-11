@@ -8,13 +8,13 @@ import {
   controlBtnOffset,
   groupBoxPadding,
 } from "./constants";
-import { ComponentGrid, ConditionalRender, Component } from "./circuit";
+import { ComponentGrid, Operation, ConditionalRender } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { Register, RegisterMap } from "./register";
 import { getGateWidth } from "./utils";
 
 /**
- * Takes in a component grid and maps the components to `metadata` objects which
+ * Takes in a component grid and maps the operations to `metadata` objects which
  * contains information for formatting the corresponding SVG.
  *
  * @param componentGrid Grid of circuit components.
@@ -23,7 +23,7 @@ import { getGateWidth } from "./utils";
  * @returns An object containing `metadataArray` (2D Array of Metadata objects) and
  *          `svgWidth` which is the width of the entire SVG.
  */
-const processComponent = (
+const processOperations = (
   componentGrid: ComponentGrid,
   registers: RegisterMap,
 ): { metadataArray: Metadata[][]; svgWidth: number } => {
@@ -36,19 +36,19 @@ const processComponent = (
   const classicalRegs: [number, Register][] =
     _getClassicalRegStart(componentGrid);
 
-  // Map component index to gate metadata for formatting later
-  const compsMetadata: Metadata[][] = componentGrid.map((col, colIndex) =>
-    col.components.map((comp) => {
-      const metadata: Metadata = _compToMetadata(comp, registers);
+  // Map operation index to gate metadata for formatting later
+  const opsMetadata: Metadata[][] = componentGrid.map((col, colIndex) =>
+    col.components.map((op) => {
+      const metadata: Metadata = _opToMetadata(op, registers);
 
       if (
-        comp != null &&
+        op != null &&
         [GateType.Unitary, GateType.ControlledUnitary].includes(metadata.type)
       ) {
         // If gate is a unitary type, split targetsY into groups if there
         // is a classical register between them for rendering
 
-        // Get y coordinates of classical registers in the same column as this component
+        // Get y coordinates of classical registers in the same column as this operation
         const classicalRegY: number[] = classicalRegs
           .filter(([regCol]) => regCol <= colIndex)
           .map(([, reg]) => {
@@ -62,14 +62,11 @@ const processComponent = (
             return children[reg.result].y;
           });
 
-        const targets =
-          comp.type === "Measurement"
-            ? comp.qubits
-            : comp.type === "Operation"
-              ? comp.targets
-              : [];
-
-        metadata.targetsY = _splitTargetsY(targets, classicalRegY, registers);
+        metadata.targetsY = _splitTargetsY(
+          op.targets,
+          classicalRegY,
+          registers,
+        );
       }
 
       // Expand column size, if needed
@@ -82,7 +79,7 @@ const processComponent = (
   );
 
   // Filter out invalid gates
-  const metadataArray: Metadata[][] = compsMetadata
+  const metadataArray: Metadata[][] = opsMetadata
     .map((col) => col.filter(({ type }) => type != GateType.Invalid))
     .filter((col) => col.length > 0);
 
@@ -104,12 +101,12 @@ const _getClassicalRegStart = (
 ): [number, Register][] => {
   const clsRegs: [number, Register][] = [];
   componentGrid.forEach((col, colIndex) => {
-    col.components.forEach((comp) => {
-      if (comp.type === "Measurement") {
-        const resultRegs: Register[] = comp.results.filter(
+    col.components.forEach((op) => {
+      if (op.isMeasurement) {
+        const targetClsRegs: Register[] = op.targets.filter(
           ({ result }) => result !== undefined,
         );
-        resultRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
+        targetClsRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
       }
     });
   });
@@ -117,16 +114,16 @@ const _getClassicalRegStart = (
 };
 
 /**
- * Maps component to metadata (e.g. gate type, position, dimensions, text)
+ * Maps operation to metadata (e.g. gate type, position, dimensions, text)
  * required to render the image.
  *
- * @param comp Component to be mapped into metadata format.
+ * @param op        Operation to be mapped into metadata format.
  * @param registers Array of registers.
  *
- * @returns Metadata representation of given component.
+ * @returns Metadata representation of given operation.
  */
-const _compToMetadata = (
-  comp: Component | null,
+const _opToMetadata = (
+  op: Operation | null,
   registers: RegisterMap,
 ): Metadata => {
   const metadata: Metadata = {
@@ -138,31 +135,30 @@ const _compToMetadata = (
     width: -1,
   };
 
-  if (comp == null) return metadata;
-
-  const isMeasurement = comp.type === "Measurement";
-  const isAdjoint = isMeasurement ? false : (comp.isAdjoint ?? false);
-  const controls = isMeasurement ? comp.qubits : comp.controls;
-  const targets = isMeasurement ? comp.results : comp.targets;
+  if (op == null) return metadata;
 
   const {
     gate,
-    args,
-    children,
     dataAttributes,
+    args,
+    isMeasurement,
     isConditional,
+    isAdjoint,
+    controls,
+    targets,
+    children,
     conditionalRender,
-  } = comp;
+  } = op;
 
   // Set y coords
   metadata.controlsY = controls?.map((reg) => _getRegY(reg, registers)) || [];
   metadata.targetsY = targets.map((reg) => _getRegY(reg, registers));
 
   if (isConditional) {
-    // Classically-controlled components
+    // Classically-controlled operations
     if (children == null || children.length == 0)
       throw new Error(
-        "No children found for classically-controlled component.",
+        "No children operations found for classically-controlled operation.",
       );
 
     // Gates to display when classical bit is 0.
@@ -173,7 +169,7 @@ const _compToMetadata = (
         ),
       }))
       .filter((col) => col.components.length > 0);
-    let childrenInstrs = processComponent(onZeroOps, registers);
+    let childrenInstrs = processOperations(onZeroOps, registers);
     const zeroGates: Metadata[][] = childrenInstrs.metadataArray;
     const zeroChildWidth: number = childrenInstrs.svgWidth;
 
@@ -185,7 +181,7 @@ const _compToMetadata = (
         ),
       }))
       .filter((col) => col.components.length > 0);
-    childrenInstrs = processComponent(onOneOps, registers);
+    childrenInstrs = processOperations(onOneOps, registers);
     const oneGates: Metadata[][] = childrenInstrs.metadataArray;
     const oneChildWidth: number = childrenInstrs.svgWidth;
 
@@ -207,7 +203,7 @@ const _compToMetadata = (
     conditionalRender == ConditionalRender.AsGroup &&
     (children?.length || 0) > 0
   ) {
-    const childrenInstrs = processComponent(children!, registers);
+    const childrenInstrs = processOperations(children!, registers);
     metadata.type = GateType.Group;
     metadata.children = childrenInstrs.metadataArray;
     // _zoomButton function in gateFormatter.ts relies on
@@ -343,13 +339,13 @@ const _splitTargetsY = (
 /**
  * Updates the x coord of each metadata in the given 2D array of metadata and returns rightmost x coord.
  *
- * @param compsMetadata  2D array of metadata.
+ * @param opsMetadata  2D array of metadata.
  * @param columnWidths Array of column widths.
  *
  * @returns Rightmost x coord.
  */
 const _fillMetadataX = (
-  compsMetadata: Metadata[][],
+  opsMetadata: Metadata[][],
   columnWidths: number[],
 ): number => {
   let endX: number = startX;
@@ -360,7 +356,7 @@ const _fillMetadataX = (
     return x;
   });
 
-  compsMetadata.forEach((col, colIndex) =>
+  opsMetadata.forEach((col, colIndex) =>
     col.forEach((metadata) => {
       const x = colStartX[colIndex];
       switch (metadata.type) {
@@ -392,7 +388,7 @@ const _fillMetadataX = (
 };
 
 /**
- * Offset x coords of nested children components.
+ * Offset x coords of nested children operations.
  *
  * @param children 2D or 3D array of children metadata.
  * @param offset   x coord offset.
@@ -411,29 +407,26 @@ const _offsetChildrenX = (
 };
 
 /**
- * Converts a list of components into a 2D grid of components in col-row format.
- * Components will be left-justified as much as possible in the resulting grid.
- * Children components are recursively converted into a grid.
+ * Converts a list of operations into a 2D grid of operations in col-row format.
+ * Operations will be left-justified as much as possible in the resulting grid.
+ * Children operations are recursively converted into a grid.
  *
- * @param components Array of components.
+ * @param operations Array of operations.
  * @param registers  Array of registers.
  *
- * @returns A 2D array of components.
+ * @returns A 2D array of operations.
  */
-const componentListToGrid = (
-  components: Component[],
+const operationListToGrid = (
+  operations: Operation[],
   registers: Register[],
 ): ComponentGrid => {
-  components.forEach((comp) => {
-    if (comp.children && comp.children.length == 1) {
-      comp.children = componentListToGrid(
-        comp.children[0].components,
-        registers,
-      );
+  operations.forEach((op) => {
+    if (op.children && op.children.length == 1) {
+      op.children = operationListToGrid(op.children[0].components, registers);
     }
   });
 
-  return _removePadding(_componentListToPaddedArray(components, registers)).map(
+  return _removePadding(_operationListToPaddedArray(operations, registers)).map(
     (col) => ({
       components: col,
     }),
@@ -441,70 +434,70 @@ const componentListToGrid = (
 };
 
 /**
- * Converts a list of components into a padded 2D array of components.
+ * Converts a list of operations into a padded 2D array of operations.
  *
- * @param components Array of components.
+ * @param operations Array of operations.
  * @param registers  Array of registers.
  *
- * @returns A 2D array of components padded with `null`s.
+ * @returns A 2D array of operations padded with `null`s.
  */
-const _componentListToPaddedArray = (
-  components: Component[],
+const _operationListToPaddedArray = (
+  operations: Operation[],
   registers: Register[],
-): (Component | null)[][] => {
-  if (components.length === 0) return [];
+): (Operation | null)[][] => {
+  if (operations.length === 0) return [];
 
-  // Group components based on registers
-  const groupedComps: number[][] = _groupComponents(components, registers);
+  // Group operations based on registers
+  const groupedOps: number[][] = _groupOperations(operations, registers);
 
-  // Align components on multiple registers
-  const alignedComps: (number | null)[][] = _transformToColRow(
-    _alignIndices(groupedComps),
+  // Align operations on multiple registers
+  const alignedOps: (number | null)[][] = _transformToColRow(
+    _alignOps(groupedOps),
   );
 
-  const componentArray: (Component | null)[][] = alignedComps.map((col) =>
-    col.map((compIdx) => {
-      if (compIdx == null) return null;
-      return components[compIdx];
+  const operationArray: (Operation | null)[][] = alignedOps.map((col) =>
+    col.map((opIdx) => {
+      if (opIdx == null) return null;
+      return operations[opIdx];
     }),
   );
 
-  return componentArray;
+  return operationArray;
 };
 
 /**
- * Removes padding (`null` values) from a 2D array of components.
+ * Removes padding (`null` values) from a 2D array of operations.
  *
- * @param components 2D array of components padded with `null`s.
+ * @param operations 2D array of operations padded with `null`s.
  *
- * @returns A 2D array of components without `null` values.
+ * @returns A 2D array of operations without `null` values.
  */
-const _removePadding = (components: (Component | null)[][]): Component[][] => {
-  return components.map((col) => col.filter((op) => op != null));
+const _removePadding = (operations: (Operation | null)[][]): Operation[][] => {
+  return operations.map((col) => col.filter((op) => op != null));
 };
 
 /**
  * Transforms a row-col 2D array into an equivalent col-row 2D array.
  *
- * @param alignedIndices 2D array of indices in row-col format.
+ * @param alignedOps 2D array of operations in row-col format.
  *
- * @returns 2D array of indices in col-row format.
+ * @returns 2D array of operations in col-row format.
  */
 const _transformToColRow = (
-  alignedIndices: (number | null)[][],
+  alignedOps: (number | null)[][],
 ): (number | null)[][] => {
-  if (alignedIndices.length === 0) return [];
+  if (alignedOps.length === 0) return [];
 
-  const numRows = alignedIndices.length;
-  const numCols = Math.max(...alignedIndices.map((row) => row.length));
+  const numRows = alignedOps.length;
+  const numCols = Math.max(...alignedOps.map((row) => row.length));
 
   const colRowArray: (number | null)[][] = Array.from({ length: numCols }, () =>
     Array(numRows).fill(null),
   );
 
   for (let row = 0; row < numRows; row++) {
-    for (let col = 0; col < alignedIndices[row].length; col++) {
-      colRowArray[col][row] = alignedIndices[row][col];
+    for (let col = 0; col < alignedOps[row].length; col++) {
+      colRowArray[col][row] = alignedOps[row][col];
     }
   }
 
@@ -512,20 +505,17 @@ const _transformToColRow = (
 };
 
 /**
- * Get the minimum and maximum register indices for a given component.
+ * Get the minimum and maximum register indices for a given operation.
  *
- * @param component The component for which to get the register indices.
+ * @param operation The operation for which to get the register indices.
  * @param maxQId The maximum qubit ID.
  * @returns A tuple containing the minimum and maximum register indices.
  */
 const getMinMaxRegIdx = (
-  component: Component,
+  operation: Operation,
   maxQId: number,
 ): [number, number] => {
-  const { targets, controls } =
-    component.type === "Measurement"
-      ? { targets: component.results, controls: component.qubits }
-      : { targets: component.targets, controls: component.controls };
+  const { targets, controls } = operation;
   const ctrls: Register[] = controls || [];
   const qRegs: Register[] = [...ctrls, ...targets].filter(
     ({ result }) => result === undefined,
@@ -536,7 +526,7 @@ const getMinMaxRegIdx = (
   );
   const isClassicallyControlled: boolean = clsControls.length > 0;
   if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
-  // If component is classically-controlled, pad all qubit registers. Otherwise, only pad
+  // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
   // the contiguous range of registers that it covers.
   const minRegIdx: number = isClassicallyControlled
     ? 0
@@ -549,16 +539,16 @@ const getMinMaxRegIdx = (
 };
 
 /**
- * Group gates provided by components into their respective registers.
+ * Group gates provided by operations into their respective registers.
  *
- * @param components Array of components.
+ * @param operations Array of operations.
  * @param registers  Array of registers.
  *
- * @returns 2D array of indices where `groupedComps[i][j]` is the index of the components
+ * @returns 2D array of indices where `groupedOps[i][j]` is the index of the operations
  *          at register `i` and column `j` (not yet aligned/padded).
  */
-const _groupComponents = (
-  components: Component[],
+const _groupOperations = (
+  operations: Operation[],
   registers: Register[],
 ): number[][] => {
   // NOTE: We get the max ID instead of just number of keys because there can be a qubit ID that
@@ -566,9 +556,9 @@ const _groupComponents = (
   const maxQId: number =
     Math.max(-1, ...registers.map(({ qubit }) => qubit)) + 1;
   const groupedOps: number[][] = Array.from(Array(maxQId), () => new Array(0));
-  components.forEach((comp, instrIdx) => {
-    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(comp, maxQId);
-    // Add component also to registers that are in-between target registers
+  operations.forEach((operation, instrIdx) => {
+    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, maxQId);
+    // Add operation also to registers that are in-between target registers
     // so that other gates won't render in the middle.
     for (let i = minRegIdx; i <= maxRegIdx; i++) {
       groupedOps[i].push(instrIdx);
@@ -578,49 +568,44 @@ const _groupComponents = (
 };
 
 /**
- * Aligns indices by padding registers with `null`s to make sure that multiqubit
+ * Aligns operations by padding registers with `null`s to make sure that multiqubit
  * gates are in the same column.
  * e.g. ---[x]---[x]--
  *      ----------|---
  *
- * @param indices 2D array of indices. Each row represents a register
- *            and the components acting on it (in-order).
+ * @param ops 2D array of operations. Each row represents a register
+ *            and the operations acting on it (in-order).
  *
- * @returns 2D array of aligned indices padded with `null`s.
+ * @returns 2D array of aligned operations padded with `null`s.
  */
-const _alignIndices = (indices: number[][]): (number | null)[][] => {
-  let maxNumOps: number = Math.max(
-    0,
-    ...indices.map((regOps) => regOps.length),
-  );
+const _alignOps = (ops: number[][]): (number | null)[][] => {
+  let maxNumOps: number = Math.max(0, ...ops.map((regOps) => regOps.length));
   let col = 0;
   // Deep copy ops to be returned as paddedOps
-  const paddedIndices: (number | null)[][] = indices.map((regOps) => [
-    ...regOps,
-  ]);
+  const paddedOps: (number | null)[][] = ops.map((regOps) => [...regOps]);
   while (col < maxNumOps) {
-    for (let regIdx = 0; regIdx < paddedIndices.length; regIdx++) {
-      const reg: (number | null)[] = paddedIndices[regIdx];
+    for (let regIdx = 0; regIdx < paddedOps.length; regIdx++) {
+      const reg: (number | null)[] = paddedOps[regIdx];
       if (reg.length <= col) continue;
 
       // Should never be null (nulls are only padded to previous columns)
-      const compIdx: number | null = reg[col];
+      const opIdx: number | null = reg[col];
 
       // Get position of gate
-      const targetsPos: number[] = paddedIndices.map((regComps) =>
-        regComps.indexOf(compIdx),
+      const targetsPos: number[] = paddedOps.map((regOps) =>
+        regOps.indexOf(opIdx),
       );
       const gatePos: number = Math.max(-1, ...targetsPos);
 
       // If current column is not desired gate position, pad with null
       if (col < gatePos) {
-        paddedIndices[regIdx].splice(col, 0, null);
-        maxNumOps = Math.max(maxNumOps, paddedIndices[regIdx].length);
+        paddedOps[regIdx].splice(col, 0, null);
+        maxNumOps = Math.max(maxNumOps, paddedOps[regIdx].length);
       }
     }
     col++;
   }
-  return paddedIndices;
+  return paddedOps;
 };
 
-export { processComponent, componentListToGrid, getMinMaxRegIdx };
+export { processOperations, operationListToGrid, getMinMaxRegIdx };

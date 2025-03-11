@@ -10,7 +10,6 @@ export {
   type Component,
   type DataAttributes,
   type Operation,
-  type Measurement,
   type Qubit,
 } from "../../src/shared/circuit";
 

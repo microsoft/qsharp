@@ -28,7 +28,7 @@ export interface Column {
   components: Component[];
 }
 
-export type Component = Operation | Measurement;
+export type Component = Operation;
 
 /**
  * Update circuit group to current format version.
@@ -55,32 +55,18 @@ export interface Qubit {
   numResults?: number;
 }
 
-export interface Measurement {
-  /** Discriminator for the Component union type */
-  type: "Measurement";
-  gate: string;
-  args?: string[];
-  children?: ComponentGrid;
-  qubits: Register[];
-  results: Register[];
-  dataAttributes?: DataAttributes;
-
-  isConditional?: boolean;
-  conditionalRender?: ConditionalRender;
-}
-
 /**
  * Represents an operation and the registers it acts on.
  */
 export interface Operation {
-  /** Discriminator for the Component union type */
-  type: "Operation";
   /** Gate label. */
   gate: string;
   /** Formatted gate arguments. */
   args?: string[];
   /** Nested operations within this operation. */
   children?: ComponentGrid;
+  /** Whether gate is a measurement operation. */
+  isMeasurement?: boolean;
   /** Whether gate is a conditional operation. */
   isConditional?: boolean;
   /** Whether gate is an adjoint operation. */
