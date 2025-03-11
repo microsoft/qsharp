@@ -31,7 +31,7 @@ fn concatenation_alias() {
                 kind: AliasDeclStmt [0-32]:
                     ident: Ident [4-5] "x"
                     exprs:
-                        Expr [8-14]: IndexExpr [9-14]:
+                        Expr [8-14]: IndexExpr [8-14]:
                             collection: Expr [8-9]: Ident [8-9] "a"
                             index: IndexSet [10-13]:
                                 values:
@@ -40,7 +40,7 @@ fn concatenation_alias() {
                                         step: <none>
                                         end: Expr [12-13]: Lit: Int(2)
                         Expr [18-19]: Ident [18-19] "b"
-                        Expr [23-31]: IndexExpr [24-31]:
+                        Expr [23-31]: IndexExpr [23-31]:
                             collection: Expr [23-24]: Ident [23-24] "c"
                             index: IndexSet [25-30]:
                                 values:

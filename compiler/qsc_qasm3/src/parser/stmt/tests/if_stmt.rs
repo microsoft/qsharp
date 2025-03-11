@@ -26,17 +26,19 @@ fn simple_if_stmt() {
                     if_block:
                         Stmt [27-33]:
                             annotations: <empty>
-                            kind: ExprStmt [27-33]:
-                                expr: Expr [27-32]: AssignExpr:
-                                    lhs: Expr [27-28]: Ident [27-28] "a"
-                                    rhs: Expr [31-32]: Lit: Int(0)
+                            kind: AssignStmt [27-33]:
+                                lhs: IndexedIdent [27-28]:
+                                    name: Ident [27-28] "a"
+                                    indices: <empty>
+                                rhs: Expr [31-32]: Lit: Int(0)
                     else_block:
                         Stmt [55-61]:
                             annotations: <empty>
-                            kind: ExprStmt [55-61]:
-                                expr: Expr [55-60]: AssignExpr:
-                                    lhs: Expr [55-56]: Ident [55-56] "a"
-                                    rhs: Expr [59-60]: Lit: Int(1)"#]],
+                            kind: AssignStmt [55-61]:
+                                lhs: IndexedIdent [55-56]:
+                                    name: Ident [55-56] "a"
+                                    indices: <empty>
+                                rhs: Expr [59-60]: Lit: Int(1)"#]],
     );
 }
 
@@ -60,10 +62,11 @@ fn if_stmt_missing_else() {
                     if_block:
                         Stmt [27-33]:
                             annotations: <empty>
-                            kind: ExprStmt [27-33]:
-                                expr: Expr [27-32]: AssignExpr:
-                                    lhs: Expr [27-28]: Ident [27-28] "a"
-                                    rhs: Expr [31-32]: Lit: Int(0)
+                            kind: AssignStmt [27-33]:
+                                lhs: IndexedIdent [27-28]:
+                                    name: Ident [27-28] "a"
+                                    indices: <empty>
+                                rhs: Expr [31-32]: Lit: Int(0)
                     else_block: <none>"#]],
     );
 }
@@ -106,17 +109,19 @@ fn nested_if_stmts() {
                                 if_block:
                                     Stmt [55-61]:
                                         annotations: <empty>
-                                        kind: ExprStmt [55-61]:
-                                            expr: Expr [55-60]: AssignExpr:
-                                                lhs: Expr [55-56]: Ident [55-56] "a"
-                                                rhs: Expr [59-60]: Lit: Int(0)
+                                        kind: AssignStmt [55-61]:
+                                            lhs: IndexedIdent [55-56]:
+                                                name: Ident [55-56] "a"
+                                                indices: <empty>
+                                            rhs: Expr [59-60]: Lit: Int(0)
                                 else_block:
                                     Stmt [91-97]:
                                         annotations: <empty>
-                                        kind: ExprStmt [91-97]:
-                                            expr: Expr [91-96]: AssignExpr:
-                                                lhs: Expr [91-92]: Ident [91-92] "a"
-                                                rhs: Expr [95-96]: Lit: Int(1)
+                                        kind: AssignStmt [91-97]:
+                                            lhs: IndexedIdent [91-92]:
+                                                name: Ident [91-92] "a"
+                                                indices: <empty>
+                                            rhs: Expr [95-96]: Lit: Int(1)
                     else_block:
                         Stmt [129-209]:
                             annotations: <empty>
@@ -128,16 +133,18 @@ fn nested_if_stmts() {
                                 if_block:
                                     Stmt [157-163]:
                                         annotations: <empty>
-                                        kind: ExprStmt [157-163]:
-                                            expr: Expr [157-162]: AssignExpr:
-                                                lhs: Expr [157-158]: Ident [157-158] "a"
-                                                rhs: Expr [161-162]: Lit: Int(2)
+                                        kind: AssignStmt [157-163]:
+                                            lhs: IndexedIdent [157-158]:
+                                                name: Ident [157-158] "a"
+                                                indices: <empty>
+                                            rhs: Expr [161-162]: Lit: Int(2)
                                 else_block:
                                     Stmt [193-199]:
                                         annotations: <empty>
-                                        kind: ExprStmt [193-199]:
-                                            expr: Expr [193-198]: AssignExpr:
-                                                lhs: Expr [193-194]: Ident [193-194] "a"
-                                                rhs: Expr [197-198]: Lit: Int(3)"#]],
+                                        kind: AssignStmt [193-199]:
+                                            lhs: IndexedIdent [193-194]:
+                                                name: Ident [193-194] "a"
+                                                indices: <empty>
+                                            rhs: Expr [197-198]: Lit: Int(3)"#]],
     );
 }
