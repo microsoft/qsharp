@@ -312,6 +312,8 @@ impl Display for AliasDeclStmt {
 #[derive(Clone, Debug, Default)]
 pub enum StmtKind {
     Alias(AliasDeclStmt),
+    Assign(AssignStmt),
+    AssignOp(AssignOpStmt),
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Break(BreakStmt),
@@ -351,6 +353,8 @@ pub enum StmtKind {
 impl Display for StmtKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            StmtKind::Assign(stmt) => write!(f, "{stmt}"),
+            StmtKind::AssignOp(stmt) => write!(f, "{stmt}"),
             StmtKind::Alias(alias) => write!(f, "{alias}"),
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
@@ -1432,8 +1436,6 @@ impl Display for SwitchCase {
 
 #[derive(Clone, Debug, Default)]
 pub enum ExprKind {
-    Assign(AssignExpr),
-    AssignOp(AssignOpExpr),
     /// An expression with invalid syntax that can't be parsed.
     #[default]
     Err,
@@ -1458,37 +1460,37 @@ impl Display for ExprKind {
             ExprKind::FunctionCall(call) => write!(f, "{call}"),
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
-            ExprKind::Assign(expr) => write!(f, "{expr}"),
-            ExprKind::AssignOp(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct AssignExpr {
-    pub lhs: Expr,
+pub struct AssignStmt {
+    pub span: Span,
+    pub lhs: IndexedIdent,
     pub rhs: Expr,
 }
 
-impl Display for AssignExpr {
+impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "AssignExpr:")?;
+        writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "lhs", &self.lhs)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct AssignOpExpr {
+pub struct AssignOpStmt {
+    pub span: Span,
     pub op: BinOp,
-    pub lhs: Expr,
+    pub lhs: IndexedIdent,
     pub rhs: Expr,
 }
 
-impl Display for AssignOpExpr {
+impl Display for AssignOpStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "AssignOpExpr:")?;
+        writeln_header(f, "AssignOpStmt", self.span)?;
         writeln_field(f, "op", &self.op)?;
         writeln_field(f, "lhs", &self.lhs)?;
         write_field(f, "rhs", &self.rhs)
