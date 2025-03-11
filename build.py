@@ -174,7 +174,11 @@ if npm_install_needed:
 
 if args.check:
     step_start("Running eslint and prettier checks")
-    subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
+    try:
+        subprocess.run([npm_cmd, "run", "check"], check=True, text=True, cwd=root_dir)
+    except subprocess.CalledProcessError:
+        print("Consider running 'npm run prettier:fix' to fix prettier errors.")
+        raise
 
     if build_wasm or build_cli:
         # If we're going to check the Rust code, do this before we try to compile it
