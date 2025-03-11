@@ -34,6 +34,10 @@ use crate::{
 
 use super::{prim::token, ParserContext};
 
+/// Our implementation differs slightly from the grammar in
+/// that we accumulate annotations and append them to the next
+/// consecutive statement.
+///
 /// Grammar:
 /// ```g4
 /// pragma
@@ -163,6 +167,9 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     }))
 }
 
+/// This helper function allows us to disambiguate between
+/// non-constant declarations and cast expressions when
+/// reading a `TypeDef`.
 fn disambiguate_type(s: &mut ParserContext, ty: TypeDef) -> Result<StmtKind> {
     let lo = ty.span().lo;
     if matches!(s.peek().kind, TokenKind::Identifier) {
@@ -186,6 +193,10 @@ fn disambiguate_type(s: &mut ParserContext, ty: TypeDef) -> Result<StmtKind> {
     }
 }
 
+/// This helper function allows us to disambiguate between
+/// assignments, assignment operations, gate calls, and
+/// expr_stmts beginning with an ident or a function call
+/// when reading an `Ident`.
 fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Result<StmtKind> {
     let lo = indexed_ident.span.lo;
     if s.peek().kind == TokenKind::Eq {
