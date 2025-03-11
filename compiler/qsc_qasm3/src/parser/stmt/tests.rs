@@ -4,6 +4,7 @@
 mod alias;
 mod annotation;
 mod barrier;
+mod block;
 mod box_stmt;
 mod cal;
 mod cal_grammar;
