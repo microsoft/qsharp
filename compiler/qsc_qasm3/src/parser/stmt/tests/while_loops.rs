@@ -23,10 +23,11 @@ fn simple_while() {
                     block:
                         Stmt [30-36]:
                             annotations: <empty>
-                            kind: ExprStmt [30-36]:
-                                expr: Expr [30-35]: AssignExpr:
-                                    lhs: Expr [30-31]: Ident [30-31] "a"
-                                    rhs: Expr [34-35]: Lit: Int(0)"#]],
+                            kind: AssignStmt [30-36]:
+                                lhs: IndexedIdent [30-31]:
+                                    name: Ident [30-31] "a"
+                                    indices: <empty>
+                                rhs: Expr [34-35]: Lit: Int(0)"#]],
     );
 }
 
@@ -62,10 +63,11 @@ fn while_stmt_body() {
                     block:
                         Stmt [28-34]:
                             annotations: <empty>
-                            kind: ExprStmt [28-34]:
-                                expr: Expr [28-33]: AssignExpr:
-                                    lhs: Expr [28-29]: Ident [28-29] "a"
-                                    rhs: Expr [32-33]: Lit: Int(0)"#]],
+                            kind: AssignStmt [28-34]:
+                                lhs: IndexedIdent [28-29]:
+                                    name: Ident [28-29] "a"
+                                    indices: <empty>
+                                rhs: Expr [32-33]: Lit: Int(0)"#]],
     );
 }
 
@@ -89,10 +91,11 @@ fn while_loop_with_continue_stmt() {
                     block:
                         Stmt [30-36]:
                             annotations: <empty>
-                            kind: ExprStmt [30-36]:
-                                expr: Expr [30-35]: AssignExpr:
-                                    lhs: Expr [30-31]: Ident [30-31] "a"
-                                    rhs: Expr [34-35]: Lit: Int(0)
+                            kind: AssignStmt [30-36]:
+                                lhs: IndexedIdent [30-31]:
+                                    name: Ident [30-31] "a"
+                                    indices: <empty>
+                                rhs: Expr [34-35]: Lit: Int(0)
                         Stmt [45-54]:
                             annotations: <empty>
                             kind: ContinueStmt [45-54]"#]],
@@ -119,10 +122,11 @@ fn while_loop_with_break_stmt() {
                     block:
                         Stmt [30-36]:
                             annotations: <empty>
-                            kind: ExprStmt [30-36]:
-                                expr: Expr [30-35]: AssignExpr:
-                                    lhs: Expr [30-31]: Ident [30-31] "a"
-                                    rhs: Expr [34-35]: Lit: Int(0)
+                            kind: AssignStmt [30-36]:
+                                lhs: IndexedIdent [30-31]:
+                                    name: Ident [30-31] "a"
+                                    indices: <empty>
+                                rhs: Expr [34-35]: Lit: Int(0)
                         Stmt [45-51]:
                             annotations: <empty>
                             kind: BreakStmt [45-51]"#]],

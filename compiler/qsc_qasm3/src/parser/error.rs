@@ -134,6 +134,9 @@ pub enum ErrorKind {
     #[error("invalid gate call designator")]
     #[diagnostic(code("Qasm3.Parse.InvalidGateCallDesignator"))]
     InvalidGateCallDesignator(#[label] Span),
+    #[error("multiple index operators are only allowed in assignments")]
+    #[diagnostic(code("Qasm3.Parse.MultipleIndexOperators"))]
+    MultipleIndexOperators(#[label] Span),
 }
 
 impl ErrorKind {
@@ -156,6 +159,7 @@ impl ErrorKind {
             Self::ExpectedItem(token, span) => Self::ExpectedItem(token, span + offset),
             Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
             Self::InvalidGateCallDesignator(span) => Self::InvalidGateCallDesignator(span + offset),
+            Self::MultipleIndexOperators(span) => Self::MultipleIndexOperators(span + offset),
         }
     }
 }
