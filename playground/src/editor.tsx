@@ -75,6 +75,20 @@ export function getProfile(): TargetProfile {
     "unrestricted") as TargetProfile;
 }
 
+// get the preferred theme from localStorage
+// default to system setting
+export function getPreferredTheme(): "light" | "dark" {
+  const savedTheme = localStorage.getItem("qsharp-editor-theme");
+  if (savedTheme === "dark") return "dark";
+  if (savedTheme === "light") return "light";
+
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return "dark";
+  }
+
+  return "light";
+}
+
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
@@ -110,6 +124,7 @@ export function Editor(props: {
     { location: string; severity: monaco.MarkerSeverity; msg: string[] }[]
   >([]);
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(getPreferredTheme());
 
   function markErrors() {
     const model = editor.current?.getModel();
@@ -250,6 +265,7 @@ export function Editor(props: {
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
+      theme: theme === "dark" ? "vs-dark" : "vs",
     });
 
     editor.current = newEditor;
@@ -301,6 +317,13 @@ export function Editor(props: {
       newEditor.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    if (editor.current) {
+      monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+    }
+    localStorage.setItem("qsharp-editor-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     props.languageService.updateConfiguration({
@@ -412,11 +435,40 @@ export function Editor(props: {
     setProfile(target.value as TargetProfile);
   }
 
+  function toggleTheme() {
+    setTheme(theme === "light" ? "dark" : "light");
+  }
+
   return (
     <div class="editor-column">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="file-name">main.qs</div>
         <div class="icon-row">
+          <svg
+            onClick={toggleTheme}
+            width="24px"
+            height="24px"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <title>{theme === "light" ? "Switch to dark theme" : "Switch to light theme"}</title>
+            {theme === "light" ? (
+              <path
+                d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+                stroke="#0C0310"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            ) : (
+              <path
+                d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                stroke="#0C0310"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            )}
+          </svg>
           <svg
             onClick={onGetLink}
             width="24px"
