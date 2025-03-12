@@ -93,17 +93,23 @@ const _getStringWidth = (
  */
 const getChildTargets = (operation: Operation): Register[] | [] => {
   const _recurse = (operation: Operation) => {
-    registers.push(...operation.targets);
-    if (operation.controls) {
-      registers.push(...operation.controls);
-      // If there is more children, keep adding more to registers
-      if (operation.children) {
-        operation.children.forEach((col) =>
-          col.components.forEach((child) => {
-            _recurse(child);
-          }),
-        );
+    if (operation.kind === "measurement") {
+      registers.push(...operation.qubits);
+      registers.push(...operation.results);
+    } else if (operation.kind === "unitary") {
+      registers.push(...operation.targets);
+      if (operation.controls) {
+        registers.push(...operation.controls);
       }
+    }
+
+    // If there is more children, keep adding more to registers
+    if (operation.children) {
+      operation.children.forEach((col) =>
+        col.components.forEach((child) => {
+          _recurse(child);
+        }),
+      );
     }
   };
 
@@ -328,7 +334,7 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
 export {
   createUUID,
   getGateWidth,
-  getChildTargets as getGateTargets,
+  getChildTargets,
   locationStringToIndexes,
   getGateLocationString,
   findGateElem,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Operation } from "./circuit";
+import { Operation, Unitary } from "./circuit";
 import {
   gateHeight,
   horizontalGap,
@@ -185,7 +185,7 @@ const _title = (text: string): HTMLElement => {
  * @param operation     Operation object
  * @param x             x coordinate at starting point from the left
  * @param y             y coordinate at starting point from the top
- * @returns             Metata object
+ * @returns             Metadata object
  */
 const toMetadata = (
   operation: Operation | undefined,
@@ -204,7 +204,9 @@ const toMetadata = (
 
   if (operation === undefined) return metadata;
 
-  const { gate, args, isMeasurement, controls } = operation;
+  const isMeasurement = operation.kind === "measurement";
+  const controls = isMeasurement ? undefined : operation.controls;
+  const { gate, args } = operation;
 
   // Note: there are a lot of special cases here.
   // It would be good if we could generalize metadata the logic a bit better.
@@ -254,9 +256,9 @@ const _gate = (
   x: number,
   y: number,
 ): SVGElement => {
-  const operation = gateDictionary[type];
-  if (operation == null) throw new Error(`Gate ${type} not available`);
-  const metadata = toMetadata(operation, x, y);
+  const gate = gateDictionary[type];
+  if (gate == null) throw new Error(`Gate ${type} not available`);
+  const metadata = toMetadata(gate, x, y);
   metadata.dataAttributes = { type: type };
   const gateElem = formatGate(metadata).cloneNode(true) as SVGElement;
   gateElem.setAttribute("toolbox-item", "true");
@@ -272,59 +274,40 @@ interface GateDictionary {
 }
 
 /**
+ * Function to create a unitary operation
+ *
+ * @param gate - The name of the gate
+ * @returns Unitary operation object
+ */
+const _makeUnitary = (gate: string): Unitary => {
+  return {
+    kind: "unitary",
+    gate: gate,
+    targets: [{ qubit: 0 }],
+  };
+};
+
+/**
  * Object for default gate dictionary
  */
 const defaultGateDictionary: GateDictionary = {
-  RX: {
-    gate: "Rx",
-    targets: [{ qubit: 0 }],
-  },
-  RY: {
-    gate: "Ry",
-    targets: [{ qubit: 0 }],
-  },
-  RZ: {
-    gate: "Rz",
-    targets: [{ qubit: 0 }],
-  },
-  X: {
-    gate: "X",
-    targets: [{ qubit: 0 }],
-  },
-  Y: {
-    gate: "Y",
-    targets: [{ qubit: 0 }],
-  },
-  Z: {
-    gate: "Z",
-    targets: [{ qubit: 0 }],
-  },
-  H: {
-    gate: "H",
-    targets: [{ qubit: 0 }],
-  },
-  S: {
-    gate: "S",
-    targets: [{ qubit: 0 }],
-  },
-  T: {
-    gate: "T",
-    targets: [{ qubit: 0 }],
-  },
+  RX: _makeUnitary("Rx"),
+  RY: _makeUnitary("Ry"),
+  RZ: _makeUnitary("Rz"),
+  X: _makeUnitary("X"),
+  Y: _makeUnitary("Y"),
+  Z: _makeUnitary("Z"),
+  H: _makeUnitary("H"),
+  S: _makeUnitary("S"),
+  T: _makeUnitary("T"),
   Measure: {
+    kind: "measurement",
     gate: "Measure",
-    isMeasurement: true,
-    controls: [{ qubit: 0 }],
-    targets: [{ qubit: 0, result: 0 }],
+    qubits: [{ qubit: 0 }],
+    results: [{ qubit: 0, result: 0 }],
   },
-  Reset: {
-    gate: "|0〉",
-    targets: [{ qubit: 0 }],
-  },
-  ResetX: {
-    gate: "|1〉",
-    targets: [{ qubit: 0 }],
-  },
+  Reset: _makeUnitary("|0〉"),
+  ResetX: _makeUnitary("|1〉"),
 };
 
 export { extensionPanel, defaultGateDictionary, toMetadata };

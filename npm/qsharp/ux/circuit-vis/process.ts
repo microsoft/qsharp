@@ -62,11 +62,14 @@ const processOperations = (
             return children[reg.result].y;
           });
 
-        metadata.targetsY = _splitTargetsY(
-          op.targets,
-          classicalRegY,
-          registers,
-        );
+        const targets =
+          op.kind === "measurement"
+            ? op.qubits
+            : op.kind == "unitary"
+              ? op.targets
+              : [];
+
+        metadata.targetsY = _splitTargetsY(targets, classicalRegY, registers);
       }
 
       // Expand column size, if needed
@@ -102,11 +105,11 @@ const _getClassicalRegStart = (
   const clsRegs: [number, Register][] = [];
   componentGrid.forEach((col, colIndex) => {
     col.components.forEach((op) => {
-      if (op.isMeasurement) {
-        const targetClsRegs: Register[] = op.targets.filter(
+      if (op.kind === "measurement") {
+        const resultRegs: Register[] = op.results.filter(
           ({ result }) => result !== undefined,
         );
-        targetClsRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
+        resultRegs.forEach((reg) => clsRegs.push([colIndex, reg]));
       }
     });
   });
@@ -137,16 +140,17 @@ const _opToMetadata = (
 
   if (op == null) return metadata;
 
+  const isMeasurement = op.kind === "measurement";
+  const isAdjoint = isMeasurement ? false : (op.isAdjoint ?? false);
+  const controls = isMeasurement ? op.qubits : op.controls;
+  const targets = isMeasurement ? op.results : op.targets;
+
   const {
     gate,
-    dataAttributes,
     args,
-    isMeasurement,
-    isConditional,
-    isAdjoint,
-    controls,
-    targets,
     children,
+    dataAttributes,
+    isConditional,
     conditionalRender,
   } = op;
 
@@ -232,6 +236,7 @@ const _opToMetadata = (
   if (isAdjoint && metadata.label.length > 0) metadata.label += "'";
 
   // If gate has extra arguments, display them
+  // For now, we only display the first argument
   if (args !== undefined && args.length > 0) metadata.displayArgs = args[0];
 
   // Set gate width
@@ -514,7 +519,10 @@ const getMinMaxRegIdx = (
   operation: Operation,
   maxQId: number,
 ): [number, number] => {
-  const { targets, controls } = operation;
+  const { targets, controls } =
+    operation.kind === "measurement"
+      ? { targets: operation.results, controls: operation.qubits }
+      : { targets: operation.targets, controls: operation.controls };
   const ctrls: Register[] = controls || [];
   const qRegs: Register[] = [...ctrls, ...targets].filter(
     ({ result }) => result === undefined,

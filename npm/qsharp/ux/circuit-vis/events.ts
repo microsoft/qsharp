@@ -3,7 +3,7 @@
 
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import { ComponentGrid, Operation, Qubit } from "./circuit";
+import { ComponentGrid, Operation, Qubit, Unitary } from "./circuit";
 import { Sqore } from "./sqore";
 import { defaultGateDictionary } from "./panel";
 import {
@@ -44,7 +44,7 @@ const extensionEvents = (
 
 class CircuitEvents {
   renderFn: () => void;
-  operationGrid: ComponentGrid;
+  componentGrid: ComponentGrid;
   qubits: Qubit[];
   private container: HTMLElement;
   private circuitSvg: SVGElement;
@@ -65,7 +65,7 @@ class CircuitEvents {
       ".dropzone-layer",
     ) as SVGGElement;
 
-    this.operationGrid = sqore.circuit.componentGrid;
+    this.componentGrid = sqore.circuit.componentGrid;
     this.qubits = sqore.circuit.qubits;
 
     this.wireData = getWireData(this.container);
@@ -140,10 +140,11 @@ class CircuitEvents {
           ? getGateLocationString(this.selectedOperation)
           : null;
         if (this.selectedOperation != null && selectedLocation != null) {
-          // We are dragging a gate with a location (not from toolbox) out side the circuit
+          // We are dragging a gate with a location (not from toolbox) outside the circuit
           // If we are moving a control, remove it from the selectedOperation
           if (
             this.movingControl &&
+            this.selectedOperation.kind === "unitary" &&
             this.selectedOperation.controls != null &&
             this.selectedWire != null
           ) {
@@ -239,7 +240,7 @@ class CircuitEvents {
         if (elem.getAttribute("data-expanded") !== "true") {
           selectedLocation = elem.getAttribute("data-location");
           this.selectedOperation = findOperation(
-            this.operationGrid,
+            this.componentGrid,
             selectedLocation,
           );
         }
@@ -312,7 +313,7 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
-        const originalGrid = cloneDeep(this.operationGrid);
+        const originalGrid = cloneDeep(this.componentGrid);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
         const insertNewColumn =
           dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
@@ -364,7 +365,7 @@ class CircuitEvents {
         this.selectedOperation = null;
         this.movingControl = false;
 
-        if (isEqual(originalGrid, this.operationGrid) === false)
+        if (isEqual(originalGrid, this.componentGrid) === false)
           this.renderFn();
       });
     });
@@ -398,18 +399,20 @@ class CircuitEvents {
     ) {
       removeQubitLineButton.addEventListener("click", () => {
         const check = (op: Operation) => {
-          if (op.targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
+          const targets = op.kind === "measurement" ? op.results : op.targets;
+          if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
             return true;
           }
+          const controls = op.kind === "measurement" ? op.qubits : op.controls;
           if (
-            op.controls &&
-            op.controls.some((reg) => reg.qubit == this.qubits.length - 1)
+            controls &&
+            controls.some((reg) => reg.qubit == this.qubits.length - 1)
           ) {
             return true;
           }
           return false;
         };
-        findAndRemoveOperations(this.operationGrid, check);
+        findAndRemoveOperations(this.componentGrid, check);
         this.qubits.pop();
         this.renderFn();
       });
@@ -425,9 +428,9 @@ class CircuitEvents {
    * Start the process of adding a control to the selected operation.
    * This function creates dropzones for each wire that isn't already a target or control.
    *
-   * @param selectedOperation - The operation to which the control will be added.
+   * @param selectedOperation - The unitary operation to which the control will be added.
    */
-  _startAddingControl(selectedOperation: Operation) {
+  _startAddingControl(selectedOperation: Unitary) {
     this.selectedOperation = selectedOperation;
     this.container.classList.add("adding-control");
 
@@ -450,7 +453,10 @@ class CircuitEvents {
           ev.stopPropagation(),
         );
         dropzone.addEventListener("click", () => {
-          if (this.selectedOperation != null) {
+          if (
+            this.selectedOperation != null &&
+            this.selectedOperation.kind === "unitary"
+          ) {
             const successful = addControl(this.selectedOperation, wireIndex);
             this.selectedOperation = null;
             this.container.classList.remove("adding-control");
@@ -468,9 +474,9 @@ class CircuitEvents {
    * Start the process of removing a control from the selected operation.
    * This function creates dropzones only for wires that the selected operation has a control.
    *
-   * @param selectedOperation - The operation from which the control will be removed.
+   * @param selectedOperation - The unitary operation from which the control will be removed.
    */
-  _startRemovingControl(selectedOperation: Operation) {
+  _startRemovingControl(selectedOperation: Unitary) {
     this.selectedOperation = selectedOperation;
     this.container.classList.add("removing-control");
 
@@ -485,7 +491,10 @@ class CircuitEvents {
         ev.stopPropagation(),
       );
       dropzone.addEventListener("click", () => {
-        if (this.selectedOperation != null) {
+        if (
+          this.selectedOperation != null &&
+          this.selectedOperation.kind === "unitary"
+        ) {
           const successful = removeControl(
             this.selectedOperation,
             control.qubit,

@@ -28,7 +28,7 @@ const addContextMenuToHostElem = (
     if (!gateElem) return;
     const selectedLocation = gateElem.getAttribute("data-location");
     const selectedOperation = findOperation(
-      circuitEvents.operationGrid,
+      circuitEvents.componentGrid,
       selectedLocation,
     );
     if (!selectedOperation || !selectedLocation) return;
@@ -46,79 +46,83 @@ const addContextMenuToHostElem = (
       e.stopPropagation();
     });
 
-    const adjointOption = _createContextMenuItem("Toggle Adjoint", () => {
-      selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
-      circuitEvents.renderFn();
-    });
-
-    const addControlOption = _createContextMenuItem("Add control", () => {
-      circuitEvents._startAddingControl(selectedOperation);
-    });
-
-    let removeControlOption: HTMLDivElement | null = null;
     const dataWireStr = hostElem.getAttribute("data-wire");
     const dataWire = dataWireStr != null ? parseInt(dataWireStr) : null;
     const isControl =
       hostElem.classList.contains("control-dot") && dataWire != null;
-    // The Remove Control option is different when targeting a control element directly.
-    if (isControl) {
-      removeControlOption = _createContextMenuItem("Remove control", () => {
-        removeControl(selectedOperation, dataWire);
-        circuitEvents.renderFn();
-      });
-    } else if (
-      selectedOperation.controls &&
-      selectedOperation.controls.length > 0
-    ) {
-      removeControlOption = _createContextMenuItem("Remove control", () => {
-        circuitEvents._startRemovingControl(selectedOperation);
-      });
-    }
-
-    const promptArgOption = _createContextMenuItem("Edit Argument", () => {
-      _createCustomPrompt(
-        "Argument for Gate:",
-        (userInput) => {
-          if (userInput !== null) {
-            if (userInput == "") {
-              selectedOperation.args = undefined;
-            } else {
-              selectedOperation.args = [userInput];
-            }
-          }
-          circuitEvents.renderFn();
-        },
-        selectedOperation.args?.[0],
-      );
-    });
 
     const deleteOption = _createContextMenuItem("Delete", () => {
       removeOperation(circuitEvents, selectedLocation);
       circuitEvents.renderFn();
     });
 
-    if (isControl && removeControlOption) {
-      contextMenu.appendChild(removeControlOption!);
-    } else if (
-      selectedOperation.isMeasurement ||
+    if (
+      selectedOperation.kind === "measurement" ||
       selectedOperation.gate == "|0〉" ||
       selectedOperation.gate == "|1〉"
     ) {
       contextMenu.appendChild(deleteOption);
-    } else if (selectedOperation.gate == "X") {
-      contextMenu.appendChild(addControlOption);
-      if (removeControlOption) {
-        contextMenu.appendChild(removeControlOption);
-      }
-      contextMenu.appendChild(deleteOption);
+    } else if (isControl) {
+      const removeControlOption = _createContextMenuItem(
+        "Remove control",
+        () => {
+          removeControl(selectedOperation, dataWire);
+          circuitEvents.renderFn();
+        },
+      );
+      contextMenu.appendChild(removeControlOption!);
     } else {
-      contextMenu.appendChild(adjointOption);
-      contextMenu.appendChild(addControlOption);
-      if (removeControlOption) {
+      const adjointOption = _createContextMenuItem("Toggle Adjoint", () => {
+        if (selectedOperation.kind !== "unitary") return;
+        selectedOperation.isAdjoint = !selectedOperation.isAdjoint;
+        circuitEvents.renderFn();
+      });
+
+      const addControlOption = _createContextMenuItem("Add control", () => {
+        if (selectedOperation.kind !== "unitary") return;
+        circuitEvents._startAddingControl(selectedOperation);
+      });
+
+      let removeControlOption: HTMLDivElement | undefined;
+      if (selectedOperation.controls && selectedOperation.controls.length > 0) {
+        removeControlOption = _createContextMenuItem("Remove control", () => {
+          circuitEvents._startRemovingControl(selectedOperation);
+        });
         contextMenu.appendChild(removeControlOption);
       }
-      contextMenu.appendChild(promptArgOption);
-      contextMenu.appendChild(deleteOption);
+
+      const promptArgOption = _createContextMenuItem("Edit Argument", () => {
+        _createCustomPrompt(
+          "Argument for Gate:",
+          (userInput) => {
+            if (userInput !== null) {
+              if (userInput == "") {
+                selectedOperation.args = undefined;
+              } else {
+                selectedOperation.args = [userInput];
+              }
+            }
+            circuitEvents.renderFn();
+          },
+          selectedOperation.args?.[0],
+        );
+      });
+
+      if (selectedOperation.gate == "X") {
+        contextMenu.appendChild(addControlOption);
+        if (removeControlOption) {
+          contextMenu.appendChild(removeControlOption);
+        }
+        contextMenu.appendChild(deleteOption);
+      } else {
+        contextMenu.appendChild(adjointOption);
+        contextMenu.appendChild(addControlOption);
+        if (removeControlOption) {
+          contextMenu.appendChild(removeControlOption);
+        }
+        contextMenu.appendChild(promptArgOption);
+        contextMenu.appendChild(deleteOption);
+      }
     }
 
     document.body.appendChild(contextMenu);
