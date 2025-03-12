@@ -9,11 +9,9 @@ use super::{
     scan::ParserContext,
     Parser, Result,
 };
-use crate::{
-    ast::{Ident, IncompletePath, Path, PathKind},
-    lex::TokenKind,
-    parser::completion::WordKinds,
-};
+use crate::{lex::TokenKind, parser::completion::WordKinds};
+
+use super::ast::{Ident, IncompletePath, Path, PathKind};
 
 use qsc_data_structures::span::{Span, WithSpan};
 

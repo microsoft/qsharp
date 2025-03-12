@@ -6,10 +6,11 @@ use super::{
     stmt, Result,
 };
 use crate::{
-    ast::{Program, Stmt, StmtKind, Version},
     lex::{Delim, TokenKind},
     parser::{completion::WordKinds, expr},
 };
+
+use super::ast::{Program, Stmt, StmtKind, Version};
 
 use super::ParserContext;
 
