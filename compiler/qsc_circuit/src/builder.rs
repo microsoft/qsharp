@@ -5,7 +5,10 @@
 mod tests;
 
 use crate::{
-    circuit::{operation_list_to_grid, Circuit, Operation, Register},
+    circuit::{
+        op_grid_to_comp_grid, operation_list_to_grid, Circuit, Measurement, Operation, Register,
+        Unitary,
+    },
     Config,
 };
 use num_bigint::BigUint;
@@ -207,9 +210,9 @@ impl Backend for Builder {
             name,
             &qubit_args,
             if classical_args.is_empty() {
-                None
+                vec![]
             } else {
-                Some(classical_args)
+                vec![classical_args]
             },
         ));
 
@@ -286,13 +289,16 @@ impl Builder {
             let num_measurements = self.num_measurements_for_qubit(WireId(i));
             qubits.push(crate::circuit::Qubit {
                 id: i,
-                num_children: num_measurements,
+                num_results: num_measurements,
             });
         }
 
         let max_q_id = qubits.iter().map(|qubit| qubit.id).max().unwrap_or(0);
 
-        Circuit::new(operation_list_to_grid(operations, max_q_id), qubits)
+        Circuit {
+            component_grid: op_grid_to_comp_grid(operation_list_to_grid(operations, max_q_id)),
+            qubits,
+        }
     }
 
     /// Splits the qubit arguments from classical arguments so that the qubits
@@ -472,29 +478,25 @@ impl From<WireId> for usize {
 static KET_ZERO: &str = "|0〉";
 
 fn gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: false,
+        args: vec![],
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn adjoint_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: false,
+        args: vec![],
         is_adjoint: true,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn controlled_gate<const M: usize, const N: usize>(
@@ -502,53 +504,44 @@ fn controlled_gate<const M: usize, const N: usize>(
     controls: [WireId; M],
     targets: [WireId; N],
 ) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: None,
-        is_controlled: true,
+        args: vec![],
         is_adjoint: false,
-        is_measurement: false,
         controls: controls.iter().map(|q| Register::quantum(q.0)).collect(),
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
 fn measurement_gate(qubit: usize, result: usize) -> Operation {
-    Operation {
+    Operation::Measurement(Measurement {
         gate: "Measure".into(),
-        display_args: None,
-        is_controlled: false,
-        is_adjoint: false,
-        is_measurement: true,
-        controls: vec![Register::quantum(qubit)],
-        targets: vec![Register::classical(qubit, result)],
+        args: vec![],
+        qubits: vec![Register::quantum(qubit)],
+        results: vec![Register::classical(qubit, result)],
         children: vec![],
-    }
+    })
 }
 
 fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [WireId; N]) -> Operation {
-    Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args: Some(format!("{theta:.4}")),
-        is_controlled: false,
+        args: vec![format!("{theta:.4}")],
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
 
-fn custom_gate(name: &str, targets: &[WireId], display_args: Option<String>) -> Operation {
-    Operation {
+fn custom_gate(name: &str, targets: &[WireId], args: Vec<String>) -> Operation {
+    Operation::Unitary(Unitary {
         gate: name.into(),
-        display_args,
-        is_controlled: false,
+        args,
         is_adjoint: false,
-        is_measurement: false,
         controls: vec![],
         targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
-    }
+    })
 }
