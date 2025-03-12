@@ -76,7 +76,7 @@ export function getProfile(): TargetProfile {
 }
 
 // get the preferred theme from system setting
-export function getPreferredTheme(): "light" | "dark" {
+function getPreferredTheme(): "light" | "dark" {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return "dark";
   }
@@ -257,10 +257,11 @@ export function Editor(props: {
 
   useEffect(() => {
     if (!editorDiv.current) return;
+    const initialTheme = getPreferredTheme();
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
-      theme: theme === "dark" ? "vs-dark" : "vs",
+      theme: initialTheme === "dark" ? "vs-dark" : "vs",
     });
 
     editor.current = newEditor;
