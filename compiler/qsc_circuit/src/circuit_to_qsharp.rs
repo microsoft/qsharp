@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{Circuit, Operation};
 
-pub fn qviz_to_qsharp(circuit_name: String, circuit_json: String) -> String {
+pub fn circuit_to_qsharp(circuit_name: String, circuit_json: String) -> String {
     match serde_json::from_str::<Circuit>(circuit_json.as_str()) {
         Ok(circuit) => build_qsharp(circuit_name, circuit),
         Err(e) => format!("Error: {}", e),

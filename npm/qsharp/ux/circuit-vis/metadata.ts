@@ -18,7 +18,7 @@ export enum GateType {
   /** |0〉 gate. */
   Reset,
   /** |1〉 gate. */
-  ResetX,
+  ResetOne,
   /** Single/multi qubit unitary gate. */
   Unitary,
   /** Single/multi controlled unitary gate. */
