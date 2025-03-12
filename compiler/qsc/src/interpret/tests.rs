@@ -1447,12 +1447,11 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output(result: &InterpretResult, output: &str, expected_output: &str) {
-        assert_eq!(expected_output, output);
-
         match result {
             Ok(value) => assert_eq!(Value::unit(), *value),
             Err(e) => panic!("Expected unit value, got {e:?}"),
         }
+        assert_eq!(expected_output, output);
     }
 
     fn is_only_error<E>(result: &Result<Value, Vec<E>>, output: &str, expected_errors: &Expect)
@@ -2088,6 +2087,74 @@ mod given_interpreter {
                 nodes: vec![top_level].into_boxed_slice(),
                 entry: None,
             }
+        }
+
+        #[test]
+        fn name_resolution_from_source_named_main_should_succeed() {
+            let sources = SourceMap::new(
+                [(
+                    "Main".into(),
+                    r#"function Foo() : Unit { Message("hello there..."); }"#.into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut interpreter = Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("interpreter should be created");
+
+            // Operations defined in Main.qs should also be visible with Main qualifier.
+            let (result, output) = line(&mut interpreter, "Main.Foo()");
+            is_unit_with_output(&result, &output, "hello there...");
+
+            // Operations defined in Main.qs should be importable with fully qualified name.
+            let (result, output) = line(&mut interpreter, "import Main.Foo;");
+            is_only_value(&result, &output, &Value::unit());
+
+            // After import the operation can be invoked without Main qualifier.
+            let (result, output) = line(&mut interpreter, "Foo()");
+            is_unit_with_output(&result, &output, "hello there...");
+        }
+
+        #[test]
+        fn name_resolution_from_source_named_main_without_full_path_or_import_should_fail() {
+            let sources = SourceMap::new(
+                [(
+                    "Main".into(),
+                    r#"function Foo() : Unit { Message("hello there..."); }"#.into(),
+                )],
+                None,
+            );
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            let mut interpreter = Interpreter::new(
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+                store,
+                &[(std_id, None)],
+            )
+            .expect("interpreter should be created");
+
+            // Operations defined in Main.qs should also be visible with Main qualifier.
+            let (errors, _) = line(&mut interpreter, "Foo()");
+            is_error(
+                &errors.expect_err("line invocation should fail with error"),
+                &expect![[r#"
+                    name error: `Foo` not found
+                       [line_0] [Foo]
+                    type error: insufficient type information to infer type
+                       [line_0] [Foo()]
+                "#]],
+            );
         }
     }
 }
