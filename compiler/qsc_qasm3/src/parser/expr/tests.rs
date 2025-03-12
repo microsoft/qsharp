@@ -3,7 +3,7 @@
 
 use super::expr;
 use crate::{
-    ast::StmtKind,
+    parser::ast::StmtKind,
     parser::{scan::ParserContext, stmt, tests::check},
 };
 use expect_test::{expect, Expect};

@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod assignment;
 pub mod decls;
+
+pub mod expression;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -89,15 +92,18 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
             .map(|stmt| stmt.kind.as_ref().clone())
             .collect::<Vec<_>>();
         let mut value = String::new();
-        for kind in kinds {
-            let super::ast::StmtKind::ClassicalDecl(decl) = kind else {
-                panic!("expected classical declaration statement");
+        for kind in &kinds {
+            let (symbol_id, str) = match kind {
+                super::ast::StmtKind::ClassicalDecl(decl) => (decl.symbol_id, decl.to_string()),
+                super::ast::StmtKind::IODeclaration(decl) => (decl.symbol_id, decl.to_string()),
+                super::ast::StmtKind::Assign(stmt) => (stmt.symbold_id, stmt.to_string()),
+                super::ast::StmtKind::AssignOp(stmt) => (stmt.symbold_id, stmt.to_string()),
+                _ => panic!("unsupported stmt type {kind}"),
             };
-            value.push_str(&decl.to_string());
+
+            value.push_str(&str);
             value.push('\n');
-            let symbol = s
-                .get_symbol_by_id(decl.symbol_id)
-                .expect("getting symbol by id");
+            let symbol = s.get_symbol_by_id(symbol_id).expect("getting symbol by id");
             value.push_str(&format!("[{}] {}", symbol.0, symbol.1));
             value.push('\n');
         }
