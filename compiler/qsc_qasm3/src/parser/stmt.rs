@@ -23,10 +23,10 @@ use crate::{
         DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
         FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
         IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
-        IndexSetItem, IntType, List, LiteralKind, MeasureStmt, Pragma, QuantumGateDefinition,
-        QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, RangeDefinition, ResetStmt,
-        ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase,
-        SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+        IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureStmt, Pragma,
+        QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
+        RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter,
+        Stmt, StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
     },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
@@ -34,7 +34,45 @@ use crate::{
 
 use super::{prim::token, ParserContext};
 
-#[allow(clippy::too_many_lines)]
+/// Our implementation differs slightly from the grammar in
+/// that we accumulate annotations and append them to the next
+/// consecutive statement.
+///
+/// Grammar:
+/// ```g4
+/// pragma
+/// | annotation* (
+///     aliasDeclarationStatement
+///     | assignmentStatement
+///     | barrierStatement
+///     | boxStatement
+///     | breakStatement
+///     | calStatement
+///     | calibrationGrammarStatement
+///     | classicalDeclarationStatement
+///     | constDeclarationStatement
+///     | continueStatement
+///     | defStatement
+///     | defcalStatement
+///     | delayStatement
+///     | endStatement
+///     | expressionStatement
+///     | externStatement
+///     | forStatement
+///     | gateCallStatement
+///     | gateStatement
+///     | ifStatement
+///     | includeStatement
+///     | ioDeclarationStatement
+///     | measureArrowAssignmentStatement
+///     | oldStyleDeclarationStatement
+///     | quantumDeclarationStatement
+///     | resetStatement
+///     | returnStatement
+///     | switchStatement
+///     | whileStatement
+/// )
+/// ```
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     if let Some(pragma) = opt(s, parse_pragma)? {
@@ -45,6 +83,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         }));
     }
     let attrs = many(s, parse_annotation)?;
+
     let kind = if token(s, TokenKind::Semicolon).is_ok() {
         if attrs.is_empty() {
             Box::new(StmtKind::Empty)
@@ -60,25 +99,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     } else if let Some(include) = opt(s, parse_include)? {
         Box::new(include)
     } else if let Some(ty) = opt(s, scalar_or_array_type)? {
-        if matches!(s.peek().kind, TokenKind::Identifier) {
-            Box::new(parse_non_constant_classical_decl(s, ty, lo)?)
-        } else {
-            token(s, TokenKind::Open(Delim::Paren))?;
-            let arg = expr::expr(s)?;
-            recovering_token(s, TokenKind::Close(Delim::Paren));
-            let cast_expr = Expr {
-                span: s.span(ty.span().lo),
-                kind: Box::new(ExprKind::Cast(Cast {
-                    span: s.span(ty.span().lo),
-                    ty,
-                    arg,
-                })),
-            };
-            Box::new(StmtKind::ExprStmt(parse_expression_stmt(
-                s,
-                Some(cast_expr),
-            )?))
-        }
+        Box::new(disambiguate_type(s, ty)?)
     } else if let Some(decl) = opt(s, parse_constant_classical_decl)? {
         Box::new(decl)
     } else if let Some(decl) = opt(s, parse_quantum_decl)? {
@@ -108,80 +129,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     } else if let Some(stmt) = opt(s, parse_end_stmt)? {
         Box::new(StmtKind::End(stmt))
     } else if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        if s.peek().kind == TokenKind::Eq {
-            s.advance();
-            let expr = expr::expr(s)?;
-            recovering_semi(s);
-            Box::new(StmtKind::Assign(AssignStmt {
-                span: s.span(lo),
-                lhs: indexed_ident,
-                rhs: expr,
-            }))
-        } else if let TokenKind::BinOpEq(op) = s.peek().kind {
-            s.advance();
-            let op = expr::closed_bin_op(op);
-            let expr = expr::expr(s)?;
-            recovering_semi(s);
-            Box::new(StmtKind::AssignOp(AssignOpStmt {
-                span: s.span(lo),
-                op,
-                lhs: indexed_ident,
-                rhs: expr,
-            }))
-        } else if s.peek().kind == TokenKind::Open(Delim::Paren) {
-            if !indexed_ident.indices.is_empty() {
-                s.push_error(Error::new(ErrorKind::Convert(
-                    "Ident",
-                    "IndexedIdent",
-                    indexed_ident.span,
-                )));
-            }
-
-            let ident = indexed_ident.name;
-
-            s.advance();
-            let (args, _) = seq(s, expr::expr)?;
-            token(s, TokenKind::Close(Delim::Paren))?;
-
-            let funcall = Expr {
-                span: s.span(lo),
-                kind: Box::new(ExprKind::FunctionCall(FunctionCall {
-                    span: s.span(lo),
-                    name: ident,
-                    args: args.into_iter().map(Box::new).collect(),
-                })),
-            };
-
-            let expr = expr::expr_with_lhs(s, funcall)?;
-
-            Box::new(parse_gate_call_with_expr(s, expr)?)
-        } else {
-            let kind = if indexed_ident.indices.is_empty() {
-                ExprKind::Ident(indexed_ident.name)
-            } else {
-                if indexed_ident.indices.len() > 1 {
-                    s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
-                        indexed_ident.span,
-                    )));
-                }
-
-                ExprKind::IndexExpr(IndexExpr {
-                    span: indexed_ident.span,
-                    collection: Expr {
-                        span: indexed_ident.name.span,
-                        kind: Box::new(ExprKind::Ident(indexed_ident.name)),
-                    },
-                    index: *indexed_ident.indices[0].clone(),
-                })
-            };
-
-            let expr = Expr {
-                span: indexed_ident.span,
-                kind: Box::new(kind),
-            };
-
-            Box::new(parse_gate_call_with_expr(s, expr)?)
-        }
+        Box::new(disambiguate_ident(s, indexed_ident)?)
     } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
         Box::new(stmt_kind)
     } else if let Some(stmt) = opt(s, |s| parse_expression_stmt(s, None))? {
@@ -219,13 +167,122 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     }))
 }
 
+/// This helper function allows us to disambiguate between
+/// non-constant declarations and cast expressions when
+/// reading a `TypeDef`.
+fn disambiguate_type(s: &mut ParserContext, ty: TypeDef) -> Result<StmtKind> {
+    let lo = ty.span().lo;
+    if matches!(s.peek().kind, TokenKind::Identifier) {
+        Ok(parse_non_constant_classical_decl(s, ty, lo)?)
+    } else {
+        token(s, TokenKind::Open(Delim::Paren))?;
+        let arg = expr::expr(s)?;
+        recovering_token(s, TokenKind::Close(Delim::Paren));
+        let cast_expr = Expr {
+            span: s.span(ty.span().lo),
+            kind: Box::new(ExprKind::Cast(Cast {
+                span: s.span(ty.span().lo),
+                ty,
+                arg,
+            })),
+        };
+        Ok(StmtKind::ExprStmt(parse_expression_stmt(
+            s,
+            Some(cast_expr),
+        )?))
+    }
+}
+
+/// This helper function allows us to disambiguate between
+/// assignments, assignment operations, gate calls, and
+/// `expr_stmts` beginning with an ident or a function call
+/// when reading an `Ident`.
+fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Result<StmtKind> {
+    let lo = indexed_ident.span.lo;
+    if s.peek().kind == TokenKind::Eq {
+        s.advance();
+        let expr = expr::expr(s)?;
+        recovering_semi(s);
+        Ok(StmtKind::Assign(AssignStmt {
+            span: s.span(lo),
+            lhs: indexed_ident,
+            rhs: expr,
+        }))
+    } else if let TokenKind::BinOpEq(op) = s.peek().kind {
+        s.advance();
+        let op = expr::closed_bin_op(op);
+        let expr = expr::expr(s)?;
+        recovering_semi(s);
+        Ok(StmtKind::AssignOp(AssignOpStmt {
+            span: s.span(lo),
+            op,
+            lhs: indexed_ident,
+            rhs: expr,
+        }))
+    } else if s.peek().kind == TokenKind::Open(Delim::Paren) {
+        if !indexed_ident.indices.is_empty() {
+            s.push_error(Error::new(ErrorKind::Convert(
+                "Ident",
+                "IndexedIdent",
+                indexed_ident.span,
+            )));
+        }
+
+        let ident = indexed_ident.name;
+
+        s.advance();
+        let (args, _) = seq(s, expr::expr)?;
+        token(s, TokenKind::Close(Delim::Paren))?;
+
+        let funcall = Expr {
+            span: s.span(lo),
+            kind: Box::new(ExprKind::FunctionCall(FunctionCall {
+                span: s.span(lo),
+                name: ident,
+                args: args.into_iter().map(Box::new).collect(),
+            })),
+        };
+
+        let expr = expr::expr_with_lhs(s, funcall)?;
+
+        Ok(parse_gate_call_with_expr(s, expr)?)
+    } else {
+        let kind = if indexed_ident.indices.is_empty() {
+            ExprKind::Ident(indexed_ident.name)
+        } else {
+            if indexed_ident.indices.len() > 1 {
+                s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
+                    indexed_ident.span,
+                )));
+            }
+
+            ExprKind::IndexExpr(IndexExpr {
+                span: indexed_ident.span,
+                collection: Expr {
+                    span: indexed_ident.name.span,
+                    kind: Box::new(ExprKind::Ident(indexed_ident.name)),
+                },
+                index: *indexed_ident.indices[0].clone(),
+            })
+        };
+
+        let expr = Expr {
+            span: indexed_ident.span,
+            kind: Box::new(kind),
+        };
+
+        Ok(parse_gate_call_with_expr(s, expr)?)
+    }
+}
+
 #[allow(clippy::vec_box)]
 pub(super) fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Stmt>>> {
     many(s, |s| {
-        recovering(s, default, &[TokenKind::Semicolon], parse)
+        recovering(s, default, &[TokenKind::Semicolon], parse_block_or_stmt)
     })
 }
 
+/// Grammar: `LBRACE statementOrScope* RBRACE`.
 pub(super) fn parse_block(s: &mut ParserContext) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
@@ -246,6 +303,7 @@ fn default(span: Span) -> Box<Stmt> {
     })
 }
 
+/// Grammar: `AnnotationKeyword RemainingLineContent?`.
 pub fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Annotation);
@@ -297,6 +355,7 @@ pub fn parse_annotation(s: &mut ParserContext) -> Result<Box<Annotation>> {
     }))
 }
 
+/// Grammar: `INCLUDE StringLiteral SEMICOLON`.
 fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Include))?;
@@ -320,6 +379,7 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
     )))
 }
 
+/// Grammar: `PRAGMA RemainingLineContent`.
 fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     let lo = s.peek().span.lo;
     s.expect(WordKinds::Pragma);
@@ -367,6 +427,7 @@ fn parse_pragma(s: &mut ParserContext) -> Result<Pragma> {
     })
 }
 
+/// Grammar: `EXTERN Identifier LPAREN externArgumentList? RPAREN returnSignature? SEMICOLON`.
 fn parse_extern(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Extern))?;
@@ -385,6 +446,7 @@ fn parse_extern(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(kind)
 }
 
+/// Grammar: `DEF Identifier LPAREN argumentDefinitionList? RPAREN returnSignature? scope`.
 fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Def))?;
@@ -404,6 +466,7 @@ fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(kind)
 }
 
+/// Grammar: `scalarType | arrayReferenceType | CREG designator?`.
 fn extern_arg_def(s: &mut ParserContext) -> Result<ExternParameter> {
     let lo = s.peek().span.lo;
 
@@ -430,6 +493,13 @@ fn extern_arg_def(s: &mut ParserContext) -> Result<ExternParameter> {
     Ok(kind)
 }
 
+/// Grammar:
+/// ```g4
+/// scalarType Identifier
+/// | qubitType Identifier
+/// | (CREG | QREG) Identifier designator?
+/// | arrayReferenceType Identifier
+/// ```
 fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
     let lo = s.peek().span.lo;
 
@@ -483,6 +553,8 @@ fn arg_def(s: &mut ParserContext) -> Result<TypedParameter> {
     Ok(kind)
 }
 
+/// Grammar:
+/// `(READONLY | MUTABLE) ARRAY LBRACKET scalarType COMMA (expressionList | DIM EQUALS expression) RBRACKET`.
 fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     let lo = s.peek().span.lo;
 
@@ -519,6 +591,7 @@ fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     })
 }
 
+/// Grammar: `ARROW scalarType`.
 fn return_sig(s: &mut ParserContext) -> Result<ScalarType> {
     token(s, TokenKind::Arrow)?;
     scalar_type(s)
@@ -549,6 +622,7 @@ fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<Ident>> {
     Ok(params)
 }
 
+/// Grammar: `RETURN (expression | measureExpression)? SEMICOLON`.
 fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Return))?;
@@ -560,6 +634,7 @@ fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
+/// Grammar: `qubitType Identifier SEMICOLON`.
 fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     let size = qubit_type(s)?;
@@ -573,12 +648,14 @@ fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
+/// Grammar: `QUBIT designator?`.
 fn qubit_type(s: &mut ParserContext<'_>) -> Result<Option<Expr>> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Qubit))?;
     let size = opt(s, designator)?;
     Ok(size)
 }
 
+/// Grammar: `(INPUT | OUTPUT) (scalarType | arrayType) Identifier SEMICOLON`.
 fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
 
@@ -608,6 +685,7 @@ fn parse_io_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::IODeclaration(decl))
 }
 
+/// Grammar `(scalarType | arrayType)`.
 pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     if let Ok(v) = scalar_type(s) {
         return Ok(TypeDef::Scalar(v));
@@ -622,6 +700,7 @@ pub fn scalar_or_array_type(s: &mut ParserContext) -> Result<TypeDef> {
     )))
 }
 
+/// Grammar: `(scalarType | arrayType) Identifier (EQUALS declarationExpression)? SEMICOLON`.
 fn parse_non_constant_classical_decl(
     s: &mut ParserContext,
     ty: TypeDef,
@@ -645,6 +724,7 @@ fn parse_non_constant_classical_decl(
     Ok(StmtKind::ClassicalDecl(decl))
 }
 
+/// Grammar: `CONST scalarType Identifier EQUALS declarationExpression SEMICOLON`.
 fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Const))?;
@@ -663,6 +743,8 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     Ok(StmtKind::ConstDecl(decl))
 }
 
+/// The Spec and the grammar differ in the base type for arrays. We followed the Spec.
+/// Grammar: `ARRAY LBRACKET arrayBaseType COMMA expressionList RBRACKET`.
 pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Type(Type::Array))?;
@@ -679,6 +761,17 @@ pub(super) fn array_type(s: &mut ParserContext) -> Result<ArrayType> {
     })
 }
 
+/// The Spec for 3.0, main Spec, and the grammar differ in the base type for arrays.
+/// We followed the main Spec.
+/// Grammar:
+/// | INT designator?
+/// | UINT designator?
+/// | FLOAT designator?
+/// | ANGLE designator?
+/// | BOOL
+/// | DURATION
+/// | COMPLEX (LBRACKET scalarType RBRACKET)?
+/// Reference: <https://openqasm.com/language/types.html#arrays>.
 pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind> {
     if let Ok(v) = array_angle_type(s) {
         return Ok(v);
@@ -709,6 +802,18 @@ pub(super) fn array_base_type(s: &mut ParserContext) -> Result<ArrayBaseTypeKind
     )))
 }
 
+/// Grammar:
+/// ```g4
+/// BIT designator?
+/// | INT designator?
+/// | UINT designator?
+/// | FLOAT designator?
+/// | ANGLE designator?
+/// | BOOL
+/// | DURATION
+/// | STRETCH
+/// | COMPLEX (LBRACKET scalarType RBRACKET)?
+/// ```
 pub(super) fn scalar_type(s: &mut ParserContext) -> Result<ScalarType> {
     if let Ok(v) = scalar_bit_type(s) {
         return Ok(v);
@@ -1007,6 +1112,7 @@ pub fn parse_switch_stmt(s: &mut ParserContext) -> Result<SwitchStmt> {
     })
 }
 
+/// Grammar: `CASE expressionList scope`.
 fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Case))?;
@@ -1025,19 +1131,30 @@ fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
     })
 }
 
+/// Grammar: `DEFAULT scope`.
 fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
     token(s, TokenKind::Keyword(Keyword::Default))?;
     parse_block(s).map(|block| *block)
 }
 
-/// Parses a block or a statement. This is a helper function
-/// to be used in loops and if stmts, in which their bodies
-/// can be a block expr or a single statement.
-fn parse_block_or_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
+/// Grammar: `statement | scope`.
+fn parse_block_or_stmt(s: &mut ParserContext) -> Result<Box<Stmt>> {
     if let Some(block) = opt(s, parse_block)? {
-        Ok(block.stmts)
+        Ok(Box::new(Stmt {
+            span: block.span,
+            annotations: Default::default(),
+            kind: Box::new(StmtKind::Block(block)),
+        }))
     } else {
-        Ok(Box::new([parse(s)?]))
+        Ok(parse(s)?)
+    }
+}
+
+fn into_stmt_list(stmt: Stmt) -> List<Stmt> {
+    if let StmtKind::Block(block) = *stmt.kind {
+        block.stmts
+    } else {
+        Box::new([Box::new(stmt)])
     }
 }
 
@@ -1050,9 +1167,9 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     let condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
 
-    let if_block = parse_block_or_stmt(s)?;
+    let if_block = into_stmt_list(*parse_block_or_stmt(s)?);
     let else_block = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Else)))?.is_some() {
-        Some(parse_block_or_stmt(s)?)
+        Some(into_stmt_list(*parse_block_or_stmt(s)?))
     } else {
         None
     };
@@ -1109,7 +1226,8 @@ fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
     }
 }
 
-/// Grammar: `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
+/// Grammar:
+/// `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
 pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let lo = s.peek().span.lo;
@@ -1118,7 +1236,7 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
     token(s, TokenKind::Keyword(Keyword::In))?;
     let set_declaration = Box::new(for_loop_iterable_expr(s)?);
-    let block = parse_block_or_stmt(s)?;
+    let block = into_stmt_list(*parse_block_or_stmt(s)?);
 
     Ok(ForStmt {
         span: s.span(lo),
@@ -1137,7 +1255,7 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
     token(s, TokenKind::Open(Delim::Paren))?;
     let while_condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
-    let block = parse_block_or_stmt(s)?;
+    let block = into_stmt_list(*parse_block_or_stmt(s)?);
 
     Ok(WhileLoop {
         span: s.span(lo),
@@ -1170,7 +1288,7 @@ fn parse_end_stmt(s: &mut ParserContext) -> Result<EndStmt> {
     Ok(EndStmt { span: s.span(lo) })
 }
 
-/// Grammar: `(expression | assignExpr | AssignOpExpr) SEMICOLON`.
+/// Grammar: `expression SEMICOLON`.
 fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<ExprStmt> {
     let expr = if let Some(lhs) = lhs {
         expr::expr_with_lhs(s, lhs)?
@@ -1439,6 +1557,8 @@ fn reinterpret_index_expr(
     )))
 }
 
+/// Grammar:
+/// `gateModifier* GPHASE (LPAREN expressionList? RPAREN)? designator? gateOperandList? SEMICOLON`
 fn parse_gphase(
     s: &mut ParserContext,
     lo: u32,
