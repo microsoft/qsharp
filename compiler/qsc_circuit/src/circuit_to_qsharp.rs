@@ -6,7 +6,10 @@ mod tests;
 
 use rustc_hash::FxHashMap;
 
-use crate::{Circuit, Operation};
+use crate::{
+    circuit::{Measurement, Unitary},
+    Circuit, Operation,
+};
 
 pub fn circuit_to_qsharp(circuit_name: String, circuit_json: String) -> String {
     match serde_json::from_str::<Circuit>(circuit_json.as_str()) {
@@ -36,7 +39,7 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
     // If there is an inconsistency between these, which would happen if there was a mismatch between
     // the number of qubit children specified on the circuit and the number of qubit children specified
     // on the measurements, incorrect Q# could be generated.
-    let return_type = match circuit.qubits.iter().fold(0, |sum, q| sum + q.num_children) {
+    let return_type = match circuit.qubits.iter().fold(0, |sum, q| sum + q.num_results) {
         0 => "Unit",
         1 => "Result",
         _ => "Result[]",
@@ -48,59 +51,63 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
     let mut measure_results = vec![];
     let indent = "    ".repeat(indentation_level);
     // ToDo: Add support for children operations
-    for col in &circuit.operations {
-        for op in col {
-            if op.is_measurement {
-                let operation_str = measurement_call(op, &qubits);
-                let mut op_results = vec![];
-                for t in &op.targets {
-                    if let Some(c_id) = t.c_id {
-                        let result = (format!("c{}_{}", t.q_id, c_id), (t.q_id, c_id));
-                        op_results.push(result.clone());
+    for col in &circuit.component_grid {
+        for op in &col.components {
+            match &op {
+                Operation::Measurement(measurement) => {
+                    let operation_str = measurement_call(measurement, &qubits);
+                    let mut op_results = vec![];
+                    for reg in &measurement.results {
+                        if let Some(c_id) = reg.result {
+                            let result = (format!("c{}_{}", reg.qubit, c_id), (reg.qubit, c_id));
+                            op_results.push(result.clone());
+                        }
                     }
-                }
 
-                // Sort first by q_id, then by c_id
-                op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
-                let result = op_results
-                    .iter()
-                    .map(|(name, _)| name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                match op_results.len() {
-                    0 => {
-                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
-                    }
-                    1 => {
-                        qsharp_str.push_str(&format!("{indent}let {result} = {operation_str};\n"));
-                        measure_results.extend(op_results);
-                    }
-                    _ => {
-                        qsharp_str
-                            .push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
-                        measure_results.extend(op_results);
+                    // Sort first by q_id, then by c_id
+                    op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+                    let result = op_results
+                        .iter()
+                        .map(|(name, _)| name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    match op_results.len() {
+                        0 => {
+                            qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                        }
+                        1 => {
+                            qsharp_str
+                                .push_str(&format!("{indent}let {result} = {operation_str};\n"));
+                            measure_results.extend(op_results);
+                        }
+                        _ => {
+                            qsharp_str
+                                .push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
+                            measure_results.extend(op_results);
+                        }
                     }
                 }
-            } else if op.gate == "|1〉" {
-                // Note "|1〉" will generate two operations: Reset and X
-                let operation_str = operation_call(op, &qubits);
-                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
-                let op_x = Operation {
-                    gate: "X".to_string(),
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: vec![],
-                    targets: op.targets.clone(),
-                    display_args: None,
-                    children: vec![],
-                };
-                let operation_str = operation_call(&op_x, &qubits);
-                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
-            } else {
-                let operation_str = operation_call(op, &qubits);
-                qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
-            };
+                Operation::Unitary(unitary) => {
+                    if unitary.gate == "|1〉" {
+                        // Note "|1〉" will generate two operations: Reset and X
+                        let operation_str = operation_call(unitary, &qubits);
+                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                        let op_x = Unitary {
+                            gate: "X".to_string(),
+                            is_adjoint: false,
+                            controls: vec![],
+                            targets: unitary.targets.clone(),
+                            args: vec![],
+                            children: vec![],
+                        };
+                        let operation_str = operation_call(&op_x, &qubits);
+                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                    } else {
+                        let operation_str = operation_call(unitary, &qubits);
+                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                    };
+                }
+            }
         }
     }
 
@@ -128,15 +135,11 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
     qsharp_str
 }
 
-fn measurement_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String {
-    // Note: for measurements, the controls are their arguments and the targets are the variables where they results are stored.
-    // We may want to change this in the future to be more consistent with the other operations.
-    // We also ignore a lot of the usual gate info for measurements, like the gate name and display args.
-
-    let args = op
-        .controls
+fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>) -> String {
+    let args = measurement
+        .qubits
         .iter()
-        .map(|c| qubits.get(&c.q_id).unwrap().clone())
+        .map(|q| qubits.get(&q.qubit).unwrap().clone())
         .collect::<Vec<_>>();
     let args_count = args.len();
 
@@ -151,40 +154,49 @@ fn measurement_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String
     }
 }
 
-fn operation_call(op: &Operation, qubits: &FxHashMap<usize, String>) -> String {
-    let mut gate = op.gate.as_str();
+fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> String {
+    let mut gate = unitary.gate.as_str();
 
     if gate == "|0〉" || gate == "|1〉" {
         gate = "Reset";
     }
 
-    let functors = if op.is_controlled && op.is_adjoint {
+    let is_controlled = !unitary.controls.is_empty();
+
+    let functors = if is_controlled && unitary.is_adjoint {
         "Controlled Adjoint "
-    } else if op.is_controlled {
+    } else if is_controlled {
         "Controlled "
-    } else if op.is_adjoint {
+    } else if unitary.is_adjoint {
         "Adjoint "
     } else {
         ""
     };
 
     let mut args = vec![];
-    if let Some(display_arg) = op.display_args.clone() {
-        args.push(display_arg);
+
+    for arg in &unitary.args {
+        args.push(arg.clone());
     }
 
-    let targets = op
+    let targets = unitary
         .targets
         .iter()
-        .map(|t| qubits.get(&t.q_id).unwrap().clone())
+        .map(|t| qubits.get(&t.qubit).unwrap().clone())
         .collect::<Vec<_>>();
     args.extend(targets);
 
-    if op.is_controlled {
-        let controls = op
+    if is_controlled {
+        let controls = unitary
             .controls
             .iter()
-            .map(|t| qubits.get(&t.q_id).unwrap().clone())
+            .filter_map(|c| {
+                if c.result.is_none() {
+                    Some(qubits.get(&c.qubit).unwrap().clone())
+                } else {
+                    None
+                }
+            })
             .collect::<Vec<_>>()
             .join(", ");
         let controls = format!("[{controls}]");

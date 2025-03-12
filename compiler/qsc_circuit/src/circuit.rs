@@ -115,7 +115,7 @@ impl Operation {
     pub fn is_controlled(&self) -> bool {
         match self {
             Operation::Measurement(_) => false,
-            Operation::Unitary(u) => u.controls.len() > 0,
+            Operation::Unitary(u) => !u.controls.is_empty(),
         }
     }
 
@@ -624,8 +624,7 @@ impl Display for Circuit {
 pub fn op_grid_to_comp_grid(operations: Vec<Vec<Operation>>) -> ComponentGrid {
     let mut component_grid = vec![];
     for col in operations {
-        let mut column = ComponentColumn::default();
-        column.components = col;
+        let column = ComponentColumn { components: col };
         component_grid.push(column);
     }
     component_grid
