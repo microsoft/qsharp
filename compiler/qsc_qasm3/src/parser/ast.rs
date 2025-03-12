@@ -481,6 +481,7 @@ pub enum Identifier {
 }
 
 impl Identifier {
+    #[must_use]
     pub fn span(&self) -> Span {
         match self {
             Identifier::Ident(ident) => ident.span,
@@ -878,6 +879,7 @@ pub enum TypeDef {
 }
 
 impl TypeDef {
+    #[must_use]
     pub fn span(&self) -> Span {
         match self {
             TypeDef::Scalar(ident) => ident.span,
@@ -1649,6 +1651,16 @@ impl Display for IndexElement {
     }
 }
 
+impl IndexElement {
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self {
+            IndexElement::DiscreteSet(set) => set.span,
+            IndexElement::IndexSet(set) => set.span,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub enum IndexSetItem {
     RangeDefinition(RangeDefinition),
@@ -1680,7 +1692,7 @@ impl Display for IndexSetItem {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IOKeyword {
     Input,
     Output,
@@ -1691,6 +1703,15 @@ impl Display for IOKeyword {
         match self {
             IOKeyword::Input => write!(f, "input"),
             IOKeyword::Output => write!(f, "output"),
+        }
+    }
+}
+
+impl From<IOKeyword> for crate::semantic::symbols::IOKind {
+    fn from(value: IOKeyword) -> Self {
+        match value {
+            IOKeyword::Input => crate::semantic::symbols::IOKind::Input,
+            IOKeyword::Output => crate::semantic::symbols::IOKind::Output,
         }
     }
 }
