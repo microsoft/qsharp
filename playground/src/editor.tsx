@@ -75,13 +75,8 @@ export function getProfile(): TargetProfile {
     "unrestricted") as TargetProfile;
 }
 
-// get the preferred theme from localStorage
-// default to system setting
+// get the preferred theme from system setting
 export function getPreferredTheme(): "light" | "dark" {
-  const savedTheme = localStorage.getItem("qsharp-editor-theme");
-  if (savedTheme === "dark") return "dark";
-  if (savedTheme === "light") return "light";
-
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return "dark";
   }
@@ -322,7 +317,6 @@ export function Editor(props: {
     if (editor.current) {
       monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
     }
-    localStorage.setItem("qsharp-editor-theme", theme);
   }, [theme]);
 
   useEffect(() => {
