@@ -1,291 +1,228 @@
 {
+  "version": 1,
   "circuits": [
     {
-      "operations": [
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 0,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 1,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Measure",
-            "isMeasurement": true,
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "targets": [
-              {
-                "qId": 3,
-                "type": 1,
-                "cId": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "|0〉",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 1,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 2,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Measure",
-            "isMeasurement": true,
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "targets": [
-              {
-                "qId": 3,
-                "type": 1,
-                "cId": 1
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "|0〉",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 0,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "Z",
-            "targets": [
-              {
-                "qId": 2,
-                "type": 0
-              }
-            ],
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "isControlled": true
-          }
-        ],
-        [
-          {
-            "gate": "H",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "Measure",
-            "isMeasurement": true,
-            "controls": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ],
-            "targets": [
-              {
-                "qId": 3,
-                "type": 1,
-                "cId": 2
-              }
-            ]
-          }
-        ],
-        [
-          {
-            "gate": "|0〉",
-            "targets": [
-              {
-                "qId": 3,
-                "type": 0
-              }
-            ]
-          }
-        ]
+      "componentGrid": [
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "|0〉",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "|0〉",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "X",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "controls": [
+                {
+                  "qubit": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "measurement",
+              "gate": "Measure",
+              "qubits": [
+                {
+                  "qubit": 3
+                }
+              ],
+              "results": [
+                {
+                  "qubit": 3,
+                  "result": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "components": [
+            {
+              "kind": "unitary",
+              "gate": "|0〉",
+              "targets": [
+                {
+                  "qubit": 3
+                }
+              ]
+            }
+          ]
+        }
       ],
       "qubits": [
         {
-          "id": 0,
-          "numChildren": 0
+          "id": 0
         },
         {
-          "id": 1,
-          "numChildren": 0
+          "id": 1
         },
         {
-          "id": 2,
-          "numChildren": 0
+          "id": 2
         },
         {
           "id": 3,
-          "numChildren": 3
+          "numResults": 3
         }
       ]
     }
-  ],
-  "version": 1
+  ]
 }
