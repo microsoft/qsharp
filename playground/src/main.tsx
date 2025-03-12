@@ -69,6 +69,17 @@ const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
 const compilerWorkerPath = basePath + "libs/compiler-worker.js";
 const languageServiceWorkerPath = basePath + "libs/language-service-worker.js";
 
+// get the preferred theme from system setting
+function getPreferredTheme(): "light" | "dark" {
+  if (
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
+    return "dark";
+  }
+  return "light";
+}
+
 function telemetryHandler({ id, data }: { id: string; data?: any }) {
   // NOTE: This is for demo purposes. Wire up to the real telemetry library.
   console.log(`Received telemetry event: "%s" with payload: %o`, id, data);
@@ -112,6 +123,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [rir, setRir] = useState<string[]>(["", ""]);
   const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
+  const [theme, setTheme] = useState<"light" | "dark">(getPreferredTheme());
+
+  useEffect(() => {
+    // apply theme to document body when theme changes
+    document.body.setAttribute("data-theme", theme);
+  }, [theme]);
 
   const onRestartCompiler = () => {
     compiler.terminate();
@@ -157,6 +174,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     setCurrentNavItem(name);
   }
 
+  const onThemeChange = (newTheme: "light" | "dark") => {
+    setTheme(newTheme);
+  };
+
   return (
     <>
       <header class="page-header">Q# playground</header>
@@ -166,6 +187,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         katas={kataTitles}
         samples={sampleTitles}
         namespaces={getNamespaces(documentation)}
+        theme={theme}
+        onThemeChange={onThemeChange}
       ></Nav>
       {sampleCode ? (
         <>
@@ -187,6 +210,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             setQir={setQir}
             activeTab={activeTab}
             languageService={languageService}
+            initialTheme={theme}
           ></Editor>
           <OutputTabs
             evtTarget={evtTarget}
@@ -208,6 +232,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           compilerState={compilerState}
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
+          theme={theme}
         ></Katas>
       ) : (
         <DocumentationDisplay
@@ -249,6 +274,9 @@ async function loaded() {
       linkedCode = "// Unable to decode the code in the URL\n";
     }
   }
+
+  const initialTheme = getPreferredTheme();
+  document.body.setAttribute("data-theme", initialTheme);
 
   render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
 }

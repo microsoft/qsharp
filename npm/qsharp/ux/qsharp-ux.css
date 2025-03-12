@@ -48,6 +48,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   --error-background-color: #ffe3e3;
   --warning-background-color: #fff6d7;
   --bar-selected-outline: #587ddd;
+  --file-background: #fff;
 }
 
 /* TODO: Make the below playground specific classes */
@@ -142,7 +143,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   text-align: center;
   height: 32px;
   line-height: 32px;
-  background-color: white;
+  background-color: var(--file-name-background);
 }
 
 .icon-row > * {

@@ -75,15 +75,6 @@ export function getProfile(): TargetProfile {
     "unrestricted") as TargetProfile;
 }
 
-// get the preferred theme from system setting
-function getPreferredTheme(): "light" | "dark" {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return "dark";
-  }
-
-  return "light";
-}
-
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
@@ -103,6 +94,7 @@ export function Editor(props: {
   setQir: (qir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
+  initialTheme?: "light" | "dark";
 }) {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
@@ -119,7 +111,7 @@ export function Editor(props: {
     { location: string; severity: monaco.MarkerSeverity; msg: string[] }[]
   >([]);
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(getPreferredTheme());
+  const [theme, setTheme] = useState<"light" | "dark">(props.initialTheme || "light");
 
   function markErrors() {
     const model = editor.current?.getModel();
@@ -257,11 +249,11 @@ export function Editor(props: {
 
   useEffect(() => {
     if (!editorDiv.current) return;
-    const initialTheme = getPreferredTheme();
+
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
-      theme: initialTheme === "dark" ? "vs-dark" : "vs",
+      theme: props.initialTheme === "dark" ? "vs-dark" : "vs",
     });
 
     editor.current = newEditor;
@@ -315,10 +307,14 @@ export function Editor(props: {
   }, []);
 
   useEffect(() => {
-    if (editor.current) {
-      monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+    if (props.initialTheme && props.initialTheme !== theme) {
+      setTheme(props.initialTheme);
+
+      if (editor.current) {
+        monaco.editor.setTheme(props.initialTheme === "dark" ? "vs-dark" : "vs");
+      }
     }
-  }, [theme]);
+  }, [props.initialTheme]);
 
   useEffect(() => {
     props.languageService.updateConfiguration({
@@ -430,40 +426,11 @@ export function Editor(props: {
     setProfile(target.value as TargetProfile);
   }
 
-  function toggleTheme() {
-    setTheme(theme === "light" ? "dark" : "light");
-  }
-
   return (
     <div class="editor-column">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div class="file-name">main.qs</div>
         <div class="icon-row">
-          <svg
-            onClick={toggleTheme}
-            width="24px"
-            height="24px"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <title>{theme === "light" ? "Switch to dark theme" : "Switch to light theme"}</title>
-            {theme === "light" ? (
-              <path
-                d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
-                stroke="#0C0310"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            ) : (
-              <path
-                d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-                stroke="#0C0310"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            )}
-          </svg>
           <svg
             onClick={onGetLink}
             width="24px"
@@ -474,7 +441,7 @@ export function Editor(props: {
             <title>Get a link to this code</title>
             <path
               d="M14 12C14 14.2091 12.2091 16 10 16H6C3.79086 16 2 14.2091 2 12C2 9.79086 3.79086 8 6 8H8M10 12C10 9.79086 11.7909 8 14 8H18C20.2091 8 22 9.79086 22 12C22 14.2091 20.2091 16 18 16H16"
-              stroke="#000000"
+              stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -490,13 +457,13 @@ export function Editor(props: {
             <title>Reset code to initial state</title>
             <path
               d="M4,13 C4,17.4183 7.58172,21 12,21 C16.4183,21 20,17.4183 20,13 C20,8.58172 16.4183,5 12,5 C10.4407,5 8.98566,5.44609 7.75543,6.21762"
-              stroke="#0C0310"
+              stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
             ></path>
             <path
               d="M9.2384,1.89795 L7.49856,5.83917 C7.27552,6.34441 7.50429,6.9348 8.00954,7.15784 L11.9508,8.89768"
-              stroke="#0C0310"
+              stroke="currentColor"
               stroke-width="2"
               stroke-linecap="round"
             ></path>

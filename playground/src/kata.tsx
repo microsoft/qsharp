@@ -28,6 +28,7 @@ type Props = {
   compilerState: CompilerState;
   onRestartCompiler: () => void;
   languageService: ILanguageServiceWorker;
+  theme?: "light" | "dark";
 };
 
 function ExplainedSolutionElem(props: { solution: ExplainedSolution }) {
@@ -117,6 +118,7 @@ function LessonElem(props: Props & { section: KataSection }) {
                     setQir={() => ({})}
                     activeTab="results-tab"
                     languageService={props.languageService}
+                    initialTheme={props.theme}
                   ></Editor>
                   <OutputTabs
                     evtTarget={evtHandler}
@@ -182,6 +184,7 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           setQir={() => ({})}
           activeTab="results-tab"
           languageService={props.languageService}
+          initialTheme={props.theme}
         ></Editor>
         <OutputTabs
           evtTarget={evtHandler}
