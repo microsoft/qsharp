@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ast::{Program, StmtKind};
+pub mod ast;
 use crate::io::SourceResolver;
+use ast::{Program, StmtKind};
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 use scan::ParserContext;
@@ -231,7 +232,7 @@ where
     Ok((program, errors, included))
 }
 
-fn parse_includes<R>(program: &crate::ast::Program, resolver: &R) -> miette::Result<Vec<QasmSource>>
+fn parse_includes<R>(program: &Program, resolver: &R) -> miette::Result<Vec<QasmSource>>
 where
     R: SourceResolver,
 {
