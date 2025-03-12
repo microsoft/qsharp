@@ -15,23 +15,23 @@ use super::{
     Result,
 };
 use crate::{
-    ast::{
-        list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
-        ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt,
-        BitType, Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
-        ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
-        DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
-        FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
-        IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
-        IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureStmt, Pragma,
-        QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
-        RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter,
-        Stmt, StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
-    },
     keyword::Keyword,
     lex::{cooked::Type, Delim, TokenKind},
 };
 
+use super::ast::{
+    list_from_iter, AccessControl, AliasDeclStmt, AngleType, Annotation, ArrayBaseTypeKind,
+    ArrayReferenceType, ArrayType, ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt,
+    BitType, Block, BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast,
+    ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
+    DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
+    FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
+    IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
+    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureStmt, Pragma,
+    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
+    RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt,
+    StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+};
 use super::{prim::token, ParserContext};
 
 /// Our implementation differs slightly from the grammar in

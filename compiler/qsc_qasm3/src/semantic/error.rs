@@ -78,6 +78,9 @@ pub enum SemanticErrorKind {
     #[error("For statements must have a body or statement.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
+    #[error("Inconsisten types in alias expression: {0}.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.InconsistentTypesInAlias"))]
+    InconsistentTypesInAlias(String, #[label] Span),
     #[error("If statement missing {0} expression.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.IfStmtMissingExpression"))]
     IfStmtMissingExpression(String, #[label] Span),
@@ -162,6 +165,9 @@ pub enum SemanticErrorKind {
     #[error("Too many controls specified.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TooManyControls"))]
     TooManyControls(#[label] Span),
+    #[error("Too many indicies specified.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.TooManyIndices"))]
+    TooManyIndices(#[label] Span),
     #[error("Bitwise not `~` is not allowed for instances of {0}.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TypeDoesNotSupportBitwiseNot"))]
     TypeDoesNotSupportBitwiseNot(String, #[label] Span),
@@ -241,6 +247,9 @@ impl SemanticErrorKind {
             Self::ForStatementsMustHaveABodyOrStatement(span) => {
                 Self::ForStatementsMustHaveABodyOrStatement(span + offset)
             }
+            Self::InconsistentTypesInAlias(name, span) => {
+                Self::InconsistentTypesInAlias(name, span + offset)
+            }
             Self::IfStmtMissingExpression(name, span) => {
                 Self::IfStmtMissingExpression(name, span + offset)
             }
@@ -303,6 +312,7 @@ impl SemanticErrorKind {
             }
             Self::ReturnNotInSubroutine(span) => Self::ReturnNotInSubroutine(span + offset),
             Self::TooManyControls(span) => Self::TooManyControls(span + offset),
+            Self::TooManyIndices(span) => Self::TooManyIndices(span + offset),
             Self::TypeDoesNotSupportBitwiseNot(name, span) => {
                 Self::TypeDoesNotSupportBitwiseNot(name, span + offset)
             }
