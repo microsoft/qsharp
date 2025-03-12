@@ -74,6 +74,18 @@
           "path": "library/qtest"
         }
       }
+    },
+    {
+      "name": "QuantumArithmetic",
+      "description": "Quantum arithmetic algorithms",
+      "dependency": {
+        "github": {
+          "owner": "fedimser",
+          "repo": "quant-arith-re",
+          "refs": [{ "ref": "main", "notes": "nightly, unstable" }],
+          "path": "lib"
+        }
+      }
     }
   ]
 }
