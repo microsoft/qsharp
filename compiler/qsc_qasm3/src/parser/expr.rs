@@ -680,6 +680,7 @@ fn unescape(s: &str) -> std::result::Result<String, usize> {
     Ok(buf)
 }
 
+/// Grammar: `LBRACKET expression RBRACKET`.
 pub(super) fn designator(s: &mut ParserContext) -> Result<Expr> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let expr = expr(s)?;
@@ -756,6 +757,7 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
     })
 }
 
+/// Grammar: `Identifier indexOperator*`.
 pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
@@ -768,6 +770,15 @@ pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> 
     })
 }
 
+/// Grammar:
+/// ```g4
+/// LBRACKET
+/// (
+///     setExpression
+///     | (expression | rangeExpression) (COMMA (expression | rangeExpression))* COMMA?
+/// )
+/// RBRACKET
+/// ```
 fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let index = index_element(s)?;
