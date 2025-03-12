@@ -13,6 +13,7 @@ use crate::{
 
 use super::ParserContext;
 
+/// Grammar: `version? statementOrScope* EOF`.
 pub(super) fn parse(s: &mut ParserContext) -> Result<Program> {
     let lo = s.peek().span.lo;
     let version = opt(s, parse_version)?;
@@ -29,6 +30,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Program> {
     })
 }
 
+/// Grammar: `OPENQASM VersionSpecifier SEMICOLON`.
 fn parse_version(s: &mut ParserContext<'_>) -> Result<Version> {
     s.expect(WordKinds::OpenQASM);
     token(s, TokenKind::Keyword(crate::keyword::Keyword::OpenQASM))?;
