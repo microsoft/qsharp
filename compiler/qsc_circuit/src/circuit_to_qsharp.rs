@@ -7,18 +7,32 @@ mod tests;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    circuit::{Measurement, Unitary},
+    circuit::{CircuitGroup, Measurement, Unitary},
     Circuit, Operation,
 };
 
-pub fn circuit_to_qsharp(circuit_name: String, circuit_json: String) -> String {
-    match serde_json::from_str::<Circuit>(circuit_json.as_str()) {
-        Ok(circuit) => build_qsharp(circuit_name, circuit),
+pub fn circuit_to_qsharp(file_name: String, circuit_json: String) -> String {
+    match serde_json::from_str::<CircuitGroup>(circuit_json.as_str()) {
+        Ok(circuits) => build_circuits(file_name, circuits.circuits),
         Err(e) => format!("Error: {}", e),
     }
 }
 
-pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
+pub fn build_circuits(file_name: String, circuits: Vec<Circuit>) -> String {
+    if circuits.len() == 1 {
+        build_operation_def(file_name, &circuits[0])
+    } else {
+        let mut qsharp_str = String::new();
+        for (index, circuit) in circuits.iter().enumerate() {
+            let circuit_name = format!("{file_name}{index}");
+            let circuit_str = build_operation_def(circuit_name, circuit);
+            qsharp_str.push_str(&circuit_str);
+        }
+        qsharp_str
+    }
+}
+
+pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
     let mut indentation_level = 0;
     let qubits = circuit
         .qubits
@@ -45,7 +59,21 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
         _ => "Result[]",
     };
 
-    let mut qsharp_str = format!("operation {circuit_name}({parameters}) : {return_type} {{\n");
+    // Check if all operations are Unitary
+    let is_ctl_adj = circuit.component_grid.iter().all(|col| {
+        col.components.iter().all(|op| {
+            if let Operation::Unitary(unitary) = op {
+                unitary.gate != "|0〉" && unitary.gate != "|1〉"
+            } else {
+                false
+            }
+        })
+    });
+
+    let characteristics = if is_ctl_adj { "is Ctl + Adj " } else { "" };
+
+    let mut qsharp_str =
+        format!("operation {circuit_name}({parameters}) : {return_type} {characteristics}{{\n");
     indentation_level += 1;
 
     let mut measure_results = vec![];
@@ -131,7 +159,7 @@ pub fn build_qsharp(circuit_name: String, circuit: Circuit) -> String {
         }
     }
 
-    qsharp_str.push_str("}\n");
+    qsharp_str.push_str("}\n\n");
     qsharp_str
 }
 
