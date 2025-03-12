@@ -5,7 +5,6 @@
 #![allow(dead_code)]
 
 mod angle;
-mod ast;
 mod ast_builder;
 mod compile;
 pub use compile::qasm_to_program;

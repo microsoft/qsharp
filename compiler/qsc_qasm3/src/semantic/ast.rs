@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    ast::{
+    parser::ast::{
         display_utils::{
             write_field, write_header, write_indented_list, write_list_field, write_opt_field,
             write_opt_list_field, writeln_field, writeln_header, writeln_list_field,
@@ -20,6 +20,8 @@ use crate::{
     },
     semantic::symbols::SymbolId,
 };
+
+use crate::parser::ast as syntax;
 
 #[derive(Clone, Debug)]
 pub struct Program {
@@ -218,6 +220,32 @@ impl Display for BinOp {
     }
 }
 
+impl From<syntax::BinOp> for BinOp {
+    fn from(value: syntax::BinOp) -> Self {
+        match value {
+            syntax::BinOp::Add => BinOp::Add,
+            syntax::BinOp::AndB => BinOp::AndB,
+            syntax::BinOp::AndL => BinOp::AndL,
+            syntax::BinOp::Div => BinOp::Div,
+            syntax::BinOp::Eq => BinOp::Eq,
+            syntax::BinOp::Exp => BinOp::Exp,
+            syntax::BinOp::Gt => BinOp::Gt,
+            syntax::BinOp::Gte => BinOp::Gte,
+            syntax::BinOp::Lt => BinOp::Lt,
+            syntax::BinOp::Lte => BinOp::Lte,
+            syntax::BinOp::Mod => BinOp::Mod,
+            syntax::BinOp::Mul => BinOp::Mul,
+            syntax::BinOp::Neq => BinOp::Neq,
+            syntax::BinOp::OrB => BinOp::OrB,
+            syntax::BinOp::OrL => BinOp::OrL,
+            syntax::BinOp::Shl => BinOp::Shl,
+            syntax::BinOp::Shr => BinOp::Shr,
+            syntax::BinOp::Sub => BinOp::Sub,
+            syntax::BinOp::XorB => BinOp::XorB,
+        }
+    }
+}
+
 /// A unary operator.
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
@@ -305,6 +333,7 @@ impl Display for AliasDeclStmt {
 pub enum StmtKind {
     Alias(AliasDeclStmt),
     Assign(AssignStmt),
+    IndexedAssign(IndexedAssignStmt),
     AssignOp(AssignOpStmt),
     Barrier(BarrierStmt),
     Box(BoxStmt),
@@ -361,6 +390,7 @@ impl Display for StmtKind {
             StmtKind::GPhase(gphase) => write!(f, "{gphase}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
+            StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
             StmtKind::IODeclaration(io) => write!(f, "{io}"),
             StmtKind::Measure(measure) => write!(f, "{measure}"),
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
@@ -503,14 +533,14 @@ impl WithSpan for Ident {
 #[derive(Clone, Debug)]
 pub struct IndexedIdent {
     pub span: Span,
-    pub name: Ident,
+    pub symbol_id: SymbolId,
     pub indices: List<IndexElement>,
 }
 
 impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "indices", &self.indices)
     }
 }
@@ -1136,17 +1166,15 @@ impl Display for ValueExpression {
 #[derive(Clone, Debug)]
 pub struct IODeclaration {
     pub span: Span,
-    pub io_identifier: IOKeyword,
-    pub ty: TypeDef,
-    pub ident: Box<Ident>,
+    pub symbol_id: SymbolId,
+    pub init_expr: Box<Expr>,
 }
 
 impl Display for IODeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IODeclaration", self.span)?;
-        writeln_field(f, "io_keyword", &self.io_identifier)?;
-        writeln_field(f, "type", &self.ty)?;
-        write_field(f, "ident", &self.ident)
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        write_field(f, "init_expr", &self.init_expr)
     }
 }
 
@@ -1196,7 +1224,7 @@ pub struct ScalarTypedParameter {
 impl Display for ScalarTypedParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ScalarTypedParameter", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
+        writeln_field(f, "ty", &self.ty)?;
         write_field(f, "ident", &self.ident)
     }
 }
@@ -1240,7 +1268,7 @@ pub struct ArrayTypedParameter {
 impl Display for ArrayTypedParameter {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ArrayTypedParameter", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
+        writeln_field(f, "ty", &self.ty)?;
         write_field(f, "ident", &self.ident)
     }
 }
@@ -1376,6 +1404,7 @@ pub enum ExprKind {
     #[default]
     Err,
     Ident(SymbolId),
+    IndexedIdentifier(IndexedIdent),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
     Lit(LiteralKind),
@@ -1389,7 +1418,8 @@ impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ExprKind::Err => write!(f, "Err"),
-            ExprKind::Ident(id) => write!(f, "{id}"),
+            ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
+            ExprKind::IndexedIdentifier(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
             ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
@@ -1404,14 +1434,31 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub lhs: Expr,
+    pub symbold_id: SymbolId,
     pub rhs: Expr,
 }
 
 impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "lhs", &self.lhs)?;
+        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        write_field(f, "rhs", &self.rhs)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IndexedAssignStmt {
+    pub span: Span,
+    pub symbold_id: SymbolId,
+    pub lhs: Expr,
+    pub rhs: Expr,
+}
+
+impl Display for IndexedAssignStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "AssignStmt", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1419,7 +1466,7 @@ impl Display for AssignStmt {
 #[derive(Clone, Debug)]
 pub struct AssignOpStmt {
     pub span: Span,
-    pub op: BinOp,
+    pub symbold_id: SymbolId,
     pub lhs: Expr,
     pub rhs: Expr,
 }
@@ -1427,8 +1474,8 @@ pub struct AssignOpStmt {
 impl Display for AssignOpStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignOpStmt", self.span)?;
-        writeln_field(f, "op", &self.op)?;
-        writeln_field(f, "lhs", &self.lhs)?;
+        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1452,6 +1499,15 @@ pub struct BinaryOpExpr {
     pub op: BinOp,
     pub lhs: Expr,
     pub rhs: Expr,
+}
+
+impl BinaryOpExpr {
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.lhs.span.lo,
+            hi: self.rhs.span.hi,
+        }
+    }
 }
 
 impl Display for BinaryOpExpr {
@@ -1488,7 +1544,7 @@ pub struct Cast {
 impl Display for Cast {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Cast", self.span)?;
-        writeln_field(f, "type", &self.ty)?;
+        writeln_field(f, "ty", &self.ty)?;
         write_field(f, "expr", &self.expr)
     }
 }
@@ -1574,12 +1630,10 @@ impl Display for IndexElement {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub enum IndexSetItem {
     RangeDefinition(RangeDefinition),
     Expr(Expr),
-    #[default]
-    Err,
 }
 
 /// This is needed to able to use `IndexSetItem` in the `seq` combinator.
@@ -1590,7 +1644,6 @@ impl WithSpan for IndexSetItem {
                 IndexSetItem::RangeDefinition(range.with_span(span))
             }
             IndexSetItem::Expr(expr) => IndexSetItem::Expr(expr.with_span(span)),
-            IndexSetItem::Err => IndexSetItem::Err,
         }
     }
 }
@@ -1600,7 +1653,6 @@ impl Display for IndexSetItem {
         match self {
             IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
             IndexSetItem::Expr(expr) => write!(f, "{expr}"),
-            IndexSetItem::Err => write!(f, "Err"),
         }
     }
 }

@@ -98,7 +98,7 @@ pub struct Symbol {
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use crate::ast::display_utils;
+        use crate::parser::ast::display_utils;
         display_utils::writeln_header(f, "Symbol", self.span)?;
         display_utils::writeln_field(f, "name", &self.name)?;
         display_utils::writeln_field(f, "type", &self.ty)?;
@@ -131,17 +131,12 @@ pub enum SymbolError {
 /// The default I/O kind means no explicit kind was part of the decl.
 /// There is a specific statement for io decls which sets the I/O kind appropriately.
 /// This is used to determine the input and output symbols in the program.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Copy, Default, Debug, Clone, PartialEq, Eq)]
 pub enum IOKind {
+    #[default]
     Default,
     Input,
     Output,
-}
-
-impl Default for IOKind {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 impl std::fmt::Display for IOKind {
