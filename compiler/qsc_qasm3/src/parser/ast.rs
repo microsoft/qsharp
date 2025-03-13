@@ -686,9 +686,9 @@ impl Display for ClassicalArgument {
 
 #[derive(Clone, Debug)]
 pub enum ExternParameter {
-    Scalar(ScalarType, Span),
-    Quantum(Option<Expr>, Span),
     ArrayReference(ArrayReferenceType, Span),
+    Quantum(Option<Expr>, Span),
+    Scalar(ScalarType, Span),
 }
 
 impl Display for ExternParameter {
@@ -1217,9 +1217,9 @@ impl Display for CalibrationStmt {
 
 #[derive(Clone, Debug)]
 pub enum TypedParameter {
-    Scalar(ScalarTypedParameter),
-    Quantum(QuantumTypedParameter),
     ArrayReference(ArrayTypedParameter),
+    Quantum(QuantumTypedParameter),
+    Scalar(ScalarTypedParameter),
 }
 
 impl WithSpan for TypedParameter {

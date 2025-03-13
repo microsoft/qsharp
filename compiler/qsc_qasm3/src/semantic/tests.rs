@@ -5,6 +5,7 @@ pub mod assignment;
 pub mod decls;
 
 pub mod expression;
+pub mod statements;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -16,6 +17,7 @@ use super::parse_source;
 
 use super::QasmSemanticParseResult;
 
+use expect_test::expect;
 use miette::Report;
 
 use expect_test::Expect;
@@ -141,18 +143,158 @@ fn check_map<S>(
     let res = parse_source(input, "test", &resolver)
         .map_err(|e| vec![e])
         .expect("failed to parse");
+
     let errors = res.all_errors();
 
+    assert!(
+        !res.has_syntax_errors(),
+        "syntax errors: {:?}",
+        res.parse_errors()
+    );
+
+    let program = res.program.expect("no program");
+
     if errors.is_empty() {
-        expect.assert_eq(&selector(&res.program, &res.symbols));
+        expect.assert_eq(&selector(&program, &res.symbols));
     } else {
         expect.assert_eq(&format!(
             "{}\n\n{:?}",
-            res.program,
+            program,
             errors
                 .iter()
                 .map(|e| Report::new(e.clone()))
                 .collect::<Vec<_>>()
         ));
     }
+}
+
+pub(super) fn check_all<P>(
+    path: P,
+    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
+    expect: &Expect,
+) where
+    P: AsRef<Path>,
+{
+    check_map_all(path, sources, expect, |p, _| p.to_string());
+}
+
+fn check_map_all<P>(
+    path: P,
+    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
+    expect: &Expect,
+    selector: impl FnOnce(&super::ast::Program, &super::SymbolTable) -> String,
+) where
+    P: AsRef<Path>,
+{
+    let resolver = InMemorySourceResolver::from_iter(sources);
+    let source = resolver
+        .resolve(path.as_ref())
+        .map_err(|e| vec![e])
+        .expect("could not load source")
+        .1;
+    let res = parse_source(source, path, &resolver)
+        .map_err(|e| vec![e])
+        .expect("failed to parse");
+
+    let errors = res.all_errors();
+
+    assert!(
+        !res.has_syntax_errors(),
+        "syntax errors: {:?}",
+        res.parse_errors()
+    );
+    let program = res.program.expect("no program");
+
+    if errors.is_empty() {
+        expect.assert_eq(&selector(&program, &res.symbols));
+    } else {
+        expect.assert_eq(&format!(
+            "{}\n\n{:?}",
+            program,
+            errors
+                .iter()
+                .map(|e| Report::new(e.clone()))
+                .collect::<Vec<_>>()
+        ));
+    }
+}
+
+#[test]
+fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
+    let source0 = r#"OPENQASM 3.0;
+    include "stdgates.inc";
+    include "source1.qasm";
+    bit c = r; // undefined symbol r
+    "#;
+    let source1 = r#"include "source2.qasm";
+    angle z = 7.0;
+    float k = z + false; // invalid cast"#;
+    let source2 = "bit x = 1;
+    bool x = y && x; // undefined y, redefine x";
+    let all_sources = [
+        ("source0.qasm".into(), source0.into()),
+        ("source1.qasm".into(), source1.into()),
+        ("source2.qasm".into(), source2.into()),
+    ];
+
+    check_all(
+        "source0.qasm",
+        all_sources,
+        &expect![[r#"
+            Program:
+                version: 3.0
+                statements:
+                    Stmt [196-206]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [196-206]:
+                            symbol_id: 24
+                            ty_span: [196-199]
+                            init_expr: Expr [204-205]:
+                                ty: Bit(true)
+                                kind: Lit: Int(1)
+                    Stmt [140-154]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [140-154]:
+                            symbol_id: 26
+                            ty_span: [140-145]
+                            init_expr: Expr [150-153]:
+                                ty: Angle(None, true)
+                                kind: Lit: Float(7.0)
+
+            [Qsc.Qasm3.Compile.UndefinedSymbol
+
+              x Undefined symbol: y.
+               ,-[source2.qasm:2:14]
+             1 | bit x = 1;
+             2 |     bool x = y && x; // undefined y, redefine x
+               :              ^
+               `----
+            , Qsc.Qasm3.Compile.RedefinedSymbol
+
+              x Redefined symbol: x.
+               ,-[source2.qasm:2:10]
+             1 | bit x = 1;
+             2 |     bool x = y && x; // undefined y, redefine x
+               :          ^
+               `----
+            , Qsc.Qasm3.Compile.CannotCast
+
+              x Cannot cast expression of type Angle(None, false) to type Float(None,
+              | false)
+               ,-[source1.qasm:3:15]
+             2 |     angle z = 7.0;
+             3 |     float k = z + false; // invalid cast
+               :               ^
+               `----
+            , Qsc.Qasm3.Compile.UndefinedSymbol
+
+              x Undefined symbol: r.
+               ,-[source0.qasm:4:13]
+             3 |     include "source1.qasm";
+             4 |     bit c = r; // undefined symbol r
+               :             ^
+             5 |     
+               `----
+            ]"#]],
+    );
 }

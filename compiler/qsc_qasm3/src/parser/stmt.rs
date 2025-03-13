@@ -73,85 +73,88 @@ use super::{prim::token, ParserContext};
 ///     | whileStatement
 /// )
 /// ```
-pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
+pub(super) fn parse(s: &mut ParserContext) -> Result<Stmt> {
     let lo = s.peek().span.lo;
     if let Some(pragma) = opt(s, parse_pragma)? {
-        return Ok(Box::new(Stmt {
+        return Ok(Stmt {
             span: s.span(lo),
             annotations: [].into(),
             kind: Box::new(StmtKind::Pragma(pragma)),
-        }));
+        });
     }
     let attrs = many(s, parse_annotation)?;
 
     let kind = if token(s, TokenKind::Semicolon).is_ok() {
         if attrs.is_empty() {
-            Box::new(StmtKind::Empty)
-        } else {
             let err_item = default(s.span(lo));
-            s.push_error(Error::new(ErrorKind::FloatingAnnotation(err_item.span)));
+            s.push_error(Error::new(ErrorKind::EmptyStatement(err_item.span)));
             return Ok(err_item);
         }
+        let lo = attrs.iter().map(|a| a.span.lo).min().unwrap_or_default();
+        let hi = attrs.iter().map(|a| a.span.hi).max().unwrap_or_default();
+        let err_item = default(Span { lo, hi });
+        s.push_error(Error::new(ErrorKind::FloatingAnnotation(err_item.span)));
+        return Ok(err_item);
     } else if let Some(decl) = opt(s, parse_gatedef)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, parse_def)? {
-        Box::new(decl)
+        decl
     } else if let Some(include) = opt(s, parse_include)? {
-        Box::new(include)
+        include
     } else if let Some(ty) = opt(s, scalar_or_array_type)? {
-        Box::new(disambiguate_type(s, ty)?)
+        disambiguate_type(s, ty)?
     } else if let Some(decl) = opt(s, parse_constant_classical_decl)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, parse_quantum_decl)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, parse_io_decl)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, qreg_decl)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, creg_decl)? {
-        Box::new(decl)
+        decl
     } else if let Some(decl) = opt(s, parse_extern)? {
-        Box::new(decl)
+        decl
     } else if let Some(switch) = opt(s, parse_switch_stmt)? {
-        Box::new(StmtKind::Switch(switch))
+        StmtKind::Switch(switch)
     } else if let Some(stmt) = opt(s, parse_if_stmt)? {
-        Box::new(StmtKind::If(stmt))
+        StmtKind::If(stmt)
     } else if let Some(stmt) = opt(s, parse_for_loop)? {
-        Box::new(StmtKind::For(stmt))
+        StmtKind::For(stmt)
     } else if let Some(stmt) = opt(s, parse_while_loop)? {
-        Box::new(StmtKind::WhileLoop(stmt))
+        StmtKind::WhileLoop(stmt)
     } else if let Some(stmt) = opt(s, parse_return)? {
-        Box::new(stmt)
+        stmt
     } else if let Some(stmt) = opt(s, parse_continue_stmt)? {
-        Box::new(StmtKind::Continue(stmt))
+        StmtKind::Continue(stmt)
     } else if let Some(stmt) = opt(s, parse_break_stmt)? {
-        Box::new(StmtKind::Break(stmt))
+        StmtKind::Break(stmt)
     } else if let Some(stmt) = opt(s, parse_end_stmt)? {
-        Box::new(StmtKind::End(stmt))
+        StmtKind::End(stmt)
     } else if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        Box::new(disambiguate_ident(s, indexed_ident)?)
+        disambiguate_ident(s, indexed_ident)?
     } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
-        Box::new(stmt_kind)
+        stmt_kind
     } else if let Some(stmt) = opt(s, |s| parse_expression_stmt(s, None))? {
-        Box::new(StmtKind::ExprStmt(stmt))
+        StmtKind::ExprStmt(stmt)
     } else if let Some(alias) = opt(s, parse_alias_stmt)? {
-        Box::new(StmtKind::Alias(alias))
+        StmtKind::Alias(alias)
     } else if let Some(stmt) = opt(s, parse_box)? {
-        Box::new(StmtKind::Box(stmt))
+        StmtKind::Box(stmt)
     } else if let Some(stmt) = opt(s, parse_calibration_grammar_stmt)? {
-        Box::new(StmtKind::CalibrationGrammar(stmt))
+        StmtKind::CalibrationGrammar(stmt)
     } else if let Some(stmt) = opt(s, parse_defcal_stmt)? {
-        Box::new(StmtKind::DefCal(stmt))
+        StmtKind::DefCal(stmt)
     } else if let Some(stmt) = opt(s, parse_cal)? {
-        Box::new(StmtKind::Cal(stmt))
+        StmtKind::Cal(stmt)
     } else if let Some(stmt) = opt(s, parse_barrier)? {
-        Box::new(StmtKind::Barrier(stmt))
+        StmtKind::Barrier(stmt)
     } else if let Some(stmt) = opt(s, parse_delay)? {
-        Box::new(StmtKind::Delay(stmt))
+        StmtKind::Delay(stmt)
     } else if let Some(stmt) = opt(s, parse_reset)? {
-        Box::new(StmtKind::Reset(stmt))
+        StmtKind::Reset(stmt)
     } else if let Some(stmt) = opt(s, parse_measure_stmt)? {
-        Box::new(StmtKind::Measure(stmt))
+        StmtKind::Measure(stmt)
     } else {
         return Err(Error::new(ErrorKind::Rule(
             "statement",
@@ -160,11 +163,11 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         )));
     };
 
-    Ok(Box::new(Stmt {
+    Ok(Stmt {
         span: s.span(lo),
         annotations: attrs.into_boxed_slice(),
-        kind,
-    }))
+        kind: Box::new(kind),
+    })
 }
 
 /// This helper function allows us to disambiguate between
@@ -276,10 +279,10 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
 }
 
 #[allow(clippy::vec_box)]
-pub(super) fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Stmt>>> {
+pub(super) fn parse_many(s: &mut ParserContext) -> Result<Vec<Stmt>> {
     many(s, |s| {
         recovering(s, default, &[TokenKind::Semicolon], |s| {
-            parse_block_or_stmt(s).map(Box::new)
+            parse_block_or_stmt(s)
         })
     })
 }
@@ -292,17 +295,17 @@ pub(super) fn parse_block(s: &mut ParserContext) -> Result<Block> {
     recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Block {
         span: s.span(lo),
-        stmts: stmts.into_boxed_slice(),
+        stmts: list_from_iter(stmts),
     })
 }
 
 #[allow(clippy::unnecessary_box_returns)]
-fn default(span: Span) -> Box<Stmt> {
-    Box::new(Stmt {
+fn default(span: Span) -> Stmt {
+    Stmt {
         span,
         annotations: Vec::new().into_boxed_slice(),
         kind: Box::new(StmtKind::Err),
-    })
+    }
 }
 
 /// Grammar: `AnnotationKeyword RemainingLineContent?`.
@@ -1148,7 +1151,7 @@ fn parse_block_or_stmt(s: &mut ParserContext) -> Result<Stmt> {
             kind: Box::new(StmtKind::Block(block)),
         })
     } else {
-        Ok(*parse(s)?)
+        parse(s)
     }
 }
 
@@ -1347,35 +1350,11 @@ fn parse_many_boxable_stmt(s: &mut ParserContext) -> Result<List<Stmt>> {
                 annotations: Box::new([]),
             },
             &[TokenKind::Semicolon],
-            parse_boxable_stmt,
+            parse,
         )
     });
 
     Ok(list_from_iter(stmts?))
-}
-
-/// These "boxable" stmts were taken from the reference parser at
-/// <https://github.com/openqasm/openqasm/blob/main/source/openqasm/openqasm3/ast.py>.
-/// Search for the definition of `Box` there, and then for all the classes
-/// inhereting from `QuantumStatement`.
-fn parse_boxable_stmt(s: &mut ParserContext) -> Result<Stmt> {
-    let stmt = *parse(s)?;
-    match &*stmt.kind {
-        StmtKind::Barrier(_)
-        | StmtKind::Delay(_)
-        | StmtKind::Reset(_)
-        | StmtKind::GateCall(_)
-        | StmtKind::GPhase(_)
-        | StmtKind::Box(_) => Ok(stmt),
-        _ => {
-            s.push_error(Error::new(ErrorKind::ClassicalStmtInBox(stmt.span)));
-            Ok(Stmt {
-                span: stmt.span,
-                annotations: stmt.annotations,
-                kind: Box::new(StmtKind::Err),
-            })
-        }
-    }
 }
 
 /// In QASM3, it is hard to disambiguate between a quantum-gate-call missing modifiers

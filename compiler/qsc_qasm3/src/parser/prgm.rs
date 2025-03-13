@@ -74,6 +74,6 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<Stmt> {
             kind: Box::new(StmtKind::Block(block)),
         })
     } else {
-        Ok(*stmt::parse(s)?)
+        Ok(stmt::parse(s)?)
     }
 }

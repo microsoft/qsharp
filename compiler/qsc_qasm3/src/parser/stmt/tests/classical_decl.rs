@@ -289,6 +289,46 @@ fn const_complex_sized_decl_complex_lit() {
 }
 
 #[test]
+fn const_complex_implicit_bitness_default() {
+    check(
+        parse,
+        "const complex[float] x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 22,
+                        hi: 23,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn const_complex_explicit_bitness_default() {
+    check(
+        parse,
+        "const complex[float[42]] x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 26,
+                        hi: 27,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
 fn int_decl() {
     check(
         parse,
@@ -317,6 +357,46 @@ fn int_decl_int_lit() {
                         size: <none>
                     ident: Ident [4-5] "i"
                     init_expr: Expr [8-9]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn const_int_explicit_bitness_int_default() {
+    check(
+        parse,
+        "const int[10] x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 15,
+                        hi: 16,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn const_int_implicit_bitness_int_default() {
+    check(
+        parse,
+        "const int x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 11,
+                        hi: 12,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
@@ -413,6 +493,46 @@ fn uint_decl_uint_lit() {
                         size: <none>
                     ident: Ident [5-6] "i"
                     init_expr: Expr [9-10]: Lit: Int(1)"#]],
+    );
+}
+
+#[test]
+fn const_uint_explicit_bitness_uint_default() {
+    check(
+        parse,
+        "const uint[10] x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 16,
+                        hi: 17,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn const_uint_implicit_bitness_uint_default() {
+    check(
+        parse,
+        "const uint x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 12,
+                        hi: 13,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
@@ -525,6 +645,46 @@ fn const_float_decl_float_lit() {
                         size: <none>
                     ident: Ident [12-13] "f"
                     init_expr: Expr [16-19]: Lit: Float(1.0)"#]],
+    );
+}
+
+#[test]
+fn const_float_default() {
+    check(
+        parse,
+        "const float x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 13,
+                        hi: 14,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn const_float_sized_default() {
+    check(
+        parse,
+        "const float[64] x;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Eq,
+                    Semicolon,
+                    Span {
+                        lo: 17,
+                        hi: 18,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 
