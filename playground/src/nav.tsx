@@ -11,13 +11,11 @@ export function Nav(props: {
   }
 
   return (
-    <>
-      <nav className={`nav-column ${props.sidebarOpen ? "open" : "closed"}`}>
-          <>
-            <div className="nav-1">Samples</div>
+      <nav class={`nav-column ${props.sidebarOpen ? "open" : "closed"}`}>
+            <div class="nav-1">Samples</div>
             {props.samples.map((name) => (
               <div
-                className={`nav-2 nav-selectable ${
+                class={`nav-2 nav-selectable ${
                   props.selected === "sample-" + name ? "nav-current" : ""
                 }`}
                 onClick={() => onSelected("sample-" + name)}
@@ -26,10 +24,10 @@ export function Nav(props: {
               </div>
             ))}
 
-            <div className="nav-1">Tutorials</div>
+            <div class="nav-1">Tutorials</div>
             {props.katas.map((name) => (
               <div
-                className={`nav-2 nav-selectable ${
+                class={`nav-2 nav-selectable ${
                   props.selected === name ? "nav-current" : ""
                 }`}
                 onClick={() => onSelected(name)}
@@ -38,10 +36,10 @@ export function Nav(props: {
               </div>
             ))}
 
-            <div className="nav-1">Documentation</div>
+            <div class="nav-1">Documentation</div>
             {props.namespaces.map((name) => (
               <div
-                className={`nav-2 nav-selectable ${
+                class={`nav-2 nav-selectable ${
                   props.selected === name ? "nav-current" : ""
                 }`}
                 onClick={() => onSelected(name)}
@@ -49,8 +47,6 @@ export function Nav(props: {
                 {name}
               </div>
             ))}
-          </>
       </nav>
-    </>
   );
 }
