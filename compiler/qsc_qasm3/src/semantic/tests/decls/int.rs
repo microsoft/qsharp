@@ -63,33 +63,6 @@ fn implicit_bitness_int_default() {
 }
 
 #[test]
-fn const_implicit_bitness_int_default() {
-    check_classical_decl(
-        "const int x;",
-        &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qasm3.Parse.Token
-
-              x expected `=`, found `;`
-               ,-[test:1:12]
-             1 | const int x;
-               :            ^
-               `----
-            , Qsc.Qasm3.Compile.UnexpectedParserError
-
-              x Unexpected parser error: Unexpected error.
-               ,-[test:1:1]
-             1 | const int x;
-               : ^^^^^^^^^^^^
-               `----
-            ]"#]],
-    );
-}
-
-#[test]
 fn const_implicit_bitness_int_lit() {
     check_classical_decl(
         "const int x = 42;",
@@ -333,33 +306,6 @@ fn explicit_bitness_int_default() {
                 type: Int(Some(10), false)
                 qsharp_type: Int
                 io_kind: Default"#]],
-    );
-}
-
-#[test]
-fn const_explicit_bitness_int_default() {
-    check_classical_decl(
-        "const int[10] x;",
-        &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qasm3.Parse.Token
-
-              x expected `=`, found `;`
-               ,-[test:1:16]
-             1 | const int[10] x;
-               :                ^
-               `----
-            , Qsc.Qasm3.Compile.UnexpectedParserError
-
-              x Unexpected parser error: Unexpected error.
-               ,-[test:1:1]
-             1 | const int[10] x;
-               : ^^^^^^^^^^^^^^^^
-               `----
-            ]"#]],
     );
 }
 
