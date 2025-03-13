@@ -4,6 +4,8 @@
 pub mod ast;
 use crate::io::SourceResolver;
 use ast::{Program, StmtKind};
+use mut_visit::MutVisitor;
+use qsc_data_structures::span::Span;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 use scan::ParserContext;
@@ -17,10 +19,20 @@ mod completion;
 mod error;
 pub use error::Error;
 mod expr;
+mod mut_visit;
 mod prgm;
 mod prim;
 mod scan;
 mod stmt;
+
+struct Offsetter(pub(super) u32);
+
+impl MutVisitor for Offsetter {
+    fn visit_span(&mut self, span: &mut Span) {
+        span.lo += self.0;
+        span.hi += self.0;
+    }
+}
 
 pub struct QasmParseResult {
     pub source: QasmSource,
@@ -31,6 +43,8 @@ impl QasmParseResult {
     #[must_use]
     pub fn new(source: QasmSource) -> QasmParseResult {
         let source_map = create_source_map(&source);
+        let mut source = source;
+        update_offsets(&source_map, &mut source);
         QasmParseResult { source, source_map }
     }
 
@@ -63,16 +77,32 @@ impl QasmParseResult {
     }
 
     fn map_error(&self, error: Error) -> WithSource<crate::Error> {
-        let path = self.source.path().display().to_string();
-        let source = self.source_map.find_by_name(&path);
-        let offset = source.map_or(0, |source| source.offset);
-
-        let offset_error = error.with_offset(offset);
-
         WithSource::from_map(
             &self.source_map,
-            crate::Error(crate::ErrorKind::Parser(offset_error)),
+            crate::Error(crate::ErrorKind::Parser(error)),
         )
+    }
+}
+
+/// all spans and errors spans are relative to the start of the file
+/// We need to update the spans based on the offset of the file in the source map.
+/// We have to do this after a full parse as we don't know what files will be loaded
+/// until we have parsed all the includes.
+fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
+    let source_file = source_map.find_by_name(&source.path().display().to_string());
+    let offset = source_file.map_or(0, |source| source.offset);
+    // Update the errors' offset
+    source
+        .errors
+        .iter_mut()
+        .for_each(|e| *e = e.clone().with_offset(offset));
+    // Update the program's spans with the offset
+    let mut offsetter = Offsetter(offset);
+    offsetter.visit_program(&mut source.program);
+
+    // Recursively update the includes, their programs, and errors
+    for include in source.includes_mut() {
+        update_offsets(source_map, include);
     }
 }
 
@@ -95,15 +125,7 @@ where
 /// and parse results.
 fn create_source_map(source: &QasmSource) -> SourceMap {
     let mut files: Vec<(Arc<str>, Arc<str>)> = Vec::new();
-    files.push((
-        Arc::from(source.path().to_string_lossy().to_string()),
-        Arc::from(source.source()),
-    ));
-    // Collect all source files from the includes, this
-    // begins the recursive process of collecting all source files.
-    for include in source.includes() {
-        collect_source_files(include, &mut files);
-    }
+    collect_source_files(source, &mut files);
     SourceMap::new(files, None)
 }
 
@@ -113,6 +135,8 @@ fn collect_source_files(source: &QasmSource, files: &mut Vec<(Arc<str>, Arc<str>
         Arc::from(source.path().to_string_lossy().to_string()),
         Arc::from(source.source()),
     ));
+    // Collect all source files from the includes, this
+    // begins the recursive process of collecting all source files.
     for include in source.includes() {
         collect_source_files(include, files);
     }
@@ -171,6 +195,11 @@ impl QasmSource {
     #[must_use]
     pub fn includes(&self) -> &Vec<QasmSource> {
         self.included.as_ref()
+    }
+
+    #[must_use]
+    pub fn includes_mut(&mut self) -> &mut Vec<QasmSource> {
+        self.included.as_mut()
     }
 
     #[must_use]
