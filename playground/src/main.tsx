@@ -182,10 +182,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             />
           </svg>
         </div>
-        Q# playground
+        <div style={{flexGrow: '1'}}>Q# playground</div>
       </header>
       <div
-        className={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
+        class={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
       >
         <Nav
           selected={currentNavItem}
@@ -195,56 +195,56 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           namespaces={getNamespaces(documentation)}
           sidebarOpen={sidebar}
         ></Nav>
-        {sampleCode ? (
-          <>
-            <Editor
-              code={sampleCode}
-              compiler={compiler}
-              compiler_worker_factory={compiler_worker_factory}
-              compilerState={compilerState}
-              onRestartCompiler={onRestartCompiler}
-              evtTarget={evtTarget}
-              defaultShots={defaultShots}
-              showShots={true}
-              showExpr={true}
-              shotError={shotError}
-              profile={getProfile()}
-              setAst={setAst}
-              setHir={setHir}
-              setRir={setRir}
-              setQir={setQir}
-              activeTab={activeTab}
-              languageService={languageService}
-            ></Editor>
-            <OutputTabs
-              evtTarget={evtTarget}
-              showPanel={true}
-              onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
-              ast={ast}
-              hir={hir}
-              rir={rir}
-              qir={qir}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-            ></OutputTabs>
-          </>
-        ) : activeKata ? (
-          <Katas
-            kata={activeKata!}
+      </div>
+      {sampleCode ? (
+        <>
+          <Editor
+            code={sampleCode}
             compiler={compiler}
             compiler_worker_factory={compiler_worker_factory}
             compilerState={compilerState}
             onRestartCompiler={onRestartCompiler}
+            evtTarget={evtTarget}
+            defaultShots={defaultShots}
+            showShots={true}
+            showExpr={true}
+            shotError={shotError}
+            profile={getProfile()}
+            setAst={setAst}
+            setHir={setHir}
+            setRir={setRir}
+            setQir={setQir}
+            activeTab={activeTab}
             languageService={languageService}
-          ></Katas>
-        ) : (
-          <DocumentationDisplay
-            currentNamespace={currentNavItem}
-            documentation={documentation}
-          ></DocumentationDisplay>
-        )}
-        <div id="popup"></div>
-      </div>
+          ></Editor>
+          <OutputTabs
+            evtTarget={evtTarget}
+            showPanel={true}
+            onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+            ast={ast}
+            hir={hir}
+            rir={rir}
+            qir={qir}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          ></OutputTabs>
+        </>
+      ) : activeKata ? (
+        <Katas
+          kata={activeKata!}
+          compiler={compiler}
+          compiler_worker_factory={compiler_worker_factory}
+          compilerState={compilerState}
+          onRestartCompiler={onRestartCompiler}
+          languageService={languageService}
+        ></Katas>
+      ) : (
+        <DocumentationDisplay
+          currentNamespace={currentNavItem}
+          documentation={documentation}
+        ></DocumentationDisplay>
+      )}
+      <div id="popup"></div>
     </>
   );
 }
