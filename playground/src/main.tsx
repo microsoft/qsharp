@@ -113,6 +113,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
+  const [sidebar, setSidebar] = useState(true);
+
+  const toggleSidebar = () => setSidebar(!sidebar);
+
   const onRestartCompiler = () => {
     compiler.terminate();
     const newCompiler = createCompiler(setCompilerState);
@@ -159,63 +163,70 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-      <header class="page-header">Q# playground</header>
-      <Nav
-        selected={currentNavItem}
-        navSelected={onNavItemSelected}
-        katas={kataTitles}
-        samples={sampleTitles}
-        namespaces={getNamespaces(documentation)}
-      ></Nav>
-      {sampleCode ? (
-        <>
-          <Editor
-            code={sampleCode}
+        <header class="page-header">
+        <button onClick={toggleSidebar}>MOSTRA</button>
+          Q# playground
+        </header>
+        <div className={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}>
+
+        <Nav
+          selected={currentNavItem}
+          navSelected={onNavItemSelected}
+          katas={kataTitles}
+          samples={sampleTitles}
+          namespaces={getNamespaces(documentation)}
+          sidebarOpen={sidebar}
+        ></Nav>
+        {sampleCode ? (
+          <>
+            <Editor
+              code={sampleCode}
+              compiler={compiler}
+              compiler_worker_factory={compiler_worker_factory}
+              compilerState={compilerState}
+              onRestartCompiler={onRestartCompiler}
+              evtTarget={evtTarget}
+              defaultShots={defaultShots}
+              showShots={true}
+              showExpr={true}
+              shotError={shotError}
+              profile={getProfile()}
+              setAst={setAst}
+              setHir={setHir}
+              setRir={setRir}
+              setQir={setQir}
+              activeTab={activeTab}
+              languageService={languageService}
+            ></Editor>
+            <OutputTabs
+              evtTarget={evtTarget}
+              showPanel={true}
+              onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+              ast={ast}
+              hir={hir}
+              rir={rir}
+              qir={qir}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            ></OutputTabs>
+          </>
+        ) : activeKata ? (
+          <Katas
+            kata={activeKata!}
             compiler={compiler}
             compiler_worker_factory={compiler_worker_factory}
             compilerState={compilerState}
             onRestartCompiler={onRestartCompiler}
-            evtTarget={evtTarget}
-            defaultShots={defaultShots}
-            showShots={true}
-            showExpr={true}
-            shotError={shotError}
-            profile={getProfile()}
-            setAst={setAst}
-            setHir={setHir}
-            setRir={setRir}
-            setQir={setQir}
-            activeTab={activeTab}
             languageService={languageService}
-          ></Editor>
-          <OutputTabs
-            evtTarget={evtTarget}
-            showPanel={true}
-            onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
-            ast={ast}
-            hir={hir}
-            rir={rir}
-            qir={qir}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          ></OutputTabs>
-        </>
-      ) : activeKata ? (
-        <Katas
-          kata={activeKata!}
-          compiler={compiler}
-          compiler_worker_factory={compiler_worker_factory}
-          compilerState={compilerState}
-          onRestartCompiler={onRestartCompiler}
-          languageService={languageService}
-        ></Katas>
-      ) : (
-        <DocumentationDisplay
-          currentNamespace={currentNavItem}
-          documentation={documentation}
-        ></DocumentationDisplay>
-      )}
-      <div id="popup"></div>
+          ></Katas>
+        ) : (
+          <DocumentationDisplay
+            currentNamespace={currentNavItem}
+            documentation={documentation}
+          ></DocumentationDisplay>
+        )}
+        <div id="popup"></div>
+      </div>
     </>
   );
 }

@@ -68,6 +68,15 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   grid-template-rows: auto 1fr;
   grid-template-columns: minmax(180px, auto) 8fr 8fr;
   column-gap: 16px;
+  transition: grid-template-columns 0.3s ease-in-out;
+}
+
+.qs-play-body.nav-column-closed {
+  grid-template-columns: 0 1fr 1fr;
+}
+
+.qs-play-body.nav-column-open {
+  grid-template-columns: minmax(180px, auto) 8fr 8fr;
 }
 
 /* Playground layout */
@@ -81,6 +90,11 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   text-align: center;
   padding-top: 4px;
   padding-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 8px;
+  padding-right: 16px;
 }
 
 #popup {
@@ -98,6 +112,19 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 .nav-column {
   grid-area: nav;
   background-color: var(--nav-background);
+  left: 0;
+  top: 0;
+  transition: transform 0.3s ease-in-out;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.nav-column.closed {
+  transform: translateX(-100%);
+}
+
+.nav-column.open {
+  transform: translateX(0);
 }
 
 .nav-1 {
