@@ -60,6 +60,9 @@ pub enum SemanticErrorKind {
     #[error("Cannot cast expression of type {0} to type {1} as it would cause truncation.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.CastWouldCauseTruncation"))]
     CastWouldCauseTruncation(String, String, #[label] Span),
+    #[error("invalid classical statement in box")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ClassicalStmtInBox"))]
+    ClassicalStmtInBox(#[label] Span),
     #[error("Complex numbers in assignment binary expressions are not yet supported.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ComplexBinaryAssignment"))]
     ComplexBinaryAssignment(#[label] Span),
@@ -218,6 +221,7 @@ impl SemanticErrorKind {
             Self::CastWouldCauseTruncation(lhs, rhs, span) => {
                 Self::CastWouldCauseTruncation(lhs, rhs, span + offset)
             }
+            Self::ClassicalStmtInBox(span) => Self::ClassicalStmtInBox(span + offset),
             Self::CalibrationsNotSupported(name, span) => {
                 Self::CalibrationsNotSupported(name, span + offset)
             }

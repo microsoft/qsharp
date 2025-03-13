@@ -5,32 +5,41 @@ use crate::parser::{stmt::parse, tests::check};
 use expect_test::expect;
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn bad_tokens() {
     check(
         parse,
         "#;",
         &expect![[r#"
-        Stmt [1-2]:
-            annotations: <empty>
-            kind: Empty
+            Stmt [1-2]:
+                annotations: <empty>
+                kind: Err
 
-        [
-            Error(
-                Lex(
-                    Incomplete(
-                        Ident,
-                        Identifier,
-                        Single(
-                            Semi,
+            [
+                Error(
+                    Lex(
+                        Incomplete(
+                            Ident,
+                            Identifier,
+                            Single(
+                                Semi,
+                            ),
+                            Span {
+                                lo: 1,
+                                hi: 2,
+                            },
                         ),
+                    ),
+                ),
+                Error(
+                    EmptyStatement(
                         Span {
                             lo: 1,
                             hi: 2,
                         },
                     ),
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 
     check(
@@ -121,23 +130,31 @@ fn bad_integer_literals() {
         parse,
         "3_4_;",
         &expect![[r#"
-        Stmt [4-5]:
-            annotations: <empty>
-            kind: Empty
+            Stmt [4-5]:
+                annotations: <empty>
+                kind: Err
 
-        [
-            Error(
-                Lex(
-                    Unknown(
-                        '3',
+            [
+                Error(
+                    Lex(
+                        Unknown(
+                            '3',
+                            Span {
+                                lo: 0,
+                                hi: 4,
+                            },
+                        ),
+                    ),
+                ),
+                Error(
+                    EmptyStatement(
                         Span {
-                            lo: 0,
-                            hi: 4,
+                            lo: 4,
+                            hi: 5,
                         },
                     ),
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 
     check(

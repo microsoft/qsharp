@@ -125,7 +125,7 @@ fn binary_op_assignment_in_if_condition() {
 }
 
 #[test]
-fn empty_if_block() {
+fn empty_if_block_fails() {
     check(
         parse,
         "if (true);",
@@ -136,8 +136,19 @@ fn empty_if_block() {
                     condition: Expr [4-8]: Lit: Bool(true)
                     if_body: Stmt [9-10]:
                         annotations: <empty>
-                        kind: Empty
-                    else_body: <none>"#]],
+                        kind: Err
+                    else_body: <none>
+
+            [
+                Error(
+                    EmptyStatement(
+                        Span {
+                            lo: 9,
+                            hi: 10,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
