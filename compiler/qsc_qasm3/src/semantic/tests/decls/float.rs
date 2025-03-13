@@ -25,33 +25,6 @@ fn implicit_bitness_default() {
 }
 
 #[test]
-fn const_default() {
-    check_classical_decl(
-        "const float x;",
-        &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qasm3.Parse.Token
-
-          x expected `=`, found `;`
-           ,-[test:1:14]
-         1 | const float x;
-           :              ^
-           `----
-        , Qsc.Qasm3.Compile.UnexpectedParserError
-
-          x Unexpected parser error: Unexpected error.
-           ,-[test:1:1]
-         1 | const float x;
-           : ^^^^^^^^^^^^^^
-           `----
-        ]"#]],
-    );
-}
-
-#[test]
 fn lit() {
     check_classical_decl(
         "float x = 42.1;",

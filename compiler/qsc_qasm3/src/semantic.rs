@@ -4,13 +4,14 @@
 use crate::io::SourceResolver;
 use crate::parser::QasmSource;
 
+use lowerer::Lowerer;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 use symbols::SymbolTable;
 
 use std::path::Path;
 
-mod ast;
+pub(crate) mod ast;
 pub mod error;
 mod lowerer;
 pub use error::Error;
@@ -25,7 +26,7 @@ pub struct QasmSemanticParseResult {
     pub source: QasmSource,
     pub source_map: SourceMap,
     pub symbols: self::symbols::SymbolTable,
-    pub program: self::ast::Program,
+    pub program: Option<self::ast::Program>,
     pub errors: Vec<WithSource<crate::Error>>,
 }
 
@@ -83,15 +84,9 @@ impl QasmSemanticParseResult {
     }
 
     fn map_parse_error(&self, error: crate::parser::Error) -> WithSource<crate::Error> {
-        let path = self.source.path().display().to_string();
-        let source = self.source_map.find_by_name(&path);
-        let offset = source.map_or(0, |source| source.offset);
-
-        let offset_error = error.with_offset(offset);
-
         WithSource::from_map(
             &self.source_map,
-            crate::Error(crate::ErrorKind::Parser(offset_error)),
+            crate::Error(crate::ErrorKind::Parser(error)),
         )
     }
 }
@@ -111,15 +106,19 @@ where
     R: SourceResolver,
 {
     let res = crate::parser::parse_source(source, path, resolver)?;
-    let analyzer = crate::semantic::lowerer::Lowerer {
-        source: res.source,
-        source_map: res.source_map,
-        errors: vec![],
-        file_stack: vec![],
-        symbols: SymbolTable::default(),
-        version: None,
-        stmts: vec![],
-    };
+
+    // If there are syntax errors, return early
+    if res.source.has_errors() {
+        return Ok(QasmSemanticParseResult {
+            source: res.source,
+            source_map: res.source_map,
+            symbols: SymbolTable::default(),
+            program: None,
+            errors: vec![],
+        });
+    }
+
+    let analyzer = Lowerer::new(res.source, res.source_map);
     let sem_res = analyzer.lower();
     Ok(QasmSemanticParseResult {
         source: sem_res.source,
