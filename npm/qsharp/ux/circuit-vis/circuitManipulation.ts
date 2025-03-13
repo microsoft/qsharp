@@ -3,7 +3,7 @@
 
 import { Operation } from "./circuit";
 import { CircuitEvents } from "./events";
-import { RegisterType } from "./register";
+import { Register, RegisterType } from "./register";
 import {
   findOperation,
   findParentArray,
@@ -352,12 +352,70 @@ const _addOp = (
   if (targetOperationParent[colIndex] == null) {
     targetOperationParent[colIndex] = [];
   }
+
+  insertNewColumn =
+    insertNewColumn || _isClassicallyControlled(newSourceOperation);
+
+  // Check if there are any existing operations in the target
+  // column within the wire range of the new operation
+  if (!insertNewColumn) {
+    const [minTarget, maxTarget] = _getMinMaxRegIdx(newSourceOperation);
+    for (const op of targetOperationParent[colIndex]) {
+      const [opMinTarget, opMaxTarget] = _getMinMaxRegIdx(op);
+      if (
+        (opMinTarget >= minTarget && opMinTarget <= maxTarget) ||
+        (opMaxTarget >= minTarget && opMaxTarget <= maxTarget) ||
+        (minTarget >= opMinTarget && minTarget <= opMaxTarget) ||
+        (maxTarget >= opMinTarget && maxTarget <= opMaxTarget)
+      ) {
+        insertNewColumn = true;
+        break;
+      }
+    }
+  }
+
   if (insertNewColumn) {
     targetOperationParent.splice(colIndex, 0, [newSourceOperation]);
   } else {
     targetOperationParent[colIndex].splice(opIndex, 0, newSourceOperation);
   }
   return newSourceOperation;
+};
+
+/**
+ * Get the minimum and maximum register indices for a given operation.
+ * Based on getMinMaxRegIdx in process.ts, but without the maxQId.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @returns A tuple containing the minimum and maximum register indices.
+ */
+const _getMinMaxRegIdx = (operation: Operation): [number, number] => {
+  const { targets, controls } = operation;
+  const ctrls: Register[] = controls || [];
+  const qRegs: Register[] = [...ctrls, ...targets].filter(
+    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Qubit,
+  );
+  if (qRegs.length === 0) return [-1, -1];
+  const qRegIdxList: number[] = qRegs.map(({ qId }) => qId);
+  // Pad the contiguous range of registers that it covers.
+  const minRegIdx: number = Math.min(...qRegIdxList);
+  const maxRegIdx: number = Math.max(...qRegIdxList);
+
+  return [minRegIdx, maxRegIdx];
+};
+
+/**
+ * Check if an operation is classically controlled.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @returns True if the operation is classically controlled, false otherwise.
+ */
+const _isClassicallyControlled = (operation: Operation): boolean => {
+  if (operation.controls === undefined) return false;
+  const clsControl = operation.controls.find(
+    ({ type }) => (type || RegisterType.Qubit) === RegisterType.Classical,
+  );
+  return clsControl !== undefined;
 };
 
 /**
