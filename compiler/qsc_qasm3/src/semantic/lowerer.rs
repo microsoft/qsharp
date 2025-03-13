@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use std::ops::ShlAssign;
-use std::path::PathBuf;
 
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_int_conversion;
@@ -44,12 +43,26 @@ pub(super) struct Lowerer {
     /// When we include a file, we push the file path to the stack and pop it
     /// when we are done with the file.
     /// This allows us to report errors with the correct file path.
-    pub file_stack: Vec<PathBuf>,
     pub symbols: SymbolTable,
     pub version: Option<Version>,
     pub stmts: Vec<Stmt>,
 }
 impl Lowerer {
+    pub fn new(source: QasmSource, source_map: SourceMap) -> Self {
+        let symbols = SymbolTable::default();
+        let version = None;
+        let stmts = Vec::new();
+        let errors = Vec::new();
+        Self {
+            source,
+            source_map,
+            errors,
+            symbols,
+            version,
+            stmts,
+        }
+    }
+
     pub fn lower(mut self) -> crate::semantic::QasmSemanticParseResult {
         // Should we fail if we see a version in included files?
         let source = &self.source.clone();
@@ -66,7 +79,7 @@ impl Lowerer {
             source: self.source,
             source_map: self.source_map,
             symbols: self.symbols,
-            program,
+            program: Some(program),
             errors: self.errors,
         }
     }
@@ -97,11 +110,6 @@ impl Lowerer {
 
     /// Root recursive function for lowering the source.
     fn lower_source(&mut self, source: &QasmSource) {
-        // we push the file path to the stack so we can track the current file
-        // for reporting errors. This saves us from having to pass around
-        // the current QasmSource value.
-        self.file_stack.push(source.path());
-
         // we keep an iterator of the includes so we can match them with the
         // source includes. The include statements only have the path, but
         // we have already loaded all of source files in the
@@ -139,10 +147,6 @@ impl Lowerer {
                 }
             }
         }
-
-        // Finally we pop the file path from the stack so that we
-        // can return to the previous file for error handling.
-        self.file_stack.pop();
     }
 
     #[allow(clippy::too_many_lines)]
@@ -316,13 +320,7 @@ impl Lowerer {
     /// Creates an error from the given kind with the current source mapping.
     fn create_err(&self, kind: crate::ErrorKind) -> WithSource<crate::Error> {
         let error = crate::Error(kind);
-        let path = self.file_stack.last().map_or("<compiler>", |p| {
-            p.to_str().expect("expected source mapping to exist.")
-        });
-        let source = self.source_map.find_by_name(path);
-        let offset = source.map_or(0, |x| x.offset);
-        let offset_error = error.with_offset(offset);
-        WithSource::from_map(&self.source_map, offset_error)
+        WithSource::from_map(&self.source_map, error)
     }
 
     fn lower_alias(&mut self, alias: &syntax::AliasDeclStmt) -> Option<super::ast::AliasDeclStmt> {
@@ -790,7 +788,46 @@ impl Lowerer {
         None
     }
 
+    /// The "boxable" stmts were taken from the reference parser at
+    /// <https://github.com/openqasm/openqasm/blob/main/source/openqasm/openqasm3/ast.py>.
+    /// Search for the definition of `Box` there, and then for all the classes
+    /// inhereting from `QuantumStatement`.
     fn lower_box(&mut self, stmt: &syntax::BoxStmt) -> Option<super::ast::BoxStmt> {
+        let stmts = stmt
+            .body
+            .iter()
+            .map(|stmt| self.lower_stmt(stmt))
+            .collect::<Vec<_>>();
+
+        let mut has_invalid_stmt_kinds = false;
+        for stmt in &stmt.body {
+            match &*stmt.kind {
+                syntax::StmtKind::Barrier(_)
+                | syntax::StmtKind::Delay(_)
+                | syntax::StmtKind::Reset(_)
+                | syntax::StmtKind::GateCall(_)
+                | syntax::StmtKind::GPhase(_)
+                | syntax::StmtKind::Box(_) => {
+                    // valid statements
+                }
+                _ => {
+                    self.push_semantic_error(SemanticErrorKind::ClassicalStmtInBox(stmt.span));
+                    has_invalid_stmt_kinds = true;
+                }
+            }
+        }
+
+        if let Some(duration) = &stmt.duration {
+            self.push_unsupported_error_message("Box with duration", duration.span);
+            return None;
+        }
+
+        if has_invalid_stmt_kinds || stmts.len() != stmt.body.len() {
+            return None;
+        }
+
+        // we semantically checked the stmts, but we still need to lower them
+        // with the correct behavior based on any pragmas that might be present
         self.push_unimplemented_error_message("box stmt", stmt.span);
         None
     }
