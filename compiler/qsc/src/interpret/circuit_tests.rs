@@ -286,10 +286,10 @@ fn mresetz_base_profile() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── H ──── M ──
-                         ╘═══
-    "]]
+    expect![[r#"
+        q_0    ── H ──── M ──── |0〉 ──
+                         ╘════════════
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
