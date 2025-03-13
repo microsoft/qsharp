@@ -1152,17 +1152,6 @@ fn parse_block_or_stmt(s: &mut ParserContext) -> Result<Stmt> {
     }
 }
 
-fn into_block(stmt: Stmt) -> Block {
-    if let StmtKind::Block(block) = *stmt.kind {
-        block
-    } else {
-        Block {
-            span: stmt.span,
-            stmts: Box::new([Box::new(stmt)]),
-        }
-    }
-}
-
 /// Grammar `IF LPAREN expression RPAREN if_body=statementOrScope (ELSE else_body=statementOrScope)?`.
 /// Source: <https://openqasm.com/language/classical.html#if-else-statements>.
 pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
@@ -1172,9 +1161,9 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     let condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
 
-    let if_block = into_block(parse_block_or_stmt(s)?);
+    let if_block = parse_block_or_stmt(s)?;
     let else_block = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Else)))?.is_some() {
-        Some(into_block(parse_block_or_stmt(s)?))
+        Some(parse_block_or_stmt(s)?)
     } else {
         None
     };
@@ -1182,8 +1171,8 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     Ok(IfStmt {
         span: s.span(lo),
         condition,
-        if_block,
-        else_block,
+        if_body: if_block,
+        else_body: else_block,
     })
 }
 
@@ -1241,14 +1230,14 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
     token(s, TokenKind::Keyword(Keyword::In))?;
     let set_declaration = Box::new(for_loop_iterable_expr(s)?);
-    let block = into_block(parse_block_or_stmt(s)?);
+    let block = parse_block_or_stmt(s)?;
 
     Ok(ForStmt {
         span: s.span(lo),
         ty,
         identifier,
         set_declaration,
-        block,
+        body: block,
     })
 }
 
@@ -1260,12 +1249,12 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
     token(s, TokenKind::Open(Delim::Paren))?;
     let while_condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
-    let block = into_block(parse_block_or_stmt(s)?);
+    let block = parse_block_or_stmt(s)?;
 
     Ok(WhileLoop {
         span: s.span(lo),
         while_condition,
-        block,
+        body: block,
     })
 }
 

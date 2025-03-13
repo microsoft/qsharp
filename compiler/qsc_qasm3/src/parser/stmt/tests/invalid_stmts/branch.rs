@@ -60,12 +60,14 @@ fn assignment_in_if_condition() {
                 annotations: <empty>
                 kind: IfStmt [0-17]:
                     condition: Expr [4-5]: Ident [4-5] "x"
-                    if_block: Block [11-17]:
-                        Stmt [13-15]:
-                            annotations: <empty>
-                            kind: ExprStmt [13-15]:
-                                expr: Expr [13-14]: Lit: Int(3)
-                    else_block: <none>
+                    if_body: Stmt [11-17]:
+                        annotations: <empty>
+                        kind: Block [11-17]:
+                            Stmt [13-15]:
+                                annotations: <empty>
+                                kind: ExprStmt [13-15]:
+                                    expr: Expr [13-14]: Lit: Int(3)
+                    else_body: <none>
 
             [
                 Error(
@@ -94,12 +96,14 @@ fn binary_op_assignment_in_if_condition() {
                 annotations: <empty>
                 kind: IfStmt [0-18]:
                     condition: Expr [4-5]: Ident [4-5] "x"
-                    if_block: Block [12-18]:
-                        Stmt [14-16]:
-                            annotations: <empty>
-                            kind: ExprStmt [14-16]:
-                                expr: Expr [14-15]: Lit: Int(3)
-                    else_block: <none>
+                    if_body: Stmt [12-18]:
+                        annotations: <empty>
+                        kind: Block [12-18]:
+                            Stmt [14-16]:
+                                annotations: <empty>
+                                kind: ExprStmt [14-16]:
+                                    expr: Expr [14-15]: Lit: Int(3)
+                    else_body: <none>
 
             [
                 Error(
@@ -130,11 +134,10 @@ fn empty_if_block() {
                 annotations: <empty>
                 kind: IfStmt [0-10]:
                     condition: Expr [4-8]: Lit: Bool(true)
-                    if_block: Block [9-10]:
-                        Stmt [9-10]:
-                            annotations: <empty>
-                            kind: Empty
-                    else_block: <none>"#]],
+                    if_body: Stmt [9-10]:
+                        annotations: <empty>
+                        kind: Empty
+                    else_body: <none>"#]],
     );
 }
 

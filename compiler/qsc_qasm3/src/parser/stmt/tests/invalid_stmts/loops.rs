@@ -226,11 +226,10 @@ fn while_multi_condition() {
                 annotations: <empty>
                 kind: WhileLoop [0-19]:
                     condition: Expr [7-11]: Lit: Bool(true)
-                    block: Block [13-19]:
-                        Stmt [13-19]:
-                            annotations: <empty>
-                            kind: ExprStmt [13-19]:
-                                expr: Expr [13-19]: Paren Expr [14-18]: Lit: Bool(true)
+                    body: Stmt [13-19]:
+                        annotations: <empty>
+                        kind: ExprStmt [13-19]:
+                            expr: Expr [13-19]: Paren Expr [14-18]: Lit: Bool(true)
 
             [
                 Error(
@@ -281,9 +280,8 @@ fn while_missing_body() {
                 annotations: <empty>
                 kind: WhileLoop [0-13]:
                     condition: Expr [7-11]: Lit: Bool(true)
-                    block: Block [12-13]:
-                        Stmt [12-13]:
-                            annotations: <empty>
-                            kind: Empty"#]],
+                    body: Stmt [12-13]:
+                        annotations: <empty>
+                        kind: Empty"#]],
     );
 }
