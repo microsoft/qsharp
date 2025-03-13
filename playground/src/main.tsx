@@ -163,12 +163,30 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-        <header class="page-header">
-        <button onClick={toggleSidebar}>MOSTRA</button>
-          Q# playground
-        </header>
-        <div className={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}>
-
+      <header class="page-header">
+        <div class="icon-row">
+          <svg
+            onClick={toggleSidebar}
+            width="32px"
+            height="32px"
+            viewBox="0 0 24 16"
+            fill="none"
+          >
+            <title>Menu</title>
+            <path
+              d="M4 6H20M4 12H20M4 18H20"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        Q# playground
+      </header>
+      <div
+        className={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
+      >
         <Nav
           selected={currentNavItem}
           navSelected={onNavItemSelected}
