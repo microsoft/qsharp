@@ -23,23 +23,6 @@ pub struct CircuitGroup {
     pub version: Option<usize>,
 }
 
-impl CircuitGroup {
-    pub fn update_to_current_version(mut self) -> Self {
-        if self.version == Some(CURRENT_VERSION) {
-            return self;
-        }
-        self.version = Some(CURRENT_VERSION);
-        self
-    }
-
-    pub fn new(circuits: Vec<Circuit>) -> Self {
-        Self {
-            version: Some(CURRENT_VERSION),
-            circuits,
-        }
-    }
-}
-
 impl Display for CircuitGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for circuit in &self.circuits {
@@ -141,8 +124,10 @@ impl Operation {
 pub struct Measurement {
     pub gate: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub args: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub children: ComponentGrid,
     pub qubits: Vec<Register>,
     pub results: Vec<Register>,
@@ -153,14 +138,18 @@ pub struct Measurement {
 pub struct Unitary {
     pub gate: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub args: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub children: ComponentGrid,
     pub targets: Vec<Register>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub controls: Vec<Register>,
     #[serde(rename = "isAdjoint")]
     #[serde(skip_serializing_if = "Not::not")]
+    #[serde(default)]
     pub is_adjoint: bool,
 }
 
