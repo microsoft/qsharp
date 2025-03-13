@@ -271,7 +271,7 @@ fn while_with_for_syntax() {
 }
 
 #[test]
-fn while_missing_body() {
+fn while_missing_body_fails() {
     check(
         parse,
         "while (true);",
@@ -282,6 +282,17 @@ fn while_missing_body() {
                     condition: Expr [7-11]: Lit: Bool(true)
                     body: Stmt [12-13]:
                         annotations: <empty>
-                        kind: Empty"#]],
+                        kind: Err
+
+            [
+                Error(
+                    EmptyStatement(
+                        Span {
+                            lo: 12,
+                            hi: 13,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }

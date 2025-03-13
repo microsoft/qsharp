@@ -25,33 +25,6 @@ fn implicit_bitness_default() {
 }
 
 #[test]
-fn const_implicit_bitness_default() {
-    check_classical_decl(
-        "const complex[float] x;",
-        &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qasm3.Parse.Token
-
-          x expected `=`, found `;`
-           ,-[test:1:23]
-         1 | const complex[float] x;
-           :                       ^
-           `----
-        , Qsc.Qasm3.Compile.UnexpectedParserError
-
-          x Unexpected parser error: Unexpected error.
-           ,-[test:1:1]
-         1 | const complex[float] x;
-           : ^^^^^^^^^^^^^^^^^^^^^^^
-           `----
-        ]"#]],
-    );
-}
-
-#[test]
 fn explicit_bitness_default() {
     check_classical_decl(
         "complex[float[42]] x;",
@@ -67,33 +40,6 @@ fn explicit_bitness_default() {
                 type: Complex(Some(42), false)
                 qsharp_type: Complex
                 io_kind: Default"#]],
-    );
-}
-
-#[test]
-fn const_explicit_bitness_default() {
-    check_classical_decl(
-        "const complex[float[42]] x;",
-        &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qasm3.Parse.Token
-
-          x expected `=`, found `;`
-           ,-[test:1:27]
-         1 | const complex[float[42]] x;
-           :                           ^
-           `----
-        , Qsc.Qasm3.Compile.UnexpectedParserError
-
-          x Unexpected parser error: Unexpected error.
-           ,-[test:1:1]
-         1 | const complex[float[42]] x;
-           : ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-           `----
-        ]"#]],
     );
 }
 

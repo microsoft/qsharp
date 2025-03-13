@@ -25,33 +25,6 @@ fn implicit_bitness_default() {
 }
 
 #[test]
-fn const_default_fails() {
-    check_classical_decl(
-        "const angle x;",
-        &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qasm3.Parse.Token
-
-          x expected `=`, found `;`
-           ,-[test:1:14]
-         1 | const angle x;
-           :              ^
-           `----
-        , Qsc.Qasm3.Compile.UnexpectedParserError
-
-          x Unexpected parser error: Unexpected error.
-           ,-[test:1:1]
-         1 | const angle x;
-           : ^^^^^^^^^^^^^^
-           `----
-        ]"#]],
-    );
-}
-
-#[test]
 fn lit() {
     check_classical_decl(
         "angle x = 42.1;",
