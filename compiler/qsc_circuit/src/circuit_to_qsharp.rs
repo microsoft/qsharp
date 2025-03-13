@@ -11,8 +11,8 @@ use crate::{
     Circuit, Operation,
 };
 
-pub fn circuit_to_qsharp(file_name: String, circuit_json: String) -> String {
-    match serde_json::from_str::<CircuitGroup>(circuit_json.as_str()) {
+pub fn circuits_to_qsharp(file_name: String, circuits_json: String) -> String {
+    match serde_json::from_str::<CircuitGroup>(circuits_json.as_str()) {
         Ok(circuits) => build_circuits(file_name, circuits.circuits),
         Err(e) => format!("Error: {}", e),
     }

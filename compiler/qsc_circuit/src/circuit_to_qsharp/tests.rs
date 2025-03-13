@@ -5,37 +5,51 @@ use super::*;
 use expect_test::{expect, Expect};
 
 fn check(contents: &str, expect: &Expect) {
-    let actual = circuit_to_qsharp("Test".to_string(), contents.to_string());
+    let actual = match serde_json::from_str::<Circuit>(contents) {
+        Ok(circuit) => build_operation_def("Test".to_string(), &circuit),
+        Err(e) => format!("Error: {}", e),
+    };
+    expect.assert_eq(&actual);
+}
+
+fn check_circuit_group(contents: &str, expect: &Expect) {
+    let actual = circuits_to_qsharp("Test".to_string(), contents.to_string());
     expect.assert_eq(&actual);
 }
 
 #[test]
 fn qsharp_from_circuit() {
-    check(
+    check_circuit_group(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "X", "targets": [{ "qId": 1, "type": 0 }] }
-    ]
-  ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
+  "circuits": [
+    {
+      "componentGrid": [
+        {
+          "components": [
+            { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+            { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+          ]
+        },
+        {
+          "components": [
+            { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] },
+            { "kind": "unitary", "gate": "X", "targets": [{ "qubit": 1 }] }
+          ]
+        }
+      ],
+      "qubits": [{ "id": 0 }, { "id": 1 }]
+    }
   ]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 S(q1);
                 Z(q0);
                 X(q1);
             }
+
         "#]],
     );
 }
@@ -45,35 +59,39 @@ fn circuit_with_controlled_gate() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      {
-        "gate": "X",
-        "isControlled": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 1, "type": 0 }]
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "unitary",
+          "gate": "X",
+          "controls": [{ "qubit": 0 }],
+          "targets": [{ "qubit": 1 }]
+        }
+      ]
+    }
   ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
-  ]
+  "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 S(q1);
                 Z(q0);
                 Controlled X([q0], q1);
             }
+
         "#]],
     );
 }
@@ -83,32 +101,39 @@ fn circuit_with_adjoint_gate() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-      {
-        "gate": "X",
-        "isAdjoint": true,
-        "targets": [{ "qId": 1, "type": 0 }]
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "unitary",
+          "gate": "X",
+          "isAdjoint": true,
+          "targets": [{ "qubit": 1 }]
+        }
+      ]
+    }
   ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
-  ]
+  "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 S(q1);
                 Z(q0);
                 Adjoint X(q1);
             }
+
         "#]],
     );
 }
@@ -118,36 +143,40 @@ fn circuit_with_controlled_adjoint_gate() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      {
-        "gate": "X",
-        "isControlled": true,
-        "isAdjoint": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 1, "type": 0 }]
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "unitary",
+          "gate": "X",
+          "isAdjoint": true,
+          "controls": [{ "qubit": 0 }],
+          "targets": [{ "qubit": 1 }]
+        }
+      ]
+    }
   ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
-  ]
+  "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 S(q1);
                 Z(q0);
                 Controlled Adjoint X([q0], q1);
             }
+
         "#]],
     );
 }
@@ -157,26 +186,28 @@ fn circuit_with_rz_gate() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "Rz", "targets": [{ "qId": 1, "type": 0 }], "displayArgs": "1.2" }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "Rz", "targets": [{ "qubit": 1 }], "args": ["1.2"] }
+      ]
+    }
   ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
-  ]
+  "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 Z(q0);
                 Rz(1.2, q1);
             }
+
         "#]],
     );
 }
@@ -186,34 +217,38 @@ fn circuit_with_controlled_gate_multiple_args() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      {
-        "gate": "Rz",
-        "isControlled": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 1, "type": 0 }],
-        "displayArgs": "1.2"
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "unitary",
+          "gate": "Rz",
+          "controls": [{ "qubit": 0 }],
+          "targets": [{ "qubit": 1 }],
+          "args": ["1.2"]
+        }
+      ]
+    }
   ],
-  "qubits": [
-    { "id": 0, "numChildren": 0 },
-    { "id": 1, "numChildren": 0 }
-  ]
+  "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit, q1 : Qubit) : Unit {
+            operation Test(q0 : Qubit, q1 : Qubit) : Unit is Ctl + Adj {
                 H(q0);
                 Z(q0);
                 Controlled Rz([q0], (1.2, q1));
             }
+
         "#]],
     );
 }
@@ -223,26 +258,32 @@ fn circuit_with_measurement_gate() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      {
-        "gate": "Measure",
-        "isMeasurement": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "measurement",
+          "gate": "Measure",
+          "qubits": [{ "qubit": 0 }],
+          "results": [{ "qubit": 0, "result": 0 }]
+        }
+      ]
+    }
   ],
   "qubits": [
-    { "id": 0, "numChildren": 1 },
-    { "id": 1, "numChildren": 0 }
+    { "id": 0, "numResults": 1 },
+    { "id": 1 }
   ]
 }"#,
         &expect![[r#"
@@ -253,6 +294,7 @@ fn circuit_with_measurement_gate() {
                 let c0_0 = M(q0);
                 return c0_0;
             }
+
         "#]],
     );
 }
@@ -262,40 +304,48 @@ fn circuit_with_multiple_measurement_gates() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "H", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "S", "targets": [{ "qId": 1, "type": 0 }] }
-    ],
-    [
-      { "gate": "Z", "targets": [{ "qId": 0, "type": 0 }] }
-    ],
-    [
-      {
-        "gate": "Measure",
-        "isMeasurement": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 0, "type": 1, "cId": 0 }]
-      },
-      {
-        "gate": "Measure",
-        "isMeasurement": true,
-        "controls": [{ "qId": 1, "type": 0 }],
-        "targets": [{ "qId": 1, "type": 1, "cId": 0 }]
-      }
-    ],
-    [
-      {
-        "gate": "Measure",
-        "isMeasurement": true,
-        "controls": [{ "qId": 0, "type": 0 }],
-        "targets": [{ "qId": 0, "type": 1, "cId": 1 }]
-      }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "S", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "measurement",
+          "gate": "Measure",
+          "qubits": [{ "qubit": 0 }],
+          "results": [{ "qubit": 0, "result": 0 }]
+        },
+        {
+          "kind": "measurement",
+          "gate": "Measure",
+          "qubits": [{ "qubit": 1 }],
+          "results": [{ "qubit": 1, "result": 0 }]
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "kind": "measurement",
+          "gate": "Measure",
+          "qubits": [{ "qubit": 0 }],
+          "results": [{ "qubit": 0, "result": 1 }]
+        }
+      ]
+    }
   ],
   "qubits": [
-    { "id": 0, "numChildren": 2 },
-    { "id": 1, "numChildren": 1 }
+    { "id": 0, "numResults": 2 },
+    { "id": 1, "numResults": 1 }
   ]
 }"#,
         &expect![[r#"
@@ -308,6 +358,7 @@ fn circuit_with_multiple_measurement_gates() {
                 let c0_1 = M(q0);
                 return [c0_0, c0_1, c1_0];
             }
+
         "#]],
     );
 }
@@ -317,31 +368,31 @@ fn empty_circuit() {
     check(
         r#"
 {
-  "operations": [],
+  "componentGrid": [],
   "qubits": []
 }"#,
         &expect![[r#"
-            operation Test() : Unit {
+            operation Test() : Unit is Ctl + Adj {
             }
+
         "#]],
     );
 }
 
 #[test]
-fn circuit_with_qubit_missing_num_children() {
+fn circuit_with_qubit_missing_num_results() {
     check(
         r#"
 {
-  "operations": [],
+  "componentGrid": [],
   "qubits": [
-    {
-      "id": 0
-    }
+    { "id": 0 }
   ]
 }"#,
         &expect![[r#"
-            operation Test(q0 : Qubit) : Unit {
+            operation Test(q0 : Qubit) : Unit is Ctl + Adj {
             }
+
         "#]],
     );
 }
@@ -351,11 +402,13 @@ fn circuit_with_ket_gates() {
     check(
         r#"
 {
-  "operations": [
-    [
-      { "gate": "|0〉", "targets": [{ "qId": 0, "type": 0 }] },
-      { "gate": "|1〉", "targets": [{ "qId": 1, "type": 0 }] }
-    ]
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "|0〉", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "|1〉", "targets": [{ "qubit": 1 }] }
+      ]
+    }
   ],
   "qubits": [
     { "id": 0 },
@@ -368,6 +421,7 @@ fn circuit_with_ket_gates() {
                 Reset(q1);
                 X(q1);
             }
+
         "#]],
     );
 }

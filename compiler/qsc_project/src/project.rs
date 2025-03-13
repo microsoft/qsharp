@@ -8,7 +8,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_circuit::circuit_to_qsharp::circuit_to_qsharp;
+use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
@@ -447,7 +447,7 @@ pub trait FileSystemAsync {
                         .expect("File should have name")
                         .to_string_lossy()
                         .to_string();
-                    contents = Arc::from(circuit_to_qsharp(name, contents.to_string()));
+                    contents = Arc::from(circuits_to_qsharp(name, contents.to_string()));
                 }
             }
             sources.push((name, contents));

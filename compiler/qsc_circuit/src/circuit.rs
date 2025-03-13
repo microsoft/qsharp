@@ -36,6 +36,7 @@ impl Display for CircuitGroup {
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct Circuit {
     pub qubits: Vec<Qubit>,
+    #[serde(rename = "componentGrid")]
     pub component_grid: ComponentGrid,
 }
 
