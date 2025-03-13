@@ -278,20 +278,22 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
 #[allow(clippy::vec_box)]
 pub(super) fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Stmt>>> {
     many(s, |s| {
-        recovering(s, default, &[TokenKind::Semicolon], parse_block_or_stmt)
+        recovering(s, default, &[TokenKind::Semicolon], |s| {
+            parse_block_or_stmt(s).map(Box::new)
+        })
     })
 }
 
 /// Grammar: `LBRACE statementOrScope* RBRACE`.
-pub(super) fn parse_block(s: &mut ParserContext) -> Result<Box<Block>> {
+pub(super) fn parse_block(s: &mut ParserContext) -> Result<Block> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
-    Ok(Box::new(Block {
+    Ok(Block {
         span: s.span(lo),
         stmts: stmts.into_boxed_slice(),
-    }))
+    })
 }
 
 #[allow(clippy::unnecessary_box_returns)]
@@ -454,7 +456,7 @@ fn parse_def(s: &mut ParserContext) -> Result<StmtKind> {
     token(s, TokenKind::Open(Delim::Paren))?;
     let (exprs, _) = seq(s, arg_def)?;
     token(s, TokenKind::Close(Delim::Paren))?;
-    let return_type = opt(s, return_sig)?;
+    let return_type = opt(s, return_sig)?.map(Box::new);
     let body = parse_block(s)?;
     let kind = StmtKind::Def(DefStmt {
         span: s.span(lo),
@@ -605,7 +607,7 @@ fn parse_gatedef(s: &mut ParserContext) -> Result<StmtKind> {
     let ident = Box::new(prim::ident(s)?);
     let params = opt(s, gate_params)?.unwrap_or_else(Vec::new);
     let (qubits, _) = seq(s, prim::ident)?;
-    let body = parse_block(s)?;
+    let body = Box::new(parse_block(s)?);
     Ok(StmtKind::QuantumGateDefinition(QuantumGateDefinition {
         span: s.span(lo),
         ident,
@@ -1122,7 +1124,7 @@ fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
         s.push_error(Error::new(ErrorKind::MissingSwitchCaseLabels(s.span(lo))));
     }
 
-    let block = parse_block(s).map(|block| *block)?;
+    let block = parse_block(s)?;
 
     Ok(SwitchCase {
         span: s.span(lo),
@@ -1134,27 +1136,30 @@ fn case_stmt(s: &mut ParserContext) -> Result<SwitchCase> {
 /// Grammar: `DEFAULT scope`.
 fn default_case_stmt(s: &mut ParserContext) -> Result<Block> {
     token(s, TokenKind::Keyword(Keyword::Default))?;
-    parse_block(s).map(|block| *block)
+    parse_block(s)
 }
 
 /// Grammar: `statement | scope`.
-fn parse_block_or_stmt(s: &mut ParserContext) -> Result<Box<Stmt>> {
+fn parse_block_or_stmt(s: &mut ParserContext) -> Result<Stmt> {
     if let Some(block) = opt(s, parse_block)? {
-        Ok(Box::new(Stmt {
+        Ok(Stmt {
             span: block.span,
             annotations: Default::default(),
             kind: Box::new(StmtKind::Block(block)),
-        }))
+        })
     } else {
-        Ok(parse(s)?)
+        Ok(*parse(s)?)
     }
 }
 
-fn into_stmt_list(stmt: Stmt) -> List<Stmt> {
+fn into_block(stmt: Stmt) -> Block {
     if let StmtKind::Block(block) = *stmt.kind {
-        block.stmts
+        block
     } else {
-        Box::new([Box::new(stmt)])
+        Block {
+            span: stmt.span,
+            stmts: Box::new([Box::new(stmt)]),
+        }
     }
 }
 
@@ -1167,9 +1172,9 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
     let condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
 
-    let if_block = into_stmt_list(*parse_block_or_stmt(s)?);
+    let if_block = into_block(parse_block_or_stmt(s)?);
     let else_block = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Else)))?.is_some() {
-        Some(into_stmt_list(*parse_block_or_stmt(s)?))
+        Some(into_block(parse_block_or_stmt(s)?))
     } else {
         None
     };
@@ -1236,7 +1241,7 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
     token(s, TokenKind::Keyword(Keyword::In))?;
     let set_declaration = Box::new(for_loop_iterable_expr(s)?);
-    let block = into_stmt_list(*parse_block_or_stmt(s)?);
+    let block = into_block(parse_block_or_stmt(s)?);
 
     Ok(ForStmt {
         span: s.span(lo),
@@ -1255,7 +1260,7 @@ pub fn parse_while_loop(s: &mut ParserContext) -> Result<WhileLoop> {
     token(s, TokenKind::Open(Delim::Paren))?;
     let while_condition = expr::expr(s)?;
     recovering_token(s, TokenKind::Close(Delim::Paren));
-    let block = into_stmt_list(*parse_block_or_stmt(s)?);
+    let block = into_block(parse_block_or_stmt(s)?);
 
     Ok(WhileLoop {
         span: s.span(lo),

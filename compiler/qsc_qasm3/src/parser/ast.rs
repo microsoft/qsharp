@@ -317,7 +317,7 @@ pub enum StmtKind {
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Break(BreakStmt),
-    Block(Box<Block>),
+    Block(Block),
     Cal(CalibrationStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
@@ -419,16 +419,16 @@ impl Display for DefCalStmt {
 pub struct IfStmt {
     pub span: Span,
     pub condition: Expr,
-    pub if_block: List<Stmt>,
-    pub else_block: Option<List<Stmt>>,
+    pub if_block: Block,
+    pub else_block: Option<Block>,
 }
 
 impl Display for IfStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IfStmt", self.span)?;
         writeln_field(f, "condition", &self.condition)?;
-        writeln_list_field(f, "if_block", &self.if_block)?;
-        write_opt_list_field(f, "else_block", self.else_block.as_ref())
+        writeln_field(f, "if_block", &self.if_block)?;
+        write_opt_field(f, "else_block", self.else_block.as_ref())
     }
 }
 
@@ -1323,8 +1323,8 @@ pub struct DefStmt {
     pub span: Span,
     pub name: Box<Ident>,
     pub params: List<TypedParameter>,
-    pub body: Box<Block>,
-    pub return_type: Option<ScalarType>,
+    pub body: Block,
+    pub return_type: Option<Box<ScalarType>>,
 }
 
 impl Display for DefStmt {
@@ -1354,14 +1354,14 @@ impl Display for ReturnStmt {
 pub struct WhileLoop {
     pub span: Span,
     pub while_condition: Expr,
-    pub block: List<Stmt>,
+    pub block: Block,
 }
 
 impl Display for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "WhileLoop", self.span)?;
         writeln_field(f, "condition", &self.while_condition)?;
-        write_list_field(f, "block", &self.block)
+        write_field(f, "block", &self.block)
     }
 }
 
@@ -1371,7 +1371,7 @@ pub struct ForStmt {
     pub ty: ScalarType,
     pub identifier: Identifier,
     pub set_declaration: Box<EnumerableSet>,
-    pub block: List<Stmt>,
+    pub block: Block,
 }
 
 impl Display for ForStmt {
@@ -1380,7 +1380,7 @@ impl Display for ForStmt {
         writeln_field(f, "variable_type", &self.ty)?;
         writeln_field(f, "variable_name", &self.identifier)?;
         writeln_field(f, "iterable", &self.set_declaration)?;
-        write_list_field(f, "block", &self.block)
+        write_field(f, "block", &self.block)
     }
 }
 

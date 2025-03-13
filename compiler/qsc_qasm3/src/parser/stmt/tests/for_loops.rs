@@ -24,7 +24,7 @@ fn simple_for_loop() {
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
                             Expr [25-26]: Lit: Int(3)
-                    block:
+                    block: Block [28-50]:
                         Stmt [38-44]:
                             annotations: <empty>
                             kind: AssignStmt [38-44]:
@@ -49,7 +49,7 @@ fn empty_for_loop() {
                     variable_name: Ident [8-9] "x"
                     iterable: DiscreteSet [13-15]:
                         values: <empty>
-                    block: <empty>"#]],
+                    block: Block [16-18]: <empty>"#]],
     );
 }
 
@@ -73,7 +73,7 @@ fn simple_for_loop_stmt_body() {
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
                             Expr [25-26]: Lit: Int(3)
-                    block:
+                    block: Block [36-42]:
                         Stmt [36-42]:
                             annotations: <empty>
                             kind: AssignStmt [36-42]:
@@ -103,7 +103,7 @@ fn for_loop_range() {
                         start: Expr [19-20]: Lit: Int(0)
                         step: Expr [21-22]: Lit: Int(2)
                         end: Expr [23-24]: Lit: Int(7)
-                    block:
+                    block: Block [26-48]:
                         Stmt [36-42]:
                             annotations: <empty>
                             kind: AssignStmt [36-42]:
@@ -133,7 +133,7 @@ fn for_loop_range_no_step() {
                         start: Expr [19-20]: Lit: Int(0)
                         step: <none>
                         end: Expr [21-22]: Lit: Int(7)
-                    block:
+                    block: Block [24-46]:
                         Stmt [34-40]:
                             annotations: <empty>
                             kind: AssignStmt [34-40]:
@@ -160,7 +160,7 @@ fn for_loop_expr() {
                         size: <none>
                     variable_name: Ident [13-14] "x"
                     iterable: Expr [18-20]: Ident [18-20] "xs"
-                    block:
+                    block: Block [21-43]:
                         Stmt [31-37]:
                             annotations: <empty>
                             kind: AssignStmt [31-37]:
@@ -192,7 +192,7 @@ fn for_loop_with_continue_stmt() {
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
                             Expr [25-26]: Lit: Int(3)
-                    block:
+                    block: Block [28-68]:
                         Stmt [38-44]:
                             annotations: <empty>
                             kind: AssignStmt [38-44]:
@@ -227,7 +227,7 @@ fn for_loop_with_break_stmt() {
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
                             Expr [25-26]: Lit: Int(3)
-                    block:
+                    block: Block [28-65]:
                         Stmt [38-44]:
                             annotations: <empty>
                             kind: AssignStmt [38-44]:

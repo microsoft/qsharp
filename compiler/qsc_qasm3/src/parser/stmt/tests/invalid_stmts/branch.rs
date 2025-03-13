@@ -60,7 +60,7 @@ fn assignment_in_if_condition() {
                 annotations: <empty>
                 kind: IfStmt [0-17]:
                     condition: Expr [4-5]: Ident [4-5] "x"
-                    if_block:
+                    if_block: Block [11-17]:
                         Stmt [13-15]:
                             annotations: <empty>
                             kind: ExprStmt [13-15]:
@@ -94,7 +94,7 @@ fn binary_op_assignment_in_if_condition() {
                 annotations: <empty>
                 kind: IfStmt [0-18]:
                     condition: Expr [4-5]: Ident [4-5] "x"
-                    if_block:
+                    if_block: Block [12-18]:
                         Stmt [14-16]:
                             annotations: <empty>
                             kind: ExprStmt [14-16]:
@@ -126,15 +126,15 @@ fn empty_if_block() {
         parse,
         "if (true);",
         &expect![[r#"
-        Stmt [0-10]:
-            annotations: <empty>
-            kind: IfStmt [0-10]:
-                condition: Expr [4-8]: Lit: Bool(true)
-                if_block:
-                    Stmt [9-10]:
-                        annotations: <empty>
-                        kind: Empty
-                else_block: <none>"#]],
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: IfStmt [0-10]:
+                    condition: Expr [4-8]: Lit: Bool(true)
+                    if_block: Block [9-10]:
+                        Stmt [9-10]:
+                            annotations: <empty>
+                            kind: Empty
+                    else_block: <none>"#]],
     );
 }
 

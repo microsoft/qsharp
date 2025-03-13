@@ -23,7 +23,7 @@ fn simple_if_stmt() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block:
+                    if_block: Block [17-39]:
                         Stmt [27-33]:
                             annotations: <empty>
                             kind: AssignStmt [27-33]:
@@ -31,7 +31,7 @@ fn simple_if_stmt() {
                                     name: Ident [27-28] "a"
                                     indices: <empty>
                                 rhs: Expr [31-32]: Lit: Int(0)
-                    else_block:
+                    else_block: Block [45-67]:
                         Stmt [55-61]:
                             annotations: <empty>
                             kind: AssignStmt [55-61]:
@@ -59,7 +59,7 @@ fn if_stmt_missing_else() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block:
+                    if_block: Block [17-39]:
                         Stmt [27-33]:
                             annotations: <empty>
                             kind: AssignStmt [27-33]:
@@ -98,7 +98,7 @@ fn nested_if_stmts() {
                         op: Eq
                         lhs: Expr [9-10]: Ident [9-10] "x"
                         rhs: Expr [14-15]: Ident [14-15] "y"
-                    if_block:
+                    if_block: Block [17-113]:
                         Stmt [27-107]:
                             annotations: <empty>
                             kind: IfStmt [27-107]:
@@ -106,7 +106,7 @@ fn nested_if_stmts() {
                                     op: Eq
                                     lhs: Expr [31-33]: Ident [31-33] "x1"
                                     rhs: Expr [37-39]: Ident [37-39] "y1"
-                                if_block:
+                                if_block: Block [41-71]:
                                     Stmt [55-61]:
                                         annotations: <empty>
                                         kind: AssignStmt [55-61]:
@@ -114,7 +114,7 @@ fn nested_if_stmts() {
                                                 name: Ident [55-56] "a"
                                                 indices: <empty>
                                             rhs: Expr [59-60]: Lit: Int(0)
-                                else_block:
+                                else_block: Block [77-107]:
                                     Stmt [91-97]:
                                         annotations: <empty>
                                         kind: AssignStmt [91-97]:
@@ -122,7 +122,7 @@ fn nested_if_stmts() {
                                                 name: Ident [91-92] "a"
                                                 indices: <empty>
                                             rhs: Expr [95-96]: Lit: Int(1)
-                    else_block:
+                    else_block: Block [119-215]:
                         Stmt [129-209]:
                             annotations: <empty>
                             kind: IfStmt [129-209]:
@@ -130,7 +130,7 @@ fn nested_if_stmts() {
                                     op: Eq
                                     lhs: Expr [133-135]: Ident [133-135] "x2"
                                     rhs: Expr [139-141]: Ident [139-141] "y2"
-                                if_block:
+                                if_block: Block [143-173]:
                                     Stmt [157-163]:
                                         annotations: <empty>
                                         kind: AssignStmt [157-163]:
@@ -138,7 +138,7 @@ fn nested_if_stmts() {
                                                 name: Ident [157-158] "a"
                                                 indices: <empty>
                                             rhs: Expr [161-162]: Lit: Int(2)
-                                else_block:
+                                else_block: Block [179-209]:
                                     Stmt [193-199]:
                                         annotations: <empty>
                                         kind: AssignStmt [193-199]:

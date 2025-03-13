@@ -222,30 +222,30 @@ fn while_multi_condition() {
         parse,
         "while (true) (true) { x $0; }",
         &expect![[r#"
-        Stmt [0-19]:
-            annotations: <empty>
-            kind: WhileLoop [0-19]:
-                condition: Expr [7-11]: Lit: Bool(true)
-                block:
-                    Stmt [13-19]:
-                        annotations: <empty>
-                        kind: ExprStmt [13-19]:
-                            expr: Expr [13-19]: Paren Expr [14-18]: Lit: Bool(true)
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: WhileLoop [0-19]:
+                    condition: Expr [7-11]: Lit: Bool(true)
+                    block: Block [13-19]:
+                        Stmt [13-19]:
+                            annotations: <empty>
+                            kind: ExprStmt [13-19]:
+                                expr: Expr [13-19]: Paren Expr [14-18]: Lit: Bool(true)
 
-        [
-            Error(
-                Token(
-                    Semicolon,
-                    Open(
-                        Brace,
+            [
+                Error(
+                    Token(
+                        Semicolon,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 20,
+                            hi: 21,
+                        },
                     ),
-                    Span {
-                        lo: 20,
-                        hi: 21,
-                    },
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 
@@ -277,13 +277,13 @@ fn while_missing_body() {
         parse,
         "while (true);",
         &expect![[r#"
-        Stmt [0-13]:
-            annotations: <empty>
-            kind: WhileLoop [0-13]:
-                condition: Expr [7-11]: Lit: Bool(true)
-                block:
-                    Stmt [12-13]:
-                        annotations: <empty>
-                        kind: Empty"#]],
+            Stmt [0-13]:
+                annotations: <empty>
+                kind: WhileLoop [0-13]:
+                    condition: Expr [7-11]: Lit: Bool(true)
+                    block: Block [12-13]:
+                        Stmt [12-13]:
+                            annotations: <empty>
+                            kind: Empty"#]],
     );
 }
