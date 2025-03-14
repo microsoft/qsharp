@@ -527,7 +527,7 @@ const getMinMaxRegIdx = (
   const qRegs: Register[] = [...ctrls, ...targets].filter(
     ({ result }) => result === undefined,
   );
-  const qRegIdxList: number[] = qRegs.map(({ qubit: qId }) => qId);
+  const qRegIdxList: number[] = qRegs.map(({ qubit }) => qubit);
   const clsControls: Register[] = ctrls.filter(
     ({ result }) => result !== undefined,
   );

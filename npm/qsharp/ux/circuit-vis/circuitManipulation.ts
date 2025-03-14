@@ -3,6 +3,7 @@
 
 import { ComponentGrid, Measurement, Operation, Unitary } from "./circuit";
 import { CircuitEvents } from "./events";
+import { Register } from "./register";
 import {
   findOperation,
   findParentArray,
@@ -32,84 +33,80 @@ const moveOperation = (
   movingControl: boolean,
   insertNewColumn: boolean = false,
 ): Operation | null => {
-  const sourceOperation = _moveX(
-    circuitEvents,
+  const originalOperation = findOperation(
+    circuitEvents.componentGrid,
     sourceLocation,
-    targetLocation,
-    targetWire,
-    insertNewColumn,
   );
 
-  if (sourceOperation == null) return null;
+  if (originalOperation == null) return null;
 
-  // Update sourceOperation targets and controls
+  // Create a deep copy of the source operation
+  const newSourceOperation: Operation = JSON.parse(
+    JSON.stringify(originalOperation),
+  );
+
+  // Update operation's targets and controls
   _moveY(
     circuitEvents,
-    sourceOperation,
+    newSourceOperation,
     sourceLocation,
     sourceWire,
     targetWire,
     movingControl,
   );
 
-  return sourceOperation;
+  // Move horizontally
+  _moveX(
+    circuitEvents,
+    newSourceOperation,
+    originalOperation,
+    targetLocation,
+    insertNewColumn,
+  );
+
+  const sourceOperationParent = findParentArray(
+    circuitEvents.componentGrid,
+    sourceLocation,
+  );
+  if (sourceOperationParent == null) return null;
+  _removeOp(circuitEvents, originalOperation, sourceOperationParent);
+
+  return newSourceOperation;
 };
 
 /**
  * Move an operation horizontally.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param sourceLocation The location string of the source operation.
+ * @param sourceOperation The operation to be moved.
+ * @param originalOperation The original source operation to be ignored during the check for existing operations.
  * @param targetLocation The location string of the target position.
- * @param targetWire The wire index to move the operation to.
  * @param insertNewColumn Whether to insert a new column when adding the operation.
- * @returns The moved operation or null if the move was unsuccessful.
  */
 const _moveX = (
   circuitEvents: CircuitEvents,
-  sourceLocation: string,
+  sourceOperation: Operation,
+  originalOperation: Operation,
   targetLocation: string,
-  targetWire: number,
   insertNewColumn: boolean = false,
-): Operation | null => {
-  const sourceOperation = findOperation(
-    circuitEvents.componentGrid,
-    sourceLocation,
-  );
-  if (!insertNewColumn && sourceLocation === targetLocation)
-    return sourceOperation;
-  const sourceOperationParent = findParentArray(
-    circuitEvents.componentGrid,
-    sourceLocation,
-  );
+) => {
   const targetOperationParent = findParentArray(
     circuitEvents.componentGrid,
     targetLocation,
   );
+
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
-  if (
-    targetOperationParent == null ||
-    targetLastIndex == null ||
-    sourceOperation == null ||
-    sourceOperationParent == null
-  )
-    return null;
+  if (targetOperationParent == null || targetLastIndex == null) return;
 
   // Insert sourceOperation to target last index
-  const newSourceOperation = _addOp(
-    circuitEvents,
+  _addOp(
     sourceOperation,
     targetOperationParent,
     targetLastIndex,
-    targetWire,
     insertNewColumn,
+    originalOperation,
   );
-
-  // Delete sourceOperation
-  _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
-
-  return newSourceOperation;
 };
 
 /**
@@ -130,22 +127,30 @@ const _moveY = (
   targetWire: number,
   movingControl: boolean,
 ): void => {
+  // Check if the source operation already has a target or control on the target wire
+  const registers =
+    sourceOperation.kind === "measurement"
+      ? [...sourceOperation.qubits, ...sourceOperation.results]
+      : [...sourceOperation.targets, ...(sourceOperation.controls || [])];
+  const existingReg = registers.find((target) => target.qubit === targetWire);
+  if (existingReg) {
+    // If the target or control already exists, don't move the operation
+    return;
+  }
+
   if (sourceOperation.kind === "measurement") {
-    _removeMeasurementLines(circuitEvents, sourceOperation);
     _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
+  } else if (movingControl) {
+    sourceOperation.controls?.forEach((control) => {
+      if (control.qubit === sourceWire) {
+        control.qubit = targetWire;
+      }
+    });
+    sourceOperation.controls = sourceOperation.controls?.sort(
+      (a, b) => a.qubit - b.qubit,
+    );
   } else {
-    if (movingControl) {
-      sourceOperation.controls?.forEach((control) => {
-        if (control.qubit === sourceWire) {
-          control.qubit = targetWire;
-        }
-      });
-      sourceOperation.controls = sourceOperation.controls?.sort(
-        (a, b) => a.qubit - b.qubit,
-      );
-    } else {
-      sourceOperation.targets = [{ qubit: targetWire }];
-    }
+    sourceOperation.targets = [{ qubit: targetWire }];
   }
 
   // Update parent operation targets
@@ -187,24 +192,24 @@ const addOperation = (
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
-  if (
-    targetOperationParent == null ||
-    targetLastIndex == null ||
-    sourceOperation == null
-  )
-    return null;
-
-  const newSourceOperation = _addOp(
-    circuitEvents,
-    sourceOperation,
-    targetOperationParent,
-    targetLastIndex,
-    targetWire,
-    insertNewColumn,
+  if (targetOperationParent == null || targetLastIndex == null) return null;
+  // Create a deep copy of the source operation
+  const newSourceOperation: Operation = JSON.parse(
+    JSON.stringify(sourceOperation),
   );
-  if (newSourceOperation.kind === "unitary") {
+
+  if (newSourceOperation.kind === "measurement") {
+    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
+  } else if (newSourceOperation.kind === "unitary") {
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
+
+  _addOp(
+    newSourceOperation,
+    targetOperationParent,
+    targetLastIndex,
+    insertNewColumn,
+  );
 
   return newSourceOperation;
 };
@@ -322,44 +327,98 @@ const removeControl = (op: Unitary, wireIndex: number): boolean => {
 /**
  * Add an operation to the circuit at the specified location.
  *
- * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be added.
  * @param targetOperationParent The parent grid where the operation will be added.
  * @param targetLastIndex The index within the parent array where the operation will be added.
- * @param targetWire The wire index to add the operation to.
  * @param insertNewColumn Whether to insert a new column when adding the operation.
- * @returns The added operation.
+ * @param originalOperation The original source operation to be ignored during the check for existing operations.
  */
 const _addOp = (
-  circuitEvents: CircuitEvents,
   sourceOperation: Operation,
   targetOperationParent: ComponentGrid,
   targetLastIndex: [number, number],
-  targetWire: number,
   insertNewColumn: boolean = false,
-): Operation => {
-  const newSourceOperation: Operation = JSON.parse(
-    JSON.stringify(sourceOperation),
-  );
-  if (newSourceOperation.kind === "measurement") {
-    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
-  }
+  originalOperation: Operation | null = null,
+) => {
   const [colIndex, opIndex] = targetLastIndex;
   if (targetOperationParent[colIndex] == null) {
     targetOperationParent[colIndex] = { components: [] };
   }
+
+  insertNewColumn =
+    insertNewColumn || _isClassicallyControlled(sourceOperation);
+
+  // Check if there are any existing operations in the target
+  // column within the wire range of the new operation
+  if (!insertNewColumn) {
+    const [minTarget, maxTarget] = _getMinMaxRegIdx(sourceOperation);
+    for (const op of targetOperationParent[colIndex].components) {
+      if (op === originalOperation) continue;
+
+      const [opMinTarget, opMaxTarget] = _getMinMaxRegIdx(op);
+      if (
+        (opMinTarget >= minTarget && opMinTarget <= maxTarget) ||
+        (opMaxTarget >= minTarget && opMaxTarget <= maxTarget) ||
+        (minTarget >= opMinTarget && minTarget <= opMaxTarget) ||
+        (maxTarget >= opMinTarget && maxTarget <= opMaxTarget)
+      ) {
+        insertNewColumn = true;
+        break;
+      }
+    }
+  }
+
   if (insertNewColumn) {
     targetOperationParent.splice(colIndex, 0, {
-      components: [newSourceOperation],
+      components: [sourceOperation],
     });
   } else {
     targetOperationParent[colIndex].components.splice(
       opIndex,
       0,
-      newSourceOperation,
+      sourceOperation,
     );
   }
-  return newSourceOperation;
+};
+
+/**
+ * Get the minimum and maximum register indices for a given operation.
+ * Based on getMinMaxRegIdx in process.ts, but without the maxQId.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @returns A tuple containing the minimum and maximum register indices.
+ */
+const _getMinMaxRegIdx = (operation: Operation): [number, number] => {
+  const { targets, controls } =
+    operation.kind === "measurement"
+      ? { targets: operation.results, controls: operation.qubits }
+      : { targets: operation.targets, controls: operation.controls };
+  const ctrls: Register[] = controls || [];
+  const qRegs: Register[] = [...ctrls, ...targets].filter(
+    ({ result }) => result === undefined,
+  );
+  if (qRegs.length === 0) return [-1, -1];
+  const qRegIdxList: number[] = qRegs.map(({ qubit }) => qubit);
+  // Pad the contiguous range of registers that it covers.
+  const minRegIdx: number = Math.min(...qRegIdxList);
+  const maxRegIdx: number = Math.max(...qRegIdxList);
+
+  return [minRegIdx, maxRegIdx];
+};
+
+/**
+ * Check if an operation is classically controlled.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @returns True if the operation is classically controlled, false otherwise.
+ */
+const _isClassicallyControlled = (operation: Operation): boolean => {
+  if (operation.kind !== "unitary") return false;
+  if (operation.controls === undefined) return false;
+  const clsControl = operation.controls.find(
+    ({ result }) => result !== undefined,
+  );
+  return clsControl !== undefined;
 };
 
 /**

@@ -35,8 +35,8 @@ const addContextMenuToHostElem = (
 
     const contextMenu = document.createElement("div");
     contextMenu.classList.add("context-menu");
-    contextMenu.style.top = `${ev.clientY}px`;
-    contextMenu.style.left = `${ev.clientX}px`;
+    contextMenu.style.top = `${ev.clientY + window.scrollY}px`;
+    contextMenu.style.left = `${ev.clientX + window.scrollX}px`;
     contextMenu.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
