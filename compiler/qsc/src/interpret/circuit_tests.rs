@@ -1064,10 +1064,6 @@ mod debugger_stepping {
             Profile::Base,
         );
 
-        // Surprising but expected: Reset gates would *not* normally
-        // be generated in Base Profile, but they are here, since
-        // when running in tandem with the simulator, the resulting
-        // circuit is intended to match the calls into the simulator.
         expect![[r#"
             step:
             step:
