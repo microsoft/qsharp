@@ -5,7 +5,8 @@ use miette::Diagnostic;
 use qsc::line_column::Range;
 use qsc::location::Location;
 use qsc::{compile, project};
-use qsc::{linter::LintConfig, project::Manifest, target::Profile, LanguageFeatures, PackageType};
+use qsc::{project::Manifest, target::Profile, LanguageFeatures, PackageType};
+use qsc_linter::LintOrGroupConfig;
 use thiserror::Error;
 
 /// A change to the workspace configuration
@@ -14,7 +15,7 @@ pub struct WorkspaceConfigurationUpdate {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
-    pub lints_config: Option<Vec<LintConfig>>,
+    pub lints_config: Option<Vec<LintOrGroupConfig>>,
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]

@@ -12,7 +12,7 @@ use crate::{
 use expect_test::{expect, Expect};
 use miette::Diagnostic;
 use qsc::{line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
-use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel};
+use qsc_linter::{AstLint, LintConfig, LintKind, LintLevel, LintOrGroupConfig};
 use std::{
     cell::RefCell,
     fmt::{Display, Write},
@@ -1337,18 +1337,22 @@ async fn loading_lints_config_from_manifest() {
         &updater,
         &expect![[r#"
             [
-                LintConfig {
-                    kind: Ast(
-                        DivisionByZero,
-                    ),
-                    level: Error,
-                },
-                LintConfig {
-                    kind: Ast(
-                        NeedlessParens,
-                    ),
-                    level: Error,
-                },
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            DivisionByZero,
+                        ),
+                        level: Error,
+                    },
+                ),
+                Lint(
+                    LintConfig {
+                        kind: Ast(
+                            NeedlessParens,
+                        ),
+                        level: Error,
+                    },
+                ),
             ]"#]],
     )
     .await;
@@ -1440,10 +1444,10 @@ async fn lints_prefer_workspace_over_defaults() {
     let test_cases = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors, &test_cases);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 
@@ -1489,10 +1493,10 @@ async fn lints_prefer_manifest_over_workspace() {
     let test_cases = RefCell::new(Vec::new());
     let mut updater = new_updater_with_file_system(&received_errors, &test_cases, &fs);
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        lints_config: Some(vec![LintConfig {
+        lints_config: Some(vec![LintOrGroupConfig::Lint(LintConfig {
             kind: LintKind::Ast(AstLint::DivisionByZero),
             level: LintLevel::Warn,
-        }]),
+        })]),
         ..WorkspaceConfigurationUpdate::default()
     });
 
