@@ -9,10 +9,7 @@ fn not_supported_before_version_3_1() {
     check_stmt_kinds(
         r#"
     OPENQASM 3.0;
-
-    switch (1) {
-        case 1 {}
-    }
+    switch (1) { case 1 {} }
     "#,
         &expect![[r#"
             Program:
