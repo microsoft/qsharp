@@ -26,6 +26,14 @@ fn to_bit_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Float(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-42]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-42]:
+                            symbol_id: 7
+                            ty_span: [32-35]
+                            init_expr: Expr [40-41]:
+                                ty: Float(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -61,6 +69,14 @@ fn explicit_width_to_bit_implicitly_fails() {
                             init_expr: Expr [23-26]:
                                 ty: Float(Some(64), true)
                                 kind: Lit: Float(42.0)
+                    Stmt [36-46]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [36-46]:
+                            symbol_id: 7
+                            ty_span: [36-39]
+                            init_expr: Expr [44-45]:
+                                ty: Float(Some(64), false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -244,33 +260,37 @@ fn negative_lit_to_implicit_uint_implicitly() {
     check_classical_decls(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-24]:
-            symbol_id: 6
-            ty_span: [9-14]
-            init_expr: Expr [20-23]:
-                ty: Float(None, true)
-                kind: Lit: Float(-42.0)
-        [6] Symbol [15-16]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default
-        ClassicalDeclarationStmt [33-44]:
-            symbol_id: 7
-            ty_span: [33-37]
-            init_expr: Expr [42-43]:
-                ty: UInt(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-24]:
+                symbol_id: 6
+                ty_span: [9-14]
+                init_expr: Expr [20-23]:
+                    ty: Float(None, true)
+                    kind: UnaryOpExpr [20-23]:
+                        op: Neg
+                        expr: Expr [20-23]:
+                            ty: Float(None, true)
+                            kind: Lit: Float(42.0)
+            [6] Symbol [15-16]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default
+            ClassicalDeclarationStmt [33-44]:
+                symbol_id: 7
+                ty_span: [33-37]
+                init_expr: Expr [42-43]:
                     ty: UInt(None, false)
-                    expr: Expr [42-43]:
-                        ty: Float(None, false)
-                        kind: SymbolId(6)
-        [7] Symbol [38-39]:
-            name: y
-            type: UInt(None, false)
-            qsharp_type: Int
-            io_kind: Default
-    "#]],
+                    kind: Cast [0-0]:
+                        ty: UInt(None, false)
+                        expr: Expr [42-43]:
+                            ty: Float(None, false)
+                            kind: SymbolId(6)
+            [7] Symbol [38-39]:
+                name: y
+                type: UInt(None, false)
+                qsharp_type: Int
+                io_kind: Default
+        "#]],
     );
 }
 

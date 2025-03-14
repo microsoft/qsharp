@@ -12,7 +12,15 @@ fn with_no_init_expr_has_generated_lit_expr() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-10]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-10]:
+                            symbol_id: 6
+                            ty_span: [0-7]
+                            init_expr: Expr [0-0]:
+                                ty: Stretch(true)
+                                kind: Err
 
             [Qsc.Qasm3.Compile.NotSupported
 
@@ -20,6 +28,13 @@ fn with_no_init_expr_has_generated_lit_expr() {
                ,-[test:1:1]
              1 | stretch a;
                : ^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.NotSupported
+
+              x Stretch default values are not supported.
+               ,-[test:1:1]
+             1 | stretch a;
+               : ^^^^^^^^^^
                `----
             ]"#]],
     );

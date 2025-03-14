@@ -41,6 +41,7 @@ fn gphase_qubit_ident() {
                     qubits:
                         IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
+                            index_span: [0-0]
                             indices: <empty>"#]],
     );
 }
@@ -61,6 +62,7 @@ fn gphase_qubit_register() {
                     qubits:
                         IndexedIdent [10-14]:
                             name: Ident [10-11] "q"
+                            index_span: [11-14]
                             indices:
                                 IndexSet [12-13]:
                                     values:
@@ -84,9 +86,11 @@ fn gphase_multiple_qubits() {
                     qubits:
                         IndexedIdent [10-12]:
                             name: Ident [10-12] "q0"
+                            index_span: [0-0]
                             indices: <empty>
                         IndexedIdent [14-18]:
                             name: Ident [14-15] "q"
+                            index_span: [15-18]
                             indices:
                                 IndexSet [16-17]:
                                     values:
@@ -180,6 +184,7 @@ fn gphase_ctrl_inv_modifiers() {
                     qubits:
                         IndexedIdent [28-30]:
                             name: Ident [28-30] "q0"
+                            index_span: [0-0]
                             indices: <empty>"#]],
     );
 }

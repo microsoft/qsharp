@@ -57,7 +57,15 @@ fn scalar_ty_designator_must_be_positive() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-10]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-10]:
+                            symbol_id: 6
+                            ty_span: [0-7]
+                            init_expr: Expr [0-0]:
+                                ty: Err
+                                kind: Err
 
             [Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
 
@@ -65,6 +73,21 @@ fn scalar_ty_designator_must_be_positive() {
                ,-[test:1:5]
              1 | int[-5] i;
                :     ^^
+               `----
+            , Qsc.Qasm3.Compile.Unimplemented
+
+              x this statement is not yet handled during OpenQASM 3 import: Converting Err
+              | to Q# type
+               ,-[test:1:1]
+             1 | int[-5] i;
+               : ^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.NotSupported
+
+              x Default values for Err are unsupported. are not supported.
+               ,-[test:1:1]
+             1 | int[-5] i;
+               : ^^^^^^^^^^
                `----
             ]"#]],
     );
@@ -77,7 +100,23 @@ fn scalar_ty_designator_must_be_int_literal() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-12]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-12]:
+                            symbol_id: 6
+                            ty_span: [0-9]
+                            init_expr: Expr [0-0]:
+                                ty: Err
+                                kind: Err
+                    Stmt [13-26]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [13-26]:
+                            symbol_id: 7
+                            ty_span: [13-23]
+                            init_expr: Expr [0-0]:
+                                ty: Err
+                                kind: Err
 
             [Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
 
@@ -86,12 +125,42 @@ fn scalar_ty_designator_must_be_int_literal() {
              1 | int[size] i; float[0.0] j;
                :     ^^^^
                `----
+            , Qsc.Qasm3.Compile.Unimplemented
+
+              x this statement is not yet handled during OpenQASM 3 import: Converting Err
+              | to Q# type
+               ,-[test:1:1]
+             1 | int[size] i; float[0.0] j;
+               : ^^^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.NotSupported
+
+              x Default values for Err are unsupported. are not supported.
+               ,-[test:1:1]
+             1 | int[size] i; float[0.0] j;
+               : ^^^^^^^^^^^^
+               `----
             , Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
 
               x Designator must be a positive literal integer.
                ,-[test:1:20]
              1 | int[size] i; float[0.0] j;
                :                    ^^^
+               `----
+            , Qsc.Qasm3.Compile.Unimplemented
+
+              x this statement is not yet handled during OpenQASM 3 import: Converting Err
+              | to Q# type
+               ,-[test:1:14]
+             1 | int[size] i; float[0.0] j;
+               :              ^^^^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.NotSupported
+
+              x Default values for Err are unsupported. are not supported.
+               ,-[test:1:14]
+             1 | int[size] i; float[0.0] j;
+               :              ^^^^^^^^^^^^^
                `----
             ]"#]],
     );

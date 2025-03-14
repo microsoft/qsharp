@@ -357,7 +357,15 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                 ty_span: [6-11]
                 init_expr: Expr [17-19]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(-7.0)
+                    kind: Cast [0-0]:
+                        ty: Angle(None, true)
+                        expr: Expr [17-19]:
+                            ty: Float(None, true)
+                            kind: UnaryOpExpr [17-19]:
+                                op: Neg
+                                expr: Expr [17-19]:
+                                    ty: Float(None, true)
+                                    kind: Lit: Float(7.0)
             [6] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
@@ -373,12 +381,23 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-19]:
+                            symbol_id: 6
+                            ty_span: [6-11]
+                            init_expr: Expr [17-18]:
+                                ty: Int(None, true)
+                                kind: UnaryOpExpr [17-18]:
+                                    op: Neg
+                                    expr: Expr [17-18]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(7)
 
-            [Qsc.Qasm3.Compile.CannotAssignToType
+            [Qsc.Qasm3.Compile.CannotCast
 
-              x Cannot assign a value of Int(None, true) type to a classical variable of
-              | Angle(None, true) type.
+              x Cannot cast expression of type Int(None, true) to type Angle(None, true)
                ,-[test:1:1]
              1 | const angle x = -7;
                : ^^^^^^^^^^^^^^^^^^^

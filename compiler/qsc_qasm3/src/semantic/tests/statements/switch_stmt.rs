@@ -14,7 +14,21 @@ fn not_supported_before_version_3_1() {
         &expect![[r#"
             Program:
                 version: 3.0
-                statements: <empty>
+                statements:
+                    Stmt [23-47]:
+                        annotations: <empty>
+                        kind: SwitchStmt [23-47]:
+                            target: Expr [31-32]:
+                                ty: Int(None, true)
+                                kind: Lit: Int(1)
+                            cases:
+                                SwitchCase [36-45]:
+                                    labels:
+                                        Expr [41-42]:
+                                            ty: Int(None, true)
+                                            kind: Lit: Int(1)
+                                    block: Block [43-45]: <empty>
+                            default_case: <none>
 
             [Qsc.Qasm3.Compile.NotSupportedInThisVersion
 
