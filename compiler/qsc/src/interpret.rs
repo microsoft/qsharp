@@ -759,7 +759,6 @@ impl Interpreter {
             sim.chained.finish()
         } else {
             let mut sim = CircuitBuilder::new(CircuitConfig {
-                base_profile: self.capabilities.is_empty(),
                 max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
             });
 
@@ -1004,14 +1003,6 @@ fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
     BackendChain::new(
         SparseSim::new(),
         CircuitBuilder::new(CircuitConfig {
-            // When using in conjunction with the simulator,
-            // the circuit builder should *not* perform base profile
-            // decompositions, in order to match the simulator's behavior.
-            //
-            // Note that conditional compilation (e.g. @Config(Base) attributes)
-            // will still respect the selected profile. This also
-            // matches the behavior of the simulator.
-            base_profile: false,
             max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
         }),
     )
