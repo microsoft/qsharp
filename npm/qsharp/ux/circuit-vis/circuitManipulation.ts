@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ComponentGrid, Measurement, Operation, Unitary } from "./circuit";
+import { ComponentGrid, Operation, Unitary } from "./circuit";
 import { CircuitEvents } from "./events";
 import { Register } from "./register";
 import {
@@ -101,6 +101,7 @@ const _moveX = (
 
   // Insert sourceOperation to target last index
   _addOp(
+    circuitEvents,
     sourceOperation,
     targetOperationParent,
     targetLastIndex,
@@ -134,12 +135,13 @@ const _moveY = (
       : [...sourceOperation.targets, ...(sourceOperation.controls || [])];
   const existingReg = registers.find((target) => target.qubit === targetWire);
   if (existingReg) {
-    // If the target or control already exists, don't move the operation
+    // If the target or control already exists, don't move the target/control
     return;
   }
 
   if (sourceOperation.kind === "measurement") {
-    _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
+    sourceOperation.qubits = [{ qubit: targetWire }];
+    // The measurement result is updated later in the _updateMeasurementLines function
   } else if (movingControl) {
     sourceOperation.controls?.forEach((control) => {
       if (control.qubit === sourceWire) {
@@ -199,12 +201,14 @@ const addOperation = (
   );
 
   if (newSourceOperation.kind === "measurement") {
-    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
+    newSourceOperation.qubits = [{ qubit: targetWire }];
+    // The measurement result is updated later in the _updateMeasurementLines function
   } else if (newSourceOperation.kind === "unitary") {
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
   _addOp(
+    circuitEvents,
     newSourceOperation,
     targetOperationParent,
     targetLastIndex,
@@ -327,6 +331,7 @@ const removeControl = (op: Unitary, wireIndex: number): boolean => {
 /**
  * Add an operation to the circuit at the specified location.
  *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be added.
  * @param targetOperationParent The parent grid where the operation will be added.
  * @param targetLastIndex The index within the parent array where the operation will be added.
@@ -334,6 +339,7 @@ const removeControl = (op: Unitary, wireIndex: number): boolean => {
  * @param originalOperation The original source operation to be ignored during the check for existing operations.
  */
 const _addOp = (
+  circuitEvents: CircuitEvents,
   sourceOperation: Operation,
   targetOperationParent: ComponentGrid,
   targetLastIndex: [number, number],
@@ -378,6 +384,12 @@ const _addOp = (
       0,
       sourceOperation,
     );
+  }
+
+  if (sourceOperation.kind === "measurement") {
+    for (const targetWires of sourceOperation.qubits) {
+      _updateMeasurementLines(circuitEvents, targetWires.qubit);
+    }
   }
 };
 
@@ -456,79 +468,37 @@ const _removeOp = (
   }
 
   if (sourceOperation.kind === "measurement") {
-    _removeMeasurementLines(circuitEvents, sourceOperation);
-  }
-};
-
-/**
- * Add a measurement line to the circuit and attach the source measurement.
- *
- * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param sourceMeasurement The measurement gate to which the measurement line will be added.
- * @param targetQubitWire The wire index to add the measurement line to.
- */
-const _addMeasurementLine = (
-  circuitEvents: CircuitEvents,
-  sourceMeasurement: Measurement,
-  targetQubitWire: number,
-) => {
-  const newNumResults = circuitEvents.qubits[targetQubitWire].numResults
-    ? circuitEvents.qubits[targetQubitWire].numResults + 1
-    : 1;
-  circuitEvents.qubits[targetQubitWire].numResults = newNumResults;
-  sourceMeasurement.results = [
-    {
-      qubit: targetQubitWire,
-      result: newNumResults - 1,
-    },
-  ];
-  sourceMeasurement.qubits = [{ qubit: targetQubitWire }];
-};
-
-/**
- * Removes all measurement lines of a measure from the circuit and adjust the cIds of the other measurements.
- *
- * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- * @param sourceMeasurement The measurement gate from which the measurement lines will be removed.
- */
-const _removeMeasurementLines = (
-  circuitEvents: CircuitEvents,
-  sourceMeasurement: Measurement,
-) => {
-  for (const result of sourceMeasurement.results) {
-    const qubit = circuitEvents.qubits[result.qubit];
-    if (qubit.numResults != undefined && result.result != undefined) {
-      for (const col of circuitEvents.componentGrid) {
-        for (const comp of col.components) {
-          const controls =
-            comp.kind === "measurement" ? comp.qubits : comp.controls;
-          if (controls) {
-            for (const control of controls) {
-              if (
-                control.qubit === result.qubit &&
-                control.result &&
-                control.result > result.result
-              ) {
-                control.result--;
-              }
-            }
-          }
-          const targets =
-            comp.kind === "measurement" ? comp.results : comp.targets;
-          for (const targetReg of targets) {
-            if (
-              targetReg.qubit === result.qubit &&
-              targetReg.result &&
-              targetReg.result > result.result
-            ) {
-              targetReg.result--;
-            }
-          }
-        }
-      }
-      qubit.numResults--;
+    for (const result of sourceOperation.results) {
+      _updateMeasurementLines(circuitEvents, result.qubit);
     }
   }
+};
+
+/**
+ * Update measurement lines for a specific wire.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param wireIndex The index of the wire to update the measurement lines for.
+ */
+const _updateMeasurementLines = (
+  circuitEvents: CircuitEvents,
+  wireIndex: number,
+) => {
+  let resultIndex = 0;
+  for (const col of circuitEvents.componentGrid) {
+    for (const comp of col.components) {
+      if (comp.kind === "measurement") {
+        // Find measurements on the correct wire based on their qubit.
+        const qubit = comp.qubits.find((qubit) => qubit.qubit === wireIndex);
+        if (qubit) {
+          // Remove any existing results and add a new one with the updated index.
+          comp.results = [{ qubit: qubit.qubit, result: resultIndex++ }];
+        }
+      }
+    }
+  }
+  circuitEvents.qubits[wireIndex].numResults =
+    resultIndex > 0 ? resultIndex : undefined;
 };
 
 export {
