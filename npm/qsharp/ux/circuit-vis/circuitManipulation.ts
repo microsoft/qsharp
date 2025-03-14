@@ -127,6 +127,18 @@ const _moveY = (
   targetWire: number,
   movingControl: boolean,
 ): void => {
+  // Check if the source operation already has a target or control on the target wire
+  const existingTarget = sourceOperation.targets.find(
+    (target) => target.qId === targetWire,
+  );
+  const existingControl = sourceOperation.controls?.find(
+    (control) => control.qId === targetWire,
+  );
+  if (existingTarget || existingControl) {
+    // If the target or control already exists, don't move the operation
+    return;
+  }
+
   if (sourceOperation.isMeasurement) {
     _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
   } else if (movingControl) {
