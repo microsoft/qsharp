@@ -19,12 +19,11 @@ fn not_supported_before_version_3_1() {
             [Qsc.Qasm3.Compile.NotSupported
 
               x switch statements were introduced in version 3.1 are not supported.
-               ,-[test:4:5]
-             3 |
-             4 | ,->     switch (1) {
-             5 | |           case 1 {}
-             6 | `->     }
-             7 |
+               ,-[test:3:5]
+             2 |     OPENQASM 3.0;
+             3 |     switch (1) { case 1 {} }
+               :     ^^^^^^^^^^^^^^^^^^^^^^^^
+             4 |     
                `----
             ]"#]],
     );
