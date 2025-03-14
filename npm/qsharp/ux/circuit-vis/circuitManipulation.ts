@@ -33,16 +33,16 @@ const moveOperation = (
   movingControl: boolean,
   insertNewColumn: boolean = false,
 ): Operation | null => {
-  const sourceOperation = findOperation(
+  const originalOperation = findOperation(
     circuitEvents.operations,
     sourceLocation,
   );
 
-  if (sourceOperation == null) return null;
+  if (originalOperation == null) return null;
 
   // Create a deep copy of the source operation
   const newSourceOperation: Operation = JSON.parse(
-    JSON.stringify(sourceOperation),
+    JSON.stringify(originalOperation),
   );
 
   // Update operation's targets and controls
@@ -59,18 +59,17 @@ const moveOperation = (
   _moveX(
     circuitEvents,
     newSourceOperation,
+    originalOperation,
     targetLocation,
-    targetWire,
     insertNewColumn,
   );
 
-  // Remove the original source operation
   const sourceOperationParent = findParentArray(
     circuitEvents.operations,
     sourceLocation,
   );
   if (sourceOperationParent == null) return null;
-  _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
+  _removeOp(circuitEvents, originalOperation, sourceOperationParent);
 
   return newSourceOperation;
 };
@@ -80,38 +79,33 @@ const moveOperation = (
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be moved.
+ * @param originalOperation The original source operation to be ignored during the check for existing operations.
  * @param targetLocation The location string of the target position.
- * @param targetWire The wire index to move the operation to.
  * @param insertNewColumn Whether to insert a new column when adding the operation.
  */
 const _moveX = (
   circuitEvents: CircuitEvents,
   sourceOperation: Operation,
+  originalOperation: Operation,
   targetLocation: string,
-  targetWire: number,
   insertNewColumn: boolean = false,
 ) => {
   const targetOperationParent = findParentArray(
     circuitEvents.operations,
     targetLocation,
   );
+
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
-  if (
-    targetOperationParent == null ||
-    targetLastIndex == null ||
-    sourceOperation == null
-  )
-    return;
+  if (targetOperationParent == null || targetLastIndex == null) return;
 
   // Insert sourceOperation to target last index
   _addOp(
-    circuitEvents,
     sourceOperation,
     targetOperationParent,
     targetLastIndex,
-    targetWire,
     insertNewColumn,
+    originalOperation,
   );
 };
 
@@ -134,21 +128,18 @@ const _moveY = (
   movingControl: boolean,
 ): void => {
   if (sourceOperation.isMeasurement) {
-    _removeMeasurementLines(circuitEvents, sourceOperation);
     _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
+  } else if (movingControl) {
+    sourceOperation.controls?.forEach((control) => {
+      if (control.qId === sourceWire) {
+        control.qId = targetWire;
+      }
+    });
+    sourceOperation.controls = sourceOperation.controls?.sort(
+      (a, b) => a.qId - b.qId,
+    );
   } else {
-    if (movingControl) {
-      sourceOperation.controls?.forEach((control) => {
-        if (control.qId === sourceWire) {
-          control.qId = targetWire;
-        }
-      });
-      sourceOperation.controls = sourceOperation.controls?.sort(
-        (a, b) => a.qId - b.qId,
-      );
-    } else {
-      sourceOperation.targets = [{ qId: targetWire, type: RegisterType.Qubit }];
-    }
+    sourceOperation.targets = [{ qId: targetWire, type: RegisterType.Qubit }];
   }
 
   // Update parent operation targets
@@ -184,31 +175,26 @@ const addOperation = (
   );
   const targetLastIndex = locationStringToIndexes(targetLocation).pop();
 
-  if (
-    targetOperationParent == null ||
-    targetLastIndex == null ||
-    sourceOperation == null
-  )
-    return null;
-
+  if (targetOperationParent == null || targetLastIndex == null) return null;
   // Create a deep copy of the source operation
   const newSourceOperation: Operation = JSON.parse(
     JSON.stringify(sourceOperation),
   );
 
-  _addOp(
-    circuitEvents,
-    newSourceOperation,
-    targetOperationParent,
-    targetLastIndex,
-    targetWire,
-    insertNewColumn,
-  );
-  if (!newSourceOperation.isMeasurement) {
+  if (sourceOperation.isMeasurement) {
+    _addMeasurementLine(circuitEvents, newSourceOperation, targetWire);
+  } else {
     newSourceOperation.targets = [
       { qId: targetWire, type: RegisterType.Qubit },
     ];
   }
+
+  _addOp(
+    newSourceOperation,
+    targetOperationParent,
+    targetLastIndex,
+    insertNewColumn,
+  );
 
   return newSourceOperation;
 };
@@ -333,24 +319,19 @@ const removeControl = (op: Operation, wireIndex: number): boolean => {
 /**
  * Add an operation to the circuit at the specified location.
  *
- * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param sourceOperation The operation to be added.
  * @param targetOperationParent The parent array where the operation will be added.
  * @param targetLastIndex The index within the parent array where the operation will be added.
- * @param targetWire The wire index to add the operation to.
  * @param insertNewColumn Whether to insert a new column when adding the operation.
+ * @param originalOperation The original source operation to be ignored during the check for existing operations.
  */
 const _addOp = (
-  circuitEvents: CircuitEvents,
   sourceOperation: Operation,
   targetOperationParent: Operation[][],
   targetLastIndex: [number, number],
-  targetWire: number,
   insertNewColumn: boolean = false,
+  originalOperation: Operation | null = null,
 ) => {
-  if (sourceOperation.isMeasurement) {
-    _addMeasurementLine(circuitEvents, sourceOperation, targetWire);
-  }
   const [colIndex, opIndex] = targetLastIndex;
   if (targetOperationParent[colIndex] == null) {
     targetOperationParent[colIndex] = [];
@@ -364,6 +345,8 @@ const _addOp = (
   if (!insertNewColumn) {
     const [minTarget, maxTarget] = _getMinMaxRegIdx(sourceOperation);
     for (const op of targetOperationParent[colIndex]) {
+      if (op === originalOperation) continue;
+
       const [opMinTarget, opMaxTarget] = _getMinMaxRegIdx(op);
       if (
         (opMinTarget >= minTarget && opMinTarget <= maxTarget) ||
