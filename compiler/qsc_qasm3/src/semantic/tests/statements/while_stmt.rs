@@ -1,8 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod box_stmt;
-mod for_stmt;
-mod if_stmt;
-mod switch_stmt;
-mod while_stmt;
+use crate::semantic::tests::check_stmt_kinds;
+use expect_test::expect;

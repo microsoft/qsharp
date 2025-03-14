@@ -1369,7 +1369,7 @@ impl Display for WhileLoop {
 pub struct ForStmt {
     pub span: Span,
     pub ty: ScalarType,
-    pub identifier: Identifier,
+    pub ident: Ident,
     pub set_declaration: Box<EnumerableSet>,
     pub body: Stmt,
 }
@@ -1378,7 +1378,7 @@ impl Display for ForStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ForStmt", self.span)?;
         writeln_field(f, "variable_type", &self.ty)?;
-        writeln_field(f, "variable_name", &self.identifier)?;
+        writeln_field(f, "variable_name", &self.ident)?;
         writeln_field(f, "iterable", &self.set_declaration)?;
         write_field(f, "body", &self.body)
     }
