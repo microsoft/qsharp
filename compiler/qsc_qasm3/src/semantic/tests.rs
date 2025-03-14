@@ -98,7 +98,7 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
             let (symbol_id, str) = match kind {
                 super::ast::StmtKind::ClassicalDecl(decl) => (decl.symbol_id, decl.to_string()),
                 super::ast::StmtKind::IODeclaration(decl) => (decl.symbol_id, decl.to_string()),
-                super::ast::StmtKind::Assign(stmt) => (stmt.symbold_id, stmt.to_string()),
+                super::ast::StmtKind::Assign(stmt) => (stmt.symbol_id, stmt.to_string()),
                 super::ast::StmtKind::AssignOp(stmt) => (stmt.symbold_id, stmt.to_string()),
                 _ => panic!("unsupported stmt type {kind}"),
             };
@@ -293,7 +293,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
                :             ^
-             5 |     
+             5 |
                `----
             ]"#]],
     );

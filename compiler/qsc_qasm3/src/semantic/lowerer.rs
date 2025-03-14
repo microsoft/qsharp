@@ -403,7 +403,8 @@ impl Lowerer {
 
         let rhs = self.lower_expr_with_target_type(Some(rhs), &ty, span)?;
         Some(super::ast::AssignStmt {
-            symbold_id: lhs_symbol_id,
+            symbol_id: lhs_symbol_id,
+            name_span: ident.span,
             rhs,
             span,
         })
@@ -854,7 +855,7 @@ impl Lowerer {
         &mut self,
         stmt: &syntax::CalibrationGrammarStmt,
     ) -> Option<super::ast::CalibrationGrammarStmt> {
-        self.push_unimplemented_error_message("calibration stmt", stmt.span);
+        self.push_unimplemented_error_message("calibration grammar stmt", stmt.span);
         None
     }
 
@@ -1050,6 +1051,7 @@ impl Lowerer {
             let init_expr = self.get_default_value(&ty, stmt_span)?;
             Some(super::ast::IODeclaration {
                 span: stmt_span,
+                ty_span,
                 symbol_id,
                 init_expr: Box::new(init_expr),
             })
@@ -1769,7 +1771,7 @@ impl Lowerer {
     fn cast_angle_expr_to_type(ty: &Type, rhs: &super::ast::Expr) -> Option<super::ast::Expr> {
         assert!(matches!(rhs.ty, Type::Angle(..)));
         match ty {
-            Type::Bit(..) | Type::Bool(..) => {
+            Type::Angle(..) | Type::Bit(..) | Type::BitArray(..) | Type::Bool(..) => {
                 Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
@@ -2274,11 +2276,23 @@ impl Lowerer {
         Some(indexed_ty)
     }
 
+    /// Lower an indexed identifier expression
+    /// This is an identifier with *zero* or more indices
+    /// we tranform this into two different cases:
+    ///   1. An identifier with zero indices
+    ///   2. An identifier with one or more index
+    ///
+    /// This changes the type of expression we return to simplify downstream compilation
     fn lower_indexed_ident_expr(
         &mut self,
         indexed_ident: &syntax::IndexedIdent,
     ) -> Option<super::ast::Expr> {
         let ident = indexed_ident.name.clone();
+
+        // if we have no indices, we can just lower the identifier
+        if indexed_ident.indices.is_empty() {
+            return self.lower_ident_expr(&ident);
+        }
 
         let indices = indexed_ident
             .indices
@@ -2301,6 +2315,8 @@ impl Lowerer {
             kind: Box::new(super::ast::ExprKind::IndexedIdentifier(
                 super::ast::IndexedIdent {
                     span: indexed_ident.span,
+                    name_span: ident.span,
+                    index_span: indexed_ident.index_span,
                     symbol_id,
                     indices: syntax::list_from_iter(indices),
                 },

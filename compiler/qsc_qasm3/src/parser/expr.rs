@@ -758,10 +758,16 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
 pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
+    let index_lo = s.peek().span.lo;
     let indices = list_from_iter(many(s, index_operand)?);
-
+    let index_span = if indices.is_empty() {
+        Span::default()
+    } else {
+        s.span(index_lo)
+    };
     Ok(IndexedIdent {
         span: s.span(lo),
+        index_span,
         name,
         indices,
     })

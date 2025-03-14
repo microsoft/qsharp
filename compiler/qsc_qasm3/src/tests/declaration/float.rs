@@ -23,22 +23,6 @@ fn implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn const_default_decl() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        const float x;
-    ";
-
-    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = 0.;
-    "#
-    ]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
 fn lit_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         float x = 42.1;

@@ -343,8 +343,6 @@ pub enum StmtKind {
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
-    /// An empty statement.
-    Empty,
     End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
@@ -381,7 +379,6 @@ impl Display for StmtKind {
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
-            StmtKind::Empty => write!(f, "Empty"),
             StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
@@ -533,6 +530,8 @@ impl WithSpan for Ident {
 #[derive(Clone, Debug)]
 pub struct IndexedIdent {
     pub span: Span,
+    pub name_span: Span,
+    pub index_span: Span,
     pub symbol_id: SymbolId,
     pub indices: List<IndexElement>,
 }
@@ -541,6 +540,8 @@ impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
+        writeln_field(f, "index_span", &self.index_span)?;
         write_list_field(f, "indices", &self.indices)
     }
 }
@@ -1166,6 +1167,7 @@ impl Display for ValueExpression {
 #[derive(Clone, Debug)]
 pub struct IODeclaration {
     pub span: Span,
+    pub ty_span: Span,
     pub symbol_id: SymbolId,
     pub init_expr: Box<Expr>,
 }
@@ -1174,6 +1176,7 @@ impl Display for IODeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IODeclaration", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", &self.init_expr)
     }
 }
@@ -1434,14 +1437,16 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub symbold_id: SymbolId,
+    pub name_span: Span,
+    pub symbol_id: SymbolId,
     pub rhs: Expr,
 }
 
 impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1672,7 +1677,7 @@ impl Display for IOKeyword {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.

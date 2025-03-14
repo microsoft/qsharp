@@ -45,6 +45,7 @@ fn assignment() {
                 kind: AssignStmt [0-6]:
                     lhs: IndexedIdent [0-1]:
                         name: Ident [0-1] "a"
+                        index_span: [0-0]
                         indices: <empty>
                     rhs: Expr [4-5]: Lit: Int(1)"#]],
     );
@@ -61,6 +62,7 @@ fn index_assignment() {
                 kind: AssignStmt [0-9]:
                     lhs: IndexedIdent [0-4]:
                         name: Ident [0-1] "a"
+                        index_span: [1-4]
                         indices:
                             IndexSet [2-3]:
                                 values:
@@ -80,6 +82,7 @@ fn multi_index_assignment() {
                 kind: AssignStmt [0-12]:
                     lhs: IndexedIdent [0-7]:
                         name: Ident [0-1] "a"
+                        index_span: [1-7]
                         indices:
                             IndexSet [2-3]:
                                 values:
@@ -103,6 +106,7 @@ fn assignment_op() {
                     op: Add
                     lhs: IndexedIdent [0-1]:
                         name: Ident [0-1] "a"
+                        index_span: [0-0]
                         indices: <empty>
                     rhs: Expr [5-6]: Lit: Int(1)"#]],
     );
@@ -120,6 +124,7 @@ fn index_assignment_op() {
                     op: Add
                     lhs: IndexedIdent [0-4]:
                         name: Ident [0-1] "a"
+                        index_span: [1-4]
                         indices:
                             IndexSet [2-3]:
                                 values:
@@ -140,6 +145,7 @@ fn multi_index_assignment_op() {
                     op: Add
                     lhs: IndexedIdent [0-7]:
                         name: Ident [0-1] "a"
+                        index_span: [1-7]
                         indices:
                             IndexSet [2-3]:
                                 values:
@@ -162,6 +168,7 @@ fn assignment_and_unop() {
                 kind: AssignStmt [0-12]:
                     lhs: IndexedIdent [0-1]:
                         name: Ident [0-1] "c"
+                        index_span: [0-0]
                         indices: <empty>
                     rhs: Expr [4-11]: BinaryOpExpr:
                         op: AndL
@@ -183,6 +190,7 @@ fn assignment_unop_and() {
                 kind: AssignStmt [0-12]:
                     lhs: IndexedIdent [0-1]:
                         name: Ident [0-1] "d"
+                        index_span: [0-0]
                         indices: <empty>
                     rhs: Expr [4-11]: BinaryOpExpr:
                         op: AndL

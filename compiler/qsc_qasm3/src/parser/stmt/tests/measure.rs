@@ -17,6 +17,7 @@ fn measure_identifier() {
                     measurement: MeasureExpr [0-7]:
                         operand: IndexedIdent [8-9]:
                             name: Ident [8-9] "q"
+                            index_span: [0-0]
                             indices: <empty>
                     target: <none>"#]],
     );
@@ -34,6 +35,7 @@ fn measure_indented_ident() {
                     measurement: MeasureExpr [0-7]:
                         operand: IndexedIdent [8-12]:
                             name: Ident [8-9] "q"
+                            index_span: [9-12]
                             indices:
                                 IndexSet [10-11]:
                                     values:
@@ -69,9 +71,11 @@ fn measure_arrow_into_ident() {
                     measurement: MeasureExpr [0-7]:
                         operand: IndexedIdent [8-9]:
                             name: Ident [8-9] "q"
+                            index_span: [0-0]
                             indices: <empty>
                     target: IndexedIdent [13-14]:
                         name: Ident [13-14] "a"
+                        index_span: [0-0]
                         indices: <empty>"#]],
     );
 }
@@ -88,9 +92,11 @@ fn measure_arrow_into_indented_ident() {
                     measurement: MeasureExpr [0-7]:
                         operand: IndexedIdent [8-9]:
                             name: Ident [8-9] "q"
+                            index_span: [0-0]
                             indices: <empty>
                     target: IndexedIdent [13-17]:
                         name: Ident [13-14] "a"
+                        index_span: [14-17]
                         indices:
                             IndexSet [15-16]:
                                 values:
