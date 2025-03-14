@@ -23,7 +23,7 @@ fn shadowing_loop_variable_in_single_stmt_body_fails() {
              2 |     for int x in {}
              3 |         int x = 2;
                :             ^
-             4 |
+             4 |     
                `----
             ]"#]],
     );

@@ -31,7 +31,7 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
              2 |     int a = 0;
              3 |     while(true) int a = 1;
                :                     ^
-             4 |
+             4 |     
                `----
             ]"#]],
     );
