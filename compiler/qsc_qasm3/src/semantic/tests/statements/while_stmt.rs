@@ -69,3 +69,26 @@ fn block_body_creates_its_own_scope() {
         "#]],
     );
 }
+
+#[test]
+fn condition_cast() {
+    check_stmt_kinds(
+        "while (1) true;",
+        &expect![[r#"
+            WhileLoop [0-15]:
+                condition: Expr [7-8]:
+                    ty: Bool(false)
+                    kind: Cast [0-0]:
+                        ty: Bool(false)
+                        expr: Expr [7-8]:
+                            ty: Int(None, true)
+                            kind: Lit: Int(1)
+                body: Stmt [10-15]:
+                    annotations: <empty>
+                    kind: ExprStmt [10-15]:
+                        expr: Expr [10-14]:
+                            ty: Bool(true)
+                            kind: Lit: Bool(true)
+        "#]],
+    );
+}

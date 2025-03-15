@@ -46,6 +46,17 @@ macro_rules! short_circuit_opt_item {
     };
 }
 
+#[must_use]
+fn with_scope<T, F>(lw: &mut Lowerer, kind: ScopeKind, f: F) -> Option<T>
+where
+    F: FnOnce(&mut Lowerer) -> Option<T>,
+{
+    lw.symbols.push_scope(kind);
+    let res = f(lw);
+    lw.symbols.pop_scope();
+    res
+}
+
 pub(super) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
@@ -304,6 +315,18 @@ impl Lowerer {
     /// Pushes an unsupported error with the supplied message.
     pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, span: Span) {
         let kind = SemanticErrorKind::NotSupported(message.as_ref().to_string(), span);
+        self.push_semantic_error(kind);
+    }
+
+    pub fn push_unsuported_in_this_version_error_message<S: AsRef<str>>(
+        &mut self,
+        message: S,
+        minimum_supported_version: &Version,
+        span: Span,
+    ) {
+        let message = message.as_ref().to_string();
+        let msv = minimum_supported_version.to_string();
+        let kind = SemanticErrorKind::NotSupportedInThisVersion(message, msv, span);
         self.push_semantic_error(kind);
     }
 
@@ -995,45 +1018,42 @@ impl Lowerer {
     }
 
     fn lower_for_stmt(&mut self, stmt: &syntax::ForStmt) -> Option<semantic::ForStmt> {
-        let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
         let set_declaration = self.lower_enumerable_set(&stmt.set_declaration);
+
+        // Push scope where the loop variable lives.
+        let (loop_variable, body) = with_scope(self, ScopeKind::Block, |lw| {
+            let ty = lw.get_semantic_type_from_scalar_ty(&stmt.ty, false)?;
+            let qsharp_ty = lw.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span)?;
+            let symbol = Symbol {
+                name: stmt.ident.name.to_string(),
+                span: stmt.ident.span,
+                ty: ty.clone(),
+                qsharp_ty,
+                io_kind: IOKind::Default,
+            };
+
+            // This is the first variable in this scope, so
+            // we don't need to check for redefined symbols.
+            let symbol_id = lw
+                .symbols
+                .insert_symbol(symbol)
+                .expect("this should be the first variable in this scope");
+
+            // We lower the body after registering the loop variable symbol_id.
+            // The body of the for loop could be a single statement redefining
+            // the loop variable, in which case we need to push a redefined
+            // symbol error.
+            let body = lw.lower_stmt(&stmt.body);
+
+            Some((symbol_id, body?))
+        })?;
 
         // We use the `?` operator after lowering all the fields
         // to report as many errors as possible before exiting the function.
-        let (ty, set_declaration) = (ty?, Box::new(set_declaration?));
-
-        // Push scope where the loop variable lives.
-        self.symbols.push_scope(ScopeKind::Block);
-
-        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span)?;
-        let loop_variable_symbol = Symbol {
-            name: stmt.ident.name.to_string(),
-            span: stmt.ident.span,
-            ty: ty.clone(),
-            qsharp_ty,
-            io_kind: IOKind::Default,
-        };
-
-        // This is the first variable in this scope, so
-        // we don't need to check for redefined symbols.
-        let symbol_id = self
-            .symbols
-            .insert_symbol(loop_variable_symbol)
-            .expect("this should be the first variable in this scope");
-
-        // We lower the body after registering the loop variable symbol_id.
-        // The body of the for loop could be a single statement redefining
-        // the loop variable, in which case we need to push a redefined
-        // symbol error.
-        let body = self.lower_stmt(&stmt.body)?;
-
-        // Pop scope where the loop variable lives.
-        self.symbols.pop_scope();
-
         Some(semantic::ForStmt {
             span: stmt.span,
-            loop_variable: symbol_id,
-            set_declaration,
+            loop_variable,
+            set_declaration: Box::new(set_declaration?),
             body,
         })
     }
@@ -1043,16 +1063,19 @@ impl Lowerer {
         let if_body = self.lower_stmt(&stmt.if_body);
         let else_body = stmt.else_body.as_ref().map(|body| self.lower_stmt(body));
 
+        // The semantics of a if statement is that the condition must be
+        // of type bool, so we try to cast it, inserting a cast if necessary.
+        let cond_ty = Type::Bool(false);
+        let condition = condition?;
+        let condition = self.cast_expr_to_type(&cond_ty, &condition, condition.span);
+
         // We use the `?` operator after lowering all the fields
         // to report as many errors as possible before exiting the function.
-        let (condition, if_body) = (condition?, if_body?);
-        let else_body = short_circuit_opt_item!(else_body);
-
         Some(semantic::IfStmt {
             span: stmt.span,
-            condition,
-            if_body,
-            else_body,
+            condition: condition?,
+            if_body: if_body?,
+            else_body: short_circuit_opt_item!(else_body),
         })
     }
 
@@ -1156,6 +1179,15 @@ impl Lowerer {
     }
 
     fn lower_switch(&mut self, stmt: &syntax::SwitchStmt) -> Option<semantic::SwitchStmt> {
+        // Semantics of switch case is that the outer block doesn't introduce
+        // a new scope but each case rhs does.
+
+        // Can we add a new scope anyway to hold a temporary variable?
+        // if we do that, we can refer to a new variable instead of the control
+        // expr this would allow us to avoid the need to resolve the control
+        // expr multiple times in the case where we have to coerce the control
+        // expr to the correct type. Introducing a new variable without a new
+        // scope would effect output semantics.
         let cases = stmt
             .cases
             .iter()
@@ -1164,21 +1196,40 @@ impl Lowerer {
         let default = stmt.default.as_ref().map(|d| self.lower_block(d));
         let target = self.lower_expr(&stmt.target)?;
 
+        // The condition for the switch statement must be an integer type
+        // so we use `cast_expr_to_type`, forcing the type to be an integer
+        // type with implicit casts if necessary.
+        let target_ty = Type::Int(None, false);
+        let target = self.cast_expr_to_type(&target_ty, &target, target.span)?;
+
+        // We use the `?` operator after casting the condition to int
+        // to report as many errors as possible before exiting the function.
         let default = short_circuit_opt_item!(default);
 
         if cases.len() != stmt.cases.len() {
             return None;
         }
 
+        // It is a parse error to have a switch statement with no cases,
+        // even if the default block is present. Getting here means the
+        // parser is broken or they changed the grammar.
+        assert!(
+            !cases.is_empty(),
+            "switch statement must have a control expression and at least one case"
+        );
+
+        // We push a semantic error on switch statements if version is less than 3.1,
+        // as they were introduced in 3.1.
         if let Some(ref version) = self.version {
-            const MINIMUM_SUPPORTED_SWITCH_VERSION: semantic::Version = semantic::Version {
+            const SWITCH_MINIMUM_SUPPORTED_VERSION: semantic::Version = semantic::Version {
                 major: 3,
                 minor: Some(1),
                 span: Span { lo: 0, hi: 0 },
             };
-            if version < &MINIMUM_SUPPORTED_SWITCH_VERSION {
-                self.push_unsupported_error_message(
-                    "switch statements were introduced in version 3.1",
+            if version < &SWITCH_MINIMUM_SUPPORTED_VERSION {
+                self.push_unsuported_in_this_version_error_message(
+                    "switch statements",
+                    &SWITCH_MINIMUM_SUPPORTED_VERSION,
                     stmt.span,
                 );
                 return None;
@@ -1197,11 +1248,19 @@ impl Lowerer {
         &mut self,
         switch_case: &syntax::SwitchCase,
     ) -> Option<semantic::SwitchCase> {
+        let label_ty = Type::Int(None, false);
         let labels = switch_case
             .labels
             .iter()
-            .filter_map(|label| self.lower_expr(label))
+            .filter_map(|label| {
+                // The labels for each switch case must be of integer type
+                // so we use `cast_expr_to_type`, forcing the type to be an integer
+                // type with implicit casts if necessary.
+                let label = self.lower_expr(label)?;
+                self.cast_expr_to_type(&label_ty, &label, label.span)
+            })
             .collect::<Vec<_>>();
+
         let block = self.lower_block(&switch_case.block)?;
 
         if labels.len() != switch_case.labels.len() {
@@ -1219,14 +1278,17 @@ impl Lowerer {
         let while_condition = self.lower_expr(&stmt.while_condition);
         let body = self.lower_stmt(&stmt.body);
 
-        // We use the `?` operator after lowering all the fields
-        // to report as many errors as possible before exiting the function.
-        let (while_condition, body) = (while_condition?, body?);
+        // The semantics of a while statement is that the condition must be
+        // of type bool, so we try to cast it, inserting a cast if necessary.
+        let cond_ty = Type::Bool(false);
+        let while_condition = while_condition?;
+        let while_condition =
+            self.cast_expr_to_type(&cond_ty, &while_condition, while_condition.span)?;
 
         Some(semantic::WhileLoop {
             span: stmt.span,
             while_condition,
-            body,
+            body: body?,
         })
     }
 

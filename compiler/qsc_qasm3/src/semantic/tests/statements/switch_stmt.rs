@@ -16,9 +16,9 @@ fn not_supported_before_version_3_1() {
                 version: 3.0
                 statements: <empty>
 
-            [Qsc.Qasm3.Compile.NotSupported
+            [Qsc.Qasm3.Compile.NotSupportedInThisVersion
 
-              x switch statements were introduced in version 3.1 are not supported.
+              x switch statements were introduced in version 3.1
                ,-[test:3:5]
              2 |     OPENQASM 3.0;
              3 |     switch (1) { case 1 {} }
@@ -82,6 +82,35 @@ fn cases_introduce_their_own_scope() {
                                     init_expr: Expr [91-92]:
                                         ty: Int(None, true)
                                         kind: Lit: Int(2)
+                default_case: <none>
+        "#]],
+    );
+}
+
+#[test]
+fn target_cast() {
+    check_stmt_kinds(
+        "switch (true) { case false {} }",
+        &expect![[r#"
+            SwitchStmt [0-31]:
+                target: Expr [8-12]:
+                    ty: Int(None, false)
+                    kind: Cast [0-0]:
+                        ty: Int(None, false)
+                        expr: Expr [8-12]:
+                            ty: Bool(true)
+                            kind: Lit: Bool(true)
+                cases:
+                    SwitchCase [16-29]:
+                        labels:
+                            Expr [21-26]:
+                                ty: Int(None, false)
+                                kind: Cast [0-0]:
+                                    ty: Int(None, false)
+                                    expr: Expr [21-26]:
+                                        ty: Bool(true)
+                                        kind: Lit: Bool(false)
+                        block: Block [27-29]: <empty>
                 default_case: <none>
         "#]],
     );
