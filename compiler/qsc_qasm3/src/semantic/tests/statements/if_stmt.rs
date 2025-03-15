@@ -152,7 +152,9 @@ fn if_scope_and_else_scope_are_different() {
 
 #[test]
 fn condition_cast() {
-    check_stmt_kinds("if (1) true;", &expect![[r#"
+    check_stmt_kinds(
+        "if (1) true;",
+        &expect![[r#"
         IfStmt [0-12]:
             condition: Expr [4-5]:
                 ty: Bool(false)
@@ -168,5 +170,6 @@ fn condition_cast() {
                         ty: Bool(true)
                         kind: Lit: Bool(true)
             else_body: <none>
-    "#]]);
+    "#]],
+    );
 }
