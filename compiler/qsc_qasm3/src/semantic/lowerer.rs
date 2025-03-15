@@ -42,7 +42,7 @@ use super::{
 /// optional.
 ///
 /// Example usage:
-/// ```
+/// ```no_run
 /// let item: Option<syntax::Stmt> = ...;
 /// let item: Option<Option<semantic::Stmt>> = item.as_ref().map(|s| self.lower_stmt(s));
 ///
