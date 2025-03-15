@@ -37,9 +37,9 @@ use super::{
 };
 
 /// This macro allow us to apply the `?` to the inner option
-/// in a situation where we have two nested option. This
+/// in a situation where we have two nested options. This
 /// situation is common when lowering items that were originally
-/// wrapped in an option.
+/// optional.
 ///
 /// Example usage:
 /// ```
@@ -55,8 +55,9 @@ use super::{
 /// // Note that here we are applying the `?` operator to
 /// // the inner option, and not to the outer one. That is,
 /// // because the outer option being `None` is not necessarily
-/// // an error. But the inner option being `None` is always an
-/// // error that occured during lowering.
+/// // an error, e.g.: the else-body of an if_stmt.
+/// // But the inner option being `None` is always an error,
+/// // which occured during lowering.
 /// let item: Option<semantic::Stmt> = short_circuit_opt_item!(item);
 /// ```
 macro_rules! short_circuit_opt_item {
