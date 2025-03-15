@@ -36,6 +36,29 @@ use super::{
     SemanticErrorKind,
 };
 
+/// This macro allow us to apply the `?` to the inner option
+/// in a situation where we have two nested option. This
+/// situation is common when lowering items that were originally
+/// wrapped in an option.
+///
+/// Example usage:
+/// ```
+/// let item: Option<syntax::Stmt> = ...;
+/// let item: Option<Option<semantic::Stmt>> = item.as_ref().map(|s| self.lower_stmt(s));
+///
+/// // lower some other items in between
+/// // ...
+///
+/// // We short-circuit after lowering all the items to
+/// // catch as many errors as possible before returning.
+///
+/// // Note that here we are applying the `?` operator to
+/// // the inner option, and not to the outer one. That is,
+/// // because the outer option being `None` is not necessarily
+/// // an error. But the inner option being `None` is always an
+/// // error that occured during lowering.
+/// let item: Option<semantic::Stmt> = short_circuit_opt_item!(item);
+/// ```
 macro_rules! short_circuit_opt_item {
     ($nested_opt:expr) => {
         if let Some(inner_opt) = $nested_opt {
@@ -46,6 +69,10 @@ macro_rules! short_circuit_opt_item {
     };
 }
 
+/// This helper function evaluates the contents of `f` within a scope
+/// of kind `kind`. It's purpose is to avoid making the mistake of
+/// returning early from a function while a scope is pushed, for example,
+/// by using the `?` operator.
 #[must_use]
 fn with_scope<T, F>(lw: &mut Lowerer, kind: ScopeKind, f: F) -> Option<T>
 where
