@@ -1,4 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod box_stmt;
+mod box_stmt;
+mod for_stmt;
+mod if_stmt;
+mod switch_stmt;
+mod while_stmt;

@@ -486,7 +486,7 @@ fn walk_extern_stmt(vis: &mut impl MutVisitor, stmt: &mut ExternDecl) {
 fn walk_for_stmt(vis: &mut impl MutVisitor, stmt: &mut ForStmt) {
     vis.visit_span(&mut stmt.span);
     vis.visit_scalar_type(&mut stmt.ty);
-    vis.visit_identifier(&mut stmt.identifier);
+    vis.visit_ident(&mut stmt.ident);
     vis.visit_enumerable_set(&mut stmt.set_declaration);
     vis.visit_stmt(&mut stmt.body);
 }

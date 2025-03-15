@@ -119,7 +119,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Stmt> {
         StmtKind::Switch(switch)
     } else if let Some(stmt) = opt(s, parse_if_stmt)? {
         StmtKind::If(stmt)
-    } else if let Some(stmt) = opt(s, parse_for_loop)? {
+    } else if let Some(stmt) = opt(s, parse_for_stmt)? {
         StmtKind::For(stmt)
     } else if let Some(stmt) = opt(s, parse_while_loop)? {
         StmtKind::WhileLoop(stmt)
@@ -1226,11 +1226,11 @@ fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
 /// Grammar:
 /// `FOR scalarType Identifier IN (setExpression | LBRACKET rangeExpression RBRACKET | expression) body=statementOrScope`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
-pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
+pub fn parse_for_stmt(s: &mut ParserContext) -> Result<ForStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::For))?;
     let ty = scalar_type(s)?;
-    let identifier = Identifier::Ident(Box::new(prim::ident(s)?));
+    let ident = prim::ident(s)?;
     token(s, TokenKind::Keyword(Keyword::In))?;
     let set_declaration = Box::new(for_loop_iterable_expr(s)?);
     let block = parse_block_or_stmt(s)?;
@@ -1238,7 +1238,7 @@ pub fn parse_for_loop(s: &mut ParserContext) -> Result<ForStmt> {
     Ok(ForStmt {
         span: s.span(lo),
         ty,
-        identifier,
+        ident,
         set_declaration,
         body: block,
     })

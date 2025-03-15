@@ -433,16 +433,16 @@ impl Display for DefCalStmt {
 pub struct IfStmt {
     pub span: Span,
     pub condition: Expr,
-    pub if_block: List<Stmt>,
-    pub else_block: Option<List<Stmt>>,
+    pub if_body: Stmt,
+    pub else_body: Option<Stmt>,
 }
 
 impl Display for IfStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IfStmt", self.span)?;
         writeln_field(f, "condition", &self.condition)?;
-        writeln_list_field(f, "if_block", &self.if_block)?;
-        write_opt_list_field(f, "else_block", self.else_block.as_ref())
+        writeln_field(f, "if_body", &self.if_body)?;
+        write_opt_field(f, "else_body", self.else_body.as_ref())
     }
 }
 
@@ -1316,33 +1316,31 @@ impl Display for ReturnStmt {
 pub struct WhileLoop {
     pub span: Span,
     pub while_condition: Expr,
-    pub block: List<Stmt>,
+    pub body: Stmt,
 }
 
 impl Display for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "WhileLoop", self.span)?;
         writeln_field(f, "condition", &self.while_condition)?;
-        write_list_field(f, "block", &self.block)
+        write_field(f, "body", &self.body)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ForStmt {
     pub span: Span,
-    pub ty: ScalarType,
-    pub identifier: Identifier,
+    pub loop_variable: SymbolId,
     pub set_declaration: Box<EnumerableSet>,
-    pub block: List<Stmt>,
+    pub body: Stmt,
 }
 
 impl Display for ForStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ForStmt", self.span)?;
-        writeln_field(f, "variable_type", &self.ty)?;
-        writeln_field(f, "variable_name", &self.identifier)?;
+        writeln_field(f, "loop_variable", &self.loop_variable)?;
         writeln_field(f, "iterable", &self.set_declaration)?;
-        write_list_field(f, "block", &self.block)
+        write_field(f, "body", &self.body)
     }
 }
 
@@ -1599,11 +1597,41 @@ impl Display for LiteralKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Version {
     pub major: u32,
     pub minor: Option<u32>,
     pub span: Span,
+}
+
+impl PartialEq for Version {
+    fn eq(&self, other: &Self) -> bool {
+        // If the minor versions are missing
+        // we assume them to be 0.
+        let self_minor = self.minor.unwrap_or_default();
+        let other_minor = other.minor.unwrap_or_default();
+
+        // Then we check if the major and minor version are equal.
+        self.major == other.major && self_minor == other_minor
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // If the minor versions are missing
+        // we assume them to be 0.
+        let self_minor = self.minor.unwrap_or_default();
+        let other_minor = other.minor.unwrap_or_default();
+
+        // We compare the major versions.
+        match self.major.partial_cmp(&other.major) {
+            // If they are equal, we disambiguate
+            // using the minor versions.
+            Some(core::cmp::Ordering::Equal) => self_minor.partial_cmp(&other_minor),
+            // Else, we return their ordering.
+            ord => ord,
+        }
+    }
 }
 
 impl fmt::Display for Version {

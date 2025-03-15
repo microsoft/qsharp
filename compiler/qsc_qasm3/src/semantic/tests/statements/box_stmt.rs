@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use expect_test::expect;
-
 use crate::semantic::tests::check_stmt_kinds;
+use expect_test::expect;
 
 #[test]
 fn with_invalid_instruction_fails() {
