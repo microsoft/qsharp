@@ -5,7 +5,7 @@ use crate::parser::{stmt::parse, tests::check};
 use expect_test::expect;
 
 #[test]
-fn simple_for_loop() {
+fn simple_for_stmt() {
     check(
         parse,
         "
@@ -38,7 +38,7 @@ fn simple_for_loop() {
 }
 
 #[test]
-fn empty_for_loop() {
+fn empty_for_stmt_body() {
     check(
         parse,
         "for int x in {} {}",
@@ -58,7 +58,7 @@ fn empty_for_loop() {
 }
 
 #[test]
-fn simple_for_loop_stmt_body() {
+fn simple_for_stmt_stmt_body() {
     check(
         parse,
         "
@@ -88,7 +88,7 @@ fn simple_for_loop_stmt_body() {
 }
 
 #[test]
-fn for_loop_range() {
+fn for_stmt_iterating_over_range() {
     check(
         parse,
         "
@@ -120,7 +120,7 @@ fn for_loop_range() {
 }
 
 #[test]
-fn for_loop_range_no_step() {
+fn for_stmt_iterating_over_range_no_step() {
     check(
         parse,
         "
@@ -152,7 +152,7 @@ fn for_loop_range_no_step() {
 }
 
 #[test]
-fn for_loop_expr() {
+fn for_stmt_iterating_over_expr() {
     check(
         parse,
         "
@@ -181,7 +181,7 @@ fn for_loop_expr() {
 }
 
 #[test]
-fn for_loop_with_continue_stmt() {
+fn for_stmt_with_continue_stmt() {
     check(
         parse,
         "
@@ -349,5 +349,29 @@ fn nested_single_stmt_for_stmt() {
                                         IndexedIdent [34-35]:
                                             name: Ident [34-35] "q"
                                             indices: <empty>"#]],
+    );
+}
+
+#[test]
+fn for_stmt_with_indented_identifier_errors() {
+    check(
+        parse,
+        "for int x[2] in {} {}",
+        &expect![[r#"
+            Error(
+                Token(
+                    Keyword(
+                        In,
+                    ),
+                    Open(
+                        Bracket,
+                    ),
+                    Span {
+                        lo: 9,
+                        hi: 10,
+                    },
+                ),
+            )
+        "#]],
     );
 }
