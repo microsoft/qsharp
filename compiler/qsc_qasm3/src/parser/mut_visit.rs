@@ -594,7 +594,7 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
     vis.visit_span(&mut expr.span);
 
     match &mut *expr.kind {
-        super::ast::ExprKind::Err => {}
+        super::ast::ExprKind::Missing(span) => vis.visit_span(span),
         super::ast::ExprKind::Ident(ident) => vis.visit_ident(ident),
         super::ast::ExprKind::UnaryOp(unary_op_expr) => vis.visit_unary_op_expr(unary_op_expr),
         super::ast::ExprKind::BinaryOp(binary_op_expr) => vis.visit_binary_op_expr(binary_op_expr),
@@ -701,7 +701,7 @@ pub fn walk_index_set_item(vis: &mut impl MutVisitor, item: &mut IndexSetItem) {
             vis.visit_range_definition(range_definition);
         }
         IndexSetItem::Expr(expr) => vis.visit_expr(expr),
-        IndexSetItem::Err => {}
+        IndexSetItem::Missing(span) => vis.visit_span(span),
     }
 }
 
@@ -709,7 +709,7 @@ pub fn walk_gate_operand(vis: &mut impl MutVisitor, operand: &mut GateOperand) {
     match operand {
         GateOperand::IndexedIdent(ident) => vis.visit_indexed_ident(ident),
         GateOperand::HardwareQubit(hardware_qubit) => vis.visit_hardware_qubit(hardware_qubit),
-        GateOperand::Err => {}
+        GateOperand::Missing(span) => vis.visit_span(span),
     }
 }
 
@@ -769,6 +769,7 @@ pub fn walk_typed_parameter(vis: &mut impl MutVisitor, ty: &mut TypedParameter) 
         TypedParameter::Scalar(scalar_typed_parameter) => {
             vis.visit_scalar_typed_parameter(scalar_typed_parameter);
         }
+        TypedParameter::Missing(span) => vis.visit_span(span),
     }
 }
 
@@ -804,6 +805,7 @@ pub fn walk_extern_parameter(vis: &mut impl MutVisitor, param: &mut ExternParame
             vis.visit_span(span);
             vis.visit_scalar_type(ty);
         }
+        ExternParameter::Missing(span) => vis.visit_span(span),
     }
 }
 

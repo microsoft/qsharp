@@ -9,7 +9,7 @@ use display_utils::{
 };
 
 use num_bigint::BigInt;
-use qsc_data_structures::span::{Span, WithSpan};
+use qsc_data_structures::span::Span;
 use std::{
     fmt::{self, Display, Formatter},
     hash::Hash,
@@ -26,6 +26,15 @@ pub(crate) type List<T> = Box<[Box<T>]>;
 
 pub(crate) fn list_from_iter<T>(vals: impl IntoIterator<Item = T>) -> List<T> {
     vals.into_iter().map(Box::new).collect()
+}
+
+/// There are a few enums in the AST where we have a `Missing` variant
+/// for better error recovery when being used in `prim::seq`.
+/// Before, these enums used to implement the `Default` and `WithSpan` traits
+/// to enable this functionality. This trait help us better express that use case
+/// and reduces the number of traits we need to implement on those enums.
+pub(crate) trait MissingWithSpan {
+    fn missing_with_span(span: Span) -> Self;
 }
 
 #[derive(Clone, Debug)]
@@ -138,12 +147,6 @@ impl Display for Path {
     }
 }
 
-impl WithSpan for Path {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct MeasureExpr {
     pub span: Span,
@@ -247,12 +250,12 @@ impl Display for UnaryOp {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub enum GateOperand {
     IndexedIdent(Box<IndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
-    #[default]
-    Err,
+    /// Used for error recovery when using `prim::seq`.
+    Missing(Span),
 }
 
 impl Display for GateOperand {
@@ -260,18 +263,14 @@ impl Display for GateOperand {
         match self {
             GateOperand::IndexedIdent(ident) => write!(f, "{ident}"),
             GateOperand::HardwareQubit(qubit) => write!(f, "{qubit}"),
-            GateOperand::Err => write!(f, "Error"),
+            GateOperand::Missing(span) => write!(f, "Missing {span}"),
         }
     }
 }
 
-impl WithSpan for GateOperand {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            GateOperand::IndexedIdent(ident) => GateOperand::IndexedIdent(ident.with_span(span)),
-            GateOperand::HardwareQubit(qubit) => GateOperand::HardwareQubit(qubit.with_span(span)),
-            GateOperand::Err => GateOperand::Err,
-        }
+impl MissingWithSpan for GateOperand {
+    fn missing_with_span(span: Span) -> Self {
+        Self::Missing(span)
     }
 }
 
@@ -284,12 +283,6 @@ pub struct HardwareQubit {
 impl Display for HardwareQubit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "HardwareQubit {}: {}", self.span, self.name)
-    }
-}
-
-impl WithSpan for HardwareQubit {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
     }
 }
 
@@ -505,11 +498,11 @@ pub struct Ident {
     pub name: Rc<str>,
 }
 
-impl Default for Ident {
-    fn default() -> Self {
-        Ident {
-            span: Span::default(),
-            name: "".into(),
+impl MissingWithSpan for Ident {
+    fn missing_with_span(span: Span) -> Self {
+        Self {
+            span,
+            name: Default::default(),
         }
     }
 }
@@ -517,12 +510,6 @@ impl Default for Ident {
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Ident {} \"{}\"", self.span, self.name)
-    }
-}
-
-impl WithSpan for Ident {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
     }
 }
 
@@ -541,12 +528,6 @@ impl Display for IndexedIdent {
     }
 }
 
-impl WithSpan for IndexedIdent {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ExprStmt {
     pub span: Span,
@@ -560,15 +541,18 @@ impl Display for ExprStmt {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
 }
 
-impl WithSpan for Expr {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
+impl MissingWithSpan for Expr {
+    fn missing_with_span(span: Span) -> Self {
+        Self {
+            span,
+            kind: Box::new(ExprKind::missing_with_span(span)),
+        }
     }
 }
 
@@ -610,12 +594,6 @@ pub struct RangeDefinition {
     pub start: Option<Expr>,
     pub end: Option<Expr>,
     pub step: Option<Expr>,
-}
-
-impl WithSpan for RangeDefinition {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
 }
 
 impl Display for RangeDefinition {
@@ -689,6 +667,14 @@ pub enum ExternParameter {
     ArrayReference(ArrayReferenceType, Span),
     Quantum(Option<Expr>, Span),
     Scalar(ScalarType, Span),
+    /// Used for error recovery when using `prim::seq`.
+    Missing(Span),
+}
+
+impl MissingWithSpan for ExternParameter {
+    fn missing_with_span(span: Span) -> Self {
+        Self::Missing(span)
+    }
 }
 
 impl Display for ExternParameter {
@@ -703,22 +689,7 @@ impl Display for ExternParameter {
             ExternParameter::ArrayReference(ty, span) => {
                 write!(f, "{span}: {ty}")
             }
-        }
-    }
-}
-
-impl Default for ExternParameter {
-    fn default() -> Self {
-        ExternParameter::Scalar(ScalarType::default(), Span::default())
-    }
-}
-
-impl WithSpan for ExternParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            ExternParameter::Scalar(ty, _) => ExternParameter::Scalar(ty, span),
-            ExternParameter::Quantum(expr, _) => ExternParameter::Quantum(expr, span),
-            ExternParameter::ArrayReference(ty, _) => ExternParameter::ArrayReference(ty, span),
+            ExternParameter::Missing(span) => write!(f, "Missing {span}"),
         }
     }
 }
@@ -1220,15 +1191,13 @@ pub enum TypedParameter {
     ArrayReference(ArrayTypedParameter),
     Quantum(QuantumTypedParameter),
     Scalar(ScalarTypedParameter),
+    /// Used for error recovery when using `prim::seq`.
+    Missing(Span),
 }
 
-impl WithSpan for TypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            Self::Scalar(param) => Self::Scalar(param.with_span(span)),
-            Self::Quantum(param) => Self::Quantum(param.with_span(span)),
-            Self::ArrayReference(param) => Self::ArrayReference(param.with_span(span)),
-        }
+impl MissingWithSpan for TypedParameter {
+    fn missing_with_span(span: Span) -> Self {
+        Self::Missing(span)
     }
 }
 
@@ -1238,17 +1207,8 @@ impl Display for TypedParameter {
             Self::Scalar(param) => write!(f, "{param}"),
             Self::Quantum(param) => write!(f, "{param}"),
             Self::ArrayReference(param) => write!(f, "{param}"),
+            Self::Missing(span) => write!(f, "Missing {span}"),
         }
-    }
-}
-
-impl Default for TypedParameter {
-    fn default() -> Self {
-        Self::Scalar(ScalarTypedParameter {
-            span: Span::default(),
-            ident: Ident::default(),
-            ty: Box::default(),
-        })
     }
 }
 
@@ -1267,13 +1227,6 @@ impl Display for ScalarTypedParameter {
     }
 }
 
-impl WithSpan for ScalarTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct QuantumTypedParameter {
     pub span: Span,
@@ -1289,13 +1242,6 @@ impl Display for QuantumTypedParameter {
     }
 }
 
-impl WithSpan for QuantumTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { size, ident, .. } = self;
-        Self { span, size, ident }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ArrayTypedParameter {
     pub span: Span,
@@ -1308,13 +1254,6 @@ impl Display for ArrayTypedParameter {
         writeln_header(f, "ArrayTypedParameter", self.span)?;
         writeln_field(f, "type", &self.ty)?;
         write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for ArrayTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
     }
 }
 
@@ -1436,11 +1375,8 @@ impl Display for SwitchCase {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub enum ExprKind {
-    /// An expression with invalid syntax that can't be parsed.
-    #[default]
-    Err,
     Ident(Ident),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
@@ -1449,12 +1385,19 @@ pub enum ExprKind {
     Cast(Cast),
     IndexExpr(IndexExpr),
     Paren(Expr),
+    /// Used for error recovery when using `prim::seq`.
+    Missing(Span),
+}
+
+impl MissingWithSpan for ExprKind {
+    fn missing_with_span(span: Span) -> Self {
+        Self::Missing(span)
+    }
 }
 
 impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ExprKind::Err => write!(f, "Err"),
             ExprKind::Ident(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
@@ -1463,6 +1406,7 @@ impl Display for ExprKind {
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
+            ExprKind::Missing(span) => write!(f, "Missing {span}"),
         }
     }
 }
@@ -1661,24 +1605,18 @@ impl IndexElement {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub enum IndexSetItem {
     RangeDefinition(RangeDefinition),
     Expr(Expr),
-    #[default]
-    Err,
+    /// Used for error recovery when using `prim::seq`.
+    Missing(Span),
 }
 
 /// This is needed to able to use `IndexSetItem` in the `seq` combinator.
-impl WithSpan for IndexSetItem {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            IndexSetItem::RangeDefinition(range) => {
-                IndexSetItem::RangeDefinition(range.with_span(span))
-            }
-            IndexSetItem::Expr(expr) => IndexSetItem::Expr(expr.with_span(span)),
-            IndexSetItem::Err => IndexSetItem::Err,
-        }
+impl MissingWithSpan for IndexSetItem {
+    fn missing_with_span(span: Span) -> Self {
+        Self::Missing(span)
     }
 }
 
@@ -1687,7 +1625,7 @@ impl Display for IndexSetItem {
         match self {
             IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
             IndexSetItem::Expr(expr) => write!(f, "{expr}"),
-            IndexSetItem::Err => write!(f, "Err"),
+            IndexSetItem::Missing(span) => write!(f, "Missing {span}"),
         }
     }
 }

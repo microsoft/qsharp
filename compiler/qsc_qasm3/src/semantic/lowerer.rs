@@ -539,7 +539,7 @@ impl Lowerer {
                 self.push_unimplemented_error_message("cast expr", expr.span);
                 None
             }
-            syntax::ExprKind::Err => {
+            syntax::ExprKind::Missing(_) => {
                 unreachable!("Err expr should not be lowered");
             }
             syntax::ExprKind::FunctionCall(_) => {
@@ -1107,9 +1107,82 @@ impl Lowerer {
         })
     }
 
-    fn lower_gate_call(&mut self, stmt: &syntax::GateCall) -> Option<semantic::GateCall> {
-        self.push_unimplemented_error_message("gate call stmt", stmt.span);
-        None
+    fn lower_gate_call(&mut self, gate_call: &syntax::GateCall) -> Option<semantic::GateCall> {
+        let modifiers = gate_call
+            .modifiers
+            .iter()
+            .filter_map(|modifier| self.lower_quantum_gate_modifier(modifier));
+        let modifiers = list_from_iter(modifiers);
+
+        if modifiers.len() != gate_call.modifiers.len() {
+            return None;
+        }
+
+        Some(semantic::GateCall {
+            span: gate_call.span,
+            modifiers,
+            name: todo!(),
+            args: todo!(),
+            qubits: todo!(),
+            duration: todo!(),
+        })
+    }
+
+    fn lower_quantum_gate_modifier(
+        &mut self,
+        modifier: &syntax::QuantumGateModifier,
+    ) -> Option<semantic::QuantumGateModifier> {
+        Some(semantic::QuantumGateModifier {
+            span: modifier.span,
+            kind: self.lower_gate_modifier_kind(&modifier.kind)?,
+        })
+    }
+
+    fn lower_gate_modifier_kind(
+        &mut self,
+        modifier: &syntax::GateModifierKind,
+    ) -> Option<semantic::GateModifierKind> {
+        Some(match modifier {
+            syntax::GateModifierKind::Inv => semantic::GateModifierKind::Inv,
+            syntax::GateModifierKind::Pow(expr) => {
+                semantic::GateModifierKind::Pow(self.lower_expr(expr)?)
+            }
+            syntax::GateModifierKind::Ctrl(expr) => {
+                semantic::GateModifierKind::Ctrl(short_circuit_opt_item!(expr
+                    .as_ref()
+                    .map(|e| self.lower_expr(e))))
+            }
+            syntax::GateModifierKind::NegCtrl(expr) => {
+                semantic::GateModifierKind::NegCtrl(short_circuit_opt_item!(expr
+                    .as_ref()
+                    .map(|e| self.lower_expr(e))))
+            }
+        })
+    }
+
+    fn lower_gate_operand(
+        &mut self,
+        operand: &syntax::GateOperand,
+    ) -> Option<semantic::GateOperand> {
+        match operand {
+            syntax::GateOperand::IndexedIdent(indexed_ident) => {
+                Some(semantic::GateOperand::IndexedIdent(Box::new(
+                    self.lower_indexed_ident(indexed_ident)?,
+                )))
+            }
+            syntax::GateOperand::HardwareQubit(hardware_qubit) => {
+                let message = "HardwareQubit default values";
+                self.push_unsupported_error_message(message, hardware_qubit.span);
+                None
+            }
+            syntax::GateOperand::Missing(span) => {
+                self.push_semantic_error(SemanticErrorKind::UnexpectedParserError(
+                    "Unexpected error".to_string(),
+                    *span,
+                ));
+                None
+            }
+        }
     }
 
     fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> Option<semantic::GPhase> {
@@ -2360,8 +2433,8 @@ impl Lowerer {
             syntax::IndexSetItem::Expr(expr) => {
                 semantic::IndexSetItem::Expr(self.lower_expr(expr)?)
             }
-            syntax::IndexSetItem::Err => {
-                unreachable!("IndexSetItem::Err should have been handled")
+            syntax::IndexSetItem::Missing(_) => {
+                unreachable!("IndexSetItem::Missing should have been handled")
             }
         };
         Some(item)
@@ -2494,6 +2567,32 @@ impl Lowerer {
         Some(indexed_ty)
     }
 
+    fn lower_indexed_ident(
+        &mut self,
+        indexed_ident: &syntax::IndexedIdent,
+    ) -> Option<semantic::IndexedIdent> {
+        let ident = indexed_ident.name.clone();
+
+        let indices = indexed_ident
+            .indices
+            .iter()
+            .filter_map(|index| self.lower_index_element(index))
+            .collect::<Vec<_>>();
+
+        let (symbol_id, _) = self.symbols.get_symbol_by_name(&ident.name)?;
+
+        if indices.len() != indexed_ident.indices.len() {
+            // we failed to lower all the indices, error was already pushed
+            return None;
+        }
+
+        Some(semantic::IndexedIdent {
+            span: indexed_ident.span,
+            symbol_id,
+            indices: syntax::list_from_iter(indices),
+        })
+    }
+
     fn lower_indexed_ident_expr(
         &mut self,
         indexed_ident: &syntax::IndexedIdent,
@@ -2508,7 +2607,7 @@ impl Lowerer {
 
         let (symbol_id, lhs_symbol) = self.symbols.get_symbol_by_name(&ident.name)?;
         let ty = lhs_symbol.ty.clone();
-        // use the supplied number of indicies rathar than the number of indicies we lowered
+        // use the supplied number of indices rather than the number of indices we lowered
         let ty = self.get_indexed_type(&ty, indexed_ident.span, indexed_ident.indices.len())?;
 
         if indices.len() != indexed_ident.indices.len() {

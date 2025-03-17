@@ -5,6 +5,7 @@
 pub(crate) mod tests;
 
 use super::{
+    ast::MissingWithSpan,
     error::{Error, ErrorKind},
     scan::ParserContext,
     Parser, Result,
@@ -13,7 +14,7 @@ use crate::{lex::TokenKind, parser::completion::WordKinds};
 
 use super::ast::{Ident, IncompletePath, Path, PathKind};
 
-use qsc_data_structures::span::{Span, WithSpan};
+use qsc_data_structures::span::Span;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FinalSep {
@@ -168,7 +169,7 @@ pub(super) fn many<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<Ve
 /// Supports recovering on missing items.
 pub(super) fn seq<T>(s: &mut ParserContext, mut p: impl Parser<T>) -> Result<(Vec<T>, FinalSep)>
 where
-    T: Default + WithSpan,
+    T: MissingWithSpan,
 {
     let mut xs = Vec::new();
     let mut final_sep = FinalSep::Missing;
@@ -176,7 +177,7 @@ where
         let mut span = s.peek().span;
         span.hi = span.lo;
         s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
-        xs.push(T::default().with_span(span));
+        xs.push(T::missing_with_span(span));
         s.advance();
     }
     while let Some(x) = opt(s, &mut p)? {
@@ -186,7 +187,7 @@ where
                 let mut span = s.peek().span;
                 span.hi = span.lo;
                 s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
-                xs.push(T::default().with_span(span));
+                xs.push(T::missing_with_span(span));
                 s.advance();
             }
             final_sep = FinalSep::Present;
