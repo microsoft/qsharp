@@ -117,7 +117,7 @@ operation IterativePhaseEstimation(
         set MeasureControlReg w/= (Measurements - 1 - index) <- MResetZ(ControlReg);
         if MeasureControlReg[Measurements - 1 - index] == One {
             //Assign bitValue based on previous measurement
-            set bitValue += 2^(index);
+            bitValue += 2^(index);
         }
     }
     return bitValue;
