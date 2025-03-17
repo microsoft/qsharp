@@ -37,16 +37,23 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
     let qubits = circuit
         .qubits
         .iter()
-        .map(|q| (q.id, format!("q{}", q.id)))
+        .enumerate()
+        .map(|(i, q)| (q.id, format!("qs[{}]", i)))
         .collect::<FxHashMap<_, _>>();
 
-    let mut parameters = qubits.iter().collect::<Vec<_>>();
-    parameters.sort_by_key(|(id, _)| *id);
-    let parameters = parameters
-        .iter()
-        .map(|(_, name)| format!("{} : Qubit", name))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let parameter = if qubits.is_empty() {
+        String::new()
+    } else {
+        "qs : Qubit[]".to_string()
+    };
+
+    // let mut parameters = qubits.iter().collect::<Vec<_>>();
+    // parameters.sort_by_key(|(id, _)| *id);
+    // let parameters = parameters
+    //     .iter()
+    //     .map(|(_, name)| format!("{} : Qubit", name))
+    //     .collect::<Vec<_>>()
+    //     .join(", ");
 
     // The return type is determined by the number of qubits "children".
     // However, the actual return statement is determined by the variables storing measurements.
@@ -72,12 +79,32 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
 
     let characteristics = if is_ctl_adj { "is Ctl + Adj " } else { "" };
 
-    let mut qsharp_str =
-        format!("operation {circuit_name}({parameters}) : {return_type} {characteristics}{{\n");
+    let summary = if qubits.is_empty() {
+        String::new()
+    } else {
+        format!("/// Expects a qubit register of size {}.\n", qubits.len())
+    };
+
+    let mut qsharp_str = format!(
+        "{summary}operation {circuit_name}({parameter}) : {return_type} {characteristics}{{\n"
+    );
     indentation_level += 1;
 
     let mut measure_results = vec![];
     let indent = "    ".repeat(indentation_level);
+
+    // Add an assert for the number of qubits
+    if !qubits.is_empty() {
+        let inner_indent = "    ".repeat(indentation_level + 1);
+        qsharp_str.push_str(&format!("{indent}if Length(qs) != {} {{\n", qubits.len()));
+        qsharp_str.push_str(&format!(
+            "{inner_indent}fail \"Invalid number of qubits. Operation {} expects a qubit register of size {}.\";\n",
+            circuit_name,
+            qubits.len()
+        ));
+        qsharp_str.push_str(&format!("{indent}}}\n"));
+    }
+
     // ToDo: Add support for children operations
     for col in &circuit.component_grid {
         for op in &col.components {
