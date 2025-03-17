@@ -132,6 +132,9 @@ pub enum SemanticErrorKind {
     #[error("{0} are not supported.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.NotSupported"))]
     NotSupported(String, #[label] Span),
+    #[error("{0} were introduced in version {1}")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.NotSupportedInThisVersion"))]
+    NotSupportedInThisVersion(String, String, #[label] Span),
     #[error("The operator {0} is not valid with lhs {1} and rhs {2}.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.OperatorNotSupportedForTypes"))]
     OperatorNotSupportedForTypes(String, String, String, #[label] Span),
@@ -286,6 +289,9 @@ impl SemanticErrorKind {
             }
             Self::NegativeControlCount(span) => Self::NegativeControlCount(span + offset),
             Self::NotSupported(name, span) => Self::NotSupported(name, span + offset),
+            Self::NotSupportedInThisVersion(name, version, span) => {
+                Self::NotSupportedInThisVersion(name, version, span + offset)
+            }
             Self::OperatorNotSupportedForTypes(op, lhs, rhs, span) => {
                 Self::OperatorNotSupportedForTypes(op, lhs, rhs, span + offset)
             }
