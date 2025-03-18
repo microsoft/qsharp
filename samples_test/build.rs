@@ -10,6 +10,7 @@ use std::{
 
 fn main() {
     create_tests_for_files("algorithms");
+    create_tests_for_files("getting_started");
     create_tests_for_files("language");
     create_tests_for_files_compile_only("estimation");
     create_tests_for_projects();
