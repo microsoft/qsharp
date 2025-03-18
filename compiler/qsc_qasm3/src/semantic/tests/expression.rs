@@ -47,7 +47,7 @@ fn a() {
             ExprStmt [55-61]:
                 expr: Expr [56-60]:
                     ty: Bool(true)
-                    kind: UnaryOpExpr:
+                    kind: UnaryOpExpr [56-60]:
                         op: NotL
                         expr: Expr [56-60]:
                             ty: Bool(true)

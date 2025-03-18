@@ -288,6 +288,14 @@ fn to_implicit_float_implicitly_fails() {
                             init_expr: Expr [17-18]:
                                 ty: Bit(true)
                                 kind: Lit: Int(1)
+                    Stmt [28-40]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [28-40]:
+                            symbol_id: 7
+                            ty_span: [28-33]
+                            init_expr: Expr [38-39]:
+                                ty: Bit(false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 

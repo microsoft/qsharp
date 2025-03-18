@@ -14,7 +14,21 @@ fn shadowing_loop_variable_in_single_stmt_body_fails() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [5-39]:
+                        annotations: <empty>
+                        kind: ForStmt [5-39]:
+                            loop_variable: 6
+                            iterable: DiscreteSet [18-20]:
+                                values: <empty>
+                            body: Stmt [29-39]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [29-39]:
+                                    symbol_id: 6
+                                    ty_span: [29-32]
+                                    init_expr: Expr [37-38]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(2)
 
             [Qsc.Qasm3.Compile.RedefinedSymbol
 

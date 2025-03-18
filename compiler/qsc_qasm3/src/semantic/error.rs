@@ -50,6 +50,9 @@ pub enum SemanticErrorKind {
     #[error("Cannot cast expression of type {0} to type {1}")]
     #[diagnostic(code("Qsc.Qasm3.Compile.CannotCast"))]
     CannotCast(String, String, #[label] Span),
+    #[error("Cannot cast literal expression of type {0} to type {1}")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.CannotCastLiteral"))]
+    CannotCastLiteral(String, String, #[label] Span),
     #[error("Cannot index variables of type {0}")]
     #[diagnostic(code("Qsc.Qasm3.Compile.CannotIndexType"))]
     CannotIndexType(String, #[label] Span),
@@ -221,6 +224,9 @@ impl SemanticErrorKind {
                 Self::AnnotationWithoutStatement(span + offset)
             }
             Self::CannotCast(lhs, rhs, span) => Self::CannotCast(lhs, rhs, span + offset),
+            Self::CannotCastLiteral(lhs, rhs, span) => {
+                Self::CannotCastLiteral(lhs, rhs, span + offset)
+            }
             Self::CastWouldCauseTruncation(lhs, rhs, span) => {
                 Self::CastWouldCauseTruncation(lhs, rhs, span + offset)
             }

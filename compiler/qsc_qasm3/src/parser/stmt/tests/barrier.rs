@@ -17,9 +17,11 @@ fn barrier() {
                     operands:
                         IndexedIdent [8-9]:
                             name: Ident [8-9] "r"
+                            index_span: [0-0]
                             indices: <empty>
                         IndexedIdent [11-15]:
                             name: Ident [11-12] "q"
+                            index_span: [12-15]
                             indices:
                                 IndexSet [13-14]:
                                     values:
