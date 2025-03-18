@@ -1107,25 +1107,37 @@ impl Lowerer {
         })
     }
 
-    fn lower_gate_call(&mut self, gate_call: &syntax::GateCall) -> Option<semantic::GateCall> {
-        let modifiers = gate_call
-            .modifiers
-            .iter()
-            .filter_map(|modifier| self.lower_quantum_gate_modifier(modifier));
-        let modifiers = list_from_iter(modifiers);
+    fn lower_gate_call(&mut self, _gate_call: &syntax::GateCall) -> Option<semantic::GateCall> {
+        // 1. Lower all the fields:
+        //   1.1. Lower the modifiers.
+        //   1.3. Lower the args.
+        //   1.4. Lower the qubits.
+        //   1.5. Lower the duration.
 
-        if modifiers.len() != gate_call.modifiers.len() {
-            return None;
-        }
+        // 2. Check that the gate_name actually refers to a gate in the symbol table
+        //    and get its symbol_id & symbol.
 
-        Some(semantic::GateCall {
-            span: gate_call.span,
-            modifiers,
-            name: todo!(),
-            args: todo!(),
-            qubits: todo!(),
-            duration: todo!(),
-        })
+        // 3. Get implicit modifiers and make them explicit.
+        //    Q: Do we need this during lowering?
+        //    A: Yes, we need it to check the gate_call arity.
+
+        // 4. Check that gate_call clasical arity matches the number of classical args.
+
+        // 5. Check that gate_call quantum arity matches the number of qubit args.
+
+        // 6. Return:
+        //   6.1. Gate symbol_id.
+        //   6.2. All controls made explicit.
+        //   6.3. Classical args.
+        //   6.4. Quantum args in the order expected by the compiler.
+
+        // The compiler will be left to do all things that need explicit Q# knowledge.
+        // But it won't need to check arities, know about implicit modifiers, or do
+        // any casting of classical args. There is still some inherit complexity to
+        // building a Q# gate call with this "correct" information, but it won't be
+        // cluttered by all the semantic analysis.
+
+        None
     }
 
     fn lower_quantum_gate_modifier(
