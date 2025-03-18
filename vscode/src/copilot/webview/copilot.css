@@ -4,8 +4,8 @@
 body {
   padding: 12px;
   height: 100%;
-  /*  match the native vscode chat style */
-  font-family: "Segoe WPC", "Segoe UI", "sans-serif";
+  /*  system-ui works great on all platforms and browsers these days */
+  font-family: system-ui;
   font-size: 13px;
   background-color: var(--vscode-chat-list-background);
 }
