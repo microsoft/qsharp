@@ -195,7 +195,7 @@ input qubit q;
 
     assert!(error[0]
         .to_string()
-        .contains("QASM3 Parse Error: Quantum type found in input/output declaration."));
+        .contains("expected scalar or array type, found keyword `qubit`"));
 }
 
 #[test]

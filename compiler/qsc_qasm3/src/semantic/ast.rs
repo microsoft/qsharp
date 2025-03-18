@@ -343,8 +343,6 @@ pub enum StmtKind {
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
-    /// An empty statement.
-    Empty,
     End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
@@ -353,7 +351,8 @@ pub enum StmtKind {
     GateCall(GateCall),
     GPhase(GPhase),
     Include(IncludeStmt),
-    IODeclaration(IODeclaration),
+    InputDeclaration(InputDeclaration),
+    OutputDeclaration(OutputDeclaration),
     Measure(MeasureStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
@@ -381,7 +380,6 @@ impl Display for StmtKind {
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
-            StmtKind::Empty => write!(f, "Empty"),
             StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
@@ -391,7 +389,8 @@ impl Display for StmtKind {
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
             StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
-            StmtKind::IODeclaration(io) => write!(f, "{io}"),
+            StmtKind::InputDeclaration(io) => write!(f, "{io}"),
+            StmtKind::OutputDeclaration(io) => write!(f, "{io}"),
             StmtKind::Measure(measure) => write!(f, "{measure}"),
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
             StmtKind::QuantumGateDefinition(gate) => write!(f, "{gate}"),
@@ -533,6 +532,8 @@ impl WithSpan for Ident {
 #[derive(Clone, Debug)]
 pub struct IndexedIdent {
     pub span: Span,
+    pub name_span: Span,
+    pub index_span: Span,
     pub symbol_id: SymbolId,
     pub indices: List<IndexElement>,
 }
@@ -541,6 +542,8 @@ impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
+        writeln_field(f, "index_span", &self.index_span)?;
         write_list_field(f, "indices", &self.indices)
     }
 }
@@ -1164,16 +1167,31 @@ impl Display for ValueExpression {
 }
 
 #[derive(Clone, Debug)]
-pub struct IODeclaration {
+pub struct InputDeclaration {
     pub span: Span,
+    pub symbol_id: SymbolId,
+}
+
+impl Display for InputDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "InputDeclaration", self.span)?;
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct OutputDeclaration {
+    pub span: Span,
+    pub ty_span: Span,
     pub symbol_id: SymbolId,
     pub init_expr: Box<Expr>,
 }
 
-impl Display for IODeclaration {
+impl Display for OutputDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IODeclaration", self.span)?;
+        writeln_header(f, "OutputDeclaration", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", &self.init_expr)
     }
 }
@@ -1432,14 +1450,16 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub symbold_id: SymbolId,
+    pub name_span: Span,
+    pub symbol_id: SymbolId,
     pub rhs: Expr,
 }
 
 impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1447,7 +1467,7 @@ impl Display for AssignStmt {
 #[derive(Clone, Debug)]
 pub struct IndexedAssignStmt {
     pub span: Span,
-    pub symbold_id: SymbolId,
+    pub symbol_id: SymbolId,
     pub lhs: Expr,
     pub rhs: Expr,
 }
@@ -1455,7 +1475,7 @@ pub struct IndexedAssignStmt {
 impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
     }
@@ -1464,7 +1484,8 @@ impl Display for IndexedAssignStmt {
 #[derive(Clone, Debug)]
 pub struct AssignOpStmt {
     pub span: Span,
-    pub symbold_id: SymbolId,
+    pub symbol_id: SymbolId,
+    pub op: BinOp,
     pub lhs: Expr,
     pub rhs: Expr,
 }
@@ -1472,7 +1493,8 @@ pub struct AssignOpStmt {
 impl Display for AssignOpStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignOpStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbold_id)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "op", &self.op)?;
         writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
     }
@@ -1480,13 +1502,14 @@ impl Display for AssignOpStmt {
 
 #[derive(Clone, Debug)]
 pub struct UnaryOpExpr {
+    pub span: Span,
     pub op: UnaryOp,
     pub expr: Expr,
 }
 
 impl Display for UnaryOpExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "UnaryOpExpr:")?;
+        writeln_header(f, "UnaryOpExpr", self.span)?;
         writeln_field(f, "op", &self.op)?;
         write_field(f, "expr", &self.expr)
     }
@@ -1662,6 +1685,7 @@ impl Display for IndexElement {
 pub enum IndexSetItem {
     RangeDefinition(RangeDefinition),
     Expr(Expr),
+    Err,
 }
 
 /// This is needed to able to use `IndexSetItem` in the `seq` combinator.
@@ -1672,6 +1696,7 @@ impl WithSpan for IndexSetItem {
                 IndexSetItem::RangeDefinition(range.with_span(span))
             }
             IndexSetItem::Expr(expr) => IndexSetItem::Expr(expr.with_span(span)),
+            IndexSetItem::Err => IndexSetItem::Err,
         }
     }
 }
@@ -1681,6 +1706,7 @@ impl Display for IndexSetItem {
         match self {
             IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
             IndexSetItem::Expr(expr) => write!(f, "{expr}"),
+            IndexSetItem::Err => write!(f, "Err"),
         }
     }
 }
@@ -1700,7 +1726,7 @@ impl Display for IOKeyword {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.

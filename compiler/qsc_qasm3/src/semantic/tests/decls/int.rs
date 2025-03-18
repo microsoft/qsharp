@@ -15,7 +15,11 @@ fn implicit_bitness_int_negative() {
                 ty_span: [0-3]
                 init_expr: Expr [9-11]:
                     ty: Int(None, true)
-                    kind: Lit: Int(-42)
+                    kind: UnaryOpExpr [9-11]:
+                        op: Neg
+                        expr: Expr [9-11]:
+                            ty: Int(None, true)
+                            kind: Lit: Int(42)
             [6] Symbol [4-5]:
                 name: x
                 type: Int(None, false)
@@ -34,7 +38,11 @@ fn implicit_bitness_int_const_negative() {
                 ty_span: [6-9]
                 init_expr: Expr [15-17]:
                     ty: Int(None, true)
-                    kind: Lit: Int(-42)
+                    kind: UnaryOpExpr [15-17]:
+                        op: Neg
+                        expr: Expr [15-17]:
+                            ty: Int(None, true)
+                            kind: Lit: Int(42)
             [6] Symbol [10-11]:
                 name: x
                 type: Int(None, true)
@@ -348,22 +356,28 @@ fn const_explicit_bitness_int() {
 }
 
 #[test]
-fn implicit_bitness_int_negative_float_decl_causes_semantic_error() {
+fn implicit_bitness_int_negative_float_decl_is_runtime_conversion() {
     check_classical_decl(
         "int x = -42.;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.CannotAssignToType
-
-              x Cannot assign a value of Float(None, true) type to a classical variable of
-              | Int(None, false) type.
-               ,-[test:1:1]
-             1 | int x = -42.;
-               : ^^^^^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-13]:
+                symbol_id: 6
+                ty_span: [0-3]
+                init_expr: Expr [9-12]:
+                    ty: Int(None, false)
+                    kind: Cast [0-0]:
+                        ty: Int(None, false)
+                        expr: Expr [9-12]:
+                            ty: Float(None, true)
+                            kind: UnaryOpExpr [9-12]:
+                                op: Neg
+                                expr: Expr [9-12]:
+                                    ty: Float(None, true)
+                                    kind: Lit: Float(42.0)
+            [6] Symbol [4-5]:
+                name: x
+                type: Int(None, false)
+                qsharp_type: Int
+                io_kind: Default"#]],
     );
 }

@@ -1091,6 +1091,7 @@ fn measure_register_decl() {
                     init_expr: MeasureExpr [10-17]:
                         operand: IndexedIdent [18-30]:
                             name: Ident [18-24] "qubits"
+                            index_span: [24-30]
                             indices:
                                 IndexSet [25-26]:
                                     values:

@@ -30,6 +30,7 @@ fn box_stmt() {
                                 qubits:
                                     IndexedIdent [21-23]:
                                         name: Ident [21-23] "q0"
+                                        index_span: [0-0]
                                         indices: <empty>
                         Stmt [33-44]:
                             annotations: <empty>
@@ -42,6 +43,7 @@ fn box_stmt() {
                                 qubits:
                                     IndexedIdent [41-43]:
                                         name: Ident [41-43] "q1"
+                                        index_span: [0-0]
                                         indices: <empty>"#]],
     );
 }
@@ -71,6 +73,7 @@ fn box_stmt_with_designator() {
                                 qubits:
                                     IndexedIdent [26-28]:
                                         name: Ident [26-28] "q0"
+                                        index_span: [0-0]
                                         indices: <empty>
                         Stmt [38-49]:
                             annotations: <empty>
@@ -83,6 +86,7 @@ fn box_stmt_with_designator() {
                                 qubits:
                                     IndexedIdent [46-48]:
                                         name: Ident [46-48] "q1"
+                                        index_span: [0-0]
                                         indices: <empty>"#]],
     );
 }

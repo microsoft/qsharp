@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_data_structures::span::Span;
+use std::rc::Rc;
+
+use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
 
 use super::types::Type;
@@ -155,7 +157,7 @@ pub(crate) struct Scope {
     /// A map from symbol name to symbol ID.
     name_to_id: FxHashMap<String, SymbolId>,
     /// A map from symbol ID to symbol.
-    id_to_symbol: FxHashMap<SymbolId, Symbol>,
+    id_to_symbol: FxHashMap<SymbolId, Rc<Symbol>>,
     /// The order in which symbols were inserted into the scope.
     /// This is used to determine the order of symbols in the output.
     order: Vec<SymbolId>,
@@ -180,7 +182,7 @@ impl Scope {
     ///
     /// This function will return an error if a symbol of the same name has already
     /// been declared in this scope.
-    pub fn insert_symbol(&mut self, id: SymbolId, symbol: Symbol) -> Result<(), SymbolError> {
+    pub fn insert_symbol(&mut self, id: SymbolId, symbol: Rc<Symbol>) -> Result<(), SymbolError> {
         if self.name_to_id.contains_key(&symbol.name) {
             return Err(SymbolError::AlreadyExists);
         }
@@ -190,13 +192,13 @@ impl Scope {
         Ok(())
     }
 
-    pub fn get_symbol_by_name(&self, name: &str) -> Option<(SymbolId, &Symbol)> {
+    pub fn get_symbol_by_name(&self, name: &str) -> Option<(SymbolId, Rc<Symbol>)> {
         self.name_to_id
             .get(name)
-            .and_then(|id| self.id_to_symbol.get(id).map(|s| (*id, s)))
+            .and_then(|id| self.id_to_symbol.get(id).map(|s| (*id, s.clone())))
     }
 
-    fn get_ordered_symbols(&self) -> Vec<Symbol> {
+    fn get_ordered_symbols(&self) -> Vec<Rc<Symbol>> {
         self.order
             .iter()
             .map(|id| self.id_to_symbol.get(id).expect("ID should exist").clone())
@@ -207,6 +209,7 @@ impl Scope {
 /// A symbol table is a collection of scopes and manages the symbol ids.
 pub struct SymbolTable {
     scopes: Vec<Scope>,
+    symbols: IndexMap<SymbolId, Rc<Symbol>>,
     current_id: SymbolId,
 }
 
@@ -228,6 +231,7 @@ impl Default for SymbolTable {
 
         let mut slf = Self {
             scopes: vec![global],
+            symbols: IndexMap::default(),
             current_id: SymbolId::default(),
         };
 
@@ -259,28 +263,73 @@ impl SymbolTable {
     }
 
     pub fn insert_symbol(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolError> {
+        let symbol = Rc::new(symbol);
         let id = self.current_id;
-        self.current_id = self.current_id.successor();
-        self.scopes
+        match self
+            .scopes
             .last_mut()
             .expect("At least one scope should be available")
-            .insert_symbol(id, symbol)?;
-
-        Ok(id)
-    }
-
-    #[must_use]
-    pub fn get_symbol_by_id(&self, id: SymbolId) -> Option<(SymbolId, &Symbol)> {
-        for scope in self.scopes.iter().rev() {
-            if let Some(symbol) = scope.id_to_symbol.get(&id) {
-                return Some((id, symbol));
+            .insert_symbol(id, symbol.clone())
+        {
+            Ok(()) => {
+                self.current_id = self.current_id.successor();
+                self.symbols.insert(id, symbol);
+                Ok(id)
             }
+            Err(SymbolError::AlreadyExists) => Err(SymbolError::AlreadyExists),
         }
-        None
     }
 
+    fn insert_err_symbol(&mut self, name: &str, span: Span) -> (SymbolId, Rc<Symbol>) {
+        let symbol = Rc::new(Symbol {
+            name: name.to_string(),
+            span,
+            ty: Type::Err,
+            qsharp_ty: crate::types::Type::Err,
+            io_kind: IOKind::Default,
+        });
+        let id = self.current_id;
+        self.current_id = self.current_id.successor();
+        self.symbols.insert(id, symbol.clone());
+        (id, symbol)
+    }
+
+    /// Gets the symbol with the given ID, or creates it with the given name and span.
+    /// the boolean value indicates if the symbol was created or not.
+    pub fn try_get_existing_or_insert_err_symbol(
+        &mut self,
+        name: &str,
+        span: Span,
+    ) -> Result<(SymbolId, Rc<Symbol>), (SymbolId, Rc<Symbol>)> {
+        // if we have the symbol, return it, otherswise create it with err values
+        if let Some((id, symbol)) = self.get_symbol_by_name(name) {
+            return Ok((id, symbol.clone()));
+        }
+        // if we don't have the symbol, create it with err values
+        Err(self.insert_err_symbol(name, span))
+    }
+
+    pub fn try_insert_or_get_existing(&mut self, symbol: Symbol) -> Result<SymbolId, SymbolId> {
+        let name = symbol.name.clone();
+        if let Ok(symbol_id) = self.insert_symbol(symbol) {
+            Ok(symbol_id)
+        } else {
+            let symbol_id = self
+                .get_symbol_by_name(&name)
+                .map(|(id, _)| id)
+                .expect("msg");
+            Err(symbol_id)
+        }
+    }
+
+    /// Gets the symbol with the given name. This should only be used if you don't
+    /// have the symbold ID. This function will search the scopes in reverse order
+    /// and return the first symbol with the given name following the scoping rules.
     #[must_use]
-    pub fn get_symbol_by_name(&self, name: &str) -> Option<(SymbolId, &Symbol)> {
+    pub fn get_symbol_by_name<S>(&self, name: S) -> Option<(SymbolId, Rc<Symbol>)>
+    where
+        S: AsRef<str>,
+    {
         let scopes = self.scopes.iter().rev();
         let predicate = |x: &Scope| {
             x.kind == ScopeKind::Block || x.kind == ScopeKind::Function || x.kind == ScopeKind::Gate
@@ -303,13 +352,13 @@ impl SymbolTable {
             .take_while(|arg0: &&Scope| predicate(arg0))
             .next()
         {
-            if let Some((id, symbol)) = scope.get_symbol_by_name(name) {
+            if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
                 return Some((id, symbol));
             }
         }
 
         if let Some(scope) = last_false {
-            if let Some((id, symbol)) = scope.get_symbol_by_name(name) {
+            if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
                 if symbol.ty.is_const()
                     || matches!(symbol.ty, Type::Gate(..) | Type::Void)
                     || self.is_scope_rooted_in_global()
@@ -320,7 +369,7 @@ impl SymbolTable {
         }
         // we should be at the global, function, or gate scope now
         for scope in scopes {
-            if let Some((id, symbol)) = scope.get_symbol_by_name(name) {
+            if let Some((id, symbol)) = scope.get_symbol_by_name(name.as_ref()) {
                 if symbol.ty.is_const() || matches!(symbol.ty, Type::Gate(..) | Type::Void) {
                     return Some((id, symbol));
                 }
@@ -357,7 +406,7 @@ impl SymbolTable {
     }
 
     /// Get the input symbols in the program.
-    pub(crate) fn get_input(&self) -> Option<Vec<Symbol>> {
+    pub(crate) fn get_input(&self) -> Option<Vec<Rc<Symbol>>> {
         let io_input = self.get_io_input();
         if io_input.is_empty() {
             None
@@ -370,7 +419,7 @@ impl SymbolTable {
     /// Output symbols are either inferred or explicitly declared.
     /// If there are no explicitly declared output symbols, then the inferred
     /// output symbols are returned.
-    pub(crate) fn get_output(&self) -> Option<Vec<Symbol>> {
+    pub(crate) fn get_output(&self) -> Option<Vec<Rc<Symbol>>> {
         let io_ouput = self.get_io_output();
         if io_ouput.is_some() {
             io_ouput
@@ -382,7 +431,7 @@ impl SymbolTable {
     /// Get all symbols in the global scope that are inferred output symbols.
     /// Any global symbol that is not a built-in symbol and has a type that is
     /// inferred to be an output type is considered an inferred output symbol.
-    fn get_inferred_output(&self) -> Option<Vec<Symbol>> {
+    fn get_inferred_output(&self) -> Option<Vec<Rc<Symbol>>> {
         let mut symbols = vec![];
         self.scopes
             .iter()
@@ -407,7 +456,7 @@ impl SymbolTable {
     }
 
     /// Get all symbols in the global scope that are output symbols.
-    fn get_io_output(&self) -> Option<Vec<Symbol>> {
+    fn get_io_output(&self) -> Option<Vec<Rc<Symbol>>> {
         let mut symbols = vec![];
         for scope in self
             .scopes
@@ -428,7 +477,7 @@ impl SymbolTable {
     }
 
     /// Get all symbols in the global scope that are input symbols.
-    fn get_io_input(&self) -> Vec<Symbol> {
+    fn get_io_input(&self) -> Vec<Rc<Symbol>> {
         let mut symbols = vec![];
         for scope in self
             .scopes
@@ -442,5 +491,13 @@ impl SymbolTable {
             }
         }
         symbols
+    }
+}
+
+impl std::ops::Index<SymbolId> for SymbolTable {
+    type Output = Rc<Symbol>;
+
+    fn index(&self, index: SymbolId) -> &Self::Output {
+        self.symbols.get(index).expect("Symbol should exist")
     }
 }

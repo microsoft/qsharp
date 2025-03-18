@@ -2,15 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::{
-    qasm_to_program,
-    tests::{fail_on_compilation_errors, gen_qsharp, parse},
+    tests::{fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
 use miette::Report;
 use qsc::target::Profile;
 
-use super::compile_qasm_to_qir;
+use super::{compile_qasm_to_qir, compile_with_config};
 
 #[test]
 fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
@@ -29,20 +28,14 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
         c[0] = measure q[0];
         c[1] = measure q[1];
     "#;
-
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::ResourceEstimation,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::ResourceEstimation,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -83,19 +76,14 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
         c[1] = measure q[1];
     "#;
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -136,20 +124,14 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
         c[0] = measure q[0];
         c[1] = measure q[1];
     "#;
-
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::Qiskit,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -197,20 +179,14 @@ c2[0] = measure q[2];
 c2[1] = measure q[3];
 c2[2] = measure q[4];
     "#;
-
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::Qiskit,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
     let qsharp = gen_qsharp(&package.clone());

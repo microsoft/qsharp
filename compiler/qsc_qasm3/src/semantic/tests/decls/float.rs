@@ -352,17 +352,21 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
     check_classical_decl(
         "const float x = -7.;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-20]:
-            symbol_id: 6
-            ty_span: [6-11]
-            init_expr: Expr [17-19]:
-                ty: Float(None, true)
-                kind: Lit: Float(-7.0)
-        [6] Symbol [12-13]:
-            name: x
-            type: Float(None, true)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-20]:
+                symbol_id: 6
+                ty_span: [6-11]
+                init_expr: Expr [17-19]:
+                    ty: Float(None, true)
+                    kind: UnaryOpExpr [17-19]:
+                        op: Neg
+                        expr: Expr [17-19]:
+                            ty: Float(None, true)
+                            kind: Lit: Float(7.0)
+            [6] Symbol [12-13]:
+                name: x
+                type: Float(None, true)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -371,17 +375,25 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
     check_classical_decl(
         "const float x = -7;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-19]:
-            symbol_id: 6
-            ty_span: [6-11]
-            init_expr: Expr [17-18]:
-                ty: Float(None, true)
-                kind: Lit: Float(-7.0)
-        [6] Symbol [12-13]:
-            name: x
-            type: Float(None, true)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-19]:
+                symbol_id: 6
+                ty_span: [6-11]
+                init_expr: Expr [17-18]:
+                    ty: Float(None, true)
+                    kind: Cast [0-0]:
+                        ty: Float(None, true)
+                        expr: Expr [17-18]:
+                            ty: Int(None, true)
+                            kind: UnaryOpExpr [17-18]:
+                                op: Neg
+                                expr: Expr [17-18]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(7)
+            [6] Symbol [12-13]:
+                name: x
+                type: Float(None, true)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -414,12 +426,28 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-27]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-27]:
+                            symbol_id: 6
+                            ty_span: [0-5]
+                            init_expr: Expr [10-26]:
+                                ty: Int(None, true)
+                                kind: Lit: Int(9007199254740993)
 
             [Qsc.Qasm3.Compile.InvalidCastValueRange
 
               x Assigning Int(None, true) values to Float(None, false) must be in a range
               | that be converted to Float(None, false).
+               ,-[test:1:11]
+             1 | float a = 9007199254740993;
+               :           ^^^^^^^^^^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.CannotCastLiteral
+
+              x Cannot cast literal expression of type Int(None, true) to type Float(None,
+              | false)
                ,-[test:1:11]
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
@@ -438,35 +466,20 @@ fn init_float_with_int_value_equal_min_safely_representable_values() {
                 symbol_id: 6
                 ty_span: [0-5]
                 init_expr: Expr [11-27]:
-                    ty: Float(None, true)
-                    kind: Lit: Float(-9007199254740992.0)
+                    ty: Float(None, false)
+                    kind: Cast [0-0]:
+                        ty: Float(None, false)
+                        expr: Expr [11-27]:
+                            ty: Int(None, true)
+                            kind: UnaryOpExpr [11-27]:
+                                op: Neg
+                                expr: Expr [11-27]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(9007199254740992)
             [6] Symbol [6-7]:
                 name: a
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default"#]],
-    );
-}
-
-#[test]
-fn init_float_with_int_value_less_than_safely_representable_values() {
-    let min_exact_int = -(2i64.pow(f64::MANTISSA_DIGITS));
-    let next = min_exact_int - 1;
-    check_classical_decl(
-        &format!("float a = {next};"),
-        &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.InvalidCastValueRange
-
-              x Assigning Int(None, true) values to Float(None, false) must be in a range
-              | that be converted to Float(None, false).
-               ,-[test:1:12]
-             1 | float a = -9007199254740993;
-               :            ^^^^^^^^^^^^^^^^
-               `----
-            ]"#]],
     );
 }

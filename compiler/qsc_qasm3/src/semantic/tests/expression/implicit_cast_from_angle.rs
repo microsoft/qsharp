@@ -145,6 +145,14 @@ fn to_implicit_int_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-42]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-42]:
+                            symbol_id: 7
+                            ty_span: [32-35]
+                            init_expr: Expr [40-41]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -180,6 +188,14 @@ fn to_explicit_int_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-46]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-46]:
+                            symbol_id: 7
+                            ty_span: [32-39]
+                            init_expr: Expr [44-45]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -216,6 +232,14 @@ fn to_implicit_uint_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-43]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-43]:
+                            symbol_id: 7
+                            ty_span: [32-36]
+                            init_expr: Expr [41-42]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -250,8 +274,24 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                             symbol_id: 6
                             ty_span: [9-14]
                             init_expr: Expr [20-23]:
-                                ty: Angle(None, true)
-                                kind: Lit: Float(-42.0)
+                                ty: Angle(None, false)
+                                kind: Cast [0-0]:
+                                    ty: Angle(None, false)
+                                    expr: Expr [20-23]:
+                                        ty: Float(None, true)
+                                        kind: UnaryOpExpr [20-23]:
+                                            op: Neg
+                                            expr: Expr [20-23]:
+                                                ty: Float(None, true)
+                                                kind: Lit: Float(42.0)
+                    Stmt [33-44]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [33-44]:
+                            symbol_id: 7
+                            ty_span: [33-37]
+                            init_expr: Expr [42-43]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -288,6 +328,14 @@ fn to_explicit_uint_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-47]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-47]:
+                            symbol_id: 7
+                            ty_span: [32-40]
+                            init_expr: Expr [45-46]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -324,6 +372,14 @@ fn to_explicit_bigint_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-46]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-46]:
+                            symbol_id: 7
+                            ty_span: [32-39]
+                            init_expr: Expr [44-45]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -360,6 +416,14 @@ fn to_implicit_float_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-44]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-44]:
+                            symbol_id: 7
+                            ty_span: [32-37]
+                            init_expr: Expr [42-43]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -396,6 +460,14 @@ fn to_explicit_float_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-48]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-48]:
+                            symbol_id: 7
+                            ty_span: [32-41]
+                            init_expr: Expr [46-47]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -432,6 +504,14 @@ fn to_implicit_complex_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-53]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-53]:
+                            symbol_id: 7
+                            ty_span: [32-46]
+                            init_expr: Expr [51-52]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -468,6 +548,14 @@ fn to_explicit_complex_implicitly_fails() {
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(42.0)
+                    Stmt [32-57]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [32-57]:
+                            symbol_id: 7
+                            ty_span: [32-50]
+                            init_expr: Expr [55-56]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(6)
 
             [Qsc.Qasm3.Compile.CannotCast
 
