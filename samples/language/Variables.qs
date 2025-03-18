@@ -13,7 +13,7 @@ function Main() : Unit {
     mutable mutableInt = 43;
     Message($"Mutable Int: {mutableInt}");
 
-    // Mutable variables can be mutated or reassigned
+    // Mutable variables can be mutated or reassigned.
     mutableInt -= 1;
     Message($"Mutable Int after mutation: {mutableInt}");
 
