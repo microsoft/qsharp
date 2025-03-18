@@ -3,6 +3,7 @@
 
 import { log } from "qsharp-lang";
 import {
+  commands,
   CancellationToken,
   ExtensionContext,
   Uri,
@@ -13,6 +14,7 @@ import {
 } from "vscode";
 import { Copilot, CopilotUpdateHandler } from "./copilot";
 import { CopilotCommand } from "./shared";
+import { qsharpExtensionId } from "../common";
 
 export function registerCopilotPanel(context: ExtensionContext): void {
   const provider = new CopilotWebviewViewProvider(context.extensionUri);
@@ -24,6 +26,11 @@ export function registerCopilotPanel(context: ExtensionContext): void {
         webviewOptions: { retainContextWhenHidden: true },
       },
     ),
+  );
+  context.subscriptions.push(
+    commands.registerCommand(`${qsharpExtensionId}.copilotClear`, async () => {
+      provider.clearChat();
+    }),
   );
 }
 
@@ -97,6 +104,10 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
         <body>Error loading Copilot: ${e}</body>
         </html>`;
     }
+  }
+
+  clearChat() {
+    this.copilot?.restartChat([]);
   }
 
   handleMessageFromWebview(message: CopilotCommand) {
