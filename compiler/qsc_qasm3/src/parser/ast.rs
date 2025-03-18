@@ -326,8 +326,6 @@ pub enum StmtKind {
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
-    /// An empty statement.
-    Empty,
     End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
@@ -368,7 +366,6 @@ impl Display for StmtKind {
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
-            StmtKind::Empty => write!(f, "Empty"),
             StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
@@ -529,6 +526,7 @@ impl WithSpan for Ident {
 #[derive(Clone, Debug)]
 pub struct IndexedIdent {
     pub span: Span,
+    pub index_span: Span,
     pub name: Ident,
     pub indices: List<IndexElement>,
 }
@@ -537,6 +535,7 @@ impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
         writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "index_span", &self.index_span)?;
         write_list_field(f, "indices", &self.indices)
     }
 }

@@ -859,6 +859,14 @@ pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
     }
 }
 
+pub(crate) fn build_stmt_semi_from_expr_with_span(expr: Expr, span: Span) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span,
+        kind: Box::new(StmtKind::Semi(Box::new(expr))),
+    }
+}
+
 pub(crate) fn build_wrapped_block_expr(block: Block) -> Expr {
     Expr {
         id: NodeId::default(),

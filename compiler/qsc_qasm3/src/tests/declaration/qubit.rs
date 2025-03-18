@@ -4,7 +4,7 @@
 use expect_test::expect;
 use miette::Report;
 
-use crate::tests::{fail_on_compilation_errors, parse, qasm_to_program_fragments};
+use crate::tests::{compile_fragments, fail_on_compilation_errors};
 use crate::{
     tests::{compile_qasm_stmt_to_qsharp, compile_qasm_stmt_to_qsharp_with_semantics},
     QubitSemantics,
@@ -17,9 +17,7 @@ fn quantum() -> miette::Result<(), Vec<Report>> {
         qubit q2;
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }
