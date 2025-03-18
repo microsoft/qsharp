@@ -17,6 +17,7 @@ miette = { workspace = true }
 regex-lite = { workspace = true }
 async-trait = { workspace = true }
 qsc_linter = { path = "../qsc_linter" }
+qsc_circuit = { path = "../qsc_circuit" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 rustc-hash = { workspace = true }
 futures = { workspace = true }
