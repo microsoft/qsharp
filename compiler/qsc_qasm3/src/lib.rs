@@ -7,6 +7,7 @@
 mod angle;
 mod ast_builder;
 mod compile;
+mod compiler;
 pub use compile::qasm_to_program;
 pub mod io;
 mod keyword;

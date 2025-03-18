@@ -66,8 +66,8 @@ pub(super) fn check(input: &str, expect: &Expect) {
 }
 
 pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
-    check_map(input, expect, |p, s| {
-        let kind = p
+    check_map(input, expect, |program, symbol_table| {
+        let kind = program
             .statements
             .first()
             .expect("reading first statement")
@@ -78,17 +78,15 @@ pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
         };
         let mut value = decl.to_string();
         value.push('\n');
-        let symbol = s
-            .get_symbol_by_id(decl.symbol_id)
-            .expect("getting symbol by id");
-        value.push_str(&format!("[{}] {}", symbol.0, symbol.1));
+        let symbol = &symbol_table[decl.symbol_id];
+        value.push_str(&format!("[{}] {symbol}", decl.symbol_id));
         value
     });
 }
 
 pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
-    check_map(input, expect, |p, s| {
-        let kinds = p
+    check_map(input, expect, |program, symbol_table| {
+        let kinds = program
             .statements
             .iter()
             .map(|stmt| stmt.kind.as_ref().clone())
@@ -97,16 +95,16 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
         for kind in &kinds {
             let (symbol_id, str) = match kind {
                 super::ast::StmtKind::ClassicalDecl(decl) => (decl.symbol_id, decl.to_string()),
-                super::ast::StmtKind::IODeclaration(decl) => (decl.symbol_id, decl.to_string()),
-                super::ast::StmtKind::Assign(stmt) => (stmt.symbold_id, stmt.to_string()),
-                super::ast::StmtKind::AssignOp(stmt) => (stmt.symbold_id, stmt.to_string()),
+                super::ast::StmtKind::OutputDeclaration(decl) => (decl.symbol_id, decl.to_string()),
+                super::ast::StmtKind::Assign(stmt) => (stmt.symbol_id, stmt.to_string()),
+                super::ast::StmtKind::AssignOp(stmt) => (stmt.symbol_id, stmt.to_string()),
                 _ => panic!("unsupported stmt type {kind}"),
             };
 
             value.push_str(&str);
             value.push('\n');
-            let symbol = s.get_symbol_by_id(symbol_id).expect("getting symbol by id");
-            value.push_str(&format!("[{}] {}", symbol.0, symbol.1));
+            let symbol = &symbol_table[symbol_id];
+            value.push_str(&format!("[{symbol_id}] {symbol}"));
             value.push('\n');
         }
 
@@ -149,7 +147,7 @@ fn check_map<S>(
     assert!(
         !res.has_syntax_errors(),
         "syntax errors: {:?}",
-        res.parse_errors()
+        res.sytax_errors()
     );
 
     let program = res.program.expect("no program");
@@ -201,7 +199,7 @@ fn check_map_all<P>(
     assert!(
         !res.has_syntax_errors(),
         "syntax errors: {:?}",
-        res.parse_errors()
+        res.sytax_errors()
     );
     let program = res.program.expect("no program");
 
@@ -220,6 +218,7 @@ fn check_map_all<P>(
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
     let source0 = r#"OPENQASM 3.0;
     include "stdgates.inc";
@@ -252,6 +251,25 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             init_expr: Expr [204-205]:
                                 ty: Bit(true)
                                 kind: Lit: Int(1)
+                    Stmt [211-227]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [211-227]:
+                            symbol_id: 24
+                            ty_span: [211-215]
+                            init_expr: Expr [220-226]:
+                                ty: Bool(false)
+                                kind: BinaryOpExpr:
+                                    op: AndL
+                                    lhs: Expr [220-221]:
+                                        ty: Err
+                                        kind: SymbolId(25)
+                                    rhs: Expr [225-226]:
+                                        ty: Bool(false)
+                                        kind: Cast [0-0]:
+                                            ty: Bool(false)
+                                            expr: Expr [225-226]:
+                                                ty: Bit(false)
+                                                kind: SymbolId(24)
                     Stmt [140-154]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [140-154]:
@@ -260,10 +278,45 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             init_expr: Expr [150-153]:
                                 ty: Angle(None, true)
                                 kind: Lit: Float(7.0)
+                    Stmt [159-179]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [159-179]:
+                            symbol_id: 27
+                            ty_span: [159-164]
+                            init_expr: Expr [169-178]:
+                                ty: Float(None, false)
+                                kind: BinaryOpExpr:
+                                    op: Add
+                                    lhs: Expr [169-170]:
+                                        ty: Angle(None, false)
+                                        kind: SymbolId(26)
+                                    rhs: Expr [173-178]:
+                                        ty: Float(None, false)
+                                        kind: Cast [0-0]:
+                                            ty: Float(None, false)
+                                            expr: Expr [173-178]:
+                                                ty: Bool(true)
+                                                kind: Lit: Bool(false)
+                    Stmt [74-84]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [74-84]:
+                            symbol_id: 29
+                            ty_span: [74-77]
+                            init_expr: Expr [82-83]:
+                                ty: Err
+                                kind: SymbolId(28)
 
             [Qsc.Qasm3.Compile.UndefinedSymbol
 
               x Undefined symbol: y.
+               ,-[source2.qasm:2:14]
+             1 | bit x = 1;
+             2 |     bool x = y && x; // undefined y, redefine x
+               :              ^
+               `----
+            , Qsc.Qasm3.Compile.CannotCast
+
+              x Cannot cast expression of type Err to type Bool(false)
                ,-[source2.qasm:2:14]
              1 | bit x = 1;
              2 |     bool x = y && x; // undefined y, redefine x
@@ -293,6 +346,15 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
                :             ^
+             5 |     
+               `----
+            , Qsc.Qasm3.Compile.CannotCast
+
+              x Cannot cast expression of type Err to type Bit(false)
+               ,-[source0.qasm:4:5]
+             3 |     include "source1.qasm";
+             4 |     bit c = r; // undefined symbol r
+               :     ^^^^^^^^^^
              5 |     
                `----
             ]"#]],

@@ -157,14 +157,14 @@ fn unop_not_logical_and_unop_not() {
                         op: AndL
                         lhs: Expr [66-67]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
                                     kind: SymbolId(6)
                         rhs: Expr [72-73]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
                                     ty: Bool(false)
@@ -220,14 +220,14 @@ fn unop_not_logical_or_unop_not() {
                         op: OrL
                         lhs: Expr [66-67]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
                                     kind: SymbolId(6)
                         rhs: Expr [72-73]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
                                     ty: Bool(false)
@@ -283,7 +283,7 @@ fn unop_not_logical_and() {
                         op: AndL
                         lhs: Expr [66-67]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
@@ -342,7 +342,7 @@ fn unop_not_logical_or() {
                         op: OrL
                         lhs: Expr [66-67]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
@@ -404,7 +404,7 @@ fn logical_and_unop_not() {
                             kind: SymbolId(6)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
                                     ty: Bool(false)
@@ -463,7 +463,7 @@ fn logical_or_unop_not() {
                             kind: SymbolId(6)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
-                            kind: UnaryOpExpr:
+                            kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
                                     ty: Bool(false)

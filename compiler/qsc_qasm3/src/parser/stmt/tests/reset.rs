@@ -16,6 +16,7 @@ fn reset_ident() {
                 kind: ResetStmt [0-8]:
                     operand: IndexedIdent [6-7]:
                         name: Ident [6-7] "a"
+                        index_span: [0-0]
                         indices: <empty>"#]],
     );
 }
@@ -31,6 +32,7 @@ fn reset_indexed_ident() {
                 kind: ResetStmt [0-11]:
                     operand: IndexedIdent [6-10]:
                         name: Ident [6-7] "a"
+                        index_span: [7-10]
                         indices:
                             IndexSet [8-9]:
                                 values:

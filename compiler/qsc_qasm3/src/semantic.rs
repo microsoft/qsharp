@@ -46,7 +46,7 @@ impl QasmSemanticParseResult {
         !self.errors.is_empty()
     }
 
-    pub fn parse_errors(&self) -> Vec<WithSource<crate::Error>> {
+    pub fn sytax_errors(&self) -> Vec<WithSource<crate::Error>> {
         let mut self_errors = self
             .source
             .errors()
@@ -72,7 +72,7 @@ impl QasmSemanticParseResult {
 
     #[must_use]
     pub fn all_errors(&self) -> Vec<WithSource<crate::Error>> {
-        let mut parse_errors = self.parse_errors();
+        let mut parse_errors = self.sytax_errors();
         let sem_errors = self.semantic_errors();
         parse_errors.extend(sem_errors);
         parse_errors
@@ -106,7 +106,7 @@ where
     R: SourceResolver,
 {
     let res = crate::parser::parse_source(source, path, resolver)?;
-
+    let errors = res.all_errors();
     // If there are syntax errors, return early
     if res.source.has_errors() {
         return Ok(QasmSemanticParseResult {
@@ -114,7 +114,7 @@ where
             source_map: res.source_map,
             symbols: SymbolTable::default(),
             program: None,
-            errors: vec![],
+            errors,
         });
     }
 

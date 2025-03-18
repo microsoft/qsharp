@@ -23,6 +23,20 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
                             init_expr: Expr [13-14]:
                                 ty: Int(None, true)
                                 kind: Lit: Int(0)
+                    Stmt [20-42]:
+                        annotations: <empty>
+                        kind: WhileLoop [20-42]:
+                            condition: Expr [26-30]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(true)
+                            body: Stmt [32-42]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [32-42]:
+                                    symbol_id: 6
+                                    ty_span: [32-35]
+                                    init_expr: Expr [40-41]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(1)
 
             [Qsc.Qasm3.Compile.RedefinedSymbol
 

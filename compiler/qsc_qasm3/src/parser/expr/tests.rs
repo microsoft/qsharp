@@ -1129,6 +1129,7 @@ fn indexed_identifier() {
         &expect![[r#"
             IndexedIdent [0-9]:
                 name: Ident [0-3] "arr"
+                index_span: [3-9]
                 indices:
                     IndexSet [4-5]:
                         values:
@@ -1159,6 +1160,7 @@ fn measure_indexed_identifier() {
             MeasureExpr [0-7]:
                 operand: IndexedIdent [8-20]:
                     name: Ident [8-14] "qubits"
+                    index_span: [14-20]
                     indices:
                         IndexSet [15-16]:
                             values:
