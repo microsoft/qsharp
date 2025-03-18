@@ -18,12 +18,14 @@ fn delay() {
                     qubits:
                         IndexedIdent [9-13]:
                             name: Ident [9-10] "q"
+                            index_span: [10-13]
                             indices:
                                 IndexSet [11-12]:
                                     values:
                                         Expr [11-12]: Lit: Int(0)
                         IndexedIdent [15-19]:
                             name: Ident [15-16] "q"
+                            index_span: [16-19]
                             indices:
                                 IndexSet [17-18]:
                                     values:

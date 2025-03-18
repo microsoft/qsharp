@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{fail_on_compilation_errors, parse, qasm_to_program_fragments};
+use crate::tests::{compile_fragments, fail_on_compilation_errors};
 use miette::Report;
 
 #[test]
@@ -13,9 +13,7 @@ fn classical() -> miette::Result<(), Vec<Report>> {
         let c = a[{0,1}] ++ b[1:2];
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }
@@ -34,9 +32,7 @@ fn quantum() -> miette::Result<(), Vec<Report>> {
         let e = d[1];
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }
@@ -50,9 +46,7 @@ fn classical_old_style_decls() -> miette::Result<(), Vec<Report>> {
         let c = a[{0,1}] ++ b[1:2];
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }
@@ -71,9 +65,7 @@ fn quantum_old_style_decls() -> miette::Result<(), Vec<Report>> {
         let e = d[1];
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }

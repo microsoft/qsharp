@@ -328,7 +328,7 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
         .iter_mut()
         .for_each(|s| vis.visit_annotation(s));
     match &mut *stmt.kind {
-        StmtKind::Empty | StmtKind::Err => {}
+        StmtKind::Err => {}
         StmtKind::Alias(alias_decl_stmt) => vis.visit_alias_decl_stmt(alias_decl_stmt),
         StmtKind::Assign(assign_stmt) => vis.visit_assign_stmt(assign_stmt),
         StmtKind::AssignOp(assign_op_stmt) => vis.visit_assign_op_stmt(assign_op_stmt),

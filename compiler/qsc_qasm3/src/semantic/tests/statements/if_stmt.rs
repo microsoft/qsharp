@@ -23,6 +23,21 @@ fn if_branch_doesnt_create_its_own_scope() {
                             init_expr: Expr [13-14]:
                                 ty: Int(None, true)
                                 kind: Lit: Int(0)
+                    Stmt [20-40]:
+                        annotations: <empty>
+                        kind: IfStmt [20-40]:
+                            condition: Expr [24-28]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(true)
+                            if_body: Stmt [30-40]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [30-40]:
+                                    symbol_id: 6
+                                    ty_span: [30-33]
+                                    init_expr: Expr [38-39]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(1)
+                            else_body: <none>
 
             [Qsc.Qasm3.Compile.RedefinedSymbol
 
@@ -57,6 +72,23 @@ fn else_branch_doesnt_create_its_own_scope() {
                             init_expr: Expr [13-14]:
                                 ty: Int(None, true)
                                 kind: Lit: Int(0)
+                    Stmt [20-52]:
+                        annotations: <empty>
+                        kind: IfStmt [20-52]:
+                            condition: Expr [24-28]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(true)
+                            if_body: Stmt [30-32]:
+                                annotations: <empty>
+                                kind: Block [30-32]: <empty>
+                            else_body: Stmt [42-52]:
+                                annotations: <empty>
+                                kind: ClassicalDeclarationStmt [42-52]:
+                                    symbol_id: 6
+                                    ty_span: [42-45]
+                                    init_expr: Expr [50-51]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(1)
 
             [Qsc.Qasm3.Compile.RedefinedSymbol
 

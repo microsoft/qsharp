@@ -13,7 +13,10 @@ fn with_invalid_instruction_fails() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-26]:
+                        annotations: <empty>
+                        kind: Err
 
             [Qsc.Qasm3.Compile.ClassicalStmtInBox
 
@@ -23,6 +26,14 @@ fn with_invalid_instruction_fails() {
              2 |         2 + 4;
                :         ^^^^^^
              3 |     }
+               `----
+            , Qsc.Qasm3.Compile.Unimplemented
+
+              x this statement is not yet handled during OpenQASM 3 import: box stmt
+               ,-[test:1:1]
+             1 | ,-> box {
+             2 | |           2 + 4;
+             3 | `->     }
                `----
             ]"#]],
     );
@@ -35,7 +46,10 @@ fn with_duration_fails() {
         &expect![[r#"
             Program:
                 version: <none>
-                statements: <empty>
+                statements:
+                    Stmt [0-13]:
+                        annotations: <empty>
+                        kind: Err
 
             [Qsc.Qasm3.Compile.NotSupported
 
@@ -43,6 +57,13 @@ fn with_duration_fails() {
                ,-[test:1:6]
              1 | box [4us] { }
                :      ^^^
+               `----
+            , Qsc.Qasm3.Compile.Unimplemented
+
+              x this statement is not yet handled during OpenQASM 3 import: box stmt
+               ,-[test:1:1]
+             1 | box [4us] { }
+               : ^^^^^^^^^^^^^
                `----
             ]"#]],
     );

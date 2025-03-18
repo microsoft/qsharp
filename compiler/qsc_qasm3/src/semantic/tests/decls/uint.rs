@@ -310,64 +310,82 @@ fn const_explicit_bitness_int() {
 }
 
 #[test]
-fn assigning_uint_to_negative_lit_results_in_semantic_error() {
+fn assigning_uint_to_negative_lit() {
     check_classical_decl(
         "const uint[10] x = -42;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.CannotAssignToType
-
-              x Cannot assign a value of Int(None, true) type to a classical variable of
-              | UInt(Some(10), true) type.
-               ,-[test:1:1]
-             1 | const uint[10] x = -42;
-               : ^^^^^^^^^^^^^^^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-23]:
+                symbol_id: 6
+                ty_span: [6-14]
+                init_expr: Expr [20-22]:
+                    ty: UInt(Some(10), true)
+                    kind: Cast [0-0]:
+                        ty: UInt(Some(10), true)
+                        expr: Expr [20-22]:
+                            ty: Int(None, true)
+                            kind: UnaryOpExpr [20-22]:
+                                op: Neg
+                                expr: Expr [20-22]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(42)
+            [6] Symbol [15-16]:
+                name: x
+                type: UInt(Some(10), true)
+                qsharp_type: Int
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-fn implicit_bitness_uint_const_negative_decl_raises_semantic_error() {
+fn implicit_bitness_uint_const_negative_decl() {
     check_classical_decl(
         "const uint x = -42;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.CannotAssignToType
-
-              x Cannot assign a value of Int(None, true) type to a classical variable of
-              | UInt(None, true) type.
-               ,-[test:1:1]
-             1 | const uint x = -42;
-               : ^^^^^^^^^^^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-19]:
+                symbol_id: 6
+                ty_span: [6-10]
+                init_expr: Expr [16-18]:
+                    ty: UInt(None, true)
+                    kind: Cast [0-0]:
+                        ty: UInt(None, true)
+                        expr: Expr [16-18]:
+                            ty: Int(None, true)
+                            kind: UnaryOpExpr [16-18]:
+                                op: Neg
+                                expr: Expr [16-18]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(42)
+            [6] Symbol [11-12]:
+                name: x
+                type: UInt(None, true)
+                qsharp_type: Int
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-fn explicit_bitness_uint_const_negative_decl_raises_semantic_error() {
+fn explicit_bitness_uint_const_negative_decl() {
     check_classical_decl(
         "const uint[32] x = -42;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.CannotAssignToType
-
-              x Cannot assign a value of Int(None, true) type to a classical variable of
-              | UInt(Some(32), true) type.
-               ,-[test:1:1]
-             1 | const uint[32] x = -42;
-               : ^^^^^^^^^^^^^^^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-23]:
+                symbol_id: 6
+                ty_span: [6-14]
+                init_expr: Expr [20-22]:
+                    ty: UInt(Some(32), true)
+                    kind: Cast [0-0]:
+                        ty: UInt(Some(32), true)
+                        expr: Expr [20-22]:
+                            ty: Int(None, true)
+                            kind: UnaryOpExpr [20-22]:
+                                op: Neg
+                                expr: Expr [20-22]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(42)
+            [6] Symbol [15-16]:
+                name: x
+                type: UInt(Some(32), true)
+                qsharp_type: Int
+                io_kind: Default"#]],
     );
 }
