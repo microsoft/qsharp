@@ -27,7 +27,7 @@ operation Main() : (Result, Result)[] {
         prepare(register);
         Message($"Bell state {label}:");
         DumpMachine();
-        set measurements += [(MResetZ(register[0]), MResetZ(register[1]))];
+        measurements += [(MResetZ(register[0]), MResetZ(register[1]))];
     }
     return measurements;
 }
