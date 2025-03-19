@@ -56,48 +56,34 @@ impl Backend for Builder {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
-        if self.config.base_profile {
-            // defer the measurement and reset the qubit
-            self.remapper.mreset(q)
-        } else {
-            let mapped_q = self.map(q);
-            // In the Circuit schema, result id is per-qubit
-            let res_id = self.num_measurements_for_qubit(mapped_q);
-            let id = self.remapper.m(q);
+        let mapped_q = self.map(q);
+        // In the Circuit schema, result id is per-qubit
+        let res_id = self.num_measurements_for_qubit(mapped_q);
+        let id = self.remapper.m(q);
 
-            self.push_gate(measurement_gate(mapped_q.0, res_id));
-            id
-        }
+        self.push_gate(measurement_gate(mapped_q.0, res_id));
+        id
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        if self.config.base_profile {
-            // defer the measurement
-            self.remapper.mreset(q)
-        } else {
-            let mapped_q = self.map(q);
-            // In the Circuit schema, result id is per-qubit
-            let res_id = self.num_measurements_for_qubit(mapped_q);
-            // We don't actually need the Remapper since we're not
-            // remapping any qubits, but it's handy for keeping track of measurements
-            let id = self.remapper.m(q);
+        let mapped_q = self.map(q);
+        // In the Circuit schema, result id is per-qubit
+        let res_id = self.num_measurements_for_qubit(mapped_q);
+        // We don't actually need the Remapper since we're not
+        // remapping any qubits, but it's handy for keeping track of measurements
+        let id = self.remapper.m(q);
 
-            // Ideally MResetZ would be atomic but we don't currently have
-            // a way to visually represent that. So decompose it into
-            // a measurement and a reset gate.
-            self.push_gate(measurement_gate(mapped_q.0, res_id));
-            self.push_gate(gate(KET_ZERO, [mapped_q]));
-            id
-        }
+        // Ideally MResetZ would be atomic but we don't currently have
+        // a way to visually represent that. So decompose it into
+        // a measurement and a reset gate.
+        self.push_gate(measurement_gate(mapped_q.0, res_id));
+        self.push_gate(gate(KET_ZERO, [mapped_q]));
+        id
     }
 
     fn reset(&mut self, q: usize) {
-        if self.config.base_profile {
-            self.remapper.reset(q);
-        } else {
-            let mapped_q = self.map(q);
-            self.push_gate(gate(KET_ZERO, [mapped_q]));
-        }
+        let mapped_q = self.map(q);
+        self.push_gate(gate(KET_ZERO, [mapped_q]));
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
@@ -267,18 +253,6 @@ impl Builder {
     }
 
     fn finish_circuit(&self, mut circuit: Circuit) -> Circuit {
-        // add deferred measurements
-        if self.config.base_profile {
-            for (qubit, _) in &self.remapper.qubit_measurement_counts {
-                if self.max_ops_exceeded || circuit.operations.len() >= self.config.max_operations {
-                    break;
-                }
-
-                // guaranteed one measurement per qubit, so result is always 0
-                circuit.operations.push(measurement_gate(qubit.0, 0));
-            }
-        }
-
         // add qubit declarations
         for i in 0..self.remapper.num_qubits() {
             let num_measurements = self.num_measurements_for_qubit(WireId(i));
@@ -406,16 +380,6 @@ impl Remapper {
             }
         }
         id
-    }
-
-    fn mreset(&mut self, q: usize) -> usize {
-        let id = self.m(q);
-        self.reset(q);
-        id
-    }
-
-    fn reset(&mut self, q: usize) {
-        self.qubit_map.remove(q);
     }
 
     fn qubit_allocate(&mut self) -> usize {
