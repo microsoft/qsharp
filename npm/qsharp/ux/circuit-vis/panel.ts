@@ -310,5 +310,9 @@ const defaultGateDictionary: GateDictionary = {
   ResetX: _makeUnitary("|1〉"),
 };
 
+defaultGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
+defaultGateDictionary["RY"].params = [{ name: "theta", type: "Double" }];
+defaultGateDictionary["RZ"].params = [{ name: "theta", type: "Double" }];
+
 export { extensionPanel, defaultGateDictionary, toMetadata };
 export type { PanelOptions };

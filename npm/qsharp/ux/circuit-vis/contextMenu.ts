@@ -120,7 +120,12 @@ const addContextMenuToHostElem = (
         if (removeControlOption) {
           contextMenu.appendChild(removeControlOption);
         }
-        contextMenu.appendChild(promptArgOption);
+        if (
+          selectedOperation.params !== undefined &&
+          selectedOperation.params.length > 0
+        ) {
+          contextMenu.appendChild(promptArgOption);
+        }
         contextMenu.appendChild(deleteOption);
       }
     }

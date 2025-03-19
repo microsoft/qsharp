@@ -63,6 +63,8 @@ export interface BaseOperation {
   gate: string;
   /** Formatted gate arguments. */
   args?: string[];
+  /** The parameters expected for the operation. */
+  params?: Parameter[];
   /** Nested operations within this operation. */
   children?: ComponentGrid;
 
@@ -101,6 +103,16 @@ export interface Unitary extends BaseOperation {
  * Union type for operations.
  */
 export type Operation = Unitary | Measurement;
+
+/**
+ * A parameter for an operation.
+ */
+export interface Parameter {
+  /** Parameter name. */
+  name: string;
+  /** Parameter's Q# type. */
+  type: string;
+}
 
 /**
  * Conditions on when to render the given operation.
