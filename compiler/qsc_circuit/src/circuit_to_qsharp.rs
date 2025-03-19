@@ -47,14 +47,6 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         "qs : Qubit[]".to_string()
     };
 
-    // let mut parameters = qubits.iter().collect::<Vec<_>>();
-    // parameters.sort_by_key(|(id, _)| *id);
-    // let parameters = parameters
-    //     .iter()
-    //     .map(|(_, name)| format!("{} : Qubit", name))
-    //     .collect::<Vec<_>>()
-    //     .join(", ");
-
     // The return type is determined by the number of qubits "children".
     // However, the actual return statement is determined by the variables storing measurements.
     // If there is an inconsistency between these, which would happen if there was a mismatch between
@@ -105,6 +97,9 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         qsharp_str.push_str(&format!("{indent}}}\n"));
     }
 
+    let mut body_str = String::new();
+    let mut should_add_pi = false;
+
     // ToDo: Add support for children operations
     for col in &circuit.component_grid {
         for op in &col.components {
@@ -128,25 +123,30 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
                         .join(", ");
                     match op_results.len() {
                         0 => {
-                            qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                            body_str.push_str(&format!("{indent}{operation_str};\n"));
                         }
                         1 => {
-                            qsharp_str
+                            body_str
                                 .push_str(&format!("{indent}let {result} = {operation_str};\n"));
                             measure_results.extend(op_results);
                         }
                         _ => {
-                            qsharp_str
+                            body_str
                                 .push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
                             measure_results.extend(op_results);
                         }
+                    }
+
+                    // Look for a `π` character in the args
+                    if !should_add_pi && !measurement.args.is_empty() {
+                        should_add_pi = measurement.args.iter().any(|arg| arg.contains("π"));
                     }
                 }
                 Operation::Unitary(unitary) => {
                     if unitary.gate == "|1〉" {
                         // Note "|1〉" will generate two operations: Reset and X
                         let operation_str = operation_call(unitary, &qubits);
-                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                        body_str.push_str(&format!("{indent}{operation_str};\n"));
                         let op_x = Unitary {
                             gate: "X".to_string(),
                             is_adjoint: false,
@@ -156,15 +156,28 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
                             children: vec![],
                         };
                         let operation_str = operation_call(&op_x, &qubits);
-                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                        body_str.push_str(&format!("{indent}{operation_str};\n"));
                     } else {
                         let operation_str = operation_call(unitary, &qubits);
-                        qsharp_str.push_str(&format!("{indent}{operation_str};\n"));
+                        body_str.push_str(&format!("{indent}{operation_str};\n"));
                     };
+
+                    // Look for a `π` character in the args
+                    if !should_add_pi && !unitary.args.is_empty() {
+                        should_add_pi = unitary.args.iter().any(|arg| arg.contains("π"));
+                    }
                 }
             }
         }
     }
+
+    // This is a hack to get around the fact that Q# doesn't support π as a constant
+    if should_add_pi {
+        // Add the π constant
+        qsharp_str.push_str(&format!("{indent}let π = Std.Math.PI();\n"));
+    }
+
+    qsharp_str.push_str(body_str.as_str());
 
     if !measure_results.is_empty() {
         // Sort first by q_id, then by c_id
