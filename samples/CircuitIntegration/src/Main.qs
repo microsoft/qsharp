@@ -14,7 +14,7 @@ import JointMeasurement.JointMeasurement;
 operation Main() : Result[] {
     use qs = Qubit[4];
     ApplyToEach(H, qs[0..2]);
-    let results = JointMeasurement(qs[0], qs[1], qs[2], qs[3]);
+    let results = JointMeasurement(qs);
     ResetAll(qs);
     results
 }
