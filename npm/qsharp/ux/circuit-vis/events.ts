@@ -14,7 +14,7 @@ import {
   getHostElems,
   getWireData,
 } from "./utils";
-import { addContextMenuToHostElem } from "./contextMenu";
+import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
   addControl,
   addOperation,
@@ -311,7 +311,7 @@ class CircuitEvents {
     const dropzoneElems =
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {
-      dropzoneElem.addEventListener("mouseup", (ev: MouseEvent) => {
+      dropzoneElem.addEventListener("mouseup", async (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
         const originalGrid = cloneDeep(this.componentGrid);
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
@@ -331,6 +331,30 @@ class CircuitEvents {
         const sourceLocation = getGateLocationString(this.selectedOperation);
 
         if (sourceLocation == null) {
+          if (
+            this.selectedOperation.params != undefined &&
+            (this.selectedOperation.args === undefined ||
+              this.selectedOperation.args.length === 0)
+          ) {
+            // Prompt for arguments and wait for user input
+            const args = await promptForArguments(
+              this.selectedOperation.params,
+            );
+            if (!args || args.length === 0) {
+              // User canceled the prompt, exit early
+              return;
+            }
+
+            // Create a deep copy of the source operation
+            this.selectedOperation = JSON.parse(
+              JSON.stringify(this.selectedOperation),
+            );
+            if (this.selectedOperation == null) return;
+
+            // Assign the arguments to the selected operation
+            this.selectedOperation.args = args;
+          }
+
           // Add a new operation from the toolbox
           addOperation(
             this,

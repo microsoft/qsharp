@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import { Parameter } from "./circuit";
 import { removeControl, removeOperation } from "./circuitManipulation";
 import { CircuitEvents } from "./events";
 import { findGateElem, findOperation } from "./utils";
@@ -145,6 +146,41 @@ const addContextMenuToHostElem = (
 };
 
 /**
+ * Prompt the user for argument values.
+ * @param params - The parameters for which the user needs to provide values.
+ * @returns A Promise that resolves with the user-provided arguments as an array of strings.
+ */
+const promptForArguments = (params: Parameter[]): Promise<string[]> => {
+  return new Promise((resolve) => {
+    const collectedArgs: string[] = [];
+    let currentIndex = 0;
+
+    const promptNext = () => {
+      if (currentIndex >= params.length) {
+        resolve(collectedArgs);
+        return;
+      }
+
+      const param = params[currentIndex];
+      _createCustomPrompt(
+        `Enter value for parameter "${param.name}":`,
+        (userInput) => {
+          if (userInput !== null) {
+            collectedArgs.push(userInput);
+            currentIndex++;
+            promptNext();
+          } else {
+            resolve([]); // User canceled the prompt
+          }
+        },
+      );
+    };
+
+    promptNext();
+  });
+};
+
+/**
  * Create a context menu item
  * @param text - The text to display in the menu item
  * @param onClick - The function to call when the menu item is clicked
@@ -229,4 +265,4 @@ const _createCustomPrompt = (
   document.body.appendChild(overlay);
 };
 
-export { addContextMenuToHostElem };
+export { addContextMenuToHostElem, promptForArguments };

@@ -12,6 +12,7 @@ export {
   type DataAttributes,
   type Operation,
   type Unitary,
+  type Parameter,
   type Qubit,
 } from "../../src/shared/circuit";
 
