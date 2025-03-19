@@ -166,3 +166,8 @@ pre code {
 .histogram-container {
   width: 100%;
 }
+
+/* If not specified it defaults to the 'pre code' default monospace font  */
+.hljs-copy-button {
+  font-family: system-ui;
+}
