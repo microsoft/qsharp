@@ -93,20 +93,17 @@ const addContextMenuToHostElem = (
       }
 
       const promptArgOption = _createContextMenuItem("Edit Argument", () => {
-        _createCustomPrompt(
-          "Argument for Gate:",
-          (userInput) => {
-            if (userInput !== null) {
-              if (userInput == "") {
-                selectedOperation.args = undefined;
-              } else {
-                selectedOperation.args = [userInput];
-              }
-            }
-            circuitEvents.renderFn();
-          },
-          selectedOperation.args?.[0],
-        );
+        promptForArguments(
+          selectedOperation.params!,
+          selectedOperation.args,
+        ).then((args) => {
+          if (args.length > 0) {
+            selectedOperation.args = args;
+          } else {
+            selectedOperation.args = undefined;
+          }
+          circuitEvents.renderFn();
+        });
       });
 
       if (selectedOperation.gate == "X") {
@@ -148,9 +145,13 @@ const addContextMenuToHostElem = (
 /**
  * Prompt the user for argument values.
  * @param params - The parameters for which the user needs to provide values.
+ * @param defaultArgs - The default values for the parameters, if any.
  * @returns A Promise that resolves with the user-provided arguments as an array of strings.
  */
-const promptForArguments = (params: Parameter[]): Promise<string[]> => {
+const promptForArguments = (
+  params: Parameter[],
+  defaultArgs: string[] = [],
+): Promise<string[]> => {
   return new Promise((resolve) => {
     const collectedArgs: string[] = [];
     let currentIndex = 0;
@@ -162,6 +163,8 @@ const promptForArguments = (params: Parameter[]): Promise<string[]> => {
       }
 
       const param = params[currentIndex];
+      const defaultValue = defaultArgs[currentIndex] || "";
+
       _createCustomPrompt(
         `Enter value for parameter "${param.name}":`,
         (userInput) => {
@@ -170,8 +173,13 @@ const promptForArguments = (params: Parameter[]): Promise<string[]> => {
             currentIndex++;
             promptNext();
           } else {
-            resolve([]); // User canceled the prompt
+            resolve(defaultArgs); // User canceled the prompt
           }
+        },
+        defaultValue,
+        (input) => {
+          // ToDo: Use the compiler's expression parser to validate the input
+          return input.trim() !== ""; // non-empty input
         },
       );
     };
@@ -202,11 +210,13 @@ const _createContextMenuItem = (
  * @param message - The message to display in the prompt
  * @param callback - The callback function to handle the user input
  * @param defaultValue - The default value to display in the input element
+ * @param validateInput - A function to validate the user input
  */
 const _createCustomPrompt = (
   message: string,
   callback: (input: string | null) => void,
   defaultValue: string = "",
+  validateInput: (input: string) => boolean = () => true,
 ) => {
   // Create the prompt overlay
   const overlay = document.createElement("div");
@@ -235,12 +245,27 @@ const _createCustomPrompt = (
   const buttonsContainer = document.createElement("div");
   buttonsContainer.classList.add("custom-prompt-buttons");
 
+  // Create the π button
+  const piButton = document.createElement("button");
+  piButton.textContent = "π";
+  piButton.classList.add("pi-button");
+  piButton.addEventListener("click", () => {
+    const cursorPosition = inputElem.selectionStart || 0;
+    const textBefore = inputElem.value.substring(0, cursorPosition);
+    const textAfter = inputElem.value.substring(cursorPosition);
+    inputElem.value = `${textBefore}π${textAfter}`;
+    inputElem.focus();
+    inputElem.setSelectionRange(cursorPosition + 1, cursorPosition + 1); // Move cursor after "π"
+    validateAndToggleOkButton();
+  });
+
   // Create the OK button
   const okButton = document.createElement("button");
   okButton.classList.add("custom-prompt-button");
   okButton.textContent = "OK";
+  okButton.disabled = !validateInput(defaultValue);
   okButton.addEventListener("click", () => {
-    callback(inputElem.value);
+    callback(inputElem.value.trim());
     document.body.removeChild(overlay);
   });
 
@@ -253,16 +278,33 @@ const _createCustomPrompt = (
     document.body.removeChild(overlay);
   });
 
-  // Append elements to the prompt container
+  // Function to validate input and toggle the OK button
+  const validateAndToggleOkButton = () => {
+    const isValid = validateInput(inputElem.value.trim());
+    okButton.disabled = !isValid;
+  };
+
+  // Add input event listener for validation
+  inputElem.addEventListener("input", validateAndToggleOkButton);
+
+  // Append buttons to the container
+  buttonsContainer.appendChild(piButton);
   buttonsContainer.appendChild(okButton);
   buttonsContainer.appendChild(cancelButton);
+
+  // Append elements to the prompt container
   promptContainer.appendChild(messageElem);
   promptContainer.appendChild(inputElem);
   promptContainer.appendChild(buttonsContainer);
+
+  // Append the prompt container to the overlay
   overlay.appendChild(promptContainer);
 
-  // Append the overlay to the body
+  // Append the overlay to the document body
   document.body.appendChild(overlay);
+
+  // Focus the input element
+  inputElem.focus();
 };
 
 export { addContextMenuToHostElem, promptForArguments };

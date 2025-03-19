@@ -351,6 +351,15 @@ const _contextMenu = `
     .context-menu-option:hover {
         background-color: #f0f0f0;
     }
+
+    .pi-button {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        text-align: center;
+        line-height: 40px;
+        font-size: 16px;
+    }
 `;
 
 const _customPromptOverlay = `
