@@ -460,26 +460,22 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
-        - task: EsrpRelease@7
+        - task: EsrpRelease@9
           condition: succeeded()
-          inputs:
-            ConnectedServiceName: 'ESRP Signing Connection'
-            KeyVaultName: 'kv-aqua-esrp-001'
-            AuthCertName: 'EsrpAuthCert'
-            SignCertName: 'EsrpSignCert'
-            ClientId: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
-            Intent: 'PackageDistribution'
-            ContentType: 'PyPi'
-            FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
-            WaitForReleaseCompletion: true
-            Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
-            Approvers: 'billti@microsoft.com'
-            # Auto-inserted Debugging defaults:
-            ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-            MainPublisher: 'ESRPRELPACMAN'                 # Default ESRP v7 publisher. Do not change.
-            DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
           displayName: Publish Py Packages
-
+          inputs:
+            connectedservicename: 'PME ESRP Azure Connection'
+            usemanagedidentity: true
+            keyvaultname: 'quantum-esrp-kv'
+            signcertname: ESRPCert
+            clientid: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
+            contenttype: PyPi
+            domaintenantid: '975f013f-7f24-47e8-a7d3-abc4752bf346'
+            folderlocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+            waitforreleasecompletion: true
+            owners: 'billti@microsoft.com'
+            approvers: 'billti@microsoft.com'
+            mainpublisher: ESRPRELPACMAN
 
       - job: "Publish_NPM_Package"
         pool:
@@ -498,22 +494,19 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/npm/qsharp/*
           displayName: Display NPM Artifacts in Publishing Dir
 
-        - task: EsrpRelease@7
+        - task: EsrpRelease@9
           condition: succeeded()
-          inputs:
-            ConnectedServiceName: 'ESRP Signing Connection'
-            KeyVaultName: 'kv-aqua-esrp-001'
-            AuthCertName: 'EsrpAuthCert'
-            SignCertName: 'EsrpSignCert'
-            ClientId: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
-            Intent: 'PackageDistribution'
-            ContentType: 'NPM'
-            FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
-            WaitForReleaseCompletion: true
-            Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
-            Approvers: 'billti@microsoft.com'
-            # Auto-inserted Debugging defaults:
-            ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-            MainPublisher: 'ESRPRELPACMAN'                 # Default ESRP v7 publisher. Do not change.
-            DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
           displayName: Publish NPM Package
+          inputs:
+            connectedservicename: 'PME ESRP Azure Connection'
+            usemanagedidentity: true
+            keyvaultname: 'quantum-esrp-kv'
+            signcertname: ESRPCert
+            clientid: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
+            contenttype: 'NPM'
+            domaintenantid: '975f013f-7f24-47e8-a7d3-abc4752bf346'
+            folderlocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
+            waitforreleasecompletion: true
+            owners: 'billti@microsoft.com'
+            approvers: 'billti@microsoft.com'
+            mainpublisher: ESRPRELPACMAN
