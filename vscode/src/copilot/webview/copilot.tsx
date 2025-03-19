@@ -17,6 +17,8 @@ import "./copilot.css";
 // Set up the Markdown renderer with KaTeX support
 import mk from "@vscode/markdown-it-katex";
 import hljs from "highlight.js/lib/core";
+import CopyButtonPlugin from "highlightjs-copy";
+import "highlightjs-copy/styles/highlightjs-copy.css";
 import python from "highlight.js/lib/languages/python";
 import markdownIt from "markdown-it";
 import { useEffect, useRef } from "preact/hooks";
@@ -36,18 +38,8 @@ const vscodeApi: WebviewApi<ChatElement[]> = acquireVsCodeApi();
 // to bloat the code
 hljs.registerLanguage("python", python);
 hljs.registerLanguage("qsharp", hlsjQsharp);
-const md = markdownIt("commonmark", {
-  highlight(str, lang) {
-    if (lang && hljs.getLanguage(lang)) {
-      try {
-        return hljs.highlight(str, { language: lang }).value;
-      } catch (__) {
-        console.error("Failed to highlight code block", __);
-      }
-    }
-    return "";
-  },
-});
+hljs.addPlugin(new CopyButtonPlugin());
+const md = markdownIt("commonmark");
 md.use(mk as any, {
   enableMathBlockInHtml: true,
   enableMathInlineInHtml: true,
@@ -248,10 +240,21 @@ function UserMessage(props: { content: string }) {
  * An assistant message in the chat history.
  */
 function AssistantMessage(props: { content: string }) {
+  // Highlight.js needs to be called on the code blocks after they are present in the
+  // DOM for the highlighjs-copy plugin to work (as it needs to add buttons to the container).
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelectorAll("pre code").forEach((block) => {
+      hljs.highlightElement(block as HTMLElement);
+    });
+  }, [props.content]);
+
   return (
     <div className="left-message-row">
       <div className="assistant-message">
-        <Markdown markdown={props.content}></Markdown>
+        <div ref={ref}>
+          <Markdown markdown={props.content}></Markdown>
+        </div>
         <div className="content-reminder">
           AI generated content may be incorrect.
         </div>
