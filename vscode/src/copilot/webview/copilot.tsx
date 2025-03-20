@@ -29,7 +29,7 @@ import {
   ShowPayload,
   ToolMessage,
 } from "./debugUi";
-import hlsjQsharp from "./hlsj-qsharp";
+import hlsjQsharp from "./hljs-qsharp";
 import { WebviewApi } from "vscode-webview";
 
 const vscodeApi: WebviewApi<ChatElement[]> = acquireVsCodeApi();

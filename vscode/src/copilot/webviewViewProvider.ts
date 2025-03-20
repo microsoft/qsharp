@@ -85,9 +85,9 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
         <html lang="en">
         <head>
         <link rel="stylesheet" href="${katexCss}" />
-        <link rel="stylesheet" href="${copilotCss}" />
         <link rel="stylesheet" href="${codiconCss}" />
         <link rel="stylesheet" href="${hljsCss}" />
+        <link rel="stylesheet" href="${copilotCss}" />
         </head>
         <body>
         <script src="${copilotJs}"></script>

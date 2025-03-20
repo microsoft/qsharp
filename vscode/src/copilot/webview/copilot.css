@@ -171,3 +171,111 @@ pre code {
 .hljs-copy-button {
   font-family: system-ui;
 }
+
+/* The below are styles to set the highlight.js colors to match the 'Modern' light and dark themes in vscode */
+/* Default colors, or theme set explicitly to light */
+:root,
+[data-vscode-theme-kind="vscode-light"],
+[data-vscode-theme-kind="vscode-high-contrast-light"] {
+  --qs-code-background: #ffffff;
+  --qs-code-default: #001080;
+  --qs-code-keyword: #af00db;
+  --qs-code-declare: #0000ff;
+  --qs-code-punctuation: #af00db;
+  --qs-code-operator: #af00db;
+  --qs-code-comments: #008000;
+  --qs-code-strings: #a31515;
+  --qs-code-numbers: #098658;
+  --qs-code-calls: #795e26;
+}
+
+/* Explicit dark theme set */
+[data-vscode-theme-kind="vscode-dark"],
+[data-vscode-theme-kind="vscode-high-contrast"] {
+  --qs-code-background: #1f1f1f;
+  --qs-code-default: #9cdcfe;
+  --qs-code-keyword: #c586c0;
+  --qs-code-declare: #569cd6;
+  --qs-code-punctuation: #c586c0;
+  --qs-code-operator: #c586c0;
+  --qs-code-comments: #6a9955;
+  --qs-code-strings: #ce9178;
+  --qs-code-numbers: #b5cea8;
+  --qs-code-calls: #dcdcaa;
+}
+
+/* Code block styles for highlight.js */
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+code.hljs {
+  padding: 3px 5px;
+}
+
+.hljs {
+  color: var(--qs-code-default);
+  background: var(--qs-code-background);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: var(--qs-code-keyword);
+}
+.hljs-punctuation {
+  color: var(--qs-code-punctuation);
+}
+.hljs-type,
+.hljs-declare {
+  color: var(--qs-code-declare);
+}
+
+.hljs-operator {
+  color: var(--qs-code-operator);
+}
+
+.hljs-title {
+  color: var(--qs-code-calls);
+}
+
+.hljs-number {
+  color: var(--qs-code-numbers);
+}
+
+.hljs-string,
+.hljs-name,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: var(--qs-code-strings);
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: var(--qs-code-comments);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-title,
+.hljs-section,
+.hljs-doctag,
+.hljs-built_in,
+.hljs-type,
+.hljs-name,
+.hljs-strong {
+  font-weight: normal;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
