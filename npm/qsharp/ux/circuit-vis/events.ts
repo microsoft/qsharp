@@ -236,6 +236,19 @@ class CircuitEvents {
     const elems = getGateElems(this.container);
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
+        // Allow dragging even when initiated on the arg-button
+        if ((ev.target as HTMLElement).classList.contains("arg-button")) {
+          // Find the sibling element with the data-wire attribute
+          const siblingWithWire = (
+            ev.target as HTMLElement
+          ).parentElement?.querySelector("[data-wire]");
+          if (siblingWithWire) {
+            const selectedWireStr = siblingWithWire.getAttribute("data-wire");
+            this.selectedWire =
+              selectedWireStr != null ? parseInt(selectedWireStr) : null;
+          }
+        }
+
         let selectedLocation = null;
         if (elem.getAttribute("data-expanded") !== "true") {
           selectedLocation = elem.getAttribute("data-location");
@@ -268,6 +281,26 @@ class CircuitEvents {
 
         this.container.classList.add("moving");
         this.dropzoneLayer.style.display = "block";
+      });
+
+      // Enable arg-button behavior
+      const argButtons = elem.querySelectorAll<SVGElement>(".arg-button");
+      argButtons.forEach((argButton) => {
+        argButton.classList.add("edit-mode");
+
+        // Add click event to trigger promptForArguments
+        argButton.addEventListener("click", async () => {
+          if (this.selectedOperation == null) return;
+          const params = this.selectedOperation.params;
+          const displayArgs = argButton.textContent || "";
+          if (params) {
+            const args = await promptForArguments(params, [displayArgs]);
+            if (args.length > 0) {
+              this.selectedOperation.args = args;
+              this.renderFn();
+            }
+          }
+        });
       });
     });
   }

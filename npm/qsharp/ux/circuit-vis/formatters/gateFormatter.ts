@@ -216,12 +216,14 @@ const _measure = (x: number, y: number): SVGElement => {
     "gate-measure",
   );
   const mArc: SVGElement = arc(x + 5, y + 2, width / 2 - 5, height / 2 - 8);
+  mArc.style.pointerEvents = "none";
   const meter: SVGElement = line(
     x + width / 2,
     y + 8,
     x + width - 8,
     y - height / 2 + 8,
   );
+  meter.style.pointerEvents = "none";
   return group([mBox, mArc, meter]);
 };
 
@@ -233,6 +235,7 @@ const _measure = (x: number, y: number): SVGElement => {
  * @param y                Array of y coords of registers acted upon by gate.
  * @param width            Width of gate.
  * @param displayArgs           Arguments passed in to gate.
+ * @param params  Non-Qubit required parameters for the unitary gate.
  * @param renderDashedLine If true, draw dashed lines between non-adjacent unitaries.
  *
  * @returns SVG representation of unitary gate.
@@ -298,8 +301,10 @@ const _unitaryBox = (
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
-    const argText: SVGElement = text(displayArgs, x, argStrY, argsFontSize);
-    elems.push(argText);
+
+    const argButton: SVGElement = text(displayArgs, x, argStrY, argsFontSize);
+    argButton.setAttribute("class", "arg-button");
+    elems.push(argButton);
   }
   return group(elems);
 };
@@ -322,6 +327,7 @@ const _swap = (metadata: Metadata, nestedDepth: number): SVGElement => {
   const bg: SVGElement = box(x1, y1, x2, y2, "gate-swap");
   const crosses: SVGElement[] = ys.map((y) => _cross(x, y));
   const vertLine: SVGElement = line(x, ys[0], x, ys[1]);
+  vertLine.style.pointerEvents = "none";
   return group([bg, ...crosses, vertLine]);
 };
 
@@ -346,8 +352,8 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
  * @returns SVG representation of the ket notation gate.
  */
 const _ket = (label: string, metadata: Metadata): SVGElement => {
-  const { x, targetsY, displayArgs, width } = metadata;
-  return _unitary(`|${label}〉`, x, targetsY as number[][], width, displayArgs);
+  const { x, targetsY, width } = metadata;
+  return _unitary(`|${label}〉`, x, targetsY as number[][], width);
 };
 
 /**
@@ -418,6 +424,7 @@ const _controlledGate = (
   const maxY: number = Math.max(...controlsY, ...(targetsY as number[]));
   const minY: number = Math.min(...controlsY, ...(targetsY as number[]));
   const vertLine: SVGElement = line(x, minY, x, maxY);
+  vertLine.style.pointerEvents = "none";
   const svg: SVGElement = _createGate(
     [vertLine, ...controlledDotsSvg, ...targetGateSvgs],
     metadata,
