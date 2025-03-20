@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::rc::Rc;
+use std::{path::Path, rc::Rc, sync::Arc};
 
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
@@ -19,6 +19,7 @@ use crate::{
         build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr, build_while_stmt,
         build_wrapped_block_expr, map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
+    io::{InMemorySourceResolver, SourceResolver},
     parser::ast::{list_from_iter, List},
     runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
@@ -35,6 +36,62 @@ use crate::{
 
 use crate::semantic::ast as semast;
 use qsc_ast::ast::{self as qsast, NodeId, Package};
+
+pub fn compile_anon_with_config<S>(
+    source: S,
+    config: CompilerConfig,
+) -> miette::Result<QasmCompileUnit>
+where
+    S: AsRef<str>,
+{
+    let path = std::path::PathBuf::from("Test.qasm");
+    let sources = [(
+        Arc::from(path.display().to_string().as_str()),
+        Arc::from(source.as_ref()),
+    )];
+    let resolver = InMemorySourceResolver::from_iter(sources);
+    let source = resolver.resolve(&path)?.1;
+    compile_with_config(source, &path, &resolver, config)
+}
+
+pub fn compile_all_with_config<P>(
+    path: P,
+    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
+    config: CompilerConfig,
+) -> miette::Result<QasmCompileUnit>
+where
+    P: AsRef<Path>,
+{
+    let resolver = InMemorySourceResolver::from_iter(sources);
+    let source = resolver.resolve(path.as_ref())?.1;
+    compile_with_config(source, path, &resolver, config)
+}
+
+pub fn compile_with_config<S, P, R>(
+    source: S,
+    path: P,
+    resolver: &R,
+    config: CompilerConfig,
+) -> miette::Result<QasmCompileUnit>
+where
+    S: AsRef<str>,
+    P: AsRef<Path>,
+    R: SourceResolver,
+{
+    let res = crate::semantic::parse_source(source, path, resolver)?;
+    let program = res.program;
+
+    let compiler = crate::compiler::QasmCompiler {
+        source_map: res.source_map,
+        config,
+        stmts: vec![],
+        runtime: RuntimeFunctions::empty(),
+        symbols: res.symbols,
+        errors: res.errors,
+    };
+
+    Ok(compiler.compile(&program))
+}
 
 pub struct QasmCompiler {
     /// The source map of QASM sources for error reporting.
