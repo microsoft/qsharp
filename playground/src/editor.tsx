@@ -250,7 +250,6 @@ export function Editor(props: {
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
-      automaticLayout: true,
     });
 
     editor.current = newEditor;
