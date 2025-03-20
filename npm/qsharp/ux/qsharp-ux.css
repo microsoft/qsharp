@@ -121,6 +121,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   transition: transform 0.3s ease-in-out;
   max-height: 100%;
   overflow-y: auto;
+  z-index: 2;
 }
 
 .nav-column.closed {
