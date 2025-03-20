@@ -66,7 +66,7 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
     "header header header"
     "nav editor results";
   grid-template-rows: auto 1fr;
-  grid-template-columns: minmax(180px, auto) 8fr 8fr;
+  grid-template-columns: minmax(0, auto) 8fr 8fr;
   column-gap: 16px;
   transition: grid-template-columns 0.3s ease-in-out;
 }
