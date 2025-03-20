@@ -35,7 +35,7 @@ import { WebviewApi } from "vscode-webview";
 
 const vscodeApi: WebviewApi<ChatElement[]> = acquireVsCodeApi();
 
-// Only include the Python and Q# languages so as not
+// Only include a small set of languages so as not
 // to bloat the code
 hljs.registerLanguage("python", python);
 hljs.registerLanguage("bash", bash);
