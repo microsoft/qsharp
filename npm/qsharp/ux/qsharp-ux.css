@@ -97,6 +97,10 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
   padding-right: 16px;
 }
 
+.title-header {
+  flex-grow: 1;
+}
+
 #popup {
   position: absolute;
   display: none;

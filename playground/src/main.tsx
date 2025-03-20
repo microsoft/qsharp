@@ -182,7 +182,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             />
           </svg>
         </div>
-        <div style={{flexGrow: '1'}}>Q# playground</div>
+        <div class="title-header">Q# playground</div>
       </header>
       <div
         class={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
