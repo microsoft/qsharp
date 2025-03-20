@@ -26,7 +26,7 @@ use super::{
         list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
         GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet, IndexSetItem,
         IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit, TypeDef,
-        UnaryOp, UnaryOpExpr, ValueExpression, Version,
+        UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
     completion::WordKinds,
     error::{Error, ErrorKind},
@@ -708,9 +708,11 @@ fn lit_array_element(s: &mut ParserContext) -> Result<Expr> {
     lit_array(s)
 }
 
-pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> {
+/// These are expressions allowed in classical declarations.
+/// Grammar: `arrayLiteral | expression | measureExpression`.
+pub(super) fn declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
     if let Some(measurement) = opt(s, measure_expr)? {
-        return Ok(Box::new(ValueExpression::Measurement(measurement)));
+        return Ok(ValueExpr::Measurement(measurement));
     }
 
     let expr = if let Some(expr) = opt(s, expr)? {
@@ -719,7 +721,17 @@ pub(super) fn value_expr(s: &mut ParserContext) -> Result<Box<ValueExpression>> 
         lit_array(s)?
     };
 
-    Ok(Box::new(ValueExpression::Expr(expr)))
+    Ok(ValueExpr::Expr(expr))
+}
+
+/// These are expressions allowed in `Assign`, `AssignOp`, and return stmts.
+/// Grammar: `expression | measureExpression`.
+pub(super) fn expr_or_measurement(s: &mut ParserContext) -> Result<ValueExpr> {
+    if let Some(measurement) = opt(s, measure_expr)? {
+        return Ok(ValueExpr::Measurement(measurement));
+    }
+
+    Ok(ValueExpr::Expr(expr(s)?))
 }
 
 pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {

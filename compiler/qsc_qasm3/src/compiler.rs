@@ -12,12 +12,15 @@ use crate::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
         build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
         build_convert_call_expr, build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
-        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-        build_math_call_from_exprs, build_math_call_no_params, build_operation_with_stmts,
-        build_path_ident_expr, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
-        build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr, build_while_stmt,
-        build_wrapped_block_expr, map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
+        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
+        build_operation_with_stmts, build_path_ident_expr, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_item, build_tuple_expr,
+        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
+        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
     io::{InMemorySourceResolver, SourceResolver},
     parser::ast::{list_from_iter, List},
@@ -32,6 +35,7 @@ use crate::{
         SemanticErrorKind,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
+    QubitSemantics,
 };
 
 use crate::semantic::ast as semast;
@@ -377,8 +381,7 @@ impl QasmCompiler {
     }
 
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
-        let symbol = &self.symbols[stmt.symbol_id];
-        let symbol = symbol.clone();
+        let symbol = self.symbols[stmt.symbol_id].clone();
         let name = &symbol.name;
 
         let stmt_span = stmt.span;
@@ -394,6 +397,39 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::IndexedAssignStmt,
     ) -> Option<qsast::Stmt> {
+        let symbol = self.symbols[stmt.symbol_id].clone();
+
+        let indices: Vec<_> = stmt
+            .indices
+            .iter()
+            .filter_map(|elem| self.compile_index_element(elem))
+            .collect();
+
+        let rhs = self.compile_expr(&stmt.rhs);
+
+        if stmt.indices.len() != 1 {
+            self.push_unimplemented_error_message(
+                "multi-dimensional array index expressions",
+                stmt.span,
+            );
+            return None;
+        }
+
+        if indices.len() != stmt.indices.len() {
+            return None;
+        }
+
+        // Use the `?` operator after compiling checking all other errors.
+        let (rhs, index_expr) = (rhs?, indices[0].clone());
+
+        let stmt = build_indexed_assignment_statement(
+            symbol.span,
+            symbol.name.clone(),
+            index_expr,
+            rhs,
+            stmt.span,
+        );
+
         self.push_unimplemented_error_message("indexed assignment statements", stmt.span);
         None
     }
@@ -453,18 +489,10 @@ impl QasmCompiler {
         let qsharp_ty = &symbol.qsharp_ty;
         let expr = decl.init_expr.as_ref();
 
-        let stmt = match expr {
-            semast::ValueExpression::Expr(expr) => {
-                let expr = self.compile_expr(expr)?;
-                build_classical_decl(
-                    name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
-                )
-            }
-            semast::ValueExpression::Measurement(expr) => {
-                let expr = self.compile_measure_expr(expr)?;
-                build_stmt_semi_from_expr_with_span(expr, decl.span)
-            }
-        };
+        let expr = self.compile_expr(expr)?;
+        let stmt = build_classical_decl(
+            name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
+        );
 
         Some(stmt)
     }
@@ -584,8 +612,33 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::QubitDeclaration,
     ) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("quantum decl statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = &symbol.name;
+        let name_span = symbol.span;
+
+        let stmt = match self.config.qubit_semantics {
+            QubitSemantics::QSharp => {
+                if let Some((size, designator_span)) = stmt.size {
+                    managed_qubit_alloc_array(name, size, stmt.span, name_span, designator_span)
+                } else {
+                    build_managed_qubit_alloc(name, stmt.span, name_span)
+                }
+            }
+            QubitSemantics::Qiskit => {
+                if let Some((size, designator_span)) = stmt.size {
+                    build_unmanaged_qubit_alloc_array(
+                        name,
+                        size,
+                        stmt.span,
+                        name_span,
+                        designator_span,
+                    )
+                } else {
+                    build_unmanaged_qubit_alloc(name, stmt.span, name_span)
+                }
+            }
+        };
+        Some(stmt)
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
@@ -650,6 +703,7 @@ impl QasmCompiler {
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
+            semast::ExprKind::Measure(expr) => self.compile_measure_expr(expr),
         }
     }
 
@@ -837,6 +891,14 @@ impl QasmCompiler {
     }
 
     fn compile_index_set(&mut self, set: &IndexSet) -> Option<qsast::Expr> {
+        // This is a temporary limitation. We can only handle
+        // single index expressions for now.
+        if set.values.len() == 1 {
+            if let semast::IndexSetItem::Expr(expr) = &*set.values[0] {
+                return self.compile_expr(expr);
+            }
+        }
+
         self.push_unimplemented_error_message("index set expressions", set.span);
         None
     }

@@ -204,7 +204,7 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
     let lo = indexed_ident.span.lo;
     if s.peek().kind == TokenKind::Eq {
         s.advance();
-        let expr = expr::expr(s)?;
+        let expr = expr::expr_or_measurement(s)?;
         recovering_semi(s);
         Ok(StmtKind::Assign(AssignStmt {
             span: s.span(lo),
@@ -214,7 +214,7 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
         s.advance();
         let op = expr::closed_bin_op(op);
-        let expr = expr::expr(s)?;
+        let expr = expr::expr_or_measurement(s)?;
         recovering_semi(s);
         Ok(StmtKind::AssignOp(AssignOpStmt {
             span: s.span(lo),
@@ -631,7 +631,7 @@ fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<Ident>> {
 fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Return))?;
-    let expr = opt(s, expr::value_expr)?;
+    let expr = opt(s, expr::expr_or_measurement)?.map(Box::new);
     recovering_semi(s);
     Ok(StmtKind::Return(ReturnStmt {
         span: s.span(lo),
@@ -643,11 +643,13 @@ fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
 fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     let size = qubit_type(s)?;
+    let ty_span = s.span(lo);
     let ident = prim::ident(s)?;
 
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
+        ty_span,
         qubit: ident,
         size,
     }))
@@ -714,7 +716,7 @@ fn parse_non_constant_classical_decl(
     let identifier = prim::ident(s)?;
     let init_expr = if s.peek().kind == TokenKind::Eq {
         s.advance();
-        Some(expr::value_expr(s)?)
+        Some(Box::new(expr::declaration_expr(s)?))
     } else {
         None
     };
@@ -736,7 +738,7 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let ty = scalar_or_array_type(s)?;
     let identifier = Box::new(prim::ident(s)?);
     token(s, TokenKind::Eq)?;
-    let init_expr = expr::expr(s)?;
+    let init_expr = expr::declaration_expr(s)?;
     recovering_semi(s);
     let decl = ConstantDeclStmt {
         span: s.span(lo),
@@ -878,6 +880,7 @@ fn qreg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
+        ty_span: s.span(lo),
         qubit: identifier,
         size,
     }))

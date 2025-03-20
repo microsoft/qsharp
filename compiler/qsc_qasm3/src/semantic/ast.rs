@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod const_eval;
+
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
@@ -1001,15 +1003,15 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Box<Ident>,
-    pub size: Option<Expr>,
+    pub symbol_id: SymbolId,
+    pub size: Option<(u32, Span)>,
 }
 
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "QubitDeclaration", self.span)?;
-        writeln_field(f, "ident", &self.qubit)?;
-        write_opt_field(f, "size", self.size.as_ref())
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        write_opt_field(f, "size", self.size.map(|s| s.0).as_ref())
     }
 }
 
@@ -1139,7 +1141,7 @@ pub struct ClassicalDeclarationStmt {
     pub span: Span,
     pub ty_span: Span,
     pub symbol_id: SymbolId,
-    pub init_expr: Box<ValueExpression>,
+    pub init_expr: Box<Expr>,
 }
 
 impl Display for ClassicalDeclarationStmt {
@@ -1148,21 +1150,6 @@ impl Display for ClassicalDeclarationStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", self.init_expr.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum ValueExpression {
-    Expr(Expr),
-    Measurement(MeasureExpr),
-}
-
-impl Display for ValueExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ValueExpression::Expr(expr) => write!(f, "{expr}"),
-            ValueExpression::Measurement(measure) => write!(f, "{measure}"),
-        }
     }
 }
 
@@ -1320,7 +1307,7 @@ impl Display for DefStmt {
 #[derive(Clone, Debug)]
 pub struct ReturnStmt {
     pub span: Span,
-    pub expr: Option<Box<ValueExpression>>,
+    pub expr: Option<Box<Expr>>,
 }
 
 impl Display for ReturnStmt {
@@ -1428,6 +1415,7 @@ pub enum ExprKind {
     Cast(Cast),
     IndexExpr(IndexExpr),
     Paren(Expr),
+    Measure(MeasureExpr),
 }
 
 impl Display for ExprKind {
@@ -1443,6 +1431,7 @@ impl Display for ExprKind {
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
+            ExprKind::Measure(expr) => write!(f, "{expr}"),
         }
     }
 }
@@ -1468,7 +1457,7 @@ impl Display for AssignStmt {
 pub struct IndexedAssignStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub lhs: Expr,
+    pub indices: List<IndexElement>,
     pub rhs: Expr,
 }
 

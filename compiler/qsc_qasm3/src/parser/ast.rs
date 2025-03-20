@@ -991,6 +991,7 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
+    pub ty_span: Span,
     pub qubit: Ident,
     pub size: Option<Expr>,
 }
@@ -1129,7 +1130,7 @@ pub struct ClassicalDeclarationStmt {
     pub span: Span,
     pub ty: Box<TypeDef>,
     pub identifier: Ident,
-    pub init_expr: Option<Box<ValueExpression>>,
+    pub init_expr: Option<Box<ValueExpr>>,
 }
 
 impl Display for ClassicalDeclarationStmt {
@@ -1142,16 +1143,16 @@ impl Display for ClassicalDeclarationStmt {
 }
 
 #[derive(Clone, Debug)]
-pub enum ValueExpression {
+pub enum ValueExpr {
     Expr(Expr),
     Measurement(MeasureExpr),
 }
 
-impl Display for ValueExpression {
+impl Display for ValueExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ValueExpression::Expr(expr) => write!(f, "{expr}"),
-            ValueExpression::Measurement(measure) => write!(f, "{measure}"),
+            Self::Expr(expr) => write!(f, "{expr}"),
+            Self::Measurement(measure) => write!(f, "{measure}"),
         }
     }
 }
@@ -1178,7 +1179,7 @@ pub struct ConstantDeclStmt {
     pub span: Span,
     pub ty: TypeDef,
     pub identifier: Box<Ident>,
-    pub init_expr: Expr,
+    pub init_expr: ValueExpr,
 }
 
 impl Display for ConstantDeclStmt {
@@ -1339,7 +1340,7 @@ impl Display for DefStmt {
 #[derive(Clone, Debug)]
 pub struct ReturnStmt {
     pub span: Span,
-    pub expr: Option<Box<ValueExpression>>,
+    pub expr: Option<Box<ValueExpr>>,
 }
 
 impl Display for ReturnStmt {
@@ -1470,7 +1471,7 @@ impl Display for ExprKind {
 pub struct AssignStmt {
     pub span: Span,
     pub lhs: IndexedIdent,
-    pub rhs: Expr,
+    pub rhs: ValueExpr,
 }
 
 impl Display for AssignStmt {
@@ -1486,7 +1487,7 @@ pub struct AssignOpStmt {
     pub span: Span,
     pub op: BinOp,
     pub lhs: IndexedIdent,
-    pub rhs: Expr,
+    pub rhs: ValueExpr,
 }
 
 impl Display for AssignOpStmt {

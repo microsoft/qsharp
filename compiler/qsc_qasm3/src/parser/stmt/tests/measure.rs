@@ -103,3 +103,20 @@ fn measure_arrow_into_indented_ident() {
                                     Expr [15-16]: Lit: Int(1)"#]],
     );
 }
+
+#[test]
+fn assign_measure_stmt() {
+    check(parse, "c = measure q;", &expect![[r#"
+        Stmt [0-14]:
+            annotations: <empty>
+            kind: AssignStmt [0-14]:
+                lhs: IndexedIdent [0-1]:
+                    name: Ident [0-1] "c"
+                    index_span: [0-0]
+                    indices: <empty>
+                rhs: MeasureExpr [4-11]:
+                    operand: IndexedIdent [12-13]:
+                        name: Ident [12-13] "q"
+                        index_span: [0-0]
+                        indices: <empty>"#]]);
+}
