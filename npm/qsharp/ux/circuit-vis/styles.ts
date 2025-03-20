@@ -388,20 +388,26 @@ const _customPromptOverlay = `
         border-radius: 5px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         text-align: center;
+        width: 400px;
+        max-width: 90%;
     }
 
     .custom-prompt-message {
         margin-bottom: 10px;
         color: var(--vscode-editor-foreground, #000000);
+        font-size: 1rem;
     }
 
     .custom-prompt-input {
         width: 100%;
-        padding: 5px;
+        padding: 8px;
         margin-bottom: 10px;
         background: var(--vscode-input-background, #ffffff);
         color: var(--vscode-input-foreground, #000000);
         border: 1px solid var(--vscode-input-border, #cccccc);
+        font-size: 1rem;
+        border-radius: 4px;
+        box-sizing: border-box;
     }
 
     .custom-prompt-buttons {
@@ -410,12 +416,14 @@ const _customPromptOverlay = `
     }
 
     .custom-prompt-button {
-        padding: 5px 10px;
+        padding: 8px 16px;
         margin: 0 5px;
         background: var(--vscode-button-background, #007acc);
         color: var(--vscode-button-foreground, #ffffff);
         border: 1px solid var(--vscode-button-border, #005a9e);
         cursor: pointer;
+        front-size: 1rem;
+        border-radius: 4px;
     }
 
     .custom-prompt-button:hover {
@@ -423,10 +431,10 @@ const _customPromptOverlay = `
     }
 
     .custom-prompt-button:disabled {
-        background: var(--vscode-button-secondaryBackground, #d4d4d4); /* Disabled background */
-        color: var(--vscode-disabledForeground, #a1a1a1); /* Disabled text color */
-        border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4); /* Disabled border */
-        cursor: not-allowed; /* Show not-allowed cursor */
+        background: var(--vscode-button-secondaryBackground, #d4d4d4);
+        color: var(--vscode-disabledForeground, #a1a1a1);
+        border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
+        cursor: not-allowed;
     }
 
     .pi-button {

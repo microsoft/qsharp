@@ -181,6 +181,7 @@ const promptForArguments = (
           // ToDo: Use the compiler's expression parser to validate the input
           return input.trim() !== ""; // non-empty input
         },
+        'Examples: "2.0 * π" or "π / 2.0"',
       );
     };
 
@@ -211,12 +212,14 @@ const _createContextMenuItem = (
  * @param callback - The callback function to handle the user input
  * @param defaultValue - The default value to display in the input element
  * @param validateInput - A function to validate the user input
+ * @param placeholder - The placeholder text for the input element
  */
 const _createCustomPrompt = (
   message: string,
   callback: (input: string | null) => void,
   defaultValue: string = "",
   validateInput: (input: string) => boolean = () => true,
+  placeholder: string = "",
 ) => {
   // Create the prompt overlay
   const overlay = document.createElement("div");
@@ -240,6 +243,7 @@ const _createCustomPrompt = (
   inputElem.classList.add("custom-prompt-input");
   inputElem.type = "text";
   inputElem.value = defaultValue;
+  inputElem.placeholder = placeholder;
 
   // Create the buttons container
   const buttonsContainer = document.createElement("div");
