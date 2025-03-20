@@ -248,7 +248,7 @@ const _createCustomPrompt = (
   // Create the π button
   const piButton = document.createElement("button");
   piButton.textContent = "π";
-  piButton.classList.add("pi-button");
+  piButton.classList.add("pi-button", "custom-prompt-button");
   piButton.addEventListener("click", () => {
     const cursorPosition = inputElem.selectionStart || 0;
     const textBefore = inputElem.value.substring(0, cursorPosition);

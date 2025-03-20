@@ -259,7 +259,7 @@ const _draggable = `
         stroke-opacity: 0%;
     }
     .dropzone:hover {
-        fill: #EC7063;
+        fill: var(--vscode-editor-selectionBackground, #EC7063);
         fill-opacity: 50%;
     }
     .dropzone-full-wire {
@@ -267,7 +267,7 @@ const _draggable = `
         stroke-opacity: 0%;
     }
     .dropzone-full-wire:hover {
-        fill: #EC7063;
+        fill: var(--vscode-editor-selectionBackground, #EC7063);
         fill-opacity: 50%;
     }
     .grab {
@@ -328,14 +328,26 @@ const _panel = `
         cursor: pointer;
         font-size: 14px;
         user-select: none;
+        background: var(--vscode-button-background, #007acc);
+        color: var(--vscode-button-foreground, #ffffff);
+        border: 1px solid var(--vscode-button-border, #005a9e);
+    }
+    .add-qubit-line:hover, .remove-qubit-line:hover {
+        background: var(--vscode-button-hoverBackground, #005a9e);
+    }
+    .add-qubit-line:disabled, .remove-qubit-line:disabled {
+        background: var(--vscode-button-secondaryBackground, #d4d4d4);
+        color: var(--vscode-disabledForeground, #a1a1a1);
+        border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
+        cursor: not-allowed;
     }
 `;
 
 const _contextMenu = `
     .context-menu {
         position: absolute;
-        background-color: white;
-        border: 1px solid #ccc;
+        background-color: var(--vscode-menu-background, #ffffff);
+        border: 1px solid var(--vscode-menu-border, #cccccc);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         z-index: 1000;
         padding: 5px 0;
@@ -346,19 +358,12 @@ const _contextMenu = `
         padding: 8px 12px;
         cursor: pointer;
         white-space: nowrap;
+        color: var(--vscode-menu-foreground, #000000);
     }
 
     .context-menu-option:hover {
-        background-color: #f0f0f0;
-    }
-
-    .pi-button {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        text-align: center;
-        line-height: 40px;
-        font-size: 16px;
+        background-color: var(--vscode-menu-selectionBackground, #f0f0f0);
+        color: var(--vscode-menu-selectionForeground, #000000);
     }
 `;
 
@@ -377,7 +382,8 @@ const _customPromptOverlay = `
     }
 
     .custom-prompt-container {
-        background: white;
+        background: var(--vscode-editor-background, #ffffff);
+        color: var(--vscode-editor-foreground, #000000);
         padding: 20px;
         border-radius: 5px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -386,12 +392,16 @@ const _customPromptOverlay = `
 
     .custom-prompt-message {
         margin-bottom: 10px;
+        color: var(--vscode-editor-foreground, #000000);
     }
 
     .custom-prompt-input {
         width: 100%;
         padding: 5px;
         margin-bottom: 10px;
+        background: var(--vscode-input-background, #ffffff);
+        color: var(--vscode-input-foreground, #000000);
+        border: 1px solid var(--vscode-input-border, #cccccc);
     }
 
     .custom-prompt-buttons {
@@ -402,5 +412,29 @@ const _customPromptOverlay = `
     .custom-prompt-button {
         padding: 5px 10px;
         margin: 0 5px;
+        background: var(--vscode-button-background, #007acc);
+        color: var(--vscode-button-foreground, #ffffff);
+        border: 1px solid var(--vscode-button-border, #005a9e);
+        cursor: pointer;
+    }
+
+    .custom-prompt-button:hover {
+        background: var(--vscode-button-hoverBackground, #005a9e);
+    }
+
+    .custom-prompt-button:disabled {
+        background: var(--vscode-button-secondaryBackground, #d4d4d4); /* Disabled background */
+        color: var(--vscode-disabledForeground, #a1a1a1); /* Disabled text color */
+        border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4); /* Disabled border */
+        cursor: not-allowed; /* Show not-allowed cursor */
+    }
+
+    .pi-button {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        text-align: center;
+        line-height: 40px;
+        font-size: 16px;
     }
 `;
