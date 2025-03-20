@@ -113,6 +113,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
+  const [sidebar, setSidebar] = useState(true);
+
+  const toggleSidebar = () => setSidebar(!sidebar);
+
   const onRestartCompiler = () => {
     compiler.terminate();
     const newCompiler = createCompiler(setCompilerState);
@@ -159,14 +163,39 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-      <header class="page-header">Q# playground</header>
-      <Nav
-        selected={currentNavItem}
-        navSelected={onNavItemSelected}
-        katas={kataTitles}
-        samples={sampleTitles}
-        namespaces={getNamespaces(documentation)}
-      ></Nav>
+      <header class="page-header">
+        <div class="icon-row">
+          <svg
+            onClick={toggleSidebar}
+            width="32px"
+            height="32px"
+            viewBox="0 0 24 16"
+            fill="none"
+          >
+            <title>Menu</title>
+            <path
+              d="M4 6H20M4 12H20M4 18H20"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div class="title-header">Q# playground</div>
+      </header>
+      <div
+        class={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
+      >
+        <Nav
+          selected={currentNavItem}
+          navSelected={onNavItemSelected}
+          katas={kataTitles}
+          samples={sampleTitles}
+          namespaces={getNamespaces(documentation)}
+          sidebarOpen={sidebar}
+        ></Nav>
+      </div>
       {sampleCode ? (
         <>
           <Editor
