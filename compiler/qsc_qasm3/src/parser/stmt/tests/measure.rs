@@ -13,12 +13,13 @@ fn measure_identifier() {
         &expect![[r#"
             Stmt [0-10]:
                 annotations: <empty>
-                kind: MeasureStmt [0-10]:
-                    measurement: MeasureExpr [0-7]:
-                        operand: IndexedIdent [8-9]:
-                            name: Ident [8-9] "q"
-                            index_span: [0-0]
-                            indices: <empty>
+                kind: MeasureArrowStmt [0-10]:
+                    measurement: MeasureExpr [0-9]:
+                        operand: GateOperand [8-9]:
+                            kind: IndexedIdent [8-9]:
+                                name: Ident [8-9] "q"
+                                index_span: [0-0]
+                                indices: <empty>
                     target: <none>"#]],
     );
 }
@@ -31,15 +32,16 @@ fn measure_indented_ident() {
         &expect![[r#"
             Stmt [0-13]:
                 annotations: <empty>
-                kind: MeasureStmt [0-13]:
-                    measurement: MeasureExpr [0-7]:
-                        operand: IndexedIdent [8-12]:
-                            name: Ident [8-9] "q"
-                            index_span: [9-12]
-                            indices:
-                                IndexSet [10-11]:
-                                    values:
-                                        Expr [10-11]: Lit: Int(2)
+                kind: MeasureArrowStmt [0-13]:
+                    measurement: MeasureExpr [0-12]:
+                        operand: GateOperand [8-12]:
+                            kind: IndexedIdent [8-12]:
+                                name: Ident [8-9] "q"
+                                index_span: [9-12]
+                                indices:
+                                    IndexSet [10-11]:
+                                        values:
+                                            Expr [10-11]: Lit: Int(2)
                     target: <none>"#]],
     );
 }
@@ -52,9 +54,10 @@ fn measure_hardware_qubit() {
         &expect![[r#"
             Stmt [0-12]:
                 annotations: <empty>
-                kind: MeasureStmt [0-12]:
-                    measurement: MeasureExpr [0-7]:
-                        operand: HardwareQubit [8-11]: 42
+                kind: MeasureArrowStmt [0-12]:
+                    measurement: MeasureExpr [0-11]:
+                        operand: GateOperand [8-11]:
+                            kind: HardwareQubit [8-11]: 42
                     target: <none>"#]],
     );
 }
@@ -67,12 +70,13 @@ fn measure_arrow_into_ident() {
         &expect![[r#"
             Stmt [0-15]:
                 annotations: <empty>
-                kind: MeasureStmt [0-15]:
-                    measurement: MeasureExpr [0-7]:
-                        operand: IndexedIdent [8-9]:
-                            name: Ident [8-9] "q"
-                            index_span: [0-0]
-                            indices: <empty>
+                kind: MeasureArrowStmt [0-15]:
+                    measurement: MeasureExpr [0-9]:
+                        operand: GateOperand [8-9]:
+                            kind: IndexedIdent [8-9]:
+                                name: Ident [8-9] "q"
+                                index_span: [0-0]
+                                indices: <empty>
                     target: IndexedIdent [13-14]:
                         name: Ident [13-14] "a"
                         index_span: [0-0]
@@ -88,12 +92,13 @@ fn measure_arrow_into_indented_ident() {
         &expect![[r#"
             Stmt [0-18]:
                 annotations: <empty>
-                kind: MeasureStmt [0-18]:
-                    measurement: MeasureExpr [0-7]:
-                        operand: IndexedIdent [8-9]:
-                            name: Ident [8-9] "q"
-                            index_span: [0-0]
-                            indices: <empty>
+                kind: MeasureArrowStmt [0-18]:
+                    measurement: MeasureExpr [0-9]:
+                        operand: GateOperand [8-9]:
+                            kind: IndexedIdent [8-9]:
+                                name: Ident [8-9] "q"
+                                index_span: [0-0]
+                                indices: <empty>
                     target: IndexedIdent [13-17]:
                         name: Ident [13-14] "a"
                         index_span: [14-17]
@@ -106,7 +111,10 @@ fn measure_arrow_into_indented_ident() {
 
 #[test]
 fn assign_measure_stmt() {
-    check(parse, "c = measure q;", &expect![[r#"
+    check(
+        parse,
+        "c = measure q;",
+        &expect![[r#"
         Stmt [0-14]:
             annotations: <empty>
             kind: AssignStmt [0-14]:
@@ -114,9 +122,11 @@ fn assign_measure_stmt() {
                     name: Ident [0-1] "c"
                     index_span: [0-0]
                     indices: <empty>
-                rhs: MeasureExpr [4-11]:
-                    operand: IndexedIdent [12-13]:
-                        name: Ident [12-13] "q"
-                        index_span: [0-0]
-                        indices: <empty>"#]]);
+                rhs: MeasureExpr [4-13]:
+                    operand: GateOperand [12-13]:
+                        kind: IndexedIdent [12-13]:
+                            name: Ident [12-13] "q"
+                            index_span: [0-0]
+                            indices: <empty>"#]],
+    );
 }

@@ -78,31 +78,32 @@ fn pow_with_two_args() {
         parse,
         "pow(2, 3) @ x $0;",
         &expect![[r#"
-        Stmt [0-17]:
-            annotations: <empty>
-            kind: GateCall [0-17]:
-                modifiers:
-                    QuantumGateModifier [0-11]: Pow Expr [4-5]: Lit: Int(2)
-                name: Ident [12-13] "x"
-                args: <empty>
-                duration: <none>
-                qubits:
-                    HardwareQubit [14-16]: 0
+            Stmt [0-17]:
+                annotations: <empty>
+                kind: GateCall [0-17]:
+                    modifiers:
+                        QuantumGateModifier [0-11]: Pow Expr [4-5]: Lit: Int(2)
+                    name: Ident [12-13] "x"
+                    args: <empty>
+                    duration: <none>
+                    qubits:
+                        GateOperand [14-16]:
+                            kind: HardwareQubit [14-16]: 0
 
-        [
-            Error(
-                Token(
-                    Close(
-                        Paren,
+            [
+                Error(
+                    Token(
+                        Close(
+                            Paren,
+                        ),
+                        Comma,
+                        Span {
+                            lo: 5,
+                            hi: 6,
+                        },
                     ),
-                    Comma,
-                    Span {
-                        lo: 5,
-                        hi: 6,
-                    },
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 
@@ -112,32 +113,34 @@ fn ctrl_with_two_args() {
         parse,
         "ctrl(2, 3) @ x $0, $1;",
         &expect![[r#"
-        Stmt [0-22]:
-            annotations: <empty>
-            kind: GateCall [0-22]:
-                modifiers:
-                    QuantumGateModifier [0-12]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
-                name: Ident [13-14] "x"
-                args: <empty>
-                duration: <none>
-                qubits:
-                    HardwareQubit [15-17]: 0
-                    HardwareQubit [19-21]: 1
+            Stmt [0-22]:
+                annotations: <empty>
+                kind: GateCall [0-22]:
+                    modifiers:
+                        QuantumGateModifier [0-12]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
+                    name: Ident [13-14] "x"
+                    args: <empty>
+                    duration: <none>
+                    qubits:
+                        GateOperand [15-17]:
+                            kind: HardwareQubit [15-17]: 0
+                        GateOperand [19-21]:
+                            kind: HardwareQubit [19-21]: 1
 
-        [
-            Error(
-                Token(
-                    Close(
-                        Paren,
+            [
+                Error(
+                    Token(
+                        Close(
+                            Paren,
+                        ),
+                        Comma,
+                        Span {
+                            lo: 6,
+                            hi: 7,
+                        },
                     ),
-                    Comma,
-                    Span {
-                        lo: 6,
-                        hi: 7,
-                    },
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 
@@ -147,32 +150,34 @@ fn negctrl_with_two_args() {
         parse,
         "negctrl(2, 3) @ x $0, $1;",
         &expect![[r#"
-        Stmt [0-25]:
-            annotations: <empty>
-            kind: GateCall [0-25]:
-                modifiers:
-                    QuantumGateModifier [0-15]: NegCtrl Some(Expr { span: Span { lo: 8, hi: 9 }, kind: Lit(Lit { span: Span { lo: 8, hi: 9 }, kind: Int(2) }) })
-                name: Ident [16-17] "x"
-                args: <empty>
-                duration: <none>
-                qubits:
-                    HardwareQubit [18-20]: 0
-                    HardwareQubit [22-24]: 1
+            Stmt [0-25]:
+                annotations: <empty>
+                kind: GateCall [0-25]:
+                    modifiers:
+                        QuantumGateModifier [0-15]: NegCtrl Some(Expr { span: Span { lo: 8, hi: 9 }, kind: Lit(Lit { span: Span { lo: 8, hi: 9 }, kind: Int(2) }) })
+                    name: Ident [16-17] "x"
+                    args: <empty>
+                    duration: <none>
+                    qubits:
+                        GateOperand [18-20]:
+                            kind: HardwareQubit [18-20]: 0
+                        GateOperand [22-24]:
+                            kind: HardwareQubit [22-24]: 1
 
-        [
-            Error(
-                Token(
-                    Close(
-                        Paren,
+            [
+                Error(
+                    Token(
+                        Close(
+                            Paren,
+                        ),
+                        Comma,
+                        Span {
+                            lo: 9,
+                            hi: 10,
+                        },
                     ),
-                    Comma,
-                    Span {
-                        lo: 9,
-                        hi: 10,
-                    },
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 
@@ -182,32 +187,34 @@ fn inv_with_arg() {
         parse,
         "inv(1) @ ctrl @ x $0, $1;",
         &expect![[r#"
-        Stmt [0-25]:
-            annotations: <empty>
-            kind: GateCall [0-25]:
-                modifiers:
-                    QuantumGateModifier [0-8]: Inv
-                    QuantumGateModifier [9-15]: Ctrl None
-                name: Ident [16-17] "x"
-                args: <empty>
-                duration: <none>
-                qubits:
-                    HardwareQubit [18-20]: 0
-                    HardwareQubit [22-24]: 1
+            Stmt [0-25]:
+                annotations: <empty>
+                kind: GateCall [0-25]:
+                    modifiers:
+                        QuantumGateModifier [0-8]: Inv
+                        QuantumGateModifier [9-15]: Ctrl None
+                    name: Ident [16-17] "x"
+                    args: <empty>
+                    duration: <none>
+                    qubits:
+                        GateOperand [18-20]:
+                            kind: HardwareQubit [18-20]: 0
+                        GateOperand [22-24]:
+                            kind: HardwareQubit [22-24]: 1
 
-        [
-            Error(
-                Token(
-                    At,
-                    Open(
-                        Paren,
+            [
+                Error(
+                    Token(
+                        At,
+                        Open(
+                            Paren,
+                        ),
+                        Span {
+                            lo: 3,
+                            hi: 4,
+                        },
                     ),
-                    Span {
-                        lo: 3,
-                        hi: 4,
-                    },
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }

@@ -1146,8 +1146,9 @@ fn measure_hardware_qubit() {
         super::measure_expr,
         "measure $12",
         &expect![[r#"
-            MeasureExpr [0-7]:
-                operand: HardwareQubit [8-11]: 12"#]],
+            MeasureExpr [0-11]:
+                operand: GateOperand [8-11]:
+                    kind: HardwareQubit [8-11]: 12"#]],
     );
 }
 
@@ -1157,17 +1158,18 @@ fn measure_indexed_identifier() {
         super::measure_expr,
         "measure qubits[1][2]",
         &expect![[r#"
-            MeasureExpr [0-7]:
-                operand: IndexedIdent [8-20]:
-                    name: Ident [8-14] "qubits"
-                    index_span: [14-20]
-                    indices:
-                        IndexSet [15-16]:
-                            values:
-                                Expr [15-16]: Lit: Int(1)
-                        IndexSet [18-19]:
-                            values:
-                                Expr [18-19]: Lit: Int(2)"#]],
+            MeasureExpr [0-20]:
+                operand: GateOperand [8-20]:
+                    kind: IndexedIdent [8-20]:
+                        name: Ident [8-14] "qubits"
+                        index_span: [14-20]
+                        indices:
+                            IndexSet [15-16]:
+                                values:
+                                    Expr [15-16]: Lit: Int(1)
+                            IndexSet [18-19]:
+                                values:
+                                    Expr [18-19]: Lit: Int(2)"#]],
     );
 }
 
