@@ -191,6 +191,13 @@ pre code {
   --qs-code-strings: #a31515;
   --qs-code-numbers: #098658;
   --qs-code-calls: #795e26;
+  --qs-welcome-background: linear-gradient(
+    90deg,
+    hsl(0deg 0% 100%),
+    hsl(218 16% 98%)
+  );
+  --qs-welcome-color: #222;
+  --qs-welcome-chatbox: #fff;
 }
 
 /* Explicit dark theme set */
@@ -206,6 +213,13 @@ pre code {
   --qs-code-strings: #ce9178;
   --qs-code-numbers: #b5cea8;
   --qs-code-calls: #dcdcaa;
+  --qs-welcome-background: linear-gradient(
+    90deg,
+    hsl(0deg 0% 13.31%),
+    hsl(218deg 2.12% 15.67%)
+  );
+  --qs-welcome-color: #eee;
+  --qs-welcome-chatbox: #313131;
 }
 
 /* Code block styles for highlight.js */
@@ -282,4 +296,48 @@ code.hljs {
 }
 .hljs-emphasis {
   font-style: italic;
+}
+
+/* Welcome message styles */
+#qs-copilot-welcome {
+  color: var(--qs-welcome-color);
+  max-width: 500px;
+  border: 0.5px solid #ccc;
+  border-radius: 0.8em;
+  background: var(--qs-welcome-background);
+  box-shadow: 0.1em 0.1em 0.4em rgba(0, 0, 0, 0.1);
+  font-family: system-ui;
+  font-size: 0.9em;
+  padding: 1em;
+}
+
+.qs-copilot-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  font-size: 1.5em;
+  font-weight: 400;
+  margin-bottom: 0.8em;
+}
+
+.qs-copilot-blurb {
+  margin-bottom: 0.8em;
+  line-height: 1.33em;
+}
+
+.qs-copilot-demo1 {
+  border: 0.5px solid #888;
+  border-radius: 0.4em;
+  background: var(--qs-welcome-chatbox);
+  /* dark: #313131 */
+  margin: 0.4em 0.8em;
+  padding: 0.4em 0.6em;
+  display: inline-block;
+  font-style: italic;
+}
+
+.qs-copilot-disclaimer {
+  font-size: 0.8em;
+  color: gray;
+  margin-top: 0.8em;
 }
