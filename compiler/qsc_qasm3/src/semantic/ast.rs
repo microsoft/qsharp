@@ -1064,6 +1064,8 @@ pub struct GateCall {
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
+    pub quantum_arity: u32,
+    pub quantum_arity_with_modifiers: u32,
 }
 
 impl Display for GateCall {

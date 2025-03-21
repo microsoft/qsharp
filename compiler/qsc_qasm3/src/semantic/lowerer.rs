@@ -1032,10 +1032,21 @@ impl Lowerer {
             ));
         }
 
-        // 5. Check that gate_call quantum arity matches the number of qubit args.
-        if quantum_arity as usize != qubits.len() {
-            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                quantum_arity as usize,
+        // 5. Check that gate_call quantum arity with modifiers matches the
+        //    number of qubit args.
+        let mut quantum_arity_with_modifiers = quantum_arity;
+        for modifier in &modifiers {
+            match &modifier.kind {
+                semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
+                semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
+                    quantum_arity_with_modifiers += n;
+                }
+            }
+        }
+
+        if quantum_arity_with_modifiers as usize != qubits.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfQubitArgs(
+                quantum_arity_with_modifiers as usize,
                 qubits.len(),
                 stmt.span,
             ));
@@ -1055,6 +1066,8 @@ impl Lowerer {
             args,
             qubits,
             duration,
+            quantum_arity,
+            quantum_arity_with_modifiers,
         })
 
         // The compiler will be left to do all things that need explicit Q# knowledge.
@@ -2543,7 +2556,7 @@ impl Lowerer {
             syntax::GateOperandKind::HardwareQubit(hw) => {
                 semantic::GateOperandKind::HardwareQubit(self.lower_hardware_qubit(hw))
             }
-            syntax::GateOperandKind::Err => todo!(),
+            syntax::GateOperandKind::Err => semantic::GateOperandKind::Err,
         };
         semantic::GateOperand {
             span: operand.span,

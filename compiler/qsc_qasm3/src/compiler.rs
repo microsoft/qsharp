@@ -11,9 +11,10 @@ use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
         build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
-        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_convert_call_expr, build_expr_array_expr, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_if_expr_then_expr_else_expr,
+        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_bigint_expr,
+        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr,
@@ -538,8 +539,98 @@ impl QasmCompiler {
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("gate call statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let mut qubits: Vec<_> = stmt
+            .qubits
+            .iter()
+            .filter_map(|q| self.compile_gate_operand(q))
+            .collect();
+        let args: Vec<_> = stmt
+            .args
+            .iter()
+            .filter_map(|arg| self.compile_expr(arg))
+            .collect();
+
+        if qubits.len() != stmt.qubits.len() || args.len() != stmt.args.len() {
+            return None;
+        }
+
+        // Take the number of qubit args that the gates expects from the source qubits.
+        let gate_qubits = qubits.split_off(qubits.len() - stmt.quantum_arity as usize);
+        // Then merge the classical args with the qubit args. This will give
+        // us the args for the call prior to wrapping in tuples for controls.
+        let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
+        let mut args = build_gate_call_param_expr(args, qubits.len());
+        let mut callee = build_path_ident_expr(&symbol.name, symbol.span, stmt.span);
+
+        for modifier in &stmt.modifiers {
+            match &modifier.kind {
+                semast::GateModifierKind::Inv => {
+                    callee = build_unary_op_expr(
+                        qsast::UnOp::Functor(qsast::Functor::Adj),
+                        callee,
+                        modifier.span,
+                    );
+                }
+                semast::GateModifierKind::Pow(expr) => {
+                    let exponent_expr = self.compile_expr(expr)?;
+                    self.runtime |= RuntimeFunctions::Pow;
+                    args = build_tuple_expr(vec![exponent_expr, callee, args]);
+                    callee = build_path_ident_expr("__Pow__", modifier.span, stmt.span);
+                }
+                semast::GateModifierKind::Ctrl(num_ctrls) => {
+                    // remove the last n qubits from the qubit list
+                    if qubits.len() < *num_ctrls as usize {
+                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                            *num_ctrls as usize,
+                            qubits.len(),
+                            modifier.span,
+                        );
+                        self.push_semantic_error(kind);
+                        return None;
+                    }
+                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrls = build_expr_array_expr(ctrl, modifier.span);
+                    args = build_tuple_expr(vec![ctrls, args]);
+                    callee = build_unary_op_expr(
+                        qsast::UnOp::Functor(qsast::Functor::Ctl),
+                        callee,
+                        modifier.span,
+                    );
+                }
+                semast::GateModifierKind::NegCtrl(num_ctrls) => {
+                    // remove the last n qubits from the qubit list
+                    if qubits.len() < *num_ctrls as usize {
+                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                            *num_ctrls as usize,
+                            qubits.len(),
+                            modifier.span,
+                        );
+                        self.push_semantic_error(kind);
+                        return None;
+                    }
+                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrls = build_expr_array_expr(ctrl, modifier.span);
+                    let lit_0 = build_lit_int_expr(0, Span::default());
+                    args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
+                    callee =
+                        build_path_ident_expr("ApplyControlledOnInt", modifier.span, stmt.span);
+                }
+            }
+        }
+
+        // This should never be reached, since semantic analysis during lowering
+        // makes sure the arities match.
+        if !qubits.is_empty() {
+            return None;
+        }
+
+        let expr = build_gate_call_with_params_and_callee(args, callee, stmt.span);
+        Some(qsast::Stmt {
+            id: qsast::NodeId::default(),
+            span: stmt.span,
+            kind: Box::new(qsast::StmtKind::Expr(Box::new(expr))),
+        })
     }
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
