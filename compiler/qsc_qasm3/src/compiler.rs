@@ -554,6 +554,9 @@ impl QasmCompiler {
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
+        if symbol.name == "U" {
+            self.runtime |= RuntimeFunctions::U;
+        }
         let mut qubits: Vec<_> = stmt
             .qubits
             .iter()
@@ -644,6 +647,7 @@ impl QasmCompiler {
     }
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
+        self.runtime |= RuntimeFunctions::U;
         self.push_unimplemented_error_message("gphase statements", stmt.span);
         None
     }

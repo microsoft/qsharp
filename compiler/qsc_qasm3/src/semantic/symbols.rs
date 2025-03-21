@@ -293,6 +293,26 @@ impl Default for SymbolTable {
             current_id: SymbolId::default(),
         };
 
+        slf.insert_symbol(Symbol {
+            name: "U".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(3, 1),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: U"));
+
+        slf.insert_symbol(Symbol {
+            name: "gphase".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(1, 0),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 1, 0),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: gphase"));
+
         // Define global constants.
         for (symbol, val) in BUILTIN_SYMBOLS {
             let ty = Type::Float(None, true);
