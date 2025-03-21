@@ -182,6 +182,12 @@ export function Histogram(props: {
     // panning horizontally. See https://danburzo.ro/dom-gestures/ for the messy details.
     if (!e.ctrlKey && !e.shiftKey) return;
 
+    // When using a mouse wheel, the deltaY is the scroll amount, but if the shift key is pressed
+    // this swaps and deltaX is the scroll amount. The swap doesn't happen for trackpad scrolling.
+    // To complicate matters more, on the trackpad sometimes both deltaX and deltaY have a value.
+    // So, if the shift key is pressed and deltaY is 0, then assume mouse wheel and use deltaX.
+    const delta = e.shiftKey && !e.deltaY ? e.deltaX : e.deltaY;
+
     e.preventDefault();
 
     // currentTarget is the element the listener is attached to, the main svg
@@ -210,7 +216,7 @@ export function Histogram(props: {
 
     if (e.ctrlKey) {
       // *** Zooming ***
-      newZoom = scale.zoom - e.deltaY * 0.05;
+      newZoom = scale.zoom - delta * 0.05;
       newZoom = Math.min(Math.max(1, newZoom), 50);
 
       // On zooming in, need to shift left to maintain mouse point, and vice verca.
@@ -223,7 +229,7 @@ export function Histogram(props: {
       newScrollOffset = scale.offset - shiftLeftAdjust;
     } else {
       // *** Panning ***
-      newScrollOffset -= e.deltaY;
+      newScrollOffset -= delta;
     }
 
     // Don't allow offset > 1 (scrolls the first bar right of the left edge of the area)
