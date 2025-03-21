@@ -366,9 +366,11 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), &ty, span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(&ty, &expr)
+            }
         };
-        let rhs = self.cast_expr_to_type(&ty, &rhs);
 
         if ty.is_const() {
             let kind =
@@ -410,9 +412,11 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), indexed_ty, span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(indexed_ty, &expr)
+            }
         };
-        let rhs = self.cast_expr_to_type(indexed_ty, &rhs);
 
         if symbol.ty.is_const() {
             let kind =
@@ -450,9 +454,11 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), ty, stmt.span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(ty, &expr)
+            }
         };
-        let rhs = self.cast_expr_to_type(ty, &rhs);
 
         semantic::StmtKind::AssignOp(semantic::AssignOpStmt {
             span: stmt.span,
@@ -842,12 +848,12 @@ impl Lowerer {
                     self.lower_expr_with_target_type(Some(expr), &ty, stmt_span)
                 }
                 syntax::ValueExpr::Measurement(measure_expr) => {
-                    self.lower_measure_expr(measure_expr)
+                    let expr = self.lower_measure_expr(measure_expr);
+                    self.cast_expr_to_type(&ty, &expr)
                 }
             },
             None => self.lower_expr_with_target_type(None, &ty, stmt_span),
         };
-        let init_expr = self.cast_expr_to_type(&ty, &init_expr);
 
         let symbol_id =
             self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);

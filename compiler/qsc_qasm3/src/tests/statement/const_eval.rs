@@ -55,7 +55,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
     let source = r#"
         const int a = 1;
         int b = 2 + a;
-        int b = a + 3;
+        int c = a + 3;
         bit[b] r1;
         bit[c] r2;
     "#;
@@ -74,32 +74,63 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
         Qsc.Qasm3.Compile.ExprMustBeConst
 
           x designator must be a const expression
-           ,-[Test.qasm:4:13]
-         3 |         int b = 2 + a;
-         4 |         bit[b] r1;
+           ,-[Test.qasm:5:13]
+         4 |         int c = a + 3;
+         5 |         bit[b] r1;
            :             ^
-         5 |
+         6 |         bit[c] r2;
            `----
 
         Qsc.Qasm3.Compile.Unimplemented
 
           x this statement is not yet handled during OpenQASM 3 import: Converting Err
           | to Q# type
-           ,-[Test.qasm:4:9]
-         3 |         int b = 2 + a;
-         4 |         bit[b] r1;
+           ,-[Test.qasm:5:9]
+         4 |         int c = a + 3;
+         5 |         bit[b] r1;
            :         ^^^^^^
-         5 |
+         6 |         bit[c] r2;
            `----
 
         Qsc.Qasm3.Compile.NotSupported
 
           x Default values for Err are unsupported. are not supported.
-           ,-[Test.qasm:4:9]
-         3 |         int b = 2 + a;
-         4 |         bit[b] r1;
+           ,-[Test.qasm:5:9]
+         4 |         int c = a + 3;
+         5 |         bit[b] r1;
            :         ^^^^^^^^^^
-         5 |
+         6 |         bit[c] r2;
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x designator must be a const expression
+           ,-[Test.qasm:6:13]
+         5 |         bit[b] r1;
+         6 |         bit[c] r2;
+           :             ^
+         7 |     
+           `----
+
+        Qsc.Qasm3.Compile.Unimplemented
+
+          x this statement is not yet handled during OpenQASM 3 import: Converting Err
+          | to Q# type
+           ,-[Test.qasm:6:9]
+         5 |         bit[b] r1;
+         6 |         bit[c] r2;
+           :         ^^^^^^
+         7 |     
+           `----
+
+        Qsc.Qasm3.Compile.NotSupported
+
+          x Default values for Err are unsupported. are not supported.
+           ,-[Test.qasm:6:9]
+         5 |         bit[b] r1;
+         6 |         bit[c] r2;
+           :         ^^^^^^^^^^
+         7 |     
            `----
 
     "#]]
