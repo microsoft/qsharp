@@ -38,10 +38,13 @@ h1 {
 }
 
 .status-indicator {
-  height: 30px;
-  font-weight: bold;
-  text-align: right;
-  font-size: smaller;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-content: center;
+  height: 28px;
+  font-style: italic;
+  font-size: 0.9em;
 }
 
 .input-textarea {
@@ -165,6 +168,7 @@ pre code {
 
 .histogram-container {
   width: 100%;
+  margin-bottom: 10px;
 }
 
 /* If not specified it defaults to the 'pre code' default monospace font  */

@@ -20,6 +20,7 @@ import hljs from "highlight.js/lib/core";
 import CopyButtonPlugin from "highlightjs-copy";
 import "highlightjs-copy/styles/highlightjs-copy.css";
 import python from "highlight.js/lib/languages/python";
+import bash from "highlight.js/lib/languages/bash"; // Used sometimes for plain text
 import markdownIt from "markdown-it";
 import { useEffect, useRef } from "preact/hooks";
 import { Histogram, Markdown, setRenderer } from "qsharp-lang/ux";
@@ -34,9 +35,10 @@ import { WebviewApi } from "vscode-webview";
 
 const vscodeApi: WebviewApi<ChatElement[]> = acquireVsCodeApi();
 
-// Only include the Python and Q# languages so as not
+// Only include a small set of languages so as not
 // to bloat the code
 hljs.registerLanguage("python", python);
+hljs.registerLanguage("bash", bash);
 hljs.registerLanguage("qsharp", hlsjQsharp);
 hljs.addPlugin(new CopyButtonPlugin());
 const md = markdownIt("commonmark");
@@ -162,13 +164,18 @@ function ChatHistory({ model }: { model: ChatViewModel }) {
 function StatusIndicator({ status }: { status: Status }) {
   return (
     <div className="status-indicator">
-      {status.status === "waitingAssistantResponse"
-        ? "🕒"
-        : status.status === "executingTool"
-          ? "🕒 " + status.toolName
-          : status.status === "assistantConnectionError"
-            ? "There was an error communicating with Azure Quantum Copilot. Please check your Internet connection and try again."
-            : ""}
+      {status.status === "waitingAssistantResponse" ? (
+        <span class="codicon codicon-loading codicon-modifier-spin"></span>
+      ) : status.status === "executingTool" ? (
+        <>
+          <span>{status.toolName}&nbsp;</span>
+          <span class="codicon codicon-loading codicon-modifier-spin"></span>
+        </>
+      ) : status.status === "assistantConnectionError" ? (
+        "There was an error communicating with Azure Quantum Copilot. Please check your Internet connection and try again."
+      ) : (
+        ""
+      )}
     </div>
   );
 }
