@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::ops::ShlAssign;
+use std::rc::Rc;
 
 use super::symbols::ScopeKind;
 use super::types::binop_requires_int_conversion_for_type;
@@ -851,21 +852,20 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let name = stmt.identifier.name.clone();
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
-        let symbol = Symbol::new(
-            &name,
-            stmt.identifier.span,
-            ty.clone(),
-            qsharp_ty,
-            IOKind::Default,
-        );
-
-        // process the symbol and init_expr gathering any errors
         let init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
+        let symbol = Symbol::new(
+            &name,
+            stmt.identifier.span,
+            ty.clone(),
+            qsharp_ty,
+            IOKind::Default,
+        )
+        .with_const_value(Rc::new(init_expr.clone()));
 
         let symbol_id =
             self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);
@@ -1038,8 +1038,20 @@ impl Lowerer {
     }
 
     fn lower_measure(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("measure stmt", stmt.span);
-        semantic::StmtKind::Err
+        // `measure q -> c;` is syntax sugar for `c = measure q;`
+        if let Some(target) = &stmt.target {
+            self.lower_assign(&syntax::AssignStmt {
+                span: stmt.span,
+                lhs: *target.clone(),
+                rhs: syntax::ValueExpr::Measurement(stmt.measurement.clone()),
+            })
+        } else {
+            let measure = self.lower_measure_expr(&stmt.measurement);
+            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                span: stmt.span,
+                expr: measure,
+            })
+        }
     }
 
     fn lower_pragma(&mut self, stmt: &syntax::Pragma) -> semantic::StmtKind {
@@ -1419,9 +1431,8 @@ impl Lowerer {
             }
         };
         let expr = match ty {
-            Type::Bit(_) | Type::Int(_, _) | Type::UInt(_, _) => {
-                Some(from_lit_kind(LiteralKind::Int(0)))
-            }
+            Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
+            Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Angle(_, _) | Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
@@ -1515,6 +1526,9 @@ impl Lowerer {
         };
         expr
     }
+
+    /// TODO: Should we use the new helper functions in `const_eval.rs`
+    ///       for most of the logic in this function?
     #[allow(clippy::too_many_lines)]
     fn try_coerce_literal_expr_to_type(
         &mut self,
@@ -1545,15 +1559,15 @@ impl Lowerer {
                 // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
                 return Some(semantic::Expr {
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value))),
+                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
+                        *value != 0,
+                    ))),
                     ty: lhs_ty.as_const(),
                 });
             } else if let semantic::LiteralKind::Bool(value) = kind {
                 return Some(semantic::Expr {
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                        i64::from(*value),
-                    ))),
+                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value))),
                     ty: lhs_ty.as_const(),
                 });
             }

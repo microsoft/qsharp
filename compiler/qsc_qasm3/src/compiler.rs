@@ -480,8 +480,7 @@ impl QasmCompiler {
         &mut self,
         decl: &semast::ClassicalDeclarationStmt,
     ) -> Option<qsast::Stmt> {
-        let symbol = &self.symbols[decl.symbol_id];
-        let symbol = symbol.clone();
+        let symbol = &self.symbols[decl.symbol_id].clone();
         let name = &symbol.name;
         let is_const = symbol.ty.is_const();
         let ty_span = decl.ty_span;
@@ -806,6 +805,7 @@ impl QasmCompiler {
             LiteralKind::Bitstring(big_int, width) => {
                 Self::compile_bitstring_literal(big_int, *width, span)
             }
+            LiteralKind::Bit(value) => Self::compile_bit_literal(*value, span),
             LiteralKind::Bool(value) => Self::compile_bool_literal(*value, span),
             LiteralKind::Duration(value, time_unit) => {
                 self.compile_duration_literal(*value, *time_unit, span)
@@ -925,6 +925,10 @@ impl QasmCompiler {
     fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> Option<qsast::Expr> {
         self.push_unimplemented_error_message("array literals", span);
         None
+    }
+
+    fn compile_bit_literal(value: bool, span: Span) -> Option<qsast::Expr> {
+        Some(build_lit_result_expr(value.into(), span))
     }
 
     fn compile_bool_literal(value: bool, span: Span) -> Option<qsast::Expr> {

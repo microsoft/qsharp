@@ -1590,6 +1590,7 @@ pub enum LiteralKind {
     Int(i64),
     BigInt(BigInt),
     String(Rc<str>),
+    Bit(bool),
 }
 
 impl Display for LiteralKind {
@@ -1600,6 +1601,7 @@ impl Display for LiteralKind {
                 let width = *width as usize;
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
+            LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
             LiteralKind::Duration(value, unit) => {

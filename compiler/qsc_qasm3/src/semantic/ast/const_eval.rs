@@ -203,22 +203,28 @@ impl BinaryOpExpr {
                 }
             }
             Type::Bool(..) | Type::Bit(..) => {
+                let lit_kind = if matches!(ty, Type::Bool(..)) {
+                    LiteralKind::Bool
+                } else {
+                    LiteralKind::Bit
+                };
+
                 match (lhs, rhs) {
                     (LiteralKind::Bool(lhs), LiteralKind::Bool(rhs)) => {
                         Some(match op {
                             // Logical and bitwise operators.
-                            BinOp::AndB | BinOp::AndL => LiteralKind::Bool(lhs && rhs),
-                            BinOp::OrB | BinOp::OrL => LiteralKind::Bool(lhs || rhs),
-                            BinOp::XorB => LiteralKind::Bool(lhs ^ rhs),
+                            BinOp::AndB | BinOp::AndL => lit_kind(lhs && rhs),
+                            BinOp::OrB | BinOp::OrL => lit_kind(lhs || rhs),
+                            BinOp::XorB => lit_kind(lhs ^ rhs),
                             // Comparison operators.
-                            BinOp::Eq => LiteralKind::Bool(lhs == rhs),
-                            BinOp::Neq => LiteralKind::Bool(lhs != rhs),
+                            BinOp::Eq => lit_kind(lhs == rhs),
+                            BinOp::Neq => lit_kind(lhs != rhs),
                             // This was originally `lhs > rhs` but clippy suggested this expression.
-                            BinOp::Gt => LiteralKind::Bool(lhs && !rhs),
-                            BinOp::Gte => LiteralKind::Bool(lhs >= rhs),
+                            BinOp::Gt => lit_kind(lhs && !rhs),
+                            BinOp::Gte => lit_kind(lhs >= rhs),
                             // This was originally `lhs < rhs` but clippy suggested this expression.
-                            BinOp::Lt => LiteralKind::Bool(!lhs & rhs),
-                            BinOp::Lte => LiteralKind::Bool(lhs <= rhs),
+                            BinOp::Lt => lit_kind(!lhs & rhs),
+                            BinOp::Lte => lit_kind(lhs <= rhs),
                             // Arithmetic.
                             BinOp::Add
                             | BinOp::Div
@@ -333,18 +339,28 @@ impl Cast {
 /// | bool          | -    | Yes | Yes  | Yes   | Yes   | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Bool as OutputLit;
+
     match ty {
-        Type::Bool(..) | Type::Bit(..) => Some(lit),
+        Type::Bool(..) => Some(lit),
+        Type::Bit(..) => {
+            if let LiteralKind::Bit(val) = lit {
+                Some(OutputLit(val))
+            } else {
+                None
+            }
+        }
         Type::Int(..) | Type::UInt(..) => {
             if let LiteralKind::Int(val) = lit {
-                Some(LiteralKind::Bool(val != 0))
+                Some(OutputLit(val != 0))
             } else {
                 None
             }
         }
         Type::Float(..) | Type::Angle(..) => {
             if let LiteralKind::Float(val) = lit {
-                Some(LiteralKind::Bool(val != 0.0))
+                Some(OutputLit(val != 0.0))
             } else {
                 None
             }
@@ -361,10 +377,20 @@ fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | int           | Yes  | -   | Yes  | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Int as OutputLit;
+
     match ty {
-        Type::Bool(..) | Type::Bit(..) => {
+        Type::Bool(..) => {
             if let LiteralKind::Bool(val) = lit {
-                Some(LiteralKind::Int(i64::from(val)))
+                Some(OutputLit(i64::from(val)))
+            } else {
+                None
+            }
+        }
+        Type::Bit(..) => {
+            if let LiteralKind::Bit(val) = lit {
+                Some(OutputLit(i64::from(val)))
             } else {
                 None
             }
@@ -377,7 +403,7 @@ fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
             if let LiteralKind::Float(val) = lit {
                 // TODO: we need to issue the same lint in Q#.
                 #[allow(clippy::cast_possible_truncation)]
-                Some(LiteralKind::Int(val as i64))
+                Some(OutputLit(val as i64))
             } else {
                 None
             }
@@ -394,10 +420,20 @@ fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | uint          | Yes  | Yes | -    | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Int as OutputLit;
+
     match ty {
-        Type::Bool(..) | Type::Bit(..) => {
+        Type::Bool(..) => {
             if let LiteralKind::Bool(val) = lit {
-                Some(LiteralKind::Int(i64::from(val)))
+                Some(OutputLit(i64::from(val)))
+            } else {
+                None
+            }
+        }
+        Type::Bit(..) => {
+            if let LiteralKind::Bit(val) = lit {
+                Some(OutputLit(i64::from(val)))
             } else {
                 None
             }
@@ -411,7 +447,7 @@ fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
             if let LiteralKind::Float(val) = lit {
                 // TODO: we need to issue the same lint in Q#.
                 #[allow(clippy::cast_possible_truncation)]
-                Some(LiteralKind::Int(val as i64))
+                Some(OutputLit(val as i64))
             } else {
                 None
             }
@@ -428,10 +464,13 @@ fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | float         | Yes  | Yes | Yes  | -     | No    | No  |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Float as OutputLit;
+
     match ty {
         Type::Bool(..) => {
             if let LiteralKind::Bool(val) = lit {
-                Some(LiteralKind::Float(if val { 1.0 } else { 0.0 }))
+                Some(OutputLit(if val { 1.0 } else { 0.0 }))
             } else {
                 None
             }
@@ -440,7 +479,7 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
             if let LiteralKind::Int(val) = lit {
                 // TODO: we need to issue the same lint in Q#.
                 #[allow(clippy::cast_precision_loss)]
-                Some(LiteralKind::Float(val as f64))
+                Some(OutputLit(val as f64))
             } else {
                 None
             }
@@ -458,11 +497,14 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | angle         | No   | No  | No   | Yes   | -     | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Float as OutputLit;
+
     match ty {
         Type::Float(..) | Type::Angle(..) => Some(lit),
         Type::Bit(..) => {
-            if let LiteralKind::Bool(val) = lit {
-                Some(LiteralKind::Float(if val { 1.0 } else { 0.0 }))
+            if let LiteralKind::Bit(val) = lit {
+                Some(OutputLit(if val { 1.0 } else { 0.0 }))
             } else {
                 None
             }
@@ -479,18 +521,28 @@ fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | bit           | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    // To avoid making mistakes.
+    use LiteralKind::Bit as OutputLit;
+
     match ty {
-        Type::Bool(..) | Type::Bit(..) => Some(lit),
+        Type::Bool(..) => {
+            if let LiteralKind::Bool(val) = lit {
+                Some(OutputLit(val))
+            } else {
+                None
+            }
+        }
+        Type::Bit(..) => Some(lit),
         Type::Int(..) | Type::UInt(..) => {
             if let LiteralKind::Int(val) = lit {
-                Some(LiteralKind::Bool(val != 0))
+                Some(OutputLit(val != 0))
             } else {
                 None
             }
         }
         Type::Angle(..) => {
             if let LiteralKind::Float(val) = lit {
-                Some(LiteralKind::Bool(val != 0.0))
+                Some(OutputLit(val != 0.0))
             } else {
                 None
             }
