@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    qasm_to_program,
-    tests::{gen_qsharp, parse, print_compilation_errors},
+    compiler::compile_anon_with_config,
+    tests::{gen_qsharp, print_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 
@@ -23,19 +23,15 @@ c[1] = measure q[1];
 fn it_compiles() {
     let source = SOURCE;
 
-    let res = parse(source).expect("should parse");
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_anon_with_config(source, config).expect("parse failed");
+
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());
     let Some(package) = &unit.package else {

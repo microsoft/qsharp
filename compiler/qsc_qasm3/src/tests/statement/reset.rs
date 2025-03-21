@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    qasm_to_program,
-    tests::{fail_on_compilation_errors, gen_qsharp, parse},
+    compiler::compile_anon_with_config,
+    tests::{fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
@@ -24,19 +24,14 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
         meas[0] = measure q[0];
     "#;
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::Qiskit,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![

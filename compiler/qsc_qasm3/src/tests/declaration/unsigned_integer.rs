@@ -23,22 +23,6 @@ fn implicit_bitness_int_default_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn const_implicit_bitness_int_default_decl() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        const uint x;
-    ";
-
-    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = 0;
-    "#
-    ]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
 fn const_implicit_bitness_int_lit_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         const uint x = 42;
@@ -251,17 +235,16 @@ fn explicit_bitness_int_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn const_explicit_bitness_int_decl() -> miette::Result<(), Vec<Report>> {
+fn assigning_uint_to_negative_lit_results_in_semantic_error() {
     let source = "
-        const uint[10] x;
+        const uint[10] x = -42;
     ";
 
-    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
     expect![
-        r#"
-        let x = 0;
-    "#
+        r#"Cannot assign a value of Negative Int type to a classical variable of UInt(Some(10), True) type."#
     ]
-    .assert_eq(&qsharp);
-    Ok(())
+    .assert_eq(&errors[0].to_string());
 }

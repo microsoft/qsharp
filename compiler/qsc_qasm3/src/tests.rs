@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    parse::{QasmParseResult, QasmSource},
-    qasm_to_program, CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics,
-};
+use crate::compiler::compile_anon_with_config;
+use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use miette::Report;
 use qsc::interpret::Error;
 use qsc::{
@@ -14,10 +12,8 @@ use qsc::{
 };
 use std::{path::Path, sync::Arc};
 
-use crate::{
-    io::{InMemorySourceResolver, SourceResolver},
-    parse::parse_source,
-};
+use crate::io::{InMemorySourceResolver, SourceResolver};
+use crate::semantic::{parse_source, QasmSemanticParseResult};
 
 pub(crate) mod assignment;
 pub(crate) mod declaration;
@@ -71,21 +67,70 @@ pub(crate) fn generate_qir_from_ast(
     )
 }
 
-fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::Qiskit,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+fn compile<S>(source: S) -> miette::Result<QasmCompileUnit>
+where
+    S: AsRef<str>,
+{
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    compile_anon_with_config(source, config)
+}
+
+pub fn compile_all<P>(
+    path: P,
+    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
+) -> miette::Result<QasmCompileUnit>
+where
+    P: AsRef<Path>,
+{
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
+    );
+    crate::compiler::compile_all_with_config(path, sources, config)
+}
+
+pub fn compile_all_fragments<P>(
+    path: P,
+    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
+) -> miette::Result<QasmCompileUnit>
+where
+    P: AsRef<Path>,
+{
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::Fragments,
+        None,
+        None,
+    );
+    crate::compiler::compile_all_with_config(path, sources, config)
+}
+
+fn compile_fragments<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
+where
+    S: AsRef<str>,
+{
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::Fragments,
+        None,
+        None,
+    );
+    compile_anon_with_config(source, config).map_err(|e| vec![e])
+}
+
+fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
+    let unit = compile(source).map_err(|e| vec![e])?;
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
     let qir = generate_qir_from_ast(package, unit.source_map, profile).map_err(|errors| {
@@ -109,7 +154,7 @@ pub(crate) fn compare_compilation_to_qsharp(unit: &QasmCompileUnit, expected: &s
     difference::assert_diff!(&qsharp, expected, "\n", 0);
 }
 
-pub(crate) fn parse<S>(source: S) -> miette::Result<QasmParseResult, Vec<Report>>
+pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
 where
     S: AsRef<str>,
 {
@@ -129,7 +174,7 @@ where
 pub(crate) fn parse_all<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmParseResult, Vec<Report>>
+) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
 where
     P: AsRef<Path>,
 {
@@ -148,34 +193,15 @@ where
     }
 }
 
-pub fn qasm_to_program_fragments(source: QasmSource, source_map: SourceMap) -> QasmCompileUnit {
-    qasm_to_program(
-        source,
-        source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::Fragments,
-            None,
-            None,
-        ),
-    )
-}
-
 pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<Report>> {
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::File,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
@@ -188,19 +214,14 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
 }
 
 pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, Vec<Report>> {
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::Operation,
-            Some("Test".into()),
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::Operation,
+        Some("Test".into()),
+        None,
     );
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
@@ -220,19 +241,14 @@ pub fn compile_qasm_to_qsharp_with_semantics(
     source: &str,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            qubit_semantics,
-            OutputSemantics::Qiskit,
-            ProgramType::Fragments,
-            None,
-            None,
-        ),
+    let config = CompilerConfig::new(
+        qubit_semantics,
+        OutputSemantics::Qiskit,
+        ProgramType::Fragments,
+        None,
+        None,
     );
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     qsharp_from_qasm_compilation(unit)
 }
 
@@ -256,19 +272,14 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
     source: &str,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            qubit_semantics,
-            OutputSemantics::Qiskit,
-            ProgramType::Fragments,
-            None,
-            None,
-        ),
+    let config = CompilerConfig::new(
+        qubit_semantics,
+        OutputSemantics::Qiskit,
+        ProgramType::Fragments,
+        None,
+        None,
     );
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);

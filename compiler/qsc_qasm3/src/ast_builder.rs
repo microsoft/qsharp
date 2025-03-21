@@ -859,6 +859,14 @@ pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
     }
 }
 
+pub(crate) fn build_stmt_semi_from_expr_with_span(expr: Expr, span: Span) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span,
+        kind: Box::new(StmtKind::Semi(Box::new(expr))),
+    }
+}
+
 pub(crate) fn build_wrapped_block_expr(block: Block) -> Expr {
     Expr {
         id: NodeId::default(),
@@ -1151,6 +1159,7 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
             wrap_array_ty_by_dims(dims, ty)
         }
+        crate::types::Type::Err => Ty::default(),
     }
 }
 
