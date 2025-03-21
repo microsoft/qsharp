@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_all_with_config, qsharp_from_qasm_compilation},
-    CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+    compiler::compile_all_with_config, tests::qsharp_from_qasm_compilation, CompilerConfig,
+    OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
 use miette::Report;
@@ -36,7 +36,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
         Some("Test".into()),
         None,
     );
-    let r = compile_all_with_config("source0.qasm", all_sources, config)?;
+    let r = compile_all_with_config("source0.qasm", all_sources, config).map_err(|e| vec![e])?;
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm3_import {

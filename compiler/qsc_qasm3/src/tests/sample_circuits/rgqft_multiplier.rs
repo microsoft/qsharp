@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_with_config, gen_qsharp, print_compilation_errors},
+    compiler::compile_anon_with_config,
+    tests::{gen_qsharp, print_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 
@@ -17,7 +18,7 @@ fn it_compiles() {
         Some("Test".into()),
         None,
     );
-    let unit = compile_with_config(source, config).expect("parse failed");
+    let unit = compile_anon_with_config(source, config).expect("parse failed");
 
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());

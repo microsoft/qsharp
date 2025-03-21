@@ -133,7 +133,7 @@ pub(super) fn check_stmt_kinds(input: &str, expect: &Expect) {
 fn check_map<S>(
     input: S,
     expect: &Expect,
-    selector: impl FnOnce(&super::ast::Program, &super::SymbolTable) -> String,
+    selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
 ) where
     S: AsRef<str>,
 {
@@ -150,14 +150,12 @@ fn check_map<S>(
         res.sytax_errors()
     );
 
-    let program = res.program.expect("no program");
-
     if errors.is_empty() {
-        expect.assert_eq(&selector(&program, &res.symbols));
+        expect.assert_eq(&selector(&res.program, &res.symbols));
     } else {
         expect.assert_eq(&format!(
             "{}\n\n{:?}",
-            program,
+            res.program,
             errors
                 .iter()
                 .map(|e| Report::new(e.clone()))
@@ -180,7 +178,7 @@ fn check_map_all<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     expect: &Expect,
-    selector: impl FnOnce(&super::ast::Program, &super::SymbolTable) -> String,
+    selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
 ) where
     P: AsRef<Path>,
 {
@@ -201,14 +199,13 @@ fn check_map_all<P>(
         "syntax errors: {:?}",
         res.sytax_errors()
     );
-    let program = res.program.expect("no program");
 
     if errors.is_empty() {
-        expect.assert_eq(&selector(&program, &res.symbols));
+        expect.assert_eq(&selector(&res.program, &res.symbols));
     } else {
         expect.assert_eq(&format!(
             "{}\n\n{:?}",
-            program,
+            res.program,
             errors
                 .iter()
                 .map(|e| Report::new(e.clone()))
