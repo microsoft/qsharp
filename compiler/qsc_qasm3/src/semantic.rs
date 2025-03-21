@@ -7,7 +7,6 @@ use crate::parser::QasmSource;
 use lowerer::Lowerer;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
-use symbols::SymbolTable;
 
 use std::path::Path;
 
@@ -26,7 +25,7 @@ pub struct QasmSemanticParseResult {
     pub source: QasmSource,
     pub source_map: SourceMap,
     pub symbols: self::symbols::SymbolTable,
-    pub program: Option<self::ast::Program>,
+    pub program: self::ast::Program,
     pub errors: Vec<WithSource<crate::Error>>,
 }
 
@@ -106,25 +105,14 @@ where
     R: SourceResolver,
 {
     let res = crate::parser::parse_source(source, path, resolver)?;
-    let errors = res.all_errors();
-    // If there are syntax errors, return early
-    if res.source.has_errors() {
-        return Ok(QasmSemanticParseResult {
-            source: res.source,
-            source_map: res.source_map,
-            symbols: SymbolTable::default(),
-            program: None,
-            errors,
-        });
-    }
-
     let analyzer = Lowerer::new(res.source, res.source_map);
     let sem_res = analyzer.lower();
+    let errors = sem_res.all_errors();
     Ok(QasmSemanticParseResult {
         source: sem_res.source,
         source_map: sem_res.source_map,
         symbols: sem_res.symbols,
         program: sem_res.program,
-        errors: sem_res.errors,
+        errors,
     })
 }

@@ -108,7 +108,7 @@ impl Lowerer {
             source: self.source,
             source_map: self.source_map,
             symbols: self.symbols,
-            program: Some(program),
+            program,
             errors: self.errors,
         }
     }
