@@ -4,6 +4,7 @@
 use std::ops::ShlAssign;
 use std::rc::Rc;
 
+use super::ast::const_eval;
 use super::symbols::ScopeKind;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_int_conversion;
@@ -975,8 +976,154 @@ impl Lowerer {
     }
 
     fn lower_gate_call(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("gate call stmt", stmt.span);
-        semantic::StmtKind::Err
+        // 1. Lower all the fields:
+        //   1.1. Lower the modifiers.
+        let mut modifiers = stmt
+            .modifiers
+            .iter()
+            .filter_map(|modifier| self.lower_modifier(modifier))
+            .collect::<Vec<_>>();
+        // If we couldn't compute the modifiers there is no way to compile the gates
+        // correctly, since we can't check its arity. In this case we return an Err.
+        if modifiers.len() != stmt.modifiers.len() {
+            return semantic::StmtKind::Err;
+        }
+
+        //   1.3. Lower the args.
+        let args = stmt.args.iter().map(|arg| self.lower_expr(arg));
+        let args = list_from_iter(args);
+        //   1.4. Lower the qubits.
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        //   1.5. Lower the duration.
+        let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
+
+        let mut name = stmt.name.name.to_string();
+        if let Some((qsharp_name, implicit_modifier)) =
+            try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
+        {
+            // Override the gate name if Q# name is another.
+            name = qsharp_name;
+
+            // 2. Get implicit modifiers and make them explicit.
+            //    Q: Do we need this during lowering?
+            //    A: Yes, we need it to check the gate_call arity.
+            modifiers.push(implicit_modifier);
+        }
+
+        // 3. Check that the gate_name actually refers to a gate in the symbol table
+        //    and get its symbol_id & symbol. Make sure to use the name that could've
+        //    been overriden by the Q# name and the span of the original name.
+        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, stmt.name.span);
+
+        let (classical_arity, quantum_arity) =
+            if let Type::Gate(classical_arity, quantum_arity) = &symbol.ty {
+                (*classical_arity, *quantum_arity)
+            } else {
+                self.push_semantic_error(SemanticErrorKind::CannotCallNonGate(symbol.span));
+                (0, 0)
+            };
+
+        // 4. Check that gate_call classical arity matches the number of classical args.
+        if classical_arity as usize != args.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                classical_arity as usize,
+                args.len(),
+                stmt.span,
+            ));
+        }
+
+        // 5. Check that gate_call quantum arity matches the number of qubit args.
+        if quantum_arity as usize != qubits.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                quantum_arity as usize,
+                qubits.len(),
+                stmt.span,
+            ));
+        }
+
+        // 6. Return:
+        //   6.1. Gate symbol_id.
+        //   6.2. All controls made explicit.
+        //   6.3. Classical args.
+        //   6.4. Quantum args in the order expected by the compiler.
+        modifiers.reverse();
+        let modifiers = list_from_iter(modifiers);
+        semantic::StmtKind::GateCall(semantic::GateCall {
+            span: stmt.span,
+            modifiers,
+            symbol_id,
+            args,
+            qubits,
+            duration,
+        })
+
+        // The compiler will be left to do all things that need explicit Q# knowledge.
+        // But it won't need to check arities, know about implicit modifiers, or do
+        // any casting of classical args. There is still some inherit complexity to
+        // building a Q# gate call with this information, but it won't be cluttered
+        // by all the semantic analysis.
+    }
+
+    fn lower_modifier(
+        &mut self,
+        modifier: &syntax::QuantumGateModifier,
+    ) -> Option<semantic::QuantumGateModifier> {
+        let kind = match &modifier.kind {
+            syntax::GateModifierKind::Inv => semantic::GateModifierKind::Inv,
+            syntax::GateModifierKind::Pow(expr) => {
+                semantic::GateModifierKind::Pow(self.lower_expr(expr))
+            }
+            syntax::GateModifierKind::Ctrl(expr) => {
+                let ctrl_args = self.lower_modifier_ctrl_args(expr.as_ref())?;
+                semantic::GateModifierKind::Ctrl(ctrl_args)
+            }
+            syntax::GateModifierKind::NegCtrl(expr) => {
+                let ctrl_args = self.lower_modifier_ctrl_args(expr.as_ref())?;
+                semantic::GateModifierKind::NegCtrl(ctrl_args)
+            }
+        };
+
+        Some(semantic::QuantumGateModifier {
+            span: modifier.span,
+            kind,
+        })
+    }
+
+    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<u32> {
+        let Some(expr) = expr else {
+            return Some(1);
+        };
+
+        let expr = self.lower_expr(expr);
+        let Some(expr) = self.try_cast_expr_to_type(&Type::UInt(None, true), &expr, expr.span)
+        else {
+            let from = expr.ty.to_string();
+            let to = Type::UInt(None, true).to_string();
+            self.push_semantic_error(SemanticErrorKind::CannotCast(from, to, expr.span));
+            return None;
+        };
+        let Some(lit) = expr.const_eval(&self.symbols) else {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "ctrl modifier argument".into(),
+                expr.span,
+            ));
+            return None;
+        };
+
+        let semantic::LiteralKind::Int(n) = lit else {
+            unreachable!("we casted the expr to UInt before const evaluating it")
+        };
+
+        let Ok(n) = u32::try_from(n) else {
+            self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(
+                "ctrl modifier argument".into(),
+                expr.span,
+            ));
+            return None;
+        };
+
+        Some(n)
     }
 
     fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
@@ -1081,11 +1228,13 @@ impl Lowerer {
                         Some((size, span)),
                     )
                 } else {
-                    self.push_semantic_error(SemanticErrorKind::ArrayTypeSizeMustFitInU32(span));
+                    let message = "quantum register size".into();
+                    self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
                     return semantic::StmtKind::Err;
                 }
             } else {
-                self.push_semantic_error(SemanticErrorKind::ArrayTypeSizeMustBeConst(span));
+                let message = "quantum register size".into();
+                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(message, span));
                 return semantic::StmtKind::Err;
             }
         } else {
@@ -2522,5 +2671,28 @@ fn get_identifier_name(identifier: &syntax::Identifier) -> std::rc::Rc<str> {
     match identifier {
         syntax::Identifier::Ident(ident) => ident.name.clone(),
         syntax::Identifier::IndexedIdent(ident) => ident.name.name.clone(),
+    }
+}
+
+fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
+    gate_name: S,
+    name_span: Span,
+) -> Option<(String, semantic::QuantumGateModifier)> {
+    use semantic::GateModifierKind::*;
+
+    let make_modifier = |kind| semantic::QuantumGateModifier {
+        span: name_span,
+        kind,
+    };
+
+    // ch, crx, cry, crz, sdg, and tdg
+    match gate_name.as_ref() {
+        "ch" => Some(("H".to_string(), make_modifier(Ctrl(1)))),
+        "crx" => Some(("Rx".to_string(), make_modifier(Ctrl(1)))),
+        "cry" => Some(("Ry".to_string(), make_modifier(Ctrl(1)))),
+        "crz" => Some(("Rz".to_string(), make_modifier(Ctrl(1)))),
+        "sdg" => Some(("S".to_string(), make_modifier(Inv))),
+        "tdg" => Some(("T".to_string(), make_modifier(Inv))),
+        _ => None,
     }
 }

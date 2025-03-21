@@ -29,12 +29,12 @@ pub enum SemanticErrorKind {
     #[error("Array literals are only allowed in classical declarations.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ArrayLiteralInNonClassicalDecl"))]
     ArrayLiteralInNonClassicalDecl(#[label] Span),
-    #[error("the size of an array type must fit in a u32")]
-    #[diagnostic(code("Qsc.Qasm3.Compile.ArrayTypeSizeMustFitInU32"))]
-    ArrayTypeSizeMustFitInU32(#[label] Span),
-    #[error("the size of an array type must be a const expression")]
-    #[diagnostic(code("Qsc.Qasm3.Compile.ArrayTypeSizeMustBeConst"))]
-    ArrayTypeSizeMustBeConst(#[label] Span),
+    #[error("{0} must fit in a u32")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustFitInU32"))]
+    ExprMustFitInU32(String, #[label] Span),
+    #[error("{0} must be a const expression")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustBeConst"))]
+    ExprMustBeConst(String, #[label] Span),
     #[error("Annotation missing target statement.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.AnnotationWithoutStatement"))]
     AnnotationWithoutStatement(#[label] Span),
@@ -226,8 +226,8 @@ impl SemanticErrorKind {
             Self::ArrayLiteralInNonClassicalDecl(span) => {
                 Self::ArrayLiteralInNonClassicalDecl(span + offset)
             }
-            Self::ArrayTypeSizeMustBeConst(span) => Self::ArrayTypeSizeMustBeConst(span + offset),
-            Self::ArrayTypeSizeMustFitInU32(span) => Self::ArrayTypeSizeMustFitInU32(span + offset),
+            Self::ExprMustBeConst(name, span) => Self::ExprMustBeConst(name, span + offset),
+            Self::ExprMustFitInU32(name, span) => Self::ExprMustFitInU32(name, span + offset),
             Self::AnnotationWithoutStatement(span) => {
                 Self::AnnotationWithoutStatement(span + offset)
             }

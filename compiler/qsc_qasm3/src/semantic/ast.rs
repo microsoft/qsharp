@@ -660,8 +660,8 @@ impl Display for QuantumGateModifier {
 pub enum GateModifierKind {
     Inv,
     Pow(Expr),
-    Ctrl(Option<Expr>),
-    NegCtrl(Option<Expr>),
+    Ctrl(u32),
+    NegCtrl(u32),
 }
 
 impl Display for GateModifierKind {
@@ -1060,7 +1060,7 @@ impl Display for ExternDecl {
 pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
-    pub name: Ident,
+    pub symbol_id: SymbolId,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
@@ -1070,7 +1070,7 @@ impl Display for GateCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "GateCall", self.span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
         write_list_field(f, "qubits", &self.qubits)
