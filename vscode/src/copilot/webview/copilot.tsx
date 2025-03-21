@@ -164,11 +164,11 @@ function Welcome() {
             </linearGradient>
           </defs>
         </svg>
-        <div style="margin-left: 8px;">Microsoft Quantum Copilot</div>
+        <div style="margin-left: 8px;">Azure Quantum Copilot</div>
       </div>
       <div class="qs-copilot-blurb">
-        Welcome! Microsoft Quantum Copilot is designed to help you develop and
-        run quantum programs. You can ask questions such as:
+        Welcome! Azure Quantum Copilot is designed to help you develop and run
+        quantum programs. You can ask questions such as:
       </div>
       <div class="qs-copilot-demo1">
         Can you help me implement Grover's search?
