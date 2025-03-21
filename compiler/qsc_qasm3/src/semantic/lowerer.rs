@@ -4,7 +4,6 @@
 use std::ops::ShlAssign;
 use std::rc::Rc;
 
-use super::ast::const_eval;
 use super::symbols::ScopeKind;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_int_conversion;
