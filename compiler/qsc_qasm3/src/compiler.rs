@@ -523,7 +523,7 @@ impl QasmCompiler {
     }
 
     fn compile_delay_stmt(&mut self, stmt: &semast::DelayStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("dealy statements", stmt.span);
+        self.push_unimplemented_error_message("delay statements", stmt.span);
         None
     }
 
