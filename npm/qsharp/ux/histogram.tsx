@@ -186,7 +186,12 @@ export function Histogram(props: {
     // this swaps and deltaX is the scroll amount. The swap doesn't happen for trackpad scrolling.
     // To complicate matters more, on the trackpad sometimes both deltaX and deltaY have a value.
     // So, if the shift key is pressed and deltaY is 0, then assume mouse wheel and use deltaX.
-    const delta = e.shiftKey && !e.deltaY ? e.deltaX : e.deltaY;
+    let delta = e.shiftKey && !e.deltaY ? e.deltaX : e.deltaY;
+
+    // Scrolling with the wheel can result in really large deltas, so we need to cap them.
+    if (Math.abs(delta) > 20) {
+      delta = Math.sign(delta) * 20;
+    }
 
     e.preventDefault();
 
@@ -214,7 +219,7 @@ export function Histogram(props: {
     let newScrollOffset = scale.offset;
     let newZoom = scale.zoom;
 
-    if (e.ctrlKey) {
+    if (!e.shiftKey) {
       // *** Zooming ***
       newZoom = scale.zoom - delta * 0.05;
       newZoom = Math.min(Math.max(1, newZoom), 50);
