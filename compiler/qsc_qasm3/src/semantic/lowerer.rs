@@ -860,17 +860,29 @@ impl Lowerer {
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
-        let symbol = Symbol::new(
+
+        let mut symbol = Symbol::new(
             &name,
             stmt.identifier.span,
             ty.clone(),
             qsharp_ty,
             IOKind::Default,
-        )
-        .with_const_expr(Rc::new(init_expr.clone()));
+        );
+
+        if init_expr.ty.is_const() {
+            symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
+        }
 
         let symbol_id =
             self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);
+
+        if !init_expr.ty.is_const() {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "const decl init expr".to_string(),
+                init_expr.span,
+            ));
+            return semantic::StmtKind::Err;
+        }
 
         semantic::StmtKind::ClassicalDecl(semantic::ClassicalDeclarationStmt {
             span: stmt.span,
@@ -1395,10 +1407,10 @@ impl Lowerer {
 
     fn get_semantic_type_from_tydef(
         &mut self,
-        scalar_ty: &syntax::TypeDef,
+        ty: &syntax::TypeDef,
         is_const: bool,
     ) -> crate::semantic::types::Type {
-        match scalar_ty {
+        match ty {
             syntax::TypeDef::Scalar(scalar_type) => {
                 self.get_semantic_type_from_scalar_ty(scalar_type, is_const)
             }
@@ -1411,36 +1423,65 @@ impl Lowerer {
         }
     }
 
-    /// designators are positive integer literals when used
-    /// in the context of a type definition.
-    fn get_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        if let syntax::ExprKind::Lit(lit) = expr.kind.as_ref() {
-            if let syntax::LiteralKind::Int(value) = lit.kind {
-                if value > 0 {
-                    if let Ok(value) = u32::try_from(value) {
-                        Some(value)
-                    } else {
-                        self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(lit.span));
-                        None
-                    }
-                } else {
-                    self.push_semantic_error(
-                        SemanticErrorKind::DesignatorMustBePositiveIntLiteral(lit.span),
-                    );
-                    None
-                }
-            } else {
-                self.push_semantic_error(SemanticErrorKind::DesignatorMustBePositiveIntLiteral(
-                    lit.span,
-                ));
-                None
-            }
+    /// Helper function for const evaluating array sizes, type widths, and durations.
+    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::LiteralKind> {
+        let expr = self.lower_expr_with_target_type(Some(expr), &Type::UInt(None, true), expr.span);
+
+        if let Some(lit) = expr.const_eval(&self.symbols) {
+            Some(lit)
         } else {
-            self.push_semantic_error(SemanticErrorKind::DesignatorMustBePositiveIntLiteral(
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "designator".to_string(),
                 expr.span,
             ));
             None
         }
+    }
+
+    fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
+        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
+            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        if val < 1 {
+            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        let Ok(val) = u32::try_from(val) else {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+            return None;
+        };
+
+        Some(val)
+    }
+
+    fn const_eval_type_width_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
+        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
+            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        if val < 0 {
+            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        let Ok(val) = u32::try_from(val) else {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+            return None;
+        };
+
+        Some(val)
     }
 
     fn get_semantic_type_from_scalar_ty(
@@ -1451,7 +1492,7 @@ impl Lowerer {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::BitArray(
@@ -1463,7 +1504,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Int(int_type) => match &int_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Int(Some(size), is_const)
@@ -1472,7 +1513,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::UInt(uint_type) => match &uint_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::UInt(Some(size), is_const)
@@ -1481,7 +1522,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Float(float_type) => match &float_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Float(Some(size), is_const)
@@ -1491,7 +1532,8 @@ impl Lowerer {
             syntax::ScalarTypeKind::Complex(complex_type) => match &complex_type.base_size {
                 Some(float_type) => match &float_type.size {
                     Some(size) => {
-                        let Some(size) = self.get_size_designator_from_expr(size) else {
+                        let Some(size) = self.const_eval_type_width_designator_from_expr(size)
+                        else {
                             return crate::semantic::types::Type::Err;
                         };
                         crate::semantic::types::Type::Complex(Some(size), is_const)
@@ -1502,7 +1544,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Angle(angle_type) => match &angle_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Angle(Some(size), is_const)
@@ -1548,10 +1590,20 @@ impl Lowerer {
             // to initialize the variable.
             return self.get_default_value(ty, span);
         };
-        let rhs = self.lower_expr(expr);
+        let mut rhs = self.lower_expr(expr);
         let rhs_ty = rhs.ty.clone();
+
+        // avoid the cast
+        if *ty == rhs_ty {
+            // if the types are the same, we can use the rhs as is
+            return rhs;
+        }
+
         // if we have an exact type match, we can use the rhs as is
         if types_equal_except_const(ty, &rhs_ty) {
+            // Since one the two exprs is non-const, we need to relax
+            // the constness in the returned expr.
+            rhs.ty = rhs.ty.as_non_const();
             return rhs;
         }
 
@@ -1954,7 +2006,10 @@ impl Lowerer {
         if types_equal_except_const(ty, &expr.ty) {
             if expr.ty.is_const() {
                 // lhs isn't const, but rhs is, we can just return the rhs
-                return Some(expr.clone());
+                let mut expr = expr.clone();
+                // relax constness
+                expr.ty = expr.ty.as_non_const();
+                return Some(expr);
             }
             // the lsh is supposed to be const but is being initialized
             // to a non-const value, we can't allow this

@@ -78,6 +78,12 @@ pub enum SemanticErrorKind {
     #[error("Designator must be a positive literal integer.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral"))]
     DesignatorMustBePositiveIntLiteral(#[label] Span),
+    #[error("Type width must be a positive integer const expression.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr"))]
+    TypeWidthMustBePositiveIntConstExpr(#[label] Span),
+    #[error("Array size must be a non-negative integer const expression.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ArraySizeMustBeNonNegativeConstExpr"))]
+    ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
     #[error("Designator is too large.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
@@ -257,6 +263,12 @@ impl SemanticErrorKind {
             Self::ComplexBinaryAssignment(span) => Self::ComplexBinaryAssignment(span + offset),
             Self::DesignatorMustBePositiveIntLiteral(span) => {
                 Self::DesignatorMustBePositiveIntLiteral(span + offset)
+            }
+            Self::TypeWidthMustBePositiveIntConstExpr(span) => {
+                Self::TypeWidthMustBePositiveIntConstExpr(span + offset)
+            }
+            Self::ArraySizeMustBeNonNegativeConstExpr(span) => {
+                Self::ArraySizeMustBeNonNegativeConstExpr(span + offset)
             }
             Self::DesignatorTooLarge(span) => Self::DesignatorTooLarge(span + offset),
             Self::FailedToCompileExpressionList(span) => {

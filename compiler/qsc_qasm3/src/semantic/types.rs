@@ -235,6 +235,22 @@ impl Type {
         }
     }
 
+    pub(crate) fn as_non_const(&self) -> Type {
+        match self {
+            Type::Bit(_) => Self::Bit(false),
+            Type::Bool(_) => Self::Bool(false),
+            Type::Duration(_) => Self::Duration(false),
+            Type::Stretch(_) => Self::Stretch(false),
+            Type::Angle(w, _) => Self::Angle(*w, false),
+            Type::Complex(w, _) => Self::Complex(*w, false),
+            Type::Float(w, _) => Self::Float(*w, false),
+            Type::Int(w, _) => Self::Int(*w, false),
+            Type::UInt(w, _) => Self::UInt(*w, false),
+            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), false),
+            _ => self.clone(),
+        }
+    }
+
     pub(crate) fn is_quantum(&self) -> bool {
         matches!(
             self,
