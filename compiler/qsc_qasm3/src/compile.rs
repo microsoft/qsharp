@@ -68,11 +68,6 @@ pub fn qasm_to_program(
     source_map: SourceMap,
     config: CompilerConfig,
 ) -> QasmCompileUnit {
-    assert!(!source.has_errors(), "Source has errors");
-    assert!(
-        source.parse_result().have_parse(),
-        "Source has not been successfully parsed"
-    );
     let compiler = QasmCompiler {
         source,
         source_map,
