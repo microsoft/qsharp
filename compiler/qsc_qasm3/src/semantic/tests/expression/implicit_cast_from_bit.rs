@@ -42,7 +42,7 @@ fn to_bool_implicitly() {
                 ty_span: [10-13]
                 init_expr: Expr [18-19]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [14-15]:
                 name: x
                 type: Bit(false)
@@ -82,7 +82,7 @@ fn to_implicit_int_implicitly() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -122,7 +122,7 @@ fn to_explicit_int_implicitly() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -162,7 +162,7 @@ fn to_implicit_uint_implicitly() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -202,7 +202,7 @@ fn to_explicit_uint_implicitly() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -242,7 +242,7 @@ fn to_explicit_bigint_implicitly() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -287,7 +287,7 @@ fn to_implicit_float_implicitly_fails() {
                             ty_span: [9-12]
                             init_expr: Expr [17-18]:
                                 ty: Bit(true)
-                                kind: Lit: Int(1)
+                                kind: Lit: Bit(1)
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [28-40]:

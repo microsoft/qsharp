@@ -15,7 +15,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
                 ty_span: [0-7]
                 init_expr: Expr [0-0]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [6] Symbol [5-6]:
                 name: a
                 type: Bit(false)
