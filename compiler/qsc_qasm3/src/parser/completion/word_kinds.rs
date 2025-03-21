@@ -125,7 +125,6 @@ impl WordKinds {
         self.iter().filter_map(|p| match p {
             WordKinds::PathExpr => Some(NameKind::Path(PathKind::Expr)),
             WordKinds::PathSegment => Some(NameKind::PathSegment),
-            WordKinds::PrimitiveClass => Some(NameKind::PrimitiveClass),
             _ => None,
         })
     }
@@ -163,8 +162,6 @@ pub enum NameKind {
     /// A path segment that follows a `.`
     /// A more specific name kind can only be inferred from a recovered AST.
     PathSegment,
-    /// A primitive class, like Eq, Exp, or Add.
-    PrimitiveClass,
 }
 
 /// A path (see: [`Predictions`])
