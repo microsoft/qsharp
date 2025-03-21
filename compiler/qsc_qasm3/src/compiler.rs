@@ -627,11 +627,7 @@ impl QasmCompiler {
         }
 
         let expr = build_gate_call_with_params_and_callee(args, callee, stmt.span);
-        Some(qsast::Stmt {
-            id: qsast::NodeId::default(),
-            span: stmt.span,
-            kind: Box::new(qsast::StmtKind::Expr(Box::new(expr))),
-        })
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {

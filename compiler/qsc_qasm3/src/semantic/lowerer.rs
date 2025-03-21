@@ -28,6 +28,7 @@ use crate::parser::QasmSource;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::ArrayDimensions;
+use crate::types::get_qsharp_gate_name;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -1013,6 +1014,8 @@ impl Lowerer {
             //    Q: Do we need this during lowering?
             //    A: Yes, we need it to check the gate_call arity.
             modifiers.push(implicit_modifier);
+        } else {
+            name = get_qsharp_gate_name(&name).unwrap_or(&name).to_string();
         }
 
         // 3. Check that the gate_name actually refers to a gate in the symbol table
