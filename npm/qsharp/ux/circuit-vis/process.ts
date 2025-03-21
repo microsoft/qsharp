@@ -11,7 +11,7 @@ import {
 import { ComponentGrid, Operation, ConditionalRender } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { Register, RegisterMap } from "./register";
-import { getGateWidth } from "./utils";
+import { getGateWidth, getKetLabel } from "./utils";
 
 /**
  * Takes in a component grid and maps the operations to `metadata` objects which
@@ -43,7 +43,9 @@ const processOperations = (
 
       if (
         op != null &&
-        [GateType.Unitary, GateType.ControlledUnitary].includes(metadata.type)
+        [GateType.Unitary, GateType.Reset, GateType.ControlledUnitary].includes(
+          metadata.type,
+        )
       ) {
         // If gate is a unitary type, split targetsY into groups if there
         // is a classical register between them for rendering
@@ -153,6 +155,7 @@ const _opToMetadata = (
     isConditional,
     conditionalRender,
   } = op;
+  const ket = getKetLabel(gate);
 
   // Set y coords
   metadata.controlsY = controls?.map((reg) => _getRegY(reg, registers)) || [];
@@ -226,6 +229,9 @@ const _opToMetadata = (
   } else if (gate === "X") {
     metadata.type = GateType.X;
     metadata.label = gate;
+  } else if (ket.length > 0) {
+    metadata.type = GateType.Reset;
+    metadata.label = ket;
   } else {
     // Any other gate treated as a simple unitary gate
     metadata.type = GateType.Unitary;

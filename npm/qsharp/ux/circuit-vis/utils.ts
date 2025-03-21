@@ -163,6 +163,23 @@ const getGateLocationString = (operation: Operation): string | null => {
   return operation.dataAttributes["location"];
 };
 
+/**
+ * Get the label from a ket string.
+ *
+ * @param ket The ket string to extract the label from.
+ * @returns The label extracted from the ket string.
+ */
+const getKetLabel = (ket: string): string => {
+  // Check that the ket conforms to the format |{label}> or |{label}⟩
+  const ketRegex = /^\|([^\s〉⟩>]+)(?:[〉⟩>])$/;
+
+  // Match the ket string against the regex
+  const match = ket.match(ketRegex);
+
+  // If valid, return the inner label (captured group 1), otherwise return an empty string
+  return match ? match[1] : "";
+};
+
 /**********************
  *  Finder Functions  *
  **********************/
@@ -337,6 +354,7 @@ export {
   getChildTargets,
   locationStringToIndexes,
   getGateLocationString,
+  getKetLabel,
   findGateElem,
   findLocation,
   findParentOperation,

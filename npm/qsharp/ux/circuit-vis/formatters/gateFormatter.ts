@@ -66,9 +66,7 @@ const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
     case GateType.X:
       return _createGate([_x(metadata, nestedDepth)], metadata, nestedDepth);
     case GateType.Reset:
-      return _createGate([_ket("0", metadata)], metadata, nestedDepth);
-    case GateType.ResetOne:
-      return _createGate([_ket("1", metadata)], metadata, nestedDepth);
+      return _createGate([_ket(label, metadata)], metadata, nestedDepth);
     case GateType.Swap:
       return controlsY.length > 0
         ? _controlledGate(metadata, nestedDepth)
@@ -237,6 +235,7 @@ const _measure = (x: number, y: number): SVGElement => {
  * @param displayArgs           Arguments passed in to gate.
  * @param params  Non-Qubit required parameters for the unitary gate.
  * @param renderDashedLine If true, draw dashed lines between non-adjacent unitaries.
+ * @param cssClass         Optional CSS class to apply to the unitary gate for styling.
  *
  * @returns SVG representation of unitary gate.
  */
@@ -247,6 +246,7 @@ const _unitary = (
   width: number,
   displayArgs?: string,
   renderDashedLine = true,
+  cssClass?: string,
 ): SVGElement => {
   if (y.length === 0)
     throw new Error(
@@ -258,7 +258,7 @@ const _unitary = (
     const maxY: number = group[group.length - 1],
       minY: number = group[0];
     const height: number = maxY - minY + gateHeight;
-    return _unitaryBox(label, x, minY, width, height, displayArgs);
+    return _unitaryBox(label, x, minY, width, height, displayArgs, cssClass);
   });
 
   // Draw dashed line between disconnected unitaries
@@ -283,6 +283,7 @@ const _unitary = (
  * @param width  Width of gate.
  * @param height Height of gate.
  * @param displayArgs Arguments passed in to gate.
+ * @param cssClass Optional CSS class to apply to the unitary gate for styling.
  *
  * @returns SVG representation of unitary box.
  */
@@ -293,11 +294,18 @@ const _unitaryBox = (
   width: number,
   height: number = gateHeight,
   displayArgs?: string,
+  cssClass?: string,
 ): SVGElement => {
   y -= gateHeight / 2;
   const uBox: SVGElement = box(x - width / 2, y, width, height);
+  if (cssClass != null) {
+    uBox.setAttribute("class", cssClass);
+  }
   const labelY = y + height / 2 - (displayArgs == null ? 0 : 7);
   const labelText: SVGElement = text(label, x, labelY);
+  if (cssClass != null) {
+    labelText.setAttribute("class", cssClass);
+  }
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
@@ -353,7 +361,15 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
  */
 const _ket = (label: string, metadata: Metadata): SVGElement => {
   const { x, targetsY, width } = metadata;
-  return _unitary(`|${label}〉`, x, targetsY as number[][], width);
+  return _unitary(
+    `|${label}〉`,
+    x,
+    targetsY as number[][],
+    width,
+    undefined,
+    false,
+    "gate-ket",
+  );
 };
 
 /**

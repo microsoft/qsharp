@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Operation, Unitary } from "./circuit";
+import { Measurement, Operation, Unitary } from "./circuit";
 import {
   gateHeight,
   horizontalGap,
@@ -12,7 +12,7 @@ import {
 import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
 import { Sqore } from "./sqore";
-import { getGateWidth } from "./utils";
+import { getGateWidth, getKetLabel } from "./utils";
 
 /**
  * Interface for options provided through usePanel()
@@ -207,6 +207,7 @@ const toMetadata = (
   const isMeasurement = operation.kind === "measurement";
   const controls = isMeasurement ? undefined : operation.controls;
   const { gate, args } = operation;
+  const ket = getKetLabel(gate);
 
   // Note: there are a lot of special cases here.
   // It would be good if we could generalize metadata the logic a bit better.
@@ -224,6 +225,10 @@ const toMetadata = (
   } else if (gate === "X") {
     metadata.type = GateType.X;
     metadata.label = gate;
+  } else if (ket.length > 0) {
+    metadata.type = GateType.Reset;
+    metadata.label = ket;
+    metadata.targetsY = [[target]];
   } else {
     metadata.type = GateType.Unitary;
     metadata.label = gate;
@@ -288,6 +293,21 @@ const _makeUnitary = (gate: string): Unitary => {
 };
 
 /**
+ * Function to create a measurement operation
+ *
+ * @param gate - The name of the gate
+ * @returns Unitary operation object
+ */
+const _makeMeasurement = (gate: string): Measurement => {
+  return {
+    kind: "measurement",
+    gate: gate,
+    qubits: [{ qubit: 0 }],
+    results: [{ qubit: 0, result: 0 }],
+  };
+};
+
+/**
  * Object for default gate dictionary
  */
 const defaultGateDictionary: GateDictionary = {
@@ -300,14 +320,9 @@ const defaultGateDictionary: GateDictionary = {
   H: _makeUnitary("H"),
   S: _makeUnitary("S"),
   T: _makeUnitary("T"),
-  Measure: {
-    kind: "measurement",
-    gate: "Measure",
-    qubits: [{ qubit: 0 }],
-    results: [{ qubit: 0, result: 0 }],
-  },
+  Measure: _makeMeasurement("Measure"),
   Reset: _makeUnitary("|0〉"),
-  ResetX: _makeUnitary("|1〉"),
+  ResetOne: _makeUnitary("|1〉"),
 };
 
 defaultGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];

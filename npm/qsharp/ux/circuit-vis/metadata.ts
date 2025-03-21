@@ -15,10 +15,8 @@ export enum GateType {
   Swap,
   /** X gate. */
   X,
-  /** |0〉 gate. */
+  /** |0〉 or |1〉 gate. */
   Reset,
-  /** |1〉 gate. */
-  ResetOne,
   /** Single/multi qubit unitary gate. */
   Unitary,
   /** Single/multi controlled unitary gate. */
