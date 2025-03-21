@@ -40,7 +40,7 @@ impl SymbolId {
     fn const_eval(self, symbols: &SymbolTable) -> Option<LiteralKind> {
         let symbol = symbols[self].clone();
         symbol
-            .const_eval() // get the value of the symbol (an Expr)
+            .get_const_expr() // get the value of the symbol (an Expr)
             .const_eval(symbols) // const eval that Expr
     }
 }

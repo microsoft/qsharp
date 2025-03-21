@@ -150,6 +150,7 @@ pub struct MeasureExpr {
 impl Display for MeasureExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "MeasureExpr", self.span)?;
+        writeln_field(f, "measure_token_span", &self.measure_token_span)?;
         write_field(f, "operand", &self.operand)
     }
 }
@@ -297,7 +298,7 @@ impl Display for GateOperandKind {
         match self {
             Self::Expr(expr) => write!(f, "{expr}"),
             Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
-            Self::Err => write!(f, "Error"),
+            Self::Err => write!(f, "Err"),
         }
     }
 }
@@ -363,7 +364,8 @@ pub enum StmtKind {
     MeasureArrow(MeasureArrowStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
-    QuantumDecl(QubitDeclaration),
+    QubitDecl(QubitDeclaration),
+    QubitArrayDecl(QubitArrayDeclaration),
     Reset(ResetStmt),
     Return(ReturnStmt),
     Switch(SwitchStmt),
@@ -401,7 +403,8 @@ impl Display for StmtKind {
             StmtKind::MeasureArrow(measure) => write!(f, "{measure}"),
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
             StmtKind::QuantumGateDefinition(gate) => write!(f, "{gate}"),
-            StmtKind::QuantumDecl(decl) => write!(f, "{decl}"),
+            StmtKind::QubitDecl(decl) => write!(f, "{decl}"),
+            StmtKind::QubitArrayDecl(decl) => write!(f, "{decl}"),
             StmtKind::Reset(reset_stmt) => write!(f, "{reset_stmt}"),
             StmtKind::Return(return_stmt) => write!(f, "{return_stmt}"),
             StmtKind::Switch(switch_stmt) => write!(f, "{switch_stmt}"),
@@ -669,8 +672,8 @@ impl Display for GateModifierKind {
         match self {
             GateModifierKind::Inv => write!(f, "Inv"),
             GateModifierKind::Pow(expr) => write!(f, "Pow {expr}"),
-            GateModifierKind::Ctrl(expr) => write!(f, "Ctrl {expr:?}"),
-            GateModifierKind::NegCtrl(expr) => write!(f, "NegCtrl {expr:?}"),
+            GateModifierKind::Ctrl(ctrls) => write!(f, "Ctrl {ctrls:?}"),
+            GateModifierKind::NegCtrl(ctrls) => write!(f, "NegCtrl {ctrls:?}"),
         }
     }
 }
@@ -1009,14 +1012,29 @@ impl Display for IncludeStmt {
 pub struct QubitDeclaration {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub size: Option<(u32, Span)>,
 }
 
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "QubitDeclaration", self.span)?;
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QubitArrayDeclaration {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+    pub size: u32,
+    pub size_span: Span,
+}
+
+impl Display for QubitArrayDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "QubitArrayDeclaration", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
-        write_opt_field(f, "size", self.size.map(|s| s.0).as_ref())
+        writeln_field(f, "size", &self.size)?;
+        write_field(f, "size_span", &self.size_span)
     }
 }
 
@@ -1075,7 +1093,13 @@ impl Display for GateCall {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        write_list_field(f, "qubits", &self.qubits)
+        writeln_list_field(f, "qubits", &self.qubits)?;
+        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
+        write_field(
+            f,
+            "quantum_arity_with_modifiers",
+            &self.quantum_arity_with_modifiers,
+        )
     }
 }
 
@@ -1472,7 +1496,7 @@ impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "lhs", &self.rhs)?;
+        writeln_list_field(f, "indices", &self.indices)?;
         write_field(f, "rhs", &self.rhs)
     }
 }

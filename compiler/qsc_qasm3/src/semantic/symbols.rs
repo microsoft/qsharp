@@ -100,10 +100,10 @@ pub struct Symbol {
     pub ty: Type,
     pub qsharp_ty: crate::types::Type,
     pub io_kind: IOKind,
-    // Used for const evaluation.
-    // This field should only be Some(_)
-    // if the symbol is const.
-    value: Option<Rc<Expr>>,
+    /// Used for const evaluation. This field should only be Some(_)
+    /// if the symbol is const. This Expr holds the whole const expr
+    /// unevaluated.
+    const_expr: Option<Rc<Expr>>,
 }
 
 impl Symbol {
@@ -121,44 +121,32 @@ impl Symbol {
             ty,
             qsharp_ty,
             io_kind,
-            value: None,
+            const_expr: None,
         }
     }
 
     #[must_use]
-    pub fn with_const_value(self, value: Rc<Expr>) -> Self {
+    pub fn with_const_expr(self, value: Rc<Expr>) -> Self {
         assert!(
             value.ty.is_const(),
             "this builder pattern should only be used with const expressions"
         );
         Symbol {
-            value: Some(value),
+            const_expr: Some(value),
             ..self
         }
     }
 
     /// Returns the value of the symbol.
     #[must_use]
-    pub fn const_eval(&self) -> Rc<Expr> {
-        if let Some(val) = &self.value {
+    pub fn get_const_expr(&self) -> Rc<Expr> {
+        if let Some(val) = &self.const_expr {
             val.clone()
         } else {
             unreachable!("this function should only be called on const symbols");
         }
     }
 }
-
-impl PartialEq for Symbol {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-            && self.span == other.span
-            && self.ty == other.ty
-            && self.qsharp_ty == other.qsharp_ty
-            && self.io_kind == other.io_kind
-    }
-}
-
-impl Eq for Symbol {}
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -181,7 +169,7 @@ impl Default for Symbol {
             ty: Type::Err,
             qsharp_ty: crate::types::Type::Tuple(vec![]),
             io_kind: IOKind::default(),
-            value: None,
+            const_expr: None,
         }
     }
 }
@@ -320,7 +308,7 @@ impl Default for SymbolTable {
                 ty,
                 qsharp_ty: crate::types::Type::Double(true),
                 io_kind: IOKind::Default,
-                value: Some(Rc::new(expr)),
+                const_expr: Some(Rc::new(expr)),
             })
             .unwrap_or_else(|_| panic!("Failed to insert symbol: {symbol}"));
         }
@@ -365,7 +353,7 @@ impl SymbolTable {
             ty: Type::Err,
             qsharp_ty: crate::types::Type::Err,
             io_kind: IOKind::Default,
-            value: None,
+            const_expr: None,
         });
         let id = self.current_id;
         self.current_id = self.current_id.successor();

@@ -365,7 +365,8 @@ impl QasmCompiler {
             semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
             semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
             semast::StmtKind::QuantumGateDefinition(stmt) => self.compile_gate_decl_stmt(stmt),
-            semast::StmtKind::QuantumDecl(stmt) => self.compile_quantum_decl_stmt(stmt),
+            semast::StmtKind::QubitDecl(stmt) => self.compile_qubit_decl_stmt(stmt),
+            semast::StmtKind::QubitArrayDecl(stmt) => self.compile_qubit_array_decl_stmt(stmt),
             semast::StmtKind::Reset(stmt) => self.compile_reset_stmt(stmt),
             semast::StmtKind::Return(stmt) => self.compile_return_stmt(stmt),
             semast::StmtKind::Switch(stmt) => self.compile_switch_stmt(stmt),
@@ -699,9 +700,21 @@ impl QasmCompiler {
         None
     }
 
-    fn compile_quantum_decl_stmt(
+    fn compile_qubit_decl_stmt(&mut self, stmt: &semast::QubitDeclaration) -> Option<qsast::Stmt> {
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = &symbol.name;
+        let name_span = symbol.span;
+
+        let stmt = match self.config.qubit_semantics {
+            QubitSemantics::QSharp => build_managed_qubit_alloc(name, stmt.span, name_span),
+            QubitSemantics::Qiskit => build_unmanaged_qubit_alloc(name, stmt.span, name_span),
+        };
+        Some(stmt)
+    }
+
+    fn compile_qubit_array_decl_stmt(
         &mut self,
-        stmt: &semast::QubitDeclaration,
+        stmt: &semast::QubitArrayDeclaration,
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = &symbol.name;
@@ -709,25 +722,15 @@ impl QasmCompiler {
 
         let stmt = match self.config.qubit_semantics {
             QubitSemantics::QSharp => {
-                if let Some((size, designator_span)) = stmt.size {
-                    managed_qubit_alloc_array(name, size, stmt.span, name_span, designator_span)
-                } else {
-                    build_managed_qubit_alloc(name, stmt.span, name_span)
-                }
+                managed_qubit_alloc_array(name, stmt.size, stmt.span, name_span, stmt.size_span)
             }
-            QubitSemantics::Qiskit => {
-                if let Some((size, designator_span)) = stmt.size {
-                    build_unmanaged_qubit_alloc_array(
-                        name,
-                        size,
-                        stmt.span,
-                        name_span,
-                        designator_span,
-                    )
-                } else {
-                    build_unmanaged_qubit_alloc(name, stmt.span, name_span)
-                }
-            }
+            QubitSemantics::Qiskit => build_unmanaged_qubit_alloc_array(
+                name,
+                stmt.size,
+                stmt.span,
+                name_span,
+                stmt.size_span,
+            ),
         };
         Some(stmt)
     }
