@@ -1754,11 +1754,13 @@ fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
 fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Reset))?;
+    let reset_token_span = s.span(lo);
     let operand = Box::new(gate_operand(s)?);
     recovering_semi(s);
 
     Ok(ResetStmt {
         span: s.span(lo),
+        reset_token_span,
         operand,
     })
 }

@@ -9,15 +9,16 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{
     ast_builder::{
-        build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
-        build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_expr_array_expr, build_gate_call_param_expr,
-        build_gate_call_with_params_and_callee, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
+        build_binary_expr, build_cast_call, build_cast_call_two_params, build_classical_decl,
+        build_complex_from_expr, build_convert_call_expr, build_expr_array_expr,
+        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
+        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
+        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
+        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_reset_call,
         build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
         build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
@@ -443,8 +444,20 @@ impl QasmCompiler {
     }
 
     fn compile_barrier_stmt(&mut self, stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("barrier statements", stmt.span);
-        None
+        let qubits: Vec<_> = stmt
+            .qubits
+            .iter()
+            .filter_map(|q| self.compile_gate_operand(q))
+            .collect();
+
+        if stmt.qubits.len() != qubits.len() {
+            // if any of the qubit arguments failed to compile we can't proceed.
+            // This can happen if the qubit is not defined.
+            return None;
+        }
+
+        self.runtime.insert(RuntimeFunctions::Barrier);
+        Some(build_barrier_call(stmt.span))
     }
 
     fn compile_box_stmt(&mut self, stmt: &semast::BoxStmt) -> Option<qsast::Stmt> {
@@ -732,8 +745,10 @@ impl QasmCompiler {
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("reset statements", stmt.span);
-        None
+        let operand = self.compile_gate_operand(&stmt.operand)?;
+        let operand_span = operand.span;
+        let expr = build_reset_call(operand, stmt.reset_token_span, operand_span);
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_return_stmt(&mut self, stmt: &semast::ReturnStmt) -> Option<qsast::Stmt> {

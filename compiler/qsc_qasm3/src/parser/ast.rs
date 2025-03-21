@@ -468,12 +468,14 @@ impl Display for BarrierStmt {
 #[derive(Clone, Debug)]
 pub struct ResetStmt {
     pub span: Span,
+    pub reset_token_span: Span,
     pub operand: Box<GateOperand>,
 }
 
 impl Display for ResetStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ResetStmt", self.span)?;
+        writeln_field(f, "reset_token_span", &self.reset_token_span)?;
         write_field(f, "operand", &self.operand)
     }
 }

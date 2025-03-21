@@ -182,7 +182,7 @@ impl Lowerer {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
             syntax::StmtKind::Assign(stmt) => self.lower_assign(stmt),
             syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op(stmt),
-            syntax::StmtKind::Barrier(stmt) => self.lower_barrier(stmt),
+            syntax::StmtKind::Barrier(stmt) => self.lower_barrier_stmt(stmt),
             syntax::StmtKind::Box(stmt) => self.lower_box(stmt),
             syntax::StmtKind::Break(stmt) => self.lower_break(stmt),
             syntax::StmtKind::Block(stmt) => {
@@ -368,6 +368,7 @@ impl Lowerer {
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
+        let rhs = self.cast_expr_to_type(&ty, &rhs);
 
         if ty.is_const() {
             let kind =
@@ -394,7 +395,11 @@ impl Lowerer {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = &symbol.ty;
+        let indexed_ty = &symbol
+            .ty
+            .get_indexed_type()
+            .expect("we only get here if there is at least one index");
+
         let indices = index_expr
             .indices
             .iter()
@@ -402,11 +407,14 @@ impl Lowerer {
         let indices = list_from_iter(indices);
 
         let rhs = match rhs {
-            syntax::ValueExpr::Expr(expr) => self.lower_expr_with_target_type(Some(expr), ty, span),
+            syntax::ValueExpr::Expr(expr) => {
+                self.lower_expr_with_target_type(Some(expr), indexed_ty, span)
+            }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
+        let rhs = self.cast_expr_to_type(indexed_ty, &rhs);
 
-        if ty.is_const() {
+        if symbol.ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
@@ -729,9 +737,13 @@ impl Lowerer {
         }
     }
 
-    fn lower_barrier(&mut self, stmt: &syntax::BarrierStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("barrier stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_barrier_stmt(&mut self, stmt: &syntax::BarrierStmt) -> semantic::StmtKind {
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        semantic::StmtKind::Barrier(semantic::BarrierStmt {
+            span: stmt.span,
+            qubits,
+        })
     }
 
     /// The "boxable" stmts were taken from the reference parser at
@@ -1300,8 +1312,12 @@ impl Lowerer {
     }
 
     fn lower_reset(&mut self, stmt: &syntax::ResetStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("reset stmt", stmt.span);
-        semantic::StmtKind::Err
+        let operand = self.lower_gate_operand(&stmt.operand);
+        semantic::StmtKind::Reset(semantic::ResetStmt {
+            span: stmt.span,
+            reset_token_span: stmt.reset_token_span,
+            operand: Box::new(operand),
+        })
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {

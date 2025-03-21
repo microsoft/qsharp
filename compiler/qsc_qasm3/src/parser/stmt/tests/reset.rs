@@ -14,6 +14,7 @@ fn reset_ident() {
             Stmt [0-8]:
                 annotations: <empty>
                 kind: ResetStmt [0-8]:
+                    reset_token_span: [0-5]
                     operand: GateOperand [6-7]:
                         kind: IndexedIdent [6-7]:
                             name: Ident [6-7] "a"
@@ -31,6 +32,7 @@ fn reset_indexed_ident() {
             Stmt [0-11]:
                 annotations: <empty>
                 kind: ResetStmt [0-11]:
+                    reset_token_span: [0-5]
                     operand: GateOperand [6-10]:
                         kind: IndexedIdent [6-10]:
                             name: Ident [6-7] "a"
@@ -51,6 +53,7 @@ fn reset_hardware_qubit() {
             Stmt [0-10]:
                 annotations: <empty>
                 kind: ResetStmt [0-10]:
+                    reset_token_span: [0-5]
                     operand: GateOperand [6-9]:
                         kind: HardwareQubit [6-9]: 42"#]],
     );
