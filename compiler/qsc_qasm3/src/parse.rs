@@ -91,9 +91,7 @@ fn create_source_map(source: &QasmSource) -> SourceMap {
     for include in source.includes() {
         collect_source_files(include, &mut files);
     }
-    // Map the main source file to the entry point expression
-    // This may be incorrect, but it's the best we can do for now.
-    SourceMap::new(files, Some(Arc::from(source.source())))
+    SourceMap::new(files, None)
 }
 
 /// Recursively collect all source files from the includes

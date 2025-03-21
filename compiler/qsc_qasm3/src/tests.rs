@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::runtime::RuntimeFunctions;
-use crate::semantic::symbols::SymbolTable;
+use crate::compiler::compile_anon_with_config;
 use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use miette::Report;
 use qsc::interpret::Error;
@@ -68,7 +67,7 @@ pub(crate) fn generate_qir_from_ast(
     )
 }
 
-fn compile<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
+fn compile<S>(source: S) -> miette::Result<QasmCompileUnit>
 where
     S: AsRef<str>,
 {
@@ -79,42 +78,13 @@ where
         Some("Test".into()),
         None,
     );
-    compile_with_config(source, config)
-}
-
-fn compile_with_config<S>(
-    source: S,
-    config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
-    let res = parse(source)?;
-    if res.has_syntax_errors() {
-        for e in res.sytax_errors() {
-            println!("{:?}", Report::new(e.clone()));
-        }
-    }
-    assert!(!res.has_syntax_errors());
-    let program = res.program.expect("no program found");
-
-    let compiler = crate::compiler::QasmCompiler {
-        source_map: res.source_map,
-        config,
-        stmts: vec![],
-        runtime: RuntimeFunctions::empty(),
-        symbols: res.symbols,
-        errors: res.errors,
-    };
-
-    let unit = compiler.compile(&program);
-    Ok(unit)
+    compile_anon_with_config(source, config)
 }
 
 pub fn compile_all<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
+) -> miette::Result<QasmCompileUnit>
 where
     P: AsRef<Path>,
 {
@@ -125,13 +95,13 @@ where
         Some("Test".into()),
         None,
     );
-    compile_all_with_config(path, sources, config)
+    crate::compiler::compile_all_with_config(path, sources, config)
 }
 
 pub fn compile_all_fragments<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
+) -> miette::Result<QasmCompileUnit>
 where
     P: AsRef<Path>,
 {
@@ -142,7 +112,7 @@ where
         None,
         None,
     );
-    compile_all_with_config(path, sources, config)
+    crate::compiler::compile_all_with_config(path, sources, config)
 }
 
 fn compile_fragments<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
@@ -156,36 +126,11 @@ where
         None,
         None,
     );
-    compile_with_config(source, config)
-}
-
-pub fn compile_all_with_config<P>(
-    path: P,
-    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-    config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
-    let res = parse_all(path, sources)?;
-    assert!(!res.has_syntax_errors());
-    let program = res.program.expect("no program found");
-
-    let compiler = crate::compiler::QasmCompiler {
-        source_map: res.source_map,
-        config,
-        stmts: vec![],
-        runtime: RuntimeFunctions::empty(),
-        symbols: SymbolTable::default(),
-        errors: res.errors,
-    };
-
-    let unit = compiler.compile(&program);
-    Ok(unit)
+    compile_anon_with_config(source, config).map_err(|e| vec![e])
 }
 
 fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
-    let unit = compile(source)?;
+    let unit = compile(source).map_err(|e| vec![e])?;
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
     let qir = generate_qir_from_ast(package, unit.source_map, profile).map_err(|errors| {
@@ -256,7 +201,7 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
         Some("Test".into()),
         None,
     );
-    let unit = compile_with_config(source, config)?;
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
@@ -276,7 +221,7 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
         Some("Test".into()),
         None,
     );
-    let unit = compile_with_config(source, config)?;
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
@@ -303,7 +248,7 @@ pub fn compile_qasm_to_qsharp_with_semantics(
         None,
         None,
     );
-    let unit = compile_with_config(source, config)?;
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     qsharp_from_qasm_compilation(unit)
 }
 
@@ -334,7 +279,7 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
         None,
         None,
     );
-    let unit = compile_with_config(source, config)?;
+    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
     if unit.has_errors() {
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
