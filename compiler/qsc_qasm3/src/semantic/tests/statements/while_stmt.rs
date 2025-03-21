@@ -8,7 +8,7 @@ use expect_test::expect;
 fn single_stmt_body_doesnt_creates_its_own_scope() {
     check_stmt_kinds(
         "
-    int a = 0;
+    int a = 3;
     while(true) int a = 1;
     ",
         &expect![[r#"
@@ -21,8 +21,8 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
                             symbol_id: 6
                             ty_span: [5-8]
                             init_expr: Expr [13-14]:
-                                ty: Int(None, true)
-                                kind: Lit: Int(0)
+                                ty: Int(None, false)
+                                kind: Lit: Int(3)
                     Stmt [20-42]:
                         annotations: <empty>
                         kind: WhileLoop [20-42]:
@@ -35,14 +35,14 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
                                     symbol_id: 6
                                     ty_span: [32-35]
                                     init_expr: Expr [40-41]:
-                                        ty: Int(None, true)
+                                        ty: Int(None, false)
                                         kind: Lit: Int(1)
 
             [Qsc.Qasm3.Compile.RedefinedSymbol
 
               x Redefined symbol: a.
                ,-[test:3:21]
-             2 |     int a = 0;
+             2 |     int a = 3;
              3 |     while(true) int a = 1;
                :                     ^
              4 |     
@@ -55,7 +55,7 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
 fn block_body_creates_its_own_scope() {
     check_stmt_kinds(
         "
-    int a = 0;
+    int a = 3;
     while(true) { int a = 1; }
     ",
         &expect![[r#"
@@ -63,8 +63,8 @@ fn block_body_creates_its_own_scope() {
                 symbol_id: 6
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, true)
-                    kind: Lit: Int(0)
+                    ty: Int(None, false)
+                    kind: Lit: Int(3)
             WhileLoop [20-46]:
                 condition: Expr [26-30]:
                     ty: Bool(true)
@@ -78,7 +78,7 @@ fn block_body_creates_its_own_scope() {
                                 symbol_id: 7
                                 ty_span: [34-37]
                                 init_expr: Expr [42-43]:
-                                    ty: Int(None, true)
+                                    ty: Int(None, false)
                                     kind: Lit: Int(1)
         "#]],
     );
@@ -91,9 +91,9 @@ fn condition_cast() {
         &expect![[r#"
             WhileLoop [0-15]:
                 condition: Expr [7-8]:
-                    ty: Bool(false)
+                    ty: Bool(true)
                     kind: Cast [0-0]:
-                        ty: Bool(false)
+                        ty: Bool(true)
                         expr: Expr [7-8]:
                             ty: Int(None, true)
                             kind: Lit: Int(1)

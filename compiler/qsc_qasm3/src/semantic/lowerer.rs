@@ -364,7 +364,8 @@ impl Lowerer {
         let ty = symbol.ty.clone();
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
-                self.lower_expr_with_target_type(Some(expr), &ty, span)
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
@@ -410,7 +411,8 @@ impl Lowerer {
 
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
-                self.lower_expr_with_target_type(Some(expr), indexed_ty, span)
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
@@ -452,7 +454,8 @@ impl Lowerer {
         let lhs = self.lower_indexed_ident_expr(lhs);
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
-                self.lower_expr_with_target_type(Some(expr), ty, stmt.span)
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
@@ -617,9 +620,12 @@ impl Lowerer {
                 // this is the  only unary operator that tries to coerce the type
                 // I can't find it in the spec, but when looking at existing code
                 // it seems that the ! operator coerces to a bool if possible
-                let target_ty = Type::Bool(false);
+                let expr = self.lower_expr(&expr.expr);
+                let expr_span = expr.span;
+                let target_ty = Type::Bool(expr.ty.is_const());
+
                 let expr =
-                    self.lower_expr_with_target_type(Some(&expr.expr), &target_ty, expr.expr.span);
+                    self.cast_expr_with_target_type_or_default(Some(expr), &target_ty, expr_span);
 
                 let ty = expr.ty.clone();
 
@@ -735,6 +741,7 @@ impl Lowerer {
             }
             Type::Range => crate::types::Type::Range,
             Type::Void => crate::types::Type::Tuple(vec![]),
+            Type::Err => crate::types::Type::Err,
             _ => {
                 let msg = format!("Converting {ty:?} to Q# type");
                 self.push_unimplemented_error_message(msg, span);
@@ -845,14 +852,15 @@ impl Lowerer {
         let init_expr = match init_expr {
             Some(expr) => match expr {
                 syntax::ValueExpr::Expr(expr) => {
-                    self.lower_expr_with_target_type(Some(expr), &ty, stmt_span)
+                    let expr = self.lower_expr(expr);
+                    self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
                 }
                 syntax::ValueExpr::Measurement(measure_expr) => {
                     let expr = self.lower_measure_expr(measure_expr);
                     self.cast_expr_to_type(&ty, &expr)
                 }
             },
-            None => self.lower_expr_with_target_type(None, &ty, stmt_span),
+            None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
 
         let symbol_id =
@@ -874,7 +882,8 @@ impl Lowerer {
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
         let init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
-                self.lower_expr_with_target_type(Some(expr), &ty, stmt.span)
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
@@ -995,7 +1004,7 @@ impl Lowerer {
 
         // The semantics of a if statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
-        let cond_ty = Type::Bool(false);
+        let cond_ty = Type::Bool(condition.ty.is_const());
         let condition = self.cast_expr_to_type(&cond_ty, &condition);
 
         semantic::StmtKind::If(semantic::IfStmt {
@@ -1352,7 +1361,7 @@ impl Lowerer {
         // The condition for the switch statement must be an integer type
         // so we use `cast_expr_to_type`, forcing the type to be an integer
         // type with implicit casts if necessary.
-        let target_ty = Type::Int(None, false);
+        let target_ty = Type::Int(None, target.ty.is_const());
         let target = self.cast_expr_to_type(&target_ty, &target);
 
         // It is a parse error to have a switch statement with no cases,
@@ -1389,7 +1398,7 @@ impl Lowerer {
     }
 
     fn lower_switch_case(&mut self, switch_case: &syntax::SwitchCase) -> semantic::SwitchCase {
-        let label_ty = Type::Int(None, false);
+        let label_ty = Type::Int(None, true);
         let labels = switch_case
             .labels
             .iter()
@@ -1412,17 +1421,17 @@ impl Lowerer {
     }
 
     fn lower_while_stmt(&mut self, stmt: &syntax::WhileLoop) -> semantic::StmtKind {
-        let while_condition = self.lower_expr(&stmt.while_condition);
+        let condition = self.lower_expr(&stmt.while_condition);
         let body = self.lower_stmt(&stmt.body);
 
         // The semantics of a while statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
-        let cond_ty = Type::Bool(false);
-        let while_condition = self.cast_expr_to_type(&cond_ty, &while_condition);
+        let cond_ty = Type::Bool(condition.ty.is_const());
+        let while_condition = self.cast_expr_to_type(&cond_ty, &condition);
 
         semantic::StmtKind::WhileLoop(semantic::WhileLoop {
             span: stmt.span,
-            while_condition,
+            condition: while_condition,
             body,
         })
     }
@@ -1447,7 +1456,13 @@ impl Lowerer {
 
     /// Helper function for const evaluating array sizes, type widths, and durations.
     fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::LiteralKind> {
-        let expr = self.lower_expr_with_target_type(Some(expr), &Type::UInt(None, true), expr.span);
+        let expr = self.lower_expr(expr);
+        let expr_span = expr.span;
+        let expr = self.cast_expr_with_target_type_or_default(
+            Some(expr),
+            &Type::UInt(None, true),
+            expr_span,
+        );
 
         if let Some(lit) = expr.const_eval(&self.symbols) {
             Some(lit)
@@ -1600,19 +1615,20 @@ impl Lowerer {
         );
         crate::semantic::types::Type::Err
     }
-    fn lower_expr_with_target_type(
+
+    fn cast_expr_with_target_type_or_default(
         &mut self,
-        expr: Option<&syntax::Expr>,
+        expr: Option<semantic::Expr>,
         ty: &Type,
         span: Span,
     ) -> semantic::Expr {
-        let Some(expr) = expr else {
+        let Some(mut rhs) = expr else {
             // In OpenQASM, classical variables may be uninitialized, but in Q#,
             // they must be initialized. We will use the default value for the type
             // to initialize the variable.
             return self.get_default_value(ty, span);
         };
-        let mut rhs = self.lower_expr(expr);
+
         let rhs_ty = rhs.ty.clone();
 
         // avoid the cast
@@ -1745,16 +1761,12 @@ impl Lowerer {
                 self.push_unimplemented_error_message("uint array default value", span);
                 None
             }
-            Type::Duration(_)
-            | Type::Err
-            | Type::Gate(_, _)
-            | Type::Range
-            | Type::Set
-            | Type::Void => {
+            Type::Duration(_) | Type::Gate(_, _) | Type::Range | Type::Set | Type::Void => {
                 let message = format!("Default values for {ty:?} are unsupported.");
                 self.push_unsupported_error_message(message, span);
                 None
             }
+            Type::Err => None,
         };
         let Some(expr) = expr else {
             return err_expr!(ty.as_const());
@@ -2243,7 +2255,7 @@ impl Lowerer {
             let (ty, lhs_uint_promotion, rhs_uint_promotion) =
                 promote_to_uint_ty(&left_type, &right_type);
             let Some(ty) = ty else {
-                let target_ty = Type::UInt(None, false);
+                let target_ty = Type::UInt(None, left_type.is_const() && right_type.is_const());
                 if lhs_uint_promotion.is_none() {
                     let target_str: String = format!("{target_ty:?}");
                     let kind = SemanticErrorKind::CannotCast(
@@ -2308,13 +2320,15 @@ impl Lowerer {
         // Q# has built-in functions: IntAsDouble, IntAsBigInt to handle two cases.
         // If the width of a float is greater than 64, we can't represent it as a double.
 
+        let ty_constness = lhs.ty.is_const() && rhs.ty.is_const();
+
         let (lhs, rhs, ty) = if matches!(op, syntax::BinOp::AndL | syntax::BinOp::OrL) {
-            let ty = Type::Bool(false);
+            let ty = Type::Bool(ty_constness);
             let new_lhs = self.cast_expr_to_type(&ty, &lhs);
             let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (new_lhs, new_rhs, ty)
         } else if binop_requires_int_conversion_for_type(op, &left_type, &rhs.ty) {
-            let ty = Type::Int(None, false);
+            let ty = Type::Int(None, ty_constness);
             let new_lhs = self.cast_expr_to_type(&ty, &lhs);
             let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (new_lhs, new_rhs, ty)
@@ -2354,7 +2368,7 @@ impl Lowerer {
             };
             (new_left, new_right, promoted_type)
         } else if binop_requires_symmetric_int_conversion(op) {
-            let ty = Type::Int(None, false);
+            let ty = Type::Int(None, ty_constness);
             let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (lhs, new_rhs, left_type)
         } else {

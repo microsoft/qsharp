@@ -55,7 +55,7 @@ fn decl_with_lit_false_init_expr() {
                 symbol_id: 6
                 ty_span: [0-4]
                 init_expr: Expr [9-14]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [6] Symbol [5-6]:
                 name: a
@@ -74,7 +74,7 @@ fn decl_with_lit_true_init_expr() {
                 symbol_id: 6
                 ty_span: [0-4]
                 init_expr: Expr [9-13]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [5-6]:
                 name: a

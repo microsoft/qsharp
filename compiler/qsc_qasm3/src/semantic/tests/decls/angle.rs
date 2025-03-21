@@ -398,9 +398,9 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
             [Qsc.Qasm3.Compile.CannotCast
 
               x Cannot cast expression of type Int(None, true) to type Angle(None, true)
-               ,-[test:1:1]
+               ,-[test:1:18]
              1 | const angle x = -7;
-               : ^^^^^^^^^^^^^^^^^^^
+               :                  ^
                `----
             ]"#]],
     );

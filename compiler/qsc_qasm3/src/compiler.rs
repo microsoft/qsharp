@@ -762,7 +762,7 @@ impl QasmCompiler {
     }
 
     fn compile_while_stmt(&mut self, stmt: &semast::WhileLoop) -> Option<qsast::Stmt> {
-        let condition = self.compile_expr(&stmt.while_condition)?;
+        let condition = self.compile_expr(&stmt.condition)?;
         match &*stmt.body.kind {
             semast::StmtKind::Block(block) => {
                 let block = self.compile_block(block);

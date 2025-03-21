@@ -348,10 +348,10 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
             , Qsc.Qasm3.Compile.CannotCast
 
               x Cannot cast expression of type Err to type Bit(false)
-               ,-[source0.qasm:4:5]
+               ,-[source0.qasm:4:13]
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
-               :     ^^^^^^^^^^
+               :             ^
              5 |     
                `----
             ]"#]],

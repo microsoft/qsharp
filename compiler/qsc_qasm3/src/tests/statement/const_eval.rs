@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! The tests in this file need to check that const exprs are
+//! evaluatable at lowering time. To do that we use them in
+//! contexts where they need to be const-evaluated, like array
+//! sizes or type widths.
+
 use crate::tests::compile_qasm_to_qsharp;
 use expect_test::expect;
 use miette::Report;
@@ -81,27 +86,6 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          6 |         bit[c] r2;
            `----
 
-        Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: Converting Err
-          | to Q# type
-           ,-[Test.qasm:5:9]
-         4 |         int c = a + 3;
-         5 |         bit[b] r1;
-           :         ^^^^^^
-         6 |         bit[c] r2;
-           `----
-
-        Qsc.Qasm3.Compile.NotSupported
-
-          x Default values for Err are unsupported. are not supported.
-           ,-[Test.qasm:5:9]
-         4 |         int c = a + 3;
-         5 |         bit[b] r1;
-           :         ^^^^^^^^^^
-         6 |         bit[c] r2;
-           `----
-
         Qsc.Qasm3.Compile.ExprMustBeConst
 
           x designator must be a const expression
@@ -109,28 +93,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |     
-           `----
-
-        Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: Converting Err
-          | to Q# type
-           ,-[Test.qasm:6:9]
-         5 |         bit[b] r1;
-         6 |         bit[c] r2;
-           :         ^^^^^^
-         7 |     
-           `----
-
-        Qsc.Qasm3.Compile.NotSupported
-
-          x Default values for Err are unsupported. are not supported.
-           ,-[Test.qasm:6:9]
-         5 |         bit[b] r1;
-         6 |         bit[c] r2;
-           :         ^^^^^^^^^^
-         7 |     
+         7 |
            `----
 
     "#]]

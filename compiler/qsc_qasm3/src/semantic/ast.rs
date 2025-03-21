@@ -1353,14 +1353,14 @@ impl Display for ReturnStmt {
 #[derive(Clone, Debug)]
 pub struct WhileLoop {
     pub span: Span,
-    pub while_condition: Expr,
+    pub condition: Expr,
     pub body: Stmt,
 }
 
 impl Display for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "WhileLoop", self.span)?;
-        writeln_field(f, "condition", &self.while_condition)?;
+        writeln_field(f, "condition", &self.condition)?;
         write_field(f, "body", &self.body)
     }
 }

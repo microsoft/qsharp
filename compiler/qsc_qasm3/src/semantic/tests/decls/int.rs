@@ -14,7 +14,7 @@ fn implicit_bitness_int_negative() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [9-11]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: UnaryOpExpr [9-11]:
                         op: Neg
                         expr: Expr [9-11]:
@@ -98,7 +98,7 @@ fn implicit_bitness_int_hex_cap() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [8-15]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: Lit: Int(64031)
             [6] Symbol [4-5]:
                 name: x
@@ -136,7 +136,7 @@ fn implicit_bitness_int_octal() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [8-12]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: Lit: Int(34)
             [6] Symbol [4-5]:
                 name: x
@@ -193,7 +193,7 @@ fn implicit_bitness_int_binary_low() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [8-19]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: Lit: Int(153)
             [6] Symbol [4-5]:
                 name: x
@@ -212,7 +212,7 @@ fn implicit_bitness_int_binary_cap() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [8-14]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: Lit: Int(10)
             [6] Symbol [4-5]:
                 name: x
@@ -269,7 +269,7 @@ fn implicit_bitness_int_formatted() {
                 symbol_id: 6
                 ty_span: [0-3]
                 init_expr: Expr [8-14]:
-                    ty: Int(None, true)
+                    ty: Int(None, false)
                     kind: Lit: Int(2000)
             [6] Symbol [4-5]:
                 name: x

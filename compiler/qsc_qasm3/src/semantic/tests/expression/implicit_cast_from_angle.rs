@@ -157,10 +157,10 @@ fn to_implicit_int_implicitly_fails() {
             [Qsc.Qasm3.Compile.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Int(None, false)
-               ,-[test:3:9]
+               ,-[test:3:17]
              2 |         angle x = 42.;
              3 |         int y = x;
-               :         ^^^^^^^^^^
+               :                 ^
              4 |     
                `----
             ]"#]],
@@ -201,10 +201,10 @@ fn to_explicit_int_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type Int(Some(32),
               | false)
-               ,-[test:3:9]
+               ,-[test:3:21]
              2 |         angle x = 42.;
              3 |         int[32] y = x;
-               :         ^^^^^^^^^^^^^^
+               :                     ^
              4 |     
                `----
             ]"#]],
@@ -245,10 +245,10 @@ fn to_implicit_uint_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type UInt(None,
               | false)
-               ,-[test:3:9]
+               ,-[test:3:18]
              2 |         angle x = 42.;
              3 |         uint y = x;
-               :         ^^^^^^^^^^^
+               :                  ^
              4 |     
                `----
             ]"#]],
@@ -297,10 +297,10 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type UInt(None,
               | false)
-               ,-[test:3:9]
+               ,-[test:3:18]
              2 |         angle x = -42.;
              3 |         uint y = x;
-               :         ^^^^^^^^^^^
+               :                  ^
              4 |     
                `----
             ]"#]],
@@ -341,10 +341,10 @@ fn to_explicit_uint_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type UInt(Some(32),
               | false)
-               ,-[test:3:9]
+               ,-[test:3:22]
              2 |         angle x = 42.;
              3 |         uint[32] y = x;
-               :         ^^^^^^^^^^^^^^^
+               :                      ^
              4 |     
                `----
             ]"#]],
@@ -385,10 +385,10 @@ fn to_explicit_bigint_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type Int(Some(65),
               | false)
-               ,-[test:3:9]
+               ,-[test:3:21]
              2 |         angle x = 42.;
              3 |         int[65] y = x;
-               :         ^^^^^^^^^^^^^^
+               :                     ^
              4 |     
                `----
             ]"#]],
@@ -429,10 +429,10 @@ fn to_implicit_float_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type Float(None,
               | false)
-               ,-[test:3:9]
+               ,-[test:3:19]
              2 |         angle x = 42.;
              3 |         float y = x;
-               :         ^^^^^^^^^^^^
+               :                   ^
              4 |     
                `----
             ]"#]],
@@ -473,10 +473,10 @@ fn to_explicit_float_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type Float(Some(32),
               | false)
-               ,-[test:3:9]
+               ,-[test:3:23]
              2 |         angle x = 42.;
              3 |         float[32] y = x;
-               :         ^^^^^^^^^^^^^^^^
+               :                       ^
              4 |     
                `----
             ]"#]],
@@ -517,10 +517,10 @@ fn to_implicit_complex_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type Complex(None,
               | false)
-               ,-[test:3:9]
+               ,-[test:3:28]
              2 |         angle x = 42.;
              3 |         complex[float] y = x;
-               :         ^^^^^^^^^^^^^^^^^^^^^
+               :                            ^
              4 |     
                `----
             ]"#]],
@@ -561,10 +561,10 @@ fn to_explicit_complex_implicitly_fails() {
 
               x Cannot cast expression of type Angle(None, false) to type
               | Complex(Some(32), false)
-               ,-[test:3:9]
+               ,-[test:3:32]
              2 |         angle x = 42.;
              3 |         complex[float[32]] y = x;
-               :         ^^^^^^^^^^^^^^^^^^^^^^^^^
+               :                                ^
              4 |     
                `----
             ]"#]],

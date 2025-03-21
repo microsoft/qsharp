@@ -20,7 +20,7 @@ fn greater_than() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -31,7 +31,7 @@ fn greater_than() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
@@ -75,7 +75,7 @@ fn greater_than_equals() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -86,7 +86,7 @@ fn greater_than_equals() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
@@ -130,7 +130,7 @@ fn less_than() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -141,7 +141,7 @@ fn less_than() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
@@ -185,7 +185,7 @@ fn less_than_equals() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -196,7 +196,7 @@ fn less_than_equals() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
@@ -240,7 +240,7 @@ fn equals() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -251,7 +251,7 @@ fn equals() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
@@ -295,7 +295,7 @@ fn not_equals() {
                 symbol_id: 6
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(5.0)
             [6] Symbol [15-16]:
                 name: x
@@ -306,7 +306,7 @@ fn not_equals() {
                 symbol_id: 7
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, true)
+                    ty: Float(None, false)
                     kind: Lit: Float(3.0)
             [7] Symbol [37-38]:
                 name: y
