@@ -6,23 +6,11 @@ use expect_test::expect;
 use crate::semantic::tests::check_stmt_kind;
 
 #[test]
-#[ignore = "unimplemented"]
-fn with_no_init_expr_has_generated_lit_expr() {
+fn with_no_init_expr() {
     check_stmt_kind(
         "qreg a;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: qubit decl
-              | stmt
-               ,-[test:1:1]
-             1 | qreg a;
-               : ^^^^^^^
-               `----
-            ]"#]],
+            QubitDeclaration [0-7]:
+                symbol_id: 6"#]],
     );
 }
