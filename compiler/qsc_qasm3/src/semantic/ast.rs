@@ -143,6 +143,7 @@ impl WithSpan for Path {
 #[derive(Clone, Debug)]
 pub struct MeasureExpr {
     pub span: Span,
+    pub measure_token_span: Span,
     pub operand: GateOperand,
 }
 
@@ -270,29 +271,33 @@ impl Display for UnaryOp {
 }
 
 #[derive(Clone, Debug, Default)]
-pub enum GateOperand {
-    IndexedIdent(Box<IndexedIdent>),
-    HardwareQubit(Box<HardwareQubit>),
-    #[default]
-    Err,
+pub struct GateOperand {
+    pub span: Span,
+    pub kind: GateOperandKind,
 }
 
 impl Display for GateOperand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            GateOperand::IndexedIdent(ident) => write!(f, "{ident}"),
-            GateOperand::HardwareQubit(qubit) => write!(f, "{qubit}"),
-            GateOperand::Err => write!(f, "Error"),
-        }
+        writeln_header(f, "GateOperand", self.span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
-impl WithSpan for GateOperand {
-    fn with_span(self, span: Span) -> Self {
+#[derive(Clone, Debug, Default)]
+pub enum GateOperandKind {
+    /// `IndexedIdent` and `Ident` get lowered to an `Expr`.
+    Expr(Box<Expr>),
+    HardwareQubit(HardwareQubit),
+    #[default]
+    Err,
+}
+
+impl Display for GateOperandKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            GateOperand::IndexedIdent(ident) => GateOperand::IndexedIdent(ident.with_span(span)),
-            GateOperand::HardwareQubit(qubit) => GateOperand::HardwareQubit(qubit.with_span(span)),
-            GateOperand::Err => GateOperand::Err,
+            Self::Expr(expr) => write!(f, "{expr}"),
+            Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
+            Self::Err => write!(f, "Error"),
         }
     }
 }
@@ -355,7 +360,7 @@ pub enum StmtKind {
     Include(IncludeStmt),
     InputDeclaration(InputDeclaration),
     OutputDeclaration(OutputDeclaration),
-    Measure(MeasureStmt),
+    MeasureArrow(MeasureArrowStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
     QuantumDecl(QubitDeclaration),
@@ -393,7 +398,7 @@ impl Display for StmtKind {
             StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
             StmtKind::InputDeclaration(io) => write!(f, "{io}"),
             StmtKind::OutputDeclaration(io) => write!(f, "{io}"),
-            StmtKind::Measure(measure) => write!(f, "{measure}"),
+            StmtKind::MeasureArrow(measure) => write!(f, "{measure}"),
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
             StmtKind::QuantumGateDefinition(gate) => write!(f, "{gate}"),
             StmtKind::QuantumDecl(decl) => write!(f, "{decl}"),
@@ -1122,15 +1127,15 @@ impl Display for BoxStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct MeasureStmt {
+pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
     pub target: Option<Box<IndexedIdent>>,
 }
 
-impl Display for MeasureStmt {
+impl Display for MeasureArrowStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "MeasureStmt", self.span)?;
+        writeln_header(f, "MeasureArrowStmt", self.span)?;
         writeln_field(f, "measurement", &self.measurement)?;
         write_opt_field(f, "target", self.target.as_ref())
     }

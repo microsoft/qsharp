@@ -27,7 +27,7 @@ use super::ast::{
     DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
     FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
     IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
-    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureStmt, Pragma,
+    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureArrowStmt, Pragma,
     QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
     RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt,
     StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
@@ -1764,7 +1764,7 @@ fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
 }
 
 /// Grammar: `measureExpression (ARROW indexedIdentifier)? SEMICOLON`.
-fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureStmt> {
+fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureArrowStmt> {
     let lo = s.peek().span.lo;
     let measure = expr::measure_expr(s)?;
 
@@ -1775,7 +1775,7 @@ fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureStmt> {
 
     recovering_semi(s);
 
-    Ok(MeasureStmt {
+    Ok(MeasureArrowStmt {
         span: s.span(lo),
         measurement: measure,
         target,

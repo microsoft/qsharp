@@ -147,6 +147,7 @@ impl WithSpan for Path {
 #[derive(Clone, Debug)]
 pub struct MeasureExpr {
     pub span: Span,
+    pub measure_token_span: Span,
     pub operand: GateOperand,
 }
 
@@ -248,29 +249,51 @@ impl Display for UnaryOp {
 }
 
 #[derive(Clone, Debug, Default)]
-pub enum GateOperand {
+pub struct GateOperand {
+    pub span: Span,
+    pub kind: GateOperandKind,
+}
+
+impl WithSpan for GateOperand {
+    fn with_span(self, span: Span) -> Self {
+        Self {
+            span,
+            kind: self.kind.with_span(span),
+        }
+    }
+}
+
+impl Display for GateOperand {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "GateOperand", self.span)?;
+        write_field(f, "kind", &self.kind)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub enum GateOperandKind {
     IndexedIdent(Box<IndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
     #[default]
     Err,
 }
 
-impl Display for GateOperand {
+impl Display for GateOperandKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            GateOperand::IndexedIdent(ident) => write!(f, "{ident}"),
-            GateOperand::HardwareQubit(qubit) => write!(f, "{qubit}"),
-            GateOperand::Err => write!(f, "Error"),
+            Self::IndexedIdent(ident) => write!(f, "{ident}"),
+            Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
+            Self::Err => write!(f, "Error"),
         }
     }
 }
 
-impl WithSpan for GateOperand {
+impl WithSpan for GateOperandKind {
     fn with_span(self, span: Span) -> Self {
         match self {
-            GateOperand::IndexedIdent(ident) => GateOperand::IndexedIdent(ident.with_span(span)),
-            GateOperand::HardwareQubit(qubit) => GateOperand::HardwareQubit(qubit.with_span(span)),
-            GateOperand::Err => GateOperand::Err,
+            Self::IndexedIdent(ident) => Self::IndexedIdent(ident.with_span(span)),
+            Self::HardwareQubit(qubit) => Self::HardwareQubit(qubit.with_span(span)),
+            Self::Err => Self::Err,
         }
     }
 }
@@ -335,7 +358,7 @@ pub enum StmtKind {
     GPhase(GPhase),
     Include(IncludeStmt),
     IODeclaration(IODeclaration),
-    Measure(MeasureStmt),
+    Measure(MeasureArrowStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
     QuantumDecl(QubitDeclaration),
@@ -1111,15 +1134,15 @@ impl Display for BoxStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct MeasureStmt {
+pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
     pub target: Option<Box<IndexedIdent>>,
 }
 
-impl Display for MeasureStmt {
+impl Display for MeasureArrowStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "MeasureStmt", self.span)?;
+        writeln_header(f, "MeasureArrowStmt", self.span)?;
         writeln_field(f, "measurement", &self.measurement)?;
         write_opt_field(f, "target", self.target.as_ref())
     }

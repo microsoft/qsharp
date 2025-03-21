@@ -24,9 +24,9 @@ use crate::parser::Result;
 use super::{
     ast::{
         list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
-        GateOperand, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet, IndexSetItem,
-        IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit, TypeDef,
-        UnaryOp, UnaryOpExpr, ValueExpr, Version,
+        GateOperand, GateOperandKind, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet,
+        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
+        TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
     completion::WordKinds,
     error::{Error, ErrorKind},
@@ -741,18 +741,28 @@ pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
 pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Measure)?;
+    let measure_token_span = s.span(lo);
+    let operand = gate_operand(s)?;
 
     Ok(MeasureExpr {
         span: s.span(lo),
-        operand: gate_operand(s)?,
+        measure_token_span,
+        operand,
     })
 }
 
 pub(crate) fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
-    if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        return Ok(GateOperand::IndexedIdent(Box::new(indexed_ident)));
-    }
-    Ok(GateOperand::HardwareQubit(Box::new(hardware_qubit(s)?)))
+    let lo = s.peek().span.lo;
+    let kind = if let Some(indexed_ident) = opt(s, indexed_identifier)? {
+        GateOperandKind::IndexedIdent(Box::new(indexed_ident))
+    } else {
+        GateOperandKind::HardwareQubit(Box::new(hardware_qubit(s)?))
+    };
+
+    Ok(GateOperand {
+        span: s.span(lo),
+        kind,
+    })
 }
 
 fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {

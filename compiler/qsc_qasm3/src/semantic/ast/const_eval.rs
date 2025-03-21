@@ -259,10 +259,10 @@ impl BinaryOpExpr {
                     (LiteralKind::Float(lhs), LiteralKind::Float(rhs)) => {
                         Some(match op {
                             // Comparison operators.
-                            // This is non-ideal because since this never reaches the Q# compiler
-                            //  we are not issuing a double-comparison lint.
+                            // TODO: we need to issue the same lint in Q#.
                             #[allow(clippy::float_cmp)]
                             BinOp::Eq => LiteralKind::Bool(lhs == rhs),
+                            // TODO: we need to issue the same lint in Q#.
                             #[allow(clippy::float_cmp)]
                             BinOp::Neq => LiteralKind::Bool(lhs != rhs),
                             BinOp::Gt => LiteralKind::Bool(lhs > rhs),

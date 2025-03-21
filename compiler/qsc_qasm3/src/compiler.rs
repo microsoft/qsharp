@@ -16,19 +16,21 @@ use crate::{
         build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_operation_with_stmts, build_path_ident_expr, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_item, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr,
+        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::{InMemorySourceResolver, SourceResolver},
     parser::ast::{list_from_iter, List},
     runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, DiscreteSet, Expr, FunctionCall, IndexElement, IndexExpr, IndexSet,
-            IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
+            BinaryOpExpr, Cast, DiscreteSet, Expr, FunctionCall, GateOperand, GateOperandKind,
+            IndexElement, IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit,
+            UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{ArrayDimensions, Type},
@@ -359,7 +361,7 @@ impl QasmCompiler {
             semast::StmtKind::Include(stmt) => self.compile_include_stmt(stmt),
             semast::StmtKind::InputDeclaration(stmt) => self.compile_input_decl_stmt(stmt),
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
-            semast::StmtKind::Measure(stmt) => self.compile_measure_stmt(stmt),
+            semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
             semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
             semast::StmtKind::QuantumGateDefinition(stmt) => self.compile_gate_decl_stmt(stmt),
             semast::StmtKind::QuantumDecl(stmt) => self.compile_quantum_decl_stmt(stmt),
@@ -430,8 +432,7 @@ impl QasmCompiler {
             stmt.span,
         );
 
-        self.push_unimplemented_error_message("indexed assignment statements", stmt.span);
-        None
+        Some(stmt)
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
@@ -590,7 +591,7 @@ impl QasmCompiler {
         Some(stmt)
     }
 
-    fn compile_measure_stmt(&mut self, stmt: &semast::MeasureStmt) -> Option<qsast::Stmt> {
+    fn compile_measure_stmt(&mut self, stmt: &semast::MeasureArrowStmt) -> Option<qsast::Stmt> {
         self.push_unimplemented_error_message("measure statements", stmt.span);
         None
     }
@@ -681,16 +682,15 @@ impl QasmCompiler {
     }
 
     fn compile_expr(&mut self, expr: &semast::Expr) -> Option<qsast::Expr> {
-        let span = expr.span;
         match expr.kind.as_ref() {
             semast::ExprKind::Err => {
                 // todo: determine if we should push an error here
                 // Are we going to allow trying to compile a program with semantic errors?
                 None
             }
-            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, span),
+            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
-                self.compile_indexed_ident_expr(indexed_ident, span)
+                self.compile_indexed_ident_expr(indexed_ident)
             }
             semast::ExprKind::UnaryOp(unary_op_expr) => self.compile_unary_op_expr(unary_op_expr),
             semast::ExprKind::BinaryOp(binary_op_expr) => {
@@ -707,8 +707,9 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> Option<qsast::Expr> {
+    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> Option<qsast::Expr> {
         let symbol = &self.symbols[symbol_id];
+        let span = symbol.span;
         let expr = match symbol.name.as_str() {
             "euler" | "ℇ" => build_math_call_no_params("E", span),
             "pi" | "π" => build_math_call_no_params("PI", span),
@@ -731,11 +732,8 @@ impl QasmCompiler {
 
     /// The lowerer eliminated indexed identifiers with zero indices.
     /// So we are safe to assume that the indices are non-empty.
-    fn compile_indexed_ident_expr(
-        &mut self,
-        indexed_ident: &IndexedIdent,
-        span: Span,
-    ) -> Option<qsast::Expr> {
+    fn compile_indexed_ident_expr(&mut self, indexed_ident: &IndexedIdent) -> Option<qsast::Expr> {
+        let span = indexed_ident.span;
         let index: Vec<_> = indexed_ident
             .indices
             .iter()
@@ -874,8 +872,29 @@ impl QasmCompiler {
     }
 
     fn compile_measure_expr(&mut self, expr: &MeasureExpr) -> Option<qsast::Expr> {
-        self.push_unimplemented_error_message("measure expressions", expr.span);
-        None
+        let call_span = expr.span;
+        let name_span = expr.measure_token_span;
+        let arg = self.compile_gate_operand(&expr.operand)?;
+        let operand_span = expr.operand.span;
+        let expr = build_measure_call(arg, name_span, operand_span, call_span);
+        Some(expr)
+    }
+
+    fn compile_gate_operand(&mut self, op: &GateOperand) -> Option<qsast::Expr> {
+        match &op.kind {
+            GateOperandKind::HardwareQubit(hw) => {
+                // We don't support hardware qubits, so we need to push an error
+                // but we can still create an identifier for the hardware qubit
+                // and let the rest of the containing expression compile to
+                // catch any other errors
+                let message = "Hardware qubit operands";
+                self.push_unsupported_error_message(message, op.span);
+                let ident = build_path_ident_expr(hw.name.clone(), hw.span, op.span);
+                Some(ident)
+            }
+            GateOperandKind::Expr(expr) => self.compile_expr(expr),
+            GateOperandKind::Err => None,
+        }
     }
 
     fn compile_index_element(&mut self, elem: &IndexElement) -> Option<qsast::Expr> {

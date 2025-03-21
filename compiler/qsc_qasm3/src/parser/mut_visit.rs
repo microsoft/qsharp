@@ -9,9 +9,9 @@ use super::ast::{
     BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
     ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, DiscreteSet, EndStmt,
     EnumerableSet, Expr, ExprStmt, ExternDecl, ExternParameter, ForStmt, FunctionCall, GPhase,
-    GateCall, GateModifierKind, GateOperand, HardwareQubit, IODeclaration, Ident, Identifier,
-    IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSet, IndexSetItem, IndexedIdent, Lit,
-    LiteralKind, MeasureExpr, MeasureStmt, Pragma, Program, QuantumGateDefinition,
+    GateCall, GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IODeclaration, Ident,
+    Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSet, IndexSetItem, IndexedIdent,
+    Lit, LiteralKind, MeasureArrowStmt, MeasureExpr, Pragma, Program, QuantumGateDefinition,
     QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, RangeDefinition, ResetStmt,
     ReturnStmt, ScalarType, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt, TypeDef,
     TypedParameter, UnaryOp, UnaryOpExpr, ValueExpr, Version, WhileLoop,
@@ -130,7 +130,7 @@ pub trait MutVisitor: Sized {
         walk_io_declaration_stmt(self, stmt);
     }
 
-    fn visit_measure_stmt(&mut self, stmt: &mut MeasureStmt) {
+    fn visit_measure_stmt(&mut self, stmt: &mut MeasureArrowStmt) {
         walk_measure_stmt(self, stmt);
     }
 
@@ -535,7 +535,7 @@ fn walk_io_declaration_stmt(vis: &mut impl MutVisitor, stmt: &mut IODeclaration)
     vis.visit_ident(&mut stmt.ident);
 }
 
-fn walk_measure_stmt(vis: &mut impl MutVisitor, stmt: &mut MeasureStmt) {
+fn walk_measure_stmt(vis: &mut impl MutVisitor, stmt: &mut MeasureArrowStmt) {
     vis.visit_span(&mut stmt.span);
     stmt.target
         .iter_mut()
@@ -654,6 +654,7 @@ pub fn walk_value_expr(vis: &mut impl MutVisitor, expr: &mut ValueExpr) {
 
 pub fn walk_measure_expr(vis: &mut impl MutVisitor, expr: &mut MeasureExpr) {
     vis.visit_span(&mut expr.span);
+    vis.visit_span(&mut expr.measure_token_span);
     vis.visit_gate_operand(&mut expr.operand);
 }
 
@@ -707,10 +708,11 @@ pub fn walk_index_set_item(vis: &mut impl MutVisitor, item: &mut IndexSetItem) {
 }
 
 pub fn walk_gate_operand(vis: &mut impl MutVisitor, operand: &mut GateOperand) {
-    match operand {
-        GateOperand::IndexedIdent(ident) => vis.visit_indexed_ident(ident),
-        GateOperand::HardwareQubit(hardware_qubit) => vis.visit_hardware_qubit(hardware_qubit),
-        GateOperand::Err => {}
+    vis.visit_span(&mut operand.span);
+    match &mut operand.kind {
+        GateOperandKind::IndexedIdent(ident) => vis.visit_indexed_ident(ident),
+        GateOperandKind::HardwareQubit(hardware_qubit) => vis.visit_hardware_qubit(hardware_qubit),
+        GateOperandKind::Err => {}
     }
 }
 

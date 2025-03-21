@@ -364,9 +364,7 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), &ty, span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                self.lower_measure_expr(measure_expr, span)
-            }
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
 
         if ty.is_const() {
@@ -403,9 +401,7 @@ impl Lowerer {
 
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => self.lower_expr_with_target_type(Some(expr), ty, span),
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                self.lower_measure_expr(measure_expr, span)
-            }
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
 
         if ty.is_const() {
@@ -444,9 +440,7 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), ty, stmt.span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                self.lower_measure_expr(measure_expr, stmt.span)
-            }
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
         let rhs = self.cast_expr_to_type(ty, &rhs, stmt.span);
 
@@ -834,7 +828,7 @@ impl Lowerer {
                     self.lower_expr_with_target_type(Some(expr), &ty, stmt_span)
                 }
                 syntax::ValueExpr::Measurement(measure_expr) => {
-                    self.lower_measure_expr(measure_expr, stmt_span)
+                    self.lower_measure_expr(measure_expr)
                 }
             },
             None => self.lower_expr_with_target_type(None, &ty, stmt_span),
@@ -870,9 +864,7 @@ impl Lowerer {
             syntax::ValueExpr::Expr(expr) => {
                 self.lower_expr_with_target_type(Some(expr), &ty, stmt.span)
             }
-            syntax::ValueExpr::Measurement(measure_expr) => {
-                self.lower_measure_expr(measure_expr, stmt.span)
-            }
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
 
         let symbol_id =
@@ -1045,7 +1037,7 @@ impl Lowerer {
         })
     }
 
-    fn lower_measure(&mut self, stmt: &syntax::MeasureStmt) -> semantic::StmtKind {
+    fn lower_measure(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
         self.push_unimplemented_error_message("measure stmt", stmt.span);
         semantic::StmtKind::Err
     }
@@ -1402,13 +1394,14 @@ impl Lowerer {
         self.cast_expr_to_type(ty, &rhs, span)
     }
 
-    fn lower_measure_expr(&mut self, expr: &syntax::MeasureExpr, span: Span) -> semantic::Expr {
+    fn lower_measure_expr(&mut self, expr: &syntax::MeasureExpr) -> semantic::Expr {
         let measurement = semantic::MeasureExpr {
-            span,
+            span: expr.span,
+            measure_token_span: expr.measure_token_span,
             operand: self.lower_gate_operand(&expr.operand),
         };
         semantic::Expr {
-            span,
+            span: expr.span,
             kind: Box::new(semantic::ExprKind::Measure(measurement)),
             ty: Type::Bit(false),
         }
@@ -1452,10 +1445,19 @@ impl Lowerer {
                 self.push_unsupported_error_message(message, span);
                 None
             }
-            Type::BitArray(_, _) => {
-                self.push_unimplemented_error_message("bit array default value", span);
-                None
-            }
+            Type::BitArray(dims, _) => match dims {
+                ArrayDimensions::One(size) => Some(from_lit_kind(
+                    semantic::LiteralKind::Bitstring(BigInt::ZERO, *size),
+                )),
+                ArrayDimensions::Err => None,
+                _ => {
+                    self.push_unimplemented_error_message(
+                        "multidimensional bit array default value",
+                        span,
+                    );
+                    None
+                }
+            },
             Type::BoolArray(_) => {
                 self.push_unimplemented_error_message("bool array default value", span);
                 None
@@ -2370,10 +2372,29 @@ impl Lowerer {
 
     #[allow(clippy::unused_self)]
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
-        match operand {
-            syntax::GateOperand::IndexedIdent(_)
-            | syntax::GateOperand::HardwareQubit(_)
-            | syntax::GateOperand::Err => semantic::GateOperand::Err,
+        let kind = match &operand.kind {
+            syntax::GateOperandKind::IndexedIdent(indexed_ident) => {
+                semantic::GateOperandKind::Expr(Box::new(
+                    self.lower_indexed_ident_expr(indexed_ident),
+                ))
+            }
+            syntax::GateOperandKind::HardwareQubit(hw) => {
+                semantic::GateOperandKind::HardwareQubit(self.lower_hardware_qubit(hw))
+            }
+            syntax::GateOperandKind::Err => todo!(),
+        };
+        semantic::GateOperand {
+            span: operand.span,
+            kind,
+        }
+    }
+
+    fn lower_hardware_qubit(&mut self, hw: &syntax::HardwareQubit) -> semantic::HardwareQubit {
+        let message = "Hardware qubit operands";
+        self.push_unsupported_error_message(message, hw.span);
+        semantic::HardwareQubit {
+            span: hw.span,
+            name: hw.name.clone(),
         }
     }
 
