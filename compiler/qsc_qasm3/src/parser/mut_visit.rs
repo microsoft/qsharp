@@ -564,6 +564,7 @@ fn walk_quantum_decl_stmt(vis: &mut impl MutVisitor, stmt: &mut QubitDeclaration
 
 fn walk_reset_stmt(vis: &mut impl MutVisitor, stmt: &mut ResetStmt) {
     vis.visit_span(&mut stmt.span);
+    vis.visit_span(&mut stmt.reset_token_span);
     vis.visit_gate_operand(&mut stmt.operand);
 }
 
