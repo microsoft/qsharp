@@ -21,7 +21,7 @@ fn logical_and() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -32,7 +32,7 @@ fn logical_and() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -84,7 +84,7 @@ fn logical_or() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -95,7 +95,7 @@ fn logical_or() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -147,7 +147,7 @@ fn unop_not_logical_and_unop_not() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -158,7 +158,7 @@ fn unop_not_logical_and_unop_not() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -218,7 +218,7 @@ fn unop_not_logical_or_unop_not() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -229,7 +229,7 @@ fn unop_not_logical_or_unop_not() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -289,7 +289,7 @@ fn unop_not_logical_and() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -300,7 +300,7 @@ fn unop_not_logical_and() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -356,7 +356,7 @@ fn unop_not_logical_or() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -367,7 +367,7 @@ fn unop_not_logical_or() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -423,7 +423,7 @@ fn logical_and_unop_not() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -434,7 +434,7 @@ fn logical_and_unop_not() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)
@@ -490,7 +490,7 @@ fn logical_or_unop_not() {
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
-                    kind: Lit: Int(1)
+                    kind: Lit: Bit(1)
             [6] Symbol [13-14]:
                 name: x
                 type: Bit(false)
@@ -501,7 +501,7 @@ fn logical_or_unop_not() {
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
-                    kind: Lit: Int(0)
+                    kind: Lit: Bit(0)
             [7] Symbol [32-33]:
                 name: y
                 type: Bit(false)

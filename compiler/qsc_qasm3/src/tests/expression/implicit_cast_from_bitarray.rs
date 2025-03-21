@@ -106,7 +106,7 @@ fn to_int_with_higher_width_implicitly_fails() {
         panic!("Expected error")
     };
 
-    expect![r#"Cannot cast expression of type BitArray(D1(5), False) to type Int(Some(6), False)"#]
+    expect!["Cannot cast expression of type BitArray(One(5), false) to type Int(Some(6), false)"]
         .assert_eq(&error[0].to_string());
 }
 
@@ -121,7 +121,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
         panic!("Expected error")
     };
 
-    expect![r#"Cannot cast expression of type BitArray(D1(5), False) to type Int(Some(6), False)"#]
+    expect!["Cannot cast expression of type BitArray(One(5), false) to type Int(Some(6), false)"]
         .assert_eq(&error[0].to_string());
 }
 
@@ -137,7 +137,7 @@ fn to_int_with_lower_width_implicitly_fails() {
         panic!("Expected error")
     };
 
-    expect![r#"Cannot cast expression of type BitArray(D1(5), False) to type Int(Some(4), False)"#]
+    expect!["Cannot cast expression of type BitArray(One(5), false) to type Int(Some(4), false)"]
         .assert_eq(&error[0].to_string());
 }
 
@@ -152,6 +152,6 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
         panic!("Expected error")
     };
 
-    expect![r#"Cannot cast expression of type BitArray(D1(5), False) to type Int(Some(4), False)"#]
+    expect!["Cannot cast expression of type BitArray(One(5), false) to type Int(Some(4), false)"]
         .assert_eq(&error[0].to_string());
 }

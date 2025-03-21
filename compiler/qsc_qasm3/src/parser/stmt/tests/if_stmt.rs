@@ -192,10 +192,11 @@ fn single_stmt_if_stmt() {
                             args: <empty>
                             duration: <none>
                             qubits:
-                                IndexedIdent [9-10]:
-                                    name: Ident [9-10] "q"
-                                    index_span: [0-0]
-                                    indices: <empty>
+                                GateOperand [9-10]:
+                                    kind: IndexedIdent [9-10]:
+                                        name: Ident [9-10] "q"
+                                        index_span: [0-0]
+                                        indices: <empty>
                     else_body: <none>"#]],
     );
 }
@@ -254,10 +255,11 @@ fn nested_single_stmt_if_stmt() {
                                     args: <empty>
                                     duration: <none>
                                     qubits:
-                                        IndexedIdent [16-17]:
-                                            name: Ident [16-17] "q"
-                                            index_span: [0-0]
-                                            indices: <empty>
+                                        GateOperand [16-17]:
+                                            kind: IndexedIdent [16-17]:
+                                                name: Ident [16-17] "q"
+                                                index_span: [0-0]
+                                                indices: <empty>
                             else_body: <none>
                     else_body: <none>"#]],
     );
@@ -285,10 +287,11 @@ fn nested_single_stmt_if_else_stmt() {
                                     args: <empty>
                                     duration: <none>
                                     qubits:
-                                        IndexedIdent [16-17]:
-                                            name: Ident [16-17] "q"
-                                            index_span: [0-0]
-                                            indices: <empty>
+                                        GateOperand [16-17]:
+                                            kind: IndexedIdent [16-17]:
+                                                name: Ident [16-17] "q"
+                                                index_span: [0-0]
+                                                indices: <empty>
                             else_body: Stmt [24-42]:
                                 annotations: <empty>
                                 kind: IfStmt [24-42]:
@@ -305,10 +308,11 @@ fn nested_single_stmt_if_else_stmt() {
                                                     args: <empty>
                                                     duration: <none>
                                                     qubits:
-                                                        IndexedIdent [40-41]:
-                                                            name: Ident [40-41] "q"
-                                                            index_span: [0-0]
-                                                            indices: <empty>
+                                                        GateOperand [40-41]:
+                                                            kind: IndexedIdent [40-41]:
+                                                                name: Ident [40-41] "q"
+                                                                index_span: [0-0]
+                                                                indices: <empty>
                                             else_body: <none>
                                     else_body: <none>
                     else_body: <none>"#]],
@@ -333,10 +337,11 @@ fn single_stmt_if_stmt_else_stmt() {
                             args: <empty>
                             duration: <none>
                             qubits:
-                                IndexedIdent [9-10]:
-                                    name: Ident [9-10] "q"
-                                    index_span: [0-0]
-                                    indices: <empty>
+                                GateOperand [9-10]:
+                                    kind: IndexedIdent [9-10]:
+                                        name: Ident [9-10] "q"
+                                        index_span: [0-0]
+                                        indices: <empty>
                     else_body: Stmt [17-21]:
                         annotations: <empty>
                         kind: GateCall [17-21]:
@@ -345,9 +350,10 @@ fn single_stmt_if_stmt_else_stmt() {
                             args: <empty>
                             duration: <none>
                             qubits:
-                                IndexedIdent [19-20]:
-                                    name: Ident [19-20] "q"
-                                    index_span: [0-0]
-                                    indices: <empty>"#]],
+                                GateOperand [19-20]:
+                                    kind: IndexedIdent [19-20]:
+                                        name: Ident [19-20] "q"
+                                        index_span: [0-0]
+                                        indices: <empty>"#]],
     );
 }

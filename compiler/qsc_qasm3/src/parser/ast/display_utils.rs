@@ -129,7 +129,7 @@ pub(crate) fn writeln_opt_field<T: Display>(
     writeln!(f)
 }
 
-/// Writes an field of a structure to the given buffer
+/// Writes a field of a structure to the given buffer
 /// or stream with an additional indententation level.
 /// The field must be an iterable.
 pub(crate) fn write_list_field<'write, 'itemref, 'item, T, I>(
@@ -148,7 +148,7 @@ where
     write_list(&mut indent, vals)
 }
 
-/// Writes an field of a structure to the given buffer
+/// Writes a field of a structure to the given buffer
 /// or stream with an additional indententation level.
 /// The field must be an iterable.
 /// Inserts a newline afterwards.

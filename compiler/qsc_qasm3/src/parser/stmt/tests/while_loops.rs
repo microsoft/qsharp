@@ -162,10 +162,11 @@ fn single_stmt_while_stmt() {
                             args: <empty>
                             duration: <none>
                             qubits:
-                                IndexedIdent [12-13]:
-                                    name: Ident [12-13] "q"
-                                    index_span: [0-0]
-                                    indices: <empty>"#]],
+                                GateOperand [12-13]:
+                                    kind: IndexedIdent [12-13]:
+                                        name: Ident [12-13] "q"
+                                        index_span: [0-0]
+                                        indices: <empty>"#]],
     );
 }
 
@@ -222,9 +223,10 @@ fn nested_single_stmt_while_stmt() {
                                     args: <empty>
                                     duration: <none>
                                     qubits:
-                                        IndexedIdent [22-23]:
-                                            name: Ident [22-23] "q"
-                                            index_span: [0-0]
-                                            indices: <empty>"#]],
+                                        GateOperand [22-23]:
+                                            kind: IndexedIdent [22-23]:
+                                                name: Ident [22-23] "q"
+                                                index_span: [0-0]
+                                                indices: <empty>"#]],
     );
 }

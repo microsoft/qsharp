@@ -124,17 +124,17 @@ fn implicit_bitness_double_img_only() {
     check_classical_decl(
         "complex[float] x = 1.01im;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-26]:
-            symbol_id: 6
-            ty_span: [0-14]
-            init_expr: Expr [19-25]:
-                ty: Complex(None, true)
-                kind: Lit: Complex(0.0, 1.01)
-        [6] Symbol [15-16]:
-            name: x
-            type: Complex(None, false)
-            qsharp_type: Complex
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-26]:
+                symbol_id: 6
+                ty_span: [0-14]
+                init_expr: Expr [19-25]:
+                    ty: Complex(None, false)
+                    kind: Lit: Complex(0.0, 1.01)
+            [6] Symbol [15-16]:
+                name: x
+                type: Complex(None, false)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 
@@ -143,17 +143,17 @@ fn implicit_bitness_int_img_only() {
     check_classical_decl(
         "complex[float] x = 1im;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-23]:
-            symbol_id: 6
-            ty_span: [0-14]
-            init_expr: Expr [19-22]:
-                ty: Complex(None, true)
-                kind: Lit: Complex(0.0, 1.0)
-        [6] Symbol [15-16]:
-            name: x
-            type: Complex(None, false)
-            qsharp_type: Complex
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-23]:
+                symbol_id: 6
+                ty_span: [0-14]
+                init_expr: Expr [19-22]:
+                    ty: Complex(None, false)
+                    kind: Lit: Complex(0.0, 1.0)
+            [6] Symbol [15-16]:
+                name: x
+                type: Complex(None, false)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 

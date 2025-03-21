@@ -67,100 +67,55 @@ fn scalar_ty_designator_must_be_positive() {
                                 ty: Err
                                 kind: Err
 
-            [Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
+            [Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr
 
-              x Designator must be a positive literal integer.
+              x Type width must be a positive integer const expression.
                ,-[test:1:5]
              1 | int[-5] i;
                :     ^^
-               `----
-            , Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: Converting Err
-              | to Q# type
-               ,-[test:1:1]
-             1 | int[-5] i;
-               : ^^^^^^^
-               `----
-            , Qsc.Qasm3.Compile.NotSupported
-
-              x Default values for Err are unsupported. are not supported.
-               ,-[test:1:1]
-             1 | int[-5] i;
-               : ^^^^^^^^^^
                `----
             ]"#]],
     );
 }
 
 #[test]
-fn scalar_ty_designator_must_be_int_literal() {
+fn scalar_ty_designator_must_be_castable_to_const_int() {
     check(
-        r#"int[size] i; float[0.0] j;"#,
+        r#"const angle size = 2.0; int[size] i;"#,
         &expect![[r#"
             Program:
                 version: <none>
                 statements:
-                    Stmt [0-12]:
+                    Stmt [0-23]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [0-12]:
+                        kind: ClassicalDeclarationStmt [0-23]:
                             symbol_id: 6
-                            ty_span: [0-9]
-                            init_expr: Expr [0-0]:
-                                ty: Err
-                                kind: Err
-                    Stmt [13-26]:
+                            ty_span: [6-11]
+                            init_expr: Expr [19-22]:
+                                ty: Angle(None, true)
+                                kind: Lit: Float(2.0)
+                    Stmt [24-36]:
                         annotations: <empty>
-                        kind: ClassicalDeclarationStmt [13-26]:
+                        kind: ClassicalDeclarationStmt [24-36]:
                             symbol_id: 7
-                            ty_span: [13-23]
+                            ty_span: [24-33]
                             init_expr: Expr [0-0]:
                                 ty: Err
                                 kind: Err
 
-            [Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
+            [Qsc.Qasm3.Compile.CannotCast
 
-              x Designator must be a positive literal integer.
-               ,-[test:1:5]
-             1 | int[size] i; float[0.0] j;
-               :     ^^^^
+              x Cannot cast expression of type Angle(None, true) to type UInt(None, true)
+               ,-[test:1:29]
+             1 | const angle size = 2.0; int[size] i;
+               :                             ^^^^
                `----
-            , Qsc.Qasm3.Compile.Unimplemented
+            , Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr
 
-              x this statement is not yet handled during OpenQASM 3 import: Converting Err
-              | to Q# type
-               ,-[test:1:1]
-             1 | int[size] i; float[0.0] j;
-               : ^^^^^^^^^
-               `----
-            , Qsc.Qasm3.Compile.NotSupported
-
-              x Default values for Err are unsupported. are not supported.
-               ,-[test:1:1]
-             1 | int[size] i; float[0.0] j;
-               : ^^^^^^^^^^^^
-               `----
-            , Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral
-
-              x Designator must be a positive literal integer.
-               ,-[test:1:20]
-             1 | int[size] i; float[0.0] j;
-               :                    ^^^
-               `----
-            , Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: Converting Err
-              | to Q# type
-               ,-[test:1:14]
-             1 | int[size] i; float[0.0] j;
-               :              ^^^^^^^^^^
-               `----
-            , Qsc.Qasm3.Compile.NotSupported
-
-              x Default values for Err are unsupported. are not supported.
-               ,-[test:1:14]
-             1 | int[size] i; float[0.0] j;
-               :              ^^^^^^^^^^^^^
+              x Type width must be a positive integer const expression.
+               ,-[test:1:29]
+             1 | const angle size = 2.0; int[size] i;
+               :                             ^^^^
                `----
             ]"#]],
     );

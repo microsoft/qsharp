@@ -16,30 +16,30 @@ fn int_idents_without_width_can_be_multiplied() {
     check_stmt_kinds(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 6
-            ty_span: [9-12]
-            init_expr: Expr [17-18]:
-                ty: Int(None, true)
-                kind: Lit: Int(5)
-        ClassicalDeclarationStmt [28-38]:
-            symbol_id: 7
-            ty_span: [28-31]
-            init_expr: Expr [36-37]:
-                ty: Int(None, true)
-                kind: Lit: Int(3)
-        ExprStmt [47-53]:
-            expr: Expr [47-52]:
-                ty: Int(None, false)
-                kind: BinaryOpExpr:
-                    op: Mul
-                    lhs: Expr [47-48]:
-                        ty: Int(None, false)
-                        kind: SymbolId(6)
-                    rhs: Expr [51-52]:
-                        ty: Int(None, false)
-                        kind: SymbolId(7)
-    "#]],
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 6
+                ty_span: [9-12]
+                init_expr: Expr [17-18]:
+                    ty: Int(None, false)
+                    kind: Lit: Int(5)
+            ClassicalDeclarationStmt [28-38]:
+                symbol_id: 7
+                ty_span: [28-31]
+                init_expr: Expr [36-37]:
+                    ty: Int(None, false)
+                    kind: Lit: Int(3)
+            ExprStmt [47-53]:
+                expr: Expr [47-52]:
+                    ty: Int(None, false)
+                    kind: BinaryOpExpr:
+                        op: Mul
+                        lhs: Expr [47-48]:
+                            ty: Int(None, false)
+                            kind: SymbolId(6)
+                        rhs: Expr [51-52]:
+                            ty: Int(None, false)
+                            kind: SymbolId(7)
+        "#]],
     );
 }
 

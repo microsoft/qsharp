@@ -29,6 +29,12 @@ pub enum SemanticErrorKind {
     #[error("Array literals are only allowed in classical declarations.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ArrayLiteralInNonClassicalDecl"))]
     ArrayLiteralInNonClassicalDecl(#[label] Span),
+    #[error("{0} must fit in a u32")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustFitInU32"))]
+    ExprMustFitInU32(String, #[label] Span),
+    #[error("{0} must be a const expression")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustBeConst"))]
+    ExprMustBeConst(String, #[label] Span),
     #[error("Annotation missing target statement.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.AnnotationWithoutStatement"))]
     AnnotationWithoutStatement(#[label] Span),
@@ -72,6 +78,12 @@ pub enum SemanticErrorKind {
     #[error("Designator must be a positive literal integer.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorMustBePositiveIntLiteral"))]
     DesignatorMustBePositiveIntLiteral(#[label] Span),
+    #[error("Type width must be a positive integer const expression.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr"))]
+    TypeWidthMustBePositiveIntConstExpr(#[label] Span),
+    #[error("Array size must be a non-negative integer const expression.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ArraySizeMustBeNonNegativeConstExpr"))]
+    ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
     #[error("Designator is too large.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
@@ -220,6 +232,8 @@ impl SemanticErrorKind {
             Self::ArrayLiteralInNonClassicalDecl(span) => {
                 Self::ArrayLiteralInNonClassicalDecl(span + offset)
             }
+            Self::ExprMustBeConst(name, span) => Self::ExprMustBeConst(name, span + offset),
+            Self::ExprMustFitInU32(name, span) => Self::ExprMustFitInU32(name, span + offset),
             Self::AnnotationWithoutStatement(span) => {
                 Self::AnnotationWithoutStatement(span + offset)
             }
@@ -249,6 +263,12 @@ impl SemanticErrorKind {
             Self::ComplexBinaryAssignment(span) => Self::ComplexBinaryAssignment(span + offset),
             Self::DesignatorMustBePositiveIntLiteral(span) => {
                 Self::DesignatorMustBePositiveIntLiteral(span + offset)
+            }
+            Self::TypeWidthMustBePositiveIntConstExpr(span) => {
+                Self::TypeWidthMustBePositiveIntConstExpr(span + offset)
+            }
+            Self::ArraySizeMustBeNonNegativeConstExpr(span) => {
+                Self::ArraySizeMustBeNonNegativeConstExpr(span + offset)
             }
             Self::DesignatorTooLarge(span) => Self::DesignatorTooLarge(span + offset),
             Self::FailedToCompileExpressionList(span) => {

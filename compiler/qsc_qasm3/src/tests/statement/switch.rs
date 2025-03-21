@@ -8,7 +8,7 @@ use miette::Report;
 #[test]
 fn default_is_optional() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
             case 1 {
@@ -33,7 +33,7 @@ fn default_is_optional() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn default_as_only_case_causes_parse_error() {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
             default {
@@ -53,7 +53,7 @@ fn default_as_only_case_causes_parse_error() {
 #[test]
 fn no_cases_causes_parse_error() {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
         }
@@ -70,7 +70,7 @@ fn no_cases_causes_parse_error() {
 #[test]
 fn spec_case_1() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
 
@@ -115,7 +115,7 @@ fn spec_case_1() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_2() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
 
@@ -164,7 +164,7 @@ fn spec_case_2() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_3() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
         bit[2] b;
@@ -217,7 +217,7 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
 #[ignore = "Function decls are not supported yet"]
 fn spec_case_4() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
         bit[2] b;
@@ -260,7 +260,7 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_5() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
 
 

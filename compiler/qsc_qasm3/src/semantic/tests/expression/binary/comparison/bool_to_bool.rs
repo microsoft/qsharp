@@ -20,7 +20,7 @@ fn logical_and() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -31,7 +31,7 @@ fn logical_and() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -75,7 +75,7 @@ fn logical_or() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -86,7 +86,7 @@ fn logical_or() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -130,7 +130,7 @@ fn unop_not_logical_and_unop_not() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -141,7 +141,7 @@ fn unop_not_logical_and_unop_not() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -193,7 +193,7 @@ fn unop_not_logical_or_unop_not() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -204,7 +204,7 @@ fn unop_not_logical_or_unop_not() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -256,7 +256,7 @@ fn unop_not_logical_and() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -267,7 +267,7 @@ fn unop_not_logical_and() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -315,7 +315,7 @@ fn unop_not_logical_or() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -326,7 +326,7 @@ fn unop_not_logical_or() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -374,7 +374,7 @@ fn logical_and_unop_not() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -385,7 +385,7 @@ fn logical_and_unop_not() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y
@@ -433,7 +433,7 @@ fn logical_or_unop_not() {
                 symbol_id: 6
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
             [6] Symbol [14-15]:
                 name: x
@@ -444,7 +444,7 @@ fn logical_or_unop_not() {
                 symbol_id: 7
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
             [7] Symbol [37-38]:
                 name: y

@@ -29,17 +29,17 @@ fn lit() {
     check_classical_decl(
         "float x = 42.1;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-15]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-14]:
-                ty: Float(None, true)
-                kind: Lit: Float(42.1)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-15]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-14]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.1)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -105,17 +105,17 @@ fn lit_decl_leading_dot() {
     check_classical_decl(
         "float x = .421;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-15]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-14]:
-                ty: Float(None, true)
-                kind: Lit: Float(0.421)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-15]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-14]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(0.421)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -162,17 +162,17 @@ fn lit_decl_trailing_dot() {
     check_classical_decl(
         "float x = 421.;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-15]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-14]:
-                ty: Float(None, true)
-                kind: Lit: Float(421.0)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-15]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-14]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(421.0)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -200,17 +200,17 @@ fn lit_decl_scientific() {
     check_classical_decl(
         "float x = 4.21e1;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-17]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-16]:
-                ty: Float(None, true)
-                kind: Lit: Float(42.1)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-17]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-16]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.1)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -238,17 +238,17 @@ fn lit_decl_scientific_signed_pos() {
     check_classical_decl(
         "float x = 4.21e+1;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-18]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-17]:
-                ty: Float(None, true)
-                kind: Lit: Float(42.1)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-18]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-17]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.1)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -276,17 +276,17 @@ fn lit_decl_scientific_cap_e() {
     check_classical_decl(
         "float x = 4.21E1;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-17]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-16]:
-                ty: Float(None, true)
-                kind: Lit: Float(42.1)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-17]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-16]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.1)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 
@@ -314,17 +314,17 @@ fn lit_decl_scientific_signed_neg() {
     check_classical_decl(
         "float x = 421.0e-1;",
         &expect![[r#"
-        ClassicalDeclarationStmt [0-19]:
-            symbol_id: 6
-            ty_span: [0-5]
-            init_expr: Expr [10-18]:
-                ty: Float(None, true)
-                kind: Lit: Float(42.1)
-        [6] Symbol [6-7]:
-            name: x
-            type: Float(None, false)
-            qsharp_type: Double
-            io_kind: Default"#]],
+            ClassicalDeclarationStmt [0-19]:
+                symbol_id: 6
+                ty_span: [0-5]
+                init_expr: Expr [10-18]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.1)
+            [6] Symbol [6-7]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default"#]],
     );
 }
 

@@ -247,7 +247,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             ty_span: [196-199]
                             init_expr: Expr [204-205]:
                                 ty: Bit(true)
-                                kind: Lit: Int(1)
+                                kind: Lit: Bit(1)
                     Stmt [211-227]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [211-227]:
@@ -348,10 +348,10 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
             , Qsc.Qasm3.Compile.CannotCast
 
               x Cannot cast expression of type Err to type Bit(false)
-               ,-[source0.qasm:4:5]
+               ,-[source0.qasm:4:13]
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
-               :     ^^^^^^^^^^
+               :             ^
              5 |     
                `----
             ]"#]],
