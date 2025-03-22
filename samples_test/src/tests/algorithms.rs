@@ -6,42 +6,6 @@ use expect_test::{expect, Expect};
 // Each file in the samples/algorithms folder is compiled and run as two tests and should
 // have matching expect strings in this file. If new samples are added, this file will
 // fail to compile until the new expect strings are added.
-pub const BELLSTATE_EXPECT: Expect = expect![[r#"
-    Bell state |Φ+〉:
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    Bell state |Φ-〉:
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: −0.7071+0.0000𝑖
-    Bell state |Ψ+〉:
-    STATE:
-    |01⟩: 0.7071+0.0000𝑖
-    |10⟩: 0.7071+0.0000𝑖
-    Bell state |Ψ-〉:
-    STATE:
-    |01⟩: 0.7071+0.0000𝑖
-    |10⟩: −0.7071+0.0000𝑖
-    [(Zero, Zero), (One, One), (One, Zero), (One, Zero)]"#]];
-pub const BELLSTATE_EXPECT_DEBUG: Expect = expect![[r#"
-    Bell state |Φ+〉:
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    Bell state |Φ-〉:
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: −0.7071+0.0000𝑖
-    Bell state |Ψ+〉:
-    STATE:
-    |01⟩: 0.7071+0.0000𝑖
-    |10⟩: 0.7071+0.0000𝑖
-    Bell state |Ψ-〉:
-    STATE:
-    |01⟩: 0.7071+0.0000𝑖
-    |10⟩: −0.7071+0.0000𝑖
-    [(Zero, Zero), (One, One), (One, Zero), (One, Zero)]"#]];
 pub const BERNSTEINVAZIRANI_EXPECT: Expect = expect![[r#"
     Successfully decoded bit string as int: 127
     Successfully decoded bit string as int: 238
@@ -70,16 +34,6 @@ pub const BITFLIPCODE_EXPECT_DEBUG: Expect = expect![[r#"
     |000⟩: 0.4472+0.0000𝑖
     |111⟩: 0.8944+0.0000𝑖
     One"#]];
-pub const CATSTATE_EXPECT: Expect = expect![[r#"
-    STATE:
-    |00000⟩: 0.7071+0.0000𝑖
-    |11111⟩: 0.7071+0.0000𝑖
-    [Zero, Zero, Zero, Zero, Zero]"#]];
-pub const CATSTATE_EXPECT_DEBUG: Expect = expect![[r#"
-    STATE:
-    |00000⟩: 0.7071+0.0000𝑖
-    |11111⟩: 0.7071+0.0000𝑖
-    [Zero, Zero, Zero, Zero, Zero]"#]];
 pub const DEUTSCHJOZSA_EXPECT: Expect = expect![[r#"
     SimpleConstantBoolF is constant
     SimpleBalancedBoolF is balanced
@@ -108,26 +62,6 @@ pub const DOTPRODUCTVIAPHASEESTIMATION_EXPECT_DEBUG: Expect = expect![[r#"
     x = 16, n = 4.
     Computed value = 1.0, true value = 0.995974293995239
     (16, 4)"#]];
-pub const ENTANGLEMENT_EXPECT: Expect = expect![[r#"
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    (Zero, Zero)"#]];
-pub const ENTANGLEMENT_EXPECT_DEBUG: Expect = expect![[r#"
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    (Zero, Zero)"#]];
-pub const GHZ_EXPECT: Expect = expect![[r#"
-    STATE:
-    |000⟩: 0.7071+0.0000𝑖
-    |111⟩: 0.7071+0.0000𝑖
-    [Zero, Zero, Zero]"#]];
-pub const GHZ_EXPECT_DEBUG: Expect = expect![[r#"
-    STATE:
-    |000⟩: 0.7071+0.0000𝑖
-    |111⟩: 0.7071+0.0000𝑖
-    [Zero, Zero, Zero]"#]];
 pub const GROVER_EXPECT: Expect = expect![[r#"
     Number of iterations: 4
     Reflecting about marked state...
@@ -154,32 +88,6 @@ pub const HIDDENSHIFT_EXPECT_DEBUG: Expect = expect![[r#"
     [170, 512, 999]"#]];
 pub const HIDDENSHIFTNISQ_EXPECT: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
 pub const HIDDENSHIFTNISQ_EXPECT_DEBUG: Expect = expect!["[One, Zero, Zero, Zero, Zero, One]"];
-pub const JOINTMEASUREMENT_EXPECT: Expect = expect![[r#"
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    STATE:
-    |11⟩: 1.0000+0.0000𝑖
-    STATE:
-    |11⟩: 1.0000+0.0000𝑖
-    (Zero, [One, One])"#]];
-pub const JOINTMEASUREMENT_EXPECT_DEBUG: Expect = expect![[r#"
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    STATE:
-    |00⟩: 0.7071+0.0000𝑖
-    |11⟩: 0.7071+0.0000𝑖
-    STATE:
-    |11⟩: 1.0000+0.0000𝑖
-    STATE:
-    |11⟩: 1.0000+0.0000𝑖
-    (Zero, [One, One])"#]];
-pub const MEASUREMENT_EXPECT: Expect = expect!["(Zero, [Zero, Zero])"];
-pub const MEASUREMENT_EXPECT_DEBUG: Expect = expect!["(Zero, [Zero, Zero])"];
 pub const PHASEFLIPCODE_EXPECT: Expect = expect![[r#"
     STATE:
     |000⟩: 0.4743+0.0000𝑖
@@ -226,16 +134,6 @@ pub const QRNG_EXPECT: Expect = expect![[r#"
 pub const QRNG_EXPECT_DEBUG: Expect = expect![[r#"
     Sampling a random number between 0 and 100:
     46"#]];
-pub const QRNGNISQ_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
-pub const QRNGNISQ_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
-pub const QUANTUMHELLOWORLD_EXPECT: Expect = expect![[r#"
-    Hello world!
-    Zero"#]];
-pub const QUANTUMHELLOWORLD_EXPECT_DEBUG: Expect = expect![[r#"
-    Hello world!
-    Zero"#]];
-pub const RANDOMBIT_EXPECT: Expect = expect!["Zero"];
-pub const RANDOMBIT_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const SHOR_EXPECT: Expect = expect![[r#"
     *** Factorizing 187, attempt 1.
     Estimating period of 182.
@@ -276,8 +174,6 @@ pub const SIMPLEVQE_EXPECT_DEBUG: Expect = expect![[r#"
    0.3216"#]];
 pub const SUPERDENSECODING_EXPECT: Expect = expect!["((false, true), (false, true))"];
 pub const SUPERDENSECODING_EXPECT_DEBUG: Expect = expect!["((false, true), (false, true))"];
-pub const SUPERPOSITION_EXPECT: Expect = expect!["Zero"];
-pub const SUPERPOSITION_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const TELEPORTATION_EXPECT: Expect = expect![[r#"
     Teleporting state |0〉
     STATE:

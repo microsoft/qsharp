@@ -1,0 +1,19 @@
+/// # Summary
+/// Quantum Hello World sample
+///
+/// # Description
+/// This is one of the simplest Q# programs that contains quantum part.
+/// This code prints the message then allocates a qubit and immediately measures it.
+/// Since the qubit starts in |0〉 state such measurement will always yield `Zero`.
+operation Main() : Result {
+    // Print the message. Note that some quantum computers may skip this step.
+    Message("Hello world!");
+
+    // Allocate a qubit. Qubit is in |0〉 state after allocation.
+    use qubit = Qubit();
+
+    // Measure then reset the qubit. Last statement returns result from `Main`.
+    MResetZ(qubit) // always yield `Zero` as the qubit is in |0〉 state.
+
+    // Note, that `qubit` is automatically deallocated at the end of the block.
+}
