@@ -18,7 +18,7 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
                     Stmt [5-15]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [5-15]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [5-8]
                             init_expr: Expr [13-14]:
                                 ty: Int(None, false)
@@ -32,7 +32,7 @@ fn single_stmt_body_doesnt_creates_its_own_scope() {
                             body: Stmt [32-42]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [32-42]:
-                                    symbol_id: 6
+                                    symbol_id: 8
                                     ty_span: [32-35]
                                     init_expr: Expr [40-41]:
                                         ty: Int(None, false)
@@ -60,7 +60,7 @@ fn block_body_creates_its_own_scope() {
     ",
         &expect![[r#"
             ClassicalDeclarationStmt [5-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
                     ty: Int(None, false)
@@ -75,7 +75,7 @@ fn block_body_creates_its_own_scope() {
                         Stmt [34-44]:
                             annotations: <empty>
                             kind: ClassicalDeclarationStmt [34-44]:
-                                symbol_id: 7
+                                symbol_id: 9
                                 ty_span: [34-37]
                                 init_expr: Expr [42-43]:
                                     ty: Int(None, false)

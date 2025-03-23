@@ -38,18 +38,18 @@ fn to_bool_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [10-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [10-13]
                 init_expr: Expr [18-19]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [30-41]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [30-34]
                 init_expr: Expr [39-40]:
                     ty: Bool(false)
@@ -57,8 +57,8 @@ fn to_bool_implicitly() {
                         ty: Bool(false)
                         expr: Expr [39-40]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [35-36]:
+                            kind: SymbolId(8)
+            [9] Symbol [35-36]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
@@ -78,18 +78,18 @@ fn to_implicit_int_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Int(None, false)
@@ -97,8 +97,8 @@ fn to_implicit_int_implicitly() {
                         ty: Int(None, false)
                         expr: Expr [36-37]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [32-33]:
+                            kind: SymbolId(8)
+            [9] Symbol [32-33]:
                 name: y
                 type: Int(None, false)
                 qsharp_type: Int
@@ -118,18 +118,18 @@ fn to_explicit_int_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
                     ty: Int(Some(32), false)
@@ -137,8 +137,8 @@ fn to_explicit_int_implicitly() {
                         ty: Int(Some(32), false)
                         expr: Expr [40-41]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [36-37]:
+                            kind: SymbolId(8)
+            [9] Symbol [36-37]:
                 name: y
                 type: Int(Some(32), false)
                 qsharp_type: Int
@@ -158,18 +158,18 @@ fn to_implicit_uint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-39]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-32]
                 init_expr: Expr [37-38]:
                     ty: UInt(None, false)
@@ -177,8 +177,8 @@ fn to_implicit_uint_implicitly() {
                         ty: UInt(None, false)
                         expr: Expr [37-38]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [33-34]:
+                            kind: SymbolId(8)
+            [9] Symbol [33-34]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
@@ -198,18 +198,18 @@ fn to_explicit_uint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-43]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-36]
                 init_expr: Expr [41-42]:
                     ty: UInt(Some(32), false)
@@ -217,8 +217,8 @@ fn to_explicit_uint_implicitly() {
                         ty: UInt(Some(32), false)
                         expr: Expr [41-42]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [37-38]:
+                            kind: SymbolId(8)
+            [9] Symbol [37-38]:
                 name: y
                 type: UInt(Some(32), false)
                 qsharp_type: Int
@@ -238,18 +238,18 @@ fn to_explicit_bigint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
                     ty: Int(Some(65), false)
@@ -257,8 +257,8 @@ fn to_explicit_bigint_implicitly() {
                         ty: Int(Some(65), false)
                         expr: Expr [40-41]:
                             ty: Bit(false)
-                            kind: SymbolId(6)
-            [7] Symbol [36-37]:
+                            kind: SymbolId(8)
+            [9] Symbol [36-37]:
                 name: y
                 type: Int(Some(65), false)
                 qsharp_type: BigInt
@@ -283,7 +283,7 @@ fn to_implicit_float_implicitly_fails() {
                     Stmt [9-19]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [9-19]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [17-18]:
                                 ty: Bit(true)
@@ -291,11 +291,11 @@ fn to_implicit_float_implicitly_fails() {
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [28-40]:
-                            symbol_id: 7
+                            symbol_id: 9
                             ty_span: [28-33]
                             init_expr: Expr [38-39]:
                                 ty: Bit(false)
-                                kind: SymbolId(6)
+                                kind: SymbolId(8)
 
             [Qsc.Qasm3.Compile.CannotCast
 

@@ -21,7 +21,7 @@ fn to_bit_implicitly_fails() {
                     Stmt [9-23]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [9-23]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Float(None, false)
@@ -29,11 +29,11 @@ fn to_bit_implicitly_fails() {
                     Stmt [32-42]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-42]:
-                            symbol_id: 7
+                            symbol_id: 9
                             ty_span: [32-35]
                             init_expr: Expr [40-41]:
                                 ty: Float(None, false)
-                                kind: SymbolId(6)
+                                kind: SymbolId(8)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -64,7 +64,7 @@ fn explicit_width_to_bit_implicitly_fails() {
                     Stmt [9-27]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [9-27]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [9-18]
                             init_expr: Expr [23-26]:
                                 ty: Float(Some(64), true)
@@ -72,11 +72,11 @@ fn explicit_width_to_bit_implicitly_fails() {
                     Stmt [36-46]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [36-46]:
-                            symbol_id: 7
+                            symbol_id: 9
                             ty_span: [36-39]
                             init_expr: Expr [44-45]:
                                 ty: Float(Some(64), false)
-                                kind: SymbolId(6)
+                                kind: SymbolId(8)
 
             [Qsc.Qasm3.Compile.CannotCast
 
@@ -101,18 +101,18 @@ fn to_bool_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-42]:
                     ty: Bool(false)
@@ -120,8 +120,8 @@ fn to_bool_implicitly() {
                         ty: Bool(false)
                         expr: Expr [41-42]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [37-38]:
+                            kind: SymbolId(8)
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
@@ -141,18 +141,18 @@ fn to_implicit_int_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-35]
                 init_expr: Expr [40-41]:
                     ty: Int(None, false)
@@ -160,8 +160,8 @@ fn to_implicit_int_implicitly() {
                         ty: Int(None, false)
                         expr: Expr [40-41]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [36-37]:
+                            kind: SymbolId(8)
+            [9] Symbol [36-37]:
                 name: y
                 type: Int(None, false)
                 qsharp_type: Int
@@ -181,18 +181,18 @@ fn to_explicit_int_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-39]
                 init_expr: Expr [44-45]:
                     ty: Int(Some(32), false)
@@ -200,8 +200,8 @@ fn to_explicit_int_implicitly() {
                         ty: Int(Some(32), false)
                         expr: Expr [44-45]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [40-41]:
+                            kind: SymbolId(8)
+            [9] Symbol [40-41]:
                 name: y
                 type: Int(Some(32), false)
                 qsharp_type: Int
@@ -221,18 +221,18 @@ fn to_implicit_uint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-42]:
                     ty: UInt(None, false)
@@ -240,8 +240,8 @@ fn to_implicit_uint_implicitly() {
                         ty: UInt(None, false)
                         expr: Expr [41-42]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [37-38]:
+                            kind: SymbolId(8)
+            [9] Symbol [37-38]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
@@ -261,7 +261,7 @@ fn negative_lit_to_implicit_uint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-24]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [20-23]:
                     ty: Float(None, false)
@@ -270,13 +270,13 @@ fn negative_lit_to_implicit_uint_implicitly() {
                         expr: Expr [20-23]:
                             ty: Float(None, true)
                             kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [33-44]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [33-37]
                 init_expr: Expr [42-43]:
                     ty: UInt(None, false)
@@ -284,8 +284,8 @@ fn negative_lit_to_implicit_uint_implicitly() {
                         ty: UInt(None, false)
                         expr: Expr [42-43]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [38-39]:
+                            kind: SymbolId(8)
+            [9] Symbol [38-39]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
@@ -305,18 +305,18 @@ fn to_explicit_uint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
                     ty: UInt(Some(32), false)
@@ -324,8 +324,8 @@ fn to_explicit_uint_implicitly() {
                         ty: UInt(Some(32), false)
                         expr: Expr [45-46]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [41-42]:
+                            kind: SymbolId(8)
+            [9] Symbol [41-42]:
                 name: y
                 type: UInt(Some(32), false)
                 qsharp_type: Int
@@ -345,18 +345,18 @@ fn to_explicit_bigint_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-39]
                 init_expr: Expr [44-45]:
                     ty: Int(Some(65), false)
@@ -364,8 +364,8 @@ fn to_explicit_bigint_implicitly() {
                         ty: Int(Some(65), false)
                         expr: Expr [44-45]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [40-41]:
+                            kind: SymbolId(8)
+            [9] Symbol [40-41]:
                 name: y
                 type: Int(Some(65), false)
                 qsharp_type: BigInt
@@ -385,23 +385,23 @@ fn to_implicit_float_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-37]
                 init_expr: Expr [42-43]:
                     ty: Float(None, false)
-                    kind: SymbolId(6)
-            [7] Symbol [38-39]:
+                    kind: SymbolId(8)
+            [9] Symbol [38-39]:
                 name: y
                 type: Float(None, false)
                 qsharp_type: Double
@@ -421,23 +421,23 @@ fn to_explicit_float_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-48]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-41]
                 init_expr: Expr [46-47]:
                     ty: Float(Some(32), false)
-                    kind: SymbolId(6)
-            [7] Symbol [42-43]:
+                    kind: SymbolId(8)
+            [9] Symbol [42-43]:
                 name: y
                 type: Float(Some(32), false)
                 qsharp_type: Double
@@ -457,18 +457,18 @@ fn to_implicit_complex_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-53]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-46]
                 init_expr: Expr [51-52]:
                     ty: Complex(None, false)
@@ -476,8 +476,8 @@ fn to_implicit_complex_implicitly() {
                         ty: Complex(None, false)
                         expr: Expr [51-52]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [47-48]:
+                            kind: SymbolId(8)
+            [9] Symbol [47-48]:
                 name: y
                 type: Complex(None, false)
                 qsharp_type: Complex
@@ -497,18 +497,18 @@ fn to_explicit_complex_implicitly() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Float(None, false)
                     kind: Lit: Float(42.0)
-            [6] Symbol [15-16]:
+            [8] Symbol [15-16]:
                 name: x
                 type: Float(None, false)
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [32-57]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-50]
                 init_expr: Expr [55-56]:
                     ty: Complex(Some(32), false)
@@ -516,8 +516,8 @@ fn to_explicit_complex_implicitly() {
                         ty: Complex(Some(32), false)
                         expr: Expr [55-56]:
                             ty: Float(None, false)
-                            kind: SymbolId(6)
-            [7] Symbol [51-52]:
+                            kind: SymbolId(8)
+            [9] Symbol [51-52]:
                 name: y
                 type: Complex(Some(32), false)
                 qsharp_type: Complex

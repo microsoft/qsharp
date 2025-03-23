@@ -11,6 +11,6 @@ fn with_no_init_expr() {
         "qreg a;",
         &expect![[r#"
             QubitDeclaration [0-7]:
-                symbol_id: 6"#]],
+                symbol_id: 8"#]],
     );
 }

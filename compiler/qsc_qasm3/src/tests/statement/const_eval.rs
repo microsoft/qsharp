@@ -93,7 +93,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
 
     "#]]

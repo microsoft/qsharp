@@ -18,7 +18,7 @@ fn if_branch_doesnt_create_its_own_scope() {
                     Stmt [5-15]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [5-15]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [5-8]
                             init_expr: Expr [13-14]:
                                 ty: Int(None, false)
@@ -32,7 +32,7 @@ fn if_branch_doesnt_create_its_own_scope() {
                             if_body: Stmt [30-40]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [30-40]:
-                                    symbol_id: 6
+                                    symbol_id: 8
                                     ty_span: [30-33]
                                     init_expr: Expr [38-39]:
                                         ty: Int(None, false)
@@ -67,7 +67,7 @@ fn else_branch_doesnt_create_its_own_scope() {
                     Stmt [5-15]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [5-15]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [5-8]
                             init_expr: Expr [13-14]:
                                 ty: Int(None, false)
@@ -84,7 +84,7 @@ fn else_branch_doesnt_create_its_own_scope() {
                             else_body: Stmt [42-52]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [42-52]:
-                                    symbol_id: 6
+                                    symbol_id: 8
                                     ty_span: [42-45]
                                     init_expr: Expr [50-51]:
                                         ty: Int(None, false)
@@ -112,7 +112,7 @@ fn branch_block_creates_a_new_scope() {
     ",
         &expect![[r#"
             ClassicalDeclarationStmt [5-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
                     ty: Int(None, false)
@@ -127,7 +127,7 @@ fn branch_block_creates_a_new_scope() {
                         Stmt [32-42]:
                             annotations: <empty>
                             kind: ClassicalDeclarationStmt [32-42]:
-                                symbol_id: 7
+                                symbol_id: 9
                                 ty_span: [32-35]
                                 init_expr: Expr [40-41]:
                                     ty: Int(None, false)
@@ -147,7 +147,7 @@ fn if_scope_and_else_scope_are_different() {
     ",
         &expect![[r#"
             ClassicalDeclarationStmt [5-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
                     ty: Int(None, false)
@@ -162,7 +162,7 @@ fn if_scope_and_else_scope_are_different() {
                         Stmt [32-42]:
                             annotations: <empty>
                             kind: ClassicalDeclarationStmt [32-42]:
-                                symbol_id: 7
+                                symbol_id: 9
                                 ty_span: [32-35]
                                 init_expr: Expr [40-41]:
                                     ty: Int(None, false)
@@ -173,7 +173,7 @@ fn if_scope_and_else_scope_are_different() {
                         Stmt [56-66]:
                             annotations: <empty>
                             kind: ClassicalDeclarationStmt [56-66]:
-                                symbol_id: 8
+                                symbol_id: 10
                                 ty_span: [56-59]
                                 init_expr: Expr [64-65]:
                                     ty: Int(None, false)

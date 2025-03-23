@@ -243,7 +243,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [196-206]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [196-206]:
-                            symbol_id: 24
+                            symbol_id: 26
                             ty_span: [196-199]
                             init_expr: Expr [204-205]:
                                 ty: Bit(true)
@@ -251,7 +251,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [211-227]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [211-227]:
-                            symbol_id: 24
+                            symbol_id: 26
                             ty_span: [211-215]
                             init_expr: Expr [220-226]:
                                 ty: Bool(false)
@@ -259,18 +259,18 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: AndL
                                     lhs: Expr [220-221]:
                                         ty: Err
-                                        kind: SymbolId(25)
+                                        kind: SymbolId(27)
                                     rhs: Expr [225-226]:
                                         ty: Bool(false)
                                         kind: Cast [0-0]:
                                             ty: Bool(false)
                                             expr: Expr [225-226]:
                                                 ty: Bit(false)
-                                                kind: SymbolId(24)
+                                                kind: SymbolId(26)
                     Stmt [140-154]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [140-154]:
-                            symbol_id: 26
+                            symbol_id: 28
                             ty_span: [140-145]
                             init_expr: Expr [150-153]:
                                 ty: Angle(None, true)
@@ -278,7 +278,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [159-179]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [159-179]:
-                            symbol_id: 27
+                            symbol_id: 29
                             ty_span: [159-164]
                             init_expr: Expr [169-178]:
                                 ty: Float(None, false)
@@ -286,7 +286,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: Add
                                     lhs: Expr [169-170]:
                                         ty: Angle(None, false)
-                                        kind: SymbolId(26)
+                                        kind: SymbolId(28)
                                     rhs: Expr [173-178]:
                                         ty: Float(None, false)
                                         kind: Cast [0-0]:
@@ -297,11 +297,11 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [74-84]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [74-84]:
-                            symbol_id: 29
+                            symbol_id: 31
                             ty_span: [74-77]
                             init_expr: Expr [82-83]:
                                 ty: Err
-                                kind: SymbolId(28)
+                                kind: SymbolId(30)
 
             [Qsc.Qasm3.Compile.UndefinedSymbol
 

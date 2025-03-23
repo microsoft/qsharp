@@ -17,29 +17,29 @@ fn greater_than() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-63]:
                     ty: Bool(false)
@@ -47,11 +47,11 @@ fn greater_than() {
                         op: Gt
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: f
                 type: Bool(false)
                 qsharp_type: bool
@@ -72,29 +72,29 @@ fn greater_than_equals() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-64]:
                     ty: Bool(false)
@@ -102,11 +102,11 @@ fn greater_than_equals() {
                         op: Gte
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: e
                 type: Bool(false)
                 qsharp_type: bool
@@ -127,29 +127,29 @@ fn less_than() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-63]:
                     ty: Bool(false)
@@ -157,11 +157,11 @@ fn less_than() {
                         op: Lt
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -182,29 +182,29 @@ fn less_than_equals() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-64]:
                     ty: Bool(false)
@@ -212,11 +212,11 @@ fn less_than_equals() {
                         op: Lte
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: c
                 type: Bool(false)
                 qsharp_type: bool
@@ -237,29 +237,29 @@ fn equals() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-64]:
                     ty: Bool(false)
@@ -267,11 +267,11 @@ fn equals() {
                         op: Eq
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: b
                 type: Bool(false)
                 qsharp_type: bool
@@ -292,29 +292,29 @@ fn not_equals() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-19]:
                     ty: UInt(None, true)
                     kind: Lit: Int(5)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [29-40]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [29-33]
                 init_expr: Expr [38-39]:
                     ty: UInt(None, true)
                     kind: Lit: Int(3)
-            [7] Symbol [34-35]:
+            [9] Symbol [34-35]:
                 name: y
                 type: UInt(None, false)
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [49-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [49-53]
                 init_expr: Expr [58-64]:
                     ty: Bool(false)
@@ -322,11 +322,11 @@ fn not_equals() {
                         op: Neq
                         lhs: Expr [58-59]:
                             ty: UInt(None, false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: UInt(None, false)
-                            kind: SymbolId(7)
-            [8] Symbol [54-55]:
+                            kind: SymbolId(9)
+            [10] Symbol [54-55]:
                 name: d
                 type: Bool(false)
                 qsharp_type: bool

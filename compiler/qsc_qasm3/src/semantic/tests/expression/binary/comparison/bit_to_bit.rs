@@ -17,29 +17,29 @@ fn logical_and() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
                     ty: Bool(false)
@@ -51,15 +51,15 @@ fn logical_and() {
                                 ty: Bool(false)
                                 expr: Expr [56-57]:
                                     ty: Bit(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [61-62]:
                             ty: Bool(false)
                             kind: Cast [0-0]:
                                 ty: Bool(false)
                                 expr: Expr [61-62]:
                                     ty: Bit(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                    kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -80,29 +80,29 @@ fn logical_or() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
                     ty: Bool(false)
@@ -114,15 +114,15 @@ fn logical_or() {
                                 ty: Bool(false)
                                 expr: Expr [56-57]:
                                     ty: Bit(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [61-62]:
                             ty: Bool(false)
                             kind: Cast [0-0]:
                                 ty: Bool(false)
                                 expr: Expr [61-62]:
                                     ty: Bit(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                    kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -143,29 +143,29 @@ fn unop_not_logical_and_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-64]:
                     ty: Bool(false)
@@ -181,7 +181,7 @@ fn unop_not_logical_and_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [57-58]:
                                             ty: Bit(false)
-                                            kind: SymbolId(6)
+                                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [63-64]:
@@ -192,8 +192,8 @@ fn unop_not_logical_and_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [63-64]:
                                             ty: Bit(false)
-                                            kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                            kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -214,29 +214,29 @@ fn unop_not_logical_or_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-65]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-64]:
                     ty: Bool(false)
@@ -252,7 +252,7 @@ fn unop_not_logical_or_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [57-58]:
                                             ty: Bit(false)
-                                            kind: SymbolId(6)
+                                            kind: SymbolId(8)
                         rhs: Expr [63-64]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [63-64]:
@@ -263,8 +263,8 @@ fn unop_not_logical_or_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [63-64]:
                                             ty: Bit(false)
-                                            kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                            kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -285,29 +285,29 @@ fn unop_not_logical_and() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-63]:
                     ty: Bool(false)
@@ -323,15 +323,15 @@ fn unop_not_logical_and() {
                                         ty: Bool(false)
                                         expr: Expr [57-58]:
                                             ty: Bit(false)
-                                            kind: SymbolId(6)
+                                            kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: Bool(false)
                             kind: Cast [0-0]:
                                 ty: Bool(false)
                                 expr: Expr [62-63]:
                                     ty: Bit(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                    kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -352,29 +352,29 @@ fn unop_not_logical_or() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-63]:
                     ty: Bool(false)
@@ -390,15 +390,15 @@ fn unop_not_logical_or() {
                                         ty: Bool(false)
                                         expr: Expr [57-58]:
                                             ty: Bit(false)
-                                            kind: SymbolId(6)
+                                            kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: Bool(false)
                             kind: Cast [0-0]:
                                 ty: Bool(false)
                                 expr: Expr [62-63]:
                                     ty: Bit(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                    kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -419,29 +419,29 @@ fn logical_and_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-63]:
                     ty: Bool(false)
@@ -453,7 +453,7 @@ fn logical_and_unop_not() {
                                 ty: Bool(false)
                                 expr: Expr [56-57]:
                                     ty: Bit(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [62-63]:
@@ -464,8 +464,8 @@ fn logical_and_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [62-63]:
                                             ty: Bit(false)
-                                            kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                            kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -486,29 +486,29 @@ fn logical_or_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
                     ty: Bit(true)
                     kind: Lit: Bit(1)
-            [6] Symbol [13-14]:
+            [8] Symbol [13-14]:
                 name: x
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [7] Symbol [32-33]:
+            [9] Symbol [32-33]:
                 name: y
                 type: Bit(false)
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [47-64]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-63]:
                     ty: Bool(false)
@@ -520,7 +520,7 @@ fn logical_or_unop_not() {
                                 ty: Bool(false)
                                 expr: Expr [56-57]:
                                     ty: Bit(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [62-63]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [62-63]:
@@ -531,8 +531,8 @@ fn logical_or_unop_not() {
                                         ty: Bool(false)
                                         expr: Expr [62-63]:
                                             ty: Bit(false)
-                                            kind: SymbolId(7)
-            [8] Symbol [52-53]:
+                                            kind: SymbolId(9)
+            [10] Symbol [52-53]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool

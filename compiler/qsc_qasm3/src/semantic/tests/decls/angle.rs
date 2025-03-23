@@ -11,12 +11,12 @@ fn implicit_bitness_default() {
         "angle x;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-8]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [0-0]:
                     ty: Angle(None, true)
                     kind: Lit: Float(0.0)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -30,12 +30,12 @@ fn lit() {
         "angle x = 42.1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -49,12 +49,12 @@ fn const_lit() {
         "const angle x = 42.1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-21]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -68,12 +68,12 @@ fn lit_explicit_width() {
         "angle[64] x = 42.1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-9]
                 init_expr: Expr [14-18]:
                     ty: Angle(Some(64), true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [10-11]:
+            [8] Symbol [10-11]:
                 name: x
                 type: Angle(Some(64), false)
                 qsharp_type: Double
@@ -87,12 +87,12 @@ fn const_explicit_width_lit() {
         "const angle[64] x = 42.1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-25]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-15]
                 init_expr: Expr [20-24]:
                     ty: Angle(Some(64), true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [16-17]:
+            [8] Symbol [16-17]:
                 name: x
                 type: Angle(Some(64), true)
                 qsharp_type: Double
@@ -106,12 +106,12 @@ fn lit_decl_leading_dot() {
         "angle x = .421;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
                     kind: Lit: Float(0.421)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -125,12 +125,12 @@ fn const_lit_decl_leading_dot() {
         "const angle x = .421;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-21]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
                     kind: Lit: Float(0.421)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -144,12 +144,12 @@ fn const_lit_decl_leading_dot_scientific() {
         "const angle x = .421e2;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -163,12 +163,12 @@ fn lit_decl_trailing_dot() {
         "angle x = 421.;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
                     kind: Lit: Float(421.0)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -182,12 +182,12 @@ fn const_lit_decl_trailing_dot() {
         "const angle x = 421.;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-21]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
                     kind: Lit: Float(421.0)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -201,12 +201,12 @@ fn lit_decl_scientific() {
         "angle x = 4.21e1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-17]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -220,12 +220,12 @@ fn const_lit_decl_scientific() {
         "const angle x = 4.21e1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -239,12 +239,12 @@ fn lit_decl_scientific_signed_pos() {
         "angle x = 4.21e+1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-18]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-17]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -258,12 +258,12 @@ fn const_lit_decl_scientific_signed_pos() {
         "const angle x = 4.21e+1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-24]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-23]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -277,12 +277,12 @@ fn lit_decl_scientific_cap_e() {
         "angle x = 4.21E1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-17]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -296,12 +296,12 @@ fn const_lit_decl_scientific_cap_e() {
         "const angle x = 4.21E1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -315,12 +315,12 @@ fn lit_decl_scientific_signed_neg() {
         "angle x = 421.0e-1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-19]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-18]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [6-7]:
+            [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
                 qsharp_type: Double
@@ -334,12 +334,12 @@ fn const_lit_decl_scientific_signed_neg() {
         "const angle x = 421.0e-1;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-25]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-24]:
                     ty: Angle(None, true)
                     kind: Lit: Float(42.1)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -353,7 +353,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
         "const angle x = -7.;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [17-19]:
                     ty: Angle(None, true)
@@ -366,7 +366,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                                 expr: Expr [17-19]:
                                     ty: Float(None, true)
                                     kind: Lit: Float(7.0)
-            [6] Symbol [12-13]:
+            [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
                 qsharp_type: Double
@@ -385,7 +385,7 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                     Stmt [0-19]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [0-19]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [6-11]
                             init_expr: Expr [17-18]:
                                 ty: Int(None, true)

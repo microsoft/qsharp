@@ -55,7 +55,7 @@ fn cases_introduce_their_own_scope() {
     "#,
         &expect![[r#"
             ClassicalDeclarationStmt [5-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
                     ty: Int(None, false)
@@ -74,7 +74,7 @@ fn cases_introduce_their_own_scope() {
                             Stmt [50-60]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [50-60]:
-                                    symbol_id: 7
+                                    symbol_id: 9
                                     ty_span: [50-53]
                                     init_expr: Expr [58-59]:
                                         ty: Int(None, false)
@@ -91,7 +91,7 @@ fn cases_introduce_their_own_scope() {
                             Stmt [83-93]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [83-93]:
-                                    symbol_id: 8
+                                    symbol_id: 10
                                     ty_span: [83-86]
                                     init_expr: Expr [91-92]:
                                         ty: Int(None, false)

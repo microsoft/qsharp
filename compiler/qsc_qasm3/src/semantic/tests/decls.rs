@@ -61,7 +61,7 @@ fn scalar_ty_designator_must_be_positive() {
                     Stmt [0-10]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [0-10]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [0-7]
                             init_expr: Expr [0-0]:
                                 ty: Err
@@ -89,7 +89,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                     Stmt [0-23]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [0-23]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [6-11]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
@@ -97,7 +97,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                     Stmt [24-36]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [24-36]:
-                            symbol_id: 7
+                            symbol_id: 9
                             ty_span: [24-33]
                             init_expr: Expr [0-0]:
                                 ty: Err

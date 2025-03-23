@@ -11,12 +11,12 @@ fn with_no_init_expr_has_generated_lit_expr() {
         "creg a;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-7]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-7]
                 init_expr: Expr [0-0]:
                     ty: Bit(true)
                     kind: Lit: Bit(0)
-            [6] Symbol [5-6]:
+            [8] Symbol [5-6]:
                 name: a
                 type: Bit(false)
                 qsharp_type: Result
