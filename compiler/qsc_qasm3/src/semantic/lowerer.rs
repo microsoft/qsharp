@@ -1155,10 +1155,10 @@ impl Lowerer {
         };
 
         let expr = self.lower_expr(expr);
-        let Some(expr) = self.try_cast_expr_to_type(&Type::UInt(None, true), &expr) else {
-            let from = expr.ty.to_string();
-            let to = Type::UInt(None, true).to_string();
-            self.push_semantic_error(SemanticErrorKind::CannotCast(from, to, expr.span));
+
+        let target_ty = &Type::UInt(None, true);
+        let Some(expr) = self.try_cast_expr_to_type(target_ty, &expr) else {
+            self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
             return None;
         };
         let Some(lit) = expr.const_eval(&self.symbols) else {
@@ -1529,7 +1529,7 @@ impl Lowerer {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
-                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::BitArray(
@@ -2125,7 +2125,7 @@ impl Lowerer {
             }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
-                // casts to other types that case to float. For now, we'll
+                // casts to other types that cast to float. For now, we'll
                 // say it is invalid like the spec.
                 None
             }
@@ -2418,7 +2418,7 @@ impl Lowerer {
             | semantic::BinOp::Lt
             | semantic::BinOp::Lte
             | semantic::BinOp::Neq
-            | semantic::BinOp::OrL => Type::Bool(false),
+            | semantic::BinOp::OrL => Type::Bool(ty_constness),
             _ => ty,
         };
         let mut expr = expr;

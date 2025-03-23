@@ -36,6 +36,35 @@ fn u_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit q;
+        gphase(2.0);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![
+        r#"
+        operation U(theta : Double, phi : Double, lambda : Double, qubit : Qubit) : Unit is Adj + Ctl {
+            body ... {
+                Rz(lambda, qubit);
+                Ry(theta, qubit);
+                Rz(phi, qubit);
+                R(PauliI, -lambda - phi - theta, qubit);
+            }
+            adjoint auto;
+            controlled auto;
+            controlled adjoint auto;
+        }
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        U(1., 2., 3., q);
+        "#
+    ]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn x_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";

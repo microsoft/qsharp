@@ -147,10 +147,10 @@ impl BinaryOpExpr {
                 if let (LiteralKind::Float(lhs), LiteralKind::Float(rhs)) = (lhs, rhs) {
                     Some(match op {
                         BinOp::Add => LiteralKind::Float(lhs + rhs),
-                        BinOp::Div => LiteralKind::Float(lhs / rhs),
-                        BinOp::Exp => LiteralKind::Float(lhs.powf(rhs)),
                         BinOp::Sub => LiteralKind::Float(lhs - rhs),
                         BinOp::Mul => LiteralKind::Float(lhs * rhs),
+                        BinOp::Div => LiteralKind::Float(lhs / rhs),
+                        BinOp::Exp => LiteralKind::Float(lhs.powf(rhs)),
                         // If the output type is Float, we don't need to implement
                         // any of the comparison, bitwise, or mod operators.
                         BinOp::AndB
@@ -210,7 +210,10 @@ impl BinaryOpExpr {
                 };
 
                 match (lhs, rhs) {
-                    (LiteralKind::Bool(lhs), LiteralKind::Bool(rhs)) => {
+                    (
+                        LiteralKind::Bool(lhs) | LiteralKind::Bit(lhs),
+                        LiteralKind::Bool(rhs) | LiteralKind::Bit(rhs),
+                    ) => {
                         Some(match op {
                             // Logical and bitwise operators.
                             BinOp::AndB | BinOp::AndL => lit_kind(lhs && rhs),
@@ -439,7 +442,7 @@ fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
             }
         }
         // TODO: Int Overflowing behavior.
-        //       This is tricky because the inner repersentation
+        //       This is tricky because the inner representation
         //       is a i64. Therefore, even we might end with the
         //       same result anyways. Need to think through this.
         Type::Int(..) | Type::UInt(..) => Some(lit),
