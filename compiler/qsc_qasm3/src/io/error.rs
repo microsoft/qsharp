@@ -15,6 +15,8 @@ pub enum ErrorKind {
     NotFound(String),
     #[error("IO Error: {0}")]
     IO(String),
+    #[error("IO Error: {0}")]
+    Unknown(String),
 }
 
 impl From<Error> for crate::Error {

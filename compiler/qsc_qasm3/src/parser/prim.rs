@@ -9,7 +9,7 @@ use super::{
     scan::ParserContext,
     Parser, Result,
 };
-use crate::{lex::TokenKind, parser::completion::WordKinds};
+use crate::{lex::TokenKind, parser::completion::word_kinds::WordKinds};
 
 use super::ast::{Ident, IncompletePath, Path, PathKind};
 
@@ -54,7 +54,9 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
 }
 
 pub(super) fn ident(s: &mut ParserContext) -> Result<Ident> {
+    s.expect(WordKinds::PathExpr);
     let peek = s.peek();
+
     if peek.kind == TokenKind::Identifier {
         let name = s.read().into();
         s.advance();

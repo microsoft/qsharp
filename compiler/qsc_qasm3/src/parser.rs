@@ -15,7 +15,7 @@ use std::sync::Arc;
 #[cfg(test)]
 pub(crate) mod tests;
 
-mod completion;
+pub mod completion;
 mod error;
 pub use error::Error;
 mod expr;

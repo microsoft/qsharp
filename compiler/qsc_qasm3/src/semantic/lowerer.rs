@@ -2120,6 +2120,12 @@ impl Lowerer {
 
         if types_equal_except_const(ty, &rhs.ty) {
             // lhs isn't const, but rhs is, this is allowed
+            if rhs.ty.is_const() {
+                // we can just return the rhs
+                let mut rhs = rhs.clone();
+                rhs.ty = ty.clone();
+                return Some(rhs);
+            }
             return Some(rhs.clone());
         }
         assert!(can_cast_literal(ty, &rhs.ty) || can_cast_literal_with_value_knowledge(ty, kind));
@@ -2353,6 +2359,7 @@ impl Lowerer {
             return Some(expr.clone());
         }
         if types_equal_except_const(ty, &expr.ty) {
+            // we must relax the constness
             if expr.ty.is_const() {
                 // lhs isn't const, but rhs is, we can just return the rhs
                 let mut expr = expr.clone();
@@ -2360,9 +2367,7 @@ impl Lowerer {
                 expr.ty = expr.ty.as_non_const();
                 return Some(expr);
             }
-            // the lsh is supposed to be const but is being initialized
-            // to a non-const value, we can't allow this
-            return None;
+            return Some(expr.clone());
         }
         // if the target type is wider, we can try to relax the rhs type
         // We only do this for float and complex. Int types

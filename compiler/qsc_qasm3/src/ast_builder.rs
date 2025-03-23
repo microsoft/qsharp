@@ -1081,7 +1081,7 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
     let input_pats = input_pats.into_iter().map(Box::new).collect::<Vec<_>>();
     let input = match input_pats.len() {
         0 => Box::new(Pat {
-            kind: Box::new(qsc_ast::ast::PatKind::Tuple(input_pats.into_boxed_slice())),
+            kind: Box::new(qsc_ast::ast::PatKind::Tuple(Box::new([]))),
             ..Default::default()
         }),
         1 => Box::new(Pat {

@@ -3,7 +3,7 @@
 
 use crate::{
     lex::{Lexer, Token, TokenKind},
-    parser::completion::{collector::ValidWordCollector, WordKinds},
+    parser::completion::{collector::ValidWordCollector, word_kinds::WordKinds},
 };
 use qsc_data_structures::span::Span;
 
