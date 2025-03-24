@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 mod annotation;
+mod const_eval;
 mod end;
 mod for_loop;
 mod gate_call;

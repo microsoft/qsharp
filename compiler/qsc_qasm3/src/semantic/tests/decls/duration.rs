@@ -16,7 +16,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
                     Stmt [0-11]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [0-11]:
-                            symbol_id: 6
+                            symbol_id: 8
                             ty_span: [0-8]
                             init_expr: Expr [0-0]:
                                 ty: Duration(true)

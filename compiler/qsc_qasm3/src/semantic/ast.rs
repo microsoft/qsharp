@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod const_eval;
+
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
 use std::{
@@ -141,12 +143,14 @@ impl WithSpan for Path {
 #[derive(Clone, Debug)]
 pub struct MeasureExpr {
     pub span: Span,
+    pub measure_token_span: Span,
     pub operand: GateOperand,
 }
 
 impl Display for MeasureExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "MeasureExpr", self.span)?;
+        writeln_field(f, "measure_token_span", &self.measure_token_span)?;
         write_field(f, "operand", &self.operand)
     }
 }
@@ -268,29 +272,33 @@ impl Display for UnaryOp {
 }
 
 #[derive(Clone, Debug, Default)]
-pub enum GateOperand {
-    IndexedIdent(Box<IndexedIdent>),
-    HardwareQubit(Box<HardwareQubit>),
-    #[default]
-    Err,
+pub struct GateOperand {
+    pub span: Span,
+    pub kind: GateOperandKind,
 }
 
 impl Display for GateOperand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            GateOperand::IndexedIdent(ident) => write!(f, "{ident}"),
-            GateOperand::HardwareQubit(qubit) => write!(f, "{qubit}"),
-            GateOperand::Err => write!(f, "Error"),
-        }
+        writeln_header(f, "GateOperand", self.span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
-impl WithSpan for GateOperand {
-    fn with_span(self, span: Span) -> Self {
+#[derive(Clone, Debug, Default)]
+pub enum GateOperandKind {
+    /// `IndexedIdent` and `Ident` get lowered to an `Expr`.
+    Expr(Box<Expr>),
+    HardwareQubit(HardwareQubit),
+    #[default]
+    Err,
+}
+
+impl Display for GateOperandKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            GateOperand::IndexedIdent(ident) => GateOperand::IndexedIdent(ident.with_span(span)),
-            GateOperand::HardwareQubit(qubit) => GateOperand::HardwareQubit(qubit.with_span(span)),
-            GateOperand::Err => GateOperand::Err,
+            Self::Expr(expr) => write!(f, "{expr}"),
+            Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
+            Self::Err => write!(f, "Err"),
         }
     }
 }
@@ -353,10 +361,11 @@ pub enum StmtKind {
     Include(IncludeStmt),
     InputDeclaration(InputDeclaration),
     OutputDeclaration(OutputDeclaration),
-    Measure(MeasureStmt),
+    MeasureArrow(MeasureArrowStmt),
     Pragma(Pragma),
     QuantumGateDefinition(QuantumGateDefinition),
-    QuantumDecl(QubitDeclaration),
+    QubitDecl(QubitDeclaration),
+    QubitArrayDecl(QubitArrayDeclaration),
     Reset(ResetStmt),
     Return(ReturnStmt),
     Switch(SwitchStmt),
@@ -391,10 +400,11 @@ impl Display for StmtKind {
             StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
             StmtKind::InputDeclaration(io) => write!(f, "{io}"),
             StmtKind::OutputDeclaration(io) => write!(f, "{io}"),
-            StmtKind::Measure(measure) => write!(f, "{measure}"),
+            StmtKind::MeasureArrow(measure) => write!(f, "{measure}"),
             StmtKind::Pragma(pragma) => write!(f, "{pragma}"),
             StmtKind::QuantumGateDefinition(gate) => write!(f, "{gate}"),
-            StmtKind::QuantumDecl(decl) => write!(f, "{decl}"),
+            StmtKind::QubitDecl(decl) => write!(f, "{decl}"),
+            StmtKind::QubitArrayDecl(decl) => write!(f, "{decl}"),
             StmtKind::Reset(reset_stmt) => write!(f, "{reset_stmt}"),
             StmtKind::Return(return_stmt) => write!(f, "{return_stmt}"),
             StmtKind::Switch(switch_stmt) => write!(f, "{switch_stmt}"),
@@ -461,12 +471,14 @@ impl Display for BarrierStmt {
 #[derive(Clone, Debug)]
 pub struct ResetStmt {
     pub span: Span,
+    pub reset_token_span: Span,
     pub operand: Box<GateOperand>,
 }
 
 impl Display for ResetStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ResetStmt", self.span)?;
+        writeln_field(f, "reset_token_span", &self.reset_token_span)?;
         write_field(f, "operand", &self.operand)
     }
 }
@@ -653,8 +665,8 @@ impl Display for QuantumGateModifier {
 pub enum GateModifierKind {
     Inv,
     Pow(Expr),
-    Ctrl(Option<Expr>),
-    NegCtrl(Option<Expr>),
+    Ctrl(u32),
+    NegCtrl(u32),
 }
 
 impl Display for GateModifierKind {
@@ -662,8 +674,8 @@ impl Display for GateModifierKind {
         match self {
             GateModifierKind::Inv => write!(f, "Inv"),
             GateModifierKind::Pow(expr) => write!(f, "Pow {expr}"),
-            GateModifierKind::Ctrl(expr) => write!(f, "Ctrl {expr:?}"),
-            GateModifierKind::NegCtrl(expr) => write!(f, "NegCtrl {expr:?}"),
+            GateModifierKind::Ctrl(ctrls) => write!(f, "Ctrl {ctrls:?}"),
+            GateModifierKind::NegCtrl(ctrls) => write!(f, "NegCtrl {ctrls:?}"),
         }
     }
 }
@@ -1001,15 +1013,30 @@ impl Display for IncludeStmt {
 #[derive(Clone, Debug)]
 pub struct QubitDeclaration {
     pub span: Span,
-    pub qubit: Box<Ident>,
-    pub size: Option<Expr>,
+    pub symbol_id: SymbolId,
 }
 
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "QubitDeclaration", self.span)?;
-        writeln_field(f, "ident", &self.qubit)?;
-        write_opt_field(f, "size", self.size.as_ref())
+        write_field(f, "symbol_id", &self.symbol_id)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct QubitArrayDeclaration {
+    pub span: Span,
+    pub symbol_id: SymbolId,
+    pub size: u32,
+    pub size_span: Span,
+}
+
+impl Display for QubitArrayDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln_header(f, "QubitArrayDeclaration", self.span)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "size", &self.size)?;
+        write_field(f, "size_span", &self.size_span)
     }
 }
 
@@ -1053,20 +1080,28 @@ impl Display for ExternDecl {
 pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
-    pub name: Ident,
+    pub symbol_id: SymbolId,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
+    pub quantum_arity: u32,
+    pub quantum_arity_with_modifiers: u32,
 }
 
 impl Display for GateCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "GateCall", self.span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        write_list_field(f, "qubits", &self.qubits)
+        writeln_list_field(f, "qubits", &self.qubits)?;
+        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
+        write_field(
+            f,
+            "quantum_arity_with_modifiers",
+            &self.quantum_arity_with_modifiers,
+        )
     }
 }
 
@@ -1120,15 +1155,15 @@ impl Display for BoxStmt {
 }
 
 #[derive(Clone, Debug)]
-pub struct MeasureStmt {
+pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
     pub target: Option<Box<IndexedIdent>>,
 }
 
-impl Display for MeasureStmt {
+impl Display for MeasureArrowStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "MeasureStmt", self.span)?;
+        writeln_header(f, "MeasureArrowStmt", self.span)?;
         writeln_field(f, "measurement", &self.measurement)?;
         write_opt_field(f, "target", self.target.as_ref())
     }
@@ -1139,7 +1174,7 @@ pub struct ClassicalDeclarationStmt {
     pub span: Span,
     pub ty_span: Span,
     pub symbol_id: SymbolId,
-    pub init_expr: Box<ValueExpression>,
+    pub init_expr: Box<Expr>,
 }
 
 impl Display for ClassicalDeclarationStmt {
@@ -1148,21 +1183,6 @@ impl Display for ClassicalDeclarationStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", self.init_expr.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum ValueExpression {
-    Expr(Expr),
-    Measurement(MeasureExpr),
-}
-
-impl Display for ValueExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ValueExpression::Expr(expr) => write!(f, "{expr}"),
-            ValueExpression::Measurement(measure) => write!(f, "{measure}"),
-        }
     }
 }
 
@@ -1320,7 +1340,7 @@ impl Display for DefStmt {
 #[derive(Clone, Debug)]
 pub struct ReturnStmt {
     pub span: Span,
-    pub expr: Option<Box<ValueExpression>>,
+    pub expr: Option<Box<Expr>>,
 }
 
 impl Display for ReturnStmt {
@@ -1333,14 +1353,14 @@ impl Display for ReturnStmt {
 #[derive(Clone, Debug)]
 pub struct WhileLoop {
     pub span: Span,
-    pub while_condition: Expr,
+    pub condition: Expr,
     pub body: Stmt,
 }
 
 impl Display for WhileLoop {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "WhileLoop", self.span)?;
-        writeln_field(f, "condition", &self.while_condition)?;
+        writeln_field(f, "condition", &self.condition)?;
         write_field(f, "body", &self.body)
     }
 }
@@ -1428,6 +1448,7 @@ pub enum ExprKind {
     Cast(Cast),
     IndexExpr(IndexExpr),
     Paren(Expr),
+    Measure(MeasureExpr),
 }
 
 impl Display for ExprKind {
@@ -1443,6 +1464,7 @@ impl Display for ExprKind {
             ExprKind::Cast(expr) => write!(f, "{expr}"),
             ExprKind::IndexExpr(expr) => write!(f, "{expr}"),
             ExprKind::Paren(expr) => write!(f, "Paren {expr}"),
+            ExprKind::Measure(expr) => write!(f, "{expr}"),
         }
     }
 }
@@ -1468,7 +1490,7 @@ impl Display for AssignStmt {
 pub struct IndexedAssignStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
-    pub lhs: Expr,
+    pub indices: List<IndexElement>,
     pub rhs: Expr,
 }
 
@@ -1476,7 +1498,7 @@ impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "lhs", &self.rhs)?;
+        writeln_list_field(f, "indices", &self.indices)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1596,6 +1618,7 @@ pub enum LiteralKind {
     Int(i64),
     BigInt(BigInt),
     String(Rc<str>),
+    Bit(bool),
 }
 
 impl Display for LiteralKind {
@@ -1606,6 +1629,7 @@ impl Display for LiteralKind {
                 let width = *width as usize;
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
+            LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
             LiteralKind::Duration(value, unit) => {

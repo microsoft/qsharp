@@ -48,6 +48,7 @@ fn qreg_decl() {
             Stmt [0-7]:
                 annotations: <empty>
                 kind: QubitDeclaration [0-7]:
+                    ty_span: [0-7]
                     ident: Ident [5-6] "q"
                     size: <none>"#]],
     );
@@ -62,6 +63,7 @@ fn qreg_array_decl() {
             Stmt [0-10]:
                 annotations: <empty>
                 kind: QubitDeclaration [0-10]:
+                    ty_span: [0-10]
                     ident: Ident [5-6] "q"
                     size: Expr [7-8]: Ident [7-8] "n""#]],
     );
