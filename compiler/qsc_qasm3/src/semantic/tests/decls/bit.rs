@@ -25,24 +25,21 @@ fn with_no_init_expr_has_generated_lit_expr() {
 }
 
 #[test]
-#[ignore = "Unimplemented"]
 fn array_with_no_init_expr_has_generated_lit_expr() {
     check_classical_decl(
         "bit[4] a;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements: <empty>
-
-            [Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: bit array
-              | default value
-               ,-[test:1:1]
-             1 | bit[4] a;
-               : ^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-9]:
+                symbol_id: 8
+                ty_span: [0-6]
+                init_expr: Expr [0-0]:
+                    ty: BitArray(One(4), true)
+                    kind: Lit: Bitstring("0000")
+            [8] Symbol [7-8]:
+                name: a
+                type: BitArray(One(4), false)
+                qsharp_type: Result[]
+                io_kind: Default"#]],
     );
 }
 

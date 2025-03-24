@@ -14,3 +14,15 @@ fn with_no_init_expr() {
                 symbol_id: 8"#]],
     );
 }
+
+#[test]
+fn array_with_no_init_expr() {
+    check_stmt_kind(
+        "qreg a[3];",
+        &expect![[r#"
+            QubitArrayDeclaration [0-10]:
+                symbol_id: 8
+                size: 3
+                size_span: [7-8]"#]],
+    );
+}
