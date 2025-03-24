@@ -177,187 +177,43 @@ impl Type {
     #[must_use]
     pub fn get_indexed_type(&self) -> Option<Self> {
         let ty = match self {
-            Type::BitArray(dims, is_const) => match dims {
-                ArrayDimensions::One(_) => Type::Bit(*is_const),
-                ArrayDimensions::Two(d1, _) => Type::BitArray(ArrayDimensions::One(*d1), *is_const),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::BitArray(ArrayDimensions::Two(*d1, *d2), *is_const)
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::BitArray(ArrayDimensions::Three(*d1, *d2, *d3), *is_const)
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::BitArray(ArrayDimensions::Four(*d1, *d2, *d3, *d4), *is_const)
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::BitArray(ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5), *is_const)
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => Type::BitArray(
-                    ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6),
-                    *is_const,
-                ),
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::QubitArray(dims) => match dims {
-                ArrayDimensions::One(_) => Type::Qubit,
-                ArrayDimensions::Two(d1, _) => Type::QubitArray(ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::QubitArray(ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::QubitArray(ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::QubitArray(ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::QubitArray(ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::QubitArray(ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::BoolArray(dims) => match dims {
-                ArrayDimensions::One(_) => Type::Bool(false),
-                ArrayDimensions::Two(d1, _) => Type::BoolArray(ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::BoolArray(ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::BoolArray(ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::BoolArray(ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::BoolArray(ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::BoolArray(ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::AngleArray(size, dims) => match dims {
-                ArrayDimensions::One(_) => Type::Angle(*size, false),
-                ArrayDimensions::Two(d1, _) => Type::AngleArray(*size, ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::AngleArray(*size, ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::AngleArray(*size, ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::AngleArray(*size, ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::AngleArray(*size, ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::AngleArray(*size, ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::ComplexArray(size, dims) => match dims {
-                ArrayDimensions::One(_) => Type::Complex(*size, false),
-                ArrayDimensions::Two(d1, _) => Type::ComplexArray(*size, ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::ComplexArray(*size, ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::ComplexArray(*size, ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::ComplexArray(*size, ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::ComplexArray(*size, ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::ComplexArray(*size, ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::DurationArray(dims) => match dims {
-                ArrayDimensions::One(_) => Type::Duration(false),
-                ArrayDimensions::Two(d1, _) => Type::DurationArray(ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::DurationArray(ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::DurationArray(ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::DurationArray(ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::DurationArray(ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::DurationArray(ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::FloatArray(size, dims) => match dims {
-                ArrayDimensions::One(_) => Type::Float(*size, false),
-                ArrayDimensions::Two(d1, _) => Type::FloatArray(*size, ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::FloatArray(*size, ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::FloatArray(*size, ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::FloatArray(*size, ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::FloatArray(*size, ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::FloatArray(*size, ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::IntArray(size, dims) => match dims {
-                ArrayDimensions::One(_) => Type::Int(*size, false),
-                ArrayDimensions::Two(d1, _) => Type::IntArray(*size, ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::IntArray(*size, ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::IntArray(*size, ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::IntArray(*size, ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::IntArray(*size, ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::IntArray(*size, ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
-            Type::UIntArray(size, dims) => match dims {
-                ArrayDimensions::One(_) => Type::UInt(*size, false),
-                ArrayDimensions::Two(d1, _) => Type::UIntArray(*size, ArrayDimensions::One(*d1)),
-                ArrayDimensions::Three(d1, d2, _) => {
-                    Type::UIntArray(*size, ArrayDimensions::Two(*d1, *d2))
-                }
-                ArrayDimensions::Four(d1, d2, d3, _) => {
-                    Type::UIntArray(*size, ArrayDimensions::Three(*d1, *d2, *d3))
-                }
-                ArrayDimensions::Five(d1, d2, d3, d4, _) => {
-                    Type::UIntArray(*size, ArrayDimensions::Four(*d1, *d2, *d3, *d4))
-                }
-                ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-                    Type::UIntArray(*size, ArrayDimensions::Five(*d1, *d2, *d3, *d4, *d5))
-                }
-                ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-                    Type::UIntArray(*size, ArrayDimensions::Six(*d1, *d2, *d3, *d4, *d5, *d6))
-                }
-                ArrayDimensions::Err => Type::Err,
-            },
+            Type::BitArray(dims, is_const) => indexed_type_builder(
+                || Type::Bit(*is_const),
+                |d| Type::BitArray(d, *is_const),
+                dims,
+            ),
+            Type::QubitArray(dims) => indexed_type_builder(|| Type::Qubit, Type::QubitArray, dims),
+            Type::BoolArray(dims) => {
+                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims)
+            }
+            Type::AngleArray(size, dims) => indexed_type_builder(
+                || Type::Angle(*size, false),
+                |d| Type::AngleArray(*size, d),
+                dims,
+            ),
+            Type::ComplexArray(size, dims) => indexed_type_builder(
+                || Type::Complex(*size, false),
+                |d| Type::ComplexArray(*size, d),
+                dims,
+            ),
+            Type::DurationArray(dims) => {
+                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims)
+            }
+            Type::FloatArray(size, dims) => indexed_type_builder(
+                || Type::Float(*size, false),
+                |d| Type::FloatArray(*size, d),
+                dims,
+            ),
+            Type::IntArray(size, dims) => indexed_type_builder(
+                || Type::Int(*size, false),
+                |d| Type::IntArray(*size, d),
+                dims,
+            ),
+            Type::UIntArray(size, dims) => indexed_type_builder(
+                || Type::UInt(*size, false),
+                |d| Type::UIntArray(*size, d),
+                dims,
+            ),
             _ => return None,
         };
         Some(ty)
@@ -379,6 +235,22 @@ impl Type {
         }
     }
 
+    pub(crate) fn as_non_const(&self) -> Type {
+        match self {
+            Type::Bit(_) => Self::Bit(false),
+            Type::Bool(_) => Self::Bool(false),
+            Type::Duration(_) => Self::Duration(false),
+            Type::Stretch(_) => Self::Stretch(false),
+            Type::Angle(w, _) => Self::Angle(*w, false),
+            Type::Complex(w, _) => Self::Complex(*w, false),
+            Type::Float(w, _) => Self::Float(*w, false),
+            Type::Int(w, _) => Self::Int(*w, false),
+            Type::UInt(w, _) => Self::UInt(*w, false),
+            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), false),
+            _ => self.clone(),
+        }
+    }
+
     pub(crate) fn is_quantum(&self) -> bool {
         matches!(
             self,
@@ -387,7 +259,28 @@ impl Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+fn indexed_type_builder(
+    ty: impl Fn() -> Type,
+    ty_array: impl Fn(ArrayDimensions) -> Type,
+    dims: &ArrayDimensions,
+) -> Type {
+    match dims.clone() {
+        ArrayDimensions::One(_) => ty(),
+        ArrayDimensions::Two(d1, _) => ty_array(ArrayDimensions::One(d1)),
+        ArrayDimensions::Three(d1, d2, _) => ty_array(ArrayDimensions::Two(d1, d2)),
+        ArrayDimensions::Four(d1, d2, d3, _) => ty_array(ArrayDimensions::Three(d1, d2, d3)),
+        ArrayDimensions::Five(d1, d2, d3, d4, _) => ty_array(ArrayDimensions::Four(d1, d2, d3, d4)),
+        ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
+            ty_array(ArrayDimensions::Five(d1, d2, d3, d4, d5))
+        }
+        ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
+            ty_array(ArrayDimensions::Six(d1, d2, d3, d4, d5, d6))
+        }
+        ArrayDimensions::Err => Type::Err,
+    }
+}
+
+#[derive(Debug, Clone, Default, Eq, Hash, PartialEq)]
 pub enum ArrayDimensions {
     One(u32),
     Two(u32, u32),
@@ -398,6 +291,12 @@ pub enum ArrayDimensions {
     Seven(u32, u32, u32, u32, u32, u32, u32),
     #[default]
     Err,
+}
+
+impl From<u32> for ArrayDimensions {
+    fn from(value: u32) -> Self {
+        Self::One(value)
+    }
 }
 
 impl Display for ArrayDimensions {
@@ -499,8 +398,10 @@ pub(crate) fn promote_to_uint_ty(
 }
 
 fn get_uint_ty(ty: &Type) -> Option<Type> {
-    if matches!(ty, Type::UInt(..) | Type::Angle(..)) {
+    if matches!(ty, Type::Int(..) | Type::UInt(..) | Type::Angle(..)) {
         Some(Type::UInt(ty.width(), ty.is_const()))
+    } else if matches!(ty, Type::Bool(..) | Type::Bit(..)) {
+        Some(Type::UInt(Some(1), ty.is_const()))
     } else if let Type::BitArray(dims, _) = ty {
         match dims {
             ArrayDimensions::One(d) => Some(Type::UInt(Some(*d), ty.is_const())),

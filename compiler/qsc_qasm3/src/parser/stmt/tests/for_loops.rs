@@ -283,10 +283,11 @@ fn single_stmt_for_stmt() {
                             args: <empty>
                             duration: <none>
                             qubits:
-                                IndexedIdent [18-19]:
-                                    name: Ident [18-19] "q"
-                                    index_span: [0-0]
-                                    indices: <empty>"#]],
+                                GateOperand [18-19]:
+                                    kind: IndexedIdent [18-19]:
+                                        name: Ident [18-19] "q"
+                                        index_span: [0-0]
+                                        indices: <empty>"#]],
     );
 }
 
@@ -355,10 +356,11 @@ fn nested_single_stmt_for_stmt() {
                                     args: <empty>
                                     duration: <none>
                                     qubits:
-                                        IndexedIdent [34-35]:
-                                            name: Ident [34-35] "q"
-                                            index_span: [0-0]
-                                            indices: <empty>"#]],
+                                        GateOperand [34-35]:
+                                            kind: IndexedIdent [34-35]:
+                                                name: Ident [34-35] "q"
+                                                index_span: [0-0]
+                                                indices: <empty>"#]],
     );
 }
 

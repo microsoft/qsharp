@@ -15,18 +15,21 @@ fn barrier() {
                 annotations: <empty>
                 kind: BarrierStmt [0-20]:
                     operands:
-                        IndexedIdent [8-9]:
-                            name: Ident [8-9] "r"
-                            index_span: [0-0]
-                            indices: <empty>
-                        IndexedIdent [11-15]:
-                            name: Ident [11-12] "q"
-                            index_span: [12-15]
-                            indices:
-                                IndexSet [13-14]:
-                                    values:
-                                        Expr [13-14]: Lit: Int(0)
-                        HardwareQubit [17-19]: 2"#]],
+                        GateOperand [8-9]:
+                            kind: IndexedIdent [8-9]:
+                                name: Ident [8-9] "r"
+                                index_span: [0-0]
+                                indices: <empty>
+                        GateOperand [11-15]:
+                            kind: IndexedIdent [11-15]:
+                                name: Ident [11-12] "q"
+                                index_span: [12-15]
+                                indices:
+                                    IndexSet [13-14]:
+                                        values:
+                                            Expr [13-14]: Lit: Int(0)
+                        GateOperand [17-19]:
+                            kind: HardwareQubit [17-19]: 2"#]],
     );
 }
 

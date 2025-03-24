@@ -47,7 +47,7 @@ fn not_supported_before_version_3_1() {
 fn cases_introduce_their_own_scope() {
     check_stmt_kinds(
         r#"
-    int a = 0;
+    int a = 3;
     switch (1) {
         case 1 { int a = 1; }
         case 2, 3 { int a = 2; }
@@ -55,11 +55,11 @@ fn cases_introduce_their_own_scope() {
     "#,
         &expect![[r#"
             ClassicalDeclarationStmt [5-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, true)
-                    kind: Lit: Int(0)
+                    ty: Int(None, false)
+                    kind: Lit: Int(3)
             SwitchStmt [20-101]:
                 target: Expr [28-29]:
                     ty: Int(None, true)
@@ -74,10 +74,10 @@ fn cases_introduce_their_own_scope() {
                             Stmt [50-60]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [50-60]:
-                                    symbol_id: 7
+                                    symbol_id: 9
                                     ty_span: [50-53]
                                     init_expr: Expr [58-59]:
-                                        ty: Int(None, true)
+                                        ty: Int(None, false)
                                         kind: Lit: Int(1)
                     SwitchCase [71-95]:
                         labels:
@@ -91,10 +91,10 @@ fn cases_introduce_their_own_scope() {
                             Stmt [83-93]:
                                 annotations: <empty>
                                 kind: ClassicalDeclarationStmt [83-93]:
-                                    symbol_id: 8
+                                    symbol_id: 10
                                     ty_span: [83-86]
                                     init_expr: Expr [91-92]:
-                                        ty: Int(None, true)
+                                        ty: Int(None, false)
                                         kind: Lit: Int(2)
                 default_case: <none>
         "#]],
@@ -108,9 +108,9 @@ fn target_cast() {
         &expect![[r#"
             SwitchStmt [0-31]:
                 target: Expr [8-12]:
-                    ty: Int(None, false)
+                    ty: Int(None, true)
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: Int(None, true)
                         expr: Expr [8-12]:
                             ty: Bool(true)
                             kind: Lit: Bool(true)
@@ -118,9 +118,9 @@ fn target_cast() {
                     SwitchCase [16-29]:
                         labels:
                             Expr [21-26]:
-                                ty: Int(None, false)
+                                ty: Int(None, true)
                                 kind: Cast [0-0]:
-                                    ty: Int(None, false)
+                                    ty: Int(None, true)
                                     expr: Expr [21-26]:
                                         ty: Bool(true)
                                         kind: Lit: Bool(false)
