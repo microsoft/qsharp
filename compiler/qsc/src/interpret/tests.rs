@@ -1928,6 +1928,7 @@ mod given_interpreter {
             let package_id = store.insert(unit);
 
             let mut interpreter = Interpreter::from(
+                false,
                 store,
                 package_id,
                 capabilities,
