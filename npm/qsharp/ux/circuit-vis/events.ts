@@ -458,6 +458,7 @@ class CircuitEvents {
       !removeQubitLineButton.hasAttribute("data-event-added")
     ) {
       removeQubitLineButton.addEventListener("click", () => {
+        // Determines if the operation is associated with the last qubit line
         const check = (op: Operation) => {
           const targets = op.kind === "measurement" ? op.results : op.targets;
           if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
@@ -472,9 +473,30 @@ class CircuitEvents {
           }
           return false;
         };
-        findAndRemoveOperations(this.componentGrid, check);
-        this.qubits.pop();
-        this.renderFn();
+
+        // Count number of operations associated with the last qubit line
+        const numOperations = this.componentGrid.reduce(
+          (acc, column) =>
+            acc + column.components.filter((op) => check(op)).length,
+          0,
+        );
+        if (numOperations === 0) {
+          this.qubits.pop();
+          this.renderFn();
+        } else {
+          const message =
+            numOperations === 1
+              ? `There is ${numOperations} operation associated with the last qubit line. Do you want to remove it?`
+              : `There are ${numOperations} operations associated with the last qubit line. Do you want to remove them?`;
+          _createCustomConfirm(message, (confirmed) => {
+            if (confirmed) {
+              // Remove all operations associated with the last qubit line
+              findAndRemoveOperations(this.componentGrid, check);
+              this.qubits.pop();
+              this.renderFn();
+            }
+          });
+        }
       });
       removeQubitLineButton.setAttribute("data-event-added", "true");
     }
@@ -618,5 +640,68 @@ class CircuitEvents {
     });
   }
 }
+
+/**
+ * Create a custom confirm dialog box
+ * @param message - The message to display in the confirm dialog
+ * @param callback - The callback function to handle the user's response (true for OK, false for Cancel)
+ */
+const _createCustomConfirm = (
+  message: string,
+  callback: (confirmed: boolean) => void,
+) => {
+  // Create the confirm overlay
+  const overlay = document.createElement("div");
+  overlay.classList.add("custom-prompt-overlay");
+  overlay.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  // Create the confirm container
+  const confirmContainer = document.createElement("div");
+  confirmContainer.classList.add("custom-prompt-container");
+
+  // Create the message element
+  const messageElem = document.createElement("div");
+  messageElem.classList.add("custom-prompt-message");
+  messageElem.textContent = message;
+
+  // Create the buttons container
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.classList.add("custom-prompt-buttons");
+
+  // Create the OK button
+  const okButton = document.createElement("button");
+  okButton.classList.add("custom-prompt-button");
+  okButton.textContent = "OK";
+  okButton.addEventListener("click", () => {
+    callback(true); // User confirmed
+    document.body.removeChild(overlay);
+  });
+
+  // Create the Cancel button
+  const cancelButton = document.createElement("button");
+  cancelButton.classList.add("custom-prompt-button");
+  cancelButton.textContent = "Cancel";
+  cancelButton.addEventListener("click", () => {
+    callback(false); // User canceled
+    document.body.removeChild(overlay);
+  });
+
+  // Append buttons to the container
+  buttonsContainer.appendChild(okButton);
+  buttonsContainer.appendChild(cancelButton);
+
+  // Append elements to the confirm container
+  confirmContainer.appendChild(messageElem);
+  confirmContainer.appendChild(buttonsContainer);
+
+  // Append the confirm container to the overlay
+  overlay.appendChild(confirmContainer);
+
+  // Append the overlay to the document body
+  document.body.appendChild(overlay);
+};
 
 export { extensionEvents, CircuitEvents };
