@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use regex_lite::{Captures, Regex};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -136,11 +137,6 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
                             measure_results.extend(op_results);
                         }
                     }
-
-                    // Look for a `π` character in the args
-                    if !should_add_pi && !measurement.args.is_empty() {
-                        should_add_pi = measurement.args.iter().any(|arg| arg.contains("π"));
-                    }
                 }
                 Operation::Unitary(unitary) => {
                     if unitary.gate == "|1〉" {
@@ -161,12 +157,13 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
                         let operation_str = operation_call(unitary, &qubits);
                         body_str.push_str(&format!("{indent}{operation_str};\n"));
                     };
-
-                    // Look for a `π` character in the args
-                    if !should_add_pi && !unitary.args.is_empty() {
-                        should_add_pi = unitary.args.iter().any(|arg| arg.contains("π"));
-                    }
                 }
+            }
+
+            // Look for a `π` character in the args
+            let args = op.args();
+            if !should_add_pi && !args.is_empty() {
+                should_add_pi = args.iter().any(|arg| arg.contains("π"));
             }
         }
     }
@@ -243,8 +240,34 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
 
     let mut args = vec![];
 
+    // // Create the regex for matching integers
+    // // let int_regex = Regex::new(r"(?<![\d.])(\d+)(?![\d.])").unwrap();
+    // let int_regex = Regex::new(r"([\d.])(\d+)([\d.])").unwrap();
+
+    // for arg in &unitary.args {
+    //     // Convert ints to doubles by appending a `.` to the end of the integer
+    //     let updated_arg = int_regex.replace_all(arg, "$1.").to_string();
+
+    //     args.push(updated_arg);
+    // }
+
+    // Create the regex for matching numbers (both integers and doubles)
+    let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").unwrap();
+
     for arg in &unitary.args {
-        args.push(arg.clone());
+        // Replace all numbers in the string
+        let updated_arg = number_regex
+            .replace_all(arg, |caps: &Captures| {
+                let number = &caps[0]; // The matched number
+                if number.contains('.') {
+                    number.to_string() // If it's already a double, leave it unchanged
+                } else {
+                    format!("{}.", number) // If it's an integer, append a `.`
+                }
+            })
+            .to_string();
+
+        args.push(updated_arg);
     }
 
     let targets = unitary

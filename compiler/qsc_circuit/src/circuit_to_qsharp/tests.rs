@@ -507,3 +507,45 @@ fn circuit_with_ket_gates() {
         "#]],
     );
 }
+
+#[test]
+fn circuit_with_int_args() {
+    check(
+        r#"
+{
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "Rz", "targets": [{ "qubit": 1 }], "args": ["π / 2"] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Rx", "targets": [{ "qubit": 1 }], "args": [".4 + 4. / 2"] }
+      ]
+    }
+  ],
+  "qubits": [{ "id": 0 }, { "id": 1 }]
+}"#,
+        &expect![[r#"
+            /// Expects a qubit register of size 2.
+            operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
+                if Length(qs) != 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                }
+                let π = Std.Math.PI();
+                H(qs[0]);
+                Z(qs[0]);
+                Rz(π / 2., qs[1]);
+                Rx(.4 + 4. / 2., qs[1]);
+            }
+
+        "#]],
+    );
+}

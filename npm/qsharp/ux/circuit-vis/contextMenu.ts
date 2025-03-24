@@ -179,7 +179,8 @@ const promptForArguments = (
         defaultValue,
         (input) => {
           // ToDo: Use the compiler's expression parser to validate the input
-          return input.trim() !== ""; // non-empty input
+          return validateExpression(input.trim());
+          // return input.trim() !== ""; // non-empty input
         },
         'Examples: "2.0 * π" or "π / 2.0"',
       );
@@ -187,6 +188,16 @@ const promptForArguments = (
 
     promptNext();
   });
+};
+
+const validateExpression = (input: string): boolean => {
+  const sign = "[+-]?";
+  const number = "((\\d+(\\.\\d*)?)|(\\.\\d+))";
+  const value = `${sign}(${number}|π)`;
+  const operator = "[+\\-*/]";
+
+  const expression = new RegExp(`^${value}(\\s*${operator}\\s*${value})*$`);
+  return expression.test(input);
 };
 
 /**

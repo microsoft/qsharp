@@ -1241,6 +1241,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "regex-lite",
  "rustc-hash",
  "serde",
  "serde_json",
