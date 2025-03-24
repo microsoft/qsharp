@@ -13,6 +13,8 @@ import {
   getGateElems,
   getHostElems,
   getWireData,
+  locationStringToIndexes,
+  findParentArray,
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
@@ -28,6 +30,7 @@ import {
   createWireDropzone,
   removeAllWireDropzones,
 } from "./draggable";
+import { getMinMaxRegIdx } from "./process";
 
 let events: CircuitEvents | null = null;
 
@@ -486,8 +489,9 @@ class CircuitEvents {
    * This function creates dropzones for each wire that isn't already a target or control.
    *
    * @param selectedOperation - The unitary operation to which the control will be added.
+   * @param selectedLocation - The location string of the selected operation.
    */
-  _startAddingControl(selectedOperation: Unitary) {
+  _startAddingControl(selectedOperation: Unitary, selectedLocation: string) {
     this.selectedOperation = selectedOperation;
     this.container.classList.add("adding-control");
 
@@ -518,6 +522,53 @@ class CircuitEvents {
             this.selectedOperation = null;
             this.container.classList.remove("adding-control");
             if (successful) {
+              const indexes = locationStringToIndexes(selectedLocation);
+              const [columnIndex, position] = indexes[indexes.length - 1];
+              const selectedOperationParent = findParentArray(
+                this.componentGrid,
+                selectedLocation,
+              );
+              if (!selectedOperationParent) return;
+
+              const [minTarget, maxTarget] = getMinMaxRegIdx(
+                selectedOperation,
+                this.wireData.length,
+              );
+              selectedOperationParent[columnIndex].components.forEach(
+                (op, opIndex) => {
+                  if (opIndex === position) return; // Don't check the selected operation against itself
+                  const [minOp, maxOp] = getMinMaxRegIdx(
+                    op,
+                    this.wireData.length,
+                  );
+                  // Check if selectedOperation's range overlaps with op's range
+                  if (
+                    (minOp >= minTarget && minOp <= maxTarget) ||
+                    (maxOp >= minTarget && maxOp <= maxTarget) ||
+                    (minTarget >= minOp && minTarget <= minOp) ||
+                    (maxTarget >= maxOp && maxTarget <= maxOp)
+                  ) {
+                    // If they overlap, move the operation
+                    selectedOperationParent[columnIndex].components.splice(
+                      position,
+                      1,
+                    );
+                    // Not sure if this check is needed as we already know there
+                    // should be other operations in this column.
+                    if (
+                      selectedOperationParent[columnIndex].components.length ===
+                      0
+                    ) {
+                      selectedOperationParent.splice(columnIndex, 1);
+                    }
+
+                    selectedOperationParent.splice(columnIndex, 0, {
+                      components: [selectedOperation],
+                    });
+                  }
+                },
+              );
+
               this.renderFn();
             }
           }

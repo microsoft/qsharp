@@ -81,7 +81,7 @@ const addContextMenuToHostElem = (
 
       const addControlOption = _createContextMenuItem("Add control", () => {
         if (selectedOperation.kind !== "unitary") return;
-        circuitEvents._startAddingControl(selectedOperation);
+        circuitEvents._startAddingControl(selectedOperation, selectedLocation);
       });
 
       let removeControlOption: HTMLDivElement | undefined;
