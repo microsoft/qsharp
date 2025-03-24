@@ -593,7 +593,7 @@ impl Lowerer {
 
     fn lower_unary_op_expr(&mut self, expr: &syntax::UnaryOpExpr) -> semantic::Expr {
         match expr.op {
-            syntax::UnaryOp::Neg | syntax::UnaryOp::NotB => {
+            syntax::UnaryOp::Neg => {
                 let op = expr.op;
                 let expr = self.lower_expr(&expr.expr);
                 let ty = expr.ty.clone();
@@ -608,6 +608,29 @@ impl Lowerer {
                 let unary = semantic::UnaryOpExpr {
                     span,
                     op: semantic::UnaryOp::Neg,
+                    expr,
+                };
+                semantic::Expr {
+                    span,
+                    kind: Box::new(semantic::ExprKind::UnaryOp(unary)),
+                    ty,
+                }
+            }
+            syntax::UnaryOp::NotB => {
+                let op = expr.op;
+                let expr = self.lower_expr(&expr.expr);
+                let ty = expr.ty.clone();
+                if !unary_op_can_be_applied_to_type(op, &ty) {
+                    let kind = SemanticErrorKind::TypeDoesNotSupportedUnaryNegation(
+                        expr.ty.to_string(),
+                        expr.span,
+                    );
+                    self.push_semantic_error(kind);
+                }
+                let span = expr.span;
+                let unary = semantic::UnaryOpExpr {
+                    span,
+                    op: semantic::UnaryOp::NotB,
                     expr,
                 };
                 semantic::Expr {

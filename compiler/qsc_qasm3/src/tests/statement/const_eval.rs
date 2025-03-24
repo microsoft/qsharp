@@ -198,30 +198,21 @@ fn unary_op_neg_angle() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn unary_op_negb_uint() {
+fn unary_op_negb_uint() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const uint a = 5;
-        const uint b = ~a;
-        bit[~a] r;
+        const uint[3] a = 5;
+        const uint[3] b = ~a;
+        bit[b] r;
     "#;
 
-    let Err(errs) = compile_qasm_to_qsharp(source) else {
-        panic!("should have generated an error");
-    };
-    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
-    let errs_string = errs.join("\n");
+    let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        Qsc.Qasm3.Compile.ExprMustBeConst
-
-          x designator must be a const expression
-           ,-[Test.qasm:4:14]
-         3 |         const uint b = ~a;
-         4 |         bit[~a] r;
-           :              ^
-         5 |     
-           `----
+        let a = 5;
+        let b = ~~~a;
+        mutable r = [Zero, Zero];
     "#]]
-    .assert_eq(&errs_string);
+    .assert_eq(&qsharp);
+    Ok(())
 }
 
 #[test]
@@ -242,57 +233,42 @@ fn unary_op_negb_angle() {
 }
 
 #[test]
-fn unary_op_negb_bit() {
+fn unary_op_negb_bit() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const bit a = 0;
         const bit b = ~a;
         bit[b] r;
     "#;
 
-    let Err(errs) = compile_qasm_to_qsharp(source) else {
-        panic!("should have generated an error");
-    };
-    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
-    let errs_string = errs.join("\n");
+    let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        Qsc.Qasm3.Compile.ExprMustBeConst
-
-          x designator must be a const expression
-           ,-[Test.qasm:4:13]
-         3 |         const bit b = ~a;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
+        let a = Zero;
+        let b = ~~~a;
+        mutable r = [Zero];
     "#]]
-    .assert_eq(&errs_string);
+    .assert_eq(&qsharp);
+    Ok(())
 }
 
 #[test]
-fn unary_op_negb_bitarray() {
+fn unary_op_negb_bitarray() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const bit[3] a = "101";
         const uint[3] b = ~a;
         bit[b] r;
     "#;
 
-    let Err(errs) = compile_qasm_to_qsharp(source) else {
-        panic!("should have generated an error");
-    };
-    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
-    let errs_string = errs.join("\n");
+    let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        Qsc.Qasm3.Compile.ExprMustBeConst
-
-          x designator must be a const expression
-           ,-[Test.qasm:4:13]
-         3 |         const uint[3] b = ~a;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [One, Zero, One];
+        let b = __ResultArrayAsIntBE__(~~~a);
+        mutable r = [Zero, Zero];
     "#]]
-    .assert_eq(&errs_string);
+    .assert_eq(&qsharp);
+    Ok(())
 }
 
 // BinaryOp
@@ -364,8 +340,19 @@ fn binary_op_shl_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 2;
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let a = One;
+        let b = if __ResultAsInt__(a) <<< 2 == 0 {
+            One
+        } else {
+            Zero
+        };
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -382,12 +369,93 @@ fn binary_op_shl_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 5;
-        let b = a <<< 2;
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [One, Zero, One];
+        let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) <<< 2, 3);
         mutable r = [Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn binary_op_shl_creg_fails() {
+    let source = r#"
+        const creg a[3] = "101";
+        const creg b[3] = a << 2;
+        bit[b] r;
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm3.Parse.Rule
+
+          x expected scalar or array type, found keyword `creg`
+           ,-[Test.qasm:2:15]
+         1 | 
+         2 |         const creg a[3] = "101";
+           :               ^^^^
+         3 |         const creg b[3] = a << 2;
+           `----
+
+        Qasm3.Parse.Rule
+
+          x expected scalar or array type, found keyword `creg`
+           ,-[Test.qasm:3:15]
+         2 |         const creg a[3] = "101";
+         3 |         const creg b[3] = a << 2;
+           :               ^^^^
+         4 |         bit[b] r;
+           `----
+
+        Qsc.Qasm3.Compile.UndefinedSymbol
+
+          x Undefined symbol: b.
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[3] = a << 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Err to type UInt(None, true)
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[3] = a << 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x designator must be a const expression
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[3] = a << 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+    "#]].assert_eq(&errs_string);
 }
 
 // Shr
@@ -404,7 +472,7 @@ fn binary_op_shr_uint() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         let a = 5;
         let b = a >>> 2;
-        mutable r = [Zero, Zero, Zero, Zero];
+        mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -435,8 +503,19 @@ fn binary_op_shr_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a >>> 2;
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let a = One;
+        let b = if __ResultAsInt__(a) >>> 2 == 0 {
+            One
+        } else {
+            Zero
+        };
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -453,12 +532,93 @@ fn binary_op_shr_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 2;
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [One, Zero, One, One];
+        let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) >>> 2, 4);
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn binary_op_shr_creg_fails() {
+    let source = r#"
+        const creg a[4] = "1011";
+        const creg b[4] = a >> 2;
+        bit[b] r;
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm3.Parse.Rule
+
+          x expected scalar or array type, found keyword `creg`
+           ,-[Test.qasm:2:15]
+         1 | 
+         2 |         const creg a[4] = "1011";
+           :               ^^^^
+         3 |         const creg b[4] = a >> 2;
+           `----
+
+        Qasm3.Parse.Rule
+
+          x expected scalar or array type, found keyword `creg`
+           ,-[Test.qasm:3:15]
+         2 |         const creg a[4] = "1011";
+         3 |         const creg b[4] = a >> 2;
+           :               ^^^^
+         4 |         bit[b] r;
+           `----
+
+        Qsc.Qasm3.Compile.UndefinedSymbol
+
+          x Undefined symbol: b.
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[4] = a >> 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Err to type UInt(None, true)
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[4] = a >> 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x designator must be a const expression
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[4] = a >> 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+    "#]].assert_eq(&errs_string);
 }
 
 // BinaryOp: Bitwise
@@ -508,8 +668,19 @@ fn binary_op_andb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a &&& 0;
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let a = One;
+        let b = if __ResultAsInt__(a) &&& 0 == 0 {
+            One
+        } else {
+            Zero
+        };
         mutable r = [];
     "#]]
     .assert_eq(&qsharp);
@@ -526,8 +697,23 @@ fn binary_op_andb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 11;
-        let b = a &&& 6;
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [One, Zero, One, One];
+        let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) &&& __ResultArrayAsIntBE__([Zero, One, One, Zero]), 4);
         mutable r = [Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -546,7 +732,7 @@ fn binary_op_orb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 6;
+        let a = 5;
         let b = a ||| 6;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero];
     "#]]
@@ -579,8 +765,19 @@ fn binary_op_orb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a ||| 0;
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let a = One;
+        let b = if __ResultAsInt__(a) ||| 0 == 0 {
+            One
+        } else {
+            Zero
+        };
         mutable r = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -597,8 +794,23 @@ fn binary_op_orb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 4;
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [Zero, Zero, One];
+        let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) ||| __ResultArrayAsIntBE__([One, Zero, Zero]), 3);
         mutable r = [Zero, Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -617,9 +829,9 @@ fn binary_op_xorb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 2;
-        mutable r = [Zero, Zero, Zero, Zero];
+        let a = 5;
+        let b = a ^^^ 6;
+        mutable r = [Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -650,9 +862,20 @@ fn binary_op_xorb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 2;
-        mutable r = [Zero, Zero, Zero, Zero];
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let a = One;
+        let b = if __ResultAsInt__(a) ^^^ 1 == 0 {
+            One
+        } else {
+            Zero
+        };
+        mutable r = [];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -668,9 +891,24 @@ fn binary_op_xorb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = a <<< 2;
-        mutable r = [Zero, Zero, Zero, Zero];
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        function __ResultArrayAsIntBE__(results : Result[]) : Int {
+            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+        }
+        let a = [One, Zero, One, One];
+        let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) ^^^ __ResultArrayAsIntBE__([One, One, One, Zero]), 4);
+        mutable r = [Zero, Zero, Zero, Zero, Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -839,7 +1077,16 @@ fn binary_op_comparison_bitarray() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        let a = [One, Zero];
+        mutable r1 = [Zero];
+        mutable r2 = [];
+        mutable r3 = [];
+        mutable r4 = [Zero];
+        mutable r5 = [];
+        mutable r6 = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 

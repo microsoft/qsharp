@@ -398,8 +398,10 @@ pub(crate) fn promote_to_uint_ty(
 }
 
 fn get_uint_ty(ty: &Type) -> Option<Type> {
-    if matches!(ty, Type::UInt(..) | Type::Angle(..)) {
+    if matches!(ty, Type::Int(..) | Type::UInt(..) | Type::Angle(..)) {
         Some(Type::UInt(ty.width(), ty.is_const()))
+    } else if matches!(ty, Type::Bool(..) | Type::Bit(..)) {
+        Some(Type::UInt(Some(1), ty.is_const()))
     } else if let Type::BitArray(dims, _) = ty {
         match dims {
             ArrayDimensions::One(d) => Some(Type::UInt(Some(*d), ty.is_const())),

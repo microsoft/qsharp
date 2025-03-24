@@ -12,7 +12,10 @@ use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,
 };
-use crate::semantic::{symbols::SymbolTable, types::Type};
+use crate::semantic::{
+    symbols::SymbolTable,
+    types::{ArrayDimensions, Type},
+};
 use num_bigint::BigInt;
 
 impl Expr {
@@ -79,20 +82,20 @@ impl UnaryOpExpr {
             UnaryOp::Neg => match operand_ty {
                 Type::Int(..) => rewrap_lit!(lit, Int(val), Int(-val)),
                 Type::Float(..) => rewrap_lit!(lit, Float(val), Float(-val)),
-                Type::Angle(..) => rewrap_lit!(lit, Float(val), {
-                    let mut ans = -val;
-                    if ans < 0.0 {
-                        ans += f64::consts::TAU;
-                    }
-                    Float(ans)
-                }),
+                Type::Angle(..) => rewrap_lit!(lit, Float(val), Float(f64::consts::TAU - val)),
                 _ => None,
             },
             UnaryOp::NotB => match operand_ty {
-                Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Int(!val)),
+                Type::Int(size, _) | Type::UInt(size, _) => rewrap_lit!(lit, Int(val), {
+                    let mask = (1 << (*size)?) - 1;
+                    Int(!val & mask)
+                }),
                 Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bit(!val)),
                 Type::BitArray(..) => {
-                    rewrap_lit!(lit, Bitstring(val, size), Bitstring(!val, size))
+                    rewrap_lit!(lit, Bitstring(val, size), {
+                        let mask = BigInt::from((1 << size) - 1);
+                        Bitstring(!val & mask, size)
+                    })
                 }
                 // Angle is treated like a unit in the QASM3 Spec, but we are currently
                 // treating it as a float, so we can't apply bitwise negation to it.
@@ -143,6 +146,10 @@ impl BinaryOpExpr {
         match &self.op {
             // Bit Shifts
             BinOp::Shl => match lhs_ty {
+                Type::UInt(Some(size), _) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                    let mask = (1 << size) - 1;
+                    Int((lhs << rhs) & mask)
+                }),
                 Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs << rhs)),
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Int(rhs)), {
                     // The Spec says "The shift operators shift bits off the end."
@@ -350,7 +357,8 @@ impl BinaryOpExpr {
                 Type::UInt(..) => match &self.rhs.ty {
                     Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
                     Type::Angle(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Float(rhs)), {
-                        #[allow(clippy::cast_precision_loss, reason = "angles are in [0, 2π)")]
+                        // allow reason: angles are in [0, 2π)
+                        #[allow(clippy::cast_precision_loss)]
                         let mut ans = (lhs as f64) * rhs;
                         while ans >= f64::consts::TAU {
                             ans -= f64::consts::TAU;
@@ -363,7 +371,8 @@ impl BinaryOpExpr {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs))
                 }
                 Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    #[allow(clippy::cast_precision_loss, reason = "angles are in [0, 2π)")]
+                    // allow reason: angles are in [0, 2π)
+                    #[allow(clippy::cast_precision_loss)]
                     let mut ans = lhs * (rhs as f64);
                     while ans >= f64::consts::TAU {
                         ans -= f64::consts::TAU;
@@ -380,7 +389,8 @@ impl BinaryOpExpr {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
                 }
                 Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    #[allow(clippy::cast_precision_loss, reason = "angles are in [0, 2π)")]
+                    // allow reason: angles are in [0, 2π)
+                    #[allow(clippy::cast_precision_loss)]
                     Float(lhs / (rhs as f64))
                 }),
                 _ => None,
@@ -434,6 +444,7 @@ impl Cast {
             Type::Float(_, _) => cast_to_float(from_ty, lit),
             Type::Angle(_, _) => cast_to_angle(from_ty, lit),
             Type::Bit(_) => cast_to_bit(from_ty, lit),
+            Type::BitArray(dims, _) => cast_to_bitarray(from_ty, lit, dims),
             _ => None,
         }
     }
@@ -447,32 +458,14 @@ impl Cast {
 /// | bool          | -    | Yes | Yes  | Yes   | Yes   | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Bool as OutputLit;
+    use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
 
     match ty {
         Type::Bool(..) => Some(lit),
-        Type::Bit(..) => {
-            if let LiteralKind::Bit(val) = lit {
-                Some(OutputLit(val))
-            } else {
-                None
-            }
-        }
-        Type::Int(..) | Type::UInt(..) => {
-            if let LiteralKind::Int(val) = lit {
-                Some(OutputLit(val != 0))
-            } else {
-                None
-            }
-        }
-        Type::Float(..) | Type::Angle(..) => {
-            if let LiteralKind::Float(val) = lit {
-                Some(OutputLit(val != 0.0))
-            } else {
-                None
-            }
-        }
+        Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bool(val)),
+        Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, _), Bool(val != BigInt::ZERO)),
+        Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Bool(val != 0)),
+        Type::Float(..) | Type::Angle(..) => rewrap_lit!(lit, Float(val), Bool(val != 0.0)),
         _ => None,
     }
 }
@@ -485,37 +478,23 @@ fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | int           | Yes  | -   | Yes  | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Int as OutputLit;
+    use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
 
     match ty {
-        Type::Bool(..) => {
-            if let LiteralKind::Bool(val) = lit {
-                Some(OutputLit(i64::from(val)))
-            } else {
-                None
-            }
-        }
-        Type::Bit(..) => {
-            if let LiteralKind::Bit(val) = lit {
-                Some(OutputLit(i64::from(val)))
-            } else {
-                None
-            }
+        Type::Bool(..) => rewrap_lit!(lit, Bool(val), Int(i64::from(val))),
+        Type::Bit(..) => rewrap_lit!(lit, Bit(val), Int(i64::from(val))),
+        Type::BitArray(..) => {
+            rewrap_lit!(lit, Bitstring(val, _), Int(i64::try_from(val).ok()?))
         }
         // TODO: UInt Overflowing behavior.
         //       This is tricky because the inner repersentation
         //       already is a i64. Therefore, there is nothing to do?
         Type::Int(..) | Type::UInt(..) => Some(lit),
-        Type::Float(..) => {
-            if let LiteralKind::Float(val) = lit {
-                // TODO: we need to issue the same lint in Q#.
-                #[allow(clippy::cast_possible_truncation)]
-                Some(OutputLit(val as i64))
-            } else {
-                None
-            }
-        }
+        Type::Float(..) => rewrap_lit!(lit, Float(val), {
+            // TODO: we need to issue the same lint in Q#.
+            #[allow(clippy::cast_possible_truncation)]
+            Int(val as i64)
+        }),
         _ => None,
     }
 }
@@ -528,38 +507,24 @@ fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | uint          | Yes  | Yes | -    | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Int as OutputLit;
+    use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
 
     match ty {
-        Type::Bool(..) => {
-            if let LiteralKind::Bool(val) = lit {
-                Some(OutputLit(i64::from(val)))
-            } else {
-                None
-            }
-        }
-        Type::Bit(..) => {
-            if let LiteralKind::Bit(val) = lit {
-                Some(OutputLit(i64::from(val)))
-            } else {
-                None
-            }
+        Type::Bool(..) => rewrap_lit!(lit, Bool(val), Int(i64::from(val))),
+        Type::Bit(..) => rewrap_lit!(lit, Bit(val), Int(i64::from(val))),
+        Type::BitArray(..) => {
+            rewrap_lit!(lit, Bitstring(val, _), Int(i64::try_from(val).ok()?))
         }
         // TODO: Int Overflowing behavior.
         //       This is tricky because the inner representation
         //       is a i64. Therefore, even we might end with the
         //       same result anyways. Need to think through this.
         Type::Int(..) | Type::UInt(..) => Some(lit),
-        Type::Float(..) => {
-            if let LiteralKind::Float(val) = lit {
-                // TODO: we need to issue the same lint in Q#.
-                #[allow(clippy::cast_possible_truncation)]
-                Some(OutputLit(val as i64))
-            } else {
-                None
-            }
-        }
+        Type::Float(..) => rewrap_lit!(lit, Float(val), {
+            // TODO: we need to issue the same lint in Q#.
+            #[allow(clippy::cast_possible_truncation)]
+            Int(val as i64)
+        }),
         _ => None,
     }
 }
@@ -572,26 +537,15 @@ fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | float         | Yes  | Yes | Yes  | -     | No    | No  |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Float as OutputLit;
+    use LiteralKind::{Bool, Float, Int};
 
     match ty {
-        Type::Bool(..) => {
-            if let LiteralKind::Bool(val) = lit {
-                Some(OutputLit(if val { 1.0 } else { 0.0 }))
-            } else {
-                None
-            }
-        }
-        Type::Int(..) | Type::UInt(..) => {
-            if let LiteralKind::Int(val) = lit {
-                // TODO: we need to issue the same lint in Q#.
-                #[allow(clippy::cast_precision_loss)]
-                Some(OutputLit(val as f64))
-            } else {
-                None
-            }
-        }
+        Type::Bool(..) => rewrap_lit!(lit, Bool(val), Float(if val { 1.0 } else { 0.0 })),
+        Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
+            // TODO: we need to issue the same lint in Q#.
+            #[allow(clippy::cast_precision_loss)]
+            Float(val as f64)
+        }),
         Type::Float(..) => Some(lit),
         _ => None,
     }
@@ -605,18 +559,8 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | angle         | No   | No  | No   | Yes   | -     | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Float as OutputLit;
-
     match ty {
         Type::Float(..) | Type::Angle(..) => Some(lit),
-        Type::Bit(..) => {
-            if let LiteralKind::Bit(val) = lit {
-                Some(OutputLit(if val { 1.0 } else { 0.0 }))
-            } else {
-                None
-            }
-        }
         _ => None,
     }
 }
@@ -629,32 +573,56 @@ fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | bit           | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    // To avoid making mistakes.
-    use LiteralKind::Bit as OutputLit;
+    use LiteralKind::{Bit, Bool, Int};
 
     match ty {
-        Type::Bool(..) => {
-            if let LiteralKind::Bool(val) = lit {
-                Some(OutputLit(val))
-            } else {
-                None
-            }
-        }
+        Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bit(val)),
         Type::Bit(..) => Some(lit),
-        Type::Int(..) | Type::UInt(..) => {
-            if let LiteralKind::Int(val) = lit {
-                Some(OutputLit(val != 0))
-            } else {
-                None
-            }
-        }
-        Type::Angle(..) => {
-            if let LiteralKind::Float(val) = lit {
-                Some(OutputLit(val != 0.0))
-            } else {
-                None
-            }
-        }
+        Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Bit(val != 0)),
         _ => None,
     }
+}
+
+/// +---------------+-----------------------------------------+
+/// | Allowed casts | Casting from                            |
+/// +---------------+------+-----+------+-------+-------+-----+
+/// | Casting to    | bool | int | uint | float | angle | bit |
+/// +---------------+------+-----+------+-------+-------+-----+
+/// | bitarray      | Yes  | Yes | Yes  | No    | Yes   | -   |
+/// +---------------+------+-----+------+-------+-------+-----+
+fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Option<LiteralKind> {
+    use LiteralKind::{Bit, Bitstring, Bool, Int};
+
+    let ArrayDimensions::One(size) = dims else {
+        return None;
+    };
+    let size = *size;
+
+    match ty {
+        Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bitstring(BigInt::from(val), size)),
+        Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bitstring(BigInt::from(val), size)),
+        Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, rhs_size), {
+            if rhs_size < size {
+                return None;
+            }
+            Bitstring(val, size)
+        }),
+        Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
+            let actual_bits = number_of_bits(val);
+            if actual_bits > size {
+                return None;
+            }
+            Bitstring(BigInt::from(val), size)
+        }),
+        _ => None,
+    }
+}
+
+fn number_of_bits(mut val: i64) -> u32 {
+    let mut bits = 0;
+    while val != 0 {
+        val >>= 1;
+        bits += 1;
+    }
+    bits
 }
