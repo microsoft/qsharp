@@ -1027,7 +1027,7 @@ impl QasmCompiler {
             }
         }
 
-        self.push_unimplemented_error_message("index set expressions", set.span);
+        self.push_unsupported_error_message("index set expressions with multiple values", set.span);
         None
     }
 

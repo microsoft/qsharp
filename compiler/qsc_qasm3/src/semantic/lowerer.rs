@@ -931,7 +931,6 @@ impl Lowerer {
                 "const decl init expr".to_string(),
                 init_expr.span,
             ));
-            return semantic::StmtKind::Err;
         }
 
         semantic::StmtKind::ClassicalDecl(semantic::ClassicalDeclarationStmt {
@@ -1390,10 +1389,11 @@ impl Lowerer {
         // It is a parse error to have a switch statement with no cases,
         // even if the default block is present. Getting here means the
         // parser is broken or they changed the grammar.
-        assert!(
-            !cases.is_empty(),
-            "switch statement must have a control expression and at least one case"
-        );
+        if cases.is_empty() {
+            self.push_semantic_error(SemanticErrorKind::SwitchStatementMustHaveAtLeastOneCase(
+                stmt.span,
+            ));
+        }
 
         // We push a semantic error on switch statements if version is less than 3.1,
         // as they were introduced in 3.1.

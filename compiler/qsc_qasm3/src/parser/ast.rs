@@ -1024,6 +1024,7 @@ pub struct QubitDeclaration {
 impl Display for QubitDeclaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "QubitDeclaration", self.span)?;
+        writeln_field(f, "ty_span", &self.ty_span)?;
         writeln_field(f, "ident", &self.qubit)?;
         write_opt_field(f, "size", self.size.as_ref())
     }
