@@ -455,7 +455,8 @@ fn binary_op_shl_creg_fails() {
            :             ^
          5 |     
            `----
-    "#]].assert_eq(&errs_string);
+    "#]]
+    .assert_eq(&errs_string);
 }
 
 // Shr
@@ -618,7 +619,8 @@ fn binary_op_shr_creg_fails() {
            :             ^
          5 |     
            `----
-    "#]].assert_eq(&errs_string);
+    "#]]
+    .assert_eq(&errs_string);
 }
 
 // BinaryOp: Bitwise
