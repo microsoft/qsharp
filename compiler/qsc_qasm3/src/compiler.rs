@@ -1056,7 +1056,11 @@ impl QasmCompiler {
 
     fn compile_bitstring_literal(value: &BigInt, width: u32, span: Span) -> Option<qsast::Expr> {
         let width = width as usize;
-        let bitstring = format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2));
+        let bitstring = if value == &BigInt::ZERO && width == 0 {
+            "Bitstring(\"\")".to_string()
+        } else {
+            format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
+        };
         Some(build_lit_result_array_expr_from_bitstring(bitstring, span))
     }
 

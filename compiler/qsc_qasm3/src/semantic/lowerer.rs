@@ -1483,7 +1483,7 @@ impl Lowerer {
             return None;
         };
 
-        if val < 1 {
+        if val < 0 {
             self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
                 expr.span,
             ));
@@ -1506,7 +1506,7 @@ impl Lowerer {
             return None;
         };
 
-        if val < 0 {
+        if val < 1 {
             self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
                 expr.span,
             ));

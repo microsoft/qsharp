@@ -54,16 +54,6 @@ impl IndexedIdent {
     }
 }
 
-macro_rules! unwrap_literal_value {
-    ($lit:expr, $kind:path) => {
-        if let $kind(val) = $lit {
-            val
-        } else {
-            return None;
-        }
-    };
-}
-
 /// A helper macro for evaluating unary and binary operations of values
 /// wrapped in the `semantic::LiteralKind` enum. Unwraps the value in the
 /// `LiteralKind` and rewraps it in another `LiteralKind` variant while
@@ -88,9 +78,14 @@ impl UnaryOpExpr {
         match &self.op {
             UnaryOp::Neg => match operand_ty {
                 Type::Int(..) => rewrap_lit!(lit, Int(val), Int(-val)),
-                Type::Float(..) | Type::Angle(..) => {
-                    rewrap_lit!(lit, Float(val), Float(-val))
-                }
+                Type::Float(..) => rewrap_lit!(lit, Float(val), Float(-val)),
+                Type::Angle(..) => rewrap_lit!(lit, Float(val), {
+                    let mut ans = -val;
+                    if ans < 0.0 {
+                        ans += f64::consts::TAU;
+                    }
+                    Float(ans)
+                }),
                 _ => None,
             },
             UnaryOp::NotB => match operand_ty {
@@ -119,9 +114,9 @@ impl UnaryOpExpr {
 /// We can write a simpler implementation under that assumption.
 ///
 /// There are some exceptions:
-///  1. The rhs in Shl and Shr must be of type UInt.
-///  2. Angle can be multiplied and divided by UInt.
-fn assert_binary_op_ty_invariant(op: &BinOp, lhs_ty: &Type, rhs_ty: &Type) {
+///  1. The rhs in Shl and Shr must be of type `UInt`.
+///  2. Angle can be multiplied and divided by `UInt`.
+fn assert_binary_op_ty_invariant(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) {
     // Exceptions:
     if matches!(
         (op, lhs_ty, rhs_ty),
@@ -140,7 +135,7 @@ impl BinaryOpExpr {
     fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
         use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
 
-        assert_binary_op_ty_invariant(&self.op, &self.lhs.ty, &self.rhs.ty);
+        assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
         let lhs = self.lhs.const_eval(symbols)?;
         let rhs = self.rhs.const_eval(symbols)?;
         let lhs_ty = &self.lhs.ty;
