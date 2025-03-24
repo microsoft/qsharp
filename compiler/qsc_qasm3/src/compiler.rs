@@ -647,7 +647,7 @@ impl QasmCompiler {
     }
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
-        self.runtime |= RuntimeFunctions::U;
+        self.runtime |= RuntimeFunctions::Gphase;
         self.push_unimplemented_error_message("gphase statements", stmt.span);
         None
     }
