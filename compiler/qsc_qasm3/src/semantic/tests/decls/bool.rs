@@ -11,12 +11,12 @@ fn with_no_init_expr_has_generated_lit_expr() {
         "bool a;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-7]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-4]
                 init_expr: Expr [0-0]:
                     ty: Bool(true)
                     kind: Lit: Bool(false)
-            [6] Symbol [5-6]:
+            [8] Symbol [5-6]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -52,12 +52,12 @@ fn decl_with_lit_false_init_expr() {
         "bool a = false;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-15]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-4]
                 init_expr: Expr [9-14]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [6] Symbol [5-6]:
+            [8] Symbol [5-6]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -71,12 +71,12 @@ fn decl_with_lit_true_init_expr() {
         "bool a = true;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-14]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [0-4]
                 init_expr: Expr [9-13]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [5-6]:
+            [8] Symbol [5-6]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -90,12 +90,12 @@ fn const_decl_with_lit_false_init_expr() {
         "const bool a = false;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-21]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-10]
                 init_expr: Expr [15-20]:
                     ty: Bool(true)
                     kind: Lit: Bool(false)
-            [6] Symbol [11-12]:
+            [8] Symbol [11-12]:
                 name: a
                 type: Bool(true)
                 qsharp_type: bool
@@ -109,12 +109,12 @@ fn const_decl_with_lit_true_init_expr() {
         "const bool a = true;",
         &expect![[r#"
             ClassicalDeclarationStmt [0-20]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [6-10]
                 init_expr: Expr [15-19]:
                     ty: Bool(true)
                     kind: Lit: Bool(true)
-            [6] Symbol [11-12]:
+            [8] Symbol [11-12]:
                 name: a
                 type: Bool(true)
                 qsharp_type: bool

@@ -9,29 +9,37 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{
     ast_builder::{
-        build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_binary_expr,
-        build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
-        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-        build_math_call_from_exprs, build_math_call_no_params, build_operation_with_stmts,
-        build_path_ident_expr, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
-        build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr, build_while_stmt,
-        build_wrapped_block_expr, map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
+        build_binary_expr, build_cast_call, build_cast_call_two_params, build_classical_decl,
+        build_complex_from_expr, build_convert_call_expr, build_expr_array_expr,
+        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
+        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
+        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
+        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_reset_call,
+        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::{InMemorySourceResolver, SourceResolver},
     parser::ast::{list_from_iter, List},
     runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, DiscreteSet, Expr, FunctionCall, IndexElement, IndexExpr, IndexSet,
-            IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
+            BinaryOpExpr, Cast, DiscreteSet, Expr, FunctionCall, GateOperand, GateOperandKind,
+            IndexElement, IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit,
+            UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{ArrayDimensions, Type},
         SemanticErrorKind,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
+    QubitSemantics,
 };
 
 use crate::semantic::ast as semast;
@@ -355,10 +363,11 @@ impl QasmCompiler {
             semast::StmtKind::Include(stmt) => self.compile_include_stmt(stmt),
             semast::StmtKind::InputDeclaration(stmt) => self.compile_input_decl_stmt(stmt),
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
-            semast::StmtKind::Measure(stmt) => self.compile_measure_stmt(stmt),
+            semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
             semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
             semast::StmtKind::QuantumGateDefinition(stmt) => self.compile_gate_decl_stmt(stmt),
-            semast::StmtKind::QuantumDecl(stmt) => self.compile_quantum_decl_stmt(stmt),
+            semast::StmtKind::QubitDecl(stmt) => self.compile_qubit_decl_stmt(stmt),
+            semast::StmtKind::QubitArrayDecl(stmt) => self.compile_qubit_array_decl_stmt(stmt),
             semast::StmtKind::Reset(stmt) => self.compile_reset_stmt(stmt),
             semast::StmtKind::Return(stmt) => self.compile_return_stmt(stmt),
             semast::StmtKind::Switch(stmt) => self.compile_switch_stmt(stmt),
@@ -377,8 +386,7 @@ impl QasmCompiler {
     }
 
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
-        let symbol = &self.symbols[stmt.symbol_id];
-        let symbol = symbol.clone();
+        let symbol = self.symbols[stmt.symbol_id].clone();
         let name = &symbol.name;
 
         let stmt_span = stmt.span;
@@ -394,8 +402,40 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::IndexedAssignStmt,
     ) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("indexed assignment statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+
+        let indices: Vec<_> = stmt
+            .indices
+            .iter()
+            .filter_map(|elem| self.compile_index_element(elem))
+            .collect();
+
+        let rhs = self.compile_expr(&stmt.rhs);
+
+        if stmt.indices.len() != 1 {
+            self.push_unimplemented_error_message(
+                "multi-dimensional array index expressions",
+                stmt.span,
+            );
+            return None;
+        }
+
+        if indices.len() != stmt.indices.len() {
+            return None;
+        }
+
+        // Use the `?` operator after compiling checking all other errors.
+        let (rhs, index_expr) = (rhs?, indices[0].clone());
+
+        let stmt = build_indexed_assignment_statement(
+            symbol.span,
+            symbol.name.clone(),
+            index_expr,
+            rhs,
+            stmt.span,
+        );
+
+        Some(stmt)
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
@@ -404,8 +444,20 @@ impl QasmCompiler {
     }
 
     fn compile_barrier_stmt(&mut self, stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("barrier statements", stmt.span);
-        None
+        let qubits: Vec<_> = stmt
+            .qubits
+            .iter()
+            .filter_map(|q| self.compile_gate_operand(q))
+            .collect();
+
+        if stmt.qubits.len() != qubits.len() {
+            // if any of the qubit arguments failed to compile we can't proceed.
+            // This can happen if the qubit is not defined.
+            return None;
+        }
+
+        self.runtime.insert(RuntimeFunctions::Barrier);
+        Some(build_barrier_call(stmt.span))
     }
 
     fn compile_box_stmt(&mut self, stmt: &semast::BoxStmt) -> Option<qsast::Stmt> {
@@ -443,8 +495,7 @@ impl QasmCompiler {
         &mut self,
         decl: &semast::ClassicalDeclarationStmt,
     ) -> Option<qsast::Stmt> {
-        let symbol = &self.symbols[decl.symbol_id];
-        let symbol = symbol.clone();
+        let symbol = &self.symbols[decl.symbol_id].clone();
         let name = &symbol.name;
         let is_const = symbol.ty.is_const();
         let ty_span = decl.ty_span;
@@ -453,18 +504,10 @@ impl QasmCompiler {
         let qsharp_ty = &symbol.qsharp_ty;
         let expr = decl.init_expr.as_ref();
 
-        let stmt = match expr {
-            semast::ValueExpression::Expr(expr) => {
-                let expr = self.compile_expr(expr)?;
-                build_classical_decl(
-                    name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
-                )
-            }
-            semast::ValueExpression::Measurement(expr) => {
-                let expr = self.compile_measure_expr(expr)?;
-                build_stmt_semi_from_expr_with_span(expr, decl.span)
-            }
-        };
+        let expr = self.compile_expr(expr)?;
+        let stmt = build_classical_decl(
+            name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
+        );
 
         Some(stmt)
     }
@@ -480,7 +523,7 @@ impl QasmCompiler {
     }
 
     fn compile_delay_stmt(&mut self, stmt: &semast::DelayStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("dealy statements", stmt.span);
+        self.push_unimplemented_error_message("delay statements", stmt.span);
         None
     }
 
@@ -510,11 +553,101 @@ impl QasmCompiler {
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("gate call statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        if symbol.name == "U" {
+            self.runtime |= RuntimeFunctions::U;
+        }
+        let mut qubits: Vec<_> = stmt
+            .qubits
+            .iter()
+            .filter_map(|q| self.compile_gate_operand(q))
+            .collect();
+        let args: Vec<_> = stmt
+            .args
+            .iter()
+            .filter_map(|arg| self.compile_expr(arg))
+            .collect();
+
+        if qubits.len() != stmt.qubits.len() || args.len() != stmt.args.len() {
+            return None;
+        }
+
+        // Take the number of qubit args that the gates expects from the source qubits.
+        let gate_qubits = qubits.split_off(qubits.len() - stmt.quantum_arity as usize);
+        // Then merge the classical args with the qubit args. This will give
+        // us the args for the call prior to wrapping in tuples for controls.
+        let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
+        let mut args = build_gate_call_param_expr(args, qubits.len());
+        let mut callee = build_path_ident_expr(&symbol.name, symbol.span, stmt.span);
+
+        for modifier in &stmt.modifiers {
+            match &modifier.kind {
+                semast::GateModifierKind::Inv => {
+                    callee = build_unary_op_expr(
+                        qsast::UnOp::Functor(qsast::Functor::Adj),
+                        callee,
+                        modifier.span,
+                    );
+                }
+                semast::GateModifierKind::Pow(expr) => {
+                    let exponent_expr = self.compile_expr(expr)?;
+                    self.runtime |= RuntimeFunctions::Pow;
+                    args = build_tuple_expr(vec![exponent_expr, callee, args]);
+                    callee = build_path_ident_expr("__Pow__", modifier.span, stmt.span);
+                }
+                semast::GateModifierKind::Ctrl(num_ctrls) => {
+                    // remove the last n qubits from the qubit list
+                    if qubits.len() < *num_ctrls as usize {
+                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                            *num_ctrls as usize,
+                            qubits.len(),
+                            modifier.span,
+                        );
+                        self.push_semantic_error(kind);
+                        return None;
+                    }
+                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrls = build_expr_array_expr(ctrl, modifier.span);
+                    args = build_tuple_expr(vec![ctrls, args]);
+                    callee = build_unary_op_expr(
+                        qsast::UnOp::Functor(qsast::Functor::Ctl),
+                        callee,
+                        modifier.span,
+                    );
+                }
+                semast::GateModifierKind::NegCtrl(num_ctrls) => {
+                    // remove the last n qubits from the qubit list
+                    if qubits.len() < *num_ctrls as usize {
+                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                            *num_ctrls as usize,
+                            qubits.len(),
+                            modifier.span,
+                        );
+                        self.push_semantic_error(kind);
+                        return None;
+                    }
+                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrls = build_expr_array_expr(ctrl, modifier.span);
+                    let lit_0 = build_lit_int_expr(0, Span::default());
+                    args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
+                    callee =
+                        build_path_ident_expr("ApplyControlledOnInt", modifier.span, stmt.span);
+                }
+            }
+        }
+
+        // This should never be reached, since semantic analysis during lowering
+        // makes sure the arities match.
+        if !qubits.is_empty() {
+            return None;
+        }
+
+        let expr = build_gate_call_with_params_and_callee(args, callee, stmt.span);
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
+        self.runtime |= RuntimeFunctions::Gphase;
         self.push_unimplemented_error_message("gphase statements", stmt.span);
         None
     }
@@ -562,7 +695,7 @@ impl QasmCompiler {
         Some(stmt)
     }
 
-    fn compile_measure_stmt(&mut self, stmt: &semast::MeasureStmt) -> Option<qsast::Stmt> {
+    fn compile_measure_stmt(&mut self, stmt: &semast::MeasureArrowStmt) -> Option<qsast::Stmt> {
         self.push_unimplemented_error_message("measure statements", stmt.span);
         None
     }
@@ -580,17 +713,46 @@ impl QasmCompiler {
         None
     }
 
-    fn compile_quantum_decl_stmt(
+    fn compile_qubit_decl_stmt(&mut self, stmt: &semast::QubitDeclaration) -> Option<qsast::Stmt> {
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = &symbol.name;
+        let name_span = symbol.span;
+
+        let stmt = match self.config.qubit_semantics {
+            QubitSemantics::QSharp => build_managed_qubit_alloc(name, stmt.span, name_span),
+            QubitSemantics::Qiskit => build_unmanaged_qubit_alloc(name, stmt.span, name_span),
+        };
+        Some(stmt)
+    }
+
+    fn compile_qubit_array_decl_stmt(
         &mut self,
-        stmt: &semast::QubitDeclaration,
+        stmt: &semast::QubitArrayDeclaration,
     ) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("quantum decl statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = &symbol.name;
+        let name_span = symbol.span;
+
+        let stmt = match self.config.qubit_semantics {
+            QubitSemantics::QSharp => {
+                managed_qubit_alloc_array(name, stmt.size, stmt.span, name_span, stmt.size_span)
+            }
+            QubitSemantics::Qiskit => build_unmanaged_qubit_alloc_array(
+                name,
+                stmt.size,
+                stmt.span,
+                name_span,
+                stmt.size_span,
+            ),
+        };
+        Some(stmt)
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("reset statements", stmt.span);
-        None
+        let operand = self.compile_gate_operand(&stmt.operand)?;
+        let operand_span = operand.span;
+        let expr = build_reset_call(operand, stmt.reset_token_span, operand_span);
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_return_stmt(&mut self, stmt: &semast::ReturnStmt) -> Option<qsast::Stmt> {
@@ -604,7 +766,7 @@ impl QasmCompiler {
     }
 
     fn compile_while_stmt(&mut self, stmt: &semast::WhileLoop) -> Option<qsast::Stmt> {
-        let condition = self.compile_expr(&stmt.while_condition)?;
+        let condition = self.compile_expr(&stmt.condition)?;
         match &*stmt.body.kind {
             semast::StmtKind::Block(block) => {
                 let block = self.compile_block(block);
@@ -628,16 +790,15 @@ impl QasmCompiler {
     }
 
     fn compile_expr(&mut self, expr: &semast::Expr) -> Option<qsast::Expr> {
-        let span = expr.span;
         match expr.kind.as_ref() {
             semast::ExprKind::Err => {
                 // todo: determine if we should push an error here
                 // Are we going to allow trying to compile a program with semantic errors?
                 None
             }
-            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, span),
+            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
-                self.compile_indexed_ident_expr(indexed_ident, span)
+                self.compile_indexed_ident_expr(indexed_ident)
             }
             semast::ExprKind::UnaryOp(unary_op_expr) => self.compile_unary_op_expr(unary_op_expr),
             semast::ExprKind::BinaryOp(binary_op_expr) => {
@@ -650,11 +811,13 @@ impl QasmCompiler {
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
+            semast::ExprKind::Measure(expr) => self.compile_measure_expr(expr),
         }
     }
 
-    fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> Option<qsast::Expr> {
+    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> Option<qsast::Expr> {
         let symbol = &self.symbols[symbol_id];
+        let span = symbol.span;
         let expr = match symbol.name.as_str() {
             "euler" | "ℇ" => build_math_call_no_params("E", span),
             "pi" | "π" => build_math_call_no_params("PI", span),
@@ -677,11 +840,8 @@ impl QasmCompiler {
 
     /// The lowerer eliminated indexed identifiers with zero indices.
     /// So we are safe to assume that the indices are non-empty.
-    fn compile_indexed_ident_expr(
-        &mut self,
-        indexed_ident: &IndexedIdent,
-        span: Span,
-    ) -> Option<qsast::Expr> {
+    fn compile_indexed_ident_expr(&mut self, indexed_ident: &IndexedIdent) -> Option<qsast::Expr> {
+        let span = indexed_ident.span;
         let index: Vec<_> = indexed_ident
             .indices
             .iter()
@@ -754,6 +914,7 @@ impl QasmCompiler {
             LiteralKind::Bitstring(big_int, width) => {
                 Self::compile_bitstring_literal(big_int, *width, span)
             }
+            LiteralKind::Bit(value) => Self::compile_bit_literal(*value, span),
             LiteralKind::Bool(value) => Self::compile_bool_literal(*value, span),
             LiteralKind::Duration(value, time_unit) => {
                 self.compile_duration_literal(*value, *time_unit, span)
@@ -820,8 +981,29 @@ impl QasmCompiler {
     }
 
     fn compile_measure_expr(&mut self, expr: &MeasureExpr) -> Option<qsast::Expr> {
-        self.push_unimplemented_error_message("measure expressions", expr.span);
-        None
+        let call_span = expr.span;
+        let name_span = expr.measure_token_span;
+        let arg = self.compile_gate_operand(&expr.operand)?;
+        let operand_span = expr.operand.span;
+        let expr = build_measure_call(arg, name_span, operand_span, call_span);
+        Some(expr)
+    }
+
+    fn compile_gate_operand(&mut self, op: &GateOperand) -> Option<qsast::Expr> {
+        match &op.kind {
+            GateOperandKind::HardwareQubit(hw) => {
+                // We don't support hardware qubits, so we need to push an error
+                // but we can still create an identifier for the hardware qubit
+                // and let the rest of the containing expression compile to
+                // catch any other errors
+                let message = "Hardware qubit operands";
+                self.push_unsupported_error_message(message, op.span);
+                let ident = build_path_ident_expr(hw.name.clone(), hw.span, op.span);
+                Some(ident)
+            }
+            GateOperandKind::Expr(expr) => self.compile_expr(expr),
+            GateOperandKind::Err => None,
+        }
     }
 
     fn compile_index_element(&mut self, elem: &IndexElement) -> Option<qsast::Expr> {
@@ -837,13 +1019,25 @@ impl QasmCompiler {
     }
 
     fn compile_index_set(&mut self, set: &IndexSet) -> Option<qsast::Expr> {
-        self.push_unimplemented_error_message("index set expressions", set.span);
+        // This is a temporary limitation. We can only handle
+        // single index expressions for now.
+        if set.values.len() == 1 {
+            if let semast::IndexSetItem::Expr(expr) = &*set.values[0] {
+                return self.compile_expr(expr);
+            }
+        }
+
+        self.push_unsupported_error_message("index set expressions with multiple values", set.span);
         None
     }
 
     fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> Option<qsast::Expr> {
         self.push_unimplemented_error_message("array literals", span);
         None
+    }
+
+    fn compile_bit_literal(value: bool, span: Span) -> Option<qsast::Expr> {
+        Some(build_lit_result_expr(value.into(), span))
     }
 
     fn compile_bool_literal(value: bool, span: Span) -> Option<qsast::Expr> {
@@ -862,7 +1056,11 @@ impl QasmCompiler {
 
     fn compile_bitstring_literal(value: &BigInt, width: u32, span: Span) -> Option<qsast::Expr> {
         let width = width as usize;
-        let bitstring = format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2));
+        let bitstring = if value == &BigInt::ZERO && width == 0 {
+            "Bitstring(\"\")".to_string()
+        } else {
+            format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
+        };
         Some(build_lit_result_array_expr_from_bitstring(bitstring, span))
     }
 
