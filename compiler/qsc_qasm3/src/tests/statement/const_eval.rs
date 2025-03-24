@@ -87,7 +87,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -218,7 +218,7 @@ fn unary_op_negb_uint() {
          3 |         const uint b = ~a;
          4 |         bit[~a] r;
            :              ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -262,7 +262,7 @@ fn unary_op_negb_bit() {
          3 |         const bit b = ~a;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -289,7 +289,7 @@ fn unary_op_negb_bitarray() {
          3 |         const uint[3] b = ~a;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
