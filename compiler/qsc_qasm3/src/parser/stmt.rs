@@ -27,7 +27,7 @@ use super::ast::{
     DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
     FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
     IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
-    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureStmt, Pragma,
+    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureArrowStmt, Pragma,
     QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
     RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt,
     StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
@@ -204,7 +204,7 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
     let lo = indexed_ident.span.lo;
     if s.peek().kind == TokenKind::Eq {
         s.advance();
-        let expr = expr::expr(s)?;
+        let expr = expr::expr_or_measurement(s)?;
         recovering_semi(s);
         Ok(StmtKind::Assign(AssignStmt {
             span: s.span(lo),
@@ -214,7 +214,7 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
         s.advance();
         let op = expr::closed_bin_op(op);
-        let expr = expr::expr(s)?;
+        let expr = expr::expr_or_measurement(s)?;
         recovering_semi(s);
         Ok(StmtKind::AssignOp(AssignOpStmt {
             span: s.span(lo),
@@ -631,7 +631,7 @@ fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<Ident>> {
 fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Return))?;
-    let expr = opt(s, expr::value_expr)?;
+    let expr = opt(s, expr::expr_or_measurement)?.map(Box::new);
     recovering_semi(s);
     Ok(StmtKind::Return(ReturnStmt {
         span: s.span(lo),
@@ -643,11 +643,13 @@ fn parse_return(s: &mut ParserContext) -> Result<StmtKind> {
 fn parse_quantum_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     let size = qubit_type(s)?;
+    let ty_span = s.span(lo);
     let ident = prim::ident(s)?;
 
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
+        ty_span,
         qubit: ident,
         size,
     }))
@@ -714,7 +716,7 @@ fn parse_non_constant_classical_decl(
     let identifier = prim::ident(s)?;
     let init_expr = if s.peek().kind == TokenKind::Eq {
         s.advance();
-        Some(expr::value_expr(s)?)
+        Some(Box::new(expr::declaration_expr(s)?))
     } else {
         None
     };
@@ -736,7 +738,7 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let ty = scalar_or_array_type(s)?;
     let identifier = Box::new(prim::ident(s)?);
     token(s, TokenKind::Eq)?;
-    let init_expr = expr::expr(s)?;
+    let init_expr = expr::declaration_expr(s)?;
     recovering_semi(s);
     let decl = ConstantDeclStmt {
         span: s.span(lo),
@@ -878,6 +880,7 @@ fn qreg_decl(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
     Ok(StmtKind::QuantumDecl(QubitDeclaration {
         span: s.span(lo),
+        ty_span: s.span(lo),
         qubit: identifier,
         size,
     }))
@@ -1751,17 +1754,19 @@ fn parse_delay(s: &mut ParserContext) -> Result<DelayStmt> {
 fn parse_reset(s: &mut ParserContext) -> Result<ResetStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Reset))?;
+    let reset_token_span = s.span(lo);
     let operand = Box::new(gate_operand(s)?);
     recovering_semi(s);
 
     Ok(ResetStmt {
         span: s.span(lo),
+        reset_token_span,
         operand,
     })
 }
 
 /// Grammar: `measureExpression (ARROW indexedIdentifier)? SEMICOLON`.
-fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureStmt> {
+fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureArrowStmt> {
     let lo = s.peek().span.lo;
     let measure = expr::measure_expr(s)?;
 
@@ -1772,7 +1777,7 @@ fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureStmt> {
 
     recovering_semi(s);
 
-    Ok(MeasureStmt {
+    Ok(MeasureArrowStmt {
         span: s.span(lo),
         measurement: measure,
         target,

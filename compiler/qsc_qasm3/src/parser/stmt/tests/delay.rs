@@ -16,19 +16,21 @@ fn delay() {
                 kind: DelayStmt [0-20]:
                     duration: Expr [6-7]: Ident [6-7] "a"
                     qubits:
-                        IndexedIdent [9-13]:
-                            name: Ident [9-10] "q"
-                            index_span: [10-13]
-                            indices:
-                                IndexSet [11-12]:
-                                    values:
-                                        Expr [11-12]: Lit: Int(0)
-                        IndexedIdent [15-19]:
-                            name: Ident [15-16] "q"
-                            index_span: [16-19]
-                            indices:
-                                IndexSet [17-18]:
-                                    values:
-                                        Expr [17-18]: Lit: Int(1)"#]],
+                        GateOperand [9-13]:
+                            kind: IndexedIdent [9-13]:
+                                name: Ident [9-10] "q"
+                                index_span: [10-13]
+                                indices:
+                                    IndexSet [11-12]:
+                                        values:
+                                            Expr [11-12]: Lit: Int(0)
+                        GateOperand [15-19]:
+                            kind: IndexedIdent [15-19]:
+                                name: Ident [15-16] "q"
+                                index_span: [16-19]
+                                indices:
+                                    IndexSet [17-18]:
+                                        values:
+                                            Expr [17-18]: Lit: Int(1)"#]],
     );
 }

@@ -10,25 +10,26 @@ fn measure_multiple_qubits() {
         parse,
         "measure $0, $1;",
         &expect![[r#"
-        Stmt [0-10]:
-            annotations: <empty>
-            kind: MeasureStmt [0-10]:
-                measurement: MeasureExpr [0-7]:
-                    operand: HardwareQubit [8-10]: 0
-                target: <none>
+            Stmt [0-10]:
+                annotations: <empty>
+                kind: MeasureArrowStmt [0-10]:
+                    measurement: MeasureExpr [0-10]:
+                        operand: GateOperand [8-10]:
+                            kind: HardwareQubit [8-10]: 0
+                    target: <none>
 
-        [
-            Error(
-                Token(
-                    Semicolon,
-                    Comma,
-                    Span {
-                        lo: 10,
-                        hi: 11,
-                    },
+            [
+                Error(
+                    Token(
+                        Semicolon,
+                        Comma,
+                        Span {
+                            lo: 10,
+                            hi: 11,
+                        },
+                    ),
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 
@@ -38,17 +39,35 @@ fn assign_measure_multiple_qubits() {
         parse,
         "a[0:1] = measure $0, $1;",
         &expect![[r#"
-        Error(
-            Rule(
-                "expression",
-                Measure,
-                Span {
-                    lo: 9,
-                    hi: 16,
-                },
-            ),
-        )
-    "#]],
+            Stmt [0-19]:
+                annotations: <empty>
+                kind: AssignStmt [0-19]:
+                    lhs: IndexedIdent [0-6]:
+                        name: Ident [0-1] "a"
+                        index_span: [1-6]
+                        indices:
+                            IndexSet [2-5]:
+                                values:
+                                    RangeDefinition [2-5]:
+                                        start: Expr [2-3]: Lit: Int(0)
+                                        step: <none>
+                                        end: Expr [4-5]: Lit: Int(1)
+                    rhs: MeasureExpr [9-19]:
+                        operand: GateOperand [17-19]:
+                            kind: HardwareQubit [17-19]: 0
+
+            [
+                Error(
+                    Token(
+                        Semicolon,
+                        Comma,
+                        Span {
+                            lo: 19,
+                            hi: 20,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 
@@ -58,17 +77,29 @@ fn assign_arrow() {
         parse,
         "a = measure $0 -> b;",
         &expect![[r#"
-        Error(
-            Rule(
-                "expression",
-                Measure,
-                Span {
-                    lo: 4,
-                    hi: 11,
-                },
-            ),
-        )
-    "#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: AssignStmt [0-14]:
+                    lhs: IndexedIdent [0-1]:
+                        name: Ident [0-1] "a"
+                        index_span: [0-0]
+                        indices: <empty>
+                    rhs: MeasureExpr [4-14]:
+                        operand: GateOperand [12-14]:
+                            kind: HardwareQubit [12-14]: 0
+
+            [
+                Error(
+                    Token(
+                        Semicolon,
+                        Arrow,
+                        Span {
+                            lo: 15,
+                            hi: 17,
+                        },
+                    ),
+                ),
+            ]"#]],
     );
 }
 

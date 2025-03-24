@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::f64;
 use std::rc::Rc;
 
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
 
-use super::types::Type;
+use super::{
+    ast::{Expr, ExprKind, LiteralKind},
+    types::Type,
+};
 
 /// We need a symbol table to keep track of the symbols in the program.
 /// The scoping rules for QASM3 are slightly different from Q#. This also
@@ -89,13 +93,59 @@ impl std::fmt::Display for SymbolId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Symbol {
     pub name: String,
     pub span: Span,
     pub ty: Type,
     pub qsharp_ty: crate::types::Type,
     pub io_kind: IOKind,
+    /// Used for const evaluation. This field should only be Some(_)
+    /// if the symbol is const. This Expr holds the whole const expr
+    /// unevaluated.
+    const_expr: Option<Rc<Expr>>,
+}
+
+impl Symbol {
+    #[must_use]
+    pub fn new(
+        name: &str,
+        span: Span,
+        ty: Type,
+        qsharp_ty: crate::types::Type,
+        io_kind: IOKind,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            span,
+            ty,
+            qsharp_ty,
+            io_kind,
+            const_expr: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_const_expr(self, value: Rc<Expr>) -> Self {
+        assert!(
+            value.ty.is_const(),
+            "this builder pattern should only be used with const expressions"
+        );
+        Symbol {
+            const_expr: Some(value),
+            ..self
+        }
+    }
+
+    /// Returns the value of the symbol.
+    #[must_use]
+    pub fn get_const_expr(&self) -> Rc<Expr> {
+        if let Some(val) = &self.const_expr {
+            val.clone()
+        } else {
+            unreachable!("this function should only be called on const symbols");
+        }
+    }
 }
 
 impl std::fmt::Display for Symbol {
@@ -119,6 +169,7 @@ impl Default for Symbol {
             ty: Type::Err,
             qsharp_ty: crate::types::Type::Tuple(vec![]),
             io_kind: IOKind::default(),
+            const_expr: None,
         }
     }
 }
@@ -223,7 +274,14 @@ pub enum ScopeKind {
     Block,
 }
 
-const BUILTIN_SYMBOLS: [&str; 6] = ["pi", "π", "tau", "τ", "euler", "ℇ"];
+const BUILTIN_SYMBOLS: [(&str, f64); 6] = [
+    ("pi", f64::consts::PI),
+    ("π", f64::consts::PI),
+    ("tau", f64::consts::TAU),
+    ("τ", f64::consts::TAU),
+    ("euler", f64::consts::E),
+    ("ℇ", f64::consts::E),
+];
 
 impl Default for SymbolTable {
     fn default() -> Self {
@@ -235,14 +293,42 @@ impl Default for SymbolTable {
             current_id: SymbolId::default(),
         };
 
-        // Define global constants
-        for symbol in BUILTIN_SYMBOLS {
+        slf.insert_symbol(Symbol {
+            name: "U".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(3, 1),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: U"));
+
+        slf.insert_symbol(Symbol {
+            name: "gphase".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(1, 0),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 1, 0),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: gphase"));
+
+        // Define global constants.
+        for (symbol, val) in BUILTIN_SYMBOLS {
+            let ty = Type::Float(None, true);
+            let expr = Expr {
+                span: Span::default(),
+                kind: Box::new(ExprKind::Lit(LiteralKind::Float(val))),
+                ty: ty.clone(),
+            };
+
             slf.insert_symbol(Symbol {
                 name: symbol.to_string(),
                 span: Span::default(),
-                ty: Type::Float(None, true),
+                ty,
                 qsharp_ty: crate::types::Type::Double(true),
                 io_kind: IOKind::Default,
+                const_expr: Some(Rc::new(expr)),
             })
             .unwrap_or_else(|_| panic!("Failed to insert symbol: {symbol}"));
         }
@@ -287,6 +373,7 @@ impl SymbolTable {
             ty: Type::Err,
             qsharp_ty: crate::types::Type::Err,
             io_kind: IOKind::Default,
+            const_expr: None,
         });
         let id = self.current_id;
         self.current_id = self.current_id.successor();
@@ -440,7 +527,11 @@ impl SymbolTable {
                 for symbol in scope
                     .get_ordered_symbols()
                     .into_iter()
-                    .filter(|symbol| !BUILTIN_SYMBOLS.contains(&symbol.name.as_str()))
+                    .filter(|symbol| {
+                        !BUILTIN_SYMBOLS
+                            .map(|pair| pair.0)
+                            .contains(&symbol.name.as_str())
+                    })
                     .filter(|symbol| symbol.io_kind == IOKind::Default)
                 {
                     if symbol.ty.is_inferred_output_type() {

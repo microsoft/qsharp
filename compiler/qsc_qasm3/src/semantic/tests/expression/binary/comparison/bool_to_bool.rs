@@ -17,29 +17,29 @@ fn logical_and() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-71]:
                     ty: Bool(false)
@@ -47,11 +47,11 @@ fn logical_and() {
                         op: AndL
                         lhs: Expr [65-66]:
                             ty: Bool(false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [70-71]:
                             ty: Bool(false)
-                            kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                            kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -72,29 +72,29 @@ fn logical_or() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-71]:
                     ty: Bool(false)
@@ -102,11 +102,11 @@ fn logical_or() {
                         op: OrL
                         lhs: Expr [65-66]:
                             ty: Bool(false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [70-71]:
                             ty: Bool(false)
-                            kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                            kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -127,29 +127,29 @@ fn unop_not_logical_and_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-73]:
                     ty: Bool(false)
@@ -161,15 +161,15 @@ fn unop_not_logical_and_unop_not() {
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [72-73]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
                                     ty: Bool(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                                    kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -190,29 +190,29 @@ fn unop_not_logical_or_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-73]:
                     ty: Bool(false)
@@ -224,15 +224,15 @@ fn unop_not_logical_or_unop_not() {
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [72-73]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
                                     ty: Bool(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                                    kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -253,29 +253,29 @@ fn unop_not_logical_and() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
                     ty: Bool(false)
@@ -287,11 +287,11 @@ fn unop_not_logical_and() {
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
-                            kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                            kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -312,29 +312,29 @@ fn unop_not_logical_or() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
                     ty: Bool(false)
@@ -346,11 +346,11 @@ fn unop_not_logical_or() {
                                 op: NotL
                                 expr: Expr [66-67]:
                                     ty: Bool(false)
-                                    kind: SymbolId(6)
+                                    kind: SymbolId(8)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
-                            kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                            kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -371,29 +371,29 @@ fn logical_and_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
                     ty: Bool(false)
@@ -401,15 +401,15 @@ fn logical_and_unop_not() {
                         op: AndL
                         lhs: Expr [65-66]:
                             ty: Bool(false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
                                     ty: Bool(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                                    kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool
@@ -430,29 +430,29 @@ fn logical_or_unop_not() {
         input,
         &expect![[r#"
             ClassicalDeclarationStmt [9-23]:
-                symbol_id: 6
+                symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(true)
-            [6] Symbol [14-15]:
+            [8] Symbol [14-15]:
                 name: x
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
-                symbol_id: 7
+                symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(true)
+                    ty: Bool(false)
                     kind: Lit: Bool(false)
-            [7] Symbol [37-38]:
+            [9] Symbol [37-38]:
                 name: y
                 type: Bool(false)
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
-                symbol_id: 8
+                symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
                     ty: Bool(false)
@@ -460,15 +460,15 @@ fn logical_or_unop_not() {
                         op: OrL
                         lhs: Expr [65-66]:
                             ty: Bool(false)
-                            kind: SymbolId(6)
+                            kind: SymbolId(8)
                         rhs: Expr [71-72]:
                             ty: Bool(false)
                             kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
                                     ty: Bool(false)
-                                    kind: SymbolId(7)
-            [8] Symbol [61-62]:
+                                    kind: SymbolId(9)
+            [10] Symbol [61-62]:
                 name: a
                 type: Bool(false)
                 qsharp_type: bool

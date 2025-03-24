@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::ops::ShlAssign;
+use std::rc::Rc;
 
 use super::symbols::ScopeKind;
 use super::types::binop_requires_int_conversion_for_type;
@@ -27,6 +28,7 @@ use crate::parser::QasmSource;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::ArrayDimensions;
+use crate::types::get_qsharp_gate_name;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -180,7 +182,7 @@ impl Lowerer {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
             syntax::StmtKind::Assign(stmt) => self.lower_assign(stmt),
             syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op(stmt),
-            syntax::StmtKind::Barrier(stmt) => self.lower_barrier(stmt),
+            syntax::StmtKind::Barrier(stmt) => self.lower_barrier_stmt(stmt),
             syntax::StmtKind::Box(stmt) => self.lower_box(stmt),
             syntax::StmtKind::Break(stmt) => self.lower_break(stmt),
             syntax::StmtKind::Block(stmt) => {
@@ -227,11 +229,13 @@ impl Lowerer {
     /// when calling them.
     fn define_stdgates(&mut self, include: &syntax::IncludeStmt) {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
-            Symbol {
-                name: name.to_string(),
-                ty: Type::Gate(cargs, qargs),
-                ..Default::default()
-            }
+            Symbol::new(
+                name,
+                Span::default(),
+                Type::Gate(cargs, qargs),
+                Default::default(),
+                Default::default(),
+            )
         }
         let gates = vec![
             gate_symbol("X", 0, 1),
@@ -313,13 +317,13 @@ impl Lowerer {
             .collect::<Vec<_>>();
         let first = rhs.first().expect("missing rhs");
 
-        let symbol = Symbol {
-            name: name.to_string(),
-            ty: first.ty.clone(),
-            qsharp_ty: self.convert_semantic_type_to_qsharp_type(&first.ty, alias.ident.span()),
-            span: alias.ident.span(),
-            io_kind: IOKind::Default,
-        };
+        let symbol = Symbol::new(
+            &name,
+            alias.ident.span(),
+            first.ty.clone(),
+            self.convert_semantic_type_to_qsharp_type(&first.ty, alias.ident.span()),
+            IOKind::Default,
+        );
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, alias.ident.span());
 
@@ -351,14 +355,24 @@ impl Lowerer {
     fn lower_simple_assign_expr(
         &mut self,
         ident: &syntax::Ident,
-        rhs: &syntax::Expr,
+        rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
         let ty = symbol.ty.clone();
-        let rhs = self.lower_expr_with_target_type(Some(rhs), &ty, span);
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(&ty, &expr)
+            }
+        };
+
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
@@ -377,18 +391,36 @@ impl Lowerer {
     fn lower_indexed_assign_expr(
         &mut self,
         index_expr: &syntax::IndexedIdent,
-        rhs: &syntax::Expr,
+        rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
         let ident = index_expr.name.clone();
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = &symbol.ty;
-        let lhs = self.lower_indexed_ident_expr(index_expr);
-        let rhs = self.lower_expr_with_target_type(Some(rhs), ty, span);
+        let indexed_ty = &symbol
+            .ty
+            .get_indexed_type()
+            .expect("we only get here if there is at least one index");
 
-        if ty.is_const() {
+        let indices = index_expr
+            .indices
+            .iter()
+            .map(|index| self.lower_index_element(index));
+        let indices = list_from_iter(indices);
+
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(indexed_ty, &expr)
+            }
+        };
+
+        if symbol.ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
@@ -397,7 +429,7 @@ impl Lowerer {
         semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
             span,
             symbol_id,
-            lhs,
+            indices,
             rhs,
         })
     }
@@ -420,8 +452,16 @@ impl Lowerer {
         }
 
         let lhs = self.lower_indexed_ident_expr(lhs);
-        let rhs = self.lower_expr(rhs);
-        let rhs = self.cast_expr_to_type(ty, &rhs, stmt.span);
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), ty, stmt.span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(ty, &expr)
+            }
+        };
 
         semantic::StmtKind::AssignOp(semantic::AssignOpStmt {
             span: stmt.span,
@@ -485,7 +525,7 @@ impl Lowerer {
             }
             syntax::LiteralKind::Bitstring(value, size) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(value.clone(), *size)),
-                Type::BitArray(super::types::ArrayDimensions::One(*size), true),
+                Type::BitArray(super::types::ArrayDimensions::from(*size), true),
             ),
             syntax::LiteralKind::Bool(value) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bool(*value)),
@@ -553,7 +593,7 @@ impl Lowerer {
 
     fn lower_unary_op_expr(&mut self, expr: &syntax::UnaryOpExpr) -> semantic::Expr {
         match expr.op {
-            syntax::UnaryOp::Neg | syntax::UnaryOp::NotB => {
+            syntax::UnaryOp::Neg => {
                 let op = expr.op;
                 let expr = self.lower_expr(&expr.expr);
                 let ty = expr.ty.clone();
@@ -576,13 +616,39 @@ impl Lowerer {
                     ty,
                 }
             }
+            syntax::UnaryOp::NotB => {
+                let op = expr.op;
+                let expr = self.lower_expr(&expr.expr);
+                let ty = expr.ty.clone();
+                if !unary_op_can_be_applied_to_type(op, &ty) {
+                    let kind = SemanticErrorKind::TypeDoesNotSupportedUnaryNegation(
+                        expr.ty.to_string(),
+                        expr.span,
+                    );
+                    self.push_semantic_error(kind);
+                }
+                let span = expr.span;
+                let unary = semantic::UnaryOpExpr {
+                    span,
+                    op: semantic::UnaryOp::NotB,
+                    expr,
+                };
+                semantic::Expr {
+                    span,
+                    kind: Box::new(semantic::ExprKind::UnaryOp(unary)),
+                    ty,
+                }
+            }
             syntax::UnaryOp::NotL => {
                 // this is the  only unary operator that tries to coerce the type
                 // I can't find it in the spec, but when looking at existing code
                 // it seems that the ! operator coerces to a bool if possible
-                let target_ty = Type::Bool(false);
+                let expr = self.lower_expr(&expr.expr);
+                let expr_span = expr.span;
+                let target_ty = Type::Bool(expr.ty.is_const());
+
                 let expr =
-                    self.lower_expr_with_target_type(Some(&expr.expr), &target_ty, expr.expr.span);
+                    self.cast_expr_with_target_type_or_default(Some(expr), &target_ty, expr_span);
 
                 let ty = expr.ty.clone();
 
@@ -698,6 +764,7 @@ impl Lowerer {
             }
             Type::Range => crate::types::Type::Range,
             Type::Void => crate::types::Type::Tuple(vec![]),
+            Type::Err => crate::types::Type::Err,
             _ => {
                 let msg = format!("Converting {ty:?} to Q# type");
                 self.push_unimplemented_error_message(msg, span);
@@ -706,9 +773,13 @@ impl Lowerer {
         }
     }
 
-    fn lower_barrier(&mut self, stmt: &syntax::BarrierStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("barrier stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_barrier_stmt(&mut self, stmt: &syntax::BarrierStmt) -> semantic::StmtKind {
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        semantic::StmtKind::Barrier(semantic::BarrierStmt {
+            span: stmt.span,
+            qubits,
+        })
     }
 
     /// The "boxable" stmts were taken from the reference parser at
@@ -792,29 +863,27 @@ impl Lowerer {
         let stmt_span = stmt.span;
         let name = stmt.identifier.name.clone();
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), ty_span);
-        let symbol = Symbol {
-            name: name.to_string(),
-            ty: ty.clone(),
+        let symbol = Symbol::new(
+            &name,
+            stmt.identifier.span,
+            ty.clone(),
             qsharp_ty,
-            span: stmt.identifier.span,
-            io_kind: IOKind::Default,
-        };
+            IOKind::Default,
+        );
 
         // process the symbol and init_expr gathering any errors
         let init_expr = match init_expr {
             Some(expr) => match expr {
-                syntax::ValueExpression::Expr(expr) => semantic::ValueExpression::Expr(
-                    self.lower_expr_with_target_type(Some(expr), &ty, stmt_span),
-                ),
-                syntax::ValueExpression::Measurement(measure_expr) => {
-                    semantic::ValueExpression::Measurement(
-                        self.lower_measure_expr(measure_expr, stmt_span),
-                    )
+                syntax::ValueExpr::Expr(expr) => {
+                    let expr = self.lower_expr(expr);
+                    self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
+                }
+                syntax::ValueExpr::Measurement(measure_expr) => {
+                    let expr = self.lower_measure_expr(measure_expr);
+                    self.cast_expr_to_type(&ty, &expr)
                 }
             },
-            None => semantic::ValueExpression::Expr(
-                self.lower_expr_with_target_type(None, &ty, stmt_span),
-            ),
+            None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
 
         let symbol_id =
@@ -834,25 +903,41 @@ impl Lowerer {
         let ty_span = stmt.ty.span();
         let name = stmt.identifier.name.clone();
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
-        let symbol = Symbol {
-            name: name.to_string(),
-            ty: ty.clone(),
-            qsharp_ty,
-            span: stmt.identifier.span,
-            io_kind: IOKind::Default,
+        let init_expr = match &stmt.init_expr {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
         };
 
-        // process the symbol and init_expr gathering any errors
-        let init_expr = self.lower_expr_with_target_type(Some(&stmt.init_expr), &ty, stmt.span);
+        let mut symbol = Symbol::new(
+            &name,
+            stmt.identifier.span,
+            ty.clone(),
+            qsharp_ty,
+            IOKind::Default,
+        );
+
+        if init_expr.ty.is_const() {
+            symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
+        }
 
         let symbol_id =
             self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);
+
+        if !init_expr.ty.is_const() {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "const decl init expr".to_string(),
+                init_expr.span,
+            ));
+        }
 
         semantic::StmtKind::ClassicalDecl(semantic::ClassicalDeclarationStmt {
             span: stmt.span,
             ty_span,
             symbol_id,
-            init_expr: Box::new(semantic::ValueExpression::Expr(init_expr)),
+            init_expr: Box::new(init_expr),
         })
     }
 
@@ -902,13 +987,13 @@ impl Lowerer {
 
         let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
-        let symbol = Symbol {
-            name: stmt.ident.name.to_string(),
-            span: stmt.ident.span,
-            ty: ty.clone(),
+        let symbol = Symbol::new(
+            &stmt.ident.name,
+            stmt.ident.span,
+            ty.clone(),
             qsharp_ty,
-            io_kind: IOKind::Default,
-        };
+            IOKind::Default,
+        );
 
         // This is the first variable in this scope, so
         // we don't need to check for redefined symbols.
@@ -941,8 +1026,8 @@ impl Lowerer {
 
         // The semantics of a if statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
-        let cond_ty = Type::Bool(false);
-        let condition = self.cast_expr_to_type(&cond_ty, &condition, condition.span);
+        let cond_ty = Type::Bool(condition.ty.is_const());
+        let condition = self.cast_expr_to_type(&cond_ty, &condition);
 
         semantic::StmtKind::If(semantic::IfStmt {
             span: stmt.span,
@@ -953,8 +1038,172 @@ impl Lowerer {
     }
 
     fn lower_gate_call(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("gate call stmt", stmt.span);
-        semantic::StmtKind::Err
+        // 1. Lower all the fields:
+        //   1.1. Lower the modifiers.
+        let mut modifiers = stmt
+            .modifiers
+            .iter()
+            .filter_map(|modifier| self.lower_modifier(modifier))
+            .collect::<Vec<_>>();
+        // If we couldn't compute the modifiers there is no way to compile the gates
+        // correctly, since we can't check its arity. In this case we return an Err.
+        if modifiers.len() != stmt.modifiers.len() {
+            return semantic::StmtKind::Err;
+        }
+
+        //   1.3. Lower the args.
+        let args = stmt.args.iter().map(|arg| self.lower_expr(arg));
+        let args = list_from_iter(args);
+        //   1.4. Lower the qubits.
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        //   1.5. Lower the duration.
+        let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
+
+        if let Some(duration) = &duration {
+            self.push_unsupported_error_message("gate call duration", duration.span);
+        }
+
+        let mut name = stmt.name.name.to_string();
+        if let Some((qsharp_name, implicit_modifier)) =
+            try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
+        {
+            // Override the gate name if Q# name is another.
+            name = qsharp_name;
+
+            // 2. Get implicit modifiers and make them explicit.
+            //    Q: Do we need this during lowering?
+            //    A: Yes, we need it to check the gate_call arity.
+            modifiers.push(implicit_modifier);
+        } else {
+            name = get_qsharp_gate_name(&name).unwrap_or(&name).to_string();
+        }
+
+        // 3. Check that the gate_name actually refers to a gate in the symbol table
+        //    and get its symbol_id & symbol. Make sure to use the name that could've
+        //    been overriden by the Q# name and the span of the original name.
+        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, stmt.name.span);
+
+        let (classical_arity, quantum_arity) =
+            if let Type::Gate(classical_arity, quantum_arity) = &symbol.ty {
+                (*classical_arity, *quantum_arity)
+            } else {
+                self.push_semantic_error(SemanticErrorKind::CannotCallNonGate(symbol.span));
+                (0, 0)
+            };
+
+        // 4. Check that gate_call classical arity matches the number of classical args.
+        if classical_arity as usize != args.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                classical_arity as usize,
+                args.len(),
+                stmt.span,
+            ));
+        }
+
+        // 5. Check that gate_call quantum arity with modifiers matches the
+        //    number of qubit args.
+        let mut quantum_arity_with_modifiers = quantum_arity;
+        for modifier in &modifiers {
+            match &modifier.kind {
+                semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
+                semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
+                    quantum_arity_with_modifiers += n;
+                }
+            }
+        }
+
+        if quantum_arity_with_modifiers as usize != qubits.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfQubitArgs(
+                quantum_arity_with_modifiers as usize,
+                qubits.len(),
+                stmt.span,
+            ));
+        }
+
+        // 6. Return:
+        //   6.1. Gate symbol_id.
+        //   6.2. All controls made explicit.
+        //   6.3. Classical args.
+        //   6.4. Quantum args in the order expected by the compiler.
+        modifiers.reverse();
+        let modifiers = list_from_iter(modifiers);
+        semantic::StmtKind::GateCall(semantic::GateCall {
+            span: stmt.span,
+            modifiers,
+            symbol_id,
+            args,
+            qubits,
+            duration,
+            quantum_arity,
+            quantum_arity_with_modifiers,
+        })
+
+        // The compiler will be left to do all things that need explicit Q# knowledge.
+        // But it won't need to check arities, know about implicit modifiers, or do
+        // any casting of classical args. There is still some inherit complexity to
+        // building a Q# gate call with this information, but it won't be cluttered
+        // by all the semantic analysis.
+    }
+
+    fn lower_modifier(
+        &mut self,
+        modifier: &syntax::QuantumGateModifier,
+    ) -> Option<semantic::QuantumGateModifier> {
+        let kind = match &modifier.kind {
+            syntax::GateModifierKind::Inv => semantic::GateModifierKind::Inv,
+            syntax::GateModifierKind::Pow(expr) => {
+                semantic::GateModifierKind::Pow(self.lower_expr(expr))
+            }
+            syntax::GateModifierKind::Ctrl(expr) => {
+                let ctrl_args = self.lower_modifier_ctrl_args(expr.as_ref())?;
+                semantic::GateModifierKind::Ctrl(ctrl_args)
+            }
+            syntax::GateModifierKind::NegCtrl(expr) => {
+                let ctrl_args = self.lower_modifier_ctrl_args(expr.as_ref())?;
+                semantic::GateModifierKind::NegCtrl(ctrl_args)
+            }
+        };
+
+        Some(semantic::QuantumGateModifier {
+            span: modifier.span,
+            kind,
+        })
+    }
+
+    fn lower_modifier_ctrl_args(&mut self, expr: Option<&syntax::Expr>) -> Option<u32> {
+        let Some(expr) = expr else {
+            return Some(1);
+        };
+
+        let expr = self.lower_expr(expr);
+
+        let target_ty = &Type::UInt(None, true);
+        let Some(expr) = self.try_cast_expr_to_type(target_ty, &expr) else {
+            self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
+            return None;
+        };
+        let Some(lit) = expr.const_eval(&self.symbols) else {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "ctrl modifier argument".into(),
+                expr.span,
+            ));
+            return None;
+        };
+
+        let semantic::LiteralKind::Int(n) = lit else {
+            unreachable!("we casted the expr to UInt before const evaluating it")
+        };
+
+        let Ok(n) = u32::try_from(n) else {
+            self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(
+                "ctrl modifier argument".into(),
+                expr.span,
+            ));
+            return None;
+        };
+
+        Some(n)
     }
 
     fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
@@ -992,13 +1241,7 @@ impl Lowerer {
         let stmt_span = stmt.span;
         let name = stmt.ident.name.clone();
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-        let symbol = Symbol {
-            name: name.to_string(),
-            ty: ty.clone(),
-            qsharp_ty,
-            span: stmt.ident.span,
-            io_kind,
-        };
+        let symbol = Symbol::new(&name, stmt.ident.span, ty.clone(), qsharp_ty, io_kind);
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.ident.span);
 
@@ -1021,9 +1264,21 @@ impl Lowerer {
         })
     }
 
-    fn lower_measure(&mut self, stmt: &syntax::MeasureStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("measure stmt", stmt.span);
-        semantic::StmtKind::Err
+    fn lower_measure(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
+        // `measure q -> c;` is syntax sugar for `c = measure q;`
+        if let Some(target) = &stmt.target {
+            self.lower_assign(&syntax::AssignStmt {
+                span: stmt.span,
+                lhs: *target.clone(),
+                rhs: syntax::ValueExpr::Measurement(stmt.measurement.clone()),
+            })
+        } else {
+            let measure = self.lower_measure_expr(&stmt.measurement);
+            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                span: stmt.span,
+                expr: measure,
+            })
+        }
     }
 
     fn lower_pragma(&mut self, stmt: &syntax::Pragma) -> semantic::StmtKind {
@@ -1037,13 +1292,69 @@ impl Lowerer {
     }
 
     fn lower_quantum_decl(&mut self, stmt: &syntax::QubitDeclaration) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("qubit decl stmt", stmt.span);
-        semantic::StmtKind::Err
+        // If there wasn't an explicit size, infer the size to be 1.
+        let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
+            let size_expr = self.lower_expr(size_expr);
+            let span = size_expr.span;
+            let size_expr = self.try_cast_expr_to_type(&Type::UInt(None, true), &size_expr);
+
+            if let Some(Some(semantic::LiteralKind::Int(val))) =
+                size_expr.map(|expr| expr.const_eval(&self.symbols))
+            {
+                if let Ok(size) = u32::try_from(val) {
+                    (
+                        Type::QubitArray(ArrayDimensions::One(size)),
+                        Some((size, span)),
+                    )
+                } else {
+                    let message = "quantum register size".into();
+                    self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
+                    return semantic::StmtKind::Err;
+                }
+            } else {
+                let message = "quantum register size".into();
+                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(message, span));
+                return semantic::StmtKind::Err;
+            }
+        } else {
+            (Type::Qubit, None)
+        };
+
+        let name = stmt.qubit.name.clone();
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty_span);
+
+        let symbol = Symbol::new(
+            &name,
+            stmt.qubit.span,
+            ty.clone(),
+            qsharp_ty,
+            IOKind::Default,
+        );
+
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.qubit.span);
+
+        if let Some((size, size_span)) = size_and_span {
+            semantic::StmtKind::QubitArrayDecl(semantic::QubitArrayDeclaration {
+                span: stmt.span,
+                symbol_id,
+                size,
+                size_span,
+            })
+        } else {
+            semantic::StmtKind::QubitDecl(semantic::QubitDeclaration {
+                span: stmt.span,
+                symbol_id,
+            })
+        }
     }
 
     fn lower_reset(&mut self, stmt: &syntax::ResetStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("reset stmt", stmt.span);
-        semantic::StmtKind::Err
+        let operand = self.lower_gate_operand(&stmt.operand);
+        semantic::StmtKind::Reset(semantic::ResetStmt {
+            span: stmt.span,
+            reset_token_span: stmt.reset_token_span,
+            operand: Box::new(operand),
+        })
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
@@ -1072,16 +1383,17 @@ impl Lowerer {
         // The condition for the switch statement must be an integer type
         // so we use `cast_expr_to_type`, forcing the type to be an integer
         // type with implicit casts if necessary.
-        let target_ty = Type::Int(None, false);
-        let target = self.cast_expr_to_type(&target_ty, &target, target.span);
+        let target_ty = Type::Int(None, target.ty.is_const());
+        let target = self.cast_expr_to_type(&target_ty, &target);
 
         // It is a parse error to have a switch statement with no cases,
         // even if the default block is present. Getting here means the
         // parser is broken or they changed the grammar.
-        assert!(
-            !cases.is_empty(),
-            "switch statement must have a control expression and at least one case"
-        );
+        if cases.is_empty() {
+            self.push_semantic_error(SemanticErrorKind::SwitchStatementMustHaveAtLeastOneCase(
+                stmt.span,
+            ));
+        }
 
         // We push a semantic error on switch statements if version is less than 3.1,
         // as they were introduced in 3.1.
@@ -1109,7 +1421,7 @@ impl Lowerer {
     }
 
     fn lower_switch_case(&mut self, switch_case: &syntax::SwitchCase) -> semantic::SwitchCase {
-        let label_ty = Type::Int(None, false);
+        let label_ty = Type::Int(None, true);
         let labels = switch_case
             .labels
             .iter()
@@ -1118,7 +1430,7 @@ impl Lowerer {
                 // so we use `cast_expr_to_type`, forcing the type to be an integer
                 // type with implicit casts if necessary.
                 let label = self.lower_expr(label);
-                self.cast_expr_to_type(&label_ty, &label, label.span)
+                self.cast_expr_to_type(&label_ty, &label)
             })
             .collect::<Vec<_>>();
 
@@ -1132,28 +1444,27 @@ impl Lowerer {
     }
 
     fn lower_while_stmt(&mut self, stmt: &syntax::WhileLoop) -> semantic::StmtKind {
-        let while_condition = self.lower_expr(&stmt.while_condition);
+        let condition = self.lower_expr(&stmt.while_condition);
         let body = self.lower_stmt(&stmt.body);
 
         // The semantics of a while statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
-        let cond_ty = Type::Bool(false);
-        let while_condition =
-            self.cast_expr_to_type(&cond_ty, &while_condition, while_condition.span);
+        let cond_ty = Type::Bool(condition.ty.is_const());
+        let while_condition = self.cast_expr_to_type(&cond_ty, &condition);
 
         semantic::StmtKind::WhileLoop(semantic::WhileLoop {
             span: stmt.span,
-            while_condition,
+            condition: while_condition,
             body,
         })
     }
 
     fn get_semantic_type_from_tydef(
         &mut self,
-        scalar_ty: &syntax::TypeDef,
+        ty: &syntax::TypeDef,
         is_const: bool,
     ) -> crate::semantic::types::Type {
-        match scalar_ty {
+        match ty {
             syntax::TypeDef::Scalar(scalar_type) => {
                 self.get_semantic_type_from_scalar_ty(scalar_type, is_const)
             }
@@ -1166,36 +1477,71 @@ impl Lowerer {
         }
     }
 
-    /// designators are positive integer literals when used
-    /// in the context of a type definition.
-    fn get_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
-        if let syntax::ExprKind::Lit(lit) = expr.kind.as_ref() {
-            if let syntax::LiteralKind::Int(value) = lit.kind {
-                if value > 0 {
-                    if let Ok(value) = u32::try_from(value) {
-                        Some(value)
-                    } else {
-                        self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(lit.span));
-                        None
-                    }
-                } else {
-                    self.push_semantic_error(
-                        SemanticErrorKind::DesignatorMustBePositiveIntLiteral(lit.span),
-                    );
-                    None
-                }
-            } else {
-                self.push_semantic_error(SemanticErrorKind::DesignatorMustBePositiveIntLiteral(
-                    lit.span,
-                ));
-                None
-            }
+    /// Helper function for const evaluating array sizes, type widths, and durations.
+    fn const_eval_designator(&mut self, expr: &syntax::Expr) -> Option<semantic::LiteralKind> {
+        let expr = self.lower_expr(expr);
+        let expr_span = expr.span;
+        let expr = self.cast_expr_with_target_type_or_default(
+            Some(expr),
+            &Type::UInt(None, true),
+            expr_span,
+        );
+
+        if let Some(lit) = expr.const_eval(&self.symbols) {
+            Some(lit)
         } else {
-            self.push_semantic_error(SemanticErrorKind::DesignatorMustBePositiveIntLiteral(
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "designator".to_string(),
                 expr.span,
             ));
             None
         }
+    }
+
+    fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
+        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
+            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        if val < 0 {
+            self.push_semantic_error(SemanticErrorKind::ArraySizeMustBeNonNegativeConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        let Ok(val) = u32::try_from(val) else {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+            return None;
+        };
+
+        Some(val)
+    }
+
+    fn const_eval_type_width_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
+        let semantic::LiteralKind::Int(val) = self.const_eval_designator(expr)? else {
+            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        if val < 1 {
+            self.push_semantic_error(SemanticErrorKind::TypeWidthMustBePositiveIntConstExpr(
+                expr.span,
+            ));
+            return None;
+        };
+
+        let Ok(val) = u32::try_from(val) else {
+            self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
+            return None;
+        };
+
+        Some(val)
     }
 
     fn get_semantic_type_from_scalar_ty(
@@ -1206,11 +1552,11 @@ impl Lowerer {
         match &scalar_ty.kind {
             syntax::ScalarTypeKind::Bit(bit_type) => match &bit_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::BitArray(
-                        super::types::ArrayDimensions::One(size),
+                        super::types::ArrayDimensions::from(size),
                         is_const,
                     )
                 }
@@ -1218,7 +1564,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Int(int_type) => match &int_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Int(Some(size), is_const)
@@ -1227,7 +1573,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::UInt(uint_type) => match &uint_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::UInt(Some(size), is_const)
@@ -1236,7 +1582,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Float(float_type) => match &float_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Float(Some(size), is_const)
@@ -1246,7 +1592,8 @@ impl Lowerer {
             syntax::ScalarTypeKind::Complex(complex_type) => match &complex_type.base_size {
                 Some(float_type) => match &float_type.size {
                     Some(size) => {
-                        let Some(size) = self.get_size_designator_from_expr(size) else {
+                        let Some(size) = self.const_eval_type_width_designator_from_expr(size)
+                        else {
                             return crate::semantic::types::Type::Err;
                         };
                         crate::semantic::types::Type::Complex(Some(size), is_const)
@@ -1257,7 +1604,7 @@ impl Lowerer {
             },
             syntax::ScalarTypeKind::Angle(angle_type) => match &angle_type.size {
                 Some(size) => {
-                    let Some(size) = self.get_size_designator_from_expr(size) else {
+                    let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
                     crate::semantic::types::Type::Angle(Some(size), is_const)
@@ -1291,22 +1638,33 @@ impl Lowerer {
         );
         crate::semantic::types::Type::Err
     }
-    fn lower_expr_with_target_type(
+
+    fn cast_expr_with_target_type_or_default(
         &mut self,
-        expr: Option<&syntax::Expr>,
+        expr: Option<semantic::Expr>,
         ty: &Type,
         span: Span,
     ) -> semantic::Expr {
-        let Some(expr) = expr else {
+        let Some(mut rhs) = expr else {
             // In OpenQASM, classical variables may be uninitialized, but in Q#,
             // they must be initialized. We will use the default value for the type
             // to initialize the variable.
             return self.get_default_value(ty, span);
         };
-        let rhs = self.lower_expr(expr);
+
         let rhs_ty = rhs.ty.clone();
+
+        // avoid the cast
+        if *ty == rhs_ty {
+            // if the types are the same, we can use the rhs as is
+            return rhs;
+        }
+
         // if we have an exact type match, we can use the rhs as is
         if types_equal_except_const(ty, &rhs_ty) {
+            // Since one the two exprs is non-const, we need to relax
+            // the constness in the returned expr.
+            rhs.ty = rhs.ty.as_non_const();
             return rhs;
         }
 
@@ -1332,17 +1690,19 @@ impl Lowerer {
         // implicit and explicit conversions. We need to cast the rhs to the
         // lhs type, but if that cast fails, we will have already pushed an error
         // and we can't proceed
-        self.cast_expr_to_type(ty, &rhs, span)
+        self.cast_expr_to_type(ty, &rhs)
     }
 
-    fn lower_measure_expr(
-        &mut self,
-        expr: &syntax::MeasureExpr,
-        span: Span,
-    ) -> semantic::MeasureExpr {
-        semantic::MeasureExpr {
-            span,
+    fn lower_measure_expr(&mut self, expr: &syntax::MeasureExpr) -> semantic::Expr {
+        let measurement = semantic::MeasureExpr {
+            span: expr.span,
+            measure_token_span: expr.measure_token_span,
             operand: self.lower_gate_operand(&expr.operand),
+        };
+        semantic::Expr {
+            span: expr.span,
+            kind: Box::new(semantic::ExprKind::Measure(measurement)),
+            ty: Type::Bit(false),
         }
     }
 
@@ -1358,9 +1718,8 @@ impl Lowerer {
             }
         };
         let expr = match ty {
-            Type::Bit(_) | Type::Int(_, _) | Type::UInt(_, _) => {
-                Some(from_lit_kind(LiteralKind::Int(0)))
-            }
+            Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
+            Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
             Type::Angle(_, _) | Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
@@ -1384,10 +1743,19 @@ impl Lowerer {
                 self.push_unsupported_error_message(message, span);
                 None
             }
-            Type::BitArray(_, _) => {
-                self.push_unimplemented_error_message("bit array default value", span);
-                None
-            }
+            Type::BitArray(dims, _) => match dims {
+                ArrayDimensions::One(size) => Some(from_lit_kind(
+                    semantic::LiteralKind::Bitstring(BigInt::ZERO, *size),
+                )),
+                ArrayDimensions::Err => None,
+                _ => {
+                    self.push_unimplemented_error_message(
+                        "multidimensional bit array default value",
+                        span,
+                    );
+                    None
+                }
+            },
             Type::BoolArray(_) => {
                 self.push_unimplemented_error_message("bool array default value", span);
                 None
@@ -1416,16 +1784,12 @@ impl Lowerer {
                 self.push_unimplemented_error_message("uint array default value", span);
                 None
             }
-            Type::Duration(_)
-            | Type::Err
-            | Type::Gate(_, _)
-            | Type::Range
-            | Type::Set
-            | Type::Void => {
+            Type::Duration(_) | Type::Gate(_, _) | Type::Range | Type::Set | Type::Void => {
                 let message = format!("Default values for {ty:?} are unsupported.");
                 self.push_unsupported_error_message(message, span);
                 None
             }
+            Type::Err => None,
         };
         let Some(expr) = expr else {
             return err_expr!(ty.as_const());
@@ -1445,6 +1809,7 @@ impl Lowerer {
         };
         expr
     }
+
     #[allow(clippy::too_many_lines)]
     fn try_coerce_literal_expr_to_type(
         &mut self,
@@ -1475,15 +1840,15 @@ impl Lowerer {
                 // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
                 return Some(semantic::Expr {
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(*value))),
+                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
+                        *value != 0,
+                    ))),
                     ty: lhs_ty.as_const(),
                 });
             } else if let semantic::LiteralKind::Bool(value) = kind {
                 return Some(semantic::Expr {
                     span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                        i64::from(*value),
-                    ))),
+                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value))),
                     ty: lhs_ty.as_const(),
                 });
             }
@@ -1677,14 +2042,9 @@ impl Lowerer {
         }
     }
 
-    fn cast_expr_to_type(
-        &mut self,
-        ty: &Type,
-        expr: &semantic::Expr,
-        span: Span,
-    ) -> semantic::Expr {
-        let Some(cast_expr) = self.try_cast_expr_to_type(ty, expr, span) else {
-            self.push_invalid_cast_error(ty, &expr.ty, span);
+    fn cast_expr_to_type(&mut self, ty: &Type, expr: &semantic::Expr) -> semantic::Expr {
+        let Some(cast_expr) = self.try_cast_expr_to_type(ty, expr) else {
+            self.push_invalid_cast_error(ty, &expr.ty, expr.span);
             return expr.clone();
         };
         cast_expr
@@ -1694,7 +2054,6 @@ impl Lowerer {
         &mut self,
         ty: &Type,
         expr: &semantic::Expr,
-        span: Span,
     ) -> Option<semantic::Expr> {
         if *ty == expr.ty {
             // Base case, we shouldn't have gotten here
@@ -1704,7 +2063,10 @@ impl Lowerer {
         if types_equal_except_const(ty, &expr.ty) {
             if expr.ty.is_const() {
                 // lhs isn't const, but rhs is, we can just return the rhs
-                return Some(expr.clone());
+                let mut expr = expr.clone();
+                // relax constness
+                expr.ty = expr.ty.as_non_const();
+                return Some(expr);
             }
             // the lsh is supposed to be const but is being initialized
             // to a non-const value, we can't allow this
@@ -1740,7 +2102,7 @@ impl Lowerer {
         // the standard library.
         match &expr.ty {
             Type::Angle(_, _) => Self::cast_angle_expr_to_type(ty, expr),
-            Type::Bit(_) => self.cast_bit_expr_to_type(ty, expr, span),
+            Type::Bit(_) => self.cast_bit_expr_to_type(ty, expr),
             Type::Bool(_) => Self::cast_bool_expr_to_type(ty, expr),
             Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
             Type::Float(_, _) => Self::cast_float_expr_to_type(ty, expr),
@@ -1774,24 +2136,19 @@ impl Lowerer {
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -   | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    fn cast_bit_expr_to_type(
-        &mut self,
-        ty: &Type,
-        rhs: &semantic::Expr,
-        span: Span,
-    ) -> Option<semantic::Expr> {
+    fn cast_bit_expr_to_type(&mut self, ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Bit(..)));
         // There is no operand, choosing the span of the node
         // but we could use the expr span as well.
         match ty {
             &Type::Angle(..) => {
                 let msg = "Cast bit to angle";
-                self.push_unimplemented_error_message(msg, span);
+                self.push_unimplemented_error_message(msg, rhs.span);
                 None
             }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
-                // casts to other types that case to float. For now, we'll
+                // casts to other types that cast to float. For now, we'll
                 // say it is invalid like the spec.
                 None
             }
@@ -1921,7 +2278,7 @@ impl Lowerer {
             let (ty, lhs_uint_promotion, rhs_uint_promotion) =
                 promote_to_uint_ty(&left_type, &right_type);
             let Some(ty) = ty else {
-                let target_ty = Type::UInt(None, false);
+                let target_ty = Type::UInt(None, left_type.is_const() && right_type.is_const());
                 if lhs_uint_promotion.is_none() {
                     let target_str: String = format!("{target_ty:?}");
                     let kind = SemanticErrorKind::CannotCast(
@@ -1955,10 +2312,10 @@ impl Lowerer {
             };
             // Now that we know the effective Uint type, we can cast the lhs and rhs
             // so that operations can be performed on them.
-            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span);
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs);
             // only cast the rhs if the operator requires symmetric conversion
             let new_rhs = if Self::binop_requires_bitwise_symmetric_conversion(op) {
-                self.cast_expr_to_type(&ty, &rhs, rhs.span)
+                self.cast_expr_to_type(&ty, &rhs)
             } else {
                 rhs
             };
@@ -1975,7 +2332,7 @@ impl Lowerer {
                 ty,
             };
 
-            let final_expr = self.cast_expr_to_type(&left_type, &expr, span);
+            let final_expr = self.cast_expr_to_type(&left_type, &expr);
             return final_expr;
         }
 
@@ -1986,15 +2343,17 @@ impl Lowerer {
         // Q# has built-in functions: IntAsDouble, IntAsBigInt to handle two cases.
         // If the width of a float is greater than 64, we can't represent it as a double.
 
+        let ty_constness = lhs.ty.is_const() && rhs.ty.is_const();
+
         let (lhs, rhs, ty) = if matches!(op, syntax::BinOp::AndL | syntax::BinOp::OrL) {
-            let ty = Type::Bool(false);
-            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span);
-            let new_rhs = self.cast_expr_to_type(&ty, &rhs, rhs.span);
+            let ty = Type::Bool(ty_constness);
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs);
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (new_lhs, new_rhs, ty)
         } else if binop_requires_int_conversion_for_type(op, &left_type, &rhs.ty) {
-            let ty = Type::Int(None, false);
-            let new_lhs = self.cast_expr_to_type(&ty, &lhs, lhs.span);
-            let new_rhs = self.cast_expr_to_type(&ty, &rhs, lhs.span);
+            let ty = Type::Int(None, ty_constness);
+            let new_lhs = self.cast_expr_to_type(&ty, &lhs);
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (new_lhs, new_rhs, ty)
         } else if requires_symmetric_conversion(op) {
             let promoted_type = try_promote_with_casting(&left_type, &right_type);
@@ -2008,10 +2367,10 @@ impl Lowerer {
                         {
                             self.coerce_literal_expr_to_type(&promoted_type, &lhs, kind)
                         } else {
-                            self.cast_expr_to_type(&promoted_type, &lhs, lhs.span)
+                            self.cast_expr_to_type(&promoted_type, &lhs)
                         }
                     }
-                    _ => self.cast_expr_to_type(&promoted_type, &lhs, lhs.span),
+                    _ => self.cast_expr_to_type(&promoted_type, &lhs),
                 }
             };
             let new_right = if promoted_type == right_type {
@@ -2024,16 +2383,16 @@ impl Lowerer {
                         {
                             self.coerce_literal_expr_to_type(&promoted_type, &rhs, kind)
                         } else {
-                            self.cast_expr_to_type(&promoted_type, &rhs, rhs.span)
+                            self.cast_expr_to_type(&promoted_type, &rhs)
                         }
                     }
-                    _ => self.cast_expr_to_type(&promoted_type, &rhs, rhs.span),
+                    _ => self.cast_expr_to_type(&promoted_type, &rhs),
                 }
             };
             (new_left, new_right, promoted_type)
         } else if binop_requires_symmetric_int_conversion(op) {
-            let ty = Type::Int(None, false);
-            let new_rhs = self.cast_expr_to_type(&ty, &rhs, rhs.span);
+            let ty = Type::Int(None, ty_constness);
+            let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (lhs, new_rhs, left_type)
         } else {
             (lhs, rhs, left_type)
@@ -2082,7 +2441,7 @@ impl Lowerer {
             | semantic::BinOp::Lt
             | semantic::BinOp::Lte
             | semantic::BinOp::Neq
-            | semantic::BinOp::OrL => Type::Bool(false),
+            | semantic::BinOp::OrL => Type::Bool(ty_constness),
             _ => ty,
         };
         let mut expr = expr;
@@ -2302,10 +2661,27 @@ impl Lowerer {
 
     #[allow(clippy::unused_self)]
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
-        match operand {
-            syntax::GateOperand::IndexedIdent(_)
-            | syntax::GateOperand::HardwareQubit(_)
-            | syntax::GateOperand::Err => semantic::GateOperand::Err,
+        let kind = match &operand.kind {
+            syntax::GateOperandKind::IndexedIdent(indexed_ident) => {
+                semantic::GateOperandKind::Expr(Box::new(
+                    self.lower_indexed_ident_expr(indexed_ident),
+                ))
+            }
+            syntax::GateOperandKind::HardwareQubit(hw) => {
+                semantic::GateOperandKind::HardwareQubit(Self::lower_hardware_qubit(hw))
+            }
+            syntax::GateOperandKind::Err => semantic::GateOperandKind::Err,
+        };
+        semantic::GateOperand {
+            span: operand.span,
+            kind,
+        }
+    }
+
+    fn lower_hardware_qubit(hw: &syntax::HardwareQubit) -> semantic::HardwareQubit {
+        semantic::HardwareQubit {
+            span: hw.span,
+            name: hw.name.clone(),
         }
     }
 
@@ -2419,5 +2795,28 @@ fn get_identifier_name(identifier: &syntax::Identifier) -> std::rc::Rc<str> {
     match identifier {
         syntax::Identifier::Ident(ident) => ident.name.clone(),
         syntax::Identifier::IndexedIdent(ident) => ident.name.name.clone(),
+    }
+}
+
+fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
+    gate_name: S,
+    name_span: Span,
+) -> Option<(String, semantic::QuantumGateModifier)> {
+    use semantic::GateModifierKind::*;
+
+    let make_modifier = |kind| semantic::QuantumGateModifier {
+        span: name_span,
+        kind,
+    };
+
+    // ch, crx, cry, crz, sdg, and tdg
+    match gate_name.as_ref() {
+        "ch" => Some(("H".to_string(), make_modifier(Ctrl(1)))),
+        "crx" => Some(("Rx".to_string(), make_modifier(Ctrl(1)))),
+        "cry" => Some(("Ry".to_string(), make_modifier(Ctrl(1)))),
+        "crz" => Some(("Rz".to_string(), make_modifier(Ctrl(1)))),
+        "sdg" => Some(("S".to_string(), make_modifier(Inv))),
+        "tdg" => Some(("T".to_string(), make_modifier(Inv))),
+        _ => None,
     }
 }
