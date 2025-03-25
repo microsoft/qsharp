@@ -26,7 +26,6 @@ import {
 // The playground Katas viewer uses the Markdown version of the katas
 import { Kata, getAllKatas } from "qsharp-lang/katas-md";
 
-import { Nav } from "./nav.js";
 import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
@@ -48,6 +47,7 @@ import {
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
 import { setRenderer } from "qsharp-lang/ux";
+import { SideMenu } from "./menu/side-menu";
 
 const md = markdownIt("commonmark");
 md.use((mk as any).default, {
@@ -113,10 +113,6 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
-  const [sidebar, setSidebar] = useState(true);
-
-  const toggleSidebar = () => setSidebar(!sidebar);
-
   const onRestartCompiler = () => {
     compiler.terminate();
     const newCompiler = createCompiler(setCompilerState);
@@ -163,39 +159,13 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-      <header class="page-header">
-        <div class="icon-row">
-          <svg
-            onClick={toggleSidebar}
-            width="32px"
-            height="32px"
-            viewBox="0 0 24 16"
-            fill="none"
-          >
-            <title>Menu</title>
-            <path
-              d="M4 6H20M4 12H20M4 18H20"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <div class="title-header">Q# playground</div>
-      </header>
-      <div
-        class={`qs-play-body ${sidebar ? "nav-column-open" : "nav-column-closed"}`}
-      >
-        <Nav
-          selected={currentNavItem}
-          navSelected={onNavItemSelected}
-          katas={kataTitles}
-          samples={sampleTitles}
-          namespaces={getNamespaces(documentation)}
-          sidebarOpen={sidebar}
-        ></Nav>
-      </div>
+      <SideMenu
+        selected={currentNavItem}
+        navSelected={onNavItemSelected}
+        katas={kataTitles}
+        samples={sampleTitles}
+        namespaces={getNamespaces(documentation)}
+      />
       {sampleCode ? (
         <>
           <Editor
