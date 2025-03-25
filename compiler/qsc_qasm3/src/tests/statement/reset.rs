@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compiler::compile_anon_with_config,
-    tests::{fail_on_compilation_errors, gen_qsharp},
+    tests::{compile_with_config, fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
@@ -31,7 +30,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
         Some("Test".into()),
         None,
     );
-    let unit = compile_anon_with_config(source, config).map_err(|e| vec![e])?;
+    let unit = compile_with_config(source, config)?;
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![

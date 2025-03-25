@@ -13,8 +13,7 @@ mod qubit;
 mod unsigned_integer;
 
 use crate::{
-    compiler::compile_anon_with_config,
-    tests::{compile_fragments, fail_on_compilation_errors},
+    tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 
@@ -65,7 +64,7 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
         None,
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     println!("{:?}", unit.errors);
     assert_eq!(unit.errors.len(), 5);
     for error in &unit.errors {
@@ -95,7 +94,7 @@ fn stretch() {
         None,
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     assert!(unit.has_errors());
     println!("{:?}", unit.errors);
     assert!(unit.errors.len() == 2);

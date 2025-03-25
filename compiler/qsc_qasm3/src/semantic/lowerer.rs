@@ -1386,15 +1386,6 @@ impl Lowerer {
         let target_ty = Type::Int(None, target.ty.is_const());
         let target = self.cast_expr_to_type(&target_ty, &target);
 
-        // It is a parse error to have a switch statement with no cases,
-        // even if the default block is present. Getting here means the
-        // parser is broken or they changed the grammar.
-        if cases.is_empty() {
-            self.push_semantic_error(SemanticErrorKind::SwitchStatementMustHaveAtLeastOneCase(
-                stmt.span,
-            ));
-        }
-
         // We push a semantic error on switch statements if version is less than 3.1,
         // as they were introduced in 3.1.
         if let Some(ref version) = self.version {
