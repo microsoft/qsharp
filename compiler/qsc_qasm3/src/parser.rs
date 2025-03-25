@@ -110,14 +110,14 @@ fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> miette::Result<QasmParseResult>
+pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmParseResult
 where
     S: AsRef<str>,
     P: AsRef<Path>,
     R: SourceResolver,
 {
-    let res = parse_qasm_source(source, path, resolver)?;
-    Ok(QasmParseResult::new(res))
+    let res = parse_qasm_source(source, path, resolver);
+    QasmParseResult::new(res)
 }
 
 /// Creates a Q# source map from a QASM parse output. The `QasmSource`
@@ -230,38 +230,54 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<P, R>(path: P, resolver: &R) -> miette::Result<QasmSource>
+fn parse_qasm_file<P, R>(path: P, resolver: &R) -> QasmSource
 where
     P: AsRef<Path>,
     R: SourceResolver,
 {
-    let (path, source) = resolver.resolve(&path)?;
-    parse_qasm_source(source, path, resolver)
+    match resolver.resolve(&path) {
+        Ok((path, source)) => parse_qasm_source(source, path, resolver),
+        Err(e) => {
+            let error = crate::parser::error::ErrorKind::IO(e);
+            let error = crate::parser::Error(error, None);
+            QasmSource {
+                path: path.as_ref().to_owned(),
+                source: Default::default(),
+                program: Program {
+                    span: Span::default(),
+                    statements: vec![].into_boxed_slice(),
+                    version: None,
+                },
+                errors: vec![error],
+                included: vec![],
+            }
+        }
+    }
 }
 
-fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &R) -> miette::Result<QasmSource>
+fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmSource
 where
     S: AsRef<str>,
     P: AsRef<Path>,
     R: SourceResolver,
 {
-    let (program, errors, includes) = parse_source_and_includes(source.as_ref(), resolver)?;
-    Ok(QasmSource::new(source, path, program, errors, includes))
+    let (program, errors, includes) = parse_source_and_includes(source.as_ref(), resolver);
+    QasmSource::new(source, path, program, errors, includes)
 }
 
 fn parse_source_and_includes<P: AsRef<str>, R>(
     source: P,
     resolver: &R,
-) -> miette::Result<(Program, Vec<Error>, Vec<QasmSource>)>
+) -> (Program, Vec<Error>, Vec<QasmSource>)
 where
     R: SourceResolver,
 {
-    let (program, errors) = parse(source.as_ref())?;
-    let included = parse_includes(&program, resolver)?;
-    Ok((program, errors, included))
+    let (program, errors) = parse(source.as_ref());
+    let included = parse_includes(&program, resolver);
+    (program, errors, included)
 }
 
-fn parse_includes<R>(program: &Program, resolver: &R) -> miette::Result<Vec<QasmSource>>
+fn parse_includes<R>(program: &Program, resolver: &R) -> Vec<QasmSource>
 where
     R: SourceResolver,
 {
@@ -274,12 +290,12 @@ where
             if file_path.to_lowercase() == "stdgates.inc" {
                 continue;
             }
-            let source = parse_qasm_file(file_path, resolver)?;
+            let source = parse_qasm_file(file_path, resolver);
             includes.push(source);
         }
     }
 
-    Ok(includes)
+    includes
 }
 
 pub(crate) type Result<T> = std::result::Result<T, crate::parser::error::Error>;
@@ -288,8 +304,9 @@ pub(crate) trait Parser<T>: FnMut(&mut ParserContext) -> Result<T> {}
 
 impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 
-pub fn parse(input: &str) -> Result<(Program, Vec<Error>)> {
+#[must_use]
+pub fn parse(input: &str) -> (Program, Vec<Error>) {
     let mut scanner = ParserContext::new(input);
-    let program = prgm::parse(&mut scanner)?;
-    Ok((program, scanner.into_errors()))
+    let program = prgm::parse(&mut scanner);
+    (program, scanner.into_errors())
 }

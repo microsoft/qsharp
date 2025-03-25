@@ -24,8 +24,10 @@ where
     P: AsRef<Path>,
 {
     let resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver.resolve(path.as_ref()).map_err(|e| vec![e])?.1;
-    let res = crate::parser::parse_source(source, path, &resolver).map_err(|e| vec![e])?;
+    let (path, source) = resolver
+        .resolve(path.as_ref())
+        .map_err(|e| vec![Report::new(e)])?;
+    let res = crate::parser::parse_source(source, path, &resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -43,7 +45,7 @@ where
     S: AsRef<str>,
 {
     let resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
-    let res = parse_source(source, "test", &resolver).map_err(|e| vec![e])?;
+    let res = parse_source(source, "test", &resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()

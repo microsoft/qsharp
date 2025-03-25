@@ -15,12 +15,12 @@ use super::ast::{Program, Stmt, StmtKind, Version};
 use super::ParserContext;
 
 /// Grammar: `version? statementOrScope* EOF`.
-pub(super) fn parse(s: &mut ParserContext) -> Result<Program> {
+pub(super) fn parse(s: &mut ParserContext) -> Program {
     let lo = s.peek().span.lo;
-    let version = opt(s, parse_version)?;
-    let stmts = parse_top_level_nodes(s)?;
+    let version = opt(s, parse_version).unwrap_or_default();
+    let stmts = parse_top_level_nodes(s).unwrap_or_default();
 
-    Ok(Program {
+    Program {
         span: s.span(lo),
         version,
         statements: stmts
@@ -28,7 +28,7 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Program> {
             .map(Box::new)
             .collect::<Vec<_>>()
             .into_boxed_slice(),
-    })
+    }
 }
 
 /// Grammar: `OPENQASM VersionSpecifier SEMICOLON`.

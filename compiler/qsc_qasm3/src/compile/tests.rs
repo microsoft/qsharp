@@ -18,7 +18,7 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
         ("source2.qasm".into(), source2.into()),
     ];
 
-    let unit = compile_all_fragments("source0.qasm", all_sources).map_err(|e| vec![e])?;
+    let unit = compile_all_fragments("source0.qasm", all_sources)?;
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());
     Ok(())
@@ -39,7 +39,7 @@ fn including_stdgates_multiple_times_causes_symbol_redifintion_errors(
         ("source2.qasm".into(), source2.into()),
     ];
 
-    let unit = compile_all_fragments("source0.qasm", all_sources).map_err(|e| vec![e])?;
+    let unit = compile_all_fragments("source0.qasm", all_sources)?;
     assert!(unit.has_errors());
     for error in unit.errors() {
         assert!(error.to_string().contains("Redefined symbol: "));

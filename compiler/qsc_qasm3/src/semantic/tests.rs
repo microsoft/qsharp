@@ -30,8 +30,10 @@ where
     P: AsRef<Path>,
 {
     let resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver.resolve(path.as_ref()).map_err(|e| vec![e])?.1;
-    let res = parse_source(source, path, &resolver).map_err(|e| vec![e])?;
+    let (path, source) = resolver
+        .resolve(path.as_ref())
+        .map_err(|e| vec![Report::new(e)])?;
+    let res = parse_source(source, path, &resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -49,7 +51,7 @@ where
     S: AsRef<str>,
 {
     let resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
-    let res = parse_source(source, "test", &resolver).map_err(|e| vec![e])?;
+    let res = parse_source(source, "test", &resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -138,9 +140,7 @@ fn check_map<S>(
     S: AsRef<str>,
 {
     let resolver = InMemorySourceResolver::from_iter([("test".into(), input.as_ref().into())]);
-    let res = parse_source(input, "test", &resolver)
-        .map_err(|e| vec![e])
-        .expect("failed to parse");
+    let res = parse_source(input, "test", &resolver);
 
     let errors = res.all_errors();
 
@@ -188,9 +188,7 @@ fn check_map_all<P>(
         .map_err(|e| vec![e])
         .expect("could not load source")
         .1;
-    let res = parse_source(source, path, &resolver)
-        .map_err(|e| vec![e])
-        .expect("failed to parse");
+    let res = parse_source(source, path, &resolver);
 
     let errors = res.all_errors();
 

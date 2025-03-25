@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use crate::{
-    compiler::compile_anon_with_config,
     tests::{fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
@@ -10,7 +9,7 @@ use expect_test::expect;
 use miette::Report;
 use qsc::target::Profile;
 
-use super::compile_qasm_to_qir;
+use super::{compile_qasm_to_qir, compile_with_config};
 
 #[test]
 fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
@@ -36,7 +35,7 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
         Some("Test".into()),
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -84,7 +83,7 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
         Some("Test".into()),
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -132,7 +131,7 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
         Some("Test".into()),
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
@@ -187,7 +186,7 @@ c2[2] = measure q[4];
         Some("Test".into()),
         None,
     );
-    let unit = compile_anon_with_config(source, config).expect("parse failed");
+    let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
     let package = unit.package.expect("no package found");
     let qsharp = gen_qsharp(&package.clone());

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{path::Path, rc::Rc, sync::Arc};
+use std::{path::Path, rc::Rc};
 
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
@@ -25,7 +25,6 @@ use crate::{
         build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
         wrap_expr_in_parens,
     },
-    io::{InMemorySourceResolver, SourceResolver},
     parser::ast::{list_from_iter, List},
     runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
@@ -45,48 +44,12 @@ use crate::{
 use crate::semantic::ast as semast;
 use qsc_ast::ast::{self as qsast, NodeId, Package};
 
-pub fn compile_anon_with_config<S>(
-    source: S,
-    config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit>
-where
-    S: AsRef<str>,
-{
-    let path = std::path::PathBuf::from("Test.qasm");
-    let sources = [(
-        Arc::from(path.display().to_string().as_str()),
-        Arc::from(source.as_ref()),
-    )];
-    let resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver.resolve(&path)?.1;
-    compile_with_config(source, &path, &resolver, config)
-}
-
-pub fn compile_all_with_config<P>(
-    path: P,
-    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-    config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit>
-where
-    P: AsRef<Path>,
-{
-    let resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver.resolve(path.as_ref())?.1;
-    compile_with_config(source, path, &resolver, config)
-}
-
-pub fn compile_with_config<S, P, R>(
-    source: S,
-    path: P,
-    resolver: &R,
-    config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit>
+pub fn compile_with_config<S, P>(source: S, path: P, config: CompilerConfig) -> QasmCompileUnit
 where
     S: AsRef<str>,
     P: AsRef<Path>,
-    R: SourceResolver,
 {
-    let res = crate::semantic::parse_source(source, path, resolver)?;
+    let res = crate::semantic::parse(source, path);
     let program = res.program;
 
     let compiler = crate::compiler::QasmCompiler {
@@ -98,7 +61,7 @@ where
         errors: res.errors,
     };
 
-    Ok(compiler.compile(&program))
+    compiler.compile(&program)
 }
 
 pub struct QasmCompiler {
