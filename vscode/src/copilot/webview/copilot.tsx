@@ -293,6 +293,26 @@ function StatusIndicator({ status }: { status: Status }) {
         </>
       ) : status.status === "assistantConnectionError" ? (
         "There was an error communicating with Azure Quantum Copilot. Please check your Internet connection and try again."
+      ) : status.status === "awaitingConfirmation" ? (
+        <>
+          <div>{status.confirmText}</div>
+          <div>
+            <button
+              type="button"
+              class="confirm-button"
+              onClick={() => submitConfirmation(true)}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              class="confirm-button"
+              onClick={() => submitConfirmation(false)}
+            >
+              No
+            </button>
+          </div>
+        </>
       ) : (
         ""
       )}
@@ -464,6 +484,10 @@ function submitUserMessage(content: string) {
   });
 }
 
+function submitConfirmation(confirmed: boolean) {
+  postMessageToExtension({ command: "confirmation", confirmed });
+}
+
 /**
  * Copilot command to restart the chat with a new history.
  * The service backend can be changed here as well.
@@ -514,6 +538,12 @@ function onMessage(event: MessageEvent<CopilotUpdate>) {
       model.status = message.payload.status;
       model.debugUi = message.payload.debugUi;
       vscodeApi.setState(message.payload.history);
+      break;
+    case "showConfirmation":
+      model.status = {
+        status: "awaitingConfirmation",
+        confirmText: message.payload.confirmText,
+      };
       break;
     default:
       console.error("Unknown message kind: ", (message as any).kind);

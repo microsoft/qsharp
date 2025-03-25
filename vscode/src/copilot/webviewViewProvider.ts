@@ -13,7 +13,7 @@ import {
   window,
 } from "vscode";
 import { Copilot, CopilotUpdateHandler } from "./copilot";
-import { CopilotCommand } from "./shared";
+import { CopilotCommand, CopilotUpdate } from "./shared";
 import { qsharpExtensionId } from "../common";
 
 export function registerCopilotPanel(context: ExtensionContext): void {
@@ -34,12 +34,40 @@ export function registerCopilotPanel(context: ExtensionContext): void {
   );
 }
 
-class CopilotWebviewViewProvider implements WebviewViewProvider {
+export class CopilotWebviewViewProvider implements WebviewViewProvider {
   public static readonly viewType = "quantum-copilot";
+
+  // The below two static properties are for tools to ask the current panel to show
+  // a confirmation prompt, and to call the tool back with the result.
+  // The Copilot webview is a singleton, and only one confirmation prompt can be shown at a time,
+  // so this avoid having to traffic state for the current webview etc. around to the tools.
+  public static current: CopilotWebviewViewProvider | undefined;
+  public static confirmationResolver:
+    | undefined
+    | ((confirmed: boolean) => void);
 
   private view?: WebviewView;
 
-  constructor(private readonly extensionUri: Uri) {}
+  constructor(private readonly extensionUri: Uri) {
+    CopilotWebviewViewProvider.current = this;
+  }
+
+  public static async getConfirmation(confirmText: string): Promise<boolean> {
+    const view = CopilotWebviewViewProvider.current?.view;
+    if (!view) throw "Quantum Copilot panel is unavailable";
+
+    const confirmationPromise = new Promise<boolean>((resolver) => {
+      CopilotWebviewViewProvider.confirmationResolver = resolver;
+      const msg: CopilotUpdate = {
+        kind: "showConfirmation",
+        payload: { confirmText },
+      };
+
+      view.webview.postMessage(msg);
+    });
+
+    return confirmationPromise;
+  }
 
   private copilot: Copilot | undefined;
   private _streamCallback: CopilotUpdateHandler | undefined;
@@ -124,6 +152,14 @@ class CopilotWebviewViewProvider implements WebviewViewProvider {
         this.copilot.restartChat(message.history, message.service);
         break;
       }
+      case "confirmation": {
+        CopilotWebviewViewProvider.confirmationResolver?.(message.confirmed);
+        CopilotWebviewViewProvider.confirmationResolver = undefined;
+        break;
+      }
+      default:
+        log.error("Unknown message from webview: ", message);
+        break;
     }
   }
 }
