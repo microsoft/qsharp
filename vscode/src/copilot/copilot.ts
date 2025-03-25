@@ -21,6 +21,7 @@ import { OpenAIChatService } from "./openAiChatService";
 import { getRandomGuid } from "../utils";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { knownToolNameOrDefault } from "./azqTools";
+import { commands } from "vscode";
 
 export class Copilot {
   private service: IChatService;
@@ -59,7 +60,14 @@ export class Copilot {
     }
     this.messages.push({ role: "user", content: userMessage });
 
-    await this.completeChat();
+    // Set the context so the 'clear' command is disabled when processing a response.
+    await commands.executeCommand("setContext", `qdkCopilotIsBusy`, true);
+    try {
+      await this.completeChat();
+    } finally {
+      // Reset the busy context when the chat is done.
+      await commands.executeCommand("setContext", `qdkCopilotIsBusy`, false);
+    }
   }
 
   /**

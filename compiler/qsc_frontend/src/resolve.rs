@@ -1626,9 +1626,11 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
-            // If the namespace is `Main`, we treat it as the root of the package, so there's no
-            // namespace prefix.
-            let global_namespace = if global.namespace.len() == 1 && &*global.namespace[0] == "Main"
+            // If the namespace is `Main` and we have an alias, we treat it as the root of the package, so there's no
+            // namespace prefix between the dependency alias and the defined items.
+            let global_namespace = if global.namespace.len() == 1
+                && &*global.namespace[0] == "Main"
+                && alias.is_some()
             {
                 vec![]
             } else {
@@ -2309,7 +2311,7 @@ fn find_symbol_in_namespace<O>(
         return;
     }
 
-    // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
+    // Attempt to get the symbol from the global scope.
     let res = namespace.and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
     // If a symbol was found, insert it into the candidates map

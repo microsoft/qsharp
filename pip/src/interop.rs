@@ -558,6 +558,7 @@ fn create_interpreter_from_ast(
     let source_package_id = store.insert(unit);
 
     interpret::Interpreter::from(
+        false,
         store,
         source_package_id,
         capabilities,

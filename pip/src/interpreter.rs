@@ -89,8 +89,8 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -100,6 +100,7 @@ pub(crate) enum TargetProfile {
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
+    #[default]
     Base,
     /// Target supports the Adaptive profile with the integer computation extension.
     ///
@@ -122,6 +123,32 @@ pub(crate) enum TargetProfile {
 
 #[pymethods]
 impl TargetProfile {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::Base,
+            1 => Self::Adaptive_RI,
+            2 => Self::Adaptive_RIF,
+            3 => Self::Unrestricted,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
+
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __str__(&self) -> String {
         Into::<Profile>::into(*self).to_str().to_owned()
@@ -162,8 +189,8 @@ impl From<TargetProfile> for Profile {
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy, PartialEq)]
-#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// Represents the output semantics for OpenQASM 3 compilation.
 /// Each has implications on the output of the compilation
@@ -173,6 +200,7 @@ pub(crate) enum OutputSemantics {
     /// is all of the classical registers, in reverse order
     /// in which they were added to the circuit with each
     /// bit within each register in reverse order.
+    #[default]
     Qiskit,
     /// [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
     /// - If the programmer provides one or more `output` declarations, then
@@ -182,6 +210,34 @@ pub(crate) enum OutputSemantics {
     OpenQasm,
     /// No output semantics are applied. The entry point returns `Unit`.
     ResourceEstimation,
+}
+
+#[pymethods]
+impl OutputSemantics {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::Qiskit,
+            1 => Self::OpenQasm,
+            2 => Self::ResourceEstimation,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
 }
 
 impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
@@ -195,8 +251,8 @@ impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, PartialEq)]
-#[pyclass(eq)]
+#[derive(Clone, Copy, Default, PartialEq)]
+#[pyclass(eq, eq_int, module = "qsharp._native")]
 #[allow(non_camel_case_types)]
 /// Represents the type of compilation output to create
 pub enum ProgramType {
@@ -204,6 +260,7 @@ pub enum ProgramType {
     /// file. Inputs are lifted to the operation params. Output are lifted to
     /// the operation return type. The operation is marked as `@EntryPoint`
     /// as long as there are no input parameters.
+    #[default]
     File,
     /// Programs are compiled to a standalone function. Inputs are lifted to
     /// the operation params. Output are lifted to the operation return type.
@@ -213,6 +270,34 @@ pub enum ProgramType {
     /// imported into the current scope.
     /// This is also useful for testing individual statements compilation.
     Fragments,
+}
+
+#[pymethods]
+impl ProgramType {
+    #[new]
+    // We need to define `new` so that instances of `TargetProfile` can be created by Python
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    // called and the returned object is pickled as the contents for the instance
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn __getstate__(&self) -> PyResult<isize> {
+        Ok(self.__pyo3__int__())
+    }
+
+    // called with the unpickled state and the instance is updated in place
+    // This is what requires `new` to be implemented as we can't hydrate an
+    // unininitialized instance in Python.
+    fn __setstate__(&mut self, state: i32) -> PyResult<()> {
+        (*self) = match state {
+            0 => Self::File,
+            1 => Self::Operation,
+            2 => Self::Fragments,
+            _ => return Err(PyValueError::new_err("invalid state")),
+        };
+        Ok(())
+    }
 }
 
 impl From<ProgramType> for qsc::qasm3::ProgramType {
@@ -598,7 +683,7 @@ impl Interpreter {
             source,
             &operation_name,
             &resolver,
-            program_type.clone(),
+            program_type,
             output_semantics,
             false,
         )?;
