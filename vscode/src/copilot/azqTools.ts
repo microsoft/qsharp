@@ -411,7 +411,9 @@ async function submitToTarget(
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
-  const confirmed = await CopilotView.getConfirmation("Confirm job submission");
+  const confirmed = await CopilotView.getConfirmation(
+    `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+  );
   if (!confirmed) {
     return { result: "Job submission was cancelled by the user" };
   }
