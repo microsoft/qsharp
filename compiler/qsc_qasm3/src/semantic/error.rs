@@ -380,3 +380,9 @@ impl SemanticErrorKind {
         }
     }
 }
+
+impl From<Error> for crate::Error {
+    fn from(val: Error) -> Self {
+        crate::Error(crate::ErrorKind::Semantic(val))
+    }
+}
