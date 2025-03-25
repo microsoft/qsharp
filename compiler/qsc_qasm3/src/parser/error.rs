@@ -137,6 +137,9 @@ pub enum ErrorKind {
     #[error("multiple index operators are only allowed in assignments")]
     #[diagnostic(code("Qasm3.Parse.MultipleIndexOperators"))]
     MultipleIndexOperators(#[label] Span),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    IO(#[from] crate::io::Error),
 }
 
 impl ErrorKind {
@@ -160,6 +163,13 @@ impl ErrorKind {
             Self::GPhaseInvalidArguments(span) => Self::GPhaseInvalidArguments(span + offset),
             Self::InvalidGateCallDesignator(span) => Self::InvalidGateCallDesignator(span + offset),
             Self::MultipleIndexOperators(span) => Self::MultipleIndexOperators(span + offset),
+            Self::IO(error) => Self::IO(error),
         }
+    }
+}
+
+impl From<Error> for crate::Error {
+    fn from(val: Error) -> Self {
+        crate::Error(crate::ErrorKind::Parser(val))
     }
 }

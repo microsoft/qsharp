@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
 use crate::parser::QasmSource;
 
@@ -90,29 +91,37 @@ impl QasmSemanticParseResult {
     }
 }
 
+pub(crate) fn parse<S, P>(source: S, path: P) -> QasmSemanticParseResult
+where
+    S: AsRef<str>,
+    P: AsRef<Path>,
+{
+    let resolver = InMemorySourceResolver::from_iter([(
+        path.as_ref().display().to_string().into(),
+        source.as_ref().into(),
+    )]);
+    parse_source(source, path, &resolver)
+}
+
 /// Parse a QASM file and return the parse result.
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(
-    source: S,
-    path: P,
-    resolver: &R,
-) -> miette::Result<QasmSemanticParseResult>
+pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmSemanticParseResult
 where
     S: AsRef<str>,
     P: AsRef<Path>,
     R: SourceResolver,
 {
-    let res = crate::parser::parse_source(source, path, resolver)?;
+    let res = crate::parser::parse_source(source, path, resolver);
     let analyzer = Lowerer::new(res.source, res.source_map);
     let sem_res = analyzer.lower();
     let errors = sem_res.all_errors();
-    Ok(QasmSemanticParseResult {
+    QasmSemanticParseResult {
         source: sem_res.source,
         source_map: sem_res.source_map,
         symbols: sem_res.symbols,
         program: sem_res.program,
         errors,
-    })
+    }
 }
