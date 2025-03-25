@@ -42,7 +42,8 @@ h1 {
   justify-content: flex-end;
   flex-wrap: wrap;
   align-content: center;
-  height: 28px;
+  align-items: center;
+  margin: 0.6em 0;
   font-style: italic;
   font-size: 0.9em;
 }
@@ -94,7 +95,7 @@ h1 {
 .user-message,
 .assistant-message {
   padding: 0 16px;
-  margin-bottom: 16px;
+  margin-top: 16px;
   border: 1px solid #ccc;
   border-radius: 0.5em;
 }
@@ -168,7 +169,7 @@ pre code {
 
 .histogram-container {
   width: 100%;
-  margin-bottom: 10px;
+  margin-top: 1em;
 }
 
 /* If not specified it defaults to the 'pre code' default monospace font  */
@@ -340,4 +341,17 @@ code.hljs {
   font-size: 0.8em;
   color: gray;
   margin-top: 0.8em;
+}
+
+.confirm-button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 4px;
+  padding: 0.3em 0.6em;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+  margin-left: 0.6em;
+  margin-right: 0;
+  cursor: pointer;
 }
