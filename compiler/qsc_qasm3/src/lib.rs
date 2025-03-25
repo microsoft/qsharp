@@ -9,6 +9,7 @@ mod ast_builder;
 mod compile;
 mod compiler;
 pub use compile::qasm_to_program;
+pub use compiler::compile_with_config;
 pub mod io;
 mod keyword;
 mod lex;
@@ -64,6 +65,9 @@ impl Error {
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
 pub enum ErrorKind {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    IO(#[from] crate::io::Error),
     #[error("QASM3 Parse Error: {0}")]
     Parse(String, #[label] Span),
     #[error(transparent)]
@@ -75,17 +79,18 @@ pub enum ErrorKind {
     #[error("QASM3 Parse Error: Not Found {0}")]
     NotFound(String),
     #[error("IO Error: {0}")]
-    IO(String),
+    OldIO(String),
 }
 
 impl ErrorKind {
     fn with_offset(self, offset: u32) -> Self {
         match self {
+            ErrorKind::IO(error) => Self::IO(error),
             ErrorKind::Parse(error, span) => Self::Parse(error, span + offset),
             ErrorKind::Parser(error) => Self::Parser(error.with_offset(offset)),
             ErrorKind::Semantic(error) => Self::Semantic(error.with_offset(offset)),
             ErrorKind::NotFound(error) => Self::NotFound(error),
-            ErrorKind::IO(error) => Self::IO(error),
+            ErrorKind::OldIO(error) => Self::OldIO(error),
         }
     }
 }

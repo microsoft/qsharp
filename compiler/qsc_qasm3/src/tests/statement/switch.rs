@@ -47,7 +47,7 @@ fn default_as_only_case_causes_parse_error() {
         panic!("Expected an error, got {res:?}");
     };
     assert_eq!(errors.len(), 1);
-    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+    expect!["missing switch statement cases"].assert_eq(&errors[0].to_string());
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn no_cases_causes_parse_error() {
         panic!("Expected an error, got {res:?}");
     };
     assert_eq!(errors.len(), 1);
-    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+    expect!["missing switch statement cases"].assert_eq(&errors[0].to_string());
 }
 
 #[test]
