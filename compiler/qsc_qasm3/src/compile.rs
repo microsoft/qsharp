@@ -2318,8 +2318,10 @@ impl QasmCompiler {
         };
 
         Some(ast_builder::build_for_stmt(
-            &loop_var_symbol,
-            iterable,
+            &loop_var_symbol.name,
+            loop_var_symbol.span,
+            &loop_var_symbol.qsharp_ty,
+            iterable.expr,
             body,
             stmt_span,
         ))

@@ -1186,8 +1186,10 @@ fn wrap_ty_in_array(ty: Ty) -> Ty {
 }
 
 pub(crate) fn build_for_stmt(
-    loop_var: &crate::symbols::Symbol,
-    iter: crate::types::QasmTypedExpr,
+    loop_var_name: &str,
+    loop_var_span: Span,
+    loop_var_qsharp_ty: &crate::types::Type,
+    iter: Expr,
     body: Block,
     stmt_span: Span,
 ) -> Stmt {
@@ -1197,15 +1199,15 @@ pub(crate) fn build_for_stmt(
                 Box::new(Pat {
                     kind: Box::new(PatKind::Bind(
                         Box::new(Ident {
-                            name: loop_var.name.clone().into(),
-                            span: loop_var.span,
+                            name: loop_var_name.into(),
+                            span: loop_var_span,
                             ..Default::default()
                         }),
-                        Some(Box::new(map_qsharp_type_to_ast_ty(&loop_var.qsharp_ty))),
+                        Some(Box::new(map_qsharp_type_to_ast_ty(loop_var_qsharp_ty))),
                     )),
                     ..Default::default()
                 }),
-                Box::new(iter.expr),
+                Box::new(iter),
                 Box::new(body),
             )),
             span: stmt_span,

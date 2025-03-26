@@ -11,15 +11,16 @@ use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
         build_binary_expr, build_cast_call, build_cast_call_two_params, build_classical_decl,
-        build_complex_from_expr, build_convert_call_expr, build_expr_array_expr,
-        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
+        build_complex_from_expr, build_convert_call_expr, build_expr_array_expr, build_for_stmt,
+        build_gate_call_param_expr, build_gate_call_with_params_and_callee, build_gate_decl_lambda,
+        build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
         build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
         build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_reset_call,
-        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
+        build_reset_call, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
         build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
         build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
@@ -353,7 +354,7 @@ impl QasmCompiler {
         let name = &symbol.name;
 
         let stmt_span = stmt.span;
-        let name_span = stmt.name_span;
+        let name_span = stmt.lhs_span;
 
         let rhs = self.compile_expr(&stmt.rhs)?;
         let stmt = build_assignment_statement(name_span, name, rhs, stmt_span);
@@ -402,8 +403,11 @@ impl QasmCompiler {
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("assignment op statements", stmt.span);
-        None
+        let lhs = self.compile_expr(&stmt.lhs)?;
+        let rhs = self.compile_expr(&stmt.rhs)?;
+        let qsop = Self::map_bin_op(stmt.op);
+        let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_barrier_stmt(&mut self, stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
@@ -506,13 +510,45 @@ impl QasmCompiler {
     }
 
     fn compile_for_stmt(&mut self, stmt: &semast::ForStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("for statements", stmt.span);
-        None
+        let loop_var = self.symbols[stmt.loop_variable].clone();
+        let iterable = self.compile_enumerable_set(&stmt.set_declaration)?;
+        let body = self.compile_block(&Self::stmt_as_block(&stmt.body));
+
+        Some(build_for_stmt(
+            &loop_var.name,
+            loop_var.span,
+            &loop_var.qsharp_ty,
+            iterable,
+            body,
+            stmt.span,
+        ))
     }
 
     fn compile_if_stmt(&mut self, stmt: &semast::IfStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("if statements", stmt.span);
-        None
+        let condition = self.compile_expr(&stmt.condition)?;
+        let then_block = self.compile_block(&Self::stmt_as_block(&stmt.if_body));
+        let else_block = stmt
+            .else_body
+            .as_ref()
+            .map(|stmt| self.compile_block(&Self::stmt_as_block(stmt)));
+
+        let if_expr = if let Some(else_block) = else_block {
+            build_if_expr_then_block_else_block(condition, then_block, else_block, stmt.span)
+        } else {
+            build_if_expr_then_block(condition, then_block, stmt.span)
+        };
+
+        Some(build_stmt_semi_from_expr(if_expr))
+    }
+
+    fn stmt_as_block(stmt: &semast::Stmt) -> semast::Block {
+        match &*stmt.kind {
+            semast::StmtKind::Block(block) => *block.to_owned(),
+            _ => semast::Block {
+                span: stmt.span,
+                stmts: list_from_iter([stmt.clone()]),
+            },
+        }
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
@@ -611,8 +647,22 @@ impl QasmCompiler {
 
     fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
         self.runtime |= RuntimeFunctions::Gphase;
-        self.push_unimplemented_error_message("gphase statements", stmt.span);
-        None
+        let (symbol_id, _) = self
+            .symbols
+            .get_symbol_by_name("gphase")
+            .expect("gphase should be defined");
+
+        let gate_call_stmt = semast::GateCall {
+            span: stmt.span,
+            modifiers: stmt.modifiers.clone(),
+            symbol_id,
+            args: stmt.args.clone(),
+            qubits: stmt.qubits.clone(),
+            duration: stmt.duration.clone(),
+            quantum_arity: stmt.quantum_arity,
+            quantum_arity_with_modifiers: stmt.quantum_arity_with_modifiers,
+        };
+        self.compile_gate_call_stmt(&gate_call_stmt)
     }
 
     fn compile_include_stmt(&mut self, stmt: &semast::IncludeStmt) -> Option<qsast::Stmt> {
@@ -672,8 +722,50 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::QuantumGateDefinition,
     ) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("gate decl statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = symbol.name.clone();
+
+        let cargs: Vec<_> = stmt
+            .params
+            .iter()
+            .map(|arg| {
+                let symbol = self.symbols[*arg].clone();
+                let name = symbol.name.clone();
+                let ast_type = map_qsharp_type_to_ast_ty(&symbol.qsharp_ty);
+                (
+                    name.clone(),
+                    ast_type.clone(),
+                    build_arg_pat(name, symbol.span, ast_type),
+                )
+            })
+            .collect();
+
+        let qargs: Vec<_> = stmt
+            .qubits
+            .iter()
+            .map(|arg| {
+                let symbol = self.symbols[*arg].clone();
+                let name = symbol.name.clone();
+                let ast_type = map_qsharp_type_to_ast_ty(&symbol.qsharp_ty);
+                (
+                    name.clone(),
+                    ast_type.clone(),
+                    build_arg_pat(name, symbol.span, ast_type),
+                )
+            })
+            .collect();
+
+        let body = Some(self.compile_block(&stmt.body));
+
+        Some(build_gate_decl_lambda(
+            name,
+            cargs,
+            qargs,
+            body,
+            symbol.span,
+            stmt.body.span,
+            stmt.span,
+        ))
     }
 
     fn compile_qubit_decl_stmt(&mut self, stmt: &semast::QubitDeclaration) -> Option<qsast::Stmt> {
@@ -977,8 +1069,17 @@ impl QasmCompiler {
     }
 
     fn compile_discrete_set(&mut self, set: &DiscreteSet) -> Option<qsast::Expr> {
-        self.push_unimplemented_error_message("discrete set expressions", set.span);
-        None
+        let expr_list: Vec<_> = set
+            .values
+            .iter()
+            .filter_map(|expr| self.compile_expr(expr))
+            .collect();
+
+        if set.values.len() != expr_list.len() {
+            return None;
+        }
+
+        Some(build_expr_array_expr(expr_list, set.span))
     }
 
     fn compile_index_set(&mut self, set: &IndexSet) -> Option<qsast::Expr> {
@@ -992,6 +1093,46 @@ impl QasmCompiler {
 
         self.push_unsupported_error_message("index set expressions with multiple values", set.span);
         None
+    }
+
+    fn compile_enumerable_set(&mut self, set: &semast::EnumerableSet) -> Option<qsast::Expr> {
+        match set {
+            semast::EnumerableSet::DiscreteSet(set) => self.compile_discrete_set(set),
+            semast::EnumerableSet::Expr(expr) => self.compile_expr(expr),
+            semast::EnumerableSet::RangeDefinition(range) => self.compile_range_expr(range),
+        }
+    }
+
+    fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> Option<qsast::Expr> {
+        let Some(start) = &range.start else {
+            self.push_unimplemented_error_message("omited range start", range.span);
+            return Some(qsast::Expr {
+                span: range.span,
+                ..Default::default()
+            });
+        };
+        let Some(end) = &range.end else {
+            self.push_unimplemented_error_message("omited range end", range.span);
+            return Some(qsast::Expr {
+                span: range.span,
+                ..Default::default()
+            });
+        };
+
+        let start = self.compile_expr(start)?;
+        let end = self.compile_expr(end)?;
+        let step = match range.step.as_ref().map(|expr| self.compile_expr(expr)) {
+            Some(Some(expr)) => Some(expr),
+            Some(None) => {
+                return Some(qsast::Expr {
+                    span: range.span,
+                    ..Default::default()
+                })
+            }
+            None => None,
+        };
+
+        Some(build_range_expr(start, end, step, range.span))
     }
 
     fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> Option<qsast::Expr> {

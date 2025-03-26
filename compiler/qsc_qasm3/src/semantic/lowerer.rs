@@ -269,15 +269,15 @@ impl Lowerer {
         &mut self,
         name: S,
         symbol: Symbol,
-        span: Span,
     ) -> super::symbols::SymbolId
     where
         S: AsRef<str>,
     {
+        let symbol_span = symbol.span;
         let symbol_id = match self.symbols.try_insert_or_get_existing(symbol) {
             Ok(symbol_id) => symbol_id,
             Err(symbol_id) => {
-                self.push_redefined_symbol_error(name.as_ref(), span);
+                self.push_redefined_symbol_error(name.as_ref(), symbol_span);
                 symbol_id
             }
         };
@@ -325,7 +325,7 @@ impl Lowerer {
             IOKind::Default,
         );
 
-        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, alias.ident.span());
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         if rhs.iter().any(|expr| expr.ty != first.ty) {
             let tys = rhs
@@ -382,7 +382,7 @@ impl Lowerer {
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
             symbol_id,
-            name_span: ident.span,
+            lhs_span: ident.span,
             rhs,
             span,
         })
@@ -403,11 +403,12 @@ impl Lowerer {
             .get_indexed_type()
             .expect("we only get here if there is at least one index");
 
-        let indices = index_expr
-            .indices
-            .iter()
-            .map(|index| self.lower_index_element(index));
-        let indices = list_from_iter(indices);
+        let indices = list_from_iter(
+            index_expr
+                .indices
+                .iter()
+                .map(|index| self.lower_index_element(index)),
+        );
 
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
@@ -443,7 +444,18 @@ impl Lowerer {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = &symbol.ty;
+        let indexed_ty = symbol.ty.get_indexed_type();
+        let ty = if let Some(ty) = &indexed_ty {
+            ty
+        } else {
+            &symbol.ty
+        };
+
+        let indices = list_from_iter(
+            lhs.indices
+                .iter()
+                .map(|index| self.lower_index_element(index)),
+        );
 
         if ty.is_const() {
             let kind =
@@ -466,6 +478,7 @@ impl Lowerer {
         semantic::StmtKind::AssignOp(semantic::AssignOpStmt {
             span: stmt.span,
             symbol_id,
+            indices,
             op,
             lhs,
             rhs,
@@ -886,8 +899,7 @@ impl Lowerer {
             None => self.cast_expr_with_target_type_or_default(None, &ty, stmt_span),
         };
 
-        let symbol_id =
-            self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         semantic::StmtKind::ClassicalDecl(semantic::ClassicalDeclarationStmt {
             span: stmt_span,
@@ -923,8 +935,7 @@ impl Lowerer {
             symbol = symbol.with_const_expr(Rc::new(init_expr.clone()));
         }
 
-        let symbol_id =
-            self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.identifier.span);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         if !init_expr.ty.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
@@ -1008,7 +1019,7 @@ impl Lowerer {
         // symbol error.
         let body = self.lower_stmt(&stmt.body);
 
-        // pop the scope where the loop variable lives
+        // Pop the scope where the loop variable lives.
         self.symbols.pop_scope();
 
         semantic::StmtKind::For(semantic::ForStmt {
@@ -1146,6 +1157,87 @@ impl Lowerer {
         // by all the semantic analysis.
     }
 
+    fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
+        // 1. Lower all the fields:
+        //   1.1. Lower the modifiers.
+        let mut modifiers = stmt
+            .modifiers
+            .iter()
+            .filter_map(|modifier| self.lower_modifier(modifier))
+            .collect::<Vec<_>>();
+        // If we couldn't compute the modifiers there is no way to compile the gates
+        // correctly, since we can't check its arity. In this case we return an Err.
+        if modifiers.len() != stmt.modifiers.len() {
+            return semantic::StmtKind::Err;
+        }
+
+        //   1.3. Lower the args.
+        let args = stmt.args.iter().map(|arg| self.lower_expr(arg));
+        let args = list_from_iter(args);
+        //   1.4. Lower the qubits.
+        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
+        let qubits = list_from_iter(qubits);
+        //   1.5. Lower the duration.
+        let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
+
+        if let Some(duration) = &duration {
+            self.push_unsupported_error_message("gate call duration", duration.span);
+        }
+
+        let (classical_arity, quantum_arity) = (1, 0);
+
+        // 2. Check that gate_call classical arity matches the number of classical args.
+        if classical_arity != args.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                classical_arity,
+                args.len(),
+                stmt.span,
+            ));
+        }
+
+        // 3. Check that gate_call quantum arity with modifiers matches the
+        //    number of qubit args.
+        let mut quantum_arity_with_modifiers = quantum_arity;
+        for modifier in &modifiers {
+            match &modifier.kind {
+                semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
+                semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
+                    quantum_arity_with_modifiers += n;
+                }
+            }
+        }
+
+        if quantum_arity_with_modifiers as usize != qubits.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfQubitArgs(
+                quantum_arity_with_modifiers as usize,
+                qubits.len(),
+                stmt.span,
+            ));
+        }
+
+        // 4. Return:
+        //   6.1. All controls made explicit.
+        //   6.2. Classical arg.
+        //   6.3. Quantum args in the order expected by the compiler.
+        modifiers.reverse();
+        let modifiers = list_from_iter(modifiers);
+        semantic::StmtKind::GPhase(semantic::GPhase {
+            span: stmt.span,
+            modifiers,
+            args,
+            qubits,
+            duration,
+            quantum_arity,
+            quantum_arity_with_modifiers,
+        })
+
+        // The compiler will be left to do all things that need explicit Q# knowledge.
+        // But it won't need to check arities, know about implicit modifiers, or do
+        // any casting of classical args. There is still some inherit complexity to
+        // building a Q# gate call with this information, but it won't be cluttered
+        // by all the semantic analysis.
+    }
+
     fn lower_modifier(
         &mut self,
         modifier: &syntax::QuantumGateModifier,
@@ -1206,11 +1298,6 @@ impl Lowerer {
         Some(n)
     }
 
-    fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("gphase stmt", stmt.span);
-        semantic::StmtKind::Err
-    }
-
     /// This function is always a indication of a error. Either the
     /// program is declaring include in a non-global scope or the
     /// include is not handled in `self.lower_source` properly.
@@ -1243,7 +1330,7 @@ impl Lowerer {
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
         let symbol = Symbol::new(&name, stmt.ident.span, ty.clone(), qsharp_ty, io_kind);
 
-        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.ident.span);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         if io_kind == IOKind::Input {
             return semantic::StmtKind::InputDeclaration(semantic::InputDeclaration {
@@ -1287,8 +1374,70 @@ impl Lowerer {
     }
 
     fn lower_gate_def(&mut self, stmt: &syntax::QuantumGateDefinition) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("gate def stmt", stmt.span);
-        semantic::StmtKind::Err
+        // 1. Check that we are in the global scope. QASM3 semantics
+        //    only allow gate definitions in the global scope.
+        if !self.symbols.is_current_scope_global() {
+            let kind = SemanticErrorKind::QuantumDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
+        // 2. Push the gate symbol to the symbol table.
+        #[allow(clippy::cast_possible_truncation)]
+        let classical_arity = stmt.params.len() as u32;
+        #[allow(clippy::cast_possible_truncation)]
+        let quantum_arity = stmt.qubits.len() as u32;
+        let name = stmt.ident.name.clone();
+        let ty = crate::semantic::types::Type::Gate(classical_arity, quantum_arity);
+        let qsharp_ty = crate::types::Type::Callable(
+            crate::types::CallableKind::Operation,
+            classical_arity,
+            quantum_arity,
+        );
+        let symbol = Symbol::new(&name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+
+        // Push the scope where the gate definition lives.
+        self.symbols.push_scope(ScopeKind::Gate);
+
+        let params = stmt
+            .params
+            .iter()
+            .map(|arg| {
+                let ty = crate::semantic::types::Type::Angle(None, false);
+                let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
+                let symbol =
+                    Symbol::new(&arg.name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+                self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
+            })
+            .collect();
+
+        let qubits = stmt
+            .qubits
+            .iter()
+            .map(|arg| {
+                let ty = crate::semantic::types::Type::Qubit;
+                let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
+                let symbol =
+                    Symbol::new(&arg.name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+                self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
+            })
+            .collect();
+
+        let body = semantic::Block {
+            span: stmt.span,
+            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+        };
+
+        // Pop the scope where the gate definition lives.
+        self.symbols.pop_scope();
+
+        semantic::StmtKind::QuantumGateDefinition(semantic::QuantumGateDefinition {
+            span: stmt.span,
+            symbol_id,
+            params,
+            qubits,
+            body,
+        })
     }
 
     fn lower_quantum_decl(&mut self, stmt: &syntax::QubitDeclaration) -> semantic::StmtKind {
@@ -1331,7 +1480,7 @@ impl Lowerer {
             IOKind::Default,
         );
 
-        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol, stmt.qubit.span);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         if let Some((size, size_span)) = size_and_span {
             semantic::StmtKind::QubitArrayDecl(semantic::QubitArrayDeclaration {
@@ -2802,6 +2951,9 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
 
     // ch, crx, cry, crz, sdg, and tdg
     match gate_name.as_ref() {
+        "cx" => Some(("X".to_string(), make_modifier(Ctrl(1)))),
+        "cy" => Some(("Y".to_string(), make_modifier(Ctrl(1)))),
+        "cz" => Some(("Z".to_string(), make_modifier(Ctrl(1)))),
         "ch" => Some(("H".to_string(), make_modifier(Ctrl(1)))),
         "crx" => Some(("Rx".to_string(), make_modifier(Ctrl(1)))),
         "cry" => Some(("Ry".to_string(), make_modifier(Ctrl(1)))),

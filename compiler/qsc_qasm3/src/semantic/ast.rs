@@ -1043,16 +1043,16 @@ impl Display for QubitArrayDeclaration {
 #[derive(Clone, Debug)]
 pub struct QuantumGateDefinition {
     pub span: Span,
-    pub ident: Box<Ident>,
-    pub params: List<Ident>,
-    pub qubits: List<Ident>,
-    pub body: Box<Block>,
+    pub symbol_id: SymbolId,
+    pub params: Box<[SymbolId]>,
+    pub qubits: Box<[SymbolId]>,
+    pub body: Block,
 }
 
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Gate", self.span)?;
-        writeln_field(f, "ident", &self.ident)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
         write_field(f, "body", &self.body)
@@ -1094,8 +1094,8 @@ impl Display for GateCall {
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "args", &self.args)?;
-        writeln_opt_field(f, "duration", self.duration.as_ref())?;
         writeln_list_field(f, "qubits", &self.qubits)?;
+        writeln_opt_field(f, "duration", self.duration.as_ref())?;
         writeln_field(f, "quantum_arity", &self.quantum_arity)?;
         write_field(
             f,
@@ -1112,6 +1112,8 @@ pub struct GPhase {
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
+    pub quantum_arity: u32,
+    pub quantum_arity_with_modifiers: u32,
 }
 
 impl Display for GPhase {
@@ -1119,8 +1121,14 @@ impl Display for GPhase {
         writeln_header(f, "GPhase", self.span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_list_field(f, "args", &self.args)?;
+        writeln_list_field(f, "qubits", &self.qubits)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        write_list_field(f, "qubits", &self.qubits)
+        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
+        write_field(
+            f,
+            "quantum_arity_with_modifiers",
+            &self.quantum_arity_with_modifiers,
+        )
     }
 }
 
@@ -1472,8 +1480,8 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub name_span: Span,
     pub symbol_id: SymbolId,
+    pub lhs_span: Span,
     pub rhs: Expr,
 }
 
@@ -1481,7 +1489,7 @@ impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "name_span", &self.name_span)?;
+        writeln_field(f, "lhs_span", &self.lhs_span)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1507,6 +1515,7 @@ impl Display for IndexedAssignStmt {
 pub struct AssignOpStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub indices: List<IndexElement>,
     pub op: BinOp,
     pub lhs: Expr,
     pub rhs: Expr,
@@ -1516,6 +1525,7 @@ impl Display for AssignOpStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignOpStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_list_field(f, "indices", &self.indices)?;
         writeln_field(f, "op", &self.op)?;
         writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)

@@ -42,7 +42,17 @@ fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![r#""#].assert_eq(&qsharp);
+    expect![[r#"
+        operation gphase(theta : Double) : Unit is Adj + Ctl {
+            body ... {
+                Exp([], theta, [])
+            }
+            adjoint auto;
+            controlled auto;
+            controlled adjoint auto;
+        }
+        gphase(2.);
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
