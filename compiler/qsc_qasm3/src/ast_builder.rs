@@ -843,6 +843,43 @@ pub(crate) fn build_call_with_param(
     }
 }
 
+pub(crate) fn build_call_with_no_params(
+    name: &str,
+    idents: &[&str],
+    name_span: Span,
+    call_span: Span,
+) -> Expr {
+    let segments = build_idents(idents);
+    let fn_name = Ident {
+        name: Rc::from(name),
+        span: name_span,
+        ..Default::default()
+    };
+    let path_expr = Expr {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+            segments,
+            name: Box::new(fn_name),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
+        ..Default::default()
+    };
+    let call = ExprKind::Call(
+        Box::new(path_expr),
+        Box::new(Expr {
+            kind: Box::new(ExprKind::Tuple(Default::default())),
+            span: Default::default(),
+            ..Default::default()
+        }),
+    );
+
+    Expr {
+        id: NodeId::default(),
+        span: call_span,
+        kind: Box::new(call),
+    }
+}
+
 pub(crate) fn build_lit_double_expr(value: f64, span: Span) -> Expr {
     Expr {
         id: NodeId::default(),
@@ -1374,7 +1411,7 @@ pub(crate) fn build_gate_decl(
 }
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
+pub(crate) fn build_lambda<S: AsRef<str>>(
     name: S,
     cargs: Vec<(String, Ty, Pat)>,
     qargs: Vec<(String, Ty, Pat)>,
@@ -1383,6 +1420,7 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     body_span: Span,
     gate_span: Span,
     return_type: Option<Ty>,
+    kind: CallableKind,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1442,7 +1480,7 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     let lambda_expr = Expr {
         id: NodeId::default(),
         kind: Box::new(ExprKind::Lambda(
-            CallableKind::Operation,
+            kind,
             Box::new(input_pat),
             Box::new(block_expr),
         )),
@@ -1468,7 +1506,7 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
 
     let lambda_ty = ast::Ty {
         kind: Box::new(ast::TyKind::Arrow(
-            CallableKind::Operation,
+            kind,
             Box::new(input_ty),
             Box::new(return_type),
             None,

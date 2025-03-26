@@ -1261,6 +1261,7 @@ impl WithSpan for ArrayTypedParameter {
 pub struct DefStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub has_qubit_params: bool,
     pub params: Box<[SymbolId]>,
     pub body: Block,
     pub return_type: Option<crate::types::Type>,
@@ -1270,6 +1271,7 @@ impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DefStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
         write_field(f, "body", &self.body)

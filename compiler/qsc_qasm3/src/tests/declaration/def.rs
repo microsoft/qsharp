@@ -7,11 +7,11 @@ use miette::Report;
 
 #[test]
 fn no_parameters_no_return() -> miette::Result<(), Vec<Report>> {
-    let source = "def square() {}";
+    let source = "def empty() {}";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : () => Unit = () => {};
+        let empty : () -> Unit = () -> {};
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -27,7 +27,7 @@ fn single_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Int) => Int = (x) => {
+        let square : (Int) -> Int = (x) -> {
             return x * x;
         };
     "#]]

@@ -10,14 +10,14 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
-        build_binary_expr, build_call_with_param, build_cast_call, build_cast_call_two_params,
-        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
-        build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
-        build_gate_call_with_params_and_callee, build_gate_decl_lambda, build_if_expr_then_block,
+        build_binary_expr, build_call_with_no_params, build_call_with_param, build_cast_call,
+        build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
+        build_convert_call_expr, build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_if_expr_then_block,
         build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
         build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
-        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_indexed_assignment_statement, build_lambda, build_lit_bigint_expr,
+        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
@@ -31,9 +31,8 @@ use crate::{
     runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, DiscreteSet, Expr, FunctionCall, GateOperand, GateOperandKind,
-            IndexElement, IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit,
-            UnaryOpExpr,
+            BinaryOpExpr, Cast, DiscreteSet, Expr, GateOperand, GateOperandKind, IndexElement,
+            IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{ArrayDimensions, Type},
@@ -499,10 +498,15 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
         let return_type = stmt.return_type.as_ref().map(map_qsharp_type_to_ast_ty);
+        let kind = if stmt.has_qubit_params {
+            qsast::CallableKind::Operation
+        } else {
+            qsast::CallableKind::Function
+        };
 
         // We use the same primitives used for declaring gates, because def declarations
         // in QASM3 can take qubits as arguments and call quantum gates.
-        Some(build_gate_decl_lambda(
+        Some(build_lambda(
             name,
             cargs,
             vec![],
@@ -511,6 +515,7 @@ impl QasmCompiler {
             stmt.body.span,
             stmt.span,
             return_type,
+            kind,
         ))
     }
 
@@ -585,7 +590,7 @@ impl QasmCompiler {
         let symbol = self.symbols[expr.symbol_id].clone();
         let name = &symbol.name;
         let name_span = symbol.span;
-        let operand_span = if expr.args.len() > 0 {
+        if expr.args.len() > 0 {
             let lo = expr.args[0].span.lo;
             let hi = expr
                 .args
@@ -593,19 +598,24 @@ impl QasmCompiler {
                 .expect("there is at least one argument")
                 .span
                 .hi;
-            Span { lo, hi }
+            let operand_span = Span { lo, hi };
+
+            let args: Vec<_> = expr
+                .args
+                .iter()
+                .map(|expr| self.compile_expr(expr))
+                .collect();
+
+            let operand = if args.len() == 1 {
+                args.into_iter().next().expect("there is one argument")
+            } else {
+                build_tuple_expr(args)
+            };
+
+            build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
         } else {
-            Span::default()
-        };
-        let args: Vec<_> = expr
-            .args
-            .iter()
-            .map(|expr| self.compile_expr(expr))
-            .collect();
-
-        let operand = build_tuple_expr(args);
-
-        build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
+            build_call_with_no_params(name, &[], name_span, expr.span)
+        }
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
@@ -784,7 +794,7 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
 
-        Some(build_gate_decl_lambda(
+        Some(build_lambda(
             name,
             cargs,
             qargs,
@@ -793,6 +803,7 @@ impl QasmCompiler {
             stmt.body.span,
             stmt.span,
             None,
+            qsast::CallableKind::Operation,
         ))
     }
 
@@ -947,7 +958,9 @@ impl QasmCompiler {
             semast::ExprKind::Lit(literal_kind) => {
                 self.compile_literal_expr(literal_kind, expr.span)
             }
-            semast::ExprKind::FunctionCall(function_call) => self.compile_call_expr(function_call),
+            semast::ExprKind::FunctionCall(function_call) => {
+                self.compile_function_call_expr(function_call)
+            }
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
@@ -1058,11 +1071,6 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_call_expr(&mut self, call: &FunctionCall) -> qsast::Expr {
-        self.push_unimplemented_error_message("function call expresssions", call.span);
-        err_expr(call.span)
-    }
-
     fn compile_cast_expr(&mut self, cast: &Cast) -> qsast::Expr {
         let expr = self.compile_expr(&cast.expr);
         let cast_expr = match cast.expr.ty {
@@ -1148,10 +1156,6 @@ impl QasmCompiler {
             .iter()
             .map(|expr| self.compile_expr(expr))
             .collect();
-
-        if set.values.len() != expr_list.len() {
-            return err_expr(set.span);
-        }
 
         build_expr_array_expr(expr_list, set.span)
     }

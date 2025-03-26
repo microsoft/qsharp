@@ -958,14 +958,35 @@ impl Lowerer {
             self.push_semantic_error(kind);
         }
 
+        let (return_ty, qsharp_return_ty) = if let Some(ty) = &stmt.return_type {
+            let ty_span = ty.span;
+            let tydef = syntax::TypeDef::Scalar(*ty.clone());
+            let ty = self.get_semantic_type_from_tydef(&tydef, false);
+            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
+            (Some(ty), Some(qsharp_ty))
+        } else {
+            (None, None)
+        };
+
         // 2. Push the function symbol to the symbol table.
         #[allow(clippy::cast_possible_truncation)]
         let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(arity);
-        let qsharp_ty =
-            crate::types::Type::Callable(crate::types::CallableKind::Function, arity, 0);
+        let ty = crate::semantic::types::Type::Function(arity, return_ty.map(Box::new));
+
+        let has_qubit_params = stmt
+            .params
+            .iter()
+            .any(|arg| matches!(&**arg, syntax::TypedParameter::Quantum(..)));
+
+        let kind = if has_qubit_params {
+            crate::types::CallableKind::Operation
+        } else {
+            crate::types::CallableKind::Function
+        };
+
+        let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
 
         let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
@@ -991,19 +1012,13 @@ impl Lowerer {
         // Pop the scope where the def lives.
         self.symbols.pop_scope();
 
-        let return_type = stmt.return_type.as_ref().map(|ty| {
-            let ty_span = ty.span;
-            let tydef = syntax::TypeDef::Scalar(*ty.clone());
-            let ty = self.get_semantic_type_from_tydef(&tydef, false);
-            self.convert_semantic_type_to_qsharp_type(&ty, ty_span)
-        });
-
         semantic::StmtKind::Def(semantic::DefStmt {
             span: stmt.span,
             symbol_id,
+            has_qubit_params,
             params,
             body,
-            return_type,
+            return_type: qsharp_return_ty,
         })
     }
 
@@ -1158,21 +1173,25 @@ impl Lowerer {
         let name_span = expr.name.span;
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
 
-        let arity = if let Type::Function(arity) = &symbol.ty {
-            *arity
+        let return_ty = if let Type::Function(arity, return_ty) = &symbol.ty {
+            // 2. Check that function classical arity matches the number of classical args.
+            if *arity as usize != args.len() {
+                self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                    *arity as usize,
+                    args.len(),
+                    expr.span,
+                ));
+            }
+
+            if let Some(ty) = return_ty {
+                *ty.clone()
+            } else {
+                crate::semantic::types::Type::Err
+            }
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
-            0
+            crate::semantic::types::Type::Err
         };
-
-        // 2. Check that function classical arity matches the number of classical args.
-        if arity as usize != args.len() {
-            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                arity as usize,
-                args.len(),
-                expr.span,
-            ));
-        }
 
         let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
             span: expr.span,
@@ -1183,7 +1202,7 @@ impl Lowerer {
         semantic::Expr {
             span: expr.span,
             kind,
-            ty: symbol.ty.clone(),
+            ty: return_ty,
         }
     }
 
@@ -1296,88 +1315,21 @@ impl Lowerer {
         // by all the semantic analysis.
     }
 
+    /// This is just syntax sugar around a gate call.
     fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
-        // 1. Lower all the fields:
-        //   1.1. Lower the modifiers.
-        let mut modifiers = stmt
-            .modifiers
-            .iter()
-            .filter_map(|modifier| self.lower_modifier(modifier))
-            .collect::<Vec<_>>();
-        // If we couldn't compute the modifiers there is no way to compile the gates
-        // correctly, since we can't check its arity. In this case we return an Err.
-        if modifiers.len() != stmt.modifiers.len() {
-            return semantic::StmtKind::Err;
-        }
-
-        //   1.3. Lower the args.
-        let args = stmt.args.iter().map(|arg| self.lower_expr(arg));
-        let args = list_from_iter(args);
-        //   1.4. Lower the qubits.
-        let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
-        let qubits = list_from_iter(qubits);
-        //   1.5. Lower the duration.
-        let duration = stmt.duration.as_ref().map(|d| self.lower_expr(d));
-
-        if let Some(duration) = &duration {
-            self.push_unsupported_error_message("gate call duration", duration.span);
-        }
-
-        let (classical_arity, quantum_arity) = (1, 0);
-
-        // 2. Check that gate_call classical arity matches the number of classical args.
-        if classical_arity != args.len() {
-            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                classical_arity,
-                args.len(),
-                stmt.span,
-            ));
-        }
-
-        // 3. Check that gate_call quantum arity with modifiers matches the
-        //    number of qubit args.
-        let mut quantum_arity_with_modifiers = quantum_arity;
-        for modifier in &modifiers {
-            match &modifier.kind {
-                semantic::GateModifierKind::Inv | semantic::GateModifierKind::Pow(_) => (),
-                semantic::GateModifierKind::Ctrl(n) | semantic::GateModifierKind::NegCtrl(n) => {
-                    quantum_arity_with_modifiers += n;
-                }
-            }
-        }
-
-        if quantum_arity_with_modifiers as usize != qubits.len() {
-            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfQubitArgs(
-                quantum_arity_with_modifiers as usize,
-                qubits.len(),
-                stmt.span,
-            ));
-        }
-
-        let (symbol_id, _) = self.try_get_existing_or_insert_err_symbol("gphase", Span::default());
-
-        // 4. Return:
-        //   6.1. All controls made explicit.
-        //   6.2. Classical arg.
-        //   6.3. Quantum args in the order expected by the compiler.
-        modifiers.reverse();
-        let modifiers = list_from_iter(modifiers);
-        semantic::StmtKind::GateCall(semantic::GateCall {
+        let name = syntax::Ident {
+            span: stmt.gphase_token_span,
+            name: "gphase".into(),
+        };
+        let gate_call_stmt = syntax::GateCall {
             span: stmt.span,
-            modifiers,
-            symbol_id,
-            args,
-            qubits,
-            duration,
-            classical_arity: 1,
-            quantum_arity,
-        })
-
-        // The compiler will be left to do all things that need explicit Q# knowledge.
-        // But it won't need to check arities, know about implicit modifiers, or do
-        // any casting of classical args. There is still some inherit complexity to
-        // building a Q# gate call with this information, but it won't be cluttered
-        // by all the semantic analysis.
+            modifiers: stmt.modifiers.clone(),
+            name,
+            args: stmt.args.clone(),
+            qubits: stmt.qubits.clone(),
+            duration: stmt.duration.clone(),
+        };
+        self.lower_gate_call_stmt(&gate_call_stmt)
     }
 
     fn lower_modifier(
@@ -2078,7 +2030,7 @@ impl Lowerer {
             }
             Type::Duration(_)
             | Type::Gate(_, _)
-            | Type::Function(_)
+            | Type::Function(..)
             | Type::Range
             | Type::Set
             | Type::Void => {
