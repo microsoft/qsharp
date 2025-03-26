@@ -563,7 +563,8 @@ impl QasmCompiler {
         let args: Vec<_> = stmt.args.iter().map(|arg| self.compile_expr(arg)).collect();
 
         // Take the number of qubit args that the gates expects from the source qubits.
-        let gate_qubits = qubits.split_off(qubits.len() - stmt.quantum_arity as usize);
+        let gate_qubits =
+            qubits.split_off(qubits.len().saturating_sub(stmt.quantum_arity as usize));
         // Then merge the classical args with the qubit args. This will give
         // us the args for the call prior to wrapping in tuples for controls.
         let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
@@ -596,7 +597,7 @@ impl QasmCompiler {
                         self.push_semantic_error(kind);
                         return None;
                     }
-                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     args = build_tuple_expr(vec![ctrls, args]);
                     callee = build_unary_op_expr(
@@ -616,7 +617,7 @@ impl QasmCompiler {
                         self.push_semantic_error(kind);
                         return None;
                     }
-                    let ctrl = qubits.split_off(qubits.len() - *num_ctrls as usize);
+                    let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     let lit_0 = build_lit_int_expr(0, Span::default());
                     args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
@@ -624,12 +625,6 @@ impl QasmCompiler {
                         build_path_ident_expr("ApplyControlledOnInt", modifier.span, stmt.span);
                 }
             }
-        }
-
-        // This should never be reached, since semantic analysis during lowering
-        // makes sure the arities match.
-        if !qubits.is_empty() {
-            return None;
         }
 
         let expr = build_gate_call_with_params_and_callee(args, callee, stmt.span);
@@ -650,8 +645,8 @@ impl QasmCompiler {
             args: stmt.args.clone(),
             qubits: stmt.qubits.clone(),
             duration: stmt.duration.clone(),
+            classical_arity: 1u32,
             quantum_arity: stmt.quantum_arity,
-            quantum_arity_with_modifiers: stmt.quantum_arity_with_modifiers,
         };
         self.compile_gate_call_stmt(&gate_call_stmt)
     }

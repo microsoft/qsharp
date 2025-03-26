@@ -52,7 +52,8 @@ fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
             controlled adjoint auto;
         }
         gphase(2.);
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -193,4 +194,56 @@ fn barrier_can_be_called_on_two_qubit() -> miette::Result<(), Vec<Report>> {
     ]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn cx_called_with_one_qubit_generates_error() {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[2] q;
+        cx q[0];
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.InvalidNumberOfQubitArgs
+
+          x Gate expects 2 qubit arguments, but 1 were provided.
+           ,-[Test.qasm:4:9]
+         3 |         qubit[2] q;
+         4 |         cx q[0];
+           :         ^^^^^^^^
+         5 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn cx_called_with_too_many_qubits_generates_error() {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] q;
+        cx q[0], q[1], q[2];
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.InvalidNumberOfQubitArgs
+
+          x Gate expects 2 qubit arguments, but 3 were provided.
+           ,-[Test.qasm:4:9]
+         3 |         qubit[3] q;
+         4 |         cx q[0], q[1], q[2];
+           :         ^^^^^^^^^^^^^^^^^^^^
+         5 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
 }

@@ -1146,8 +1146,8 @@ impl Lowerer {
             args,
             qubits,
             duration,
+            classical_arity,
             quantum_arity,
-            quantum_arity_with_modifiers,
         })
 
         // The compiler will be left to do all things that need explicit Q# knowledge.
@@ -2951,7 +2951,6 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
 
     // ch, crx, cry, crz, sdg, and tdg
     match gate_name.as_ref() {
-        "cx" => Some(("X".to_string(), make_modifier(Ctrl(1)))),
         "cy" => Some(("Y".to_string(), make_modifier(Ctrl(1)))),
         "cz" => Some(("Z".to_string(), make_modifier(Ctrl(1)))),
         "ch" => Some(("H".to_string(), make_modifier(Ctrl(1)))),

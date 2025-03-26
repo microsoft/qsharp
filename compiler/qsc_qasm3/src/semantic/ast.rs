@@ -1084,8 +1084,8 @@ pub struct GateCall {
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
+    pub classical_arity: u32,
     pub quantum_arity: u32,
-    pub quantum_arity_with_modifiers: u32,
 }
 
 impl Display for GateCall {
@@ -1096,12 +1096,8 @@ impl Display for GateCall {
         writeln_list_field(f, "args", &self.args)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
-        write_field(
-            f,
-            "quantum_arity_with_modifiers",
-            &self.quantum_arity_with_modifiers,
-        )
+        writeln_field(f, "classical_arity", &self.classical_arity)?;
+        write_field(f, "quantum_arity", &self.quantum_arity)
     }
 }
 
