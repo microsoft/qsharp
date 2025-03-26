@@ -1373,7 +1373,7 @@ pub(crate) fn build_gate_decl(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     name: S,
     cargs: Vec<(String, Ty, Pat)>,
@@ -1417,10 +1417,18 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         })
         .map(Box::new)
         .collect::<Vec<_>>();
-    let input_pat = ast::Pat {
-        kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
-        span: Span { lo, hi },
-        ..Default::default()
+    let input_pat = if args.len() == 1 {
+        ast::Pat {
+            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
+            span: Span { lo, hi },
+            ..Default::default()
+        }
+    } else {
+        ast::Pat {
+            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
+            span: Span { lo, hi },
+            ..Default::default()
+        }
     };
 
     let block_expr = build_wrapped_block_expr(body.map_or_else(
@@ -1441,11 +1449,17 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         span: gate_span,
     };
     let ty_args = args.iter().map(|(_, ty, _)| ty.clone()).collect::<Vec<_>>();
-    let input_ty = ast::Ty {
-        kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
-        ..Default::default()
+    let input_ty = if args.len() == 1 {
+        ast::Ty {
+            kind: Box::new(ast::TyKind::Paren(Box::new(ty_args[0].clone()))),
+            ..Default::default()
+        }
+    } else {
+        ast::Ty {
+            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
+            ..Default::default()
+        }
     };
-
     let return_type = if let Some(ty) = return_type {
         ty
     } else {

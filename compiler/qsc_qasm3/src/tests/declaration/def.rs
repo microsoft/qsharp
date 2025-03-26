@@ -27,7 +27,7 @@ fn single_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Int, ) => Int = (x, ) => {
+        let square : (Int) => Int = (x) => {
             return x * x;
         };
     "#]]
@@ -45,7 +45,7 @@ fn qubit_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Qubit, ) => Int = (q, ) => {
+        let square : (Qubit) => Int = (q) => {
             return 1;
         };
     "#]]

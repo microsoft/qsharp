@@ -613,6 +613,9 @@ impl QasmCompiler {
         if symbol.name == "U" {
             self.runtime |= RuntimeFunctions::U;
         }
+        if symbol.name == "gphase" {
+            self.runtime |= RuntimeFunctions::Gphase;
+        }
         let mut qubits: Vec<_> = stmt
             .qubits
             .iter()
@@ -929,14 +932,10 @@ impl QasmCompiler {
 
     fn compile_expr(&mut self, expr: &semast::Expr) -> qsast::Expr {
         match expr.kind.as_ref() {
-            semast::ExprKind::Err => {
-                // todo: determine if we should push an error here
-                // Are we going to allow trying to compile a program with semantic errors?
-                qsast::Expr {
-                    span: expr.span,
-                    ..Default::default()
-                }
-            }
+            semast::ExprKind::Err => qsast::Expr {
+                span: expr.span,
+                ..Default::default()
+            },
             semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
                 self.compile_indexed_ident_expr(indexed_ident)
