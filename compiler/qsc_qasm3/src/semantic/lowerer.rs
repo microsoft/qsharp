@@ -398,10 +398,8 @@ impl Lowerer {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let indexed_ty = &symbol
-            .ty
-            .get_indexed_type()
-            .expect("we only get here if there is at least one index");
+        let indexed_ty =
+            &self.get_indexed_type(&symbol.ty, index_expr.name.span, index_expr.indices.len());
 
         let indices = list_from_iter(
             index_expr
@@ -444,13 +442,11 @@ impl Lowerer {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let indexed_ty = symbol.ty.get_indexed_type();
-        let ty = if let Some(ty) = &indexed_ty {
-            ty
-        } else {
+        let ty = if lhs.indices.len() == 0 {
             &symbol.ty
+        } else {
+            &self.get_indexed_type(&symbol.ty, lhs.name.span, lhs.indices.len())
         };
-
         let indices = list_from_iter(
             lhs.indices
                 .iter()
