@@ -567,8 +567,8 @@ impl Interpreter {
         })
     }
 
-    // Invokes the given callable with the given arguments using the current environment and compilation but with a fresh
-    // simulator configured with the given noise, if any.
+    // Invokes the given callable with the given arguments using the current compilation but with a fresh
+    // environment and simulator configured with the given noise, if any.
     pub fn invoke_with_noise(
         &mut self,
         receiver: &mut impl Receiver,
@@ -580,24 +580,7 @@ impl Interpreter {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
         };
-        qsc_eval::invoke(
-            self.package,
-            self.classical_seed,
-            &self.fir_store,
-            &mut self.env,
-            &mut sim,
-            receiver,
-            callable,
-            args,
-        )
-        .map_err(|(error, call_stack)| {
-            eval_error(
-                self.compiler.package_store(),
-                &self.fir_store,
-                call_stack,
-                error,
-            )
-        })
+        self.invoke_with_sim(&mut sim, receiver, callable, args)
     }
 
     /// Runs the given entry expression on a new instance of the environment and simulator,

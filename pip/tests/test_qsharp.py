@@ -431,7 +431,21 @@ def test_run_with_result(capsys) -> None:
 
 def test_run_with_result_from_callable(capsys) -> None:
     qsharp.init()
-    qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
+def test_run_with_result_from_callable_while_global_qubits_allocated(capsys) -> None:
+    qsharp.init()
+    qsharp.eval("use q = Qubit();")
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
     results = qsharp.run(qsharp.code.Foo, 3)
     assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
     stdout = capsys.readouterr().out
