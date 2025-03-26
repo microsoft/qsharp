@@ -447,7 +447,13 @@ pub trait FileSystemAsync {
                         .expect("File should have name")
                         .to_string_lossy()
                         .to_string();
-                    contents = Arc::from(circuits_to_qsharp(name, contents.to_string()));
+                    contents = match circuits_to_qsharp(name, contents.to_string()) {
+                        Ok(c) => Ok(Arc::from(c)),
+                        Err(e) => Err(Error::FileSystem {
+                            about_path: path.to_string_lossy().to_string(),
+                            error: e.to_string(),
+                        }),
+                    }?;
                 }
             }
             sources.push((name, contents));

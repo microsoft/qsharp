@@ -151,6 +151,15 @@ export function getLanguageServiceWorker(
   return createProxy(worker, wasmModule, languageServiceProtocol);
 }
 
+// Converts a circuit file (in JSON format) to its Q# equivalent.
+export async function circuitsToQSharp(
+  fileName: string,
+  circuitsJson: string,
+): Promise<string> {
+  await instantiateWasm();
+  return wasm.circuits_to_qsharp(fileName, circuitsJson);
+}
+
 export { StepResultId } from "../lib/web/qsc_wasm.js";
 export type {
   IBreakpointSpan,

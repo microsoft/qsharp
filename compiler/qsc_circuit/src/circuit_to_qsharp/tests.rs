@@ -13,7 +13,10 @@ fn check(contents: &str, expect: &Expect) {
 }
 
 fn check_circuit_group(contents: &str, expect: &Expect) {
-    let actual = circuits_to_qsharp("Test".to_string(), contents.to_string());
+    let actual = match circuits_to_qsharp("Test".to_string(), contents.to_string()) {
+        Ok(circuit) => circuit,
+        Err(e) => e,
+    };
     expect.assert_eq(&actual);
 }
 
