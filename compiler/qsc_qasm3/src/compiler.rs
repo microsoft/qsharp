@@ -14,9 +14,9 @@ use crate::{
         build_complex_from_expr, build_convert_call_expr, build_expr_array_expr, build_for_stmt,
         build_gate_call_param_expr, build_gate_call_with_params_and_callee, build_gate_decl_lambda,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
-        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
-        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
+        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_bigint_expr,
+        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
@@ -44,6 +44,16 @@ use crate::{
 
 use crate::semantic::ast as semast;
 use qsc_ast::ast::{self as qsast, NodeId, Package};
+
+/// Helper to create an error expression. Used when we fail to
+/// compile an expression. It is assumed that an error was
+/// already reported.
+fn err_expr(span: Span) -> qsast::Expr {
+    qsast::Expr {
+        span,
+        ..Default::default()
+    }
+}
 
 pub fn compile_with_config<S, P>(source: S, path: P, config: CompilerConfig) -> QasmCompileUnit
 where
@@ -356,7 +366,7 @@ impl QasmCompiler {
         let stmt_span = stmt.span;
         let name_span = stmt.lhs_span;
 
-        let rhs = self.compile_expr(&stmt.rhs)?;
+        let rhs = self.compile_expr(&stmt.rhs);
         let stmt = build_assignment_statement(name_span, name, rhs, stmt_span);
 
         Some(stmt)
@@ -371,7 +381,7 @@ impl QasmCompiler {
         let indices: Vec<_> = stmt
             .indices
             .iter()
-            .filter_map(|elem| self.compile_index_element(elem))
+            .map(|elem| self.compile_index_element(elem))
             .collect();
 
         let rhs = self.compile_expr(&stmt.rhs);
@@ -388,8 +398,7 @@ impl QasmCompiler {
             return None;
         }
 
-        // Use the `?` operator after compiling checking all other errors.
-        let (rhs, index_expr) = (rhs?, indices[0].clone());
+        let index_expr = indices[0].clone();
 
         let stmt = build_indexed_assignment_statement(
             symbol.span,
@@ -403,26 +412,16 @@ impl QasmCompiler {
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
-        let lhs = self.compile_expr(&stmt.lhs)?;
-        let rhs = self.compile_expr(&stmt.rhs)?;
+        let lhs = self.compile_expr(&stmt.lhs);
+        let rhs = self.compile_expr(&stmt.rhs);
         let qsop = Self::map_bin_op(stmt.op);
         let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
         Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_barrier_stmt(&mut self, stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
-        let qubits: Vec<_> = stmt
-            .qubits
-            .iter()
-            .filter_map(|q| self.compile_gate_operand(q))
-            .collect();
-
-        if stmt.qubits.len() != qubits.len() {
-            // if any of the qubit arguments failed to compile we can't proceed.
-            // This can happen if the qubit is not defined.
-            return None;
-        }
-
+        // we don't support barrier, but we can insert a runtime function
+        // which will generate a barrier call in QIR
         self.runtime.insert(RuntimeFunctions::Barrier);
         Some(build_barrier_call(stmt.span))
     }
@@ -471,7 +470,7 @@ impl QasmCompiler {
         let qsharp_ty = &symbol.qsharp_ty;
         let expr = decl.init_expr.as_ref();
 
-        let expr = self.compile_expr(expr)?;
+        let expr = self.compile_expr(expr);
         let stmt = build_classical_decl(
             name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
         );
@@ -500,7 +499,7 @@ impl QasmCompiler {
     }
 
     fn compile_expr_stmt(&mut self, stmt: &semast::ExprStmt) -> Option<qsast::Stmt> {
-        let expr = self.compile_expr(&stmt.expr)?;
+        let expr = self.compile_expr(&stmt.expr);
         Some(build_stmt_semi_from_expr_with_span(expr, stmt.span))
     }
 
@@ -511,7 +510,7 @@ impl QasmCompiler {
 
     fn compile_for_stmt(&mut self, stmt: &semast::ForStmt) -> Option<qsast::Stmt> {
         let loop_var = self.symbols[stmt.loop_variable].clone();
-        let iterable = self.compile_enumerable_set(&stmt.set_declaration)?;
+        let iterable = self.compile_enumerable_set(&stmt.set_declaration);
         let body = self.compile_block(&Self::stmt_as_block(&stmt.body));
 
         Some(build_for_stmt(
@@ -525,7 +524,7 @@ impl QasmCompiler {
     }
 
     fn compile_if_stmt(&mut self, stmt: &semast::IfStmt) -> Option<qsast::Stmt> {
-        let condition = self.compile_expr(&stmt.condition)?;
+        let condition = self.compile_expr(&stmt.condition);
         let then_block = self.compile_block(&Self::stmt_as_block(&stmt.if_body));
         let else_block = stmt
             .else_body
@@ -559,17 +558,9 @@ impl QasmCompiler {
         let mut qubits: Vec<_> = stmt
             .qubits
             .iter()
-            .filter_map(|q| self.compile_gate_operand(q))
+            .map(|q| self.compile_gate_operand(q))
             .collect();
-        let args: Vec<_> = stmt
-            .args
-            .iter()
-            .filter_map(|arg| self.compile_expr(arg))
-            .collect();
-
-        if qubits.len() != stmt.qubits.len() || args.len() != stmt.args.len() {
-            return None;
-        }
+        let args: Vec<_> = stmt.args.iter().map(|arg| self.compile_expr(arg)).collect();
 
         // Take the number of qubit args that the gates expects from the source qubits.
         let gate_qubits = qubits.split_off(qubits.len() - stmt.quantum_arity as usize);
@@ -589,7 +580,7 @@ impl QasmCompiler {
                     );
                 }
                 semast::GateModifierKind::Pow(expr) => {
-                    let exponent_expr = self.compile_expr(expr)?;
+                    let exponent_expr = self.compile_expr(expr);
                     self.runtime |= RuntimeFunctions::Pow;
                     args = build_tuple_expr(vec![exponent_expr, callee, args]);
                     callee = build_path_ident_expr("__Pow__", modifier.span, stmt.span);
@@ -700,7 +691,7 @@ impl QasmCompiler {
 
         let expr = stmt.init_expr.as_ref();
 
-        let expr = self.compile_expr(expr)?;
+        let expr = self.compile_expr(expr);
         let stmt = build_classical_decl(
             name, is_const, ty_span, decl_span, name_span, qsharp_ty, expr,
         );
@@ -804,7 +795,7 @@ impl QasmCompiler {
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
-        let operand = self.compile_gate_operand(&stmt.operand)?;
+        let operand = self.compile_gate_operand(&stmt.operand);
         let operand_span = operand.span;
         let expr = build_reset_call(operand, stmt.reset_token_span, operand_span);
         Some(build_stmt_semi_from_expr(expr))
@@ -816,12 +807,63 @@ impl QasmCompiler {
     }
 
     fn compile_switch_stmt(&mut self, stmt: &semast::SwitchStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("switch statements", stmt.span);
-        None
+        // For each case, convert the lhs into a sequence of equality checks
+        // and then fold them into a single expression of logical ors for
+        // the if expr
+        let control = self.compile_expr(&stmt.target);
+        let cases: Vec<(qsast::Expr, qsast::Block)> = stmt
+            .cases
+            .iter()
+            .map(|case| {
+                let block = self.compile_block(&case.block);
+
+                let case = case
+                    .labels
+                    .iter()
+                    .map(|label| {
+                        let lhs = control.clone();
+                        let rhs = self.compile_expr(label);
+                        build_binary_expr(false, qsast::BinOp::Eq, lhs, rhs, label.span)
+                    })
+                    .fold(None, |acc, expr| match acc {
+                        None => Some(expr),
+                        Some(acc) => {
+                            let qsop = qsast::BinOp::OrL;
+                            let span = Span {
+                                lo: acc.span.lo,
+                                hi: expr.span.hi,
+                            };
+                            Some(build_binary_expr(false, qsop, acc, expr, span))
+                        }
+                    });
+                // The type checker doesn't know that we have at least one case
+                // so we have to unwrap here since the accumulation is guaranteed
+                // to have Some(value)
+                let case = case.expect("Case must have at least one expression");
+                (case, block)
+            })
+            .collect();
+
+        let default_block = stmt.default.as_ref().map(|block| self.compile_block(block));
+
+        let default_expr = default_block.map(build_wrapped_block_expr);
+        let if_expr = cases
+            .into_iter()
+            .rev()
+            .fold(default_expr, |else_expr, (cond, block)| {
+                let span = Span {
+                    lo: cond.span.lo,
+                    hi: block.span.hi,
+                };
+                Some(build_if_expr_then_block_else_expr(
+                    cond, block, else_expr, span,
+                ))
+            });
+        if_expr.map(build_stmt_semi_from_expr)
     }
 
     fn compile_while_stmt(&mut self, stmt: &semast::WhileLoop) -> Option<qsast::Stmt> {
-        let condition = self.compile_expr(&stmt.condition)?;
+        let condition = self.compile_expr(&stmt.condition);
         match &*stmt.body.kind {
             semast::StmtKind::Block(block) => {
                 let block = self.compile_block(block);
@@ -844,12 +886,15 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_expr(&mut self, expr: &semast::Expr) -> Option<qsast::Expr> {
+    fn compile_expr(&mut self, expr: &semast::Expr) -> qsast::Expr {
         match expr.kind.as_ref() {
             semast::ExprKind::Err => {
                 // todo: determine if we should push an error here
                 // Are we going to allow trying to compile a program with semantic errors?
-                None
+                qsast::Expr {
+                    span: expr.span,
+                    ..Default::default()
+                }
             }
             semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
@@ -870,10 +915,10 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> Option<qsast::Expr> {
+    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> qsast::Expr {
         let symbol = &self.symbols[symbol_id];
         let span = symbol.span;
-        let expr = match symbol.name.as_str() {
+        match symbol.name.as_str() {
             "euler" | "ℇ" => build_math_call_no_params("E", span),
             "pi" | "π" => build_math_call_no_params("PI", span),
             "tau" | "τ" => {
@@ -889,18 +934,17 @@ impl QasmCompiler {
                 }
             }
             _ => build_path_ident_expr(&symbol.name, span, span),
-        };
-        Some(expr)
+        }
     }
 
     /// The lowerer eliminated indexed identifiers with zero indices.
     /// So we are safe to assume that the indices are non-empty.
-    fn compile_indexed_ident_expr(&mut self, indexed_ident: &IndexedIdent) -> Option<qsast::Expr> {
+    fn compile_indexed_ident_expr(&mut self, indexed_ident: &IndexedIdent) -> qsast::Expr {
         let span = indexed_ident.span;
         let index: Vec<_> = indexed_ident
             .indices
             .iter()
-            .filter_map(|elem| self.compile_index_element(elem))
+            .map(|elem| self.compile_index_element(elem))
             .collect();
 
         if index.len() != 1 {
@@ -908,62 +952,54 @@ impl QasmCompiler {
                 "multi-dimensional array index expressions",
                 span,
             );
-            return None;
+            return err_expr(indexed_ident.span);
         }
 
         let symbol = &self.symbols[indexed_ident.symbol_id];
 
         let ident =
             build_path_ident_expr(&symbol.name, indexed_ident.name_span, indexed_ident.span);
-        let expr = qsast::Expr {
+        qsast::Expr {
             id: qsast::NodeId::default(),
             span,
             kind: Box::new(qsast::ExprKind::Index(
                 Box::new(ident),
                 Box::new(index[0].clone()),
             )),
-        };
-        Some(expr)
+        }
     }
 
-    fn compile_unary_op_expr(&mut self, unary: &UnaryOpExpr) -> Option<qsast::Expr> {
+    fn compile_unary_op_expr(&mut self, unary: &UnaryOpExpr) -> qsast::Expr {
         match unary.op {
             semast::UnaryOp::Neg => self.compile_neg_expr(&unary.expr, unary.span),
             semast::UnaryOp::NotB => self.compile_bitwise_not_expr(&unary.expr, unary.span),
             semast::UnaryOp::NotL => self.compile_logical_not_expr(&unary.expr, unary.span),
         }
     }
-    fn compile_neg_expr(&mut self, expr: &Expr, span: Span) -> Option<qsast::Expr> {
-        let expr = self.compile_expr(expr)?;
-        Some(build_unary_op_expr(qsast::UnOp::Neg, expr, span))
+    fn compile_neg_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
+        let expr = self.compile_expr(expr);
+        build_unary_op_expr(qsast::UnOp::Neg, expr, span)
     }
 
-    fn compile_bitwise_not_expr(&mut self, expr: &Expr, span: Span) -> Option<qsast::Expr> {
-        let expr = self.compile_expr(expr)?;
-        Some(build_unary_op_expr(qsast::UnOp::NotB, expr, span))
+    fn compile_bitwise_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
+        let expr = self.compile_expr(expr);
+        build_unary_op_expr(qsast::UnOp::NotB, expr, span)
     }
 
-    fn compile_logical_not_expr(&mut self, expr: &Expr, span: Span) -> Option<qsast::Expr> {
-        let expr = self.compile_expr(expr)?;
-        Some(build_unary_op_expr(qsast::UnOp::NotL, expr, span))
+    fn compile_logical_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
+        let expr = self.compile_expr(expr);
+        build_unary_op_expr(qsast::UnOp::NotL, expr, span)
     }
 
-    fn compile_binary_op_expr(&mut self, binary: &BinaryOpExpr) -> Option<qsast::Expr> {
+    fn compile_binary_op_expr(&mut self, binary: &BinaryOpExpr) -> qsast::Expr {
         let lhs = self.compile_expr(&binary.lhs);
         let rhs = self.compile_expr(&binary.rhs);
-        let (lhs, rhs) = (lhs?, rhs?);
         let op = Self::map_bin_op(binary.op);
         let is_assignment = false;
-        Some(build_binary_expr(
-            is_assignment,
-            op,
-            lhs,
-            rhs,
-            binary.span(),
-        ))
+        build_binary_expr(is_assignment, op, lhs, rhs, binary.span())
     }
 
-    fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> Option<qsast::Expr> {
+    fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {
         match lit {
             LiteralKind::Array(value) => self.compile_array_literal(value, span),
             LiteralKind::Bitstring(big_int, width) => {
@@ -982,13 +1018,13 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_call_expr(&mut self, call: &FunctionCall) -> Option<qsast::Expr> {
+    fn compile_call_expr(&mut self, call: &FunctionCall) -> qsast::Expr {
         self.push_unimplemented_error_message("function call expresssions", call.span);
-        None
+        err_expr(call.span)
     }
 
-    fn compile_cast_expr(&mut self, cast: &Cast) -> Option<qsast::Expr> {
-        let expr = self.compile_expr(&cast.expr)?;
+    fn compile_cast_expr(&mut self, cast: &Cast) -> qsast::Expr {
+        let expr = self.compile_expr(&cast.expr);
         let cast_expr = match cast.expr.ty {
             crate::semantic::types::Type::Bit(_) => {
                 self.cast_bit_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
@@ -1014,9 +1050,9 @@ impl QasmCompiler {
             crate::semantic::types::Type::BitArray(ArrayDimensions::One(size), _) => {
                 self.cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
             }
-            _ => None,
+            _ => err_expr(cast.span),
         };
-        if cast_expr.is_none() {
+        if matches!(*cast_expr.kind, qsast::ExprKind::Err) {
             self.push_unsupported_error_message(
                 format!("casting {} to {} type", cast.expr.ty, cast.ty),
                 cast.span,
@@ -1025,26 +1061,25 @@ impl QasmCompiler {
         cast_expr
     }
 
-    fn compile_index_expr(&mut self, index: &IndexExpr) -> Option<qsast::Expr> {
+    fn compile_index_expr(&mut self, index: &IndexExpr) -> qsast::Expr {
         self.push_unimplemented_error_message("index expressions", index.span);
-        None
+        err_expr(index.span)
     }
 
-    fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> Option<qsast::Expr> {
-        let expr = self.compile_expr(paren)?;
-        Some(wrap_expr_in_parens(expr, span))
+    fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> qsast::Expr {
+        let expr = self.compile_expr(paren);
+        wrap_expr_in_parens(expr, span)
     }
 
-    fn compile_measure_expr(&mut self, expr: &MeasureExpr) -> Option<qsast::Expr> {
+    fn compile_measure_expr(&mut self, expr: &MeasureExpr) -> qsast::Expr {
         let call_span = expr.span;
         let name_span = expr.measure_token_span;
-        let arg = self.compile_gate_operand(&expr.operand)?;
+        let arg = self.compile_gate_operand(&expr.operand);
         let operand_span = expr.operand.span;
-        let expr = build_measure_call(arg, name_span, operand_span, call_span);
-        Some(expr)
+        build_measure_call(arg, name_span, operand_span, call_span)
     }
 
-    fn compile_gate_operand(&mut self, op: &GateOperand) -> Option<qsast::Expr> {
+    fn compile_gate_operand(&mut self, op: &GateOperand) -> qsast::Expr {
         match &op.kind {
             GateOperandKind::HardwareQubit(hw) => {
                 // We don't support hardware qubits, so we need to push an error
@@ -1053,36 +1088,35 @@ impl QasmCompiler {
                 // catch any other errors
                 let message = "Hardware qubit operands";
                 self.push_unsupported_error_message(message, op.span);
-                let ident = build_path_ident_expr(hw.name.clone(), hw.span, op.span);
-                Some(ident)
+                build_path_ident_expr(hw.name.clone(), hw.span, op.span)
             }
             GateOperandKind::Expr(expr) => self.compile_expr(expr),
-            GateOperandKind::Err => None,
+            GateOperandKind::Err => err_expr(op.span),
         }
     }
 
-    fn compile_index_element(&mut self, elem: &IndexElement) -> Option<qsast::Expr> {
+    fn compile_index_element(&mut self, elem: &IndexElement) -> qsast::Expr {
         match elem {
             IndexElement::DiscreteSet(discrete_set) => self.compile_discrete_set(discrete_set),
             IndexElement::IndexSet(index_set) => self.compile_index_set(index_set),
         }
     }
 
-    fn compile_discrete_set(&mut self, set: &DiscreteSet) -> Option<qsast::Expr> {
+    fn compile_discrete_set(&mut self, set: &DiscreteSet) -> qsast::Expr {
         let expr_list: Vec<_> = set
             .values
             .iter()
-            .filter_map(|expr| self.compile_expr(expr))
+            .map(|expr| self.compile_expr(expr))
             .collect();
 
         if set.values.len() != expr_list.len() {
-            return None;
+            return err_expr(set.span);
         }
 
-        Some(build_expr_array_expr(expr_list, set.span))
+        build_expr_array_expr(expr_list, set.span)
     }
 
-    fn compile_index_set(&mut self, set: &IndexSet) -> Option<qsast::Expr> {
+    fn compile_index_set(&mut self, set: &IndexSet) -> qsast::Expr {
         // This is a temporary limitation. We can only handle
         // single index expressions for now.
         if set.values.len() == 1 {
@@ -1092,10 +1126,10 @@ impl QasmCompiler {
         }
 
         self.push_unsupported_error_message("index set expressions with multiple values", set.span);
-        None
+        err_expr(set.span)
     }
 
-    fn compile_enumerable_set(&mut self, set: &semast::EnumerableSet) -> Option<qsast::Expr> {
+    fn compile_enumerable_set(&mut self, set: &semast::EnumerableSet) -> qsast::Expr {
         match set {
             semast::EnumerableSet::DiscreteSet(set) => self.compile_discrete_set(set),
             semast::EnumerableSet::Expr(expr) => self.compile_expr(expr),
@@ -1103,49 +1137,33 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> Option<qsast::Expr> {
+    fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> qsast::Expr {
         let Some(start) = &range.start else {
             self.push_unimplemented_error_message("omited range start", range.span);
-            return Some(qsast::Expr {
-                span: range.span,
-                ..Default::default()
-            });
+            return err_expr(range.span);
         };
         let Some(end) = &range.end else {
             self.push_unimplemented_error_message("omited range end", range.span);
-            return Some(qsast::Expr {
-                span: range.span,
-                ..Default::default()
-            });
+            return err_expr(range.span);
         };
 
-        let start = self.compile_expr(start)?;
-        let end = self.compile_expr(end)?;
-        let step = match range.step.as_ref().map(|expr| self.compile_expr(expr)) {
-            Some(Some(expr)) => Some(expr),
-            Some(None) => {
-                return Some(qsast::Expr {
-                    span: range.span,
-                    ..Default::default()
-                })
-            }
-            None => None,
-        };
-
-        Some(build_range_expr(start, end, step, range.span))
+        let start = self.compile_expr(start);
+        let end = self.compile_expr(end);
+        let step = range.step.as_ref().map(|expr| self.compile_expr(expr));
+        build_range_expr(start, end, step, range.span)
     }
 
-    fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> Option<qsast::Expr> {
+    fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> qsast::Expr {
         self.push_unimplemented_error_message("array literals", span);
-        None
+        err_expr(span)
     }
 
-    fn compile_bit_literal(value: bool, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_result_expr(value.into(), span))
+    fn compile_bit_literal(value: bool, span: Span) -> qsast::Expr {
+        build_lit_result_expr(value.into(), span)
     }
 
-    fn compile_bool_literal(value: bool, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_bool_expr(value, span))
+    fn compile_bool_literal(value: bool, span: Span) -> qsast::Expr {
+        build_lit_bool_expr(value, span)
     }
 
     fn compile_duration_literal(
@@ -1153,43 +1171,40 @@ impl QasmCompiler {
         _value: f64,
         _unit: TimeUnit,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         self.push_unsupported_error_message("timing literals", span);
-        None
+        err_expr(span)
     }
 
-    fn compile_bitstring_literal(value: &BigInt, width: u32, span: Span) -> Option<qsast::Expr> {
+    fn compile_bitstring_literal(value: &BigInt, width: u32, span: Span) -> qsast::Expr {
         let width = width as usize;
         let bitstring = if value == &BigInt::ZERO && width == 0 {
             "Bitstring(\"\")".to_string()
         } else {
             format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
         };
-        Some(build_lit_result_array_expr_from_bitstring(bitstring, span))
+        build_lit_result_array_expr_from_bitstring(bitstring, span)
     }
 
-    fn compile_complex_literal(real: f64, imag: f64, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_complex_expr(
-            crate::types::Complex::new(real, imag),
-            span,
-        ))
+    fn compile_complex_literal(real: f64, imag: f64, span: Span) -> qsast::Expr {
+        build_lit_complex_expr(crate::types::Complex::new(real, imag), span)
     }
 
-    fn compile_float_literal(value: f64, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_double_expr(value, span))
+    fn compile_float_literal(value: f64, span: Span) -> qsast::Expr {
+        build_lit_double_expr(value, span)
     }
 
-    fn compile_int_literal(value: i64, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_int_expr(value, span))
+    fn compile_int_literal(value: i64, span: Span) -> qsast::Expr {
+        build_lit_int_expr(value, span)
     }
 
-    fn compile_bigint_literal(value: &BigInt, span: Span) -> Option<qsast::Expr> {
-        Some(build_lit_bigint_expr(value.clone(), span))
+    fn compile_bigint_literal(value: &BigInt, span: Span) -> qsast::Expr {
+        build_lit_bigint_expr(value.clone(), span)
     }
 
-    fn compile_string_literal(&mut self, _value: &Rc<str>, span: Span) -> Option<qsast::Expr> {
+    fn compile_string_literal(&mut self, _value: &Rc<str>, span: Span) -> qsast::Expr {
         self.push_unimplemented_error_message("string literal expressions", span);
-        None
+        err_expr(span)
     }
 
     /// Pushes an unsupported error with the supplied message.
@@ -1224,33 +1239,33 @@ impl QasmCompiler {
         expr: &qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
-        _span: Span,
-    ) -> Option<qsast::Expr> {
+        span: Span,
+    ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Angle(..)));
         // https://openqasm.com/language/types.html#casting-from-angle
         match ty {
             Type::Angle(..) => {
                 let msg = "Cast angle to angle";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
             Type::Bit(..) => {
                 let msg = "Cast angle to bit";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
             Type::BitArray(..) => {
                 let msg = "Cast angle to bit array";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
             Type::Bool(..) => {
                 let msg = "Cast angle to bool";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
 
-            _ => None,
+            _ => err_expr(span),
         }
     }
 
@@ -1267,7 +1282,7 @@ impl QasmCompiler {
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Bit(..)));
         // There is no operand, choosing the span of the node
         // but we could use the expr span as well.
@@ -1277,22 +1292,22 @@ impl QasmCompiler {
             &Type::Angle(..) => {
                 let msg = "Cast bit to angle";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
             &Type::Bool(..) => {
                 self.runtime |= RuntimeFunctions::ResultAsBool;
-                Some(build_cast_call(
+                build_cast_call(
                     RuntimeFunctions::ResultAsBool,
                     expr,
                     name_span,
                     operand_span,
-                ))
+                )
             }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
                 // casts to other types that case to float. For now, we'll
                 // say it is invalid like the spec.
-                None
+                err_expr(span)
             }
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
@@ -1305,11 +1320,10 @@ impl QasmCompiler {
                     RuntimeFunctions::ResultAsInt
                 };
                 self.runtime |= function;
-                let expr = build_cast_call(function, expr, name_span, operand_span);
-                Some(expr)
+                build_cast_call(function, expr, name_span, operand_span)
             }
 
-            _ => None,
+            _ => err_expr(span),
         }
     }
 
@@ -1320,7 +1334,7 @@ impl QasmCompiler {
         ty: &crate::semantic::types::Type,
         size: u32,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         assert!(matches!(
             expr_ty,
             Type::BitArray(ArrayDimensions::One(_), _)
@@ -1330,7 +1344,7 @@ impl QasmCompiler {
         let operand_span = span;
 
         if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
-            return None;
+            return err_expr(span);
         }
         // we know we have a bit array being cast to an int/uint
         // verfiy widths
@@ -1338,15 +1352,14 @@ impl QasmCompiler {
 
         if int_width.is_none() || (int_width == Some(size)) {
             self.runtime |= RuntimeFunctions::ResultArrayAsIntBE;
-            let expr = build_cast_call(
+            build_cast_call(
                 RuntimeFunctions::ResultArrayAsIntBE,
                 expr,
                 name_span,
                 operand_span,
-            );
-            Some(expr)
+            )
         } else {
-            None
+            err_expr(span)
         }
     }
 
@@ -1363,31 +1376,28 @@ impl QasmCompiler {
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Bool(..)));
-
         let name_span = expr.span;
         let operand_span = span;
         match ty {
             Type::Bit(..) => {
                 self.runtime |= RuntimeFunctions::BoolAsResult;
-                let expr = build_cast_call(
+                build_cast_call(
                     RuntimeFunctions::BoolAsResult,
                     expr,
                     name_span,
                     operand_span,
-                );
-                Some(expr)
+                )
             }
             Type::Float(..) => {
                 self.runtime |= RuntimeFunctions::BoolAsDouble;
-                let expr = build_cast_call(
+                build_cast_call(
                     RuntimeFunctions::BoolAsDouble,
                     expr,
                     name_span,
                     operand_span,
-                );
-                Some(expr)
+                )
             }
             Type::Int(w, _) | Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
@@ -1400,10 +1410,9 @@ impl QasmCompiler {
                     RuntimeFunctions::BoolAsInt
                 };
                 self.runtime |= function;
-                let expr = build_cast_call(function, expr, name_span, operand_span);
-                Some(expr)
+                build_cast_call(function, expr, name_span, operand_span)
             }
-            _ => None,
+            _ => err_expr(span),
         }
     }
 
@@ -1413,9 +1422,9 @@ impl QasmCompiler {
         _expr_ty: &crate::semantic::types::Type,
         _ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         self.push_unimplemented_error_message("cast complex expressions", span);
-        None
+        err_expr(span)
     }
 
     fn cast_duration_expr_to_ty(
@@ -1424,9 +1433,9 @@ impl QasmCompiler {
         _expr_ty: &crate::semantic::types::Type,
         _ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         self.push_unimplemented_error_message("cast duration expressions", span);
-        None
+        err_expr(span)
     }
 
     /// +----------------+-------------------------------------------------------------+
@@ -1444,21 +1453,18 @@ impl QasmCompiler {
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Float(..)));
         match ty {
-            &Type::Complex(..) => {
-                let expr = build_complex_from_expr(expr);
-                Some(expr)
-            }
+            &Type::Complex(..) => build_complex_from_expr(expr),
             &Type::Angle(..) => {
                 let msg = "Cast float to angle";
                 self.push_unimplemented_error_message(msg, expr.span);
-                None
+                err_expr(span)
             }
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let expr = build_math_call_from_exprs("Truncate", vec![expr], span);
-                let expr = if let Some(w) = w {
+                if let Some(w) = w {
                     if w > 64 {
                         build_convert_call_expr(expr, "IntAsBigInt")
                     } else {
@@ -1466,9 +1472,7 @@ impl QasmCompiler {
                     }
                 } else {
                     expr
-                };
-
-                Some(expr)
+                }
             }
             &Type::Bool(..) => {
                 let span = expr.span;
@@ -1476,15 +1480,14 @@ impl QasmCompiler {
                 let const_int_zero_expr = build_lit_int_expr(0, span);
                 let qsop = qsast::BinOp::Eq;
                 let cond = build_binary_expr(false, qsop, expr, const_int_zero_expr, span);
-                let coerce_expr = build_if_expr_then_expr_else_expr(
+                build_if_expr_then_expr_else_expr(
                     cond,
                     build_lit_bool_expr(false, span),
                     build_lit_bool_expr(true, span),
                     span,
-                );
-                Some(coerce_expr)
+                )
             }
-            _ => None,
+            _ => err_expr(span),
         }
     }
 
@@ -1509,7 +1512,7 @@ impl QasmCompiler {
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
-    ) -> Option<qsast::Expr> {
+    ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Int(..) | Type::UInt(..)));
         let name_span = expr.span;
         let operand_span = span;
@@ -1517,35 +1520,30 @@ impl QasmCompiler {
             Type::BitArray(dims, _) => {
                 self.runtime |= RuntimeFunctions::IntAsResultArrayBE;
                 let ArrayDimensions::One(size) = dims else {
-                    return None;
+                    return err_expr(span);
                 };
                 let size = i64::from(*size);
 
                 let size_expr = build_lit_int_expr(size, Span::default());
-                let expr = build_cast_call_two_params(
+                build_cast_call_two_params(
                     RuntimeFunctions::IntAsResultArrayBE,
                     expr,
                     size_expr,
                     name_span,
                     operand_span,
-                );
-                Some(expr)
+                )
             }
-            Type::Float(..) => {
-                let expr = build_convert_call_expr(expr, "IntAsDouble");
-                Some(expr)
-            }
+            Type::Float(..) => build_convert_call_expr(expr, "IntAsDouble"),
             Type::Int(tw, _) | Type::UInt(tw, _) => {
                 // uint to int, or int/uint to BigInt
                 if let Some(tw) = tw {
                     if *tw > 64 {
-                        let expr = build_convert_call_expr(expr, "IntAsBigInt");
-                        Some(expr)
+                        build_convert_call_expr(expr, "IntAsBigInt")
                     } else {
-                        Some(expr)
+                        expr
                     }
                 } else {
-                    Some(expr)
+                    expr
                 }
             }
             Type::Bool(..) => {
@@ -1553,33 +1551,30 @@ impl QasmCompiler {
                 let const_int_zero_expr = build_lit_int_expr(0, expr.span);
                 let qsop = qsast::BinOp::Eq;
                 let cond = build_binary_expr(false, qsop, expr, const_int_zero_expr, expr_span);
-                let coerce_expr = build_if_expr_then_expr_else_expr(
+                build_if_expr_then_expr_else_expr(
                     cond,
                     build_lit_bool_expr(false, expr_span),
                     build_lit_bool_expr(true, expr_span),
                     expr_span,
-                );
-                Some(coerce_expr)
+                )
             }
             Type::Bit(..) => {
                 let expr_span = expr.span;
                 let const_int_zero_expr = build_lit_int_expr(0, expr.span);
                 let qsop = qsast::BinOp::Eq;
                 let cond = build_binary_expr(false, qsop, expr, const_int_zero_expr, expr_span);
-                let coerce_expr = build_if_expr_then_expr_else_expr(
+                build_if_expr_then_expr_else_expr(
                     cond,
                     build_lit_result_expr(qsast::Result::One, expr_span),
                     build_lit_result_expr(qsast::Result::Zero, expr_span),
                     expr_span,
-                );
-                Some(coerce_expr)
+                )
             }
             Type::Complex(..) => {
                 let expr = build_convert_call_expr(expr, "IntAsDouble");
-                let expr = build_complex_from_expr(expr);
-                Some(expr)
+                build_complex_from_expr(expr)
             }
-            _ => None,
+            _ => err_expr(span),
         }
     }
 
