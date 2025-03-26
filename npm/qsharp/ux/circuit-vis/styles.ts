@@ -97,10 +97,8 @@ export const style = (customStyle: StyleConfig = {}): string => {
   return `${_defaultGates(styleConfig)}
     ${_classicallyControlledGates(styleConfig)}
     ${_expandCollapse}
-    ${_draggable}
     ${_panel}
-    ${_contextMenu}
-    ${_customPromptOverlay}`;
+    `;
 };
 
 const _defaultGates = (styleConfig: StyleConfig): string => `
@@ -246,41 +244,6 @@ const _expandCollapse = `
     }
 `;
 
-const _draggable = `
-    text {
-        user-select: none;
-        pointer-events: none;
-    }
-    .dropzone-layer {
-        display: none;
-    }
-    .dropzone {
-        fill-opacity: 0%;
-        stroke-opacity: 0%;
-    }
-    .dropzone:hover {
-        fill: var(--vscode-editor-selectionBackground, #EC7063);
-        fill-opacity: 50%;
-    }
-    .dropzone-full-wire {
-        fill-opacity: 0%;
-        stroke-opacity: 0%;
-    }
-    .dropzone-full-wire:hover {
-        fill: var(--vscode-editor-selectionBackground, #EC7063);
-        fill-opacity: 50%;
-    }
-    .grab {
-        cursor: grab;
-    }
-    .moving {
-        cursor: move;
-    }
-    .copying {
-        cursor: copy;
-    }
-`;
-
 const _panel = `
     .container {
         display: flex;
@@ -340,109 +303,5 @@ const _panel = `
         color: var(--vscode-disabledForeground, #a1a1a1);
         border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
         cursor: not-allowed;
-    }
-`;
-
-const _contextMenu = `
-    .context-menu {
-        position: absolute;
-        background-color: var(--vscode-menu-background, #ffffff);
-        border: 1px solid var(--vscode-menu-border, #cccccc);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        padding: 5px 0;
-        border-radius: 4px;
-    }
-
-    .context-menu-option {
-        padding: 8px 12px;
-        cursor: pointer;
-        white-space: nowrap;
-        color: var(--vscode-menu-foreground, #000000);
-    }
-
-    .context-menu-option:hover {
-        background-color: var(--vscode-menu-selectionBackground, #f0f0f0);
-        color: var(--vscode-menu-selectionForeground, #000000);
-    }
-`;
-
-const _customPromptOverlay = `
-    .custom-prompt-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    }
-
-    .custom-prompt-container {
-        background: var(--vscode-editor-background, #ffffff);
-        color: var(--vscode-editor-foreground, #000000);
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        width: 400px;
-        max-width: 90%;
-    }
-
-    .custom-prompt-message {
-        margin-bottom: 10px;
-        color: var(--vscode-editor-foreground, #000000);
-        font-size: 1rem;
-    }
-
-    .custom-prompt-input {
-        width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
-        background: var(--vscode-input-background, #ffffff);
-        color: var(--vscode-input-foreground, #000000);
-        border: 1px solid var(--vscode-input-border, #cccccc);
-        font-size: 1rem;
-        border-radius: 4px;
-        box-sizing: border-box;
-    }
-
-    .custom-prompt-buttons {
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .custom-prompt-button {
-        padding: 8px 16px;
-        margin: 0 5px;
-        background: var(--vscode-button-background, #007acc);
-        color: var(--vscode-button-foreground, #ffffff);
-        border: 1px solid var(--vscode-button-border, #005a9e);
-        cursor: pointer;
-        front-size: 1rem;
-        border-radius: 4px;
-    }
-
-    .custom-prompt-button:hover {
-        background: var(--vscode-button-hoverBackground, #005a9e);
-    }
-
-    .custom-prompt-button:disabled {
-        background: var(--vscode-button-secondaryBackground, #d4d4d4);
-        color: var(--vscode-disabledForeground, #a1a1a1);
-        border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
-        cursor: not-allowed;
-    }
-
-    .pi-button {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        text-align: center;
-        line-height: 40px;
-        font-size: 16px;
     }
 `;
