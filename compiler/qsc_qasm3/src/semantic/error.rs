@@ -50,6 +50,9 @@ pub enum SemanticErrorKind {
     #[error("Cannot assign a value of {0} type to a classical variable of {1} type.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.CannotAssignToType"))]
     CannotAssignToType(String, String, #[label] Span),
+    #[error("Cannot call an expression that is not a function.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.CannotCallNonFunction"))]
+    CannotCallNonFunction(#[label] Span),
     #[error("Cannot call a gate that is not a gate.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.CannotCallNonGate"))]
     CannotCallNonGate(#[label] Span),
@@ -84,6 +87,9 @@ pub enum SemanticErrorKind {
     #[error("Array size must be a non-negative integer const expression.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ArraySizeMustBeNonNegativeConstExpr"))]
     ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
+    #[error("Def declarations must be done in global scope.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.DefDeclarationInNonGlobalScope"))]
+    DefDeclarationInNonGlobalScope(#[label] Span),
     #[error("Designator is too large.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
@@ -258,6 +264,7 @@ impl SemanticErrorKind {
             Self::CannotAssignToType(lhs, rhs, span) => {
                 Self::CannotAssignToType(lhs, rhs, span + offset)
             }
+            Self::CannotCallNonFunction(span) => Self::CannotCallNonFunction(span + offset),
             Self::CannotCallNonGate(span) => Self::CannotCallNonGate(span + offset),
             Self::CannotIndexType(name, span) => Self::CannotIndexType(name, span + offset),
             Self::CannotUpdateConstVariable(name, span) => {
@@ -272,6 +279,9 @@ impl SemanticErrorKind {
             }
             Self::ArraySizeMustBeNonNegativeConstExpr(span) => {
                 Self::ArraySizeMustBeNonNegativeConstExpr(span + offset)
+            }
+            Self::DefDeclarationInNonGlobalScope(span) => {
+                Self::DefDeclarationInNonGlobalScope(span + offset)
             }
             Self::DesignatorTooLarge(span) => Self::DesignatorTooLarge(span + offset),
             Self::FailedToCompileExpressionList(span) => {

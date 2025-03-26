@@ -43,6 +43,7 @@ pub enum Type {
 
     // realistically the sizes could be u3
     Gate(u32, u32),
+    Function(u32),
     Range,
     Set,
     Void,
@@ -74,6 +75,7 @@ impl Display for Type {
             Type::IntArray(width, dims) => write!(f, "IntArray({width:?}, {dims:?})"),
             Type::UIntArray(width, dims) => write!(f, "UIntArray({width:?}, {dims:?})"),
             Type::Gate(cargs, qargs) => write!(f, "Gate({cargs}, {qargs})"),
+            Type::Function(cargs) => write!(f, "Function({cargs})"),
             Type::Range => write!(f, "Range"),
             Type::Set => write!(f, "Set"),
             Type::Void => write!(f, "Void"),

@@ -810,7 +810,7 @@ pub(crate) fn build_call_with_param(
     operand: Expr,
     name_span: Span,
     operand_span: Span,
-    stmt_span: Span,
+    call_span: Span,
 ) -> Expr {
     let segments = build_idents(idents);
     let fn_name = Ident {
@@ -838,7 +838,7 @@ pub(crate) fn build_call_with_param(
 
     Expr {
         id: NodeId::default(),
-        span: stmt_span,
+        span: call_span,
         kind: Box::new(call),
     }
 }
@@ -1373,6 +1373,7 @@ pub(crate) fn build_gate_decl(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     name: S,
     cargs: Vec<(String, Ty, Pat)>,
@@ -1381,6 +1382,7 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     name_span: Span,
     body_span: Span,
     gate_span: Span,
+    return_type: Option<Ty>,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1415,18 +1417,10 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         })
         .map(Box::new)
         .collect::<Vec<_>>();
-    let input_pat = if args.len() > 1 {
-        ast::Pat {
-            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
-            span: Span { lo, hi },
-            ..Default::default()
-        }
-    } else {
-        ast::Pat {
-            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
-            span: Span { lo, hi },
-            ..Default::default()
-        }
+    let input_pat = ast::Pat {
+        kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
+        span: Span { lo, hi },
+        ..Default::default()
     };
 
     let block_expr = build_wrapped_block_expr(body.map_or_else(
@@ -1447,22 +1441,22 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         span: gate_span,
     };
     let ty_args = args.iter().map(|(_, ty, _)| ty.clone()).collect::<Vec<_>>();
-    let input_ty = if args.len() > 1 {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
-            ..Default::default()
-        }
-    } else {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Paren(Box::new(ty_args[0].clone()))),
-            ..Default::default()
-        }
+    let input_ty = ast::Ty {
+        kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
+        ..Default::default()
     };
+
+    let return_type = if let Some(ty) = return_type {
+        ty
+    } else {
+        build_path_ident_ty("Unit")
+    };
+
     let lambda_ty = ast::Ty {
         kind: Box::new(ast::TyKind::Arrow(
             CallableKind::Operation,
             Box::new(input_ty),
-            Box::new(build_path_ident_ty("Unit")),
+            Box::new(return_type),
             None,
         )),
         ..Default::default()

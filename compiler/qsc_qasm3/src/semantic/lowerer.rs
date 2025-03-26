@@ -201,8 +201,8 @@ impl Lowerer {
             syntax::StmtKind::ExternDecl(extern_decl) => self.lower_extern(extern_decl),
             syntax::StmtKind::For(stmt) => self.lower_for_stmt(stmt),
             syntax::StmtKind::If(stmt) => self.lower_if_stmt(stmt),
-            syntax::StmtKind::GateCall(stmt) => self.lower_gate_call(stmt),
-            syntax::StmtKind::GPhase(stmt) => self.lower_gphase(stmt),
+            syntax::StmtKind::GateCall(stmt) => self.lower_gate_call_stmt(stmt),
+            syntax::StmtKind::GPhase(stmt) => self.lower_gphase_stmt(stmt),
             syntax::StmtKind::Include(stmt) => self.lower_include(stmt),
             syntax::StmtKind::IODeclaration(stmt) => self.lower_io_decl(stmt),
             syntax::StmtKind::Measure(stmt) => self.lower_measure(stmt),
@@ -497,10 +497,7 @@ impl Lowerer {
                 err_expr!(Type::Err, expr.span)
             }
             syntax::ExprKind::Err => err_expr!(Type::Err, expr.span),
-            syntax::ExprKind::FunctionCall(_) => {
-                self.push_unimplemented_error_message("function call expr", expr.span);
-                err_expr!(Type::Err, expr.span)
-            }
+            syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
             syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
             syntax::ExprKind::IndexExpr(expr) => self.lower_index_expr(expr),
 
@@ -958,8 +955,114 @@ impl Lowerer {
     }
 
     fn lower_def(&mut self, stmt: &syntax::DefStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("def stmt", stmt.span);
-        semantic::StmtKind::Err
+        // 1. Check that we are in the global scope. QASM3 semantics
+        //    only allow def declarations in the global scope.
+        if !self.symbols.is_current_scope_global() {
+            let kind = SemanticErrorKind::DefDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
+        // 2. Push the function symbol to the symbol table.
+        #[allow(clippy::cast_possible_truncation)]
+        let arity = stmt.params.len() as u32;
+        let name = stmt.name.name.clone();
+        let name_span = stmt.name.span;
+        let ty = crate::semantic::types::Type::Function(arity);
+        let qsharp_ty =
+            crate::types::Type::Callable(crate::types::CallableKind::Function, arity, 0);
+
+        let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+
+        // Push the scope where the def lives.
+        self.symbols.push_scope(ScopeKind::Gate);
+
+        let params = stmt
+            .params
+            .iter()
+            .map(|param| {
+                let symbol = self.lower_typed_parameter(param);
+                let name = symbol.name.clone();
+                self.try_insert_or_get_existing_symbol_id(name, symbol)
+            })
+            .collect();
+
+        let body = semantic::Block {
+            span: stmt.span,
+            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+        };
+
+        // Pop the scope where the def lives.
+        self.symbols.pop_scope();
+
+        let return_type = stmt.return_type.as_ref().map(|ty| {
+            let ty_span = ty.span;
+            let tydef = syntax::TypeDef::Scalar(*ty.clone());
+            let ty = self.get_semantic_type_from_tydef(&tydef, false);
+            self.convert_semantic_type_to_qsharp_type(&ty, ty_span)
+        });
+
+        semantic::StmtKind::Def(semantic::DefStmt {
+            span: stmt.span,
+            symbol_id,
+            params,
+            body,
+            return_type,
+        })
+    }
+
+    fn lower_typed_parameter(&mut self, typed_param: &syntax::TypedParameter) -> Symbol {
+        match typed_param {
+            syntax::TypedParameter::ArrayReference(param) => {
+                self.lower_array_reference_parameter(param)
+            }
+            syntax::TypedParameter::Quantum(param) => Self::lower_quantum_parameter(param),
+            syntax::TypedParameter::Scalar(param) => self.lower_scalar_parameter(param),
+        }
+    }
+
+    fn lower_array_reference_parameter(
+        &mut self,
+        typed_param: &syntax::ArrayTypedParameter,
+    ) -> Symbol {
+        let tydef = syntax::TypeDef::ArrayReference(*typed_param.ty.clone());
+        let ty = self.get_semantic_type_from_tydef(&tydef, false);
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
+
+        Symbol::new(
+            &typed_param.ident.name,
+            typed_param.ident.span,
+            ty,
+            qsharp_ty,
+            IOKind::Default,
+        )
+    }
+
+    fn lower_quantum_parameter(typed_param: &syntax::QuantumTypedParameter) -> Symbol {
+        let ty = crate::semantic::types::Type::Qubit;
+        let qsharp_ty = crate::types::Type::Qubit;
+
+        Symbol::new(
+            &typed_param.ident.name,
+            typed_param.ident.span,
+            ty,
+            qsharp_ty,
+            IOKind::Default,
+        )
+    }
+
+    fn lower_scalar_parameter(&mut self, typed_param: &syntax::ScalarTypedParameter) -> Symbol {
+        let tydef = syntax::TypeDef::Scalar(*typed_param.ty.clone());
+        let ty = self.get_semantic_type_from_tydef(&tydef, false);
+        let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, typed_param.ty.span);
+
+        Symbol::new(
+            &typed_param.ident.name,
+            typed_param.ident.span,
+            ty,
+            qsharp_ty,
+            IOKind::Default,
+        )
     }
 
     fn lower_def_cal(&mut self, stmt: &syntax::DefCalStmt) -> semantic::StmtKind {
@@ -1048,7 +1151,47 @@ impl Lowerer {
         })
     }
 
-    fn lower_gate_call(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
+    fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
+        // 1. Lower the args.
+        let args = expr.args.iter().map(|arg| self.lower_expr(arg));
+        let args = list_from_iter(args);
+
+        // 2. Check that the function name actually refers to a function
+        //    in the symbol table and get its symbol_id & symbol.
+        let name = expr.name.name.clone();
+        let name_span = expr.name.span;
+        let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
+
+        let arity = if let Type::Function(arity) = &symbol.ty {
+            *arity
+        } else {
+            self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
+            0
+        };
+
+        // 2. Check that function classical arity matches the number of classical args.
+        if arity as usize != args.len() {
+            self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
+                arity as usize,
+                args.len(),
+                expr.span,
+            ));
+        }
+
+        let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
+            span: expr.span,
+            symbol_id,
+            args,
+        }));
+
+        semantic::Expr {
+            span: expr.span,
+            kind,
+            ty: symbol.ty.clone(),
+        }
+    }
+
+    fn lower_gate_call_stmt(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
         // 1. Lower all the fields:
         //   1.1. Lower the modifiers.
         let mut modifiers = stmt
@@ -1157,7 +1300,7 @@ impl Lowerer {
         // by all the semantic analysis.
     }
 
-    fn lower_gphase(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
+    fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
         // 1. Lower all the fields:
         //   1.1. Lower the modifiers.
         let mut modifiers = stmt
@@ -1215,20 +1358,23 @@ impl Lowerer {
             ));
         }
 
+        let (symbol_id, _) = self.try_get_existing_or_insert_err_symbol("gphase", Span::default());
+
         // 4. Return:
         //   6.1. All controls made explicit.
         //   6.2. Classical arg.
         //   6.3. Quantum args in the order expected by the compiler.
         modifiers.reverse();
         let modifiers = list_from_iter(modifiers);
-        semantic::StmtKind::GPhase(semantic::GPhase {
+        semantic::StmtKind::GateCall(semantic::GateCall {
             span: stmt.span,
             modifiers,
+            symbol_id,
             args,
             qubits,
             duration,
+            classical_arity: 1,
             quantum_arity,
-            quantum_arity_with_modifiers,
         })
 
         // The compiler will be left to do all things that need explicit Q# knowledge.
@@ -1405,8 +1551,7 @@ impl Lowerer {
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Angle(None, false);
                 let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
-                let symbol =
-                    Symbol::new(&arg.name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+                let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
             .collect();
@@ -1507,8 +1652,19 @@ impl Lowerer {
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("return stmt", stmt.span);
-        semantic::StmtKind::Err
+        let expr = stmt
+            .expr
+            .as_ref()
+            .map(|expr| match &**expr {
+                syntax::ValueExpr::Expr(expr) => self.lower_expr(expr),
+                syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
+            })
+            .map(Box::new);
+
+        semantic::StmtKind::Return(semantic::ReturnStmt {
+            span: stmt.span,
+            expr,
+        })
     }
 
     fn lower_switch(&mut self, stmt: &syntax::SwitchStmt) -> semantic::StmtKind {
@@ -1924,7 +2080,12 @@ impl Lowerer {
                 self.push_unimplemented_error_message("uint array default value", span);
                 None
             }
-            Type::Duration(_) | Type::Gate(_, _) | Type::Range | Type::Set | Type::Void => {
+            Type::Duration(_)
+            | Type::Gate(_, _)
+            | Type::Function(_)
+            | Type::Range
+            | Type::Set
+            | Type::Void => {
                 let message = format!("Default values for {ty:?} are unsupported.");
                 self.push_unsupported_error_message(message, span);
                 None

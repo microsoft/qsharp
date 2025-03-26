@@ -10,21 +10,22 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
-        build_binary_expr, build_cast_call, build_cast_call_two_params, build_classical_decl,
-        build_complex_from_expr, build_convert_call_expr, build_expr_array_expr, build_for_stmt,
-        build_gate_call_param_expr, build_gate_call_with_params_and_callee, build_gate_decl_lambda,
-        build_if_expr_then_block, build_if_expr_then_block_else_block,
-        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_binary_expr, build_call_with_param, build_cast_call, build_cast_call_two_params,
+        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
+        build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_gate_decl_lambda, build_if_expr_then_block,
+        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
+        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
+        build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
+        build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
         build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
-        build_reset_call, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
-        build_top_level_ns_with_item, build_tuple_expr, build_unary_op_expr,
-        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
-        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
-        wrap_expr_in_parens,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_item, build_tuple_expr,
+        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
+        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
     parser::ast::{list_from_iter, List},
     runtime::{get_runtime_function_decls, RuntimeFunctions},
@@ -333,7 +334,6 @@ impl QasmCompiler {
             semast::StmtKind::For(stmt) => self.compile_for_stmt(stmt),
             semast::StmtKind::If(stmt) => self.compile_if_stmt(stmt),
             semast::StmtKind::GateCall(stmt) => self.compile_gate_call_stmt(stmt),
-            semast::StmtKind::GPhase(stmt) => self.compile_gphase_stmt(stmt),
             semast::StmtKind::Include(stmt) => self.compile_include_stmt(stmt),
             semast::StmtKind::InputDeclaration(stmt) => self.compile_input_decl_stmt(stmt),
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
@@ -479,8 +479,39 @@ impl QasmCompiler {
     }
 
     fn compile_def_stmt(&mut self, stmt: &semast::DefStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("def statements", stmt.span);
-        None
+        let symbol = self.symbols[stmt.symbol_id].clone();
+        let name = symbol.name.clone();
+
+        let cargs: Vec<_> = stmt
+            .params
+            .iter()
+            .map(|arg| {
+                let symbol = self.symbols[*arg].clone();
+                let name = symbol.name.clone();
+                let ast_type = map_qsharp_type_to_ast_ty(&symbol.qsharp_ty);
+                (
+                    name.clone(),
+                    ast_type.clone(),
+                    build_arg_pat(name, symbol.span, ast_type),
+                )
+            })
+            .collect();
+
+        let body = Some(self.compile_block(&stmt.body));
+        let return_type = stmt.return_type.as_ref().map(map_qsharp_type_to_ast_ty);
+
+        // We use the same primitives used for declaring gates, because def declarations
+        // in QASM3 can take qubits as arguments and call quantum gates.
+        Some(build_gate_decl_lambda(
+            name,
+            cargs,
+            vec![],
+            body,
+            symbol.span,
+            stmt.body.span,
+            stmt.span,
+            return_type,
+        ))
     }
 
     fn compile_def_cal_stmt(&mut self, stmt: &semast::DefCalStmt) -> Option<qsast::Stmt> {
@@ -548,6 +579,33 @@ impl QasmCompiler {
                 stmts: list_from_iter([stmt.clone()]),
             },
         }
+    }
+
+    fn compile_function_call_expr(&mut self, expr: &semast::FunctionCall) -> qsast::Expr {
+        let symbol = self.symbols[expr.symbol_id].clone();
+        let name = &symbol.name;
+        let name_span = symbol.span;
+        let operand_span = if expr.args.len() > 0 {
+            let lo = expr.args[0].span.lo;
+            let hi = expr
+                .args
+                .last()
+                .expect("there is at least one argument")
+                .span
+                .hi;
+            Span { lo, hi }
+        } else {
+            Span::default()
+        };
+        let args: Vec<_> = expr
+            .args
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect();
+
+        let operand = build_tuple_expr(args);
+
+        build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
@@ -629,26 +687,6 @@ impl QasmCompiler {
 
         let expr = build_gate_call_with_params_and_callee(args, callee, stmt.span);
         Some(build_stmt_semi_from_expr(expr))
-    }
-
-    fn compile_gphase_stmt(&mut self, stmt: &semast::GPhase) -> Option<qsast::Stmt> {
-        self.runtime |= RuntimeFunctions::Gphase;
-        let (symbol_id, _) = self
-            .symbols
-            .get_symbol_by_name("gphase")
-            .expect("gphase should be defined");
-
-        let gate_call_stmt = semast::GateCall {
-            span: stmt.span,
-            modifiers: stmt.modifiers.clone(),
-            symbol_id,
-            args: stmt.args.clone(),
-            qubits: stmt.qubits.clone(),
-            duration: stmt.duration.clone(),
-            classical_arity: 1u32,
-            quantum_arity: stmt.quantum_arity,
-        };
-        self.compile_gate_call_stmt(&gate_call_stmt)
     }
 
     fn compile_include_stmt(&mut self, stmt: &semast::IncludeStmt) -> Option<qsast::Stmt> {
@@ -751,6 +789,7 @@ impl QasmCompiler {
             symbol.span,
             stmt.body.span,
             stmt.span,
+            None,
         ))
     }
 
@@ -797,8 +836,15 @@ impl QasmCompiler {
     }
 
     fn compile_return_stmt(&mut self, stmt: &semast::ReturnStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("return statements", stmt.span);
-        None
+        let expr = stmt.expr.as_ref().map(|expr| self.compile_expr(expr));
+
+        let expr = if let Some(expr) = expr {
+            build_return_expr(expr, stmt.span)
+        } else {
+            build_return_unit(stmt.span)
+        };
+
+        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_switch_stmt(&mut self, stmt: &semast::SwitchStmt) -> Option<qsast::Stmt> {
@@ -1134,11 +1180,11 @@ impl QasmCompiler {
 
     fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> qsast::Expr {
         let Some(start) = &range.start else {
-            self.push_unimplemented_error_message("omited range start", range.span);
+            self.push_unimplemented_error_message("omitted range start", range.span);
             return err_expr(range.span);
         };
         let Some(end) = &range.end else {
-            self.push_unimplemented_error_message("omited range end", range.span);
+            self.push_unimplemented_error_message("omitted range end", range.span);
             return err_expr(range.span);
         };
 

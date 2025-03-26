@@ -357,7 +357,6 @@ pub enum StmtKind {
     For(ForStmt),
     If(IfStmt),
     GateCall(GateCall),
-    GPhase(GPhase),
     Include(IncludeStmt),
     InputDeclaration(InputDeclaration),
     OutputDeclaration(OutputDeclaration),
@@ -394,7 +393,6 @@ impl Display for StmtKind {
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
             StmtKind::GateCall(gate_call) => write!(f, "{gate_call}"),
-            StmtKind::GPhase(gphase) => write!(f, "{gphase}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
             StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
@@ -1102,33 +1100,6 @@ impl Display for GateCall {
 }
 
 #[derive(Clone, Debug)]
-pub struct GPhase {
-    pub span: Span,
-    pub modifiers: List<QuantumGateModifier>,
-    pub args: List<Expr>,
-    pub qubits: List<GateOperand>,
-    pub duration: Option<Expr>,
-    pub quantum_arity: u32,
-    pub quantum_arity_with_modifiers: u32,
-}
-
-impl Display for GPhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "GPhase", self.span)?;
-        writeln_list_field(f, "modifiers", &self.modifiers)?;
-        writeln_list_field(f, "args", &self.args)?;
-        writeln_list_field(f, "qubits", &self.qubits)?;
-        writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
-        write_field(
-            f,
-            "quantum_arity_with_modifiers",
-            &self.quantum_arity_with_modifiers,
-        )
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct DelayStmt {
     pub span: Span,
     pub duration: Expr,
@@ -1221,42 +1192,6 @@ impl Display for OutputDeclaration {
 }
 
 #[derive(Clone, Debug)]
-pub enum TypedParameter {
-    Scalar(ScalarTypedParameter),
-    Quantum(QuantumTypedParameter),
-    ArrayReference(ArrayTypedParameter),
-}
-
-impl WithSpan for TypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            Self::Scalar(param) => Self::Scalar(param.with_span(span)),
-            Self::Quantum(param) => Self::Quantum(param.with_span(span)),
-            Self::ArrayReference(param) => Self::ArrayReference(param.with_span(span)),
-        }
-    }
-}
-
-impl Display for TypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Scalar(param) => write!(f, "{param}"),
-            Self::Quantum(param) => write!(f, "{param}"),
-            Self::ArrayReference(param) => write!(f, "{param}"),
-        }
-    }
-}
-impl Default for TypedParameter {
-    fn default() -> Self {
-        Self::Scalar(ScalarTypedParameter {
-            span: Span::default(),
-            ident: Ident::default(),
-            ty: Box::default(),
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct ScalarTypedParameter {
     pub span: Span,
     pub ty: Box<ScalarType>,
@@ -1325,16 +1260,16 @@ impl WithSpan for ArrayTypedParameter {
 #[derive(Clone, Debug)]
 pub struct DefStmt {
     pub span: Span,
-    pub name: Box<Ident>,
-    pub params: List<TypedParameter>,
-    pub body: Box<Block>,
-    pub return_type: Option<ScalarType>,
+    pub symbol_id: SymbolId,
+    pub params: Box<[SymbolId]>,
+    pub body: Block,
+    pub return_type: Option<crate::types::Type>,
 }
 
 impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DefStmt", self.span)?;
-        writeln_field(f, "ident", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
         write_field(f, "body", &self.body)
@@ -1571,14 +1506,14 @@ impl Display for BinaryOpExpr {
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub span: Span,
-    pub name: Ident,
+    pub symbol_id: SymbolId,
     pub args: List<Expr>,
 }
 
 impl Display for FunctionCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "FunctionCall", self.span)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
     }
 }

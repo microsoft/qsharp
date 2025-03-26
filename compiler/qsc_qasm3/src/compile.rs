@@ -2482,6 +2482,7 @@ impl QasmCompiler {
                 name_span,
                 body_span,
                 gate_span,
+                None,
             ))
         }
     }
