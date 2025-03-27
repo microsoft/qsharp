@@ -9,8 +9,10 @@
 /// is manipulated to yield a numerical result. Measuring a quantum system
 /// generally changes the quantum state that describes that system.
 operation Main() : (Result, Result[]) {
-    use q = Qubit(); // Allocate a qubit. Qubit is in |0〉 state after allocation.
-    X(q); // Flip the state. Qubit is in |1〉 state now.
+    // Allocate a qubit. Qubit is in |0〉 state after allocation.
+    use q = Qubit();
+    // Flip the state. Qubit is in |1〉 state now.
+    X(q);
 
     // The `M` operation performs a measurement of a single qubit in the
     // computational basis, also known as the Pauli Z basis.
@@ -21,7 +23,8 @@ operation Main() : (Result, Result[]) {
     // `MResetZ` operation.
     Reset(q);
 
-    use qs = Qubit[2]; // Allocate a two-qubit array (or register).
+    // Allocate a two-qubit array (or register).
+    use qs = Qubit[2];
 
     // The `MeasureEachZ` operation measures each qubit in an array in the
     // computational basis and returns an array of `Result` values.

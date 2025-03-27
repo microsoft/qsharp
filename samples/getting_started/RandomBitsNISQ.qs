@@ -13,9 +13,11 @@ operation Main() : Result[] {
 /// # Summary
 /// Generates N random bits in the form of `Zero` or `One` results.
 operation GenerateNRandomBits(nBits : Int) : Result[] {
-    mutable results = []; // Array for the results
+    // Array for the results
+    mutable results = [];
     for _ in 1..nBits {
-        results += [GenerateRandomBit()]; // Append next random result to the array
+        // Append next random result to the array
+        results += [GenerateRandomBit()];
     }
     results
 }
@@ -23,9 +25,12 @@ operation GenerateNRandomBits(nBits : Int) : Result[] {
 /// # Summary
 /// Generates a random bit in the form of `Zero` or `One` result.
 operation GenerateRandomBit() : Result {
-    use q = Qubit(); // Allocate a qubit
-    H(q); // Set the qubit into uniform superposition of |0〉 and |1〉
+    // Allocate a qubit
+    use q = Qubit();
+    // Set the qubit into uniform superposition of |0〉 and |1〉
+    H(q);
     // Now the qubit has 50% chance of being measured as `One`
     // and 50% chance of being measured as `Zero`.
-    MResetZ(q) // Measure and reset the qubit.
+    // Measure and reset the qubit.
+    MResetZ(q)
 }

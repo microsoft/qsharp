@@ -22,16 +22,23 @@ import Std.Diagnostics.*;
 /// # References
 /// - [Greenberger–Horne–Zeilinger state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state)
 operation Main() : (Result[], Result[]) {
+    // Allocate 3 qubits for GHZ state.
+    use ghz = Qubit[3];
+    // Prepare a GHZ state in the register.
+    PrepareGHZState(ghz);
+    // Show the GHZ state in the register.
+    DumpRegister(ghz);
+    // Measure and reset qubits.
+    let ghzResults = MResetEachZ(ghz);
 
-    use ghz = Qubit[3]; // Allocate 3 qubits for GHZ state.
-    PrepareGHZState(ghz); // Prepare a GHZ state in the register.
-    DumpRegister(ghz); // Show the GHZ state in the register.
-    let ghzResults = MResetEachZ(ghz); // Measure and reset qubits.
-
-    use cat5 = Qubit[5]; // Allocate 5 qubits for GHZ state.
-    PrepareCatState(cat5); // Prepare a Cat₅ state in the register.
-    DumpRegister(cat5); // Show the Cat₅ state in the register.
-    let catResults = MResetEachZ(cat5); // Measure and reset qubits.
+    // Allocate 5 qubits for GHZ state.
+    use cat5 = Qubit[5];
+    // Prepare a Cat₅ state in the register.
+    PrepareCatState(cat5);
+    // Show the Cat₅ state in the register.
+    DumpRegister(cat5);
+    // Measure and reset qubits.
+    let catResults = MResetEachZ(cat5);
 
     (ghzResults, catResults)
 }
@@ -42,9 +49,12 @@ operation Main() : (Result[], Result[]) {
 operation PrepareGHZState(qs : Qubit[]) : Unit {
     Fact(Length(qs) == 3, "Qubit register `qs` must be 3 qubits long.");
 
-    H(qs[0]); // Set the first qubit into a (|0〉 + |1〉) / √2 superposition.
-    CNOT(qs[0], qs[1]); // Entangle the first qubit with the second.
-    CNOT(qs[1], qs[2]); // Entangle the second qubit with the third.
+    // Set the first qubit into a (|0〉 + |1〉) / √2 superposition.
+    H(qs[0]);
+    // Entangle the first qubit with the second.
+    CNOT(qs[0], qs[1]);
+    // Entangle the second qubit with the third.
+    CNOT(qs[1], qs[2]);
 }
 
 /// # Summary
@@ -53,7 +63,8 @@ operation PrepareGHZState(qs : Qubit[]) : Unit {
 operation PrepareCatState(qs : Qubit[]) : Unit {
     Fact(Length(qs) > 0, "Qubit register must not be empty.");
 
-    H(qs[0]); // Set the first qubit into a (|0〉 + |1〉) / √2 superposition.
+    // Set the first qubit into a (|0〉 + |1〉) / √2 superposition.
+    H(qs[0]);
 
     // Then apply a CNOT to the remaining qubits using the first qubit as control.
     // This entangles first qubit with all the other qubits in the register.

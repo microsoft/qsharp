@@ -10,8 +10,8 @@ import Std.Diagnostics.*;
 operation Main() : (Result, Result[]) {
     // Prepare an entangled state.
     use qs = Qubit[2];  // |00〉
-    H(qs[0]);           // 1/sqrt(2)(|00〉 + |10〉)
-    CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00〉 + |11〉)
+    H(qs[0]);           // (|00〉 + |10〉)/sqrt(2)
+    CNOT(qs[0], qs[1]); // (|00〉 + |11〉)/sqrt(2)
 
     // Show the quantum state before performing the joint measurement.
     DumpMachine();

@@ -27,18 +27,23 @@ operation PrepareAndMeasurePair(
     preparation : Qubit[] => Unit,
     name : String
 ) : (Result, Result) {
-    use pair = Qubit[2]; // Allocate a pair of qubits
-    preparation(pair); // Prepare them using the preparation operation
-    Message($"Bell state {name}:"); // Show the name of the prepared state
-    Std.Diagnostics.DumpMachine(); // Show the prepared state
-    (MResetZ(pair[0]), MResetZ(pair[1])) // Measure, reset and return
+    // Allocate a pair of qubits
+    use pair = Qubit[2];
+    // Prepare them using the preparation operation
+    preparation(pair);
+    // Show the name of the prepared state
+    Message($"Bell state {name}:");
+    // Show the prepared state
+    Std.Diagnostics.DumpMachine();
+    // Measure, reset and return
+    (MResetZ(pair[0]), MResetZ(pair[1]))
 }
 
 /// # Summary
 /// Prepares |Φ+⟩ = (|00⟩+|11⟩)/√2 state assuming `register` is in |00⟩ state.
 operation PreparePhiPlus(register : Qubit[]) : Unit {
     H(register[0]);                 // |+0〉
-    CNOT(register[0], register[1]); // 1/sqrt(2)(|00〉 + |11〉)
+    CNOT(register[0], register[1]); // (|00〉 + |11〉)/sqrt(2)
 }
 
 /// # Summary
@@ -46,7 +51,7 @@ operation PreparePhiPlus(register : Qubit[]) : Unit {
 operation PreparePhiMinus(register : Qubit[]) : Unit {
     H(register[0]);                 // |+0〉
     Z(register[0]);                 // |-0〉
-    CNOT(register[0], register[1]); // 1/sqrt(2)(|00〉 - |11〉)
+    CNOT(register[0], register[1]); // (|00〉 - |11〉)/sqrt(2)
 }
 
 /// # Summary
@@ -54,7 +59,7 @@ operation PreparePhiMinus(register : Qubit[]) : Unit {
 operation PreparePsiPlus(register : Qubit[]) : Unit {
     H(register[0]);                 // |+0〉
     X(register[1]);                 // |+1〉
-    CNOT(register[0], register[1]); // 1/sqrt(2)(|01〉 + |10〉)
+    CNOT(register[0], register[1]); // (|01〉 + |10〉)/sqrt(2)
 }
 
 /// # Summary
@@ -63,5 +68,5 @@ operation PreparePsiMinus(register : Qubit[]) : Unit {
     H(register[0]);                 // |+0〉
     Z(register[0]);                 // |-0〉
     X(register[1]);                 // |-1〉
-    CNOT(register[0], register[1]); // 1/sqrt(2)(|01〉 - |10〉)
+    CNOT(register[0], register[1]); // (|01〉 - |10〉)/sqrt(2)
 }

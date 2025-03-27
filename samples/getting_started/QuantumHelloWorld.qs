@@ -13,7 +13,8 @@ operation Main() : Result {
     use qubit = Qubit();
 
     // Measure then reset the qubit. Last statement returns result from `Main`.
-    MResetZ(qubit) // always yield `Zero` as the qubit is in |0〉 state.
+    // Measurement result is `Zero` as the qubit is in |0〉 state.
+    MResetZ(qubit)
 
     // Note, that `qubit` is automatically deallocated at the end of the block.
 }
