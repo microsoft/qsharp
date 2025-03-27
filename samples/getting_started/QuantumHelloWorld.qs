@@ -6,7 +6,7 @@
 /// This code prints the message then allocates a qubit and immediately measures it.
 /// Since the qubit starts in |0〉 state such measurement will always yield `Zero`.
 operation Main() : Result {
-    // Print the message. Note that some quantum computers may skip this step.
+    // Print the message (when running on a simulator).
     Message("Hello world!");
 
     // Allocate a qubit. Qubit is in |0〉 state after allocation.
