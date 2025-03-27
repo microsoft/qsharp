@@ -99,6 +99,17 @@ function onMessage(event: any) {
   switch (message.command) {
     case "circuit":
       {
+        // Check if the received circuit is different from the current state
+        if (
+          state.viewType === "circuit" &&
+          JSON.stringify(state.props.circuit) ===
+            JSON.stringify(message.props.circuit)
+        ) {
+          // Skip updating the state if the circuit is the same
+          console.log("Circuit is unchanged, skipping state update.");
+          return;
+        }
+
         state = {
           viewType: "circuit",
           ...message,

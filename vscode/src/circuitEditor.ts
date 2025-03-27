@@ -52,7 +52,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
 
     const updateWebview = () => {
       const circuit = this.getDocumentAsJson(document);
-      const filename = document.fileName.split(/\\|\//).pop()?.split(".")[0];
+      const filename = document.fileName.split(/\\|\//).pop()!.split(".")[0];
 
       const props = {
         title: `${filename} Circuit`,
@@ -68,6 +68,20 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       };
       webviewPanel.webview.postMessage(message);
     };
+
+    // Update the webview when the text document changes
+    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
+      (event) => {
+        if (event.document.uri.toString() === document.uri.toString()) {
+          updateWebview();
+        }
+      },
+    );
+
+    // Dispose of the event listener when the webview is closed
+    webviewPanel.onDidDispose(() => {
+      changeDocumentSubscription.dispose();
+    });
 
     updateWebview();
   }

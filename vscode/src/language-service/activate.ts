@@ -289,12 +289,7 @@ function registerDocumentUpdateHandlers(
       // Check if the document is a .qsc file and convert it to Q# if needed
       if (document.fileName.endsWith(".qsc")) {
         try {
-          const name = document.fileName
-            .split("\\")
-            .pop()!
-            .split("/")
-            .pop()!
-            .split(".")[0];
+          const name = document.fileName.split(/\\|\//).pop()!.split(".")[0];
           content = await circuitsToQSharp(name, content);
         } catch (error: any) {
           log.error(`Failed to convert .qsc file to Q#: ${error.message}`);

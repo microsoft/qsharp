@@ -240,20 +240,10 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
 
     let mut args = vec![];
 
-    // // Create the regex for matching integers
-    // // let int_regex = Regex::new(r"(?<![\d.])(\d+)(?![\d.])").unwrap();
-    // let int_regex = Regex::new(r"([\d.])(\d+)([\d.])").unwrap();
-
-    // for arg in &unitary.args {
-    //     // Convert ints to doubles by appending a `.` to the end of the integer
-    //     let updated_arg = int_regex.replace_all(arg, "$1.").to_string();
-
-    //     args.push(updated_arg);
-    // }
-
     // Create the regex for matching numbers (both integers and doubles)
     let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").unwrap();
 
+    // Convert ints to doubles by appending a `.` to the end of the integer
     for arg in &unitary.args {
         // Replace all numbers in the string
         let updated_arg = number_regex
