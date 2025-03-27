@@ -393,10 +393,6 @@ impl QasmCompiler {
             return None;
         }
 
-        if indices.len() != stmt.indices.len() {
-            return None;
-        }
-
         let index_expr = indices[0].clone();
 
         let stmt = build_indexed_assignment_statement(
@@ -1331,11 +1327,6 @@ impl QasmCompiler {
         let operand_span = expr.span;
         let name_span = span;
         match ty {
-            &Type::Angle(..) => {
-                let msg = "Cast bit to angle";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
-            }
             &Type::Bool(..) => {
                 self.runtime |= RuntimeFunctions::ResultAsBool;
                 build_cast_call(
@@ -1364,7 +1355,6 @@ impl QasmCompiler {
                 self.runtime |= function;
                 build_cast_call(function, expr, name_span, operand_span)
             }
-
             _ => err_expr(span),
         }
     }
