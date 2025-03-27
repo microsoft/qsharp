@@ -992,7 +992,7 @@ impl Lowerer {
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         // Push the scope where the def lives.
-        self.symbols.push_scope(ScopeKind::Gate);
+        self.symbols.push_scope(ScopeKind::Function);
 
         let params = stmt
             .params
