@@ -11,6 +11,7 @@ use pyo3::types::{PyDict, PyList};
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, Interpreter};
 use qsc::qasm3::io::SourceResolver;
+use qsc::qasm3::io::{Error, ErrorKind};
 use qsc::qasm3::{
     qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
 };
@@ -55,12 +56,15 @@ impl<T> SourceResolver for ImportResolver<T>
 where
     T: FileSystem,
 {
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
+    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>,
     {
         let path = self.path.join(path);
-        let (path, source) = self.fs.read_file(path.as_ref())?;
+        let (path, source) = self
+            .fs
+            .read_file(path.as_ref())
+            .map_err(|e| Error(ErrorKind::IO(format!("{e}"))))?;
         Ok((
             PathBuf::from(path.as_ref().to_owned()),
             source.as_ref().to_owned(),

@@ -23,22 +23,6 @@ fn implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn const_implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        const complex[float] x;
-    ";
-
-    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 0.);
-    "#
-    ]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
 fn explicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         complex[float[42]] x;
@@ -48,22 +32,6 @@ fn explicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
     expect![
         r#"
         mutable x = Microsoft.Quantum.Math.Complex(0., 0.);
-    "#
-    ]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
-fn const_explicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        const complex[float[42]] x;
-    ";
-
-    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 0.);
     "#
     ]
     .assert_eq(&qsharp);

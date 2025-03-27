@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod error;
+pub use error::Error;
+pub use error::ErrorKind;
+
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -8,30 +12,27 @@ use std::{
 
 use rustc_hash::FxHashMap;
 
-use miette::IntoDiagnostic;
-
 /// A trait for resolving include file paths to their contents.
 /// This is used by the parser to resolve `include` directives.
 /// Implementations of this trait can be provided to the parser
 /// to customize how include files are resolved.
 pub trait SourceResolver {
     #[cfg(feature = "fs")]
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
+    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>,
     {
         let path = std::fs::canonicalize(path).map_err(|e| {
-            crate::Error(crate::ErrorKind::IO(format!(
+            Error(ErrorKind::IO(format!(
                 "Could not resolve include file path: {e}"
             )))
         })?;
         match std::fs::read_to_string(&path) {
             Ok(source) => Ok((path, source)),
-            Err(_) => Err(crate::Error(crate::ErrorKind::NotFound(format!(
+            Err(_) => Err(Error(ErrorKind::NotFound(format!(
                 "Could not resolve include file: {}",
                 path.display()
-            ))))
-            .into_diagnostic(),
+            )))),
         }
     }
     #[cfg(not(feature = "fs"))]
@@ -62,18 +63,17 @@ impl FromIterator<(Arc<str>, Arc<str>)> for InMemorySourceResolver {
 }
 
 impl SourceResolver for InMemorySourceResolver {
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
+    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>,
     {
         let path = path.as_ref();
         match self.sources.get(path) {
             Some(source) => Ok((path.to_owned(), source.clone())),
-            None => Err(crate::Error(crate::ErrorKind::NotFound(format!(
+            None => Err(Error(ErrorKind::NotFound(format!(
                 "Could not resolve include file: {}",
                 path.display()
-            ))))
-            .into_diagnostic(),
+            )))),
         }
     }
 }

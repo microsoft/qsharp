@@ -4,6 +4,7 @@
 use crate::tests::compile_qasm_to_qsharp;
 use expect_test::expect;
 use miette::Report;
+use std::fmt::Write;
 
 #[test]
 fn single_qubit_can_be_measured_into_single_bit() -> miette::Result<(), Vec<Report>> {
@@ -24,7 +25,6 @@ fn single_qubit_can_be_measured_into_single_bit() -> miette::Result<(), Vec<Repo
 }
 
 #[test]
-#[ignore = "Arrow syntax is not supported yet in the parser"]
 fn single_qubit_can_be_arrow_measured_into_single_bit() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         bit c;
@@ -87,17 +87,29 @@ fn measuring_hardware_qubits_generates_an_error() {
         c = measure $2;
     "#;
 
-    let Err(err) = compile_qasm_to_qsharp(source) else {
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
         panic!("Measuring HW qubit should have generated an error");
     };
-    assert!(
-        err.len() == 1,
-        "Expected a single error when measuring a HW qubit, got: {err:#?}"
-    );
 
-    assert!(err[0]
-        .to_string()
-        .contains("Hardware qubit operands are not supported"));
+    let mut errs_string = String::new();
+
+    for err in errs {
+        writeln!(&mut errs_string, "{err:?}").expect("");
+    }
+
+    expect![[r#"
+        Qsc.Qasm3.Compile.NotSupported
+
+          x Hardware qubit operands are not supported.
+           ,-[Test.qasm:3:21]
+         2 |         bit c;
+         3 |         c = measure $2;
+           :                     ^^
+         4 |     
+           `----
+
+    "#]]
+    .assert_eq(&errs_string);
 }
 
 #[test]
