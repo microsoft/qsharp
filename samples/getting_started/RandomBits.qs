@@ -3,7 +3,7 @@
 ///
 /// # Description
 /// This program implements a quantum random number generator by setting qubits
-/// in superposition and then using the measurement results as random bits.
+/// into superposition and then using the measurement results as random bits.
 /// This is equivalent to generating a random number in the range of 0..2ᴺ-1.
 operation Main() : Result[] {
     // Generate a 5-bit random number.
@@ -31,6 +31,6 @@ operation GenerateRandomBit() : Result {
     H(q);
     // Now the qubit has 50% chance of being measured as `One`
     // and 50% chance of being measured as `Zero`.
-    // Measure and reset the qubit.
+    // Measure and reset the qubit. Return the result.
     MResetZ(q)
 }
