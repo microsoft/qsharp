@@ -19,7 +19,7 @@ fn indexed_bit_cannot_be_implicitly_converted_to_float() {
     };
 
     assert_eq!(1, errors.len(), "Expected one error");
-    expect![r#"Cannot cast expression of type Bit(False) to type Float(None, False)"#]
+    expect![r#"Cannot cast expression of type Bit(false) to type Float(None, false)"#]
         .assert_eq(&errors[0].to_string());
 }
 
@@ -99,7 +99,7 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 #[ignore = "Not yet implemented"]
 fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
     let source = "
-        bool[5] x;
+        array[bool, 5] x;
         bool y = x[0];
     ";
 
@@ -111,5 +111,50 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
     "#
     ]
     .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[0:3] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[0:3:2] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_index_set() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[{1, 3}] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
     Ok(())
 }

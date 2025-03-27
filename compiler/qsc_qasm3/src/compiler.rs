@@ -1096,9 +1096,15 @@ impl QasmCompiler {
         cast_expr
     }
 
-    fn compile_index_expr(&mut self, index: &IndexExpr) -> qsast::Expr {
-        self.push_unimplemented_error_message("index expressions", index.span);
-        err_expr(index.span)
+    fn compile_index_expr(&mut self, index_expr: &IndexExpr) -> qsast::Expr {
+        let expr = self.compile_expr(&index_expr.collection);
+        let index = self.compile_index_element(&index_expr.index);
+
+        qsast::Expr {
+            id: qsast::NodeId::default(),
+            span: index_expr.span,
+            kind: Box::new(qsast::ExprKind::Index(Box::new(expr), Box::new(index))),
+        }
     }
 
     fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> qsast::Expr {
