@@ -721,7 +721,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
             return None;
         };
 
-        if left_type.width() != Some(*size) {
+        if left_type.width().is_some() && left_type.width() != Some(*size) {
             return None;
         }
 
@@ -736,7 +736,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
             return None;
         };
 
-        if right_type.width() != Some(*size) {
+        if right_type.width().is_some() && right_type.width() != Some(*size) {
             return None;
         }
 
