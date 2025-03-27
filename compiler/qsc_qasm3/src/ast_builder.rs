@@ -810,7 +810,7 @@ pub(crate) fn build_call_with_param(
     operand: Expr,
     name_span: Span,
     operand_span: Span,
-    stmt_span: Span,
+    call_span: Span,
 ) -> Expr {
     let segments = build_idents(idents);
     let fn_name = Ident {
@@ -838,7 +838,38 @@ pub(crate) fn build_call_with_param(
 
     Expr {
         id: NodeId::default(),
-        span: stmt_span,
+        span: call_span,
+        kind: Box::new(call),
+    }
+}
+
+pub(crate) fn build_call_with_params(
+    name: &str,
+    idents: &[&str],
+    operands: Vec<Expr>,
+    name_span: Span,
+    call_span: Span,
+) -> Expr {
+    let segments = build_idents(idents);
+    let fn_name = Ident {
+        name: Rc::from(name),
+        span: name_span,
+        ..Default::default()
+    };
+    let path_expr = Expr {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+            segments,
+            name: Box::new(fn_name),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
+        ..Default::default()
+    };
+    let call = ExprKind::Call(Box::new(path_expr), Box::new(build_tuple_expr(operands)));
+
+    Expr {
+        id: NodeId::default(),
+        span: call_span,
         kind: Box::new(call),
     }
 }
@@ -1186,8 +1217,10 @@ fn wrap_ty_in_array(ty: Ty) -> Ty {
 }
 
 pub(crate) fn build_for_stmt(
-    loop_var: &crate::symbols::Symbol,
-    iter: crate::types::QasmTypedExpr,
+    loop_var_name: &str,
+    loop_var_span: Span,
+    loop_var_qsharp_ty: &crate::types::Type,
+    iter: Expr,
     body: Block,
     stmt_span: Span,
 ) -> Stmt {
@@ -1197,15 +1230,15 @@ pub(crate) fn build_for_stmt(
                 Box::new(Pat {
                     kind: Box::new(PatKind::Bind(
                         Box::new(Ident {
-                            name: loop_var.name.clone().into(),
-                            span: loop_var.span,
+                            name: loop_var_name.into(),
+                            span: loop_var_span,
                             ..Default::default()
                         }),
-                        Some(Box::new(map_qsharp_type_to_ast_ty(&loop_var.qsharp_ty))),
+                        Some(Box::new(map_qsharp_type_to_ast_ty(loop_var_qsharp_ty))),
                     )),
                     ..Default::default()
                 }),
-                Box::new(iter.expr),
+                Box::new(iter),
                 Box::new(body),
             )),
             span: stmt_span,
@@ -1371,7 +1404,8 @@ pub(crate) fn build_gate_decl(
     }
 }
 
-pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+pub(crate) fn build_lambda<S: AsRef<str>>(
     name: S,
     cargs: Vec<(String, Ty, Pat)>,
     qargs: Vec<(String, Ty, Pat)>,
@@ -1379,6 +1413,8 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     name_span: Span,
     body_span: Span,
     gate_span: Span,
+    return_type: Option<Ty>,
+    kind: CallableKind,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1413,15 +1449,15 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         })
         .map(Box::new)
         .collect::<Vec<_>>();
-    let input_pat = if args.len() > 1 {
+    let input_pat = if args.len() == 1 {
         ast::Pat {
-            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
+            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
             span: Span { lo, hi },
             ..Default::default()
         }
     } else {
         ast::Pat {
-            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
+            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
             span: Span { lo, hi },
             ..Default::default()
         }
@@ -1438,29 +1474,35 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     let lambda_expr = Expr {
         id: NodeId::default(),
         kind: Box::new(ExprKind::Lambda(
-            CallableKind::Operation,
+            kind,
             Box::new(input_pat),
             Box::new(block_expr),
         )),
         span: gate_span,
     };
     let ty_args = args.iter().map(|(_, ty, _)| ty.clone()).collect::<Vec<_>>();
-    let input_ty = if args.len() > 1 {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
-            ..Default::default()
-        }
-    } else {
+    let input_ty = if args.len() == 1 {
         ast::Ty {
             kind: Box::new(ast::TyKind::Paren(Box::new(ty_args[0].clone()))),
             ..Default::default()
         }
+    } else {
+        ast::Ty {
+            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
+            ..Default::default()
+        }
     };
+    let return_type = if let Some(ty) = return_type {
+        ty
+    } else {
+        build_path_ident_ty("Unit")
+    };
+
     let lambda_ty = ast::Ty {
         kind: Box::new(ast::TyKind::Arrow(
-            CallableKind::Operation,
+            kind,
             Box::new(input_ty),
-            Box::new(build_path_ident_ty("Unit")),
+            Box::new(return_type),
             None,
         )),
         ..Default::default()

@@ -5,6 +5,7 @@ mod array;
 mod bit;
 mod bool;
 mod complex;
+mod def;
 mod float;
 mod gate;
 mod integer;
