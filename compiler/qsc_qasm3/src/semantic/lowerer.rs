@@ -958,6 +958,17 @@ impl Lowerer {
             self.push_semantic_error(kind);
         }
 
+        // 2. Build the parameter's type.
+        let mut param_types = Vec::with_capacity(stmt.params.len());
+        let mut param_symbols = Vec::with_capacity(stmt.params.len());
+
+        for param in &stmt.params {
+            let symbol = self.lower_typed_parameter(param);
+            param_types.push(symbol.ty.clone());
+            param_symbols.push(symbol);
+        }
+
+        // 3. Build the return type.
         let (return_ty, qsharp_return_ty) = if let Some(ty) = &stmt.return_type {
             let ty_span = ty.span;
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
@@ -973,7 +984,7 @@ impl Lowerer {
         let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(arity, return_ty.map(Box::new));
+        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.map(Rc::new));
 
         let has_qubit_params = stmt
             .params
@@ -1177,35 +1188,50 @@ impl Lowerer {
     }
 
     fn lower_function_call_expr(&mut self, expr: &syntax::FunctionCall) -> semantic::Expr {
-        // 1. Lower the args.
-        let args = expr.args.iter().map(|arg| self.lower_expr(arg));
-        let args = list_from_iter(args);
-
-        // 2. Check that the function name actually refers to a function
+        // 1. Check that the function name actually refers to a function
         //    in the symbol table and get its symbol_id & symbol.
         let name = expr.name.name.clone();
         let name_span = expr.name.span;
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(name, name_span);
 
-        let return_ty = if let Type::Function(arity, return_ty) = &symbol.ty {
+        let (params_ty, return_ty) = if let Type::Function(params_ty, return_ty) = &symbol.ty {
+            let arity = params_ty.len();
+
             // 2. Check that function classical arity matches the number of classical args.
-            if *arity as usize != args.len() {
+            if arity != expr.args.len() {
                 self.push_semantic_error(SemanticErrorKind::InvalidNumberOfClassicalArgs(
-                    *arity as usize,
-                    args.len(),
+                    arity,
+                    expr.args.len(),
                     expr.span,
                 ));
             }
 
-            if let Some(ty) = return_ty {
-                *ty.clone()
+            if let Some(return_ty) = return_ty {
+                (params_ty.clone(), (**return_ty).clone())
             } else {
-                crate::semantic::types::Type::Err
+                (Rc::default(), crate::semantic::types::Type::Err)
             }
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
-            crate::semantic::types::Type::Err
+            (Rc::default(), crate::semantic::types::Type::Err)
         };
+
+        // 3. Lower the args. There are three cases.
+        // 3.1 If there are fewer args than the arity of the function.
+
+        // 3.2 If the number of args and the arity match.
+
+        // 3.3 If there are more args than the arity of the function.
+        let mut params_ty_iter = params_ty.iter();
+        let args = expr.args.iter().map(|arg| {
+            let arg = self.lower_expr(arg);
+            if let Some(ty) = params_ty_iter.next() {
+                self.cast_expr_to_type(ty, &arg)
+            } else {
+                arg
+            }
+        });
+        let args = list_from_iter(args);
 
         let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
             span: expr.span,
@@ -1235,7 +1261,10 @@ impl Lowerer {
         }
 
         //   1.3. Lower the args.
-        let args = stmt.args.iter().map(|arg| self.lower_expr(arg));
+        let args = stmt.args.iter().map(|arg| {
+            let arg = self.lower_expr(arg);
+            self.cast_expr_to_type(&crate::semantic::types::Type::Angle(None, false), &arg)
+        });
         let args = list_from_iter(args);
         //   1.4. Lower the qubits.
         let qubits = stmt.qubits.iter().map(|q| self.lower_gate_operand(q));
@@ -2831,7 +2860,6 @@ impl Lowerer {
     fn lower_index_expr(&mut self, expr: &syntax::IndexExpr) -> semantic::Expr {
         let collection = self.lower_expr(&expr.collection);
         let index = self.lower_index_element(&expr.index);
-
         let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, 1);
 
         semantic::Expr {

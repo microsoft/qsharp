@@ -72,7 +72,8 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
             return a ^ b;
         }
 
-        bit p = parity(2);
+        qubit[2] qs;
+        bit p = parity(qs);
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -93,7 +94,8 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
                 Zero
             };
         };
-        mutable p = parity(2);
+        let qs = QIR.Runtime.AllocateQubitArray(2);
+        mutable p = parity(qs);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -222,6 +224,67 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
          5 | 
          6 |         bit a = square(2.0);
            :                 ^^^^^^^^^^^
+         7 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def parity(bit[2] arr) -> bit {
+            return 1;
+        }
+
+        bit p = parity(2);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        function __BoolAsResult__(input : Bool) : Result {
+            Microsoft.Quantum.Convert.BoolAsResult(input)
+        }
+        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
+            mutable runningValue = number;
+            mutable result = [];
+            for _ in 1..bits {
+                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
+                set runningValue >>>= 1;
+            }
+            Microsoft.Quantum.Arrays.Reversed(result)
+        }
+        let parity : (Result[]) -> Result = (arr) -> {
+            return 1;
+        };
+        mutable p = parity(__IntAsResultArrayBE__(2, 2));
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
+    let source = r#"
+        def parity(qubit[2] arr) -> bit {
+            return 1;
+        }
+
+        bit p = parity(2);
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Int(None, true) to type QubitArray(One(2))
+           ,-[Test.qasm:6:24]
+         5 | 
+         6 |         bit p = parity(2);
+           :                        ^
          7 |     
            `----
         ]"#]]

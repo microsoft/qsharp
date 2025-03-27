@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::cmp::max;
+use std::{cmp::max, rc::Rc};
 
 use core::fmt;
 use std::fmt::{Display, Formatter};
@@ -43,7 +43,7 @@ pub enum Type {
 
     // realistically the sizes could be u3
     Gate(u32, u32),
-    Function(u32, Option<Box<Type>>),
+    Function(Rc<[Type]>, Option<Rc<Type>>),
     Range,
     Set,
     Void,
@@ -75,7 +75,9 @@ impl Display for Type {
             Type::IntArray(width, dims) => write!(f, "IntArray({width:?}, {dims:?})"),
             Type::UIntArray(width, dims) => write!(f, "UIntArray({width:?}, {dims:?})"),
             Type::Gate(cargs, qargs) => write!(f, "Gate({cargs}, {qargs})"),
-            Type::Function(cargs, return_ty) => write!(f, "Function({cargs}) -> {return_ty:?}"),
+            Type::Function(params_ty, return_ty) => {
+                write!(f, "Function({params_ty:?}) -> {return_ty:?}")
+            }
             Type::Range => write!(f, "Range"),
             Type::Set => write!(f, "Set"),
             Type::Void => write!(f, "Void"),
