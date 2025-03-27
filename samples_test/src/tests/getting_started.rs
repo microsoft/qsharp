@@ -52,22 +52,16 @@ pub const BELLSTATES_EXPECT_DEBUG: Expect = expect![[r#"
     |01⟩: 0.7071+0.0000𝑖
     |10⟩: −0.7071+0.0000𝑖
     [(Zero, Zero), (One, One), (One, Zero), (One, Zero)]"#]];
-pub const CATSTATESANDGHZ_EXPECT: Expect = expect![[r#"
-    STATE:
-    |000⟩: 0.7071+0.0000𝑖
-    |111⟩: 0.7071+0.0000𝑖
+pub const CATSTATES_EXPECT: Expect = expect![[r#"
     STATE:
     |00000⟩: 0.7071+0.0000𝑖
     |11111⟩: 0.7071+0.0000𝑖
-    ([Zero, Zero, Zero], [One, One, One, One, One])"#]];
-pub const CATSTATESANDGHZ_EXPECT_DEBUG: Expect = expect![[r#"
-    STATE:
-    |000⟩: 0.7071+0.0000𝑖
-    |111⟩: 0.7071+0.0000𝑖
+    [Zero, Zero, Zero, Zero, Zero]"#]];
+pub const CATSTATES_EXPECT_DEBUG: Expect = expect![[r#"
     STATE:
     |00000⟩: 0.7071+0.0000𝑖
     |11111⟩: 0.7071+0.0000𝑖
-    ([Zero, Zero, Zero], [One, One, One, One, One])"#]];
+    [Zero, Zero, Zero, Zero, Zero]"#]];
 pub const RANDOMBITS_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const RANDOMBITS_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const SIMPLETELEPORTATION_EXPECT: Expect = expect![[r#"
