@@ -316,3 +316,22 @@ fn rx_gate_with_too_many_angles_generates_error() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn implicit_cast_to_angle_works() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit q;
+        float a = 2.0;
+        rx(a) q;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        let a = 2.0;
+        Rx(2., q);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
