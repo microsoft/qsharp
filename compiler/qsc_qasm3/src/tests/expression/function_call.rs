@@ -22,6 +22,22 @@ fn funcall_with_no_arguments_generates_correct_qsharp() -> miette::Result<(), Ve
 }
 
 #[test]
+fn void_function_with_one_argument_generates_correct_qsharp() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def f(int x) {}
+        f(2);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        let f : (Int) -> Unit = (x) -> {};
+        f(2);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn funcall_with_one_argument_generates_correct_qsharp() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         def square(int x) -> int {
