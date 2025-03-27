@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
+  savedVersion: number | undefined;
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     log.info("Registering CircuitEditorProvider");
@@ -73,7 +74,13 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
       (event) => {
         if (event.document.uri.toString() === document.uri.toString()) {
-          updateWebview();
+          if (
+            this.savedVersion !== undefined &&
+            event.document.version > this.savedVersion
+          ) {
+            // Update the webview with the new document content
+            updateWebview();
+          }
         }
       },
     );
@@ -135,7 +142,10 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
-  private updateTextDocument(document: vscode.TextDocument, circuit: string) {
+  private async updateTextDocument(
+    document: vscode.TextDocument,
+    circuit: string,
+  ) {
     // Short-circuit if there are no changes to be made.
     if (circuit == document.getText()) {
       return;
@@ -150,7 +160,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       new vscode.Range(0, 0, document.lineCount, 0),
       circuit,
     );
-
-    return vscode.workspace.applyEdit(edit);
+    await vscode.workspace.applyEdit(edit);
+    this.savedVersion = document.version;
   }
 }
