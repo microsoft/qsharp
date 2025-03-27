@@ -71,10 +71,10 @@ pub const CATSTATESANDGHZ_EXPECT_DEBUG: Expect = expect![[r#"
 pub const RANDOMBITS_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const RANDOMBITS_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const SIMPLETELEPORTATION_EXPECT: Expect = expect![[r#"
-    Correct state!
+    Teleportation successful: true.
     true"#]];
 pub const SIMPLETELEPORTATION_EXPECT_DEBUG: Expect = expect![[r#"
-    Correct state!
+    Teleportation successful: true.
     true"#]];
 pub const ENTANGLEMENT_EXPECT: Expect = expect![[r#"
     STATE:

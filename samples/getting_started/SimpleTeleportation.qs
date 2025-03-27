@@ -3,29 +3,31 @@
 ///
 /// # Description
 /// This Q# program demonstrates how to teleport quantum state
-/// by communicating two classical bits using previously entangled qubits.
-/// This code teleports |1〉 state, but any state can be teleported.
+/// by communicating two classical bits and using previously entangled qubits.
+/// This code teleports one specific state, but any state can be teleported.
 operation Main() : Bool {
-    // Allocate qAlice, qBob qubits
+    // Allocate `qAlice`, `qBob` qubits
     use (qAlice, qBob) = (Qubit(), Qubit());
 
-    // Entangle qAlice, qBob qubits
+    // Entangle `qAlice`, `qBob` qubits
     H(qAlice);
     CNOT(qAlice, qBob);
 
-    // Allocate qMessage qubit and prepare it to be |1〉
-    use qMessage = Qubit();
-    X(qMessage);
+    // From now on qubits `qAlice` and `qBob` will not interact directly.
 
-    // Prepare the message by entangling with qAlice state
-    CNOT(qMessage, qAlice);
-    H(qMessage);
+    // Allocate `qToTeleport` qubit and prepare it to be |𝜓⟩≈0.9394|0⟩−0.3429𝑖|1⟩
+    use qToTeleport = Qubit();
+    Rx(0.7, qToTeleport);
 
-    // Obtain classical measurement results b1 and b2
-    let b1 = M(qMessage) == One;
+    // Prepare the message by entangling `qToTeleport` and `qAlice` qubits
+    CNOT(qToTeleport, qAlice);
+    H(qToTeleport);
+
+    // Obtain classical measurement results b1 and b2 at Alice's site.
+    let b1 = M(qToTeleport) == One;
     let b2 = M(qAlice) == One;
 
-    // Here classical results b1 and b2 are "sent" to the Bob's site.
+    // At this point classical bits b1 and b2 are "sent" to the Bob's site.
 
     // Decode the message by applying adjustments based on classical data b1 and b2.
     if b1 {
@@ -35,16 +37,13 @@ operation Main() : Bool {
         X(qBob);
     }
 
-    // Make sure that the obtained result is the same
-    X(qBob);
+    // Make sure that the obtained message is |𝜓⟩≈0.9394|0⟩−0.3429𝑖|1⟩
+    Rx(-0.7, qBob);
     let correct = Std.Diagnostics.CheckZero(qBob);
-    if correct {
-        Message("Correct state!");
-    } else {
-        Message("Incorrect state!");
-    }
+    Message($"Teleportation successful: {correct}.");
 
-    ResetAll([qAlice, qBob, qMessage]);
+    // Reset all qubits to |0⟩ state.
+    ResetAll([qAlice, qBob, qToTeleport]);
 
     // Return indication if the measurement of the state was correct
     correct
