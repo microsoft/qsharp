@@ -7,13 +7,14 @@
 use std::convert::TryInto;
 use std::f64::consts::PI;
 
+use super::from_f64;
 use super::Angle;
 
 #[test]
 fn test_angle() {
-    let angle1 = Angle::from_f64(PI, 4);
-    let angle2 = Angle::from_f64(PI / 2.0, 6);
-    let angle3 = Angle::from_f64(7.0 * (PI / 8.0), 8);
+    let angle1 = from_f64(PI, 4);
+    let angle2 = from_f64(PI / 2.0, 6);
+    let angle3 = from_f64(7.0 * (PI / 8.0), 8);
 
     assert_eq!(angle1.to_bitstring(), "1000");
     assert_eq!(angle2.to_bitstring(), "010000");
@@ -22,15 +23,15 @@ fn test_angle() {
 
 #[test]
 fn test_angle_creation() {
-    let angle = Angle::from_f64(PI, 4);
+    let angle = from_f64(PI, 4);
     assert_eq!(angle.value, 8);
     assert_eq!(angle.size, 4);
 }
 
 #[test]
 fn test_angle_addition() {
-    let angle1 = Angle::from_f64(PI / 2.0, 4);
-    let angle2 = Angle::from_f64(PI / 2.0, 4);
+    let angle1 = from_f64(PI / 2.0, 4);
+    let angle2 = from_f64(PI / 2.0, 4);
     let result = angle1 + angle2;
     assert_eq!(result.value, 8);
     let angle: f64 = result.try_into().unwrap();
@@ -39,7 +40,7 @@ fn test_angle_addition() {
 
 #[test]
 fn test_angle_multiplication() {
-    let angle = Angle::from_f64(PI / 4.0, 4);
+    let angle = from_f64(PI / 4.0, 4);
     let result: Angle = angle * 2u64;
     assert_eq!(result.value, 4);
     let angle: f64 = result.try_into().unwrap();
@@ -48,7 +49,7 @@ fn test_angle_multiplication() {
 
 #[test]
 fn test_angle_multiplication_bigint() {
-    let angle = Angle::from_f64(PI / 4.0, 4);
+    let angle = from_f64(PI / 4.0, 4);
     let result: Angle = angle * 18446744073709551616u128;
     assert_eq!(result.value, 0);
     let angle: f64 = result.try_into().unwrap();
@@ -57,7 +58,7 @@ fn test_angle_multiplication_bigint() {
 
 #[test]
 fn test_angle_multiplication_bigint2() {
-    let angle = Angle::from_f64(PI / 4.0, 4);
+    let angle = from_f64(PI / 4.0, 4);
     let result: Angle = angle * 9223372036854775806u128;
     assert_eq!(result.value, 12);
     let angle: f64 = result.try_into().unwrap();
@@ -66,7 +67,7 @@ fn test_angle_multiplication_bigint2() {
 
 #[test]
 fn test_angle_division_int() {
-    let angle = Angle::from_f64(PI / 2.0, 4);
+    let angle = from_f64(PI / 2.0, 4);
     let result = angle / 2;
     assert_eq!(result.value, 2);
     let angle: f64 = result.try_into().unwrap();
@@ -75,23 +76,23 @@ fn test_angle_division_int() {
 
 #[test]
 fn test_angle_division_by_angle() {
-    let angle1 = Angle::from_f64(PI, 4);
-    let angle2 = Angle::from_f64(PI / 4.0, 4);
+    let angle1 = from_f64(PI, 4);
+    let angle2 = from_f64(PI / 4.0, 4);
     let result = angle1 / angle2;
     assert_eq!(result, 4);
 }
 
 #[test]
 fn test_angle_unary_negation() {
-    let angle = Angle::from_f64(PI / 4.0, 4);
+    let angle = from_f64(PI / 4.0, 4);
     let result = -angle; // "0010"
     assert_eq!(result.value, 14); // 7*(pi/4) │ "1110"
 }
 
 #[test]
 fn test_angle_compound_addition() {
-    let mut angle1 = Angle::from_f64(PI / 2.0, 4);
-    let angle2 = Angle::from_f64(PI / 2.0, 4);
+    let mut angle1 = from_f64(PI / 2.0, 4);
+    let angle2 = from_f64(PI / 2.0, 4);
     angle1 += angle2;
     assert_eq!(angle1.value, 8);
     let angle: f64 = angle1.try_into().unwrap();
@@ -100,8 +101,8 @@ fn test_angle_compound_addition() {
 
 #[test]
 fn test_angle_compound_subtraction() {
-    let mut angle1 = Angle::from_f64(PI, 4);
-    let angle2 = Angle::from_f64(PI / 2.0, 4);
+    let mut angle1 = from_f64(PI, 4);
+    let angle2 = from_f64(PI / 2.0, 4);
     angle1 -= angle2;
     assert_eq!(angle1.value, 4);
     let angle: f64 = angle1.try_into().unwrap();
@@ -110,7 +111,7 @@ fn test_angle_compound_subtraction() {
 
 #[test]
 fn test_angle_compound_multiplication() {
-    let mut angle = Angle::from_f64(PI / 4.0, 4);
+    let mut angle = from_f64(PI / 4.0, 4);
     angle *= 2;
     assert_eq!(angle.value, 4);
     let angle: f64 = angle.try_into().unwrap();
@@ -119,7 +120,7 @@ fn test_angle_compound_multiplication() {
 
 #[test]
 fn test_angle_compound_division() {
-    let mut angle = Angle::from_f64(PI / 2.0, 4);
+    let mut angle = from_f64(PI / 2.0, 4);
     angle /= 2;
     assert_eq!(angle.value, 2);
     let angle: f64 = angle.try_into().unwrap();
@@ -128,26 +129,26 @@ fn test_angle_compound_division() {
 
 #[test]
 fn test_angle_bitstring() {
-    let angle = Angle::from_f64(PI, 4);
+    let angle = from_f64(PI, 4);
     assert_eq!(angle.to_bitstring(), "1000");
 }
 
 #[test]
 fn test_angle_try_into_f64() {
-    let angle: Angle = Angle::from_f64(PI, 4);
+    let angle: Angle = from_f64(PI, 4);
     let angle_f64: f64 = angle.try_into().unwrap();
     assert!((angle_f64 - PI).abs() < f64::EPSILON);
 }
 
 #[test]
 fn test_angle_display() {
-    let angle = Angle::from_f64(PI, 4);
+    let angle = from_f64(PI, 4);
     assert_eq!(format!("{angle}"), format!("{PI}"));
 }
 
 #[test]
 fn from_f64_round_to_the_nearest_ties_to_even() {
-    let angle = Angle::from_f64(2.0 * PI * (127. / 512.), 8);
+    let angle = from_f64(2.0 * PI * (127. / 512.), 8);
     // 00111111 is equally close, but even rounds to 01000000
     assert_eq!(angle.to_bitstring(), "01000000");
 }

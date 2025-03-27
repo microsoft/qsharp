@@ -17,6 +17,9 @@ use bitflags::bitflags;
 use qsc_ast::ast::{Stmt, TopLevelNode};
 use qsc_data_structures::language_features::LanguageFeatures;
 
+/// Implement the `angle` type for QASM3.
+const ANGLE: &str = include_str!("angle.qs");
+
 /// Implement the `gphase` operation for QASM3.
 const GPHASE_GATE: &str = "
 operation gphase(theta : Double) : Unit is Adj + Ctl {
@@ -173,17 +176,18 @@ bitflags! {
         const Pow = 0b1;
         const Barrier = 0b10;
         const BoolAsResult = 0b100;
-        const BoolAsInt = 0b1_000;
-        const BoolAsBigInt = 0b10_000;
-        const BoolAsDouble = 0b100_000;
-        const ResultAsBool = 0b1_000_000;
-        const ResultAsInt = 0b10_000_000;
-        const ResultAsBigInt = 0b100_000_000;
+        const BoolAsInt = 0b1000;
+        const BoolAsBigInt = 0b1_0000;
+        const BoolAsDouble = 0b10_0000;
+        const ResultAsBool = 0b100_0000;
+        const ResultAsInt = 0b1000_0000;
+        const ResultAsBigInt = 0b1_0000_0000;
         /// IntAsResultArray requires BoolAsResult to be included.
-        const IntAsResultArrayBE = 0b1_000_000_000 | 0b100;
-        const ResultArrayAsIntBE = 0b10_000_000_000;
-        const Gphase = 0b100_000_000_000;
-        const U = 0b1_000_000_000_000;
+        const IntAsResultArrayBE = 0b10_0000_0000 | 0b100;
+        const ResultArrayAsIntBE = 0b100_0000_0000;
+        const Gphase = 0b1000_0000_0000;
+        const U = 0b1_0000_0000_0000;
+        const ANGLE = 0b10_0000_0000_0000;
     }
 }
 
@@ -191,6 +195,10 @@ impl Default for RuntimeFunctions {
     fn default() -> Self {
         RuntimeFunctions::empty()
     }
+}
+
+pub(crate) fn get_angle_decls() -> Vec<Stmt> {
+    parse_stmts(ANGLE)
 }
 
 pub(crate) fn get_pow_decl() -> Stmt {
@@ -250,7 +258,7 @@ pub(crate) fn get_u_decl() -> Stmt {
 /// in writing the AST nodes manually.
 fn parse_stmt(name: &str) -> Stmt {
     let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
-    assert!(errors.is_empty(), "Failed to parse POW: {errors:?}");
+    assert!(errors.is_empty(), "Failed to parse: {errors:?}");
     assert!(
         nodes.len() == 1,
         "Expected one top-level node, found {:?}",
@@ -258,15 +266,32 @@ fn parse_stmt(name: &str) -> Stmt {
     );
     match nodes.into_iter().next().expect("no top-level nodes found") {
         TopLevelNode::Namespace(..) => {
-            panic!("Expected operation, got Namespace")
+            panic!("Expected stmt, got Namespace")
         }
         TopLevelNode::Stmt(stmt) => *stmt,
     }
 }
 
+fn parse_stmts(name: &str) -> Vec<Stmt> {
+    let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
+    assert!(errors.is_empty(), "Failed to parse: {errors:?}");
+    let mut stmts = vec![];
+    match nodes.into_iter().next().expect("no top-level nodes found") {
+        TopLevelNode::Namespace(..) => {
+            panic!("Expected stmt, got Namespace")
+        }
+        TopLevelNode::Stmt(stmt) => stmts.push(*stmt),
+    }
+    stmts
+}
+
 /// Get the runtime function declarations for the given runtime functions.
 pub(crate) fn get_runtime_function_decls(runtime: RuntimeFunctions) -> Vec<Stmt> {
     let mut stmts = vec![];
+    if runtime.contains(RuntimeFunctions::ANGLE) {
+        let mut angle_stmts = crate::runtime::get_angle_decls();
+        stmts.append(&mut angle_stmts);
+    }
     if runtime.contains(RuntimeFunctions::Pow) {
         let stmt = crate::runtime::get_pow_decl();
         stmts.push(stmt);

@@ -82,7 +82,15 @@ impl UnaryOpExpr {
             UnaryOp::Neg => match operand_ty {
                 Type::Int(..) => rewrap_lit!(lit, Int(val), Int(-val)),
                 Type::Float(..) => rewrap_lit!(lit, Float(val), Float(-val)),
-                Type::Angle(..) => rewrap_lit!(lit, Float(val), Float(f64::consts::TAU - val)),
+                Type::Angle(w, _) => rewrap_lit!(
+                    lit,
+                    Float(val),
+                    Float(
+                        (-crate::angle::from_f64_maybe_sized(val, *w))
+                            .try_into()
+                            .expect("msg")
+                    )
+                ),
                 _ => None,
             },
             UnaryOp::NotB => match operand_ty {
@@ -327,12 +335,13 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs + rhs))
                 }
-                Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                    let mut ans = lhs + rhs;
-                    if ans >= f64::consts::TAU {
-                        ans -= f64::consts::TAU;
-                    }
-                    Float(ans)
+                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
+                    Float(
+                        (crate::angle::from_f64_maybe_sized(lhs, *w)
+                            + crate::angle::from_f64_maybe_sized(rhs, *w))
+                        .try_into()
+                        .expect("msg"),
+                    )
                 }),
                 _ => None,
             },
@@ -343,12 +352,13 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs - rhs))
                 }
-                Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                    let mut ans = lhs - rhs;
-                    if ans < 0.0 {
-                        ans += f64::consts::TAU;
-                    }
-                    Float(ans)
+                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
+                    Float(
+                        (crate::angle::from_f64_maybe_sized(lhs, *w)
+                            - crate::angle::from_f64_maybe_sized(rhs, *w))
+                        .try_into()
+                        .expect("msg"),
+                    )
                 }),
                 _ => None,
             },
@@ -356,28 +366,27 @@ impl BinaryOpExpr {
                 Type::Int(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
                 Type::UInt(..) => match &self.rhs.ty {
                     Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs * rhs)),
-                    Type::Angle(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Float(rhs)), {
-                        // allow reason: angles are in [0, 2π)
-                        #[allow(clippy::cast_precision_loss)]
-                        let mut ans = (lhs as f64) * rhs;
-                        while ans >= f64::consts::TAU {
-                            ans -= f64::consts::TAU;
-                        }
-                        Float(ans)
+                    Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Int(lhs), Float(rhs)), {
+                        #[allow(clippy::cast_sign_loss)]
+                        Float(
+                            (crate::angle::from_f64_maybe_sized(rhs, *w) * (lhs as u64))
+                                .try_into()
+                                .expect("msg"),
+                        )
                     }),
+
                     _ => None,
                 },
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs))
                 }
-                Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    // allow reason: angles are in [0, 2π)
-                    #[allow(clippy::cast_precision_loss)]
-                    let mut ans = lhs * (rhs as f64);
-                    while ans >= f64::consts::TAU {
-                        ans -= f64::consts::TAU;
-                    }
-                    Float(ans)
+                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
+                    #[allow(clippy::cast_sign_loss)]
+                    Float(
+                        (crate::angle::from_f64_maybe_sized(lhs, *w) * (rhs as u64))
+                            .try_into()
+                            .expect("msg"),
+                    )
                 }),
                 _ => None,
             },
@@ -388,11 +397,25 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
                 }
-                Type::Angle(..) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    // allow reason: angles are in [0, 2π)
-                    #[allow(clippy::cast_precision_loss)]
-                    Float(lhs / (rhs as f64))
+                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
+                    // for float/float we need to do it differently
+                    // Float(
+                    //     crate::angle::Angle::new(
+                    //         crate::angle::from_f64_maybe_sized(lhs, *w)
+                    //             / crate::angle::from_f64_maybe_sized(rhs, *w),
+                    //         (*w).unwrap_or(f64::MANTISSA_DIGITS),
+                    //     )
+                    //     .try_into()
+                    //     .expect("msg"),
+                    // )
+                    #[allow(clippy::cast_sign_loss)]
+                    Float(
+                        (crate::angle::from_f64_maybe_sized(lhs, *w) / (rhs as u64))
+                            .try_into()
+                            .expect("msg"),
+                    )
                 }),
+
                 _ => None,
             },
             BinOp::Mod => match lhs_ty {
@@ -560,7 +583,7 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
     match ty {
-        Type::Float(..) | Type::Angle(..) => Some(lit),
+        Type::Bit(..) | Type::Float(..) | Type::Angle(..) => Some(lit),
         _ => None,
     }
 }
