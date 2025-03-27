@@ -14,21 +14,19 @@ operation Main() : (Result, Result[]) {
     // Flip the state. Qubit is in |1〉 state now.
     X(q);
 
-    // The `M` operation performs a measurement of a single qubit in the
-    // computational basis, also known as the Pauli Z basis.
-    let result = M(q);
-
-    // Reset qubit back to |0〉 state.
-    // An alternative way to measure and then reset a qubit is to use
-    // `MResetZ` operation.
-    Reset(q);
+    // The `MResetZ` operation performs a measurement of a single qubit in the
+    // computational basis, also known as the Pauli Z basis. Then it resets
+    // the qubit to |0〉 state. `MResetZ` may be more efficient than measuring
+    // a qubit and resetting it using two separate operations.
+    let result = MResetZ(q);
 
     // Allocate a two-qubit array (or register).
     use qs = Qubit[2];
 
-    // The `MeasureEachZ` operation measures each qubit in an array in the
-    // computational basis and returns an array of `Result` values.
-    let results = MeasureEachZ(qs);
+    // The `MResetEachZ` operation measures each qubit in an array in the
+    // computational basis and resets each qubit to |0〉 state. It returns
+    // an array of `Result` values.
+    let results = MResetEachZ(qs);
 
     // Return all results. In Q#, the result of a measurement is a value
     // of the type `Result`, that is, `One` or `Zero`.
