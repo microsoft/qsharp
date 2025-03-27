@@ -594,14 +594,7 @@ impl QasmCompiler {
                 .collect();
 
             if args.len() == 1 {
-                let lo = expr.args[0].span.lo;
-                let hi = expr
-                    .args
-                    .last()
-                    .expect("there is at least one argument")
-                    .span
-                    .hi;
-                let operand_span = Span { lo, hi };
+                let operand_span = expr.args[0].span;
                 let operand = args.into_iter().next().expect("there is one argument");
                 build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
             } else {
