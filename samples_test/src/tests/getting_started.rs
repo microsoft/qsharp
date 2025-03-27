@@ -68,8 +68,8 @@ pub const CATSTATESANDGHZ_EXPECT_DEBUG: Expect = expect![[r#"
     |00000⟩: 0.7071+0.0000𝑖
     |11111⟩: 0.7071+0.0000𝑖
     ([Zero, Zero, Zero], [One, One, One, One, One])"#]];
-pub const RANDOMBITSNISQ_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
-pub const RANDOMBITSNISQ_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
+pub const RANDOMBITS_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
+pub const RANDOMBITS_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const SIMPLETELEPORTATION_EXPECT: Expect = expect![[r#"
     Correct state!
     true"#]];
@@ -118,8 +118,6 @@ pub const QUANTUMHELLOWORLD_EXPECT: Expect = expect![[r#"
 pub const QUANTUMHELLOWORLD_EXPECT_DEBUG: Expect = expect![[r#"
     Hello world!
     Zero"#]];
-pub const RANDOMBIT_EXPECT: Expect = expect!["Zero"];
-pub const RANDOMBIT_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const SUPERPOSITION_EXPECT: Expect = expect![[r#"
     STATE:
     |0⟩: 0.7071+0.0000𝑖

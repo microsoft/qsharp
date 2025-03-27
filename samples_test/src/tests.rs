@@ -6,7 +6,6 @@ mod algorithms;
 mod algorithms_generated;
 mod getting_started;
 #[rustfmt::skip]
-#[allow(clippy::doc_markdown)]
 mod getting_started_generated;
 #[rustfmt::skip]
 mod estimation_generated;

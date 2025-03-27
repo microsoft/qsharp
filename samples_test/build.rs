@@ -31,7 +31,7 @@ fn create_tests_for_files(folder: &str) {
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! This build-generated module contains tests for the samples in the /samples/{folder} folder.
+//! This build-generated module contains tests for the samples in the `/samples/{folder}` folder.
 //! DO NOT MANUALLY EDIT THIS FILE. To regenerate this file, run `cargo check` or `cargo test` in the `samples_test` directory.
 
 use super::{folder}::*;
