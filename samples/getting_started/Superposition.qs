@@ -16,7 +16,7 @@ operation Main() : Result {
     // Show the quantum state (when running on a simulator).
     Std.Diagnostics.DumpMachine();
 
-    // Measure the qubit. Reset the qubit. Return the result.
+    // Measure then reset the qubit. Return the result.
     // There is a 50% probability of measuring either `Zero` or `One`.
     MResetZ(qubit)
 }
