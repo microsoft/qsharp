@@ -1540,7 +1540,9 @@ fn parse_gphase(
     lo: u32,
     modifiers: List<QuantumGateModifier>,
 ) -> Result<GPhase> {
+    let gphase_token_lo = s.peek().span.lo;
     token(s, TokenKind::GPhase)?;
+    let gphase_token_span = s.span(gphase_token_lo);
 
     let args_lo = s.peek().span.lo;
     let args = opt(s, |s| {
@@ -1563,6 +1565,7 @@ fn parse_gphase(
 
     Ok(GPhase {
         span: s.span(lo),
+        gphase_token_span,
         modifiers,
         args,
         qubits,

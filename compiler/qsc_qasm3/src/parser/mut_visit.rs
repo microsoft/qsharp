@@ -515,6 +515,7 @@ fn walk_gate_call_stmt(vis: &mut impl MutVisitor, stmt: &mut GateCall) {
 
 fn walk_gphase_stmt(vis: &mut impl MutVisitor, stmt: &mut GPhase) {
     vis.visit_span(&mut stmt.span);
+    vis.visit_span(&mut stmt.gphase_token_span);
     stmt.modifiers
         .iter_mut()
         .for_each(|m| vis.visit_gate_modifier(m));
