@@ -14,23 +14,27 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 /// A fixed-point angle type with a specified number of bits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Angle {
+pub(crate) struct Angle {
     value: u64,
     size: u32,
 }
 
+pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
+    from_f64(val, size.unwrap_or(f64::MANTISSA_DIGITS))
+}
+
+pub fn from_f64(val: f64, size: u32) -> Angle {
+    #[allow(clippy::cast_precision_loss)]
+    let factor = (2.0 * PI) / (1u64 << size) as f64;
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    let value = (val / factor).round() as u64;
+    Angle::new(value, size)
+}
+
 #[allow(dead_code)]
 impl Angle {
-    fn new(value: u64, size: u32) -> Self {
-        Angle { value, size }
-    }
-
-    fn from_f64(val: f64, size: u32) -> Self {
-        #[allow(clippy::cast_precision_loss)]
-        let factor = (2.0 * PI) / (1u64 << size) as f64;
-        #[allow(clippy::cast_possible_truncation)]
-        #[allow(clippy::cast_sign_loss)]
-        let value = (val / factor).round() as u64;
+    pub fn new(value: u64, size: u32) -> Self {
         Angle { value, size }
     }
 
