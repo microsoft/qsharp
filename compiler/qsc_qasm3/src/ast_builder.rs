@@ -843,9 +843,10 @@ pub(crate) fn build_call_with_param(
     }
 }
 
-pub(crate) fn build_call_with_no_params(
+pub(crate) fn build_call_with_params(
     name: &str,
     idents: &[&str],
+    operands: Vec<Expr>,
     name_span: Span,
     call_span: Span,
 ) -> Expr {
@@ -864,14 +865,7 @@ pub(crate) fn build_call_with_no_params(
         })))),
         ..Default::default()
     };
-    let call = ExprKind::Call(
-        Box::new(path_expr),
-        Box::new(Expr {
-            kind: Box::new(ExprKind::Tuple(Default::default())),
-            span: Default::default(),
-            ..Default::default()
-        }),
-    );
+    let call = ExprKind::Call(Box::new(path_expr), Box::new(build_tuple_expr(operands)));
 
     Expr {
         id: NodeId::default(),

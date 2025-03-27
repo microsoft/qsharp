@@ -10,8 +10,8 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
-        build_binary_expr, build_call_with_no_params, build_call_with_param, build_cast_call,
-        build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
+        build_binary_expr, build_call_no_params, build_call_with_param, build_call_with_params,
+        build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
         build_convert_call_expr, build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
         build_gate_call_with_params_and_callee, build_if_expr_then_block,
         build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
@@ -591,30 +591,28 @@ impl QasmCompiler {
         let name = &symbol.name;
         let name_span = symbol.span;
         if expr.args.len() > 0 {
-            let lo = expr.args[0].span.lo;
-            let hi = expr
-                .args
-                .last()
-                .expect("there is at least one argument")
-                .span
-                .hi;
-            let operand_span = Span { lo, hi };
-
             let args: Vec<_> = expr
                 .args
                 .iter()
                 .map(|expr| self.compile_expr(expr))
                 .collect();
 
-            let operand = if args.len() == 1 {
-                args.into_iter().next().expect("there is one argument")
+            if args.len() == 1 {
+                let lo = expr.args[0].span.lo;
+                let hi = expr
+                    .args
+                    .last()
+                    .expect("there is at least one argument")
+                    .span
+                    .hi;
+                let operand_span = Span { lo, hi };
+                let operand = args.into_iter().next().expect("there is one argument");
+                build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
             } else {
-                build_tuple_expr(args)
-            };
-
-            build_call_with_param(name, &[], operand, name_span, operand_span, expr.span)
+                build_call_with_params(name, &[], args, name_span, expr.span)
+            }
         } else {
-            build_call_with_no_params(name, &[], name_span, expr.span)
+            build_call_no_params(name, &[], expr.span)
         }
     }
 

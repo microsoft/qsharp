@@ -57,7 +57,43 @@ fn funcall_with_two_arguments_generates_correct_qsharp() -> miette::Result<(), V
         let sum : (Int, Int) -> Int = (x, y) -> {
             return x + y;
         };
-        sum((2, 3));
+        sum(2, 3);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def parity(qubit[2] qs) -> bit {
+            bit a = measure qs[0];
+            bit b = measure qs[1];
+            return a ^ b;
+        }
+
+        bit p = parity(2);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        function __ResultAsInt__(input : Result) : Int {
+            if Microsoft.Quantum.Convert.ResultAsBool(input) {
+                1
+            } else {
+                0
+            }
+        }
+        let parity : (Qubit[]) => Result = (qs) => {
+            mutable a = QIR.Intrinsic.__quantum__qis__m__body(qs[0]);
+            mutable b = QIR.Intrinsic.__quantum__qis__m__body(qs[1]);
+            return if __ResultAsInt__(a) ^^^ __ResultAsInt__(b) == 0 {
+                One
+            } else {
+                Zero
+            };
+        };
+        mutable p = parity(2);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -141,4 +177,53 @@ fn funcall_accepts_qubit_argument() -> miette::Result<(), Vec<Report>> {
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn classical_decl_initialized_with_funcall() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def square(int x) -> int {
+            return x * x;
+        }
+
+        int a = square(2);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        let square : (Int) -> Int = (x) -> {
+            return x * x;
+        };
+        mutable a = square(2);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn classical_decl_initialized_with_incompatible_funcall_errors() {
+    let source = r#"
+        def square(float x) -> float {
+            return x * x;
+        }
+
+        bit a = square(2.0);
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Float(None, false) to type Bit(false)
+           ,-[Test.qasm:6:17]
+         5 | 
+         6 |         bit a = square(2.0);
+           :                 ^^^^^^^^^^^
+         7 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
 }

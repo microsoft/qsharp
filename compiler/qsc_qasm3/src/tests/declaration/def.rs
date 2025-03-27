@@ -52,3 +52,21 @@ fn qubit_parameter() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn qubit_array_parameter() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def square(qubit[3] qs) -> uint {
+            return 1;
+        }
+    "#;
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        let square : (Qubit[]) => Int = (qs) => {
+            return 1;
+        };
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

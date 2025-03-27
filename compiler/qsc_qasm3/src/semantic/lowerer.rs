@@ -1027,7 +1027,7 @@ impl Lowerer {
             syntax::TypedParameter::ArrayReference(param) => {
                 self.lower_array_reference_parameter(param)
             }
-            syntax::TypedParameter::Quantum(param) => Self::lower_quantum_parameter(param),
+            syntax::TypedParameter::Quantum(param) => self.lower_quantum_parameter(param),
             syntax::TypedParameter::Scalar(param) => self.lower_scalar_parameter(param),
         }
     }
@@ -1049,9 +1049,23 @@ impl Lowerer {
         )
     }
 
-    fn lower_quantum_parameter(typed_param: &syntax::QuantumTypedParameter) -> Symbol {
-        let ty = crate::semantic::types::Type::Qubit;
-        let qsharp_ty = crate::types::Type::Qubit;
+    fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
+        let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
+            if let Some(size) = self.const_eval_array_size_designator_from_expr(size) {
+                let ty = crate::semantic::types::Type::QubitArray(ArrayDimensions::One(size));
+                let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
+                    size as usize,
+                ));
+                (ty, qsharp_ty)
+            } else {
+                (crate::semantic::types::Type::Err, crate::types::Type::Err)
+            }
+        } else {
+            (
+                crate::semantic::types::Type::Qubit,
+                crate::types::Type::Qubit,
+            )
+        };
 
         Symbol::new(
             &typed_param.ident.name,
