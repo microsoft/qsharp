@@ -113,3 +113,48 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[0:3] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[0:3:2] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+#[ignore = "Not yet implemented"]
+fn bitstring_index_set() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        bit[5] ans = "10101";
+        qubit qq;
+        if(ans[{1, 3}] == 4) x qq;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![r#""#].assert_eq(&qsharp);
+    Ok(())
+}
