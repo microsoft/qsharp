@@ -357,7 +357,6 @@ pub enum StmtKind {
     For(ForStmt),
     If(IfStmt),
     GateCall(GateCall),
-    GPhase(GPhase),
     Include(IncludeStmt),
     InputDeclaration(InputDeclaration),
     OutputDeclaration(OutputDeclaration),
@@ -394,7 +393,6 @@ impl Display for StmtKind {
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),
             StmtKind::For(for_stmt) => write!(f, "{for_stmt}"),
             StmtKind::GateCall(gate_call) => write!(f, "{gate_call}"),
-            StmtKind::GPhase(gphase) => write!(f, "{gphase}"),
             StmtKind::If(if_stmt) => write!(f, "{if_stmt}"),
             StmtKind::Include(include) => write!(f, "{include}"),
             StmtKind::IndexedAssign(assign) => write!(f, "{assign}"),
@@ -1043,16 +1041,16 @@ impl Display for QubitArrayDeclaration {
 #[derive(Clone, Debug)]
 pub struct QuantumGateDefinition {
     pub span: Span,
-    pub ident: Box<Ident>,
-    pub params: List<Ident>,
-    pub qubits: List<Ident>,
-    pub body: Box<Block>,
+    pub symbol_id: SymbolId,
+    pub params: Box<[SymbolId]>,
+    pub qubits: Box<[SymbolId]>,
+    pub body: Block,
 }
 
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Gate", self.span)?;
-        writeln_field(f, "ident", &self.ident)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
         write_field(f, "body", &self.body)
@@ -1084,8 +1082,8 @@ pub struct GateCall {
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
+    pub classical_arity: u32,
     pub quantum_arity: u32,
-    pub quantum_arity_with_modifiers: u32,
 }
 
 impl Display for GateCall {
@@ -1094,33 +1092,10 @@ impl Display for GateCall {
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "args", &self.args)?;
-        writeln_opt_field(f, "duration", self.duration.as_ref())?;
         writeln_list_field(f, "qubits", &self.qubits)?;
-        writeln_field(f, "quantum_arity", &self.quantum_arity)?;
-        write_field(
-            f,
-            "quantum_arity_with_modifiers",
-            &self.quantum_arity_with_modifiers,
-        )
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct GPhase {
-    pub span: Span,
-    pub modifiers: List<QuantumGateModifier>,
-    pub args: List<Expr>,
-    pub qubits: List<GateOperand>,
-    pub duration: Option<Expr>,
-}
-
-impl Display for GPhase {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "GPhase", self.span)?;
-        writeln_list_field(f, "modifiers", &self.modifiers)?;
-        writeln_list_field(f, "args", &self.args)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
-        write_list_field(f, "qubits", &self.qubits)
+        writeln_field(f, "classical_arity", &self.classical_arity)?;
+        write_field(f, "quantum_arity", &self.quantum_arity)
     }
 }
 
@@ -1217,42 +1192,6 @@ impl Display for OutputDeclaration {
 }
 
 #[derive(Clone, Debug)]
-pub enum TypedParameter {
-    Scalar(ScalarTypedParameter),
-    Quantum(QuantumTypedParameter),
-    ArrayReference(ArrayTypedParameter),
-}
-
-impl WithSpan for TypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            Self::Scalar(param) => Self::Scalar(param.with_span(span)),
-            Self::Quantum(param) => Self::Quantum(param.with_span(span)),
-            Self::ArrayReference(param) => Self::ArrayReference(param.with_span(span)),
-        }
-    }
-}
-
-impl Display for TypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Scalar(param) => write!(f, "{param}"),
-            Self::Quantum(param) => write!(f, "{param}"),
-            Self::ArrayReference(param) => write!(f, "{param}"),
-        }
-    }
-}
-impl Default for TypedParameter {
-    fn default() -> Self {
-        Self::Scalar(ScalarTypedParameter {
-            span: Span::default(),
-            ident: Ident::default(),
-            ty: Box::default(),
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct ScalarTypedParameter {
     pub span: Span,
     pub ty: Box<ScalarType>,
@@ -1321,16 +1260,18 @@ impl WithSpan for ArrayTypedParameter {
 #[derive(Clone, Debug)]
 pub struct DefStmt {
     pub span: Span,
-    pub name: Box<Ident>,
-    pub params: List<TypedParameter>,
-    pub body: Box<Block>,
-    pub return_type: Option<ScalarType>,
+    pub symbol_id: SymbolId,
+    pub has_qubit_params: bool,
+    pub params: Box<[SymbolId]>,
+    pub body: Block,
+    pub return_type: Option<crate::types::Type>,
 }
 
 impl Display for DefStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "DefStmt", self.span)?;
-        writeln_field(f, "ident", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
         write_field(f, "body", &self.body)
@@ -1472,8 +1413,8 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub name_span: Span,
     pub symbol_id: SymbolId,
+    pub lhs_span: Span,
     pub rhs: Expr,
 }
 
@@ -1481,7 +1422,7 @@ impl Display for AssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "name_span", &self.name_span)?;
+        writeln_field(f, "lhs_span", &self.lhs_span)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1507,6 +1448,7 @@ impl Display for IndexedAssignStmt {
 pub struct AssignOpStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub indices: List<IndexElement>,
     pub op: BinOp,
     pub lhs: Expr,
     pub rhs: Expr,
@@ -1516,6 +1458,7 @@ impl Display for AssignOpStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignOpStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_list_field(f, "indices", &self.indices)?;
         writeln_field(f, "op", &self.op)?;
         writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
@@ -1565,14 +1508,14 @@ impl Display for BinaryOpExpr {
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub span: Span,
-    pub name: Ident,
+    pub symbol_id: SymbolId,
     pub args: List<Expr>,
 }
 
 impl Display for FunctionCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "FunctionCall", self.span)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
     }
 }

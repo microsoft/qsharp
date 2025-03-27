@@ -1090,6 +1090,7 @@ impl Display for GateCall {
 #[derive(Clone, Debug)]
 pub struct GPhase {
     pub span: Span,
+    pub gphase_token_span: Span,
     pub modifiers: List<QuantumGateModifier>,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
@@ -1099,6 +1100,7 @@ pub struct GPhase {
 impl Display for GPhase {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "GPhase", self.span)?;
+        writeln_field(f, "gphase_token_span", &self.gphase_token_span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;

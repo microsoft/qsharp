@@ -14,6 +14,7 @@ fn gphase() {
             Stmt [0-15]:
                 annotations: <empty>
                 kind: GPhase [0-15]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args:
                         Expr [7-13]: BinaryOpExpr:
@@ -34,6 +35,7 @@ fn gphase_qubit_ident() {
             Stmt [0-13]:
                 annotations: <empty>
                 kind: GPhase [0-13]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args:
                         Expr [7-8]: Ident [7-8] "a"
@@ -56,6 +58,7 @@ fn gphase_qubit_register() {
             Stmt [0-15]:
                 annotations: <empty>
                 kind: GPhase [0-15]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args:
                         Expr [7-8]: Ident [7-8] "a"
@@ -81,6 +84,7 @@ fn gphase_multiple_qubits() {
             Stmt [0-19]:
                 annotations: <empty>
                 kind: GPhase [0-19]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args:
                         Expr [7-8]: Ident [7-8] "a"
@@ -111,6 +115,7 @@ fn gphase_no_arguments() {
             Stmt [0-7]:
                 annotations: <empty>
                 kind: GPhase [0-7]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args: <empty>
                     duration: <none>
@@ -138,6 +143,7 @@ fn gphase_with_parameters() {
             Stmt [0-15]:
                 annotations: <empty>
                 kind: GPhase [0-15]:
+                    gphase_token_span: [0-6]
                     modifiers: <empty>
                     args:
                         Expr [7-13]: BinaryOpExpr:
@@ -158,6 +164,7 @@ fn gphase_inv_modifier() {
             Stmt [0-16]:
                 annotations: <empty>
                 kind: GPhase [0-16]:
+                    gphase_token_span: [6-12]
                     modifiers:
                         QuantumGateModifier [0-5]: Inv
                     args:
@@ -176,6 +183,7 @@ fn gphase_ctrl_inv_modifiers() {
             Stmt [0-31]:
                 annotations: <empty>
                 kind: GPhase [0-31]:
+                    gphase_token_span: [13-19]
                     modifiers:
                         QuantumGateModifier [0-6]: Ctrl None
                         QuantumGateModifier [7-12]: Inv
