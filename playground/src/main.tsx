@@ -26,7 +26,6 @@ import {
 // The playground Katas viewer uses the Markdown version of the katas
 import { Kata, getAllKatas } from "qsharp-lang/katas-md";
 
-import { Nav } from "./nav.js";
 import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
@@ -48,6 +47,7 @@ import {
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
 import { setRenderer } from "qsharp-lang/ux";
+import { SideMenu } from "./menu/side-menu";
 
 const md = markdownIt("commonmark");
 md.use((mk as any).default, {
@@ -159,14 +159,13 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   return (
     <>
-      <header class="page-header">Q# playground</header>
-      <Nav
+      <SideMenu
         selected={currentNavItem}
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
         namespaces={getNamespaces(documentation)}
-      ></Nav>
+      />
       {sampleCode ? (
         <>
           <Editor
