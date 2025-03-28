@@ -14,7 +14,7 @@ export default [
     { title: "Entanglement", file: "./getting_started/Entanglement.qs", shots: 100 },
     { title: "Bell Pair", file: "./getting_started/BellPair.qs", shots: 100 },
     { title: "Bell States", file: "./getting_started/BellStates.qs", shots: 100 },
-    { title: "Cat States and GHZ", file: "./getting_started/CatStatesAndGHZ.qs", shots: 100 },
+    { title: "Cat States", file: "./getting_started/CatStates.qs", shots: 100 },
     { title: "Random Bits", file: "./getting_started/RandomBits.qs", shots: 1000 },
     { title: "Teleportation (Simple).qs", file: "./getting_started/SimpleTeleportation.qs", shots: 100 },
     { title: "JointMeasurement", file: "./getting_started/JointMeasurement.qs", shots: 100 },
