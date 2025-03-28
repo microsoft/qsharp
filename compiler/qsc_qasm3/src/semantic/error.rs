@@ -204,6 +204,9 @@ pub enum SemanticErrorKind {
     #[error("Unary negation is not allowed for instances of {0}.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TypeDoesNotSupportedUnaryNegation"))]
     TypeDoesNotSupportedUnaryNegation(String, #[label] Span),
+    #[error("{0} max width is {1} but {2} was provided.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.TypeMaxWidthExceeded"))]
+    TypeMaxWidthExceeded(String, usize, usize, #[label] Span),
     #[error("Types differ by dimensions and are incompatible.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.TypeRankError"))]
     TypeRankError(#[label] Span),
@@ -370,6 +373,9 @@ impl SemanticErrorKind {
             }
             Self::TypeDoesNotSupportedUnaryNegation(name, span) => {
                 Self::TypeDoesNotSupportedUnaryNegation(name, span + offset)
+            }
+            Self::TypeMaxWidthExceeded(name, max_width, provided_width, span) => {
+                Self::TypeMaxWidthExceeded(name, max_width, provided_width, span + offset)
             }
             Self::TypeRankError(span) => Self::TypeRankError(span + offset),
             Self::UndefinedSymbol(name, span) => Self::UndefinedSymbol(name, span + offset),

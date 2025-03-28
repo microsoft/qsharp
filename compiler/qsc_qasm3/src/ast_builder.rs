@@ -6,13 +6,15 @@ use std::rc::Rc;
 use num_bigint::BigInt;
 
 use qsc_ast::ast::{
-    self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item, Lit,
-    Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource, Stmt,
-    StmtKind, TopLevelNode, Ty, TyKind,
+    self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FieldAssign,
+    Ident, Item, Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
+    QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
 };
 use qsc_data_structures::span::Span;
 
 use crate::{
+    angle::Angle,
+    parser::ast::list_from_iter,
     runtime::RuntimeFunctions,
     types::{ArrayDimensions, Complex},
 };
@@ -278,6 +280,55 @@ pub(crate) fn build_lit_int_expr(value: i64, span: Span) -> Expr {
         id: NodeId::default(),
         span,
         kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(value)))),
+    }
+}
+
+fn build_ident(name: &str) -> Ident {
+    Ident {
+        name: Rc::from(name),
+        ..Default::default()
+    }
+}
+
+pub(crate) fn build_lit_angle_expr(angle: Angle, span: Span) -> Expr {
+    let alloc_ident = build_ident("__Angle__");
+    let path_kind = PathKind::Ok(Box::new(Path {
+        segments: None,
+        name: Box::new(alloc_ident),
+        id: NodeId::default(),
+        span: Span::default(),
+    }));
+    let value_expr = Box::new(Expr {
+        #[allow(clippy::cast_possible_wrap)]
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(angle.value as i64)))),
+        ..Default::default()
+    });
+    let size_expr = Box::new(Expr {
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(i64::from(angle.size))))),
+        ..Default::default()
+    });
+
+    let fields = list_from_iter([
+        FieldAssign {
+            span,
+            field: Box::new(build_ident("Value")),
+            value: value_expr,
+            ..Default::default()
+        },
+        FieldAssign {
+            span,
+            field: Box::new(build_ident("Size")),
+            value: size_expr,
+            ..Default::default()
+        },
+    ]);
+
+    let kind = Box::new(ExprKind::Struct(path_kind, None, fields));
+
+    Expr {
+        id: NodeId::default(),
+        span,
+        kind,
     }
 }
 
@@ -1154,6 +1205,7 @@ pub(crate) fn build_unary_op_expr(op: ast::UnOp, expr: ast::Expr, prefix_span: S
 
 pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
     match output_ty {
+        crate::types::Type::Angle(_) => build_path_ident_ty("__Angle__"),
         crate::types::Type::Result(_) => build_path_ident_ty("Result"),
         crate::types::Type::Qubit => build_path_ident_ty("Qubit"),
         crate::types::Type::BigInt(_) => build_path_ident_ty("BigInt"),

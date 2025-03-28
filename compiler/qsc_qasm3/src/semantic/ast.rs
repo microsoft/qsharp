@@ -12,6 +12,7 @@ use std::{
 };
 
 use crate::{
+    angle::Angle,
     parser::ast::{
         display_utils::{
             write_field, write_header, write_indented_list, write_list_field, write_opt_field,
@@ -1552,6 +1553,7 @@ impl Display for IndexExpr {
 
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
+    Angle(Angle),
     Array(List<Expr>),
     Bitstring(BigInt, u32),
     Bool(bool),
@@ -1572,6 +1574,7 @@ impl Display for LiteralKind {
                 let width = *width as usize;
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
+            LiteralKind::Angle(a) => write!(f, "Angle({a})"),
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
@@ -1579,7 +1582,6 @@ impl Display for LiteralKind {
                 write!(f, "Duration({value:?}, {unit:?})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
-
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
             LiteralKind::String(s) => write!(f, "String({s:?})"),

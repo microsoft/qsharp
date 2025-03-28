@@ -12,6 +12,7 @@ use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,
 };
+use crate::angle;
 use crate::semantic::{
     symbols::SymbolTable,
     types::{ArrayDimensions, Type},
@@ -86,7 +87,7 @@ impl UnaryOpExpr {
                     lit,
                     Float(val),
                     Float(
-                        (-crate::angle::from_f64_maybe_sized(val, *w))
+                        (-angle::Angle::from_f64_maybe_sized(val, *w))
                             .try_into()
                             .expect("msg")
                     )
@@ -337,8 +338,8 @@ impl BinaryOpExpr {
                 }
                 Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
                     Float(
-                        (crate::angle::from_f64_maybe_sized(lhs, *w)
-                            + crate::angle::from_f64_maybe_sized(rhs, *w))
+                        (angle::Angle::from_f64_maybe_sized(lhs, *w)
+                            + angle::Angle::from_f64_maybe_sized(rhs, *w))
                         .try_into()
                         .expect("msg"),
                     )
@@ -354,8 +355,8 @@ impl BinaryOpExpr {
                 }
                 Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
                     Float(
-                        (crate::angle::from_f64_maybe_sized(lhs, *w)
-                            - crate::angle::from_f64_maybe_sized(rhs, *w))
+                        (angle::Angle::from_f64_maybe_sized(lhs, *w)
+                            - angle::Angle::from_f64_maybe_sized(rhs, *w))
                         .try_into()
                         .expect("msg"),
                     )
@@ -369,7 +370,7 @@ impl BinaryOpExpr {
                     Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Int(lhs), Float(rhs)), {
                         #[allow(clippy::cast_sign_loss)]
                         Float(
-                            (crate::angle::from_f64_maybe_sized(rhs, *w) * (lhs as u64))
+                            (angle::Angle::from_f64_maybe_sized(rhs, *w) * (lhs as u64))
                                 .try_into()
                                 .expect("msg"),
                         )
@@ -383,7 +384,7 @@ impl BinaryOpExpr {
                 Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
                     #[allow(clippy::cast_sign_loss)]
                     Float(
-                        (crate::angle::from_f64_maybe_sized(lhs, *w) * (rhs as u64))
+                        (angle::Angle::from_f64_maybe_sized(lhs, *w) * (rhs as u64))
                             .try_into()
                             .expect("msg"),
                     )
@@ -400,9 +401,9 @@ impl BinaryOpExpr {
                 Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
                     // for float/float we need to do it differently
                     // Float(
-                    //     crate::angle::Angle::new(
-                    //         crate::angle::from_f64_maybe_sized(lhs, *w)
-                    //             / crate::angle::from_f64_maybe_sized(rhs, *w),
+                    //     angle::Angle::Angle::new(
+                    //         angle::Angle::from_f64_maybe_sized(lhs, *w)
+                    //             / angle::Angle::from_f64_maybe_sized(rhs, *w),
                     //         (*w).unwrap_or(f64::MANTISSA_DIGITS),
                     //     )
                     //     .try_into()
@@ -410,7 +411,7 @@ impl BinaryOpExpr {
                     // )
                     #[allow(clippy::cast_sign_loss)]
                     Float(
-                        (crate::angle::from_f64_maybe_sized(lhs, *w) / (rhs as u64))
+                        (angle::Angle::from_f64_maybe_sized(lhs, *w) / (rhs as u64))
                             .try_into()
                             .expect("msg"),
                     )

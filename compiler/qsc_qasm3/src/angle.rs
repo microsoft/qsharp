@@ -7,35 +7,60 @@ pub(crate) mod tests;
 use num_bigint::BigInt;
 
 use crate::oqasm_helpers::safe_u64_to_f64;
+use core::f64;
 use std::convert::TryInto;
-use std::f64::consts::PI;
+use std::f64::consts::TAU;
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// A fixed-point angle type with a specified number of bits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Angle {
-    value: u64,
-    size: u32,
-}
-
-pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
-    from_f64(val, size.unwrap_or(f64::MANTISSA_DIGITS))
-}
-
-pub fn from_f64(val: f64, size: u32) -> Angle {
-    #[allow(clippy::cast_precision_loss)]
-    let factor = (2.0 * PI) / (1u64 << size) as f64;
-    #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_sign_loss)]
-    let value = (val / factor).round() as u64;
-    Angle::new(value, size)
+pub struct Angle {
+    pub value: u64,
+    pub size: u32,
 }
 
 #[allow(dead_code)]
 impl Angle {
     pub fn new(value: u64, size: u32) -> Self {
         Angle { value, size }
+    }
+
+    pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
+        Self::from_f64_sized(val, size.unwrap_or(f64::MANTISSA_DIGITS))
+    }
+
+    /// Takes an `f64` representing angle and:
+    ///  1. Wraps it around so that it is in the range [0, TAU).
+    ///  2. Encodes it as a binary number between 0 and (1 << size) - 1.
+    pub fn from_f64_sized(mut val: f64, size: u32) -> Angle {
+        // First, we need to convert the angle to the `[0, TAU)` range.
+        val %= TAU;
+
+        // The modulus operator leaves negative numbers as negative.
+        // So, in this case we need to add an extra `TAU`.
+        if val < 0. {
+            val += TAU;
+        }
+
+        // If the size is > f64::MANTISSA_DIGITS, the cast to f64
+        // on the next lines will loose precission.
+        if size > f64::MANTISSA_DIGITS {
+            return Self::from_f64_sized_edge_case(val, size);
+        }
+
+        #[allow(clippy::cast_precision_loss)]
+        let factor = TAU / (1u64 << size) as f64;
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        let value = (val / factor).round() as u64;
+        Angle::new(value, size)
+    }
+
+    /// This function handles the edge case when size > `f64::MANTISSA_DIGITS`.
+    fn from_f64_sized_edge_case(val: f64, size: u32) -> Angle {
+        let angle = Self::from_f64_sized(val, f64::MANTISSA_DIGITS);
+        angle.cast(size, false)
     }
 
     fn to_bitstring(self) -> String {
@@ -79,6 +104,15 @@ impl Angle {
                     size: new_size,
                 }
             }
+        }
+    }
+}
+
+impl Default for Angle {
+    fn default() -> Self {
+        Self {
+            value: 0,
+            size: f64::MANTISSA_DIGITS,
         }
     }
 }
@@ -189,17 +223,26 @@ impl DivAssign<u64> for Angle {
 impl TryInto<f64> for Angle {
     type Error = &'static str;
 
+    /// Angle to float cast is not allowed in QASM3.
+    /// This function is only meant to be used in unit tests.
     fn try_into(self) -> Result<f64, Self::Error> {
         if self.size > 64 {
             return Err("Size exceeds 64 bits");
         }
+
+        // Edge case handling.
+        if self.size > f64::MANTISSA_DIGITS {
+            let angle = self.cast(f64::MANTISSA_DIGITS, true);
+            return angle.try_into();
+        }
+
         let Some(denom) = safe_u64_to_f64(1u64 << self.size) else {
             return Err("Denominator is too large");
         };
         let Some(value) = safe_u64_to_f64(self.value) else {
             return Err("Value is too large");
         };
-        let factor = (2.0 * PI) / denom;
+        let factor = TAU / denom;
         Ok(value * factor)
     }
 }

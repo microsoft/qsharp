@@ -99,6 +99,7 @@ impl Complex {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum Type {
+    Angle(bool),
     Bool(bool),
     BigInt(bool),
     Complex(bool),
@@ -177,6 +178,7 @@ impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Type::Angle(_) => write!(f, "Angle"),
             Type::Bool(_) => write!(f, "bool"),
             Type::BigInt(_) => write!(f, "BigInt"),
             Type::Complex(_) => write!(f, "Complex"),
