@@ -22,13 +22,13 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
+use crate::angle::Angle;
 use crate::oqasm_helpers::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::QasmSource;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::ArrayDimensions;
-use crate::types::get_qsharp_gate_name;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;
@@ -238,24 +238,33 @@ impl Lowerer {
             )
         }
         let gates = vec![
-            gate_symbol("X", 0, 1),
-            gate_symbol("Y", 0, 1),
-            gate_symbol("Z", 0, 1),
-            gate_symbol("H", 0, 1),
-            gate_symbol("S", 0, 1),
-            gate_symbol("T", 0, 1),
-            gate_symbol("Rx", 1, 1),
-            gate_symbol("Rxx", 1, 2),
-            gate_symbol("Ry", 1, 1),
-            gate_symbol("Ryy", 1, 2),
-            gate_symbol("Rz", 1, 1),
-            gate_symbol("Rzz", 1, 2),
-            gate_symbol("CNOT", 0, 2),
-            gate_symbol("CY", 0, 2),
-            gate_symbol("CZ", 0, 2),
-            gate_symbol("I", 0, 1),
-            gate_symbol("SWAP", 0, 2),
-            gate_symbol("CCNOT", 0, 3),
+            gate_symbol("p", 1, 1),
+            gate_symbol("x", 0, 1),
+            gate_symbol("y", 0, 1),
+            gate_symbol("z", 0, 1),
+            gate_symbol("h", 0, 1),
+            gate_symbol("s", 0, 1),
+            gate_symbol("t", 0, 1),
+            gate_symbol("sx", 0, 1),
+            gate_symbol("rx", 1, 1),
+            gate_symbol("rxx", 1, 2),
+            gate_symbol("ry", 1, 1),
+            gate_symbol("ryy", 1, 2),
+            gate_symbol("rz", 1, 1),
+            gate_symbol("rzz", 1, 2),
+            gate_symbol("cx", 0, 2),
+            gate_symbol("cy", 0, 2),
+            gate_symbol("cz", 0, 2),
+            gate_symbol("cp", 0, 2),
+            gate_symbol("swap", 0, 2),
+            gate_symbol("ccx", 0, 3),
+            gate_symbol("cu", 4, 2),
+            gate_symbol("CX", 0, 2),
+            gate_symbol("phase", 1, 1),
+            gate_symbol("id", 0, 1),
+            gate_symbol("u1", 1, 1),
+            gate_symbol("u2", 2, 1),
+            gate_symbol("u3", 3, 1),
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -739,7 +748,8 @@ impl Lowerer {
                     crate::types::Type::Int(is_const)
                 }
             }
-            Type::Float(_, _) | Type::Angle(_, _) => crate::types::Type::Double(is_const),
+            Type::Float(_, _) => crate::types::Type::Double(is_const),
+            Type::Angle(_, _) => crate::types::Type::Angle(is_const),
             Type::Complex(_, _) => crate::types::Type::Complex(is_const),
             Type::Bool(_) => crate::types::Type::Bool(is_const),
             Type::Duration(_) => {
@@ -1287,8 +1297,6 @@ impl Lowerer {
             //    Q: Do we need this during lowering?
             //    A: Yes, we need it to check the gate_call arity.
             modifiers.push(implicit_modifier);
-        } else {
-            name = get_qsharp_gate_name(&name).unwrap_or(&name).to_string();
         }
 
         // 3. Check that the gate_name actually refers to a gate in the symbol table
@@ -1408,7 +1416,7 @@ impl Lowerer {
         let expr = self.lower_expr(expr);
 
         let target_ty = &Type::UInt(None, true);
-        let Some(expr) = self.try_cast_expr_to_type(target_ty, &expr) else {
+        let Some(expr) = Self::try_cast_expr_to_type(target_ty, &expr) else {
             self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
             return None;
         };
@@ -1581,7 +1589,7 @@ impl Lowerer {
         let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
             let size_expr = self.lower_expr(size_expr);
             let span = size_expr.span;
-            let size_expr = self.try_cast_expr_to_type(&Type::UInt(None, true), &size_expr);
+            let size_expr = Self::try_cast_expr_to_type(&Type::UInt(None, true), &size_expr);
 
             if let Some(Some(semantic::LiteralKind::Int(val))) =
                 size_expr.map(|expr| expr.const_eval(&self.symbols))
@@ -1872,7 +1880,17 @@ impl Lowerer {
                     let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-                    crate::semantic::types::Type::Float(Some(size), is_const)
+                    if size > 64 {
+                        self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
+                            "float".to_string(),
+                            64,
+                            size as usize,
+                            float_type.span,
+                        ));
+                        crate::semantic::types::Type::Err
+                    } else {
+                        crate::semantic::types::Type::Float(Some(size), is_const)
+                    }
                 }
                 None => crate::semantic::types::Type::Float(None, is_const),
             },
@@ -1894,7 +1912,18 @@ impl Lowerer {
                     let Some(size) = self.const_eval_type_width_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-                    crate::semantic::types::Type::Angle(Some(size), is_const)
+
+                    if size > 64 {
+                        self.push_semantic_error(SemanticErrorKind::TypeMaxWidthExceeded(
+                            "angle".to_string(),
+                            64,
+                            size as usize,
+                            angle_type.span,
+                        ));
+                        crate::semantic::types::Type::Err
+                    } else {
+                        crate::semantic::types::Type::Angle(Some(size), is_const)
+                    }
                 }
                 None => crate::semantic::types::Type::Angle(None, is_const),
             },
@@ -2005,10 +2034,11 @@ impl Lowerer {
             }
         };
         let expr = match ty {
+            Type::Angle(_, _) => Some(from_lit_kind(LiteralKind::Angle(Default::default()))),
             Type::Bit(_) => Some(from_lit_kind(LiteralKind::Bit(false))),
             Type::Int(_, _) | Type::UInt(_, _) => Some(from_lit_kind(LiteralKind::Int(0))),
             Type::Bool(_) => Some(from_lit_kind(LiteralKind::Bool(false))),
-            Type::Angle(_, _) | Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
+            Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
             Type::Stretch(_) => {
                 let message = "Stretch default values";
@@ -2211,7 +2241,19 @@ impl Lowerer {
                 }
                 None
             }
-            (Type::Angle(..) | Type::Float(..), Type::Float(..)) => {
+            (Type::Angle(width, _), Type::Float(..)) => {
+                if let semantic::LiteralKind::Float(value) = kind {
+                    return Some(semantic::Expr {
+                        span,
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Angle(
+                            Angle::from_f64_maybe_sized(*value, *width),
+                        ))),
+                        ty: lhs_ty.as_const(),
+                    });
+                }
+                None
+            }
+            (Type::Float(..), Type::Float(..)) => {
                 if let semantic::LiteralKind::Float(value) = kind {
                     return Some(semantic::Expr {
                         span,
@@ -2335,18 +2377,14 @@ impl Lowerer {
     }
 
     fn cast_expr_to_type(&mut self, ty: &Type, expr: &semantic::Expr) -> semantic::Expr {
-        let Some(cast_expr) = self.try_cast_expr_to_type(ty, expr) else {
+        let Some(cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
             self.push_invalid_cast_error(ty, &expr.ty, expr.span);
             return expr.clone();
         };
         cast_expr
     }
 
-    fn try_cast_expr_to_type(
-        &mut self,
-        ty: &Type,
-        expr: &semantic::Expr,
-    ) -> Option<semantic::Expr> {
+    fn try_cast_expr_to_type(ty: &Type, expr: &semantic::Expr) -> Option<semantic::Expr> {
         if *ty == expr.ty {
             // Base case, we shouldn't have gotten here
             // but if we did, we can just return the rhs
@@ -2394,7 +2432,7 @@ impl Lowerer {
         // the standard library.
         match &expr.ty {
             Type::Angle(_, _) => Self::cast_angle_expr_to_type(ty, expr),
-            Type::Bit(_) => self.cast_bit_expr_to_type(ty, expr),
+            Type::Bit(_) => Self::cast_bit_expr_to_type(ty, expr),
             Type::Bool(_) => Self::cast_bool_expr_to_type(ty, expr),
             Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
             Type::Float(_, _) => Self::cast_float_expr_to_type(ty, expr),
@@ -2428,23 +2466,18 @@ impl Lowerer {
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -   | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    fn cast_bit_expr_to_type(&mut self, ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    fn cast_bit_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Bit(..)));
         // There is no operand, choosing the span of the node
         // but we could use the expr span as well.
         match ty {
-            &Type::Angle(..) => {
-                let msg = "Cast bit to angle";
-                self.push_unimplemented_error_message(msg, rhs.span);
-                None
-            }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
                 // casts to other types that cast to float. For now, we'll
                 // say it is invalid like the spec.
                 None
             }
-            &Type::Bool(_) | &Type::Int(_, _) | &Type::UInt(_, _) => {
+            &Type::Angle(..) | &Type::Bool(_) | &Type::Int(_, _) | &Type::UInt(_, _) => {
                 Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
             }
 
@@ -3102,14 +3135,18 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
 
     // ch, crx, cry, crz, sdg, and tdg
     match gate_name.as_ref() {
-        "cy" => Some(("Y".to_string(), make_modifier(Ctrl(1)))),
-        "cz" => Some(("Z".to_string(), make_modifier(Ctrl(1)))),
-        "ch" => Some(("H".to_string(), make_modifier(Ctrl(1)))),
-        "crx" => Some(("Rx".to_string(), make_modifier(Ctrl(1)))),
-        "cry" => Some(("Ry".to_string(), make_modifier(Ctrl(1)))),
-        "crz" => Some(("Rz".to_string(), make_modifier(Ctrl(1)))),
-        "sdg" => Some(("S".to_string(), make_modifier(Inv))),
-        "tdg" => Some(("T".to_string(), make_modifier(Inv))),
+        "cy" => Some(("y".to_string(), make_modifier(Ctrl(1)))),
+        "cz" => Some(("z".to_string(), make_modifier(Ctrl(1)))),
+        "ch" => Some(("h".to_string(), make_modifier(Ctrl(1)))),
+        "crx" => Some(("rx".to_string(), make_modifier(Ctrl(1)))),
+        "cry" => Some(("ry".to_string(), make_modifier(Ctrl(1)))),
+        "crz" => Some(("rz".to_string(), make_modifier(Ctrl(1)))),
+        "cswap" => Some(("swap".to_string(), make_modifier(Ctrl(1)))),
+        "sdg" => Some(("s".to_string(), make_modifier(Inv))),
+        "tdg" => Some(("t".to_string(), make_modifier(Inv))),
+        // Gates for OpenQASM 2 backwards compatibility
+        "CX" => Some(("x".to_string(), make_modifier(Ctrl(1)))),
+        "cphase" => Some(("phase".to_string(), make_modifier(Ctrl(1)))),
         _ => None,
     }
 }

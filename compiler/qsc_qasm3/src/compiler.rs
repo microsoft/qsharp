@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::f64;
 use std::{path::Path, rc::Rc};
 
 use num_bigint::BigInt;
@@ -16,9 +17,9 @@ use crate::{
         build_gate_call_with_params_and_callee, build_if_expr_then_block,
         build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
         build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lambda, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_indexed_assignment_statement, build_lambda, build_lit_angle_expr,
+        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
+        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
         build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
@@ -606,13 +607,9 @@ impl QasmCompiler {
     }
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
+        self.runtime |= RuntimeFunctions::GATES;
+
         let symbol = self.symbols[stmt.symbol_id].clone();
-        if symbol.name == "U" {
-            self.runtime |= RuntimeFunctions::U;
-        }
-        if symbol.name == "gphase" {
-            self.runtime |= RuntimeFunctions::Gphase;
-        }
         let mut qubits: Vec<_> = stmt
             .qubits
             .iter()
@@ -1041,6 +1038,7 @@ impl QasmCompiler {
 
     fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {
         match lit {
+            LiteralKind::Angle(value) => build_lit_angle_expr(*value, span),
             LiteralKind::Array(value) => self.compile_array_literal(value, span),
             LiteralKind::Bitstring(big_int, width) => {
                 Self::compile_bitstring_literal(big_int, *width, span)
@@ -1486,12 +1484,20 @@ impl QasmCompiler {
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Float(..)));
+
         match ty {
             &Type::Complex(..) => build_complex_from_expr(expr),
-            &Type::Angle(..) => {
-                let msg = "Cast float to angle";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+            &Type::Angle(width, _) => {
+                let expr_span = expr.span;
+                let width =
+                    build_lit_int_expr(width.unwrap_or(f64::MANTISSA_DIGITS).into(), expr_span);
+                build_call_with_params(
+                    "__DoubleAsAngle__",
+                    &[],
+                    vec![expr, width],
+                    expr_span,
+                    expr_span,
+                )
             }
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let expr = build_math_call_from_exprs("Truncate", vec![expr], span);
