@@ -105,8 +105,6 @@ function onMessage(event: any) {
           JSON.stringify(state.props.circuit) ===
             JSON.stringify(message.props.circuit)
         ) {
-          // Skip updating the state if the circuit is the same
-          console.log("Circuit is unchanged, skipping state update.");
           return;
         }
 

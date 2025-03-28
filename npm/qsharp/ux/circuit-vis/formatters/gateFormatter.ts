@@ -303,9 +303,6 @@ const _unitaryBox = (
   }
   const labelY = y + height / 2 - (displayArgs == null ? 0 : 7);
   const labelText: SVGElement = text(label, x, labelY);
-  if (cssClass != null) {
-    labelText.setAttribute("class", cssClass);
-  }
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
@@ -361,7 +358,7 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
  */
 const _ket = (label: string, metadata: Metadata): SVGElement => {
   const { x, targetsY, width } = metadata;
-  return _unitary(
+  const gate = _unitary(
     `|${label}〉`,
     x,
     targetsY as number[][],
@@ -370,6 +367,8 @@ const _ket = (label: string, metadata: Metadata): SVGElement => {
     false,
     "gate-ket",
   );
+  gate.querySelector("text")!.setAttribute("class", "ket-text");
+  return gate;
 };
 
 /**

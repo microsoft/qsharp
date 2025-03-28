@@ -11,6 +11,7 @@ import { Sqore } from "./sqore";
 import {
   findLocation,
   getHostElems,
+  getToolboxElems,
   getWireData,
   locationStringToIndexes,
 } from "./utils";
@@ -190,6 +191,11 @@ const _addStyles = (container: HTMLElement, wireData: number[]): void => {
   const elems = getHostElems(container);
   elems.forEach((elem) => {
     if (_wireYs(elem, wireData).length < 2) elem.style.cursor = "grab";
+  });
+
+  const toolBoxElems = getToolboxElems(container);
+  toolBoxElems.forEach((elem) => {
+    elem.style.cursor = "grab";
   });
 };
 

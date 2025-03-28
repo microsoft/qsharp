@@ -101,12 +101,12 @@
 }
 
 /* Ket gate */
-.qs-circuit rect.gate-ket {
+.qs-circuit .gate-ket {
   fill: var(--vscode-button-background, #007acc);
 }
 
 /* Ket gate text */
-.qs-circuit text.gate-ket {
+.qs-circuit text.ket-text {
   fill: var(--vscode-button-foreground, #ffffff);
   stroke: none;
 }
