@@ -234,12 +234,15 @@ fn parse_stmts(name: &str) -> Vec<Stmt> {
     let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
     assert!(errors.is_empty(), "Failed to parse: {errors:?}");
     let mut stmts = vec![];
-    match nodes.into_iter().next().expect("no top-level nodes found") {
-        TopLevelNode::Namespace(..) => {
-            panic!("Expected stmt, got Namespace")
+    for stmt in nodes {
+        match stmt {
+            TopLevelNode::Namespace(..) => {
+                panic!("Expected stmt, got Namespace")
+            }
+            TopLevelNode::Stmt(stmt) => stmts.push(*stmt),
         }
-        TopLevelNode::Stmt(stmt) => stmts.push(*stmt),
     }
+
     stmts
 }
 
