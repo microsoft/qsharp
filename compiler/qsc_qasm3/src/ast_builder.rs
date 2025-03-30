@@ -7,15 +7,16 @@ use num_bigint::BigInt;
 
 use qsc_ast::ast::{
     self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FieldAssign,
-    Ident, Item, Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind,
-    QubitSource, Stmt, StmtKind, TopLevelNode, Ty, TyKind,
+    Ident, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Lit, Mutability, NodeId, Pat,
+    PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind, TopLevelNode,
+    Ty, TyKind,
 };
 use qsc_data_structures::span::Span;
 
 use crate::{
-    angle::Angle,
     parser::ast::list_from_iter,
     runtime::RuntimeFunctions,
+    stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };
 
@@ -682,6 +683,15 @@ pub(crate) fn build_cast_call_two_params(
     build_global_call_with_two_params(name, fst, snd, name_span, operand_span)
 }
 
+pub(crate) fn build_cast_call_by_name(
+    name: &str,
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    build_global_call_with_one_param(name, expr, name_span, operand_span)
+}
+
 pub(crate) fn build_cast_call(
     function: RuntimeFunctions,
     expr: ast::Expr,
@@ -974,6 +984,98 @@ pub(crate) fn build_expr_wrapped_block_expr(expr: Expr) -> Block {
             kind: Box::new(StmtKind::Expr(Box::new(expr))),
             ..Default::default()
         })]),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl() -> Vec<Stmt> {
+    vec![
+        build_qasm_import_decl_angle(),
+        build_qasm_import_decl_convert(),
+        build_qasm_import_decl_intrinsic(),
+    ]
+}
+
+pub(crate) fn build_qasm_import_decl_angle() -> Stmt {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Angle")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    let item = Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
+    };
+    Stmt {
+        kind: Box::new(StmtKind::Item(Box::new(item))),
+        span: Span::default(),
+        id: NodeId::default(),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl_convert() -> Stmt {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Convert")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    let item = Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
+    };
+    Stmt {
+        kind: Box::new(StmtKind::Item(Box::new(item))),
+        span: Span::default(),
+        id: NodeId::default(),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl_intrinsic() -> Stmt {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Intrinsic")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    let item = Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
+    };
+    Stmt {
+        kind: Box::new(StmtKind::Item(Box::new(item))),
+        span: Span::default(),
+        id: NodeId::default(),
     }
 }
 

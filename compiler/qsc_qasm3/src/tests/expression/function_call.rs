@@ -14,6 +14,9 @@ fn funcall_with_no_arguments_generates_correct_qsharp() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let empty : () -> Unit = () -> {};
         empty();
     "#]]
@@ -30,6 +33,9 @@ fn void_function_with_one_argument_generates_correct_qsharp() -> miette::Result<
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let f : (Int) -> Unit = (x) -> {};
         f(2);
     "#]]
@@ -49,6 +55,9 @@ fn funcall_with_one_argument_generates_correct_qsharp() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let square : (Int) -> Int = (x) -> {
             return x * x;
         };
@@ -70,6 +79,9 @@ fn funcall_with_two_arguments_generates_correct_qsharp() -> miette::Result<(), V
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let sum : (Int, Int) -> Int = (x, y) -> {
             return x + y;
         };
@@ -94,13 +106,9 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let parity : (Qubit[]) => Result = (qs) => {
             mutable a = QIR.Intrinsic.__quantum__qis__m__body(qs[0]);
             mutable b = QIR.Intrinsic.__quantum__qis__m__body(qs[1]);
@@ -187,8 +195,11 @@ fn funcall_accepts_qubit_argument() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let h_wrapper : (Qubit) => Unit = (q) => {
-            H(q);
+            h(q);
         };
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         h_wrapper(q);
@@ -209,6 +220,9 @@ fn classical_decl_initialized_with_funcall() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let square : (Int) -> Int = (x) -> {
             return x * x;
         };
@@ -258,18 +272,9 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let parity : (Result[]) -> Result = (arr) -> {
             return 1;
         };

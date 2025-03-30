@@ -22,6 +22,9 @@ fn const_exprs_work_in_bitarray_size_position() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2 + a;
         let c = a + 3;
@@ -44,6 +47,9 @@ fn const_exprs_implicit_cast_work_in_bitarray_size_position() -> miette::Result<
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2. + Microsoft.Quantum.Convert.IntAsDouble(a);
         let c = Microsoft.Quantum.Convert.IntAsDouble(a) + 3.;
@@ -103,6 +109,9 @@ fn can_assign_const_expr_to_non_const_decl() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2;
         mutable c = a + b;
@@ -120,6 +129,9 @@ fn ident_const() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         mutable r = [Zero];
     "#]]
@@ -157,6 +169,9 @@ fn unary_op_neg_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = -1.;
         let b = -a;
         mutable r = [Zero];
@@ -175,6 +190,9 @@ fn unary_op_neg_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = -1;
         let b = -a;
         mutable r = [Zero];
@@ -207,6 +225,9 @@ fn unary_op_negb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 5;
         let b = ~~~a;
         mutable r = [Zero, Zero];
@@ -242,6 +263,9 @@ fn unary_op_negb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = Zero;
         let b = ~~~a;
         mutable r = [Zero];
@@ -260,9 +284,9 @@ fn unary_op_negb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero, One];
         let b = __ResultArrayAsIntBE__(~~~a);
         mutable r = [Zero, Zero];
@@ -284,6 +308,9 @@ fn lhs_ty_equals_rhs_ty_assumption_holds() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2.;
         let c = Microsoft.Quantum.Math.Truncate(Microsoft.Quantum.Convert.IntAsDouble(a) + b);
@@ -307,6 +334,9 @@ fn binary_op_shl_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = a <<< 2;
         mutable r = [Zero, Zero, Zero, Zero];
@@ -340,13 +370,9 @@ fn binary_op_shl_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         let b = if __ResultAsInt__(a) <<< 2 == 0 {
             One
@@ -369,21 +395,9 @@ fn binary_op_shl_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero, One];
         let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) <<< 2, 3);
         mutable r = [Zero, Zero, Zero, Zero];
@@ -471,6 +485,9 @@ fn binary_op_shr_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 5;
         let b = a >>> 2;
         mutable r = [Zero];
@@ -504,13 +521,9 @@ fn binary_op_shr_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         let b = if __ResultAsInt__(a) >>> 2 == 0 {
             One
@@ -533,21 +546,9 @@ fn binary_op_shr_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero, One, One];
         let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) >>> 2, 4);
         mutable r = [Zero, Zero];
@@ -637,6 +638,9 @@ fn binary_op_andb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 5;
         let b = a &&& 6;
         mutable r = [Zero, Zero, Zero, Zero];
@@ -670,13 +674,9 @@ fn binary_op_andb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         let b = if __ResultAsInt__(a) &&& 0 == 0 {
             One
@@ -699,21 +699,9 @@ fn binary_op_andb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero, One, One];
         let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) &&& __ResultArrayAsIntBE__([Zero, One, One, Zero]), 4);
         mutable r = [Zero, Zero];
@@ -734,6 +722,9 @@ fn binary_op_orb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 5;
         let b = a ||| 6;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -767,13 +758,9 @@ fn binary_op_orb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         let b = if __ResultAsInt__(a) ||| 0 == 0 {
             One
@@ -796,21 +783,9 @@ fn binary_op_orb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [Zero, Zero, One];
         let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) ||| __ResultArrayAsIntBE__([One, Zero, Zero]), 3);
         mutable r = [Zero, Zero, Zero, Zero, Zero];
@@ -831,6 +806,9 @@ fn binary_op_xorb_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 5;
         let b = a ^^^ 6;
         mutable r = [Zero, Zero, Zero];
@@ -864,13 +842,9 @@ fn binary_op_xorb_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         let b = if __ResultAsInt__(a) ^^^ 1 == 0 {
             One
@@ -893,21 +867,9 @@ fn binary_op_xorb_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero, One, One];
         let b = __IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) ^^^ __ResultArrayAsIntBE__([One, One, One, Zero]), 4);
         mutable r = [Zero, Zero, Zero, Zero, Zero];
@@ -931,6 +893,9 @@ fn binary_op_andl_bool() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let f = false;
         let t = true;
         mutable r1 = [];
@@ -955,6 +920,9 @@ fn binary_op_orl_bool() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let f = false;
         let t = true;
         mutable r1 = [];
@@ -984,6 +952,9 @@ fn binary_op_comparison_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 2;
         mutable r1 = [Zero];
         mutable r2 = [];
@@ -1010,6 +981,9 @@ fn binary_op_comparison_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 2;
         mutable r1 = [Zero];
         mutable r2 = [];
@@ -1054,6 +1028,9 @@ fn binary_op_comparison_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = One;
         mutable r1 = [Zero];
         mutable r2 = [];
@@ -1080,6 +1057,9 @@ fn binary_op_comparison_bitarray() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = [One, Zero];
         mutable r1 = [Zero];
         mutable r2 = [];
@@ -1106,6 +1086,9 @@ fn binary_op_add_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2;
         mutable r = [Zero, Zero, Zero];
@@ -1124,6 +1107,9 @@ fn binary_op_add_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1;
         let b = 2;
         mutable r = [Zero, Zero, Zero];
@@ -1142,6 +1128,9 @@ fn binary_op_add_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 1.;
         let b = 2.;
         mutable r = [Zero, Zero, Zero];
@@ -1176,6 +1165,9 @@ fn binary_op_sub_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3;
         let b = 2;
         mutable r = [Zero];
@@ -1194,6 +1186,9 @@ fn binary_op_sub_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3;
         let b = 2;
         mutable r = [Zero];
@@ -1212,6 +1207,9 @@ fn binary_op_sub_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3.;
         let b = 2.;
         mutable r = [Zero];
@@ -1246,6 +1244,9 @@ fn binary_op_mul_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3;
         let b = 2;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1264,6 +1265,9 @@ fn binary_op_mul_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3;
         let b = 2;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1282,6 +1286,9 @@ fn binary_op_mul_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 3.;
         let b = 2.;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1317,6 +1324,9 @@ fn binary_op_div_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 6;
         let b = 2;
         mutable r = [Zero, Zero, Zero];
@@ -1335,6 +1345,9 @@ fn binary_op_div_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 6;
         let b = 2;
         mutable r = [Zero, Zero, Zero];
@@ -1353,6 +1366,9 @@ fn binary_op_div_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 6.;
         let b = 2.;
         mutable r = [Zero, Zero, Zero];
@@ -1386,6 +1402,9 @@ fn binary_op_mod_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 8;
         mutable r = [Zero, Zero];
     "#]]
@@ -1402,6 +1421,9 @@ fn binary_op_mod_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 8;
         mutable r = [Zero, Zero];
     "#]]
@@ -1421,6 +1443,9 @@ fn binary_op_pow_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 2;
         let b = 3;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1439,6 +1464,9 @@ fn binary_op_pow_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 2;
         let b = 3;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1457,6 +1485,9 @@ fn binary_op_pow_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 2.;
         let b = 3.;
         mutable r = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -1491,9 +1522,9 @@ fn cast_to_bool() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = 0;
         let b = 1;
         let c = 2.;
@@ -1544,20 +1575,9 @@ fn cast_to_int() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = true;
         let b = 2;
         let c = 3.;
@@ -1596,20 +1616,9 @@ fn cast_to_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = true;
         let b = 2;
         let c = 3.;
@@ -1645,13 +1654,9 @@ fn cast_to_float() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsDouble__(value : Bool) : Double {
-            if value {
-                1.
-            } else {
-                0.
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = true;
         let b = 2;
         let c = 3;
@@ -1706,9 +1711,9 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let a = false;
         let b = 1;
         let c = 2;

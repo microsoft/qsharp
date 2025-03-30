@@ -17,9 +17,6 @@ use bitflags::bitflags;
 use qsc_ast::ast::{Stmt, TopLevelNode};
 use qsc_data_structures::language_features::LanguageFeatures;
 
-/// Implement the `angle` type for QASM3.
-const ANGLE: &str = include_str!("gates.qs");
-
 /// The POW function is used to implement the `pow` modifier in QASM3 for integers.
 const POW: &str = "
 operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj), target : 'T) : Unit is Adj {
@@ -163,10 +160,6 @@ impl Default for RuntimeFunctions {
     }
 }
 
-pub(crate) fn get_angle_decls() -> Vec<Stmt> {
-    parse_stmts(ANGLE)
-}
-
 pub(crate) fn get_pow_decl() -> Stmt {
     parse_stmt(POW)
 }
@@ -249,10 +242,6 @@ fn parse_stmts(name: &str) -> Vec<Stmt> {
 /// Get the runtime function declarations for the given runtime functions.
 pub(crate) fn get_runtime_function_decls(runtime: RuntimeFunctions) -> Vec<Stmt> {
     let mut stmts = vec![];
-    // if runtime.contains(RuntimeFunctions::GATES) {
-    let mut angle_stmts = crate::runtime::get_angle_decls();
-    stmts.append(&mut angle_stmts);
-    // }
     if runtime.contains(RuntimeFunctions::Pow) {
         let stmt = crate::runtime::get_pow_decl();
         stmts.push(stmt);

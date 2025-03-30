@@ -12,7 +12,6 @@ use std::{
 };
 
 use crate::{
-    angle::Angle,
     parser::ast::{
         display_utils::{
             write_field, write_header, write_indented_list, write_list_field, write_opt_field,
@@ -22,6 +21,7 @@ use crate::{
         List,
     },
     semantic::symbols::SymbolId,
+    stdlib::angle::Angle,
 };
 
 use crate::parser::ast as syntax;

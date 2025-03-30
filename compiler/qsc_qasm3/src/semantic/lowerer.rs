@@ -22,13 +22,13 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
-use crate::angle::Angle;
 use crate::oqasm_helpers::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::QasmSource;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
 use crate::semantic::types::ArrayDimensions;
+use crate::stdlib::angle::Angle;
 
 use super::ast as semantic;
 use crate::parser::ast as syntax;

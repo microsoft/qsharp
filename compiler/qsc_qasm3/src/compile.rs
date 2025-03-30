@@ -6,20 +6,21 @@ use std::path::PathBuf;
 
 use crate::ast_builder::{
     self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_attr,
-    build_barrier_call, build_binary_expr, build_cast_call, build_cast_call_two_params,
-    build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
-    build_convert_call_expr, build_default_result_array_expr, build_expr_array_expr,
-    build_gate_call_param_expr, build_if_expr_then_block, build_if_expr_then_block_else_block,
-    build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-    build_implicit_return_stmt, build_indexed_assignment_statement, build_lambda,
-    build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
-    build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-    build_managed_qubit_alloc, build_math_call_no_params, build_measure_call,
-    build_operation_with_stmts, build_path_ident_expr, build_range_expr, build_reset_call,
-    build_stmt_semi_from_expr, build_stmt_wrapped_block_expr, build_top_level_ns_with_item,
-    build_tuple_expr, build_unary_op_expr, build_unmanaged_qubit_alloc,
-    build_unmanaged_qubit_alloc_array, build_wrapped_block_expr, is_complex_binop_supported,
-    managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+    build_barrier_call, build_binary_expr, build_cast_call, build_classical_decl,
+    build_complex_binary_expr, build_complex_from_expr, build_convert_call_expr,
+    build_default_result_array_expr, build_expr_array_expr, build_gate_call_param_expr,
+    build_global_call_with_two_params, build_if_expr_then_block,
+    build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
+    build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
+    build_indexed_assignment_statement, build_lambda, build_lit_bigint_expr, build_lit_bool_expr,
+    build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+    build_lit_result_array_expr_from_bitstring, build_lit_result_expr, build_managed_qubit_alloc,
+    build_math_call_no_params, build_measure_call, build_operation_with_stmts,
+    build_path_ident_expr, build_range_expr, build_reset_call, build_stmt_semi_from_expr,
+    build_stmt_wrapped_block_expr, build_top_level_ns_with_item, build_tuple_expr,
+    build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+    build_wrapped_block_expr, is_complex_binop_supported, managed_qubit_alloc_array,
+    map_qsharp_type_to_ast_ty,
 };
 
 use crate::oqasm_helpers::{
@@ -3785,8 +3786,8 @@ impl QasmCompiler {
                 };
 
                 let size_expr = build_lit_int_expr(size, Span::default());
-                let expr = build_cast_call_two_params(
-                    RuntimeFunctions::IntAsResultArrayBE,
+                let expr = build_global_call_with_two_params(
+                    "__IntAsResultArrayBE__",
                     rhs.expr.clone(),
                     size_expr,
                     name_span,

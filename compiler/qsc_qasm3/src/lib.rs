@@ -4,12 +4,13 @@
 // while we work through the conversion, allow dead code to avoid warnings
 #![allow(dead_code)]
 
-mod angle;
 mod ast_builder;
 mod compile;
 mod compiler;
+mod stdlib;
 pub use compile::qasm_to_program;
 pub use compiler::compile_with_config;
+pub use stdlib::package_store_with_qasm;
 pub mod io;
 mod keyword;
 mod lex;

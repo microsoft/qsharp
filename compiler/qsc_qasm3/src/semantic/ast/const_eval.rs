@@ -12,11 +12,11 @@ use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,
 };
-use crate::angle;
 use crate::semantic::{
     symbols::SymbolTable,
     types::{ArrayDimensions, Type},
 };
+use crate::stdlib::angle;
 use num_bigint::BigInt;
 
 impl Expr {

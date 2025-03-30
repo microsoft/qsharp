@@ -14,12 +14,13 @@ fn sdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Adjoint S(q);
-        "#
-    ]
+        Adjoint s(q);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -33,12 +34,13 @@ fn tdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Adjoint T(q);
-        "#
-    ]
+        Adjoint t(q);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -52,12 +54,13 @@ fn crx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        Controlled Rx([q[1]], (0.5, q[0]));
-        "#
-    ]
+        Controlled rx([q[1]], (__DoubleAsAngle__(0.5, 53), q[0]));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -71,12 +74,13 @@ fn cry_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        Controlled Ry([q[1]], (0.5, q[0]));
-        "#
-    ]
+        Controlled ry([q[1]], (__DoubleAsAngle__(0.5, 53), q[0]));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -90,12 +94,13 @@ fn crz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        Controlled Rz([q[1]], (0.5, q[0]));
-        "#
-    ]
+        Controlled rz([q[1]], (__DoubleAsAngle__(0.5, 53), q[0]));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -109,12 +114,13 @@ fn ch_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        Controlled H([q[1]], q[0]);
-        "#
-    ]
+        Controlled h([q[1]], q[0]);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
