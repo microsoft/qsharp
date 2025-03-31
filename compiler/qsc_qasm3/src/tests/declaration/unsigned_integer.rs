@@ -243,8 +243,8 @@ fn assigning_uint_to_negative_lit_results_in_semantic_error() {
     let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
         panic!("Expected error");
     };
-    expect![
+    expect![[
         r#"Cannot assign a value of Negative Int type to a classical variable of UInt(Some(10), True) type."#
-    ]
+    ]]
     .assert_eq(&errors[0].to_string());
 }

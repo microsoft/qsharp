@@ -35,7 +35,6 @@ fn classical() -> miette::Result<(), Vec<Report>> {
         qubit q2;
         bit[4] b1 = "0100";
         bit[8] b2 = "1001_0100";
-        bit b3 = "1";
         bool i = true;
         bool j = false;
         const float[64] k = 5.5e3;

@@ -15,11 +15,11 @@ fn implicit_bitness_default() {
                 ty_span: [0-5]
                 init_expr: Expr [0-0]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(0.0)
+                    kind: Lit: Angle(0)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -34,11 +34,11 @@ fn lit() {
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -53,11 +53,11 @@ fn const_lit() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -72,11 +72,11 @@ fn lit_explicit_width() {
                 ty_span: [0-9]
                 init_expr: Expr [14-18]:
                     ty: Angle(Some(64), true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [10-11]:
                 name: x
                 type: Angle(Some(64), false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -91,11 +91,11 @@ fn const_explicit_width_lit() {
                 ty_span: [6-15]
                 init_expr: Expr [20-24]:
                     ty: Angle(Some(64), true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [16-17]:
                 name: x
                 type: Angle(Some(64), true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -110,11 +110,11 @@ fn lit_decl_leading_dot() {
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(0.421)
+                    kind: Lit: Angle(0.4210000000000001)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -129,11 +129,11 @@ fn const_lit_decl_leading_dot() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(0.421)
+                    kind: Lit: Angle(0.4210000000000001)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -148,11 +148,11 @@ fn const_lit_decl_leading_dot_scientific() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -167,11 +167,11 @@ fn lit_decl_trailing_dot() {
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(421.0)
+                    kind: Lit: Angle(0.02658441896772248)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -186,11 +186,11 @@ fn const_lit_decl_trailing_dot() {
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(421.0)
+                    kind: Lit: Angle(0.02658441896772248)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -205,11 +205,11 @@ fn lit_decl_scientific() {
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -224,11 +224,11 @@ fn const_lit_decl_scientific() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -243,11 +243,11 @@ fn lit_decl_scientific_signed_pos() {
                 ty_span: [0-5]
                 init_expr: Expr [10-17]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -262,11 +262,11 @@ fn const_lit_decl_scientific_signed_pos() {
                 ty_span: [6-11]
                 init_expr: Expr [16-23]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -281,11 +281,11 @@ fn lit_decl_scientific_cap_e() {
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -300,11 +300,11 @@ fn const_lit_decl_scientific_cap_e() {
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -319,11 +319,11 @@ fn lit_decl_scientific_signed_neg() {
                 ty_span: [0-5]
                 init_expr: Expr [10-18]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -338,11 +338,11 @@ fn const_lit_decl_scientific_signed_neg() {
                 ty_span: [6-11]
                 init_expr: Expr [16-24]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.1)
+                    kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -369,7 +369,7 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
             [8] Symbol [12-13]:
                 name: x
                 type: Angle(None, true)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default"#]],
     );
 }
@@ -401,6 +401,78 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                ,-[test:1:18]
              1 | const angle x = -7;
                :                  ^
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
+fn explicit_zero_width_fails() {
+    check_classical_decl(
+        "angle[0] x = 42.1;",
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [0-18]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-18]:
+                            symbol_id: 8
+                            ty_span: [0-8]
+                            init_expr: Expr [13-17]:
+                                ty: Float(None, true)
+                                kind: Lit: Float(42.1)
+
+            [Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr
+
+              x Type width must be a positive integer const expression.
+               ,-[test:1:7]
+             1 | angle[0] x = 42.1;
+               :       ^
+               `----
+            , Qsc.Qasm3.Compile.CannotAssignToType
+
+              x Cannot assign a value of Float(None, true) type to a classical variable of
+              | Err type.
+               ,-[test:1:1]
+             1 | angle[0] x = 42.1;
+               : ^^^^^^^^^^^^^^^^^^
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
+fn explicit_width_over_64_fails() {
+    check_classical_decl(
+        "const angle[65] x = 42.1;",
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [0-25]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [0-25]:
+                            symbol_id: 8
+                            ty_span: [6-15]
+                            init_expr: Expr [20-24]:
+                                ty: Float(None, true)
+                                kind: Lit: Float(42.1)
+
+            [Qsc.Qasm3.Compile.TypeMaxWidthExceeded
+
+              x angle max width is 64 but 65 was provided.
+               ,-[test:1:7]
+             1 | const angle[65] x = 42.1;
+               :       ^^^^^^^^^
+               `----
+            , Qsc.Qasm3.Compile.CannotAssignToType
+
+              x Cannot assign a value of Float(None, true) type to a classical variable of
+              | Err type.
+               ,-[test:1:1]
+             1 | const angle[65] x = 42.1;
+               : ^^^^^^^^^^^^^^^^^^^^^^^^^
                `----
             ]"#]],
     );

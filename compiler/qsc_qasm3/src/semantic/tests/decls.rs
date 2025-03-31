@@ -93,7 +93,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                             ty_span: [6-11]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(2.0)
+                                kind: Lit: Angle(2.0000000000000004)
                     Stmt [24-36]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [24-36]:

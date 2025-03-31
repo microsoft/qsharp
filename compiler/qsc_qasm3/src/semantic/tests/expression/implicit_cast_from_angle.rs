@@ -20,11 +20,11 @@ fn to_bit_implicitly() {
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.0)
+                    kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
@@ -60,11 +60,11 @@ fn explicit_width_to_bit_implicitly_fails() {
                 ty_span: [9-18]
                 init_expr: Expr [23-26]:
                     ty: Angle(Some(64), true)
-                    kind: Lit: Float(42.0)
+                    kind: Lit: Angle(4.300888156922483)
             [8] Symbol [19-20]:
                 name: x
                 type: Angle(Some(64), false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [36-46]:
                 symbol_id: 9
@@ -99,11 +99,11 @@ fn to_bool_implicitly() {
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.0)
+                    kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
@@ -144,7 +144,7 @@ fn to_implicit_int_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-42]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-42]:
@@ -187,7 +187,7 @@ fn to_explicit_int_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-46]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-46]:
@@ -231,7 +231,7 @@ fn to_implicit_uint_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-43]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-43]:
@@ -327,7 +327,7 @@ fn to_explicit_uint_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-47]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-47]:
@@ -371,7 +371,7 @@ fn to_explicit_bigint_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-46]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-46]:
@@ -415,7 +415,7 @@ fn to_implicit_float_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-44]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-44]:
@@ -459,7 +459,7 @@ fn to_explicit_float_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-48]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-48]:
@@ -503,7 +503,7 @@ fn to_implicit_complex_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-53]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-53]:
@@ -547,7 +547,7 @@ fn to_explicit_complex_implicitly_fails() {
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(42.0)
+                                kind: Lit: Angle(4.300888156922483)
                     Stmt [32-57]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [32-57]:
@@ -586,11 +586,11 @@ fn to_angle_implicitly() {
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.0)
+                    kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
@@ -601,7 +601,7 @@ fn to_angle_implicitly() {
             [9] Symbol [38-39]:
                 name: y
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
         "#]],
     );
@@ -622,22 +622,89 @@ fn to_explicit_angle_implicitly() {
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
                     ty: Angle(None, true)
-                    kind: Lit: Float(42.0)
+                    kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
                 type: Angle(None, false)
-                qsharp_type: Double
+                qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
                     ty: Angle(Some(4), false)
-                    kind: SymbolId(8)
+                    kind: Cast [0-0]:
+                        ty: Angle(Some(4), false)
+                        expr: Expr [45-46]:
+                            ty: Angle(None, false)
+                            kind: SymbolId(8)
             [9] Symbol [41-42]:
                 name: y
                 type: Angle(Some(4), false)
-                qsharp_type: Double
+                qsharp_type: Angle
+                io_kind: Default
+        "#]],
+    );
+}
+
+#[test]
+fn width_promotion() {
+    let input = "
+        angle[32] x = 1.0;
+        angle[48] y = 2.0;
+        bit z = x / y;
+    ";
+
+    check_classical_decls(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-27]:
+                symbol_id: 8
+                ty_span: [9-18]
+                init_expr: Expr [23-26]:
+                    ty: Angle(Some(32), true)
+                    kind: Lit: Angle(1.000000000619646)
+            [8] Symbol [19-20]:
+                name: x
+                type: Angle(Some(32), false)
+                qsharp_type: Angle
+                io_kind: Default
+            ClassicalDeclarationStmt [36-54]:
+                symbol_id: 9
+                ty_span: [36-45]
+                init_expr: Expr [50-53]:
+                    ty: Angle(Some(48), true)
+                    kind: Lit: Angle(1.999999999999999)
+            [9] Symbol [46-47]:
+                name: y
+                type: Angle(Some(48), false)
+                qsharp_type: Angle
+                io_kind: Default
+            ClassicalDeclarationStmt [63-77]:
+                symbol_id: 10
+                ty_span: [63-66]
+                init_expr: Expr [71-76]:
+                    ty: Bit(false)
+                    kind: Cast [0-0]:
+                        ty: Bit(false)
+                        expr: Expr [71-76]:
+                            ty: UInt(Some(48), false)
+                            kind: BinaryOpExpr:
+                                op: Div
+                                lhs: Expr [71-72]:
+                                    ty: Angle(Some(48), false)
+                                    kind: Cast [0-0]:
+                                        ty: Angle(Some(48), false)
+                                        expr: Expr [71-72]:
+                                            ty: Angle(Some(32), false)
+                                            kind: SymbolId(8)
+                                rhs: Expr [75-76]:
+                                    ty: Angle(Some(48), false)
+                                    kind: SymbolId(9)
+            [10] Symbol [67-68]:
+                name: z
+                type: Bit(false)
+                qsharp_type: Result
                 io_kind: Default
         "#]],
     );

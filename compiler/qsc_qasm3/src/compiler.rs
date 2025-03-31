@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::f64;
 use std::{path::Path, rc::Rc};
 
 use num_bigint::BigInt;
@@ -11,31 +12,31 @@ use crate::{
     ast_builder::{
         build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
         build_binary_expr, build_call_no_params, build_call_with_param, build_call_with_params,
-        build_cast_call, build_cast_call_two_params, build_classical_decl, build_complex_from_expr,
+        build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
         build_convert_call_expr, build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
-        build_gate_call_with_params_and_callee, build_if_expr_then_block,
-        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
-        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lambda, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_range_expr,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_gate_call_with_params_and_callee, build_global_call_with_two_params,
+        build_if_expr_then_block, build_if_expr_then_block_else_block,
+        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
+        build_implicit_return_stmt, build_indexed_assignment_statement, build_lambda,
+        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
+        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
+        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
+        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
+        build_path_ident_expr, build_qasm_import_decl, build_range_expr, build_reset_call,
+        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_top_level_ns_with_item, build_tuple_expr,
         build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
         build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
         map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
     parser::ast::{list_from_iter, List},
-    runtime::{get_runtime_function_decls, RuntimeFunctions},
     semantic::{
         ast::{
             BinaryOpExpr, Cast, DiscreteSet, Expr, GateOperand, GateOperandKind, IndexElement,
             IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
-        types::{ArrayDimensions, Type},
+        types::{promote_types, ArrayDimensions, Type},
         SemanticErrorKind,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
@@ -67,7 +68,6 @@ where
         source_map: res.source_map,
         config,
         stmts: vec![],
-        runtime: RuntimeFunctions::empty(),
         symbols: res.symbols,
         errors: res.errors,
     };
@@ -85,9 +85,6 @@ pub struct QasmCompiler {
     pub config: CompilerConfig,
     /// The compiled statments accumulated during compilation.
     pub stmts: Vec<qsast::Stmt>,
-    /// The runtime functions that need to be included at the end of
-    /// compilation
-    pub runtime: RuntimeFunctions,
     pub symbols: SymbolTable,
     pub errors: Vec<WithSource<crate::Error>>,
 }
@@ -97,8 +94,8 @@ impl QasmCompiler {
     /// source file and build the appropriate package based on the
     /// configuration.
     pub fn compile(mut self, program: &crate::semantic::ast::Program) -> QasmCompileUnit {
+        self.append_runtime_import_decls();
         self.compile_stmts(&program.statements);
-        self.prepend_runtime_decls();
         let program_ty = self.config.program_ty.clone();
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
@@ -290,16 +287,11 @@ impl QasmCompiler {
         )
     }
 
-    /// Prepends the runtime declarations to the beginning of the statements.
-    /// Any runtime functions that are required by the compiled code are set
-    /// in the `self.runtime` field during compilation.
-    ///
-    /// We could declare these as top level functions when compiling to
-    /// `ProgramType::File`, but prepending them to the statements is the
-    /// most flexible approach.
-    fn prepend_runtime_decls(&mut self) {
-        let mut runtime = get_runtime_function_decls(self.runtime);
-        self.stmts.splice(0..0, runtime.drain(..));
+    /// Appends the runtime imports to the compiled statements.
+    fn append_runtime_import_decls(&mut self) {
+        for stmt in build_qasm_import_decl() {
+            self.stmts.push(stmt);
+        }
     }
 
     fn compile_stmts(&mut self, smtms: &[Box<crate::semantic::ast::Stmt>]) {
@@ -317,7 +309,7 @@ impl QasmCompiler {
             semast::StmtKind::Assign(stmt) => self.compile_assign_stmt(stmt),
             semast::StmtKind::IndexedAssign(stmt) => self.compile_indexed_assign_stmt(stmt),
             semast::StmtKind::AssignOp(stmt) => self.compile_assign_op_stmt(stmt),
-            semast::StmtKind::Barrier(stmt) => self.compile_barrier_stmt(stmt),
+            semast::StmtKind::Barrier(stmt) => Self::compile_barrier_stmt(stmt),
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
             semast::StmtKind::CalibrationGrammar(stmt) => {
@@ -407,17 +399,77 @@ impl QasmCompiler {
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
+        // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
+        // This will call compile_binary_expr which handles angles correctly.
+        if matches!(&stmt.lhs.ty, Type::Angle(..)) {
+            if stmt.indices.is_empty() {
+                let rhs = semast::Expr {
+                    span: stmt.span,
+                    ty: stmt.lhs.ty.clone(),
+                    kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
+                        op: stmt.op,
+                        lhs: stmt.lhs.clone(),
+                        rhs: stmt.rhs.clone(),
+                    })),
+                };
+
+                let stmt = semast::AssignStmt {
+                    span: stmt.span,
+                    symbol_id: stmt.symbol_id,
+                    lhs_span: stmt.lhs.span,
+                    rhs,
+                };
+
+                return self.compile_assign_stmt(&stmt);
+            }
+
+            if stmt.indices.len() != 1 {
+                self.push_unimplemented_error_message(
+                    "multi-dimensional array index expressions",
+                    stmt.span,
+                );
+                return None;
+            }
+
+            let lhs = semast::Expr {
+                span: stmt.span,
+                ty: stmt.lhs.ty.clone(),
+                kind: Box::new(semast::ExprKind::IndexExpr(semast::IndexExpr {
+                    span: stmt.lhs.span,
+                    collection: stmt.lhs.clone(),
+                    index: *stmt.indices[0].clone(),
+                })),
+            };
+
+            let rhs = semast::Expr {
+                span: stmt.span,
+                ty: stmt.lhs.ty.clone(),
+                kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
+                    op: stmt.op,
+                    lhs,
+                    rhs: stmt.rhs.clone(),
+                })),
+            };
+
+            let stmt = semast::IndexedAssignStmt {
+                span: stmt.span,
+                symbol_id: stmt.symbol_id,
+                indices: stmt.indices.clone(),
+                rhs,
+            };
+
+            return self.compile_indexed_assign_stmt(&stmt);
+        }
+
         let lhs = self.compile_expr(&stmt.lhs);
         let rhs = self.compile_expr(&stmt.rhs);
         let qsop = Self::map_bin_op(stmt.op);
+
         let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
         Some(build_stmt_semi_from_expr(expr))
     }
 
-    fn compile_barrier_stmt(&mut self, stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
-        // we don't support barrier, but we can insert a runtime function
-        // which will generate a barrier call in QIR
-        self.runtime.insert(RuntimeFunctions::Barrier);
+    fn compile_barrier_stmt(stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
         Some(build_barrier_call(stmt.span))
     }
 
@@ -607,12 +659,6 @@ impl QasmCompiler {
 
     fn compile_gate_call_stmt(&mut self, stmt: &semast::GateCall) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
-        if symbol.name == "U" {
-            self.runtime |= RuntimeFunctions::U;
-        }
-        if symbol.name == "gphase" {
-            self.runtime |= RuntimeFunctions::Gphase;
-        }
         let mut qubits: Vec<_> = stmt
             .qubits
             .iter()
@@ -640,7 +686,6 @@ impl QasmCompiler {
                 }
                 semast::GateModifierKind::Pow(expr) => {
                     let exponent_expr = self.compile_expr(expr);
-                    self.runtime |= RuntimeFunctions::Pow;
                     args = build_tuple_expr(vec![exponent_expr, callee, args]);
                     callee = build_path_ident_expr("__Pow__", modifier.span, stmt.span);
                 }
@@ -1017,13 +1062,23 @@ impl QasmCompiler {
         }
     }
     fn compile_neg_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
-        let expr = self.compile_expr(expr);
-        build_unary_op_expr(qsast::UnOp::Neg, expr, span)
+        let compiled_expr = self.compile_expr(expr);
+
+        if matches!(expr.ty, Type::Angle(..)) {
+            build_call_with_param("__NegAngle__", &[], compiled_expr, span, expr.span, span)
+        } else {
+            build_unary_op_expr(qsast::UnOp::Neg, compiled_expr, span)
+        }
     }
 
     fn compile_bitwise_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
-        let expr = self.compile_expr(expr);
-        build_unary_op_expr(qsast::UnOp::NotB, expr, span)
+        let compiled_expr = self.compile_expr(expr);
+
+        if matches!(expr.ty, Type::Angle(..)) {
+            build_call_with_param("__AngleNotB__", &[], compiled_expr, span, expr.span, span)
+        } else {
+            build_unary_op_expr(qsast::UnOp::NotB, compiled_expr, span)
+        }
     }
 
     fn compile_logical_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
@@ -1032,15 +1087,84 @@ impl QasmCompiler {
     }
 
     fn compile_binary_op_expr(&mut self, binary: &BinaryOpExpr) -> qsast::Expr {
+        let op = Self::map_bin_op(binary.op);
         let lhs = self.compile_expr(&binary.lhs);
         let rhs = self.compile_expr(&binary.rhs);
-        let op = Self::map_bin_op(binary.op);
+
+        if matches!(&binary.lhs.ty, Type::Angle(..)) || matches!(&binary.rhs.ty, Type::Angle(..)) {
+            return self.compile_angle_binary_op(op, lhs, rhs, &binary.lhs.ty, &binary.rhs.ty);
+        }
+
         let is_assignment = false;
         build_binary_expr(is_assignment, op, lhs, rhs, binary.span())
     }
 
+    fn compile_angle_binary_op(
+        &mut self,
+        op: qsast::BinOp,
+        lhs: qsast::Expr,
+        rhs: qsast::Expr,
+        lhs_ty: &crate::semantic::types::Type,
+        rhs_ty: &crate::semantic::types::Type,
+    ) -> qsast::Expr {
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rhs.span.hi,
+        };
+
+        let mut operands = vec![lhs, rhs];
+
+        let fn_name: &str = match op {
+            // Bit shift
+            qsast::BinOp::Shl => "__AngleShl__",
+            qsast::BinOp::Shr => "__AngleShr__",
+
+            // Bitwise
+            qsast::BinOp::AndB => "__AngleAndB__",
+            qsast::BinOp::OrB => "__AngleOrB__",
+            qsast::BinOp::XorB => "__AngleXorB__",
+
+            // Comparison
+            qsast::BinOp::Eq => "__AngleEq__",
+            qsast::BinOp::Neq => "__AngleNeq__",
+            qsast::BinOp::Gt => "__AngleGt__",
+            qsast::BinOp::Gte => "__AngleGte__",
+            qsast::BinOp::Lt => "__AngleLt__",
+            qsast::BinOp::Lte => "__AngleLte__",
+
+            // Arithmetic
+            qsast::BinOp::Add => "__AddAngles__",
+            qsast::BinOp::Sub => "__SubtractAngles__",
+            qsast::BinOp::Mul => {
+                // if we are doing `int * angle` we need to
+                // reverse the order of the args to __MultiplyAngleByInt__
+                if matches!(lhs_ty, Type::Int(..) | Type::UInt(..)) {
+                    operands.reverse();
+                }
+                "__MultiplyAngleByInt__"
+            }
+            qsast::BinOp::Div => {
+                if matches!(lhs_ty, Type::Angle(..))
+                    && matches!(rhs_ty, Type::Int(..) | Type::UInt(..))
+                {
+                    "__DivideAngleByInt__"
+                } else {
+                    "__DivideAngleByAngle__"
+                }
+            }
+
+            _ => {
+                self.push_unsupported_error_message("angle binary operation", span);
+                return err_expr(span);
+            }
+        };
+
+        build_call_with_params(fn_name, &[], operands, span, span)
+    }
+
     fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {
         match lit {
+            LiteralKind::Angle(value) => build_lit_angle_expr(*value, span),
             LiteralKind::Array(value) => self.compile_array_literal(value, span),
             LiteralKind::Bitstring(big_int, width) => {
                 Self::compile_bitstring_literal(big_int, *width, span)
@@ -1062,28 +1186,28 @@ impl QasmCompiler {
         let expr = self.compile_expr(&cast.expr);
         let cast_expr = match cast.expr.ty {
             crate::semantic::types::Type::Bit(_) => {
-                self.cast_bit_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_bit_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Bool(_) => {
-                self.cast_bool_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_bool_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Duration(_) => {
                 self.cast_duration_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Angle(_, _) => {
-                self.cast_angle_expr_to_ty(&expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_angle_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Complex(_, _) => {
                 self.cast_complex_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Float(_, _) => {
-                self.cast_float_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_float_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Int(_, _) | crate::semantic::types::Type::UInt(_, _) => {
-                self.cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::BitArray(ArrayDimensions::One(size), _) => {
-                self.cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
+                Self::cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
             }
             _ => err_expr(cast.span),
         };
@@ -1272,8 +1396,7 @@ impl QasmCompiler {
     /// | angle          | Yes   | No  | No   | No    | -     | Yes | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_angle_expr_to_ty(
-        &mut self,
-        expr: &qsast::Expr,
+        expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
@@ -1282,26 +1405,29 @@ impl QasmCompiler {
         // https://openqasm.com/language/types.html#casting-from-angle
         match ty {
             Type::Angle(..) => {
-                let msg = "Cast angle to angle";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+                // we know they are both angles, here we promote the width.
+                let promoted_ty = promote_types(expr_ty, ty);
+                if promoted_ty.width().is_some() && promoted_ty.width() != expr_ty.width() {
+                    // we need to convert the angle to a different width
+                    let width = promoted_ty.width().expect("width should be set");
+                    build_global_call_with_two_params(
+                        "__ConvertAngleToWidthNoTrunc__",
+                        expr,
+                        build_lit_int_expr(width.into(), span),
+                        span,
+                        span,
+                    )
+                } else {
+                    expr
+                }
             }
             Type::Bit(..) => {
-                let msg = "Cast angle to bit";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+                build_call_with_param("__AngleAsResult__", &[], expr, span, span, span)
             }
             Type::BitArray(..) => {
-                let msg = "Cast angle to bit array";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+                build_call_with_param("__AngleAsResultArray__", &[], expr, span, span, span)
             }
-            Type::Bool(..) => {
-                let msg = "Cast angle to bool";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
-            }
-
+            Type::Bool(..) => build_call_with_param("__AngleAsBool__", &[], expr, span, span, span),
             _ => err_expr(span),
         }
     }
@@ -1314,7 +1440,6 @@ impl QasmCompiler {
     /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -   | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_bit_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1326,14 +1451,11 @@ impl QasmCompiler {
         let operand_span = expr.span;
         let name_span = span;
         match ty {
+            &Type::Angle(..) => {
+                build_cast_call_by_name("__ResultAsAngle__", expr, name_span, operand_span)
+            }
             &Type::Bool(..) => {
-                self.runtime |= RuntimeFunctions::ResultAsBool;
-                build_cast_call(
-                    RuntimeFunctions::ResultAsBool,
-                    expr,
-                    name_span,
-                    operand_span,
-                )
+                build_cast_call_by_name("__ResultAsBool__", expr, name_span, operand_span)
             }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
@@ -1344,22 +1466,21 @@ impl QasmCompiler {
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
                     if width > 64 {
-                        RuntimeFunctions::ResultAsBigInt
+                        "__ResultAsBigInt__"
                     } else {
-                        RuntimeFunctions::ResultAsInt
+                        "__ResultAsInt__"
                     }
                 } else {
-                    RuntimeFunctions::ResultAsInt
+                    "__ResultAsInt__"
                 };
-                self.runtime |= function;
-                build_cast_call(function, expr, name_span, operand_span)
+
+                build_cast_call_by_name(function, expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }
     }
 
     fn cast_bit_array_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1382,13 +1503,7 @@ impl QasmCompiler {
         let int_width = ty.width();
 
         if int_width.is_none() || (int_width == Some(size)) {
-            self.runtime |= RuntimeFunctions::ResultArrayAsIntBE;
-            build_cast_call(
-                RuntimeFunctions::ResultArrayAsIntBE,
-                expr,
-                name_span,
-                operand_span,
-            )
+            build_cast_call_by_name("__ResultArrayAsIntBE__", expr, name_span, operand_span)
         } else {
             err_expr(span)
         }
@@ -1402,7 +1517,6 @@ impl QasmCompiler {
     /// | bool           | -     | Yes | Yes  | Yes   | No    | Yes | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_bool_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1413,35 +1527,22 @@ impl QasmCompiler {
         let operand_span = span;
         match ty {
             Type::Bit(..) => {
-                self.runtime |= RuntimeFunctions::BoolAsResult;
-                build_cast_call(
-                    RuntimeFunctions::BoolAsResult,
-                    expr,
-                    name_span,
-                    operand_span,
-                )
+                build_cast_call_by_name("__BoolAsResult__", expr, name_span, operand_span)
             }
             Type::Float(..) => {
-                self.runtime |= RuntimeFunctions::BoolAsDouble;
-                build_cast_call(
-                    RuntimeFunctions::BoolAsDouble,
-                    expr,
-                    name_span,
-                    operand_span,
-                )
+                build_cast_call_by_name("__BoolAsDouble__", expr, name_span, operand_span)
             }
             Type::Int(w, _) | Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
                     if *width > 64 {
-                        RuntimeFunctions::BoolAsBigInt
+                        "__BoolAsBigInt__"
                     } else {
-                        RuntimeFunctions::BoolAsInt
+                        "__BoolAsInt__"
                     }
                 } else {
-                    RuntimeFunctions::BoolAsInt
+                    "__BoolAsInt__"
                 };
-                self.runtime |= function;
-                build_cast_call(function, expr, name_span, operand_span)
+                build_cast_call_by_name(function, expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }
@@ -1479,19 +1580,26 @@ impl QasmCompiler {
     ///
     /// Additional cast to complex
     fn cast_float_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Float(..)));
+
         match ty {
             &Type::Complex(..) => build_complex_from_expr(expr),
-            &Type::Angle(..) => {
-                let msg = "Cast float to angle";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+            &Type::Angle(width, _) => {
+                let expr_span = expr.span;
+                let width =
+                    build_lit_int_expr(width.unwrap_or(f64::MANTISSA_DIGITS).into(), expr_span);
+                build_call_with_params(
+                    "__DoubleAsAngle__",
+                    &[],
+                    vec![expr, width],
+                    expr_span,
+                    expr_span,
+                )
             }
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let expr = build_math_call_from_exprs("Truncate", vec![expr], span);
@@ -1505,6 +1613,8 @@ impl QasmCompiler {
                     expr
                 }
             }
+            // This is a width promotion, but it is a no-op in Q#.
+            &Type::Float(..) => expr,
             &Type::Bool(..) => {
                 let span = expr.span;
                 let expr = build_math_call_from_exprs("Truncate", vec![expr], span);
@@ -1538,7 +1648,6 @@ impl QasmCompiler {
     /// `OpenQASM` support this will need to be fleshed out.
     #[allow(clippy::too_many_lines)]
     fn cast_int_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1549,15 +1658,14 @@ impl QasmCompiler {
         let operand_span = span;
         match ty {
             Type::BitArray(dims, _) => {
-                self.runtime |= RuntimeFunctions::IntAsResultArrayBE;
                 let ArrayDimensions::One(size) = dims else {
                     return err_expr(span);
                 };
                 let size = i64::from(*size);
 
                 let size_expr = build_lit_int_expr(size, Span::default());
-                build_cast_call_two_params(
-                    RuntimeFunctions::IntAsResultArrayBE,
+                build_global_call_with_two_params(
+                    "__IntAsResultArrayBE__",
                     expr,
                     size_expr,
                     name_span,

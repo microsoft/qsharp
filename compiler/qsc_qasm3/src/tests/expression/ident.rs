@@ -67,6 +67,9 @@ fn resolved_idenfiers_are_compiled_as_refs() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![
         r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable p = Microsoft.Quantum.Math.PI();
         mutable x = p;
     "#

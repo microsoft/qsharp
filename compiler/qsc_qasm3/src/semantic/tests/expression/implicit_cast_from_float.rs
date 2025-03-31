@@ -436,7 +436,11 @@ fn to_explicit_float_implicitly() {
                 ty_span: [32-41]
                 init_expr: Expr [46-47]:
                     ty: Float(Some(32), false)
-                    kind: SymbolId(8)
+                    kind: Cast [0-0]:
+                        ty: Float(Some(32), false)
+                        expr: Expr [46-47]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
             [9] Symbol [42-43]:
                 name: y
                 type: Float(Some(32), false)

@@ -18,6 +18,9 @@ fn simulatable_intrinsic_can_be_applied_to_gate() -> miette::Result<(), Vec<Repo
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![
         r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         @SimulatableIntrinsic()
         operation my_h(q : Qubit) : Unit {
             H(q);
