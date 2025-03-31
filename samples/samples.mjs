@@ -16,7 +16,7 @@ export default [
     { title: "Bell States", file: "./getting_started/BellStates.qs", shots: 100 },
     { title: "Cat States", file: "./getting_started/CatStates.qs", shots: 100 },
     { title: "Random Bits", file: "./getting_started/RandomBits.qs", shots: 1000 },
-    { title: "Teleportation (Simple).qs", file: "./getting_started/SimpleTeleportation.qs", shots: 100 },
+    { title: "Teleportation (Simple)", file: "./getting_started/SimpleTeleportation.qs", shots: 100 },
     { title: "JointMeasurement", file: "./getting_started/JointMeasurement.qs", shots: 100 },
     { title: "Teleportation", file: "./algorithms/Teleportation.qs", shots: 1 },
     { title: "Random Number Generator (Advanced)", file: "./algorithms/QRNG.qs", shots: 1000 },
