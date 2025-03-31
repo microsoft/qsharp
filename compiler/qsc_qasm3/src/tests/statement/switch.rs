@@ -215,7 +215,6 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Function decls are not supported yet"]
 fn spec_case_4() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         OPENQASM 3.1;
@@ -251,7 +250,25 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        "#]]
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        mutable b = [Zero, Zero];
+        let foo : (Int, Qubit[]) => Result = (i, d) => {
+            return QIR.Intrinsic.__quantum__qis__m__body(d[i]);
+        };
+        mutable i = 15;
+        mutable j = 1;
+        mutable k = 2;
+        mutable c1 = Zero;
+        let q0 = QIR.Runtime.AllocateQubitArray(8);
+        if i == 1 {
+            set j = k + __ResultAsInt__(foo(k, q0));
+        } elif i == 2 {
+            mutable d = Microsoft.Quantum.Convert.IntAsDouble(j / k);
+        } elif i == 3 {} else {};
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
