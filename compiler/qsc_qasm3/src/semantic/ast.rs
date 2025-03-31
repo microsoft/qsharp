@@ -21,6 +21,7 @@ use crate::{
         List,
     },
     semantic::symbols::SymbolId,
+    stdlib::angle::Angle,
 };
 
 use crate::parser::ast as syntax;
@@ -1552,6 +1553,7 @@ impl Display for IndexExpr {
 
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
+    Angle(Angle),
     Array(List<Expr>),
     Bitstring(BigInt, u32),
     Bool(bool),
@@ -1572,6 +1574,7 @@ impl Display for LiteralKind {
                 let width = *width as usize;
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
             }
+            LiteralKind::Angle(a) => write!(f, "Angle({a})"),
             LiteralKind::Bit(b) => write!(f, "Bit({:?})", u8::from(*b)),
             LiteralKind::Bool(b) => write!(f, "Bool({b:?})"),
             LiteralKind::Complex(real, imag) => write!(f, "Complex({real:?}, {imag:?})"),
@@ -1579,7 +1582,6 @@ impl Display for LiteralKind {
                 write!(f, "Duration({value:?}, {unit:?})")
             }
             LiteralKind::Float(value) => write!(f, "Float({value:?})"),
-
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
             LiteralKind::String(s) => write!(f, "String({s:?})"),
@@ -1637,6 +1639,15 @@ impl fmt::Display for Version {
 pub enum IndexElement {
     DiscreteSet(DiscreteSet),
     IndexSet(IndexSet),
+}
+
+impl IndexElement {
+    pub fn span(&self) -> Span {
+        match self {
+            IndexElement::DiscreteSet(discrete_set) => discrete_set.span,
+            IndexElement::IndexSet(index_set) => index_set.span,
+        }
+    }
 }
 
 impl Display for IndexElement {

@@ -221,10 +221,10 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
     bit c = r; // undefined symbol r
     "#;
     let source1 = r#"include "source2.qasm";
-    angle z = 7.0;
-    float k = z + false; // invalid cast"#;
-    let source2 = "bit x = 1;
-    bool x = y && x; // undefined y, redefine x";
+    angle j = 7.0;
+    float k = j + false; // invalid cast"#;
+    let source2 = "bit l = 1;
+    bool l = v && l; // undefined y, redefine l";
     let all_sources = [
         ("source0.qasm".into(), source0.into()),
         ("source1.qasm".into(), source1.into()),
@@ -241,7 +241,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [196-206]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [196-206]:
-                            symbol_id: 26
+                            symbol_id: 35
                             ty_span: [196-199]
                             init_expr: Expr [204-205]:
                                 ty: Bit(true)
@@ -249,7 +249,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [211-227]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [211-227]:
-                            symbol_id: 26
+                            symbol_id: 35
                             ty_span: [211-215]
                             init_expr: Expr [220-226]:
                                 ty: Bool(false)
@@ -257,26 +257,26 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: AndL
                                     lhs: Expr [220-221]:
                                         ty: Err
-                                        kind: SymbolId(27)
+                                        kind: SymbolId(36)
                                     rhs: Expr [225-226]:
                                         ty: Bool(false)
                                         kind: Cast [0-0]:
                                             ty: Bool(false)
                                             expr: Expr [225-226]:
                                                 ty: Bit(false)
-                                                kind: SymbolId(26)
+                                                kind: SymbolId(35)
                     Stmt [140-154]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [140-154]:
-                            symbol_id: 28
+                            symbol_id: 37
                             ty_span: [140-145]
                             init_expr: Expr [150-153]:
                                 ty: Angle(None, true)
-                                kind: Lit: Float(7.0)
+                                kind: Lit: Angle(0.7168146928204138)
                     Stmt [159-179]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [159-179]:
-                            symbol_id: 29
+                            symbol_id: 38
                             ty_span: [159-164]
                             init_expr: Expr [169-178]:
                                 ty: Float(None, false)
@@ -284,7 +284,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: Add
                                     lhs: Expr [169-170]:
                                         ty: Angle(None, false)
-                                        kind: SymbolId(28)
+                                        kind: SymbolId(37)
                                     rhs: Expr [173-178]:
                                         ty: Float(None, false)
                                         kind: Cast [0-0]:
@@ -295,34 +295,34 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [74-84]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [74-84]:
-                            symbol_id: 31
+                            symbol_id: 40
                             ty_span: [74-77]
                             init_expr: Expr [82-83]:
                                 ty: Err
-                                kind: SymbolId(30)
+                                kind: SymbolId(39)
 
             [Qsc.Qasm3.Compile.UndefinedSymbol
 
-              x Undefined symbol: y.
+              x Undefined symbol: v.
                ,-[source2.qasm:2:14]
-             1 | bit x = 1;
-             2 |     bool x = y && x; // undefined y, redefine x
+             1 | bit l = 1;
+             2 |     bool l = v && l; // undefined y, redefine l
                :              ^
                `----
             , Qsc.Qasm3.Compile.CannotCast
 
               x Cannot cast expression of type Err to type Bool(false)
                ,-[source2.qasm:2:14]
-             1 | bit x = 1;
-             2 |     bool x = y && x; // undefined y, redefine x
+             1 | bit l = 1;
+             2 |     bool l = v && l; // undefined y, redefine l
                :              ^
                `----
             , Qsc.Qasm3.Compile.RedefinedSymbol
 
-              x Redefined symbol: x.
+              x Redefined symbol: l.
                ,-[source2.qasm:2:10]
-             1 | bit x = 1;
-             2 |     bool x = y && x; // undefined y, redefine x
+             1 | bit l = 1;
+             2 |     bool l = v && l; // undefined y, redefine l
                :          ^
                `----
             , Qsc.Qasm3.Compile.CannotCast
@@ -330,8 +330,8 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
               x Cannot cast expression of type Angle(None, false) to type Float(None,
               | false)
                ,-[source1.qasm:3:15]
-             2 |     angle z = 7.0;
-             3 |     float k = z + false; // invalid cast
+             2 |     angle j = 7.0;
+             3 |     float k = j + false; // invalid cast
                :               ^
                `----
             , Qsc.Qasm3.Compile.UndefinedSymbol

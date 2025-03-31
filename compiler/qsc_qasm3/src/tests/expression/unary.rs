@@ -15,12 +15,10 @@ fn bitwise_not_int() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 5;
         mutable y = ~~~x;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -33,12 +31,13 @@ fn not_bool() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = not x;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -51,18 +50,13 @@ fn not_result() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = One;
         mutable y = __BoolAsResult__(not __ResultAsBool__(x));
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -75,22 +69,23 @@ fn logical_not_int() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = 159;
         mutable y = not if x == 0 {
             false
         } else {
             true
         };
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "OPENQASM 3.0 parser bug"]
+#[ignore = "negating a Result type is an invalid Q# operation"]
 fn bitwise_not_result() -> miette::Result<(), Vec<Report>> {
     let source = "
         bit[1] x;
@@ -98,10 +93,8 @@ fn bitwise_not_result() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-    "#
-    ]
+    expect![[r#"
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -116,17 +109,59 @@ fn logical_not_indexed_bit_array_in_if_cond() -> miette::Result<(), Vec<Report>>
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable Classical = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
         if not __ResultAsBool__(Classical[1]) {
             set Classical w/= 0 <- One;
         };
-    "#
-    ]
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn neg_angle() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        angle[4] x = 1.0;
+        angle[4] y = -x;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable x = new __Angle__ {
+            Value = 3,
+            Size = 4
+        };
+        mutable y = __NegAngle__(x);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn notb_angle() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        angle[4] x = 1.0;
+        angle[4] y = ~x;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable x = new __Angle__ {
+            Value = 3,
+            Size = 4
+        };
+        mutable y = __AngleNotB__(x);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

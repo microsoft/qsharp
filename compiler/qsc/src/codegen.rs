@@ -5,6 +5,7 @@
 mod tests;
 
 pub mod qsharp {
+    pub use qsc_codegen::qsharp::write_item_string;
     pub use qsc_codegen::qsharp::write_package_string;
     pub use qsc_codegen::qsharp::write_stmt_string;
 }
