@@ -13,11 +13,12 @@ fn int_float_lhs_promoted_to_float() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         5. * 0.3;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

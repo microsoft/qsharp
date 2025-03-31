@@ -633,7 +633,11 @@ fn to_explicit_angle_implicitly() {
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
                     ty: Angle(Some(4), false)
-                    kind: SymbolId(8)
+                    kind: Cast [0-0]:
+                        ty: Angle(Some(4), false)
+                        expr: Expr [45-46]:
+                            ty: Angle(None, false)
+                            kind: SymbolId(8)
             [9] Symbol [41-42]:
                 name: y
                 type: Angle(Some(4), false)

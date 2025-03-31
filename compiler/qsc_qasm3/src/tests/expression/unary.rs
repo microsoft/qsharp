@@ -85,7 +85,7 @@ fn logical_not_int() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "OPENQASM 3.0 parser bug"]
+#[ignore = "negating a Result type is an invalid Q# operation"]
 fn bitwise_not_result() -> miette::Result<(), Vec<Report>> {
     let source = "
         bit[1] x;
@@ -110,9 +110,9 @@ fn logical_not_indexed_bit_array_in_if_cond() -> miette::Result<(), Vec<Report>>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable Classical = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
         if not __ResultAsBool__(Classical[1]) {
             set Classical w/= 0 <- One;

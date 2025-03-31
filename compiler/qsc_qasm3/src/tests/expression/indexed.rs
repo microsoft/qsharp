@@ -19,7 +19,7 @@ fn indexed_bit_cannot_be_implicitly_converted_to_float() {
     };
 
     assert_eq!(1, errors.len(), "Expected one error");
-    expect![r#"Cannot cast expression of type Bit(false) to type Float(None, false)"#]
+    expect!["Cannot cast expression of type Bit(false) to type Float(None, true)"]
         .assert_eq(&errors[0].to_string());
 }
 
@@ -34,13 +34,9 @@ fn indexed_bit_can_implicitly_convert_to_int() -> miette::Result<(), Vec<Report>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsInt__(input : Result) : Int {
-            if Microsoft.Quantum.Convert.ResultAsBool(input) {
-                1
-            } else {
-                0
-            }
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if __ResultAsInt__(x[0]) == 1 {
             set x w/= 1 <- One;
@@ -61,9 +57,9 @@ fn indexed_bit_can_implicitly_convert_to_bool() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if __ResultAsBool__(x[0]) {
             set x w/= 1 <- One;
@@ -82,6 +78,9 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         mutable y = x[0];
     "#]]

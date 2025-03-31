@@ -1609,6 +1609,8 @@ impl QasmCompiler {
                     expr
                 }
             }
+            // This is a width promotion, but it is a no-op in Q#.
+            &Type::Float(..) => expr,
             &Type::Bool(..) => {
                 let span = expr.span;
                 let expr = build_math_call_from_exprs("Truncate", vec![expr], span);
