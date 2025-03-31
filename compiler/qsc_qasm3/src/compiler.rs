@@ -1404,10 +1404,10 @@ impl QasmCompiler {
         assert!(matches!(expr_ty, Type::Angle(..)));
         // https://openqasm.com/language/types.html#casting-from-angle
         match ty {
-            Type::Angle(w, _) => {
+            Type::Angle(..) => {
                 // we know they are both angles, here we promote the width.
                 let promoted_ty = promote_types(expr_ty, ty);
-                if promoted_ty.width().is_some() && promoted_ty.width() != *w {
+                if promoted_ty.width().is_some() && promoted_ty.width() != expr_ty.width() {
                     // we need to convert the angle to a different width
                     let width = promoted_ty.width().expect("width should be set");
                     build_global_call_with_two_params(

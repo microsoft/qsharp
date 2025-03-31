@@ -1557,7 +1557,7 @@ fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
             Size = 48
         };
         let c = 2;
-        let d = if __DivideAngleByAngle__(a, b) == 0 {
+        let d = if __DivideAngleByAngle__(__ConvertAngleToWidthNoTrunc__(a, 48), b) == 0 {
             One
         } else {
             Zero
