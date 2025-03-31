@@ -1180,7 +1180,7 @@ impl QasmCompiler {
                 self.cast_duration_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Angle(_, _) => {
-                self.cast_angle_expr_to_ty(&expr, &cast.expr.ty, &cast.ty, cast.span)
+                self.cast_angle_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Complex(_, _) => {
                 self.cast_complex_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
@@ -1382,7 +1382,7 @@ impl QasmCompiler {
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_angle_expr_to_ty(
         &mut self,
-        expr: &qsast::Expr,
+        expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
         span: Span,
@@ -1390,27 +1390,14 @@ impl QasmCompiler {
         assert!(matches!(expr_ty, Type::Angle(..)));
         // https://openqasm.com/language/types.html#casting-from-angle
         match ty {
-            Type::Angle(..) => {
-                let msg = "Cast angle to angle";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
-            }
+            Type::Angle(..) => expr,
             Type::Bit(..) => {
-                let msg = "Cast angle to bit";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+                build_call_with_param("__AngleAsResult__", &[], expr, span, span, span)
             }
             Type::BitArray(..) => {
-                let msg = "Cast angle to bit array";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
+                build_call_with_param("__AngleAsResultArray__", &[], expr, span, span, span)
             }
-            Type::Bool(..) => {
-                let msg = "Cast angle to bool";
-                self.push_unimplemented_error_message(msg, expr.span);
-                err_expr(span)
-            }
-
+            Type::Bool(..) => build_call_with_param("__AngleAsBool__", &[], expr, span, span, span),
             _ => err_expr(span),
         }
     }

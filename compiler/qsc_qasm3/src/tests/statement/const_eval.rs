@@ -202,16 +202,23 @@ fn unary_op_neg_int() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "casting float to angle is not yet supported"]
 fn unary_op_neg_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = -1.0;
-        const bool b = a;
+        const angle[32] a = -1.0;
+        const bit b = a;
         bit[b] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = __DoubleAsAngle__(-1., 32);
+        let b = __AngleAsResult__(a);
+        mutable r = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -237,20 +244,28 @@ fn unary_op_negb_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
-fn unary_op_negb_angle() {
+
+fn unary_op_negb_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1.0;
-        const bool b = ~a;
+        const angle[32] a = 1.0;
+        const bit b = ~a;
         bit[b] r;
     "#;
 
-    let Err(errs) = compile_qasm_to_qsharp(source) else {
-        panic!("should have generated an error");
-    };
-    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
-    let errs_string = errs.join("\n");
-    expect![[r#""#]].assert_eq(&errs_string);
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = __AngleAsResult__(__AngleNotB__(a));
+        mutable r = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
 }
 
 #[test]
@@ -346,17 +361,28 @@ fn binary_op_shl_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_shl_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1;
-        const angle b = a << 2;
-        const bool c = b;
+        const angle[32] a = 1.0;
+        const angle[32] b = a << 2;
+        const bit c = b;
         bit[c] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = __AngleShl__(a, 2);
+        let c = __AngleAsResult__(b);
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -497,17 +523,28 @@ fn binary_op_shr_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_shr_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1;
-        const angle b = a >> 2;
-        const bool c = b;
+        const angle[32] a = 1.0;
+        const angle[32] b = a >> 2;
+        const bit c = b;
         bit[c] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = __AngleShr__(a, 2);
+        let c = __AngleAsResult__(b);
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -650,17 +687,33 @@ fn binary_op_andb_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_andb_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1;
-        const angle b = a & 2;
-        const bool c = b;
-        bit[c] r;
+        const angle[32] a = 1.0;
+        const angle[32] b = 2.0;
+        const angle[32] c = a & b;
+        const bit d = c;
+        bit[d] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        let c = __AngleAndB__(a, b);
+        let d = __AngleAsResult__(c);
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -734,17 +787,33 @@ fn binary_op_orb_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_orb_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1.0;
-        const angle b = a | 2.0;
-        const bool c = b;
-        bit[c] r;
+        const angle[32] a = 1.0;
+        const angle[32] b = 2.0;
+        const angle[32] c = a | b;
+        const bool d = c;
+        bit[d] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        let c = __AngleOrB__(a, b);
+        let d = __AngleAsBool__(c);
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -818,17 +887,33 @@ fn binary_op_xorb_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_xorb_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1;
-        const angle b = a ^ 2;
-        const bool c = b;
-        bit[c] r;
+        const angle[32] a = 1.0;
+        const angle[32] b = 2.0;
+        const angle[32] c = a ^ b;
+        const bit d = c;
+        bit[d] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        let c = __AngleXorB__(a, b);
+        let d = __AngleAsResult__(c);
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -997,10 +1082,10 @@ fn binary_op_comparison_uint() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_comparison_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 2.0;
+        const angle[32] a = 2.0;
         bit[a == a] r1;
         bit[a != a] r2;
         bit[a > a] r3;
@@ -1010,7 +1095,22 @@ fn binary_op_comparison_angle() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        mutable r1 = [Zero];
+        mutable r2 = [];
+        mutable r3 = [];
+        mutable r4 = [Zero];
+        mutable r5 = [];
+        mutable r6 = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1140,16 +1240,31 @@ fn binary_op_add_float() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_add_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 1.0;
-        const angle b = 2.0;
-        bit[a + b] r;
+        const angle[32] a = 1.0;
+        const angle[32] b = 2.0;
+        const bit c = a + b;
+        bit[c] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        let c = __AngleAsResult__(__AddAngles__(a, b));
+        mutable r = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1219,16 +1334,32 @@ fn binary_op_sub_float() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_sub_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const float a = 3.0;
-        const float b = 2.0;
-        bit[a - b] r;
+        const angle[32] a = 1.0;
+        const angle[32] b = 2.0;
+        const bit c = a - b;
+        bit[c] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
+        let c = __AngleAsResult__(__SubtractAngles__(a, b));
+        mutable r = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1298,17 +1429,28 @@ fn binary_op_mul_float() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_mul_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const float a = 3.0;
+        const angle[32] a = 1.0;
         const uint b = 2;
-        bit[a * b] r1;
-        bit[b * a] r2;
+        const bit c1 = a * b;
+        const bit c2 = b * a;
+        bit[c1] r1;
+        bit[c2] r2;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = 3.;
+        let b = 2;
+        mutable r1 = [Zero, Zero, Zero, Zero, Zero, Zero];
+        mutable r2 = [Zero, Zero, Zero, Zero, Zero, Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1378,12 +1520,13 @@ fn binary_op_div_float() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle a = 6.0;
+        const angle[32] a = 6.0;
         const uint b = 2;
-        bit[a / b] r;
+        const bit c = a / b;
+        bit[c] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -1504,19 +1647,19 @@ fn cast_to_bool() -> miette::Result<(), Vec<Report>> {
         const int a = 0;
         const uint b = 1;
         const float c = 2.0;
-        // const angle d = 2.0;
+        const angle[32] d = 2.0;
         const bit e = 1;
 
         const bool s1 = a;
         const bool s2 = b;
         const bool s3 = c;
-        // const bool s4 = d;
+        const bool s4 = d;
         const bool s5 = e;
 
         bit[s1] r1;
         bit[s2] r2;
         bit[s3] r3;
-        // bit[s4] r4;
+        bit[s4] r4;
         bit[s5] r5;
     "#;
 
@@ -1528,6 +1671,10 @@ fn cast_to_bool() -> miette::Result<(), Vec<Report>> {
         let a = 0;
         let b = 1;
         let c = 2.;
+        let d = new __Angle__ {
+            Value = 1367130551,
+            Size = 32
+        };
         let e = One;
         let s1 = if a == 0 {
             false
@@ -1544,10 +1691,12 @@ fn cast_to_bool() -> miette::Result<(), Vec<Report>> {
         } else {
             true
         };
+        let s4 = __AngleAsBool__(d);
         let s5 = __ResultAsBool__(e);
         mutable r1 = [];
         mutable r2 = [Zero];
         mutable r3 = [Zero];
+        mutable r4 = [Zero];
         mutable r5 = [Zero];
     "#]]
     .assert_eq(&qsharp);
@@ -1672,14 +1821,17 @@ fn cast_to_float() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "angles are not yet supported"]
+
 fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const float a = 2.0;
-        const bit b = 1;
+        const float a1 = 2.0;
+        const bit a2 = 1;
 
-        const angle s1 = a;
-        const angle s2 = b;
+        const angle[32] b1 = a1;
+        const angle[32] b2 = a2;
+
+        const bit s1 = b1;
+        const bit s2 = b2;
 
         bit[s1] r1;
         bit[s2] r2;
@@ -1696,17 +1848,17 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
         const bool a = false;
         const int b = 1;
         const uint c = 2;
-        // const angle d = 3.0;
+        const angle[32] d = 3.0;
 
         const bit s1 = a;
         const bit s2 = b;
         const bit s3 = c;
-        // const bit s4 = d;
+        const bit s4 = d;
 
         bit[s1] r1;
         bit[s2] r2;
         bit[s3] r3;
-        // bit[s4] r4;
+        bit[s4] r4;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -1717,6 +1869,10 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
         let a = false;
         let b = 1;
         let c = 2;
+        let d = new __Angle__ {
+            Value = 2050695827,
+            Size = 32
+        };
         let s1 = __BoolAsResult__(a);
         let s2 = if b == 0 {
             One
@@ -1728,9 +1884,11 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
         } else {
             Zero
         };
+        let s4 = __AngleAsResult__(d);
         mutable r1 = [];
         mutable r2 = [Zero];
         mutable r3 = [Zero];
+        mutable r4 = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
