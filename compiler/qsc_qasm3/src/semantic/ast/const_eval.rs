@@ -12,11 +12,14 @@ use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,
 };
-use crate::semantic::{
-    symbols::SymbolTable,
-    types::{ArrayDimensions, Type},
-};
 use crate::stdlib::angle;
+use crate::{
+    oqasm_helpers::safe_i64_to_f64,
+    semantic::{
+        symbols::SymbolTable,
+        types::{ArrayDimensions, Type},
+    },
+};
 use num_bigint::BigInt;
 
 impl Expr {
@@ -618,7 +621,7 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
             // TODO: we need to issue the same lint in Q#.
             #[allow(clippy::cast_precision_loss)]
-            Float(val as f64)
+            Float(safe_i64_to_f64(val)?)
         }),
         Type::Float(..) => Some(lit),
         _ => None,
