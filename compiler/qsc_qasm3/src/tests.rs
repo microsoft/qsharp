@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::runtime::RuntimeFunctions;
-use crate::semantic::symbols::SymbolTable;
+use crate::stdlib::compile::package_store_with_qasm;
 use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use miette::Report;
 use qsc::interpret::Error;
 use qsc::{
     ast::{mut_visit::MutVisitor, Package, Stmt, TopLevelNode},
     target::Profile,
-    PackageStore, SourceMap, Span,
+    SourceMap, Span,
 };
+use qsc_hir::hir::PackageId;
 use std::{path::Path, sync::Arc};
 
 use crate::io::{InMemorySourceResolver, SourceResolver};
@@ -54,11 +54,13 @@ pub(crate) fn generate_qir_from_ast(
     source_map: SourceMap,
     profile: Profile,
 ) -> Result<String, Vec<Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
     let capabilities = profile.into();
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
-
+    let (stdid, qasmid, mut store) = package_store_with_qasm(capabilities);
+    let dependencies = vec![
+        (PackageId::CORE, None),
+        (stdid, None),
+        (qasmid, Some("QasmStd".into())),
+    ];
     qsc::codegen::qir::get_qir_from_ast(
         &mut store,
         &dependencies,
@@ -102,7 +104,6 @@ where
         source_map: res.source_map,
         config,
         stmts: vec![],
-        runtime: RuntimeFunctions::empty(),
         symbols: res.symbols,
         errors: res.errors,
     };
@@ -175,8 +176,7 @@ where
         source_map: res.source_map,
         config,
         stmts: vec![],
-        runtime: RuntimeFunctions::empty(),
-        symbols: SymbolTable::default(),
+        symbols: res.symbols,
         errors: res.errors,
     };
 
@@ -346,12 +346,23 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
     let Some(package) = unit.package else {
         panic!("Expected package, got None");
     };
-    let qsharp = get_first_statement_as_qsharp(&package);
+    let qsharp = get_last_statement_as_qsharp(&package);
     Ok(qsharp)
 }
 
+fn get_last_statement_as_qsharp(package: &Package) -> String {
+    let qsharp = match package.nodes.iter().last() {
+        Some(i) => match i {
+            TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
+            TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),
+        },
+        None => panic!("Expected Stmt, got None"),
+    };
+    qsharp
+}
+
 fn get_first_statement_as_qsharp(package: &Package) -> String {
-    let qsharp = match package.nodes.first() {
+    let qsharp = match package.nodes.get(1) {
         Some(i) => match i {
             TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
             TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),

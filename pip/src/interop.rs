@@ -8,6 +8,7 @@ use std::fmt::Write;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, Interpreter};
 use qsc::qasm3::io::SourceResolver;
@@ -17,8 +18,7 @@ use qsc::qasm3::{
 };
 use qsc::target::Profile;
 use qsc::{
-    ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures,
-    PackageStore, SourceMap,
+    ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures, SourceMap,
 };
 use qsc::{Backend, PackageType, SparseSim};
 
@@ -539,12 +539,14 @@ fn create_interpreter_from_ast(
     language_features: LanguageFeatures,
     package_type: PackageType,
 ) -> Result<Interpreter, Vec<interpret::Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
-
     let capabilities = profile.into();
+    let (stdid, qasmid, mut store) = qsc::qasm3::package_store_with_qasm(capabilities);
+    let dependencies = vec![
+        (PackageId::CORE, None),
+        (stdid, None),
+        (qasmid, Some("QasmStd".into())),
+    ];
 
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
     let (mut unit, errors) = qsc::compile::compile_ast(
         &store,
         &dependencies,

@@ -20,18 +20,19 @@ fn can_access_const_decls_from_global_scope() -> miette::Result<(), Vec<Report>>
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let i = 7;
         let my_h : (Qubit) => Unit = (q) => {
             if i == 0 {
-                H(q);
+                h(q);
             };
         };
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         my_h(q);
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

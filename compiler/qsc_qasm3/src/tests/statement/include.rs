@@ -42,10 +42,12 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
         namespace qasm3_import {
             @EntryPoint()
             operation Test() : Result[] {
-                @SimulatableIntrinsic()
-                operation my_gate(q : Qubit) : Unit {
-                    X(q);
-                }
+                import QasmStd.Angle.*;
+                import QasmStd.Convert.*;
+                import QasmStd.Intrinsic.*;
+                let my_gate : (Qubit) => Unit = (q) => {
+                    x(q);
+                };
                 mutable c = [Zero];
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);

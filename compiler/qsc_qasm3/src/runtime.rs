@@ -17,38 +17,6 @@ use bitflags::bitflags;
 use qsc_ast::ast::{Stmt, TopLevelNode};
 use qsc_data_structures::language_features::LanguageFeatures;
 
-/// Implement the `gphase` operation for QASM3.
-const GPHASE_GATE: &str = "
-operation gphase(theta : Double) : Unit is Adj + Ctl {
-    body ... {
-        Exp([], theta, [])
-    }
-    adjoint auto;
-    controlled auto;
-    controlled adjoint auto;
-}
-";
-
-/// Implement the `U` operation for QASM3.
-/// We need to apply a global phase, but rather than require gphase to be called,
-/// we can use the `R` gate since we have a qubit parameter (though it is ignored).
-/// `R(PauliI, 4. * PI() - (lambda + phi + theta), qubit);`
-/// Since `U` is periodic to `2pi`, we can use the following:
-/// `R(PauliI, -(lambda + phi + theta), qubit);`
-const U_GATE: &str = "
-operation U(theta : Double, phi : Double, lambda : Double, qubit : Qubit) : Unit is Adj + Ctl {
-    body ... {
-        Rz(lambda, qubit);
-        Ry(theta, qubit);
-        Rz(phi, qubit);
-        R(PauliI, -lambda - phi - theta, qubit);
-    }
-    adjoint auto;
-    controlled auto;
-    controlled adjoint auto;
-}
-";
-
 /// The POW function is used to implement the `pow` modifier in QASM3 for integers.
 const POW: &str = "
 operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj), target : 'T) : Unit is Adj {
@@ -170,20 +138,19 @@ pub struct RuntimeFunctions(u16);
 
 bitflags! {
     impl RuntimeFunctions: u16 {
-        const Pow = 0b1;
-        const Barrier = 0b10;
-        const BoolAsResult = 0b100;
-        const BoolAsInt = 0b1_000;
-        const BoolAsBigInt = 0b10_000;
-        const BoolAsDouble = 0b100_000;
-        const ResultAsBool = 0b1_000_000;
-        const ResultAsInt = 0b10_000_000;
-        const ResultAsBigInt = 0b100_000_000;
+        const Pow                =                     0b1;
+        const Barrier            =                    0b10;
+        const BoolAsResult       =                   0b100;
+        const BoolAsInt          =                  0b1000;
+        const BoolAsBigInt       =                0b1_0000;
+        const BoolAsDouble       =               0b10_0000;
+        const ResultAsBool       =              0b100_0000;
+        const ResultAsInt        =             0b1000_0000;
+        const ResultAsBigInt     =           0b1_0000_0000;
         /// IntAsResultArray requires BoolAsResult to be included.
-        const IntAsResultArrayBE = 0b1_000_000_000 | 0b100;
-        const ResultArrayAsIntBE = 0b10_000_000_000;
-        const Gphase = 0b100_000_000_000;
-        const U = 0b1_000_000_000_000;
+        const IntAsResultArrayBE =          0b10_0000_0000 | 0b100;
+        const ResultArrayAsIntBE =         0b100_0000_0000;
+        const GATES              =        0b1000_0000_0000;
     }
 }
 
@@ -237,20 +204,12 @@ pub(crate) fn get_result_array_as_int_be_decl() -> Stmt {
     parse_stmt(RESULT_ARRAY_AS_INT_BE)
 }
 
-pub(crate) fn get_gphase_decl() -> Stmt {
-    parse_stmt(GPHASE_GATE)
-}
-
-pub(crate) fn get_u_decl() -> Stmt {
-    parse_stmt(U_GATE)
-}
-
 /// As we are trying to add statements to the AST, we parse the Q# implementations
 /// of the runtime functions and return the AST nodes. This saves us a lot of time
 /// in writing the AST nodes manually.
 fn parse_stmt(name: &str) -> Stmt {
     let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
-    assert!(errors.is_empty(), "Failed to parse POW: {errors:?}");
+    assert!(errors.is_empty(), "Failed to parse: {errors:?}");
     assert!(
         nodes.len() == 1,
         "Expected one top-level node, found {:?}",
@@ -258,10 +217,26 @@ fn parse_stmt(name: &str) -> Stmt {
     );
     match nodes.into_iter().next().expect("no top-level nodes found") {
         TopLevelNode::Namespace(..) => {
-            panic!("Expected operation, got Namespace")
+            panic!("Expected stmt, got Namespace")
         }
         TopLevelNode::Stmt(stmt) => *stmt,
     }
+}
+
+fn parse_stmts(name: &str) -> Vec<Stmt> {
+    let (nodes, errors) = qsc_parse::top_level_nodes(name, LanguageFeatures::default());
+    assert!(errors.is_empty(), "Failed to parse: {errors:?}");
+    let mut stmts = vec![];
+    for stmt in nodes {
+        match stmt {
+            TopLevelNode::Namespace(..) => {
+                panic!("Expected stmt, got Namespace")
+            }
+            TopLevelNode::Stmt(stmt) => stmts.push(*stmt),
+        }
+    }
+
+    stmts
 }
 
 /// Get the runtime function declarations for the given runtime functions.
@@ -309,14 +284,6 @@ pub(crate) fn get_runtime_function_decls(runtime: RuntimeFunctions) -> Vec<Stmt>
     }
     if runtime.contains(RuntimeFunctions::ResultArrayAsIntBE) {
         let stmt = crate::runtime::get_result_array_as_int_be_decl();
-        stmts.push(stmt);
-    }
-    if runtime.contains(RuntimeFunctions::Gphase) {
-        let stmt = crate::runtime::get_gphase_decl();
-        stmts.push(stmt);
-    }
-    if runtime.contains(RuntimeFunctions::U) {
-        let stmt = crate::runtime::get_u_decl();
         stmts.push(stmt);
     }
     stmts

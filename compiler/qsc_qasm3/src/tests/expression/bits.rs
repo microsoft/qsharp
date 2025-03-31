@@ -30,21 +30,9 @@ fn bit_array_bits_and_register_ops() -> miette::Result<(), Vec<Report>> {
         namespace qasm3_import {
             @EntryPoint()
             operation Test() : (Result[], Result[], Result[], Result[], Result[]) {
-                function __BoolAsResult__(input : Bool) : Result {
-                    Microsoft.Quantum.Convert.BoolAsResult(input)
-                }
-                function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-                    mutable runningValue = number;
-                    mutable result = [];
-                    for _ in 1..bits {
-                        set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                        set runningValue >>>= 1;
-                    }
-                    Microsoft.Quantum.Arrays.Reversed(result)
-                }
-                function __ResultArrayAsIntBE__(results : Result[]) : Int {
-                    Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-                }
+                import QasmStd.Angle.*;
+                import QasmStd.Convert.*;
+                import QasmStd.Intrinsic.*;
                 mutable a = [One, Zero, Zero, Zero, One, One, One, One];
                 mutable b = [Zero, One, One, One, Zero, Zero, Zero, Zero];
                 mutable ls_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -74,28 +62,14 @@ fn bit_array_left_shift() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
-            mutable runningValue = number;
-            mutable result = [];
-            for _ in 1..bits {
-                set result += [__BoolAsResult__((runningValue &&& 1) != 0)];
-                set runningValue >>>= 1;
-            }
-            Microsoft.Quantum.Arrays.Reversed(result)
-        }
-        function __ResultArrayAsIntBE__(results : Result[]) : Int {
-            Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable a = [One, Zero, Zero, Zero, One, One, One, One];
         mutable ls_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
         set ls_a_1 = (__IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) <<< 1, 8));
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

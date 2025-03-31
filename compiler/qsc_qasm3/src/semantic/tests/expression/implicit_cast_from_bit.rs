@@ -6,25 +6,83 @@ use expect_test::expect;
 use crate::semantic::tests::check_classical_decls;
 
 #[test]
-#[ignore = "not yet implemented"]
 fn to_angle_implicitly() {
     let input = r#"
          bit x = 1;
          angle y = x;
     "#;
 
-    check_classical_decls(input, &expect![[r#""#]]);
+    check_classical_decls(
+        input,
+        &expect![[r#"
+        ClassicalDeclarationStmt [10-20]:
+            symbol_id: 8
+            ty_span: [10-13]
+            init_expr: Expr [18-19]:
+                ty: Bit(true)
+                kind: Lit: Bit(1)
+        [8] Symbol [14-15]:
+            name: x
+            type: Bit(false)
+            qsharp_type: Result
+            io_kind: Default
+        ClassicalDeclarationStmt [30-42]:
+            symbol_id: 9
+            ty_span: [30-35]
+            init_expr: Expr [40-41]:
+                ty: Angle(None, false)
+                kind: Cast [0-0]:
+                    ty: Angle(None, false)
+                    expr: Expr [40-41]:
+                        ty: Bit(false)
+                        kind: SymbolId(8)
+        [9] Symbol [36-37]:
+            name: y
+            type: Angle(None, false)
+            qsharp_type: Angle
+            io_kind: Default
+    "#]],
+    );
 }
 
 #[test]
-#[ignore = "not yet implemented"]
 fn to_explicit_angle_implicitly() {
     let input = r#"
          bit x = 1;
          angle[4] y = x;
     "#;
 
-    check_classical_decls(input, &expect![[r#""#]]);
+    check_classical_decls(
+        input,
+        &expect![[r#"
+        ClassicalDeclarationStmt [10-20]:
+            symbol_id: 8
+            ty_span: [10-13]
+            init_expr: Expr [18-19]:
+                ty: Bit(true)
+                kind: Lit: Bit(1)
+        [8] Symbol [14-15]:
+            name: x
+            type: Bit(false)
+            qsharp_type: Result
+            io_kind: Default
+        ClassicalDeclarationStmt [30-45]:
+            symbol_id: 9
+            ty_span: [30-38]
+            init_expr: Expr [43-44]:
+                ty: Angle(Some(4), false)
+                kind: Cast [0-0]:
+                    ty: Angle(Some(4), false)
+                    expr: Expr [43-44]:
+                        ty: Bit(false)
+                        kind: SymbolId(8)
+        [9] Symbol [39-40]:
+            name: y
+            type: Angle(Some(4), false)
+            qsharp_type: Angle
+            io_kind: Default
+    "#]],
+    );
 }
 
 #[test]

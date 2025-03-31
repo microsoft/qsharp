@@ -5,6 +5,7 @@ use expect_test::expect;
 
 use crate::tests::compile_qasm_to_qsharp;
 
+mod angle;
 mod arithmetic_conversions;
 mod comparison;
 mod complex;
