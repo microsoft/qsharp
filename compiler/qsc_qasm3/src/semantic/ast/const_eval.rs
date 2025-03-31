@@ -705,10 +705,8 @@ fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Opti
     match ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bitstring(BigInt::from(val), size)),
         Type::Angle(..) => rewrap_lit!(lit, Angle(val), {
-            if val.size > size {
-                return None;
-            }
-            Bitstring(val.value.into(), size)
+            let new_val = val.cast_to_maybe_sized(Some(size));
+            Bitstring(new_val.value.into(), size)
         }),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bitstring(BigInt::from(val), size)),
         Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, rhs_size), {
