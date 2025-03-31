@@ -10,7 +10,6 @@ use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_int_conversion;
 use super::types::is_complex_binop_supported;
 use super::types::promote_to_uint_ty;
-use super::types::promote_types;
 use super::types::promote_width;
 use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;

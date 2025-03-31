@@ -362,7 +362,7 @@ fn get_last_statement_as_qsharp(package: &Package) -> String {
 }
 
 fn get_first_statement_as_qsharp(package: &Package) -> String {
-    let qsharp = match package.nodes.iter().skip(1).next() {
+    let qsharp = match package.nodes.get(1) {
         Some(i) => match i {
             TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
             TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),

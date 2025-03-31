@@ -1177,28 +1177,28 @@ impl QasmCompiler {
         let expr = self.compile_expr(&cast.expr);
         let cast_expr = match cast.expr.ty {
             crate::semantic::types::Type::Bit(_) => {
-                self.cast_bit_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_bit_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Bool(_) => {
-                self.cast_bool_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_bool_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Duration(_) => {
                 self.cast_duration_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Angle(_, _) => {
-                self.cast_angle_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_angle_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Complex(_, _) => {
                 self.cast_complex_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Float(_, _) => {
-                self.cast_float_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_float_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::Int(_, _) | crate::semantic::types::Type::UInt(_, _) => {
-                self.cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
+                Self::cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
             crate::semantic::types::Type::BitArray(ArrayDimensions::One(size), _) => {
-                self.cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
+                Self::cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
             }
             _ => err_expr(cast.span),
         };
@@ -1387,7 +1387,6 @@ impl QasmCompiler {
     /// | angle          | Yes   | No  | No   | No    | -     | Yes | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_angle_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1432,7 +1431,6 @@ impl QasmCompiler {
     /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -   | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_bit_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1474,7 +1472,6 @@ impl QasmCompiler {
     }
 
     fn cast_bit_array_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1511,7 +1508,6 @@ impl QasmCompiler {
     /// | bool           | -     | Yes | Yes  | Yes   | No    | Yes | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
     fn cast_bool_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1575,7 +1571,6 @@ impl QasmCompiler {
     ///
     /// Additional cast to complex
     fn cast_float_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
@@ -1644,7 +1639,6 @@ impl QasmCompiler {
     /// `OpenQASM` support this will need to be fleshed out.
     #[allow(clippy::too_many_lines)]
     fn cast_int_expr_to_ty(
-        &mut self,
         expr: qsast::Expr,
         expr_ty: &crate::semantic::types::Type,
         ty: &crate::semantic::types::Type,
