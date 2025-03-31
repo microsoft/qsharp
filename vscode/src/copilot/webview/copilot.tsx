@@ -164,11 +164,11 @@ function Welcome() {
             </linearGradient>
           </defs>
         </svg>
-        <div style="margin-left: 8px;">Azure Quantum Copilot</div>
+        <div style="margin-left: 8px;">Microsoft Quantum Copilot</div>
       </div>
       <div class="qs-copilot-blurb">
-        Welcome! Azure Quantum Copilot is designed to help you develop and run
-        quantum programs. You can ask questions such as:
+        Welcome! Microsoft Quantum Copilot is designed to help you develop and
+        run quantum programs. You can ask questions such as:
       </div>
       <div class="qs-copilot-demo1">
         Can you help me implement Grover's search?
@@ -292,7 +292,7 @@ function StatusIndicator({ status }: { status: Status }) {
           <span class="codicon codicon-loading codicon-modifier-spin"></span>
         </>
       ) : status.status === "assistantConnectionError" ? (
-        "There was an error communicating with Azure Quantum Copilot. Please check your Internet connection and try again."
+        "There was an error communicating with Microsoft Quantum Copilot. Please check your Internet connection and try again."
       ) : status.status === "awaitingConfirmation" ? (
         <>
           <div>{status.confirmText}</div>
