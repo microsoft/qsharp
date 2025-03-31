@@ -317,7 +317,7 @@ impl TryInto<f64> for Angle {
 
         // Edge case handling.
         if self.size > f64::MANTISSA_DIGITS {
-            let angle = self.cast(f64::MANTISSA_DIGITS, true);
+            let angle = self.cast(f64::MANTISSA_DIGITS, false);
             return angle.try_into();
         }
 
