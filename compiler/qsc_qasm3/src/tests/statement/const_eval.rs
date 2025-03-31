@@ -1565,7 +1565,8 @@ fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
         let e = __AngleAsResult__(__DivideAngleByInt__(a, c));
         mutable r1 = [];
         mutable r2 = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
