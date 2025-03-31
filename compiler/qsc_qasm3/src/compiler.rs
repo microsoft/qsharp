@@ -36,7 +36,7 @@ use crate::{
             IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
-        types::{ArrayDimensions, Type},
+        types::{promote_types, ArrayDimensions, Type},
         SemanticErrorKind,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
@@ -1091,12 +1091,8 @@ impl QasmCompiler {
         let lhs = self.compile_expr(&binary.lhs);
         let rhs = self.compile_expr(&binary.rhs);
 
-        if matches!(&binary.lhs.ty, Type::Angle(..))
-            || (matches!(&binary.op, semast::BinOp::Mul)
-                && matches!(&binary.lhs.ty, Type::UInt(..))
-                && matches!(&binary.rhs.ty, Type::Angle(..)))
-        {
-            return self.compile_angle_binary_op(op, lhs, rhs);
+        if matches!(&binary.lhs.ty, Type::Angle(..)) || matches!(&binary.rhs.ty, Type::Angle(..)) {
+            return self.compile_angle_binary_op(op, lhs, rhs, &binary.lhs.ty, &binary.rhs.ty);
         }
 
         let is_assignment = false;
@@ -1108,6 +1104,8 @@ impl QasmCompiler {
         op: qsast::BinOp,
         lhs: qsast::Expr,
         rhs: qsast::Expr,
+        lhs_ty: &crate::semantic::types::Type,
+        rhs_ty: &crate::semantic::types::Type,
     ) -> qsast::Expr {
         let span = Span {
             lo: lhs.span.lo,
@@ -1136,7 +1134,15 @@ impl QasmCompiler {
             qsast::BinOp::Add => "__AddAngles__",
             qsast::BinOp::Sub => "__SubtractAngles__",
             qsast::BinOp::Mul => "__MultiplyAngleByInt__",
-            qsast::BinOp::Div => "__DivideAngleByInt__",
+            qsast::BinOp::Div => {
+                if matches!(lhs_ty, Type::Angle(..))
+                    && matches!(rhs_ty, Type::Int(..) | Type::UInt(..))
+                {
+                    "__DivideAngleByInt__"
+                } else {
+                    "__DivideAngleByAngle__"
+                }
+            }
 
             _ => {
                 self.push_unsupported_error_message("angle binary operation", span);
@@ -1390,7 +1396,23 @@ impl QasmCompiler {
         assert!(matches!(expr_ty, Type::Angle(..)));
         // https://openqasm.com/language/types.html#casting-from-angle
         match ty {
-            Type::Angle(..) => expr,
+            Type::Angle(w, _) => {
+                // we know they are both angles, here we promote the width.
+                let promoted_ty = promote_types(expr_ty, ty);
+                if promoted_ty.width().is_some() && promoted_ty.width() != *w {
+                    // we need to convert the angle to a different width
+                    let width = promoted_ty.width().expect("width should be set");
+                    build_global_call_with_two_params(
+                        "__ConvertAngleToWidthNoTrunc__",
+                        expr,
+                        build_lit_int_expr(width.into(), span),
+                        span,
+                        span,
+                    )
+                } else {
+                    expr
+                }
+            }
             Type::Bit(..) => {
                 build_call_with_param("__AngleAsResult__", &[], expr, span, span, span)
             }
@@ -1422,6 +1444,9 @@ impl QasmCompiler {
         let operand_span = expr.span;
         let name_span = span;
         match ty {
+            &Type::Angle(..) => {
+                build_cast_call_by_name("__ResultAsAngle__", expr, name_span, operand_span)
+            }
             &Type::Bool(..) => {
                 build_cast_call_by_name("__ResultAsBool__", expr, name_span, operand_span)
             }

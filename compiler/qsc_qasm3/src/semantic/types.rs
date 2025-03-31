@@ -623,6 +623,34 @@ pub(crate) fn unary_op_can_be_applied_to_type(op: syntax::UnaryOp, ty: &Type) ->
     }
 }
 
+pub(crate) fn binop_requires_asymmetric_angle_op(
+    op: syntax::BinOp,
+    lhs: &Type,
+    rhs: &Type,
+) -> bool {
+    match op {
+        syntax::BinOp::Div => {
+            matches!(
+                (lhs, rhs),
+                (
+                    Type::Angle(_, _),
+                    Type::Int(_, _) | Type::UInt(_, _) | Type::Angle(_, _)
+                )
+            )
+        }
+        syntax::BinOp::Mul => {
+            matches!(
+                (lhs, rhs),
+                (Type::Angle(_, _), Type::Int(_, _) | Type::UInt(_, _))
+            ) || matches!(
+                (lhs, rhs),
+                (Type::Int(_, _) | Type::UInt(_, _), Type::Angle(_, _))
+            )
+        }
+        _ => false,
+    }
+}
+
 /// Bit arrays can be compared, but need to be converted to int first
 pub(crate) fn binop_requires_int_conversion_for_type(
     op: syntax::BinOp,
@@ -688,8 +716,8 @@ pub(crate) fn try_promote_with_casting(left_type: &Type, right_type: &Type) -> T
     }
     // simple promotion failed, try a lossless cast
     // each side to double
-    let promoted_rhs = promote_types(&Type::Float(None, false), right_type);
-    let promoted_lhs = promote_types(left_type, &Type::Float(None, false));
+    let promoted_rhs = promote_types(&Type::Float(None, right_type.is_const()), right_type);
+    let promoted_lhs = promote_types(left_type, &Type::Float(None, left_type.is_const()));
 
     match (promoted_lhs, promoted_rhs) {
         (Type::Void, Type::Void) => Type::Float(None, false),

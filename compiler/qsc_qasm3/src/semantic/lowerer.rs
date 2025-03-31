@@ -5,10 +5,13 @@ use std::ops::ShlAssign;
 use std::rc::Rc;
 
 use super::symbols::ScopeKind;
+use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
 use super::types::binop_requires_symmetric_int_conversion;
 use super::types::is_complex_binop_supported;
 use super::types::promote_to_uint_ty;
+use super::types::promote_types;
+use super::types::promote_width;
 use super::types::requires_symmetric_conversion;
 use super::types::try_promote_with_casting;
 use super::types::types_equal_except_const;
@@ -2408,19 +2411,11 @@ impl Lowerer {
             | (Type::Float(w1, _), Type::Float(w2, _))
             | (Type::Complex(w1, _), Type::Complex(w2, _)) => {
                 if w1.is_none() && w2.is_some() {
-                    return Some(semantic::Expr {
-                        span: expr.span,
-                        kind: expr.kind.clone(),
-                        ty: ty.clone(),
-                    });
+                    return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), expr.clone()));
                 }
 
                 if *w1 >= *w2 {
-                    return Some(semantic::Expr {
-                        span: expr.span,
-                        kind: expr.kind.clone(),
-                        ty: ty.clone(),
-                    });
+                    return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), expr.clone()));
                 }
             }
             _ => {}
@@ -2673,6 +2668,30 @@ impl Lowerer {
             let new_lhs = self.cast_expr_to_type(&ty, &lhs);
             let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (new_lhs, new_rhs, ty)
+        } else if binop_requires_asymmetric_angle_op(op, &left_type, &rhs.ty) {
+            if matches!(op, syntax::BinOp::Div)
+                && matches!(left_type, Type::Angle(..))
+                && matches!(right_type, Type::Angle(..))
+            {
+                // result is uint, we need to promote both sides to match width.
+                let angle_ty = Type::Angle(promote_width(&left_type, &right_type), ty_constness);
+                let new_lhs = self.cast_expr_to_type(&angle_ty, &lhs);
+                let new_rhs = self.cast_expr_to_type(&angle_ty, &rhs);
+                let int_ty = Type::UInt(angle_ty.width(), ty_constness);
+                (new_lhs, new_rhs, int_ty)
+            } else if matches!(left_type, Type::Angle(..)) {
+                let ty = Type::Angle(left_type.width(), ty_constness);
+                let new_lhs = self.cast_expr_to_type(&ty, &lhs);
+                let rht_ty = Type::UInt(ty.width(), ty_constness);
+                let new_rhs = self.cast_expr_to_type(&rht_ty, &rhs);
+                (new_lhs, new_rhs, ty)
+            } else {
+                let lhs_ty = Type::UInt(rhs.ty.width(), ty_constness);
+                let new_lhs = self.cast_expr_to_type(&lhs_ty, &lhs);
+                let ty = Type::Angle(rhs.ty.width(), ty_constness);
+                let new_rhs = self.cast_expr_to_type(&ty, &rhs);
+                (new_lhs, new_rhs, ty)
+            }
         } else if binop_requires_int_conversion_for_type(op, &left_type, &rhs.ty) {
             let ty = Type::Int(None, ty_constness);
             let new_lhs = self.cast_expr_to_type(&ty, &lhs);

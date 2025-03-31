@@ -382,7 +382,8 @@ fn binary_op_shl_angle() -> miette::Result<(), Vec<Report>> {
         let b = __AngleShl__(a, 2);
         let c = __AngleAsResult__(b);
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -544,7 +545,8 @@ fn binary_op_shr_angle() -> miette::Result<(), Vec<Report>> {
         let b = __AngleShr__(a, 2);
         let c = __AngleAsResult__(b);
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -713,7 +715,8 @@ fn binary_op_andb_angle() -> miette::Result<(), Vec<Report>> {
         let c = __AngleAndB__(a, b);
         let d = __AngleAsResult__(c);
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -813,7 +816,8 @@ fn binary_op_orb_angle() -> miette::Result<(), Vec<Report>> {
         let c = __AngleOrB__(a, b);
         let d = __AngleAsBool__(c);
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -913,7 +917,8 @@ fn binary_op_xorb_angle() -> miette::Result<(), Vec<Report>> {
         let c = __AngleXorB__(a, b);
         let d = __AngleAsResult__(c);
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1264,7 +1269,8 @@ fn binary_op_add_angle() -> miette::Result<(), Vec<Report>> {
         };
         let c = __AngleAsResult__(__AddAngles__(a, b));
         mutable r = [Zero];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -1445,10 +1451,15 @@ fn binary_op_mul_angle() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        let a = 3.;
+        let a = new __Angle__ {
+            Value = 683565276,
+            Size = 32
+        };
         let b = 2;
-        mutable r1 = [Zero, Zero, Zero, Zero, Zero, Zero];
-        mutable r2 = [Zero, Zero, Zero, Zero, Zero, Zero];
+        let c1 = __AngleAsResult__(__MultiplyAngleByInt__(a, b));
+        let c2 = __AngleAsResult__(__MultiplyAngleByInt__(b, a));
+        mutable r1 = [Zero];
+        mutable r2 = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -1523,10 +1534,13 @@ fn binary_op_div_float() -> miette::Result<(), Vec<Report>> {
 
 fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const angle[32] a = 6.0;
-        const uint b = 2;
-        const bit c = a / b;
-        bit[c] r;
+        const angle[32] a = 12.0;
+        const angle[48] b = 6.0;
+        const uint c = 2;
+        const bit d = a / b;
+        const bit e = a / c;
+        bit[d] r1;
+        bit[e] r2;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -1838,7 +1852,20 @@ fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a1 = 2.;
+        let a2 = One;
+        let b1 = __DoubleAsAngle__(a1, 32);
+        let b2 = __ResultAsAngle__(a2);
+        let s1 = __AngleAsResult__(b1);
+        let s2 = __AngleAsResult__(b2);
+        mutable r1 = [Zero];
+        mutable r2 = [Zero];
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 

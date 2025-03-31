@@ -9,8 +9,9 @@ import Std.Convert.IntAsBoolArray;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
 import Convert.__IntAsResultArrayBE__;
+import Convert.__ResultAsInt__;
 
-export __Angle__, __AngleAsBoolArrayBE__, __AngleAsResultArray__, __AngleAsDouble__, __AngleAsBool__, __AngleAsResult__, __IntAsAngle__, __DoubleAsAngle__, __ConvertAngleToWidth__, __AngleShl__, __AngleShr__, __AngleNotB__, __AngleAndB__, __AngleOrB__, __AngleXorB__, __AngleEq__, __AngleNeq__, __AngleGt__, __AngleGte__, __AngleLt__, __AngleLte__, __AddAngles__, __SubtractAngles__, __MultiplyAngleByInt__, __MultiplyAngleByBigInt__, __DivideAngleByInt__, __NegAngle__;
+export __Angle__, __AngleAsBoolArrayBE__, __AngleAsResultArray__, __AngleAsDouble__, __AngleAsBool__, __AngleAsResult__, __IntAsAngle__, __DoubleAsAngle__, __ConvertAngleToWidth__, __ConvertAngleToWidthNoTrunc__, __AngleShl__, __AngleShr__, __AngleNotB__, __AngleAndB__, __AngleOrB__, __AngleXorB__, __AngleEq__, __AngleNeq__, __AngleGt__, __AngleGte__, __AngleLt__, __AngleLte__, __AddAngles__, __SubtractAngles__, __MultiplyAngleByInt__, __MultiplyAngleByBigInt__, __DivideAngleByInt__, __DivideAngleByAngle__, __NegAngle__, __ResultAsAngle__;
 
 
 struct __Angle__ {
@@ -44,6 +45,10 @@ function __AngleAsBool__(angle : __Angle__) : Bool {
     return angle.Value != 0;
 }
 
+function __ResultAsAngle__(result: Result) : __Angle__ {
+    new __Angle__ { Value = __ResultAsInt__(result), Size = 1 }
+}
+
 function __AngleAsResult__(angle : __Angle__) : Result {
     Microsoft.Quantum.Convert.BoolAsResult(angle.Value != 0)
 }
@@ -70,6 +75,10 @@ function __DoubleAsAngle__(value : Double, size : Int) : __Angle__ {
     let factor = tau / Std.Convert.IntAsDouble(1 <<< size);
     let value = RoundHalfAwayFromZero(value / factor);
     new __Angle__ { Value = value, Size = size }
+}
+
+function __ConvertAngleToWidthNoTrunc__(angle : __Angle__, new_size : Int) : __Angle__ {
+    __ConvertAngleToWidth__(angle, new_size, false)
 }
 
 function __ConvertAngleToWidth__(angle : __Angle__, new_size : Int, truncate : Bool) : __Angle__ {
@@ -224,6 +233,14 @@ function __MultiplyAngleByBigInt__(angle : __Angle__, factor : BigInt) : __Angle
     let value = (value * factor) % Std.Convert.IntAsBigInt(1 <<< size);
     let value = Std.Convert.BoolArrayAsInt(Std.Convert.BigIntAsBoolArray(value, size));
     new __Angle__ { Value = value, Size = size }
+}
+
+function __DivideAngleByAngle__(lhs : __Angle__, rhs : __Angle__) : Int {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    let value = lhs_value / rhs_value;
+    value
 }
 
 function __DivideAngleByInt__(angle : __Angle__, divisor : Int) : __Angle__ {

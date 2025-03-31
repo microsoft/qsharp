@@ -70,6 +70,12 @@ impl Angle {
         format!("{:0width$b}", self.value, width = self.size as usize)
     }
 
+    pub fn cast_to_maybe_sized(self, new_size: Option<u32>) -> Angle {
+        match new_size {
+            Some(size) => self.cast(size, false),
+            None => self,
+        }
+    }
     fn cast(&self, new_size: u32, truncate: bool) -> Self {
         match new_size.cmp(&self.size) {
             std::cmp::Ordering::Less => {

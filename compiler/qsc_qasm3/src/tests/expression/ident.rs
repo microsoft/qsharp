@@ -22,20 +22,20 @@ fn unresolved_idenfiers_raise_symbol_error() {
 
           x Undefined symbol: t.
            ,-[Test.qasm:2:19]
-         1 | 
+         1 |
          2 |         float x = t;
            :                   ^
-         3 |     
+         3 |
            `----
 
         Qsc.Qasm3.Compile.CannotCast
 
           x Cannot cast expression of type Err to type Float(None, false)
            ,-[Test.qasm:2:19]
-         1 | 
+         1 |
          2 |         float x = t;
            :                   ^
-         3 |     
+         3 |
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -67,6 +67,9 @@ fn resolved_idenfiers_are_compiled_as_refs() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![
         r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable p = Microsoft.Quantum.Math.PI();
         mutable x = p;
     "#

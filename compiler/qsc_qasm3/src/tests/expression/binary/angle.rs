@@ -252,3 +252,19 @@ fn division_by_uint() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn division_by_angle() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        angle[32] a = 1.0;
+        angle[32] b = 2.0;
+        uint x = a / b;
+    ";
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        mutable x = __DivideAngleByAngle__(a, b);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
