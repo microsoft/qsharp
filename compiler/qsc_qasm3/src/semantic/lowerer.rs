@@ -2682,8 +2682,8 @@ impl Lowerer {
             } else if matches!(left_type, Type::Angle(..)) {
                 let ty = Type::Angle(left_type.width(), ty_constness);
                 let new_lhs = self.cast_expr_to_type(&ty, &lhs);
-                let rht_ty = Type::UInt(ty.width(), ty_constness);
-                let new_rhs = self.cast_expr_to_type(&rht_ty, &rhs);
+                let rhs_ty = Type::UInt(ty.width(), ty_constness);
+                let new_rhs = self.cast_expr_to_type(&rhs_ty, &rhs);
                 (new_lhs, new_rhs, ty)
             } else {
                 let lhs_ty = Type::UInt(rhs.ty.width(), ty_constness);

@@ -1544,7 +1544,28 @@ fn binary_op_div_angle() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = new __Angle__ {
+            Value = 3907816011,
+            Size = 32
+        };
+        let b = new __Angle__ {
+            Value = 268788803401062,
+            Size = 48
+        };
+        let c = 2;
+        let d = if __DivideAngleByAngle__(a, b) == 0 {
+            One
+        } else {
+            Zero
+        };
+        let e = __AngleAsResult__(__DivideAngleByInt__(a, c));
+        mutable r1 = [];
+        mutable r2 = [Zero];
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 

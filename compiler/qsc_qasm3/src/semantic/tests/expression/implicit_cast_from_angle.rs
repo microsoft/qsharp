@@ -642,3 +642,66 @@ fn to_explicit_angle_implicitly() {
         "#]],
     );
 }
+
+#[test]
+fn width_promotion() {
+    let input = "
+        angle[32] x = 1.0;
+        angle[48] y = 2.0;
+        bit z = x / y;
+    ";
+
+    check_classical_decls(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-27]:
+                symbol_id: 8
+                ty_span: [9-18]
+                init_expr: Expr [23-26]:
+                    ty: Angle(Some(32), true)
+                    kind: Lit: Angle(1.000000000619646)
+            [8] Symbol [19-20]:
+                name: x
+                type: Angle(Some(32), false)
+                qsharp_type: Angle
+                io_kind: Default
+            ClassicalDeclarationStmt [36-54]:
+                symbol_id: 9
+                ty_span: [36-45]
+                init_expr: Expr [50-53]:
+                    ty: Angle(Some(48), true)
+                    kind: Lit: Angle(1.999999999999999)
+            [9] Symbol [46-47]:
+                name: y
+                type: Angle(Some(48), false)
+                qsharp_type: Angle
+                io_kind: Default
+            ClassicalDeclarationStmt [63-77]:
+                symbol_id: 10
+                ty_span: [63-66]
+                init_expr: Expr [71-76]:
+                    ty: Bit(false)
+                    kind: Cast [0-0]:
+                        ty: Bit(false)
+                        expr: Expr [71-76]:
+                            ty: UInt(Some(48), false)
+                            kind: BinaryOpExpr:
+                                op: Div
+                                lhs: Expr [71-72]:
+                                    ty: Angle(Some(48), false)
+                                    kind: Cast [0-0]:
+                                        ty: Angle(Some(48), false)
+                                        expr: Expr [71-72]:
+                                            ty: Angle(Some(32), false)
+                                            kind: SymbolId(8)
+                                rhs: Expr [75-76]:
+                                    ty: Angle(Some(48), false)
+                                    kind: SymbolId(9)
+            [10] Symbol [67-68]:
+                name: z
+                type: Bit(false)
+                qsharp_type: Result
+                io_kind: Default
+        "#]],
+    );
+}

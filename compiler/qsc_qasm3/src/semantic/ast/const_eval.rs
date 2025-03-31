@@ -461,7 +461,7 @@ impl BinaryOpExpr {
                         rewrap_lit!(
                             (lhs, rhs),
                             (Angle(lhs), Angle(rhs)),
-                            Int((lhs.value / rhs.value).try_into().ok()?)
+                            Int((lhs / rhs).try_into().ok()?)
                         )
                     }
                     _ => None,
@@ -508,16 +508,16 @@ impl IndexExpr {
 impl Cast {
     fn const_eval(&self, symbols: &SymbolTable, ty: &Type) -> Option<LiteralKind> {
         let lit = self.expr.const_eval(symbols)?;
-        let from_ty = &self.expr.ty;
+        let lit_ty = &self.expr.ty;
 
         match ty {
-            Type::Bool(_) => cast_to_bool(from_ty, lit),
-            Type::Int(_, _) => cast_to_int(from_ty, lit),
-            Type::UInt(_, _) => cast_to_uint(from_ty, lit),
-            Type::Float(_, _) => cast_to_float(from_ty, lit),
-            Type::Angle(_, _) => cast_to_angle(from_ty, lit),
-            Type::Bit(_) => cast_to_bit(from_ty, lit),
-            Type::BitArray(dims, _) => cast_to_bitarray(from_ty, lit, dims),
+            Type::Bool(_) => cast_to_bool(lit_ty, lit),
+            Type::Int(_, _) => cast_to_int(lit_ty, lit),
+            Type::UInt(_, _) => cast_to_uint(lit_ty, lit),
+            Type::Float(_, _) => cast_to_float(lit_ty, lit),
+            Type::Angle(_, _) => cast_to_angle(lit, lit_ty, ty),
+            Type::Bit(_) => cast_to_bit(lit_ty, lit),
+            Type::BitArray(dims, _) => cast_to_bitarray(lit_ty, lit, dims),
             _ => None,
         }
     }
@@ -632,15 +632,19 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | angle         | No   | No  | No   | Yes   | -     | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_angle(lit: LiteralKind, lit_ty: &Type, target_ty: &Type) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Float};
-    match ty {
+    match lit_ty {
         Type::Float(size, _) => rewrap_lit!(
             lit,
             Float(val),
             Angle(angle::Angle::from_f64_maybe_sized(val, *size))
         ),
-        Type::Angle(w, _) => rewrap_lit!(lit, Angle(val), Angle(val.cast_to_maybe_sized(*w))),
+        Type::Angle(..) => rewrap_lit!(
+            lit,
+            Angle(val),
+            Angle(val.cast_to_maybe_sized(target_ty.width()))
+        ),
         Type::Bit(..) => rewrap_lit!(
             lit,
             Bit(val),
