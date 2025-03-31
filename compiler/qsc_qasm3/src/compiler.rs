@@ -399,9 +399,72 @@ impl QasmCompiler {
     }
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
+        // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
+        // This will call compile_binary_expr which handles angles correctly.
+        if matches!(&stmt.lhs.ty, Type::Angle(..)) {
+            if stmt.indices.is_empty() {
+                let rhs = semast::Expr {
+                    span: stmt.span,
+                    ty: stmt.lhs.ty.clone(),
+                    kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
+                        op: stmt.op,
+                        lhs: stmt.lhs.clone(),
+                        rhs: stmt.rhs.clone(),
+                    })),
+                };
+
+                let stmt = semast::AssignStmt {
+                    span: stmt.span,
+                    symbol_id: stmt.symbol_id,
+                    lhs_span: stmt.lhs.span,
+                    rhs,
+                };
+
+                return self.compile_assign_stmt(&stmt);
+            }
+
+            if stmt.indices.len() != 1 {
+                self.push_unimplemented_error_message(
+                    "multi-dimensional array index expressions",
+                    stmt.span,
+                );
+                return None;
+            }
+
+            let lhs = semast::Expr {
+                span: stmt.span,
+                ty: stmt.lhs.ty.clone(),
+                kind: Box::new(semast::ExprKind::IndexExpr(semast::IndexExpr {
+                    span: stmt.lhs.span,
+                    collection: stmt.lhs.clone(),
+                    index: *stmt.indices[0].clone(),
+                })),
+            };
+
+            let rhs = semast::Expr {
+                span: stmt.span,
+                ty: stmt.lhs.ty.clone(),
+                kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
+                    op: stmt.op,
+                    lhs,
+                    rhs: stmt.rhs.clone(),
+                })),
+            };
+
+            let stmt = semast::IndexedAssignStmt {
+                span: stmt.span,
+                symbol_id: stmt.symbol_id,
+                indices: stmt.indices.clone(),
+                rhs,
+            };
+
+            return self.compile_indexed_assign_stmt(&stmt);
+        }
+
         let lhs = self.compile_expr(&stmt.lhs);
         let rhs = self.compile_expr(&stmt.rhs);
         let qsop = Self::map_bin_op(stmt.op);
+
         let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
         Some(build_stmt_semi_from_expr(expr))
     }
@@ -999,13 +1062,23 @@ impl QasmCompiler {
         }
     }
     fn compile_neg_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
-        let expr = self.compile_expr(expr);
-        build_unary_op_expr(qsast::UnOp::Neg, expr, span)
+        let compiled_expr = self.compile_expr(expr);
+
+        if matches!(expr.ty, Type::Angle(..)) {
+            build_call_with_param("__NegAngle__", &[], compiled_expr, span, expr.span, span)
+        } else {
+            build_unary_op_expr(qsast::UnOp::Neg, compiled_expr, span)
+        }
     }
 
     fn compile_bitwise_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
-        let expr = self.compile_expr(expr);
-        build_unary_op_expr(qsast::UnOp::NotB, expr, span)
+        let compiled_expr = self.compile_expr(expr);
+
+        if matches!(expr.ty, Type::Angle(..)) {
+            build_call_with_param("__AngleNotB__", &[], compiled_expr, span, expr.span, span)
+        } else {
+            build_unary_op_expr(qsast::UnOp::NotB, compiled_expr, span)
+        }
     }
 
     fn compile_logical_not_expr(&mut self, expr: &Expr, span: Span) -> qsast::Expr {
@@ -1014,11 +1087,64 @@ impl QasmCompiler {
     }
 
     fn compile_binary_op_expr(&mut self, binary: &BinaryOpExpr) -> qsast::Expr {
+        let op = Self::map_bin_op(binary.op);
         let lhs = self.compile_expr(&binary.lhs);
         let rhs = self.compile_expr(&binary.rhs);
-        let op = Self::map_bin_op(binary.op);
+
+        if matches!(&binary.lhs.ty, Type::Angle(..))
+            || (matches!(&binary.op, semast::BinOp::Mul)
+                && matches!(&binary.lhs.ty, Type::UInt(..))
+                && matches!(&binary.rhs.ty, Type::Angle(..)))
+        {
+            return self.compile_angle_binary_op(op, lhs, rhs);
+        }
+
         let is_assignment = false;
         build_binary_expr(is_assignment, op, lhs, rhs, binary.span())
+    }
+
+    fn compile_angle_binary_op(
+        &mut self,
+        op: qsast::BinOp,
+        lhs: qsast::Expr,
+        rhs: qsast::Expr,
+    ) -> qsast::Expr {
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rhs.span.hi,
+        };
+
+        let fn_name: &str = match op {
+            // Bit shift
+            qsast::BinOp::Shl => "__AngleShl__",
+            qsast::BinOp::Shr => "__AngleShr__",
+
+            // Bitwise
+            qsast::BinOp::AndB => "__AngleAndB__",
+            qsast::BinOp::OrB => "__AngleOrB__",
+            qsast::BinOp::XorB => "__AngleXorB__",
+
+            // Comparison
+            qsast::BinOp::Eq => "__AngleEq__",
+            qsast::BinOp::Neq => "__AngleNeq__",
+            qsast::BinOp::Gt => "__AngleGt__",
+            qsast::BinOp::Gte => "__AngleGte__",
+            qsast::BinOp::Lt => "__AngleLt__",
+            qsast::BinOp::Lte => "__AngleLte__",
+
+            // Arithmetic
+            qsast::BinOp::Add => "__AddAngles__",
+            qsast::BinOp::Sub => "__SubtractAngles__",
+            qsast::BinOp::Mul => "__MultiplyAngleByInt__",
+            qsast::BinOp::Div => "__DivideAngleByInt__",
+
+            _ => {
+                self.push_unsupported_error_message("angle binary operation", span);
+                return err_expr(span);
+            }
+        };
+
+        build_call_with_params(fn_name, &[], vec![lhs, rhs], span, span)
     }
 
     fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {

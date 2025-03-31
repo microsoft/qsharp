@@ -11,10 +11,13 @@ use core::f64;
 use std::convert::TryInto;
 use std::f64::consts::TAU;
 use std::fmt;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign, BitAnd, BitOr, BitXor, Div, DivAssign, Mul, MulAssign, Neg, Not, Shl, Shr, Sub,
+    SubAssign,
+};
 
 /// A fixed-point angle type with a specified number of bits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Angle {
     pub value: u64,
     pub size: u32,
@@ -116,6 +119,82 @@ impl Default for Angle {
         }
     }
 }
+
+// Bit shift
+impl Shl<i64> for Angle {
+    type Output = Self;
+
+    fn shl(self, rhs: i64) -> Self::Output {
+        let mask = (1 << self.size) - 1;
+        Self {
+            value: (self.value << rhs) & mask,
+            size: self.size,
+        }
+    }
+}
+
+impl Shr<i64> for Angle {
+    type Output = Self;
+
+    fn shr(self, rhs: i64) -> Self::Output {
+        Self {
+            value: self.value >> rhs,
+            size: self.size,
+        }
+    }
+}
+
+// Bitwise
+
+impl Not for Angle {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let mask = (1 << self.size) - 1;
+        Self {
+            value: !self.value & mask,
+            size: self.size,
+        }
+    }
+}
+
+impl BitAnd for Angle {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value & rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+impl BitOr for Angle {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value | rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+impl BitXor for Angle {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value ^ rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+// Arithmetic
 
 impl Add for Angle {
     type Output = Self;

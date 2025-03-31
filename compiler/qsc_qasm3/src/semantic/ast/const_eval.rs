@@ -75,7 +75,7 @@ macro_rules! rewrap_lit {
 
 impl UnaryOpExpr {
     fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
-        use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
+        use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
         let operand_ty = &self.expr.ty;
         let lit = self.expr.const_eval(symbols)?;
 
@@ -83,15 +83,7 @@ impl UnaryOpExpr {
             UnaryOp::Neg => match operand_ty {
                 Type::Int(..) => rewrap_lit!(lit, Int(val), Int(-val)),
                 Type::Float(..) => rewrap_lit!(lit, Float(val), Float(-val)),
-                Type::Angle(w, _) => rewrap_lit!(
-                    lit,
-                    Float(val),
-                    Float(
-                        (-angle::Angle::from_f64_maybe_sized(val, *w))
-                            .try_into()
-                            .expect("msg")
-                    )
-                ),
+                Type::Angle(..) => rewrap_lit!(lit, Angle(val), Angle(-val)),
                 _ => None,
             },
             UnaryOp::NotB => match operand_ty {
@@ -99,6 +91,7 @@ impl UnaryOpExpr {
                     let mask = (1 << (*size)?) - 1;
                     Int(!val & mask)
                 }),
+                Type::Angle(..) => rewrap_lit!(lit, Angle(val), Angle(!val)),
                 Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bit(!val)),
                 Type::BitArray(..) => {
                     rewrap_lit!(lit, Bitstring(val, size), {
@@ -145,7 +138,7 @@ fn assert_binary_op_ty_invariant(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) {
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
     fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
-        use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
+        use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
 
         assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
         let lhs = self.lhs.const_eval(symbols)?;
@@ -156,29 +149,70 @@ impl BinaryOpExpr {
             // Bit Shifts
             BinOp::Shl => match lhs_ty {
                 Type::UInt(Some(size), _) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
                     let mask = (1 << size) - 1;
                     Int((lhs << rhs) & mask)
                 }),
-                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs << rhs)),
+                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
+                    Int(lhs << rhs)
+                }),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
+                        if rhs < 0 {
+                            return None;
+                        }
+                        Angle(lhs << rhs)
+                    })
+                }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
                     // The Spec says "The shift operators shift bits off the end."
                     // Therefore if the rhs is > 0 the value becomes zero.
                     Bit(rhs == 0 && lhs)
                 }),
                 Type::BitArray(..) => rewrap_lit!((lhs, rhs), (Bitstring(lhs, size), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
                     let mask = BigInt::from((1 << size) - 1);
                     Bitstring((lhs << rhs) & mask, size)
                 }),
                 _ => None,
             },
             BinOp::Shr => match lhs_ty {
-                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs >> rhs)),
+                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
+                    Int(lhs >> rhs)
+                }),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
+                        if rhs < 0 {
+                            return None;
+                        }
+                        Angle(lhs >> rhs)
+                    })
+                }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
                     // The Spec says "The shift operators shift bits off the end."
                     // Therefore if the rhs is > 0 the value becomes zero.
                     Bit(rhs == 0 && lhs)
                 }),
                 Type::BitArray(..) => rewrap_lit!((lhs, rhs), (Bitstring(lhs, size), Int(rhs)), {
+                    if rhs < 0 {
+                        return None;
+                    }
                     Bitstring(lhs >> rhs, size)
                 }),
                 _ => None,
@@ -187,6 +221,9 @@ impl BinaryOpExpr {
             // Bitwise
             BinOp::AndB => match lhs_ty {
                 Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs & rhs)),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs & rhs))
+                }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bit(lhs & rhs)),
                 Type::BitArray(..) => rewrap_lit!(
                     (lhs, rhs),
@@ -197,6 +234,9 @@ impl BinaryOpExpr {
             },
             BinOp::OrB => match lhs_ty {
                 Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs | rhs)),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs | rhs))
+                }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bit(lhs | rhs)),
                 Type::BitArray(..) => rewrap_lit!(
                     (lhs, rhs),
@@ -207,6 +247,9 @@ impl BinaryOpExpr {
             },
             BinOp::XorB => match lhs_ty {
                 Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs ^ rhs)),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs ^ rhs))
+                }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bit(lhs ^ rhs)),
                 Type::BitArray(..) => rewrap_lit!(
                     (lhs, rhs),
@@ -231,12 +274,15 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs == rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
                         // TODO: we need to issue the same lint in Q#.
                         #[allow(clippy::float_cmp)]
                         Bool(lhs == rhs)
                     })
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs == rhs))
                 }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(lhs == rhs)),
                 Type::BitArray(..) => rewrap_lit!(
@@ -250,12 +296,15 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs != rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
                         // TODO: we need to issue the same lint in Q#.
                         #[allow(clippy::float_cmp)]
                         Bool(lhs != rhs)
                     })
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs != rhs))
                 }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(lhs != rhs)),
                 Type::BitArray(..) => rewrap_lit!(
@@ -269,8 +318,11 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs > rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Bool(lhs > rhs))
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs > rhs))
                 }
                 // This was originally `lhs > rhs` but clippy suggested this expression.
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(lhs && !rhs)),
@@ -285,8 +337,11 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs >= rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Bool(lhs >= rhs))
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs >= rhs))
                 }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(lhs >= rhs)),
                 Type::BitArray(..) => rewrap_lit!(
@@ -300,8 +355,11 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs < rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Bool(lhs < rhs))
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs < rhs))
                 }
                 // This was originally `lhs < rhs` but clippy suggested this expression.
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(!lhs & rhs)),
@@ -316,8 +374,11 @@ impl BinaryOpExpr {
                 Type::Int(..) | Type::UInt(..) => {
                     rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Bool(lhs <= rhs))
                 }
-                Type::Float(..) | Type::Angle(..) => {
+                Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Bool(lhs <= rhs))
+                }
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Bool(lhs <= rhs))
                 }
                 Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Bit(rhs)), Bool(lhs <= rhs)),
                 Type::BitArray(..) => rewrap_lit!(
@@ -336,14 +397,9 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs + rhs))
                 }
-                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                    Float(
-                        (angle::Angle::from_f64_maybe_sized(lhs, *w)
-                            + angle::Angle::from_f64_maybe_sized(rhs, *w))
-                        .try_into()
-                        .expect("msg"),
-                    )
-                }),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs + rhs))
+                }
                 _ => None,
             },
             BinOp::Sub => match lhs_ty {
@@ -353,14 +409,9 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs - rhs))
                 }
-                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                    Float(
-                        (angle::Angle::from_f64_maybe_sized(lhs, *w)
-                            - angle::Angle::from_f64_maybe_sized(rhs, *w))
-                        .try_into()
-                        .expect("msg"),
-                    )
-                }),
+                Type::Angle(..) => {
+                    rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), Angle(lhs - rhs))
+                }
                 _ => None,
             },
             BinOp::Mul => match lhs_ty {
@@ -381,14 +432,13 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs * rhs))
                 }
-                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    #[allow(clippy::cast_sign_loss)]
-                    Float(
-                        (angle::Angle::from_f64_maybe_sized(lhs, *w) * (rhs as u64))
-                            .try_into()
-                            .expect("msg"),
+                Type::Angle(..) => {
+                    rewrap_lit!(
+                        (lhs, rhs),
+                        (Angle(lhs), Int(rhs)),
+                        Angle(lhs * u64::try_from(rhs).ok()?)
                     )
-                }),
+                }
                 _ => None,
             },
             BinOp::Div => match lhs_ty {
@@ -398,25 +448,13 @@ impl BinaryOpExpr {
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
                 }
-                Type::Angle(w, _) => rewrap_lit!((lhs, rhs), (Float(lhs), Int(rhs)), {
-                    // for float/float we need to do it differently
-                    // Float(
-                    //     angle::Angle::Angle::new(
-                    //         angle::Angle::from_f64_maybe_sized(lhs, *w)
-                    //             / angle::Angle::from_f64_maybe_sized(rhs, *w),
-                    //         (*w).unwrap_or(f64::MANTISSA_DIGITS),
-                    //     )
-                    //     .try_into()
-                    //     .expect("msg"),
-                    // )
-                    #[allow(clippy::cast_sign_loss)]
-                    Float(
-                        (angle::Angle::from_f64_maybe_sized(lhs, *w) / (rhs as u64))
-                            .try_into()
-                            .expect("msg"),
+                Type::Angle(..) => {
+                    rewrap_lit!(
+                        (lhs, rhs),
+                        (Angle(lhs), Int(rhs)),
+                        Angle(lhs / u64::try_from(rhs).ok()?)
                     )
-                }),
-
+                }
                 _ => None,
             },
             BinOp::Mod => match lhs_ty {
@@ -482,14 +520,15 @@ impl Cast {
 /// | bool          | -    | Yes | Yes  | Yes   | Yes   | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
+    use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
 
     match ty {
         Type::Bool(..) => Some(lit),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bool(val)),
         Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, _), Bool(val != BigInt::ZERO)),
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Bool(val != 0)),
-        Type::Float(..) | Type::Angle(..) => rewrap_lit!(lit, Float(val), Bool(val != 0.0)),
+        Type::Float(..) => rewrap_lit!(lit, Float(val), Bool(val != 0.0)),
+        Type::Angle(..) => rewrap_lit!(lit, Angle(val), Bool(val.into())),
         _ => None,
     }
 }
@@ -526,7 +565,7 @@ fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+-----------------------------------------+
 /// | Allowed casts | Casting from                            |
 /// +---------------+------+-----+------+-------+-------+-----+
-/// | Casting from  | bool | int | uint | float | angle | bit |
+/// | Casting to    | bool | int | uint | float | angle | bit |
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | uint          | Yes  | Yes | -    | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
@@ -583,8 +622,30 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | angle         | No   | No  | No   | Yes   | -     | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+    use LiteralKind::{Angle, Bit, Bitstring, Float};
     match ty {
-        Type::Bit(..) | Type::Float(..) | Type::Angle(..) => Some(lit),
+        Type::Float(size, _) => rewrap_lit!(
+            lit,
+            Float(val),
+            Angle(angle::Angle::from_f64_maybe_sized(val, *size))
+        ),
+        Type::Angle(..) => Some(lit),
+        Type::Bit(..) => rewrap_lit!(
+            lit,
+            Bit(val),
+            Angle(angle::Angle {
+                value: val.into(),
+                size: 1
+            })
+        ),
+        Type::BitArray(..) => rewrap_lit!(
+            lit,
+            Bitstring(val, size),
+            Angle(angle::Angle {
+                value: val.try_into().ok()?,
+                size
+            })
+        ),
         _ => None,
     }
 }
@@ -597,12 +658,13 @@ fn cast_to_angle(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | bit           | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
-    use LiteralKind::{Bit, Bool, Int};
+    use LiteralKind::{Angle, Bit, Bool, Int};
 
     match ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bit(val)),
         Type::Bit(..) => Some(lit),
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Bit(val != 0)),
+        Type::Angle(..) => rewrap_lit!(lit, Angle(val), Bit(val.into())),
         _ => None,
     }
 }
@@ -615,7 +677,7 @@ fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// | bitarray      | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
 fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Option<LiteralKind> {
-    use LiteralKind::{Bit, Bitstring, Bool, Int};
+    use LiteralKind::{Angle, Bit, Bitstring, Bool, Int};
 
     let ArrayDimensions::One(size) = dims else {
         return None;
@@ -624,9 +686,15 @@ fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Opti
 
     match ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bitstring(BigInt::from(val), size)),
+        Type::Angle(..) => rewrap_lit!(lit, Angle(val), {
+            if val.size > size {
+                return None;
+            }
+            Bitstring(val.value.into(), size)
+        }),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bitstring(BigInt::from(val), size)),
         Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, rhs_size), {
-            if rhs_size < size {
+            if rhs_size > size {
                 return None;
             }
             Bitstring(val, size)

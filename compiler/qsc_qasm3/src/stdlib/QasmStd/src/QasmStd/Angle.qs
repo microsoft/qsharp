@@ -92,6 +92,100 @@ function __ConvertAngleToWidth__(angle : __Angle__, new_size : Int, truncate : B
     }
 }
 
+// Bit shift
+
+function __AngleShl__(lhs : __Angle__, rhs : Int) : __Angle__ {
+    let (lhs_value, lhs_size) = lhs!;
+    let mask = (1 <<< lhs_size) - 1;
+    let value = (lhs_value <<< rhs) &&& mask;
+    new __Angle__ { Value = value, Size = lhs_size }
+}
+
+function __AngleShr__(lhs : __Angle__, rhs : Int) : __Angle__ {
+    let (lhs_value, lhs_size) = lhs!;
+    let value = (lhs_value >>> rhs);
+    new __Angle__ { Value = value, Size = lhs_size }
+}
+
+// Bitwise
+
+function __AngleNotB__(angle : __Angle__) : __Angle__ {
+    let (value, size) = angle!;
+    let mask = (1 <<< size) - 1;
+    let value = (~~~value) &&& mask;
+    new __Angle__ { Value = value, Size = size }
+}
+
+function __AngleAndB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    let value = lhs_value &&& rhs_value;
+    new __Angle__ { Value = value, Size = lhs_size }
+}
+
+function __AngleOrB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    let value = lhs_value ||| rhs_value;
+    new __Angle__ { Value = value, Size = lhs_size }
+}
+
+function __AngleXorB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    let value = lhs_value ^^^ rhs_value;
+    new __Angle__ { Value = value, Size = lhs_size }
+}
+
+// Comparison
+
+function __AngleEq__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value == rhs_value
+}
+
+function __AngleNeq__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value != rhs_value
+}
+
+function __AngleGt__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value > rhs_value
+}
+
+function __AngleGte__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value >= rhs_value
+}
+
+function __AngleLt__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value < rhs_value
+}
+
+function __AngleLte__(lhs: __Angle__, rhs: __Angle__) : Bool {
+    let (lhs_value, lhs_size) = lhs!;
+    let (rhs_value, rhs_size) = rhs!;
+    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
+    lhs_value <= rhs_value
+}
+
+// Arithmetic
+
 function __AddAngles__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
     let (lhs_value, lhs_size) = lhs!;
     let (rhs_value, rhs_size) = rhs!;
@@ -130,7 +224,7 @@ function __DivideAngleByInt__(angle : __Angle__, divisor : Int) : __Angle__ {
 
 function __NegAngle__(angle : __Angle__) : __Angle__ {
     let (value, size) = angle!;
-    let value = (1 <<< value) - value;
+    let value = (1 <<< size) - value;
     new __Angle__ { Value = value, Size = size }
 }
 

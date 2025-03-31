@@ -1641,6 +1641,15 @@ pub enum IndexElement {
     IndexSet(IndexSet),
 }
 
+impl IndexElement {
+    pub fn span(&self) -> Span {
+        match self {
+            IndexElement::DiscreteSet(discrete_set) => discrete_set.span,
+            IndexElement::IndexSet(index_set) => index_set.span,
+        }
+    }
+}
+
 impl Display for IndexElement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

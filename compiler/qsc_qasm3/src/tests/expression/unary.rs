@@ -121,3 +121,47 @@ fn logical_not_indexed_bit_array_in_if_cond() -> miette::Result<(), Vec<Report>>
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn neg_angle() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        angle[4] x = 1.0;
+        angle[4] y = -x;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable x = new __Angle__ {
+            Value = 3,
+            Size = 4
+        };
+        mutable y = __NegAngle__(x);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn notb_angle() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        angle[4] x = 1.0;
+        angle[4] y = ~x;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable x = new __Angle__ {
+            Value = 3,
+            Size = 4
+        };
+        mutable y = __AngleNotB__(x);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

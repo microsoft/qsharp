@@ -2778,20 +2778,14 @@ impl Lowerer {
             syntax::BinOp::AndB | syntax::BinOp::OrB | syntax::BinOp::XorB
         ) && matches!(
             left_type,
-            Type::Bit(..)
-                | Type::UInt(..)
-                | Type::Angle(..)
-                | Type::BitArray(ArrayDimensions::One(_), _)
+            Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
         )) {
             return true;
         }
         if (matches!(op, syntax::BinOp::Shl | syntax::BinOp::Shr)
             && matches!(
                 left_type,
-                Type::Bit(..)
-                    | Type::UInt(..)
-                    | Type::Angle(..)
-                    | Type::BitArray(ArrayDimensions::One(_), _)
+                Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
             ))
         {
             return true;
