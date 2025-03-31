@@ -225,8 +225,8 @@ fn subtraction() -> miette::Result<(), Vec<Report>> {
 fn multiplication_by_uint() -> miette::Result<(), Vec<Report>> {
     let source = "
         angle[32] a = 1.0;
-        uint b = 2;
-        angle x = a * b;
+        uint[32] b = 2;
+        angle[32] x = a * b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
@@ -241,7 +241,7 @@ fn multiplication_by_uint() -> miette::Result<(), Vec<Report>> {
 fn division_by_uint() -> miette::Result<(), Vec<Report>> {
     let source = "
         angle[32] a = 1.0;
-        uint b = 2;
+        uint[32] b = 2;
         angle x = a / b;
     ";
 
