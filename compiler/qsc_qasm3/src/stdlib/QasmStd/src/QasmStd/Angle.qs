@@ -8,8 +8,9 @@ import Std.Convert.IntAsBigInt;
 import Std.Convert.IntAsBoolArray;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
+import Convert.__IntAsResultArrayBE__;
 
-export __Angle__, __AngleAsBoolArrayBE__, __AngleAsDouble__, __AngleAsBool__, __IntAsAngle__, __DoubleAsAngle__, __ConvertAngleToWidth__, __AddAngles__, __SubtractAngles__, __MultiplyAngleByInt__, __MultiplyAngleByBigInt__, __DivideAngleByInt__, __NegAngle__;
+export __Angle__, __AngleAsBoolArrayBE__, __AngleAsResultArray__, __AngleAsDouble__, __AngleAsBool__, __AngleAsResult__, __IntAsAngle__, __DoubleAsAngle__, __ConvertAngleToWidth__, __AngleShl__, __AngleShr__, __AngleNotB__, __AngleAndB__, __AngleOrB__, __AngleXorB__, __AngleEq__, __AngleNeq__, __AngleGt__, __AngleGte__, __AngleLt__, __AngleLte__, __AddAngles__, __SubtractAngles__, __MultiplyAngleByInt__, __MultiplyAngleByBigInt__, __DivideAngleByInt__, __NegAngle__;
 
 
 struct __Angle__ {
@@ -19,6 +20,11 @@ struct __Angle__ {
 
 function __AngleAsBoolArrayBE__(angle : __Angle__) : Bool[] {
     Reversed(IntAsBoolArray(angle.Value, angle.Size))
+}
+
+function __AngleAsResultArray__(angle : __Angle__) : Result[] {
+    let (number, bits) = angle!;
+    __IntAsResultArrayBE__(number, bits)
 }
 
 function __AngleAsDouble__(angle : __Angle__) : Double {
@@ -36,6 +42,10 @@ function __AngleAsDouble__(angle : __Angle__) : Double {
 
 function __AngleAsBool__(angle : __Angle__) : Bool {
     return angle.Value != 0;
+}
+
+function __AngleAsResult__(angle : __Angle__) : Result {
+    Microsoft.Quantum.Convert.BoolAsResult(angle.Value != 0)
 }
 
 function __IntAsAngle__(value : Int, size : Int) : __Angle__ {
