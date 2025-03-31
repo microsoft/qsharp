@@ -4,7 +4,7 @@
 use expect_test::expect;
 use miette::Report;
 
-use crate::tests::{compile_qasm_stmt_to_qsharp, compile_qasm_to_qsharp};
+use crate::tests::compile_qasm_stmt_to_qsharp;
 
 #[test]
 fn int_float_lhs_promoted_to_float() -> miette::Result<(), Vec<Report>> {
@@ -12,11 +12,8 @@ fn int_float_lhs_promoted_to_float() -> miette::Result<(), Vec<Report>> {
         5 * 0.3;
     ";
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
-        import QasmStd.Intrinsic.*;
         5. * 0.3;
     "#]]
     .assert_eq(&qsharp);
