@@ -6,10 +6,7 @@ import Std.Arrays.Mapped;
 import Std.Arrays.Reversed;
 import Std.Convert.ComplexAsComplexPolar;
 import Std.Convert.IntAsDouble;
-import Std.Diagnostics.CheckAllZero;
-import Std.Diagnostics.CheckZero;
-import Std.Diagnostics.DumpRegister;
-import Std.Diagnostics.Fact;
+import Std.Diagnostics.*;
 import Std.Math.*;
 import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 
