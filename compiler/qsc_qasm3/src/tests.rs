@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::semantic::symbols::SymbolTable;
 use crate::stdlib::compile::package_store_with_qasm;
 use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
 use miette::Report;
@@ -177,7 +176,7 @@ where
         source_map: res.source_map,
         config,
         stmts: vec![],
-        symbols: SymbolTable::default(),
+        symbols: res.symbols,
         errors: res.errors,
     };
 

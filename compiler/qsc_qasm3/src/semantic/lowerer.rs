@@ -1015,11 +1015,9 @@ impl Lowerer {
         // Push the scope where the def lives.
         self.symbols.push_scope(ScopeKind::Function);
 
-        let params = stmt
-            .params
-            .iter()
-            .map(|param| {
-                let symbol = self.lower_typed_parameter(param);
+        let params = param_symbols
+            .into_iter()
+            .map(|symbol| {
                 let name = symbol.name.clone();
                 self.try_insert_or_get_existing_symbol_id(name, symbol)
             })
