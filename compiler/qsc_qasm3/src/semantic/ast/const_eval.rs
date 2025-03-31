@@ -6,8 +6,6 @@
 //! and sizes of arrays. Therefore, those are the only const evaluation
 //! paths that are implemented.
 
-use std::f64;
-
 use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,

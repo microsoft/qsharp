@@ -1112,6 +1112,8 @@ impl QasmCompiler {
             hi: rhs.span.hi,
         };
 
+        let mut operands = vec![lhs, rhs];
+
         let fn_name: &str = match op {
             // Bit shift
             qsast::BinOp::Shl => "__AngleShl__",
@@ -1133,7 +1135,14 @@ impl QasmCompiler {
             // Arithmetic
             qsast::BinOp::Add => "__AddAngles__",
             qsast::BinOp::Sub => "__SubtractAngles__",
-            qsast::BinOp::Mul => "__MultiplyAngleByInt__",
+            qsast::BinOp::Mul => {
+                // if we are doing `int * angle` we need to
+                // reverse the order of the args to __MultiplyAngleByInt__
+                if matches!(lhs_ty, Type::Int(..) | Type::UInt(..)) {
+                    operands.reverse();
+                }
+                "__MultiplyAngleByInt__"
+            }
             qsast::BinOp::Div => {
                 if matches!(lhs_ty, Type::Angle(..))
                     && matches!(rhs_ty, Type::Int(..) | Type::UInt(..))
@@ -1150,7 +1159,7 @@ impl QasmCompiler {
             }
         };
 
-        build_call_with_params(fn_name, &[], vec![lhs, rhs], span, span)
+        build_call_with_params(fn_name, &[], operands, span, span)
     }
 
     fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {

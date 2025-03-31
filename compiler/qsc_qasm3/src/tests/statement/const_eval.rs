@@ -1457,7 +1457,7 @@ fn binary_op_mul_angle() -> miette::Result<(), Vec<Report>> {
         };
         let b = 2;
         let c1 = __AngleAsResult__(__MultiplyAngleByInt__(a, b));
-        let c2 = __AngleAsResult__(__MultiplyAngleByInt__(b, a));
+        let c2 = __AngleAsResult__(__MultiplyAngleByInt__(a, b));
         mutable r1 = [Zero];
         mutable r2 = [Zero];
     "#]]
