@@ -3143,7 +3143,6 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
         kind,
     };
 
-    // ch, crx, cry, crz, sdg, and tdg
     match gate_name.as_ref() {
         "cy" => Some(("y".to_string(), make_modifier(Ctrl(1)))),
         "cz" => Some(("z".to_string(), make_modifier(Ctrl(1)))),
