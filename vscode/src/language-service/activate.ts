@@ -10,8 +10,10 @@ import {
 import * as vscode from "vscode";
 import {
   isCircuitDocument,
+  isOpenQasmDocument,
   isQsharpDocument,
   isQsharpNotebookCell,
+  openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
 import { getTarget } from "../config.js";
@@ -76,14 +78,6 @@ export async function activateLanguageService(
     ),
   );
 
-  // format range
-  subscriptions.push(
-    vscode.languages.registerDocumentRangeFormattingEditProvider(
-      qsharpLanguageId,
-      createFormattingProvider(languageService),
-    ),
-  );
-
   // completions
   subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
@@ -95,6 +89,17 @@ export async function activateLanguageService(
     ),
   );
 
+  // completions
+  subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      openqasmLanguageId,
+      createCompletionItemProvider(languageService),
+      // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
+      "@",
+      "[",
+    ),
+  );
+
   // hover
   subscriptions.push(
     vscode.languages.registerHoverProvider(
@@ -102,6 +107,14 @@ export async function activateLanguageService(
       createHoverProvider(languageService),
     ),
   );
+
+  // hover
+  // subscriptions.push(
+  //   vscode.languages.registerHoverProvider(
+  //     openqasmLanguageId,
+  //     createHoverProvider(languageService),
+  //   ),
+  // );
 
   // go to def
   subscriptions.push(
@@ -111,6 +124,14 @@ export async function activateLanguageService(
     ),
   );
 
+  // go to def
+  // subscriptions.push(
+  //   vscode.languages.registerDefinitionProvider(
+  //     openqasmLanguageId,
+  //     createDefinitionProvider(languageService),
+  //   ),
+  // );
+
   // find references
   subscriptions.push(
     vscode.languages.registerReferenceProvider(
@@ -118,6 +139,14 @@ export async function activateLanguageService(
       createReferenceProvider(languageService),
     ),
   );
+
+  // find references
+  // subscriptions.push(
+  //   vscode.languages.registerReferenceProvider(
+  //     openqasmLanguageId,
+  //     createReferenceProvider(languageService),
+  //   ),
+  // );
 
   // signature help
   subscriptions.push(
@@ -129,10 +158,28 @@ export async function activateLanguageService(
     ),
   );
 
+  // signature help
+  // subscriptions.push(
+  //   vscode.languages.registerSignatureHelpProvider(
+  //     openqasmLanguageId,
+  //     createSignatureHelpProvider(languageService),
+  //     "(",
+  //     ",",
+  //   ),
+  // );
+
   // rename symbol
   subscriptions.push(
     vscode.languages.registerRenameProvider(
       qsharpLanguageId,
+      createRenameProvider(languageService),
+    ),
+  );
+
+  // rename symbol
+  subscriptions.push(
+    vscode.languages.registerRenameProvider(
+      openqasmLanguageId,
       createRenameProvider(languageService),
     ),
   );
@@ -145,12 +192,27 @@ export async function activateLanguageService(
     ),
   );
 
+  // code lens
+  subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      openqasmLanguageId,
+      createCodeLensProvider(languageService),
+    ),
+  );
+
   subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       qsharpLanguageId,
       createCodeActionsProvider(languageService),
     ),
   );
+
+  // subscriptions.push(
+  //   vscode.languages.registerCodeActionsProvider(
+  //     openqasmLanguageId,
+  //     createCodeActionsProvider(languageService),
+  //   ),
+  // );
 
   // add the language service dispose handler as well
   subscriptions.push(languageService);
@@ -215,10 +277,12 @@ function registerDocumentUpdateHandlers(
     vscode.workspace.onDidOpenTextDocument((document) => {
       const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
-        : isCircuitDocument(document)
+        : isQsharpDocument(document)
+          ? QsharpDocumentType.Qsharp
+          : isCircuitDocument(document)
           ? QsharpDocumentType.Circuit
-          : isQsharpDocument(document)
-            ? QsharpDocumentType.Qsharp
+          : isOpenQasmDocument(document)
+            ? QsharpDocumentType.OpenQasm
             : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
@@ -239,7 +303,10 @@ function registerDocumentUpdateHandlers(
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
+      if (
+        (isQsharpDocument(document) && !isQsharpNotebookCell(document)) ||
+        (isOpenQasmDocument(document) && !isQsharpNotebookCell(document))
+      ) {
         languageService.closeDocument(document.uri.toString());
       }
     }),
@@ -283,9 +350,12 @@ function registerDocumentUpdateHandlers(
   }
 
   async function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
+    if (
+      (isQsharpDocument(document) && !isQsharpNotebookCell(document)) ||
+      (isOpenQasmDocument(document) && !isQsharpNotebookCell(document))
+    ) {
+      // Regular (not notebook) Q# document.
       const content = document.getText();
-
       languageService.updateDocument(
         document.uri.toString(),
         document.version,

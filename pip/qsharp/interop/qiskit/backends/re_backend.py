@@ -90,7 +90,7 @@ class ResourceEstimatorBackend(BackendBase):
 
     def run(
         self,
-        run_input: Union[QuantumCircuit, List[QuantumCircuit]],
+        run_input: Union[QuantumCircuit, List[QuantumCircuit], str],
         params: Optional[EstimatorParams] = None,
         **options,
     ) -> ReJob:
@@ -99,7 +99,8 @@ class ResourceEstimatorBackend(BackendBase):
         to OpenQASM 3.
 
         Parameters:
-            run_input ('QuantumCircuit'): The input Qiskit QuantumCircuit object.
+            run_input ('Union[QuantumCircuit, List[QuantumCircuit], str]'): The input either as a
+                Qiskit circuit or OpenQASM 3 program source.
             params (Optional EstimatorParams): Configuration values for resource estimation.
             **options: Additional options for the execution.
                 - name (str): The name of the circuit. This is used as the entry point for the program.
@@ -115,7 +116,7 @@ class ResourceEstimatorBackend(BackendBase):
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         :raises ValueError: If the run_input is not a QuantumCircuit.
         """
-        if isinstance(run_input, QuantumCircuit):
+        if not isinstance(run_input, list):
             run_input = [run_input]
         if len(run_input) != 1:
             raise ValueError(str(Errors.ONLY_ONE_CIRCUIT_ALLOWED))

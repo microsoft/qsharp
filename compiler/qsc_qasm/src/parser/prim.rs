@@ -5,6 +5,7 @@
 pub(crate) mod tests;
 
 use super::ast::Ident;
+use super::completion::word_kinds::WordKinds;
 use super::{
     error::{Error, ErrorKind},
     scan::ParserContext,
@@ -38,7 +39,9 @@ pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
 }
 
 pub(super) fn ident(s: &mut ParserContext) -> Result<Ident> {
+    s.expect(WordKinds::PathExpr);
     let peek = s.peek();
+
     if peek.kind == TokenKind::Identifier {
         let name = s.read().into();
         s.advance();

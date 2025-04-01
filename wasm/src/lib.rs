@@ -9,7 +9,7 @@ use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{into_qsc_args, ProgramConfig};
+use project_system::{into_qsc_args, into_qsc_args2, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
     format_state_id, get_matrix_latex, get_state_latex,
@@ -17,7 +17,7 @@ use qsc::{
     interpret::{
         self,
         output::{self, Receiver},
-        CircuitEntryPoint,
+        CircuitEntryPoint, Interpreter,
     },
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
@@ -26,7 +26,7 @@ use qsc::{
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, str::FromStr};
+use std::{fmt::Write, path::Path, str::FromStr};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -58,16 +58,133 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
 
-    get_qir_(
-        source_map,
-        language_features,
-        capabilities,
-        store,
-        &deps[..],
-    )
+    let pkg_graph: project_system::PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    if pkg_graph
+        .root
+        .sources
+        .iter()
+        .any(|(f, _)| f.ends_with(".qasm"))
+    {
+        get_openqasm_qir_with_new_parser(capabilities, &pkg_graph)
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args2(capabilities, pkg_graph, None)
+                .map_err(compile_errors_into_qsharp_errors_json)?;
+
+        get_qir_(
+            source_map,
+            language_features,
+            capabilities,
+            store,
+            &deps[..],
+        )
+    }
+}
+
+fn get_interpreter_with_new_parser(
+    capabilities: qsc::TargetCapabilityFlags,
+    pkg_graph: &qsc_project::PackageGraphSources,
+) -> Result<(String, Result<Interpreter, Vec<interpret::Error>>), Result<String, String>> {
+    if let Some((path, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (store, source_package_id, dependencies, sig, errors) = qsc::qasm::compile_raw_qasm(
+            source,
+            Path::new(path.as_ref()),
+            PackageType::Exe,
+            capabilities,
+        );
+
+        if !errors.is_empty() {
+            return Err(Err(interpret_errors_into_qsharp_errors_json(
+                errors
+                    .iter()
+                    .map(|e| qsc::interpret::Error::Compile(e.clone()))
+                    .collect(),
+            )));
+        }
+
+        let Some(sig) = sig else {
+            // todo: this isn't json error fmt
+            return Err(Err("No signature found".to_string()));
+        };
+        let language_features = LanguageFeatures::default();
+        let entry_expr = sig.create_entry_expr_from_params(String::new());
+        let interpreter = Interpreter::from(
+            false,
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+            &dependencies,
+        );
+        Ok((entry_expr, interpreter))
+    } else {
+        Err(Err("Not a qasm program".into()))
+    }
+}
+
+fn get_openqasm_qir_with_new_parser(
+    capabilities: qsc::TargetCapabilityFlags,
+    pkg_graph: &qsc_project::PackageGraphSources,
+) -> Result<String, String> {
+    if let Some((path, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (store, source_package_id, dependencies, sig, errors) = qsc::qasm::compile_raw_qasm(
+            source,
+            Path::new(path.as_ref()),
+            PackageType::Exe,
+            capabilities,
+        );
+
+        if !errors.is_empty() {
+            return Err(interpret_errors_into_qsharp_errors_json(
+                errors
+                    .iter()
+                    .map(|e| qsc::interpret::Error::Compile(e.clone()))
+                    .collect(),
+            ));
+        }
+
+        let Some(sig) = sig else {
+            // todo: this isn't json error fmt
+            return Err("No signature found".to_string());
+        };
+        let language_features = LanguageFeatures::default();
+        let entry_expr = sig.create_entry_expr_from_params(String::new());
+        let interpreter = Interpreter::from(
+            false,
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+            &dependencies,
+        );
+
+        if let Ok(mut interpreter) = interpreter {
+            if let Ok(string) = interpreter.qirgen(&entry_expr) {
+                Ok(string)
+            } else {
+                Err("Failed to generate QIR".into())
+            }
+        } else {
+            Err("Failed to create interpreter".into())
+        }
+    } else {
+        Err("Not a qasm program".into())
+    }
 }
 
 pub(crate) fn get_qir_(
@@ -83,27 +200,58 @@ pub(crate) fn get_qir_(
 
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
-            // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
-            qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
-        })?;
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
 
-    let mut interpreter = interpret::Interpreter::new(
-        source_map,
-        PackageType::Exe,
-        capabilities,
-        language_features,
-        store,
-        &deps[..],
-    )
-    .map_err(|e| e[0].to_string())?;
+    let pkg_graph: project_system::PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    if let Some((file_name, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (entry_expr, interpreter) =
+            match get_interpreter_with_new_parser(capabilities, &pkg_graph) {
+                Ok((value, inter)) => (value, inter),
+                Err(value) => return value,
+            };
+        if let Ok(mut interpreter) = interpreter {
+            estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
+                re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
+                re::Error::Interpreter(_) => {
+                    unreachable!("interpreter errors should be eval errors")
+                }
+                re::Error::Estimation(e) => e.to_string(),
+            })
+        } else {
+            Err("Failed to get interpreter".to_string())
+        }
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args2(capabilities, pkg_graph, None).map_err(|mut e| {
+                // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
+                qsc::interpret::Error::from(e.pop().expect("expected at least one error"))
+                    .to_string()
+            })?;
 
-    estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
-        re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
-        re::Error::Interpreter(_) => unreachable!("interpreter errors should be eval errors"),
-        re::Error::Estimation(e) => e.to_string(),
-    })
+        let mut interpreter = interpret::Interpreter::new(
+            source_map,
+            PackageType::Exe,
+            capabilities,
+            language_features,
+            store,
+            &deps[..],
+        )
+        .map_err(|e| e[0].to_string())?;
+
+        estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
+            re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
+            re::Error::Interpreter(_) => unreachable!("interpreter errors should be eval errors"),
+            re::Error::Estimation(e) => e.to_string(),
+        })
+    }
 }
 
 #[wasm_bindgen]
@@ -112,36 +260,66 @@ pub fn get_circuit(
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
 
-    let (package_type, entry_point) = match operation {
-        Some(p) => {
-            let o: language_service::OperationInfo = p.into();
-            // lib package - no need to enforce an entry point since the operation is provided.
-            (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
+    let pkg_graph: project_system::PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    if let Some((file_name, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (entry_expr, interpreter) =
+            match get_interpreter_with_new_parser(capabilities, &pkg_graph) {
+                Ok((value, inter)) => (value, inter),
+                Err(value) => return Err(value.err().expect("msg")),
+            };
+        if let Ok(mut interpreter) = interpreter {
+            let (package_type, entry_point) = (PackageType::Exe, CircuitEntryPoint::EntryPoint);
+            let circuit = interpreter
+                .circuit(entry_point, simulate)
+                .map_err(interpret_errors_into_qsharp_errors_json)?;
+
+            serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+        } else {
+            Err("Failed to get interpreter".to_string())
         }
-        None => {
-            // exe package - the @EntryPoint attribute will be used.
-            (PackageType::Exe, CircuitEntryPoint::EntryPoint)
-        }
-    };
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args2(capabilities, pkg_graph, None)
+                .map_err(compile_errors_into_qsharp_errors_json)?;
 
-    let mut interpreter = interpret::Interpreter::new(
-        source_map,
-        package_type,
-        capabilities,
-        LanguageFeatures::from_iter(language_features),
-        store,
-        &deps[..],
-    )
-    .map_err(interpret_errors_into_qsharp_errors_json)?;
+        let (package_type, entry_point) = match operation {
+            Some(p) => {
+                let o: language_service::OperationInfo = p.into();
+                // lib package - no need to enforce an entry point since the operation is provided.
+                (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
+            }
+            None => {
+                // exe package - the @EntryPoint attribute will be used.
+                (PackageType::Exe, CircuitEntryPoint::EntryPoint)
+            }
+        };
 
-    let circuit = interpreter
-        .circuit(entry_point, simulate)
+        let mut interpreter = interpret::Interpreter::new(
+            source_map,
+            package_type,
+            capabilities,
+            LanguageFeatures::from_iter(language_features),
+            store,
+            &deps[..],
+        )
         .map_err(interpret_errors_into_qsharp_errors_json)?;
 
-    serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+        let circuit = interpreter
+            .circuit(entry_point, simulate)
+            .map_err(interpret_errors_into_qsharp_errors_json)?;
+
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+    }
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -414,15 +592,6 @@ pub fn runWithPauliNoise(
     shots: u32,
     pauliNoise: &JsValue,
 ) -> Result<bool, JsValue> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
-            // Wrap in `interpret::Error` and `JsError` to match the error type
-            // `run_internal_with_features` below
-            JsError::from(qsc::interpret::Error::from(
-                e.pop().expect("expected at least one error"),
-            ))
-        })?;
-
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
@@ -457,18 +626,71 @@ pub fn runWithPauliNoise(
         PauliNoise::default()
     };
 
-    match run_internal_with_features(
-        source_map,
-        event_cb,
-        shots,
-        language_features,
-        capabilities,
-        store,
-        &deps[..],
-        &noise,
-    ) {
-        Ok(()) => Ok(true),
-        Err(e) => Err(JsError::from(e).into()),
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
+
+    let pkg_graph: project_system::PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    if let Some((file_name, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (entry_expr, interpreter) =
+            match get_interpreter_with_new_parser(capabilities, &pkg_graph) {
+                Ok((value, inter)) => (value, inter),
+                Err(value) => return todo!(""),
+            };
+        let mut out = CallbackReceiver { event_cb };
+        if let Ok(mut interpreter) = interpreter {
+            let (package_type, entry_point) = (PackageType::Exe, CircuitEntryPoint::EntryPoint);
+            for _ in 0..shots {
+                let result = interpreter
+                    .eval_entry_with_sim(&mut SparseSim::new_with_noise(&noise), &mut out);
+                let mut success = true;
+                let msg: serde_json::Value = match result {
+                    Ok(value) => serde_json::Value::String(value.to_string()),
+                    Err(errors) => {
+                        // TODO: handle multiple errors
+                        // https://github.com/microsoft/qsharp/issues/149
+                        success = false;
+                        VSDiagnostic::from_interpret_error(file_name, &errors[0]).json()
+                    }
+                };
+
+                let msg_string =
+                    json!({"type": "Result", "success": success, "result": msg}).to_string();
+                (out.event_cb)(&msg_string);
+            }
+            Ok(true)
+        } else {
+            Err(JsError::new("err").into())
+        }
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+                // Wrap in `interpret::Error` and `JsError` to match the error type
+                // `run_internal_with_features` below
+                JsError::from(qsc::interpret::Error::from(
+                    e.pop().expect("expected at least one error"),
+                ))
+            })?;
+
+        match run_internal_with_features(
+            source_map,
+            event_cb,
+            shots,
+            language_features,
+            capabilities,
+            store,
+            &deps[..],
+            &noise,
+        ) {
+            Ok(()) => Ok(true),
+            Err(e) => Err(JsError::from(e).into()),
+        }
     }
 }
 

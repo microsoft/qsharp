@@ -30,7 +30,12 @@ import {
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
-import { basename, isQsharpDocument, toVsCodeRange } from "../common";
+import {
+  basename,
+  isOpenQasmDocument,
+  isQsharpDocument,
+  toVsCodeRange,
+} from "../common";
 import {
   DebugEvent,
   EventType,
@@ -910,10 +915,10 @@ export class QscDebugSession extends LoggingDebugSession {
 
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
-      if (!isQsharpDocument(doc)) {
-        return;
+      if (isQsharpDocument(doc) || isOpenQasmDocument(doc)) {
+        return doc;
       }
-      return doc;
+      return undefined;
     } catch (e) {
       log.trace(`Failed to open ${uri}: ${e}`);
     }

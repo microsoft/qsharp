@@ -72,6 +72,7 @@ where
             .fs
             .read_file(path.as_ref())
             .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
+
         Ok((
             PathBuf::from(path.as_ref().to_owned()),
             source.as_ref().to_owned(),
@@ -281,6 +282,7 @@ pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
         Some(operation_name.as_ref().into()),
         None,
     );
+
     let unit = qsc::qasm::compile_to_qsharp_ast_with_config(source, path, Some(resolver), config);
 
     let (source_map, errors, package, sig) = unit.into_tuple();

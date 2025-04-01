@@ -2,15 +2,18 @@
 // Licensed under the MIT License.
 
 use crate::line_column::{Location, Range};
-use crate::project_system::{into_qsc_args, ProgramConfig};
+use crate::project_system::{into_qsc_args2, PackageGraphSources, ProgramConfig};
 use crate::{serializable_type, CallbackReceiver};
 use qsc::fir::StmtId;
-use qsc::fmt_complex;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
+use qsc::{fmt_complex, LanguageFeatures, PackageType};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
+
+use std::path::Path;
+use std::str::FromStr;
 
 #[wasm_bindgen]
 #[derive(Default)]
@@ -27,7 +30,7 @@ impl DebugService {
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
-        match init_debugger(program, entry) {
+        match init_debugger(&program, entry) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 String::new()
@@ -210,11 +213,27 @@ impl DebugService {
 }
 
 pub fn init_debugger(
-    program: ProgramConfig,
+    program: &ProgramConfig,
+    entry: Option<String>,
+) -> Result<Debugger, Vec<Error>> {
+    let capabilities: qsc::TargetCapabilityFlags =
+        qsc::target::Profile::from_str(&program.profile())
+            .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+            .into();
+
+    let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    create_openqasm_debugger(capabilities, &pkg_graph, entry.clone())
+        .or_else(|_| create_qsharp_debugger(capabilities, pkg_graph, entry))
+}
+
+fn create_qsharp_debugger(
+    capabilities: qsc::TargetCapabilityFlags,
+    pkg_graph: qsc_project::PackageGraphSources,
     entry: Option<String>,
 ) -> Result<Debugger, Vec<Error>> {
     let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
-        into_qsc_args(program, entry)
+        into_qsc_args2(capabilities, pkg_graph, entry)
             .map_err(|e| e.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
     Debugger::new(
@@ -225,6 +244,50 @@ pub fn init_debugger(
         package_store,
         &user_code_dependencies[..],
     )
+}
+
+fn create_openqasm_debugger(
+    capabilities: qsc::TargetCapabilityFlags,
+    pkg_graph: &qsc_project::PackageGraphSources,
+    _entry: Option<String>,
+) -> Result<Debugger, Vec<Error>> {
+    if let Some((path, source)) = pkg_graph
+        .root
+        .sources
+        .iter()
+        .find(|(f, _)| f.ends_with(".qasm"))
+    {
+        let (store, source_package_id, dependencies, sig, errors) = qsc::qasm::compile_raw_qasm(
+            source,
+            Path::new(path.as_ref()),
+            PackageType::Exe,
+            capabilities,
+        );
+
+        if !errors.is_empty() {
+            return Err(errors.iter().map(|e| Error::Compile(e.clone())).collect());
+        }
+
+        let Some(sig) = sig else {
+            todo!("No signature found");
+        };
+        let language_features = LanguageFeatures::default();
+
+        let entry_expr = sig.create_entry_expr_from_params(String::new());
+
+        let mut interpreter = qsc::interpret::Interpreter::from(
+            true,
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+            &dependencies,
+        )?;
+        interpreter.set_entry_expr(&entry_expr)?;
+        Ok(qsc::interpret::Debugger::from(interpreter, Encoding::Utf16))
+    } else {
+        Err(vec![])
+    }
 }
 
 fn render_errors(errors: Vec<Error>) -> String {

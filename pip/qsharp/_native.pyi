@@ -293,6 +293,35 @@ class Interpreter:
         """
         ...
 
+    def interpret_qasm3(
+        self, input: str, output_fn: Callable[[Output], None], **kwargs
+    ) -> Any:
+        """
+        Interprets OpenQASM3 source code.
+        :param input: The OpenQASM3 source code to interpret.
+        :param read_file: A function that reads a file from the file system.
+        :param list_directory: A function that lists the contents of a directory.
+        :param output_fn: A callback function that will be called with each output.
+        :returns value: The value returned by the last statement in the input.
+        :raises QSharpError: If there is an error interpreting the input.
+        """
+        ...
+
+    def import_qasm3(
+        self, name: str, input: str, output_fn: Callable[[Output], None], **kwargs
+    ) -> Any:
+        """
+        Import OpenQASM3 source code and returns the equivalent Q# operation.
+        :param name: The name of the operation to create.
+        :param input: The OpenQASM3 source code to interpret.
+        :param read_file: A function that reads a file from the file system.
+        :param list_directory: A function that lists the contents of a directory.
+        :param output_fn: A callback function that will be called with each output.
+        :returns value: The value returned by the last statement in the input.
+        :raises QSharpError: If there is an error interpreting the input.
+        """
+        ...
+
 class Result(Enum):
     """
     A Q# measurement result.

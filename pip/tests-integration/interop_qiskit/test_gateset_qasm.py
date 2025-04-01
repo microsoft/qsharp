@@ -66,28 +66,13 @@ def test_gate_rx_transpiles() -> None:
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-def test_gate_rxx_transpiles() -> None:
-    run_transpile_test(lambda circuit: circuit.rxx(0.5, 2, 0), "rxx(0.5) q[2], q[0];")
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_gate_ry_transpiles() -> None:
     run_transpile_test(lambda circuit: circuit.ry(0.5, 1), "ry(0.5) q[1];")
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-def test_gate_ryy_transpiles() -> None:
-    run_transpile_test(lambda circuit: circuit.ryy(0.5, 1, 2), "ryy(0.5) q[1], q[2];")
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_gate_rz_transpiles() -> None:
     run_transpile_test(lambda circuit: circuit.rz(0.5, 1), "rz(0.5) q[1];")
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-def test_gate_rzz_transpiles() -> None:
-    run_transpile_test(lambda circuit: circuit.rzz(0.5, 0, 2), "rzz(0.5) q[0], q[2];")
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

@@ -17,8 +17,8 @@ use qsc::{
 use qsc_linter::{LintConfig, LintLevel};
 use qsc_project::{PackageGraphSources, Project};
 use rustc_hash::FxHashMap;
-use std::sync::Arc;
 use std::{iter::once, mem::take};
+use std::{path::Path, sync::Arc};
 
 /// The alias that a project gives a dependency in its qsharp.json.
 /// In other words, this is the name that a given project uses to reference
@@ -59,6 +59,39 @@ pub(crate) enum CompilationKind {
 impl Compilation {
     /// Creates a new `Compilation` by compiling sources.
     pub(crate) fn new(
+        package_type: PackageType,
+        target_profile: Profile,
+        language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
+        package_graph_sources: PackageGraphSources,
+        project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
+    ) -> Self {
+        if package_graph_sources
+            .root
+            .sources
+            .iter()
+            .any(|(f, _)| f.ends_with(".qasm"))
+        {
+            return Self::new_qasm(
+                package_type,
+                target_profile,
+                package_graph_sources,
+                project_errors,
+                friendly_name,
+            );
+        }
+        Self::new_qsharp(
+            package_type,
+            target_profile,
+            language_features,
+            lints_config,
+            package_graph_sources,
+            project_errors,
+            friendly_name,
+        )
+    }
+    pub(crate) fn new_qsharp(
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
@@ -119,6 +152,42 @@ impl Compilation {
             project_errors,
             dependencies: user_code_dependencies.into_iter().collect(),
             test_cases,
+        }
+    }
+
+    pub(crate) fn new_qasm(
+        package_type: PackageType,
+        target_profile: Profile,
+        package_graph_sources: PackageGraphSources,
+        project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
+    ) -> Self {
+        let (path, source) = package_graph_sources
+            .root
+            .sources
+            .iter()
+            .find(|(f, _)| f.ends_with(".qasm"))
+            .expect("expected to find qasm source");
+        let capabilities = target_profile.into();
+
+        let (store, source_package_id, _deps, _sig, compile_errors) = qsc::qasm::compile_raw_qasm(
+            source,
+            Path::new(path.as_ref()),
+            package_type,
+            capabilities,
+        );
+
+        Self {
+            package_store: store,
+            user_package_id: source_package_id,
+            kind: CompilationKind::OpenProject {
+                package_graph_sources,
+                friendly_name: friendly_name.clone(),
+            },
+            compile_errors,
+            project_errors,
+            dependencies: FxHashMap::default(),
+            test_cases: vec![],
         }
     }
 

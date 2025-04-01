@@ -147,27 +147,27 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
           "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.targetSubmit",
@@ -191,7 +191,7 @@
         },
         {
           "command": "qsharp-vscode.getQir",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.showHistogram",
@@ -215,7 +215,7 @@
         },
         {
           "command": "qsharp-vscode.setTargetProfile",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.webOpener",
@@ -455,6 +455,9 @@
     "breakpoints": [
       {
         "language": "qsharp"
+      },
+      {
+        "language": "openqasm"
       }
     ],
     "languages": [
@@ -486,6 +489,21 @@
           "light": "./resources/file-icon-light.svg",
           "dark": "./resources/file-icon-dark.svg"
         }
+      },
+      {
+        "id": "openqasm",
+        "aliases": [
+          "qasm",
+          "qasm3"
+        ],
+        "extensions": [
+          ".qasm"
+        ],
+        "icon": {
+          "light": "./resources/file-icon-light.svg",
+          "dark": "./resources/file-icon-dark.svg"
+        },
+        "configuration": "./language-configuration-qasm3.json"
       }
     ],
     "grammars": [
@@ -493,6 +511,11 @@
         "language": "qsharp",
         "scopeName": "source.qsharp",
         "path": "./syntaxes/qsharp.tmLanguage.json"
+      },
+      {
+        "language": "openqasm",
+        "scopeName": "source.openqasm",
+        "path": "./syntaxes/qasm3.tmLanguage.json"
       }
     ],
     "jsonValidation": [
@@ -505,7 +528,8 @@
       {
         "type": "qsharp",
         "languages": [
-          "qsharp"
+          "qsharp",
+          "openqasm"
         ],
         "label": "Q# Debug",
         "configurationAttributes": {

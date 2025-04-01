@@ -15,6 +15,8 @@ import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 export const qsharpCircuitLanguageId = "qsharpcircuit";
+export const openqasmLanguageId = "openqasm";
+
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, circuit files, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
@@ -40,6 +42,16 @@ export function isCircuitDocument(document: TextDocument): boolean {
     // The Copilot Chat window also creates documents with various schemes that start
     // with "chat", such as "chat-editing-text-model" and others.
     !document.uri.scheme.startsWith("chat")
+  );
+}
+
+// Returns true for all OpenQASM documents, including unsaved files, notebook cells, etc.
+export function isOpenQasmDocument(document: TextDocument): boolean {
+  return (
+    //document.languageId === openqasmLanguageId &&
+    (Utils.extname(document.uri) === ".qasm" || document.isUntitled) &&
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
   );
 }
 

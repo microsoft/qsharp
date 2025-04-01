@@ -11,7 +11,9 @@ execution within Jupyter notebooks.
 from time import monotonic
 from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
-from ._native import QSharpError
+from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
+
+from ._native import QSharpError, QasmError
 from ._qsharp import get_interpreter
 from . import telemetry_events
 import pathlib
@@ -44,6 +46,48 @@ def register_magic():
             return results
         except QSharpError as e:
             # pylint: disable=raise-missing-from
+            raise QSharpCellError(str(e))
+
+    @magic_arguments()
+    @argument(
+        "--name",
+        "-n",
+        help=("Create callable with given name"),
+    )
+    @register_cell_magic
+    def qasm3(line, cell):
+        """Cell magic to interpret Q# code in Jupyter notebooks."""
+
+        # This effectively pings the kernel to ensure it recognizes the cell is running and helps with
+        # accureate cell execution timing.
+        clear_output()
+
+        def callback(output):
+            display(output)
+            # This is a workaround to ensure that the output is flushed. This avoids an issue
+            # where the output is not displayed until the next output is generated or the cell
+            # is finished executing.
+            display(display_id=True)
+
+        telemetry_events.on_run_cell()
+        start_time = monotonic()
+
+        try:
+            from .interop.qasm3 import eval, import_callable
+
+            args = parse_argstring(qasm3, line)
+            if args.name is None:
+                results = eval(cell)
+            else:
+                results = import_callable(args.name, cell)
+            durationMs = (monotonic() - start_time) * 1000
+            telemetry_events.on_run_cell_end(durationMs)
+
+            return results
+        except QSharpError as e:
+            # pylint: disable=raise-missing-from
+            raise QSharpCellError(str(e))
+        except QasmError as e:
             raise QSharpCellError(str(e))
 
 

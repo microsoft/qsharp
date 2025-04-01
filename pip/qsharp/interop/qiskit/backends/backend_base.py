@@ -240,7 +240,7 @@ class BackendBase(BackendV2, ABC):
 
     def _run(
         self,
-        run_input: List[QuantumCircuit],
+        run_input: List[Union[str, QuantumCircuit]],
         **options,
     ) -> QsJob:
         if "name" not in options and len(run_input) == 1:
@@ -290,23 +290,31 @@ class BackendBase(BackendV2, ABC):
         return self._create_results(output)
 
     @abstractmethod
-    def _submit_job(self, run_input: List[QuantumCircuit], **input_params) -> QsJob:
+    def _submit_job(
+        self, run_input: List[Union[str, QuantumCircuit]], **input_params
+    ) -> QsJob:
         pass
 
-    def _compile(self, run_input: List[QuantumCircuit], **options) -> List[Compilation]:
+    def _compile(
+        self, run_input: List[Union[str, QuantumCircuit]], **options
+    ) -> List[Compilation]:
         # for each run input, convert to qasm
         compilations = []
-        for circuit in run_input:
+        for input in run_input:
             args = options.copy()
-            assert isinstance(
-                circuit, QuantumCircuit
-            ), "Input must be a QuantumCircuit."
-            start = monotonic()
-            qasm = self._qasm(circuit, **args)
-            end = monotonic()
+            if isinstance(input, str):
+                qasm = input
+                time_taken = 0.0
+            else:
+                assert isinstance(
+                    input, QuantumCircuit
+                ), "Input must be a QuantumCircuit."
+                start = monotonic()
+                qasm = self._qasm(input, **args)
+                end = monotonic()
+                time_taken = end - start
 
-            time_taken = end - start
-            compilation = Compilation(circuit, qasm, time_taken)
+            compilation = Compilation(input, qasm, time_taken)
             compilations.append(compilation)
         return compilations
 
@@ -439,7 +447,7 @@ class BackendBase(BackendV2, ABC):
 
             raise QasmError(str(Errors.FAILED_TO_EXPORT_QASM)) from ex
 
-    def _qsharp(self, circuit: QuantumCircuit, **kwargs) -> str:
+    def _qsharp(self, input: Union[str, QuantumCircuit], **kwargs) -> str:
         """
         Converts a Qiskit QuantumCircuit to Q# for the current backend.
 
@@ -461,11 +469,13 @@ class BackendBase(BackendV2, ABC):
         :raises QSharpError: If there is an error evaluating the source code.
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         """
-
-        qasm_source = self._qasm(circuit, **kwargs)
+        if isinstance(input, str):
+            qasm3_source = input
+        else:
+            qasm3_source = self._qasm(input, **kwargs)
 
         args = {
-            "name": kwargs.get("name", circuit.name),
+            "name": kwargs.get("name", input.name),
         }
 
         if search_path := kwargs.pop("search_path", "."):
@@ -481,14 +491,14 @@ class BackendBase(BackendV2, ABC):
 
     def qir(
         self,
-        circuit: QuantumCircuit,
+        input: Union[str, QuantumCircuit],
         **kwargs,
     ) -> str:
         """
-        Converts a Qiskit QuantumCircuit to QIR (Quantum Intermediate Representation).
+        Converts an OpenQASM 3 program or Qiskit QuantumCircuit to QIR (Quantum Intermediate Representation).
 
         Args:
-            circuit ('QuantumCircuit'): The input Qiskit QuantumCircuit object.
+            input ('str | QuantumCircuit'): The input Qiskit QuantumCircuit object or OpenQASM program source.
             **kwargs: Additional options for the execution.
               - params (str, optional): The entry expression for the QIR conversion. Defaults to None.
               - target_profile (TargetProfile, optional): The target profile for the backend. Defaults to backend config value.
@@ -501,12 +511,15 @@ class BackendBase(BackendV2, ABC):
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         :raises ValueError: If the backend configuration does not support QIR generation.
         """
-        name = kwargs.pop("name", circuit.name)
+        name = kwargs.pop("name", input.name)
         target_profile = kwargs.pop("target_profile", self.options.target_profile)
         if target_profile == TargetProfile.Unrestricted:
             raise ValueError(str(Errors.UNRESTRICTED_INVALID_QIR_TARGET))
 
-        qasm_source = self._qasm(circuit, **kwargs)
+        if isinstance(input, str):
+            qasm3_source = input
+        else:
+            qasm3_source = self._qasm(input, **kwargs)
 
         args = {
             "name": name,
