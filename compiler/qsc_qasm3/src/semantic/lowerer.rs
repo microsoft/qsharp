@@ -2745,11 +2745,17 @@ impl Lowerer {
 
         let expr = if matches!(ty, Type::Complex(..)) {
             if is_complex_binop_supported(op) {
-                // TODO: How do we handle complex binary expressions?
-                // this is going to be a call to a built-in function
-                // that doesn't map to qasm def semantics
-                self.push_unimplemented_error_message("complex binary exprs", span);
-                err_expr!(ty.clone(), span)
+                let bin_expr = semantic::BinaryOpExpr {
+                    op: op.into(),
+                    lhs,
+                    rhs,
+                };
+                let kind = semantic::ExprKind::BinaryOp(bin_expr);
+                semantic::Expr {
+                    span,
+                    kind: Box::new(kind),
+                    ty: ty.clone(),
+                }
             } else {
                 let kind = SemanticErrorKind::OperatorNotSupportedForTypes(
                     format!("{op:?}"),

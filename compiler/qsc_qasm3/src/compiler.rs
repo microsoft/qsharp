@@ -1095,6 +1095,12 @@ impl QasmCompiler {
             return self.compile_angle_binary_op(op, lhs, rhs, &binary.lhs.ty, &binary.rhs.ty);
         }
 
+        if matches!(&binary.lhs.ty, Type::Complex(..))
+            || matches!(&binary.rhs.ty, Type::Complex(..))
+        {
+            return self.compile_complex_binary_op(op, lhs, rhs);
+        }
+
         let is_assignment = false;
         build_binary_expr(is_assignment, op, lhs, rhs, binary.span())
     }
@@ -1160,6 +1166,34 @@ impl QasmCompiler {
         };
 
         build_call_with_params(fn_name, &[], operands, span, span)
+    }
+
+    fn compile_complex_binary_op(
+        &mut self,
+        op: qsast::BinOp,
+        lhs: qsast::Expr,
+        rhs: qsast::Expr,
+    ) -> qsast::Expr {
+        let span = Span {
+            lo: lhs.span.lo,
+            hi: rhs.span.hi,
+        };
+
+        let fn_name: &str = match op {
+            // Arithmetic
+            qsast::BinOp::Add => "PlusC",
+            qsast::BinOp::Sub => "MinusC",
+            qsast::BinOp::Mul => "TimesC",
+            qsast::BinOp::Div => "DividedByC",
+            qsast::BinOp::Exp => "PowC",
+            _ => {
+                let msg = format!("complex {op:?} binary operation");
+                self.push_unsupported_error_message(msg, span);
+                return err_expr(span);
+            }
+        };
+
+        build_math_call_from_exprs(fn_name, vec![lhs, rhs], span)
     }
 
     fn compile_literal_expr(&mut self, lit: &LiteralKind, span: Span) -> qsast::Expr {
