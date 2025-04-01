@@ -11,7 +11,7 @@ fn no_parameters_no_return() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let empty : () -> Unit = () -> {};
+        function empty() : Unit {}
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -27,9 +27,9 @@ fn single_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Int) -> Int = (x) -> {
+        function square(x : Int) : Int {
             return x * x;
-        };
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -45,9 +45,9 @@ fn qubit_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Qubit) => Int = (q) => {
+        operation square(q : Qubit) : Int {
             return 1;
-        };
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -63,9 +63,9 @@ fn qubit_array_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let square : (Qubit[]) => Int = (qs) => {
+        operation square(qs : Qubit[]) : Int {
             return 1;
-        };
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())
