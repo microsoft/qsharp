@@ -21,6 +21,8 @@ pub enum ErrorKind {
     MultipleInclude(String, String),
     #[error("Cyclic include:{0}")]
     CyclicInclude(Cycle),
+    #[error("IO Error: {0}")]
+    Unknown(String),
 }
 
 impl From<Error> for crate::Error {

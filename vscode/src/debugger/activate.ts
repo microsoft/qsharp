@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 import { qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
+  getActiveOpenQasmDocumentUri,
   getActiveQSharpDocumentUri,
   getProgramForDocument,
 } from "../programConfig";
@@ -38,6 +39,19 @@ export async function activateDebugger(
   const factory = new InlineDebugAdapterFactory();
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
+  );
+
+  const qasm_provider = new QsDebugConfigProvider();
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider("openqasm", qasm_provider),
+  );
+
+  const qasm_factory = new InlineDebugAdapterFactory();
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory(
+      "openqasm",
+      qasm_factory,
+    ),
   );
 }
 
@@ -94,13 +108,16 @@ function registerCommands(context: vscode.ExtensionContext) {
     options?: vscode.DebugSessionOptions,
   ) {
     clearCommandDiagnostics();
-
-    if (vscode.debug.activeDebugSession?.type === "qsharp") {
+    const ty = vscode.debug.activeDebugSession?.type;
+    if (ty === "qsharp" || ty === "openqasm") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;
     }
 
-    const targetResource = resource || getActiveQSharpDocumentUri();
+    const targetResource =
+      resource ||
+      getActiveQSharpDocumentUri() ||
+      getActiveOpenQasmDocumentUri();
 
     if (targetResource) {
       config.programUri = targetResource.toString();
@@ -154,7 +171,8 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         .toString();
     } else {
       // if launch.json is missing or empty, try to launch the active Q# document
-      const docUri = getActiveQSharpDocumentUri();
+      const docUri =
+        getActiveQSharpDocumentUri() || getActiveOpenQasmDocumentUri();
       if (docUri) {
         config.type = "qsharp";
         config.name = "Launch";

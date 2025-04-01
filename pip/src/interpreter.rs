@@ -21,6 +21,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qsc::{
+    error::WithSource,
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
@@ -30,6 +31,7 @@ use qsc::{
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
+    qasm::{io::InMemorySourceResolver, parse_raw_qasm_as_fragments, parse_raw_qasm_as_operation},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -413,6 +415,118 @@ impl Interpreter {
     ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
         match self.interpreter.eval_fragments(&mut receiver, input) {
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
+    /// Interprets OpenQASM 3 source code.
+    ///
+    /// :param input: The OpenQASM source code to interpret.
+    /// :param output_fn: A callback function that will be called with each output.
+    ///
+    /// :returns value: The value returned by the last statement in the input.
+    ///
+    /// :raises QSharpError: If there is an error interpreting the input.
+    #[pyo3(signature=(input, callback=None, **kwargs))]
+    #[allow(clippy::needless_pass_by_value)]
+    fn interpret_qasm3(
+        &mut self,
+        py: Python,
+        input: &str,
+        callback: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+
+        let unit = parse_raw_qasm_as_fragments(input, "", None::<&mut InMemorySourceResolver>);
+        let (sources, errors, package, _) = unit.into_tuple();
+
+        if !errors.is_empty() {
+            let errors = errors
+                .iter()
+                .map(|e| {
+                    use qsc::compile::ErrorKind;
+                    use qsc::interpret::Error;
+                    let error = e.error().clone();
+                    let kind = ErrorKind::OpenQasm(error);
+                    let v = WithSource::from_map(&sources, kind);
+                    Error::Compile(v)
+                })
+                .collect();
+            return Err(QSharpError::new_err(format_errors(errors)));
+        }
+        let package = package.expect("Should have a package");
+
+        match self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, input, package)
+        {
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
+    #[pyo3(signature=(name, input, callback=None, **kwargs))]
+    #[allow(clippy::needless_pass_by_value)]
+    fn import_qasm3(
+        &mut self,
+        py: Python,
+        name: &str,
+        input: &str,
+        callback: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let mut receiver = OptionalCallbackReceiver { callback, py };
+
+        let unit =
+            parse_raw_qasm_as_operation(input, name, "<none>", None::<&mut InMemorySourceResolver>);
+        let (sources, errors, package, _) = unit.into_tuple();
+
+        if !errors.is_empty() {
+            let errors = errors
+                .iter()
+                .map(|e| {
+                    use qsc::compile::ErrorKind;
+                    use qsc::interpret::Error;
+                    let error = e.error().clone();
+                    let kind = ErrorKind::OpenQasm(error);
+                    let v = WithSource::from_map(&sources, kind);
+                    Error::Compile(v)
+                })
+                .collect();
+            return Err(QSharpError::new_err(format_errors(errors)));
+        }
+        let package = package.expect("Should have a package");
+
+        match self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, input, package)
+        {
             Ok(value) => {
                 if let Some(make_callable) = &self.make_callable {
                     // Get any global callables from the evaluated input and add them to the environment. This will grab
