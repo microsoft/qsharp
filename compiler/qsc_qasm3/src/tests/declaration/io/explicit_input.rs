@@ -221,6 +221,22 @@ input qubit q;
 }
 
 #[test]
+fn lifting_angle_raises_compile_error() {
+    let source = r#"
+input angle a;
+"#;
+
+    let Err(error) = compile_qasm_to_qsharp_operation(source) else {
+        panic!("Expected error")
+    };
+
+    assert_eq!(
+        error[0].to_string(),
+        "use `float` types for passing input, using `angle` types are not supported."
+    );
+}
+
+#[test]
 fn order_is_preserved_with_multiple_inputs() -> miette::Result<(), Vec<Report>> {
     let source = r#"
 input int[65] bi;

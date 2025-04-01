@@ -988,6 +988,17 @@ pub(crate) fn build_expr_wrapped_block_expr(expr: Expr) -> Block {
 }
 
 pub(crate) fn build_qasm_import_decl() -> Vec<Stmt> {
+    build_qasm_import_items()
+        .into_iter()
+        .map(|item| Stmt {
+            kind: Box::new(StmtKind::Item(Box::new(item))),
+            span: Span::default(),
+            id: NodeId::default(),
+        })
+        .collect()
+}
+
+pub(crate) fn build_qasm_import_items() -> Vec<Item> {
     vec![
         build_qasm_import_decl_angle(),
         build_qasm_import_decl_convert(),
@@ -995,7 +1006,7 @@ pub(crate) fn build_qasm_import_decl() -> Vec<Stmt> {
     ]
 }
 
-pub(crate) fn build_qasm_import_decl_angle() -> Stmt {
+pub(crate) fn build_qasm_import_decl_angle() -> Item {
     let path_kind = Path {
         segments: Some(Box::new([build_ident("QasmStd")])),
         name: Box::new(build_ident("Angle")),
@@ -1009,21 +1020,16 @@ pub(crate) fn build_qasm_import_decl_angle() -> Stmt {
         is_glob: true,
     }];
     let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
-    let item = Item {
+    Item {
         id: NodeId::default(),
         span: Span::default(),
         kind: Box::new(ItemKind::ImportOrExport(decl)),
         doc: "".into(),
         attrs: Box::new([]),
-    };
-    Stmt {
-        kind: Box::new(StmtKind::Item(Box::new(item))),
-        span: Span::default(),
-        id: NodeId::default(),
     }
 }
 
-pub(crate) fn build_qasm_import_decl_convert() -> Stmt {
+pub(crate) fn build_qasm_import_decl_convert() -> Item {
     let path_kind = Path {
         segments: Some(Box::new([build_ident("QasmStd")])),
         name: Box::new(build_ident("Convert")),
@@ -1037,21 +1043,16 @@ pub(crate) fn build_qasm_import_decl_convert() -> Stmt {
         is_glob: true,
     }];
     let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
-    let item = Item {
+    Item {
         id: NodeId::default(),
         span: Span::default(),
         kind: Box::new(ItemKind::ImportOrExport(decl)),
         doc: "".into(),
         attrs: Box::new([]),
-    };
-    Stmt {
-        kind: Box::new(StmtKind::Item(Box::new(item))),
-        span: Span::default(),
-        id: NodeId::default(),
     }
 }
 
-pub(crate) fn build_qasm_import_decl_intrinsic() -> Stmt {
+pub(crate) fn build_qasm_import_decl_intrinsic() -> Item {
     let path_kind = Path {
         segments: Some(Box::new([build_ident("QasmStd")])),
         name: Box::new(build_ident("Intrinsic")),
@@ -1065,17 +1066,12 @@ pub(crate) fn build_qasm_import_decl_intrinsic() -> Stmt {
         is_glob: true,
     }];
     let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
-    let item = Item {
+    Item {
         id: NodeId::default(),
         span: Span::default(),
         kind: Box::new(ItemKind::ImportOrExport(decl)),
         doc: "".into(),
         attrs: Box::new([]),
-    };
-    Stmt {
-        kind: Box::new(StmtKind::Item(Box::new(item))),
-        span: Span::default(),
-        id: NodeId::default(),
     }
 }
 
@@ -1190,10 +1186,10 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
     }
 }
 
-pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
+pub(crate) fn build_top_level_ns_with_items<S: AsRef<str>>(
     whole_span: Span,
     ns: S,
-    entry: ast::Item,
+    items: Vec<ast::Item>,
 ) -> TopLevelNode {
     TopLevelNode::Namespace(qsc_ast::ast::Namespace {
         id: NodeId::default(),
@@ -1204,9 +1200,21 @@ pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
             id: NodeId::default(),
         }]
         .into(),
-        items: Box::new([Box::new(entry)]),
+        items: items
+            .into_iter()
+            .map(Box::new)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         doc: "".into(),
     })
+}
+
+pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
+    whole_span: Span,
+    ns: S,
+    entry: ast::Item,
+) -> TopLevelNode {
+    build_top_level_ns_with_items(whole_span, ns, vec![entry])
 }
 
 pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
@@ -1215,12 +1223,13 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
     output_ty: Ty,
     stmts: Vec<ast::Stmt>,
     whole_span: Span,
+    add_entry_point: bool,
 ) -> ast::Item {
     let mut attrs = vec![];
     // If there are no input parameters, add an attribute to mark this
     // as an entry point. We will get a Q# compilation error if we
     // attribute an operation with EntryPoint and it has input parameters.
-    if input_pats.is_empty() {
+    if input_pats.is_empty() && add_entry_point {
         attrs.push(Box::new(qsc_ast::ast::Attr {
             id: NodeId::default(),
             span: Span::default(),

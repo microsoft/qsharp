@@ -40,11 +40,11 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 let my_gate : (Qubit) => Unit = (q) => {
                     x(q);
                 };
