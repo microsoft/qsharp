@@ -14,7 +14,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 
 use crate::{
-    parser::ast::list_from_iter,
+    parser::ast::{list_from_iter, List},
     runtime::RuntimeFunctions,
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
@@ -1703,6 +1703,7 @@ pub(crate) fn build_function_or_operation(
     return_type: Option<Ty>,
     kind: CallableKind,
     functors: Option<FunctorExpr>,
+    attrs: List<Attr>,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1763,6 +1764,7 @@ pub(crate) fn build_function_or_operation(
     let item = Item {
         span: gate_span,
         kind: Box::new(ast::ItemKind::Callable(Box::new(decl))),
+        attrs,
         ..Default::default()
     };
 

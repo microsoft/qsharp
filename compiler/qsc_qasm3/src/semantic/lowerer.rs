@@ -740,16 +740,16 @@ impl Lowerer {
             annotation.identifier.to_string().as_str(),
             "SimulatableIntrinsic" | "Config"
         ) {
-            self.push_unsupported_error_message(
-                format!("Annotation {}.", annotation.identifier),
+            self.push_semantic_error(SemanticErrorKind::UnknownAnnotation(
+                format!("@{}", annotation.identifier),
                 annotation.span,
-            );
+            ));
         }
 
         if let syntax::StmtKind::GateCall(_) = &kind {
             self.push_unsupported_error_message(
                 format!(
-                    "Annotation {} is only allowed on gate definitions.",
+                    "Annotation @{} is only allowed on gate definitions.",
                     annotation.identifier
                 ),
                 annotation.span,

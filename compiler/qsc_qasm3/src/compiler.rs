@@ -405,7 +405,9 @@ impl QasmCompiler {
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
             semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
             semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
-            semast::StmtKind::QuantumGateDefinition(stmt) => self.compile_gate_decl_stmt(stmt),
+            semast::StmtKind::QuantumGateDefinition(gate_stmt) => {
+                self.compile_gate_decl_stmt(gate_stmt, &stmt.annotations)
+            }
             semast::StmtKind::QubitDecl(stmt) => self.compile_qubit_decl_stmt(stmt),
             semast::StmtKind::QubitArrayDecl(stmt) => self.compile_qubit_array_decl_stmt(stmt),
             semast::StmtKind::Reset(stmt) => self.compile_reset_stmt(stmt),
@@ -640,6 +642,7 @@ impl QasmCompiler {
             return_type,
             kind,
             None,
+            Box::default(),
         ))
     }
 
@@ -866,6 +869,7 @@ impl QasmCompiler {
     fn compile_gate_decl_stmt(
         &mut self,
         stmt: &semast::QuantumGateDefinition,
+        annotations: &List<semast::Annotation>,
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
@@ -902,6 +906,10 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
 
+        let attrs = annotations
+            .iter()
+            .filter_map(|annotation| Self::compile_annotation(annotation));
+
         Some(build_function_or_operation(
             name,
             cargs,
@@ -913,7 +921,55 @@ impl QasmCompiler {
             None,
             qsast::CallableKind::Operation,
             Some(build_adj_plus_ctl_functor()),
+            list_from_iter(attrs),
         ))
+    }
+
+    fn compile_annotation(annotation: &semast::Annotation) -> Option<qsast::Attr> {
+        let name = Box::new(qsast::Ident {
+            span: annotation.span,
+            name: annotation.identifier.clone(),
+            ..Default::default()
+        });
+
+        let arg = if let Some(value) = &annotation.value {
+            Box::new(qsast::Expr {
+                span: annotation.span,
+                kind: Box::new(qsast::ExprKind::Paren(Box::new(qsast::Expr {
+                    span: annotation.span,
+                    kind: Box::new(qsast::ExprKind::Path(qsast::PathKind::Ok(Box::new(
+                        qsast::Path {
+                            id: Default::default(),
+                            span: annotation.span,
+                            segments: None,
+                            name: Box::new(qsast::Ident {
+                                span: annotation.span,
+                                name: value.clone(),
+                                ..Default::default()
+                            }),
+                        },
+                    )))),
+                    id: Default::default(),
+                }))),
+                id: Default::default(),
+            })
+        } else {
+            Box::new(qsast::Expr {
+                span: annotation.span,
+                kind: Box::new(qsast::ExprKind::Tuple(Box::default())),
+                id: Default::default(),
+            })
+        };
+
+        match annotation.identifier.as_ref() {
+            "SimulatableIntrinsic" | "Config" => Some(qsast::Attr {
+                span: annotation.span,
+                name,
+                arg,
+                id: Default::default(),
+            }),
+            _ => None,
+        }
     }
 
     fn compile_qubit_decl_stmt(&mut self, stmt: &semast::QubitDeclaration) -> Option<qsast::Stmt> {
