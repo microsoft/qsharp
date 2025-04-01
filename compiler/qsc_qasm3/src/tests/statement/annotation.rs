@@ -32,6 +32,30 @@ fn simulatable_intrinsic_can_be_applied_to_gate() -> miette::Result<(), Vec<Repo
 }
 
 #[test]
+fn config_can_be_applied_to_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        @Config Base
+        gate my_h q {
+            h q;
+        }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        @Config(Base)
+        operation my_h(q : Qubit) : Unit is Adj + Ctl {
+            h(q);
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn unknown_annotation_raises_error() {
     let source = r#"
         include "stdgates.inc";
