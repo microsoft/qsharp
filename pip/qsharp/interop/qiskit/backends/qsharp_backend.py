@@ -101,7 +101,7 @@ class QSharpBackend(BackendBase):
 
     def run(
         self,
-        run_input: Union[QuantumCircuit, List[QuantumCircuit]],
+        run_input: Union[QuantumCircuit, List[QuantumCircuit], str, List[str]],
         **options,
     ) -> QsSimJob:
         """
@@ -134,7 +134,7 @@ class QSharpBackend(BackendBase):
         if not isinstance(run_input, list):
             run_input = [run_input]
         for circuit in run_input:
-            if not isinstance(circuit, QuantumCircuit):
+            if not (isinstance(circuit, QuantumCircuit) or isinstance(circuit, str)):
                 raise ValueError(str(Errors.INPUT_MUST_BE_QC))
 
         return self._run(run_input, **options)
@@ -190,7 +190,7 @@ class QSharpBackend(BackendBase):
         return result
 
     def _submit_job(
-        self, run_input: List[QuantumCircuit], **options
+        self, run_input: List[Union[str, QuantumCircuit]], **options
     ) -> Union[QsSimJob, QsJobSet]:
         job_id = str(uuid4())
         executor: Executor = options.pop("executor", DetaultExecutor())

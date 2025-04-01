@@ -67,10 +67,10 @@ extern "C" {
 
     // Getters for IProgramConfig
     #[wasm_bindgen(method, getter, structural)]
-    fn packageGraphSources(this: &ProgramConfig) -> IPackageGraphSources;
+    pub fn packageGraphSources(this: &ProgramConfig) -> IPackageGraphSources;
 
     #[wasm_bindgen(method, getter, structural)]
-    fn profile(this: &ProgramConfig) -> String;
+    pub fn profile(this: &ProgramConfig) -> String;
 }
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
@@ -267,7 +267,6 @@ serializable_type! {
         pub package_type: Option<String>,
     },
     r#"
-    
     export interface IPackageInfo {
         sources: [string, string][];
         languageFeatures: string[];
@@ -386,7 +385,26 @@ pub(crate) fn into_qsc_args(
 
     let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
     let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    into_qsc_args2(capabilities, pkg_graph, entry)
+}
 
+/// This returns the common parameters that the compiler/interpreter uses
+#[allow(clippy::type_complexity)]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn into_qsc_args2(
+    capabilities: qsc::TargetCapabilityFlags,
+    pkg_graph: qsc_project::PackageGraphSources,
+    entry: Option<String>,
+) -> Result<
+    (
+        qsc::SourceMap,
+        qsc::TargetCapabilityFlags,
+        qsc::LanguageFeatures,
+        qsc::PackageStore,
+        Vec<(qsc::hir::PackageId, Option<Arc<str>>)>,
+    ),
+    Vec<qsc::compile::Error>,
+> {
     // this function call builds all dependencies as a part of preparing the package store
     // for building the user code.
     let buildable_program = BuildableProgram::new(capabilities, pkg_graph);

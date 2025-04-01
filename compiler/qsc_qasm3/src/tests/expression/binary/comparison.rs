@@ -200,6 +200,55 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
 }
 
 #[test]
+fn bitarray_multiple_values_var_comparison_to_int_can_be_translated(
+) -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        bit[3] x = "110";
+        input int y;
+        bool a = (x > y);
+        bool b = (x >= y);
+        bool c = (x < y);
+        bool d = (x <= y);
+        bool e = (x == y);
+        bool f = (x != y);
+        bool g = (y > x);
+        bool h = (y >= x);
+        bool i = (y < x);
+        bool j = (y <= x);
+        bool k = (y == x);
+        bool l = (y != x);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp_file(source)?;
+    expect![
+        r#"
+        namespace qasm3_import {
+            operation Test(y : Int) : (Result[], Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
+                function __ResultArrayAsIntBE__(results : Result[]) : Int {
+                    Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
+                }
+                mutable x = [One, One, Zero];
+                mutable a = (__ResultArrayAsIntBE__(x) > y);
+                mutable b = (__ResultArrayAsIntBE__(x) >= y);
+                mutable c = (__ResultArrayAsIntBE__(x) < y);
+                mutable d = (__ResultArrayAsIntBE__(x) <= y);
+                mutable e = (__ResultArrayAsIntBE__(x) == y);
+                mutable f = (__ResultArrayAsIntBE__(x) != y);
+                mutable g = (y > __ResultArrayAsIntBE__(x));
+                mutable h = (y >= __ResultArrayAsIntBE__(x));
+                mutable i = (y < __ResultArrayAsIntBE__(x));
+                mutable j = (y <= __ResultArrayAsIntBE__(x));
+                mutable k = (y == __ResultArrayAsIntBE__(x));
+                mutable l = (y != __ResultArrayAsIntBE__(x));
+                (x, a, b, c, d, e, f, g, h, i, j, k, l)
+            }
+        }"#
+    ]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let source = "
         float x = 5;
