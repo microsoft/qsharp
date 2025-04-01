@@ -120,7 +120,7 @@ pub enum SemanticErrorKind {
     #[error("Indexed must be a single expression.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
-    #[error("Annotations only valid on gate definitions.")]
+    #[error("Annotations only valid on def and gate statements.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.InvalidAnnotationTarget"))]
     InvalidAnnotationTarget(#[label] Span),
     #[error("Assigning {0} values to {1} must be in a range that be converted to {1}.")]

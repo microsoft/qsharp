@@ -156,11 +156,16 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Stmt> {
     } else if let Some(stmt) = opt(s, parse_measure_stmt)? {
         StmtKind::Measure(stmt)
     } else {
-        return Err(Error::new(ErrorKind::Rule(
-            "statement",
-            s.peek().kind,
-            s.peek().span,
-        )));
+        return if attrs.is_empty() {
+            Err(Error::new(ErrorKind::Rule(
+                "statement",
+                s.peek().kind,
+                s.peek().span,
+            )))
+        } else {
+            let span = attrs.last().expect("there is at least one annotation").span;
+            Err(Error::new(ErrorKind::FloatingAnnotation(span)))
+        };
     };
 
     Ok(Stmt {

@@ -14,7 +14,7 @@ use qsc_ast::ast::{
 use qsc_data_structures::span::Span;
 
 use crate::{
-    parser::ast::list_from_iter,
+    parser::ast::{list_from_iter, List},
     runtime::RuntimeFunctions,
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
@@ -1459,15 +1459,14 @@ pub(crate) fn build_end_stmt(span: Span) -> Stmt {
     };
 
     let kind = ExprKind::Fail(Box::new(message));
-    Stmt {
-        kind: Box::new(StmtKind::Expr(Box::new(Expr {
-            kind: Box::new(kind),
-            span,
-            ..Default::default()
-        }))),
+
+    let expr = Expr {
+        kind: Box::new(kind),
         span,
         ..Default::default()
-    }
+    };
+
+    build_stmt_semi_from_expr_with_span(expr, span)
 }
 
 pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr {
@@ -1482,19 +1481,6 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
 pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span);
     build_stmt_semi_from_expr(expr)
-}
-
-pub(crate) fn build_attr(text: String, span: Span) -> Attr {
-    Attr {
-        id: NodeId::default(),
-        span,
-        name: Box::new(Ident {
-            name: Rc::from(text),
-            span,
-            ..Default::default()
-        }),
-        arg: Box::new(create_unit_expr(span)),
-    }
 }
 
 pub(crate) fn build_gate_decl(
@@ -1703,6 +1689,7 @@ pub(crate) fn build_function_or_operation(
     return_type: Option<Ty>,
     kind: CallableKind,
     functors: Option<FunctorExpr>,
+    attrs: List<Attr>,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1763,6 +1750,7 @@ pub(crate) fn build_function_or_operation(
     let item = Item {
         span: gate_span,
         kind: Box::new(ast::ItemKind::Callable(Box::new(decl))),
+        attrs,
         ..Default::default()
     };
 
@@ -1805,5 +1793,50 @@ fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
         None
     } else {
         Some(idents.into())
+    }
+}
+
+pub(crate) fn build_attr<S>(name: S, value: Option<S>, span: Span) -> Attr
+where
+    S: AsRef<str>,
+{
+    let name = Box::new(Ident {
+        span,
+        name: name.as_ref().into(),
+        ..Default::default()
+    });
+
+    let arg = if let Some(value) = value {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Paren(Box::new(Expr {
+                span,
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+                    id: Default::default(),
+                    span,
+                    segments: None,
+                    name: Box::new(Ident {
+                        span,
+                        name: value.as_ref().into(),
+                        ..Default::default()
+                    }),
+                })))),
+                id: Default::default(),
+            }))),
+            id: Default::default(),
+        })
+    } else {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Tuple(Box::default())),
+            id: Default::default(),
+        })
+    };
+
+    Attr {
+        span,
+        name,
+        arg,
+        id: Default::default(),
     }
 }

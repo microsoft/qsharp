@@ -11,17 +11,17 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 use crate::{
     ast_builder::{
         build_adj_plus_ctl_functor, build_arg_pat, build_array_reverse_expr,
-        build_assignment_statement, build_barrier_call, build_binary_expr, build_call_no_params,
-        build_call_with_param, build_call_with_params, build_cast_call_by_name,
-        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
-        build_expr_array_expr, build_for_stmt, build_function_or_operation,
-        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
-        build_global_call_with_two_params, build_if_expr_then_block,
-        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
-        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lit_angle_expr, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
+        build_call_no_params, build_call_with_param, build_call_with_params,
+        build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
+        build_convert_call_expr, build_end_stmt, build_expr_array_expr, build_for_stmt,
+        build_function_or_operation, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_global_call_with_two_params,
+        build_if_expr_then_block, build_if_expr_then_block_else_block,
+        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
+        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_angle_expr,
+        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
+        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr,
         build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
@@ -379,6 +379,19 @@ impl QasmCompiler {
     }
 
     fn compile_stmt(&mut self, stmt: &crate::semantic::ast::Stmt) -> Option<qsast::Stmt> {
+        if !stmt.annotations.is_empty()
+            && !matches!(
+                stmt.kind.as_ref(),
+                semast::StmtKind::QuantumGateDefinition(..) | semast::StmtKind::Def(..)
+            )
+        {
+            for annotation in &stmt.annotations {
+                self.push_semantic_error(SemanticErrorKind::InvalidAnnotationTarget(
+                    annotation.span,
+                ));
+            }
+        }
+
         match stmt.kind.as_ref() {
             semast::StmtKind::Alias(stmt) => self.compile_alias_decl_stmt(stmt),
             semast::StmtKind::Assign(stmt) => self.compile_assign_stmt(stmt),
@@ -391,10 +404,10 @@ impl QasmCompiler {
                 self.compile_calibration_grammar_stmt(stmt)
             }
             semast::StmtKind::ClassicalDecl(stmt) => self.compile_classical_decl(stmt),
-            semast::StmtKind::Def(stmt) => self.compile_def_stmt(stmt),
+            semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
-            semast::StmtKind::End(stmt) => self.compile_end_stmt(stmt),
+            semast::StmtKind::End(stmt) => Self::compile_end_stmt(stmt),
             semast::StmtKind::ExprStmt(stmt) => self.compile_expr_stmt(stmt),
             semast::StmtKind::ExternDecl(stmt) => self.compile_extern_stmt(stmt),
             semast::StmtKind::For(stmt) => self.compile_for_stmt(stmt),
@@ -405,7 +418,9 @@ impl QasmCompiler {
             semast::StmtKind::OutputDeclaration(stmt) => self.compile_output_decl_stmt(stmt),
             semast::StmtKind::MeasureArrow(stmt) => self.compile_measure_stmt(stmt),
             semast::StmtKind::Pragma(stmt) => self.compile_pragma_stmt(stmt),
-            semast::StmtKind::QuantumGateDefinition(stmt) => self.compile_gate_decl_stmt(stmt),
+            semast::StmtKind::QuantumGateDefinition(gate_stmt) => {
+                self.compile_gate_decl_stmt(gate_stmt, &stmt.annotations)
+            }
             semast::StmtKind::QubitDecl(stmt) => self.compile_qubit_decl_stmt(stmt),
             semast::StmtKind::QubitArrayDecl(stmt) => self.compile_qubit_array_decl_stmt(stmt),
             semast::StmtKind::Reset(stmt) => self.compile_reset_stmt(stmt),
@@ -600,7 +615,11 @@ impl QasmCompiler {
         Some(stmt)
     }
 
-    fn compile_def_stmt(&mut self, stmt: &semast::DefStmt) -> Option<qsast::Stmt> {
+    fn compile_def_stmt(
+        &mut self,
+        stmt: &semast::DefStmt,
+        annotations: &List<semast::Annotation>,
+    ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
 
@@ -627,6 +646,10 @@ impl QasmCompiler {
             qsast::CallableKind::Function
         };
 
+        let attrs = annotations
+            .iter()
+            .filter_map(|annotation| self.compile_annotation(annotation));
+
         // We use the same primitives used for declaring gates, because def declarations
         // in QASM3 can take qubits as arguments and call quantum gates.
         Some(build_function_or_operation(
@@ -640,6 +663,7 @@ impl QasmCompiler {
             return_type,
             kind,
             None,
+            list_from_iter(attrs),
         ))
     }
 
@@ -653,9 +677,8 @@ impl QasmCompiler {
         None
     }
 
-    fn compile_end_stmt(&mut self, stmt: &semast::EndStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("end statements", stmt.span);
-        None
+    fn compile_end_stmt(stmt: &semast::EndStmt) -> Option<qsast::Stmt> {
+        Some(build_end_stmt(stmt.span))
     }
 
     fn compile_expr_stmt(&mut self, stmt: &semast::ExprStmt) -> Option<qsast::Stmt> {
@@ -866,6 +889,7 @@ impl QasmCompiler {
     fn compile_gate_decl_stmt(
         &mut self,
         stmt: &semast::QuantumGateDefinition,
+        annotations: &List<semast::Annotation>,
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
@@ -902,6 +926,10 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
 
+        let attrs = annotations
+            .iter()
+            .filter_map(|annotation| self.compile_annotation(annotation));
+
         Some(build_function_or_operation(
             name,
             cargs,
@@ -913,7 +941,25 @@ impl QasmCompiler {
             None,
             qsast::CallableKind::Operation,
             Some(build_adj_plus_ctl_functor()),
+            list_from_iter(attrs),
         ))
+    }
+
+    fn compile_annotation(&mut self, annotation: &semast::Annotation) -> Option<qsast::Attr> {
+        match annotation.identifier.as_ref() {
+            "SimulatableIntrinsic" | "Config" => Some(build_attr(
+                &annotation.identifier,
+                annotation.value.as_ref(),
+                annotation.span,
+            )),
+            _ => {
+                self.push_semantic_error(SemanticErrorKind::UnknownAnnotation(
+                    format!("@{}", annotation.identifier),
+                    annotation.span,
+                ));
+                None
+            }
+        }
     }
 
     fn compile_qubit_decl_stmt(&mut self, stmt: &semast::QubitDeclaration) -> Option<qsast::Stmt> {

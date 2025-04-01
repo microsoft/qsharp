@@ -98,7 +98,7 @@ pub enum ErrorKind {
     #[error("Empty statements are not supported")]
     #[diagnostic(code("Qasm3.Parse.EmptyStatement"))]
     EmptyStatement(#[label] Span),
-    #[error("expected statement after annotation")]
+    #[error("Annotation missing target statement.")]
     #[diagnostic(code("Qasm3.Parse.FloatingAnnotation"))]
     FloatingAnnotation(#[label] Span),
     #[error("expected {0}, found {1}")]
