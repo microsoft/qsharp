@@ -1459,15 +1459,14 @@ pub(crate) fn build_end_stmt(span: Span) -> Stmt {
     };
 
     let kind = ExprKind::Fail(Box::new(message));
-    Stmt {
-        kind: Box::new(StmtKind::Expr(Box::new(Expr {
-            kind: Box::new(kind),
-            span,
-            ..Default::default()
-        }))),
+
+    let expr = Expr {
+        kind: Box::new(kind),
         span,
         ..Default::default()
-    }
+    };
+
+    build_stmt_semi_from_expr_with_span(expr, span)
 }
 
 pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr {

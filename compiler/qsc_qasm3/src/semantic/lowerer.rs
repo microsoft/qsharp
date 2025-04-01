@@ -1150,8 +1150,7 @@ impl Lowerer {
     }
 
     fn lower_end_stmt(&mut self, stmt: &syntax::EndStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("end stmt", stmt.span);
-        semantic::StmtKind::Err
+        semantic::StmtKind::End(semantic::EndStmt { span: stmt.span })
     }
 
     fn lower_expr_stmt(&mut self, stmt: &syntax::ExprStmt) -> semantic::StmtKind {

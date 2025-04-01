@@ -14,7 +14,7 @@ use crate::{
         build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
         build_call_no_params, build_call_with_param, build_call_with_params,
         build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_expr_array_expr, build_for_stmt,
+        build_convert_call_expr, build_end_stmt, build_expr_array_expr, build_for_stmt,
         build_function_or_operation, build_gate_call_param_expr,
         build_gate_call_with_params_and_callee, build_global_call_with_two_params,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
@@ -394,7 +394,7 @@ impl QasmCompiler {
             semast::StmtKind::Def(stmt) => self.compile_def_stmt(stmt),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
-            semast::StmtKind::End(stmt) => self.compile_end_stmt(stmt),
+            semast::StmtKind::End(stmt) => Self::compile_end_stmt(stmt),
             semast::StmtKind::ExprStmt(stmt) => self.compile_expr_stmt(stmt),
             semast::StmtKind::ExternDecl(stmt) => self.compile_extern_stmt(stmt),
             semast::StmtKind::For(stmt) => self.compile_for_stmt(stmt),
@@ -656,9 +656,8 @@ impl QasmCompiler {
         None
     }
 
-    fn compile_end_stmt(&mut self, stmt: &semast::EndStmt) -> Option<qsast::Stmt> {
-        self.push_unimplemented_error_message("end statements", stmt.span);
-        None
+    fn compile_end_stmt(stmt: &semast::EndStmt) -> Option<qsast::Stmt> {
+        Some(build_end_stmt(stmt.span))
     }
 
     fn compile_expr_stmt(&mut self, stmt: &semast::ExprStmt) -> Option<qsast::Stmt> {
