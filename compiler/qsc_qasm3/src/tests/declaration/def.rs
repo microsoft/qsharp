@@ -45,7 +45,7 @@ fn qubit_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        operation square(q : Qubit) : Int is Adj + Ctl {
+        operation square(q : Qubit) : Int {
             return 1;
         }
     "#]]
@@ -63,7 +63,7 @@ fn qubit_array_parameter() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        operation square(qs : Qubit[]) : Int is Adj + Ctl {
+        operation square(qs : Qubit[]) : Int {
             return 1;
         }
     "#]]

@@ -109,10 +109,10 @@ fn def_can_call_previously_declared_def() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        operation apply_h(q : Qubit) : Unit is Adj + Ctl {
+        operation apply_h(q : Qubit) : Unit {
             h(q);
         }
-        operation apply_hx(q : Qubit) : Unit is Adj + Ctl {
+        operation apply_hx(q : Qubit) : Unit {
             apply_h(q);
             x(q);
         }
@@ -143,7 +143,7 @@ fn gate_can_call_previously_declared_def() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        operation apply_h(q : Qubit) : Unit is Adj + Ctl {
+        operation apply_h(q : Qubit) : Unit {
             h(q);
         }
         operation my_hx(q : Qubit) : Unit is Adj + Ctl {
@@ -180,7 +180,7 @@ fn def_can_call_previously_declared_gate() -> miette::Result<(), Vec<Report>> {
         operation my_h(q : Qubit) : Unit is Adj + Ctl {
             h(q);
         }
-        operation apply_hx(q : Qubit) : Unit is Adj + Ctl {
+        operation apply_hx(q : Qubit) : Unit {
             my_h(q);
             x(q);
         }
@@ -211,7 +211,7 @@ fn def_can_call_itself_recursively() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        operation apply_hx(limit : Int, q : Qubit) : Unit is Adj + Ctl {
+        operation apply_hx(limit : Int, q : Qubit) : Unit {
             if limit > 0 {
                 apply_hx(limit - 1, q);
                 x(q);

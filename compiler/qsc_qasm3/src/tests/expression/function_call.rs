@@ -109,7 +109,7 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        operation parity(qs : Qubit[]) : Result is Adj + Ctl {
+        operation parity(qs : Qubit[]) : Result {
             mutable a = QIR.Intrinsic.__quantum__qis__m__body(qs[0]);
             mutable b = QIR.Intrinsic.__quantum__qis__m__body(qs[1]);
             return if __ResultAsInt__(a) ^^^ __ResultAsInt__(b) == 0 {
@@ -198,7 +198,7 @@ fn funcall_accepts_qubit_argument() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Angle.*;
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
-        operation h_wrapper(q : Qubit) : Unit is Adj + Ctl {
+        operation h_wrapper(q : Qubit) : Unit {
             h(q);
         }
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();

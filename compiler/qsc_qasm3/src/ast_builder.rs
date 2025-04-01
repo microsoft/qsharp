@@ -1702,6 +1702,7 @@ pub(crate) fn build_function_or_operation(
     gate_span: Span,
     return_type: Option<Ty>,
     kind: CallableKind,
+    functors: Option<FunctorExpr>,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1745,12 +1746,6 @@ pub(crate) fn build_function_or_operation(
         stmts: Box::new([]),
     })));
 
-    let functors = if matches!(kind, CallableKind::Operation) {
-        Some(Box::new(build_adj_plus_ctl_functor()))
-    } else {
-        None
-    };
-
     let decl = CallableDecl {
         id: NodeId::default(),
         span: name_span,
@@ -1762,7 +1757,7 @@ pub(crate) fn build_function_or_operation(
         generics: Box::new([]),
         input: Box::new(input_pat),
         output: Box::new(return_type),
-        functors,
+        functors: functors.map(Box::new),
         body: Box::new(body),
     };
     let item = Item {
@@ -1778,7 +1773,7 @@ pub(crate) fn build_function_or_operation(
     }
 }
 
-fn build_adj_plus_ctl_functor() -> FunctorExpr {
+pub(crate) fn build_adj_plus_ctl_functor() -> FunctorExpr {
     let adj = Box::new(FunctorExpr {
         kind: Box::new(FunctorExprKind::Lit(ast::Functor::Adj)),
         id: Default::default(),
