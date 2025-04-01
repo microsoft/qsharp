@@ -4,6 +4,9 @@
 mod algorithms;
 #[rustfmt::skip]
 mod algorithms_generated;
+mod getting_started;
+#[rustfmt::skip]
+mod getting_started_generated;
 #[rustfmt::skip]
 mod estimation_generated;
 mod language;

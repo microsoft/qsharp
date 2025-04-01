@@ -79,7 +79,7 @@ operation EstimateFrequency(
             R1Frac(frequencyEstimate, bitsPrecision - 1 - idx, c);
         }
         if MResetZ(c) == One {
-            set frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
+            frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
         }
     }
 

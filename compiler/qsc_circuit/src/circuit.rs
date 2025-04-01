@@ -191,8 +191,6 @@ pub struct Qubit {
 
 #[derive(Clone, Debug, Copy, Default)]
 pub struct Config {
-    /// Perform Base Profile decompositions
-    pub base_profile: bool,
     /// Maximum number of operations the builder will add to the circuit
     pub max_operations: usize,
 }

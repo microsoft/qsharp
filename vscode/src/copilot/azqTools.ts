@@ -18,6 +18,7 @@ import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
 import { HistogramData } from "./shared.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
+import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -409,6 +410,13 @@ async function submitToTarget(
   if (!qir) throw new CopilotToolError("Failed to generate QIR.");
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
+
+  const confirmed = await CopilotView.getConfirmation(
+    `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+  );
+  if (!confirmed) {
+    return { result: "Job submission was cancelled by the user" };
+  }
 
   try {
     const token = await getTokenForWorkspace(workspace);

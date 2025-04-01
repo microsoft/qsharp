@@ -1,71 +1,21 @@
-import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-export
-    PrepareSparseMultiConfigurationalState,
-    PrepareUnitaryCoupledClusterState;
+export PrepareSparseMultiConfigurationalState;
+export PrepareUnitaryCoupledClusterState;
 
 import Std.Arrays.*;
 import Std.Convert.ComplexAsComplexPolar;
 import Std.Convert.IntAsDouble;
-import Std.StatePreparation.PreparePureStateD;
 import Std.Math.*;
+import Std.StatePreparation.PreparePureStateD;
+import Std.StatePreparation.ApproximatelyPreparePureStateCP;
 
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorEvolutionSet;
-import JordanWigner.JordanWignerClusterOperatorEvolutionSet.JordanWignerClusterOperatorGeneratorSystem;
-import JordanWigner.Utils.JordanWignerInputState;
-import JordanWigner.Utils.TrotterSimulationAlgorithm;
-import Utils.EvolutionGenerator;
-
-operation PrepareTrialState(stateData : (Int, JordanWignerInputState[]), qubits : Qubit[]) : Unit {
-    let (stateType, terms) = stateData;
-
-    // State type indexing from FermionHamiltonianStatePrep
-    // public enum StateType
-    //{
-    //    Default = 0, Single_Configurational = 1, Sparse_Multi_Configurational = 2, Unitary_Coupled_Cluster = 3
-    //}
-
-    if stateType == 2 {
-        // Sparse_Multi_Configurational
-        if IsEmpty(terms) {
-            // Do nothing, as there are no terms to prepare.
-        } elif Length(terms) == 1 {
-            PrepareSingleConfigurationalStateSingleSiteOccupation(terms[0].FermionIndices, qubits);
-        } else {
-            PrepareSparseMultiConfigurationalState(qs => I(qs[0]), terms, qubits);
-        }
-    } elif stateType == 3 {
-        // Unitary_Coupled_Cluster
-        let nTerms = Length(terms);
-        let trotterStepSize = 1.0;
-
-        // The last term is the reference state.
-        let referenceState = PrepareTrialState((2, [terms[nTerms - 1]]), _);
-
-        PrepareUnitaryCoupledClusterState(referenceState, terms[...nTerms - 2], trotterStepSize, qubits);
-    } else {
-        fail ("Unsupported input state.");
-    }
-}
-
-/// # Summary
-/// Simple state preparation of trial state by occupying
-/// spin-orbitals
-///
-/// # Input
-/// ## qubitIndices
-/// Indices of qubits to be occupied by electrons.
-/// ## qubits
-/// Qubits of Hamiltonian.
-operation PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices : Int[], qubits : Qubit[]) : Unit is Adj + Ctl {
-    ApplyToEachCA(X, Subarray(qubitIndices, qubits));
-}
-
-function PrepareSingleConfigurationalStateSingleSiteOccupationWrapper(qubitIndices : Int[]) : (Qubit[] => Unit is Adj + Ctl) {
-    return PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices, _);
-}
+import JordanWigner.ClusterOperatorEvolutionSet.JWClusterOperatorEvolutionSet;
+import JordanWigner.ClusterOperatorEvolutionSet.JWClusterOperatorGeneratorSystem;
+import JordanWigner.Data.JWInputState;
+import Trotterization.TrotterSimulationAlgorithm;
+import Generators.EvolutionGenerator;
 
 /// # Summary
 /// Sparse multi-configurational state preparation of trial state by adding excitations
@@ -82,7 +32,7 @@ function PrepareSingleConfigurationalStateSingleSiteOccupationWrapper(qubitIndic
 /// Qubits of Hamiltonian.
 operation PrepareSparseMultiConfigurationalState(
     initialStatePreparation : (Qubit[] => Unit),
-    excitations : JordanWignerInputState[],
+    excitations : JWInputState[],
     qubits : Qubit[]
 ) : Unit {
     let nExcitations = Length(excitations);
@@ -110,7 +60,7 @@ operation PrepareSparseMultiConfigurationalState(
         use auxillary = Qubit[nBitsIndices + 1];
         use flag = Qubit();
 
-        let arr = Mapped(PrepareSingleConfigurationalStateSingleSiteOccupationWrapper, applyFlips);
+        let arr = Mapped(qubitIndices -> PrepareSingleOccupationsState(qubitIndices, _), applyFlips);
         let multiplexer = MultiplexerBruteForceFromGenerator(nExcitations, idx -> arr[idx]);
         ApproximatelyPreparePureStateCP(0.0, coefficientsNewComplexPolar, Reversed(auxillary));
         multiplexer(auxillary, qubits);
@@ -138,13 +88,13 @@ operation PrepareSparseMultiConfigurationalState(
 /// Qubits of Hamiltonian.
 operation PrepareUnitaryCoupledClusterState(
     initialStatePreparation : (Qubit[] => Unit),
-    clusterOperator : JordanWignerInputState[],
+    clusterOperator : JWInputState[],
     trotterStepSize : Double,
     qubits : Qubit[]
 ) : Unit {
-    let clusterOperatorGeneratorSystem = JordanWignerClusterOperatorGeneratorSystem(clusterOperator);
+    let clusterOperatorGeneratorSystem = JWClusterOperatorGeneratorSystem(clusterOperator);
     let evolutionGenerator = new EvolutionGenerator {
-        EvolutionSet = JordanWignerClusterOperatorEvolutionSet(),
+        EvolutionSet = JWClusterOperatorEvolutionSet(),
         System = clusterOperatorGeneratorSystem
     };
     let trotterOrder = 1;
@@ -152,6 +102,57 @@ operation PrepareUnitaryCoupledClusterState(
     let oracle = simulationAlgorithm(1.0, evolutionGenerator, _);
     initialStatePreparation(qubits);
     oracle(qubits);
+}
+
+operation PrepareTrialState(
+    stateData : (Int, JWInputState[]),
+    qubits : Qubit[]
+) : Unit {
+    let (stateType, terms) = stateData;
+
+    // https://github.com/microsoft/QuantumLibraries/blob/main/Chemistry/src/DataModel/TermTypes.cs#L123
+    // State type indexing from FermionHamiltonianStatePrep
+    // public enum StateType
+    //{
+    //    Default = 0, Single_Configurational = 1, Sparse_Multi_Configurational = 2, Unitary_Coupled_Cluster = 3
+    //}
+
+    if stateType == 2 {
+        // Sparse_Multi_Configurational
+        if IsEmpty(terms) {
+            // Do nothing, as there are no terms to prepare.
+        } elif Length(terms) == 1 {
+            PrepareSingleOccupationsState(terms[0].FermionIndices, qubits);
+        } else {
+            PrepareSparseMultiConfigurationalState(qs => I(qs[0]), terms, qubits);
+        }
+    } elif stateType == 3 {
+        // Unitary_Coupled_Cluster
+        let nTerms = Length(terms);
+        let trotterStepSize = 1.0;
+
+        // The last term is the reference state.
+        let referenceState = PrepareTrialState((2, [terms[nTerms - 1]]), _);
+
+        PrepareUnitaryCoupledClusterState(referenceState, terms[...nTerms - 2], trotterStepSize, qubits);
+    } else {
+        fail ("Unsupported input state.");
+    }
+}
+
+/// # Summary
+/// Simple state preparation of trial state by occupying spin-orbitals
+///
+/// # Input
+/// ## qubitIndices
+/// Indices of qubits to be occupied by electrons.
+/// ## qubits
+/// Qubits of Hamiltonian.
+operation PrepareSingleOccupationsState(
+    qubitIndices : Int[],
+    qubits : Qubit[]
+) : Unit is Adj + Ctl {
+    ApplyToEachCA(X, Subarray(qubitIndices, qubits));
 }
 
 /// # Summary
@@ -170,7 +171,9 @@ operation PrepareUnitaryCoupledClusterState(
 /// # Output
 /// A multiply-controlled unitary operation $U$ that applies unitaries
 /// described by `unitaryGenerator`.
-function MultiplexerBruteForceFromGenerator(unitaryGenerator : (Int, (Int -> (Qubit[] => Unit is Adj + Ctl)))) : ((Qubit[], Qubit[]) => Unit is Adj + Ctl) {
+function MultiplexerBruteForceFromGenerator(
+    unitaryGenerator : (Int, (Int -> (Qubit[] => Unit is Adj + Ctl)))
+) : ((Qubit[], Qubit[]) => Unit is Adj + Ctl) {
     return MultiplexOperationsBruteForceFromGenerator(unitaryGenerator, _, _);
 }
 
@@ -198,7 +201,11 @@ function MultiplexerBruteForceFromGenerator(unitaryGenerator : (Int, (Int -> (Qu
 /// `coefficients` will be padded with identity elements if
 /// fewer than $2^n$ are specified. This version is implemented
 /// directly by looping through n-controlled unitary operators.
-operation MultiplexOperationsBruteForceFromGenerator<'T>(unitaryGenerator : (Int, (Int -> ('T => Unit is Adj + Ctl))), index : Qubit[], target : 'T) : Unit is Adj + Ctl {
+operation MultiplexOperationsBruteForceFromGenerator<'T>(
+    unitaryGenerator : (Int, (Int -> ('T => Unit is Adj + Ctl))),
+    index : Qubit[],
+    target : 'T
+) : Unit is Adj + Ctl {
     let nIndex = Length(index);
     let nStates = 2^nIndex;
     let (nUnitaries, unitaryFunction) = unitaryGenerator;

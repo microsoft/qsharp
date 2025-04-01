@@ -25,7 +25,7 @@ operation GenerateRandomNumberInRange(max : Int) : Int {
     mutable bits = [];
     let nBits = BitSizeI(max);
     for idxBit in 1..nBits {
-        set bits += [GenerateRandomBit()];
+        bits += [GenerateRandomBit()];
     }
     let sample = ResultArrayAsInt(bits);
 

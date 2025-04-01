@@ -46,7 +46,7 @@ operation Main() : Int[] {
         );
 
         Message($"Successfully decoded bit string as int: {decodedInteger}");
-        set decodedIntegers += [decodedInteger];
+        decodedIntegers += [decodedInteger];
     }
 
     return decodedIntegers;

@@ -260,6 +260,7 @@ impl Interpreter {
     }
 
     pub fn from(
+        dbg: bool,
         store: PackageStore,
         source_package_id: qsc_hir::hir::PackageId,
         capabilities: TargetCapabilityFlags,
@@ -277,7 +278,7 @@ impl Interpreter {
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
-            let mut lowerer = qsc_lowerer::Lowerer::new();
+            let mut lowerer = qsc_lowerer::Lowerer::new().with_debug(dbg);
             let pkg = lowerer.lower_package(&unit.package, &fir_store);
             fir_store.insert(map_hir_package_to_fir(id), pkg);
         }
@@ -310,7 +311,7 @@ impl Interpreter {
             lines: 0,
             capabilities,
             fir_store,
-            lowerer: qsc_lowerer::Lowerer::new(),
+            lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             expr_graph: None,
             env: Env::default(),
             sim: sim_circuit_backend(),
@@ -566,8 +567,8 @@ impl Interpreter {
         })
     }
 
-    // Invokes the given callable with the given arguments using the current environment and compilation but with a fresh
-    // simulator configured with the given noise, if any.
+    // Invokes the given callable with the given arguments using the current compilation but with a fresh
+    // environment and simulator configured with the given noise, if any.
     pub fn invoke_with_noise(
         &mut self,
         receiver: &mut impl Receiver,
@@ -579,24 +580,7 @@ impl Interpreter {
             Some(noise) => SparseSim::new_with_noise(&noise),
             None => SparseSim::new(),
         };
-        qsc_eval::invoke(
-            self.package,
-            self.classical_seed,
-            &self.fir_store,
-            &mut self.env,
-            &mut sim,
-            receiver,
-            callable,
-            args,
-        )
-        .map_err(|(error, call_stack)| {
-            eval_error(
-                self.compiler.package_store(),
-                &self.fir_store,
-                call_stack,
-                error,
-            )
-        })
+        self.invoke_with_sim(&mut sim, receiver, callable, args)
     }
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
@@ -759,7 +743,6 @@ impl Interpreter {
             sim.chained.finish()
         } else {
             let mut sim = CircuitBuilder::new(CircuitConfig {
-                base_profile: self.capabilities.is_empty(),
                 max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
             });
 
@@ -1004,14 +987,6 @@ fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
     BackendChain::new(
         SparseSim::new(),
         CircuitBuilder::new(CircuitConfig {
-            // When using in conjunction with the simulator,
-            // the circuit builder should *not* perform base profile
-            // decompositions, in order to match the simulator's behavior.
-            //
-            // Note that conditional compilation (e.g. @Config(Base) attributes)
-            // will still respect the selected profile. This also
-            // matches the behavior of the simulator.
-            base_profile: false,
             max_operations: CircuitConfig::DEFAULT_MAX_OPERATIONS,
         }),
     )
@@ -1067,6 +1042,17 @@ impl Debugger {
             position_encoding,
             state: State::new(source_package_id, entry_exec_graph, None),
         })
+    }
+
+    pub fn from(interpreter: Interpreter, position_encoding: Encoding) -> Self {
+        let source_package_id = interpreter.source_package;
+        let unit = interpreter.fir_store.get(source_package_id);
+        let entry_exec_graph = unit.entry_exec_graph.clone();
+        Self {
+            interpreter,
+            position_encoding,
+            state: State::new(source_package_id, entry_exec_graph, None),
+        }
     }
 
     /// Resumes execution with specified `StepAction`.

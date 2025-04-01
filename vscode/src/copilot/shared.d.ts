@@ -10,6 +10,10 @@ export type CopilotCommand =
       request: string;
     }
   | {
+      command: "confirmation";
+      confirmed: boolean;
+    }
+  | {
       command: "restartChat";
       history: ChatElement[];
       service?: ServiceType;
@@ -38,7 +42,8 @@ export type CopilotUpdate =
   | {
       kind: "appendDelta";
       payload: { delta: string; status: Status };
-    };
+    }
+  | { kind: "showConfirmation"; payload: { confirmText: string } };
 
 export type QuantumChatMessage = UserMessage | AssistantMessage | ToolMessage;
 
@@ -85,6 +90,10 @@ type Status =
   | {
       status: "executingTool";
       toolName: string;
+    }
+  | {
+      status: "awaitingConfirmation";
+      confirmText: string;
     }
   | {
       status: "assistantConnectionError";

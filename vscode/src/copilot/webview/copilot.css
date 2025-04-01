@@ -4,8 +4,8 @@
 body {
   padding: 12px;
   height: 100%;
-  /*  match the native vscode chat style */
-  font-family: "Segoe WPC", "Segoe UI", "sans-serif";
+  /*  system-ui works great on all platforms and browsers these days */
+  font-family: system-ui;
   font-size: 13px;
   background-color: var(--vscode-chat-list-background);
 }
@@ -38,10 +38,14 @@ h1 {
 }
 
 .status-indicator {
-  height: 30px;
-  font-weight: bold;
-  text-align: right;
-  font-size: smaller;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  margin: 0.6em 0;
+  font-style: italic;
+  font-size: 0.9em;
 }
 
 .input-textarea {
@@ -91,7 +95,7 @@ h1 {
 .user-message,
 .assistant-message {
   padding: 0 16px;
-  margin-bottom: 16px;
+  margin-top: 16px;
   border: 1px solid #ccc;
   border-radius: 0.5em;
 }
@@ -165,4 +169,189 @@ pre code {
 
 .histogram-container {
   width: 100%;
+  margin-top: 1em;
+}
+
+/* If not specified it defaults to the 'pre code' default monospace font  */
+.hljs-copy-button {
+  font-family: system-ui;
+}
+
+/* The below are styles to set the highlight.js colors to match the 'Modern' light and dark themes in vscode */
+/* Default colors, or theme set explicitly to light */
+:root,
+[data-vscode-theme-kind="vscode-light"],
+[data-vscode-theme-kind="vscode-high-contrast-light"] {
+  --qs-code-background: #ffffff;
+  --qs-code-default: #001080;
+  --qs-code-keyword: #af00db;
+  --qs-code-declare: #0000ff;
+  --qs-code-punctuation: #af00db;
+  --qs-code-operator: #af00db;
+  --qs-code-comments: #008000;
+  --qs-code-strings: #a31515;
+  --qs-code-numbers: #098658;
+  --qs-code-calls: #795e26;
+  --qs-welcome-background: linear-gradient(
+    90deg,
+    hsl(0deg 0% 100%),
+    hsl(218 16% 98%)
+  );
+  --qs-welcome-color: #222;
+  --qs-welcome-chatbox: #fff;
+}
+
+/* Explicit dark theme set */
+[data-vscode-theme-kind="vscode-dark"],
+[data-vscode-theme-kind="vscode-high-contrast"] {
+  --qs-code-background: #1f1f1f;
+  --qs-code-default: #9cdcfe;
+  --qs-code-keyword: #c586c0;
+  --qs-code-declare: #569cd6;
+  --qs-code-punctuation: #c586c0;
+  --qs-code-operator: #c586c0;
+  --qs-code-comments: #6a9955;
+  --qs-code-strings: #ce9178;
+  --qs-code-numbers: #b5cea8;
+  --qs-code-calls: #dcdcaa;
+  --qs-welcome-background: linear-gradient(
+    90deg,
+    hsl(0deg 0% 13.31%),
+    hsl(218deg 2.12% 15.67%)
+  );
+  --qs-welcome-color: #eee;
+  --qs-welcome-chatbox: #313131;
+}
+
+/* Code block styles for highlight.js */
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+code.hljs {
+  padding: 3px 5px;
+}
+
+.hljs {
+  color: var(--qs-code-default);
+  background: var(--qs-code-background);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: var(--qs-code-keyword);
+}
+.hljs-punctuation {
+  color: var(--qs-code-punctuation);
+}
+.hljs-type,
+.hljs-declare {
+  color: var(--qs-code-declare);
+}
+
+.hljs-operator {
+  color: var(--qs-code-operator);
+}
+
+.hljs-title {
+  color: var(--qs-code-calls);
+}
+
+.hljs-number {
+  color: var(--qs-code-numbers);
+}
+
+.hljs-string,
+.hljs-name,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: var(--qs-code-strings);
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: var(--qs-code-comments);
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-title,
+.hljs-section,
+.hljs-doctag,
+.hljs-built_in,
+.hljs-type,
+.hljs-name,
+.hljs-strong {
+  font-weight: normal;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+
+/* Welcome message styles */
+#qs-copilot-welcome {
+  color: var(--qs-welcome-color);
+  max-width: 500px;
+  border: 0.5px solid #ccc;
+  border-radius: 0.8em;
+  background: var(--qs-welcome-background);
+  box-shadow: 0.1em 0.1em 0.4em rgba(0, 0, 0, 0.1);
+  font-family: system-ui;
+  font-size: 0.9em;
+  padding: 1em;
+}
+
+.qs-copilot-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  font-size: 1.5em;
+  font-weight: 400;
+  margin-bottom: 0.8em;
+}
+
+.qs-copilot-blurb {
+  margin-bottom: 0.8em;
+  line-height: 1.33em;
+}
+
+.qs-copilot-demo1 {
+  border: 0.5px solid #888;
+  border-radius: 0.4em;
+  background: var(--qs-welcome-chatbox);
+  /* dark: #313131 */
+  margin: 0.4em 0.8em;
+  padding: 0.4em 0.6em;
+  display: inline-block;
+  font-style: italic;
+}
+
+.qs-copilot-disclaimer {
+  font-size: 0.8em;
+  color: gray;
+  margin-top: 0.8em;
+}
+
+.confirm-button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 4px;
+  padding: 0.3em 0.6em;
+  margin-top: 0.4em;
+  margin-bottom: 0.2em;
+  margin-left: 0.6em;
+  margin-right: 0;
+  cursor: pointer;
 }

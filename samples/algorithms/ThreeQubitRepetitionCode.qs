@@ -30,7 +30,7 @@ operation Main() : (Bool, Int) {
             let (parity01, parity12) = MeasureBitFlipSyndrome(encodedRegister);
             let bitFlipReverted = RevertBitFlip(encodedRegister, parity01, parity12);
             if (bitFlipReverted) {
-                set bitFlipCount += 1;
+                bitFlipCount += 1;
             }
         }
     }
@@ -82,7 +82,7 @@ operation RevertBitFlip(register : Qubit[], parity01 : Result, parity12 : Result
         if parity12 == One {
             X(register[2]);
         } else {
-            set result = false;
+            result = false;
         }
     }
     return result;

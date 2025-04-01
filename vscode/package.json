@@ -240,6 +240,11 @@
           "command": "qsharp-vscode.workspacesAdd",
           "when": "view == quantum-workspaces",
           "group": "navigation"
+        },
+        {
+          "command": "qsharp-vscode.copilotClear",
+          "when": "view == quantum-copilot",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -286,7 +291,7 @@
       "activitybar": [
         {
           "id": "quantum-copilot-container",
-          "title": "Azure Quantum Copilot",
+          "title": "Microsoft Quantum Copilot",
           "icon": "resources/Q-vector-1024x1024.svg"
         }
       ]
@@ -303,7 +308,7 @@
           "when": "config.Q#.chat.enabled",
           "id": "quantum-copilot",
           "type": "webview",
-          "name": "Azure Quantum Copilot"
+          "name": "Microsoft Quantum Copilot"
         }
       ]
     },
@@ -385,6 +390,13 @@
         "category": "Q#",
         "title": "Remove workspace connection",
         "icon": "$(remove)"
+      },
+      {
+        "command": "qsharp-vscode.copilotClear",
+        "category": "Q#",
+        "title": "Clear Quantum Copilot chat",
+        "enablement": "!qdkCopilotIsBusy",
+        "icon": "$(clear-all)"
       },
       {
         "command": "qsharp-vscode.workspacePythonCode",

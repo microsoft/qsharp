@@ -274,7 +274,7 @@ impl<
         error_budget: &ErrorBudget,
         num_cycles: u64,
     ) -> bool {
-        self.max_factories.map_or(true, |max_factories| {
+        self.max_factories.is_none_or(|max_factories| {
             max_factories >= self.num_factories(logical_patch, 0, factory, error_budget, num_cycles)
         })
     }

@@ -431,7 +431,21 @@ def test_run_with_result(capsys) -> None:
 
 def test_run_with_result_from_callable(capsys) -> None:
     qsharp.init()
-    qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
+    results = qsharp.run(qsharp.code.Foo, 3)
+    assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
+    stdout = capsys.readouterr().out
+    assert stdout == "Hello, world!\nHello, world!\nHello, world!\n"
+
+
+def test_run_with_result_from_callable_while_global_qubits_allocated(capsys) -> None:
+    qsharp.init()
+    qsharp.eval("use q = Qubit();")
+    qsharp.eval(
+        'operation Foo() : Result { Message("Hello, world!"); use q = Qubit(); M(q) }'
+    )
     results = qsharp.run(qsharp.code.Foo, 3)
     assert results == [qsharp.Result.Zero, qsharp.Result.Zero, qsharp.Result.Zero]
     stdout = capsys.readouterr().out
@@ -496,38 +510,6 @@ def test_run_with_invalid_shots_produces_error() -> None:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
-
-
-def test_target_profile_str_values_match_enum_values() -> None:
-    target_profile = qsharp.TargetProfile.Base
-    str_value = str(target_profile)
-    assert str_value == "Base"
-    target_profile = qsharp.TargetProfile.Adaptive_RI
-    str_value = str(target_profile)
-    assert str_value == "Adaptive_RI"
-    target_profile = qsharp.TargetProfile.Adaptive_RIF
-    str_value = str(target_profile)
-    assert str_value == "Adaptive_RIF"
-    target_profile = qsharp.TargetProfile.Unrestricted
-    str_value = str(target_profile)
-    assert str_value == "Unrestricted"
-
-
-def test_target_profile_from_str_match_enum_values() -> None:
-    target_profile = qsharp.TargetProfile.Base
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Adaptive_RI
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Adaptive_RIF
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    target_profile = qsharp.TargetProfile.Unrestricted
-    str_value = str(target_profile)
-    assert qsharp.TargetProfile.from_str(str_value) == target_profile
-    with pytest.raises(ValueError):
-        qsharp.TargetProfile.from_str("Invalid")
 
 
 def test_callables_exposed_into_env() -> None:
