@@ -1691,6 +1691,84 @@ pub(crate) fn build_lambda<S: AsRef<str>>(
     }
 }
 
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+pub(crate) fn build_function_or_operation(
+    name: String,
+    cargs: Vec<(String, Ty, Pat)>,
+    qargs: Vec<(String, Ty, Pat)>,
+    body: Option<Block>,
+    name_span: Span,
+    body_span: Span,
+    gate_span: Span,
+    return_type: Option<Ty>,
+    kind: CallableKind,
+) -> Stmt {
+    let args = cargs
+        .into_iter()
+        .chain(qargs)
+        .map(|(_, _, pat)| Box::new(pat))
+        .collect::<Vec<_>>();
+
+    let lo = args
+        .iter()
+        .min_by_key(|x| x.span.lo)
+        .map(|x| x.span.lo)
+        .unwrap_or_default();
+
+    let hi = args
+        .iter()
+        .max_by_key(|x| x.span.hi)
+        .map(|x| x.span.hi)
+        .unwrap_or_default();
+
+    let input_pat_kind = if args.len() == 1 {
+        PatKind::Paren(args[0].clone())
+    } else {
+        PatKind::Tuple(args.into_boxed_slice())
+    };
+
+    let input_pat = Pat {
+        kind: Box::new(input_pat_kind),
+        span: Span { lo, hi },
+        ..Default::default()
+    };
+    let return_type = if let Some(ty) = return_type {
+        ty
+    } else {
+        build_path_ident_ty("Unit")
+    };
+    let body = CallableBody::Block(Box::new(body.unwrap_or_else(|| Block {
+        id: NodeId::default(),
+        span: body_span,
+        stmts: Box::new([]),
+    })));
+    let decl = CallableDecl {
+        id: NodeId::default(),
+        span: name_span,
+        kind,
+        name: Box::new(Ident {
+            name: name.into(),
+            ..Default::default()
+        }),
+        generics: Box::new([]),
+        input: Box::new(input_pat),
+        output: Box::new(return_type),
+        functors: None,
+        body: Box::new(body),
+    };
+    let item = Item {
+        span: gate_span,
+        kind: Box::new(ast::ItemKind::Callable(Box::new(decl))),
+        ..Default::default()
+    };
+
+    Stmt {
+        kind: Box::new(StmtKind::Item(Box::new(item))),
+        span: gate_span,
+        ..Default::default()
+    }
+}
+
 fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
     let idents = idents
         .iter()

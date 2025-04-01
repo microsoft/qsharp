@@ -520,7 +520,45 @@ impl Lowerer {
 
         let (symbol_id, symbol) = self.try_get_existing_or_insert_err_symbol(&name, ident.span);
 
-        let kind = semantic::ExprKind::Ident(symbol_id);
+        // Design Note: The end goal of this const evaluation is to be able to compile qasm
+        //              annotations as Q# attributes like `@SimulatableIntrinsic()`.
+        //
+        //              QASM3 subroutines and gates can be recursive and capture const symbols
+        //              outside their scope. In Q#, only lambdas can capture symbols, but only
+        //              proper functions and operations can be recursive or have attributes on
+        //              them. To get both, annotations & recursive gates/functions and the
+        //              ability to capture const symbols outside the gate/function scope, we
+        //              decided to compile the gates/functions as proper Q# operations/functions
+        //              and evaluate at lowering-time all references to const symbols outside
+        //              the current gate/function scope.
+
+        // This is true if we are inside any gate or function scope.
+        let is_symbol_inside_gate_or_function_scope =
+            self.symbols.is_scope_rooted_in_gate_or_subroutine();
+
+        // This is true if the symbol is outside the most inner gate or function scope.
+        let is_symbol_outside_most_inner_gate_or_function_scope = self
+            .symbols
+            .is_symbol_outside_most_inner_gate_or_function_scope(symbol_id);
+
+        let is_const_evaluation_necessary = symbol.is_const()
+            && is_symbol_inside_gate_or_function_scope
+            && is_symbol_outside_most_inner_gate_or_function_scope;
+
+        let kind = if is_const_evaluation_necessary {
+            if let Some(val) = symbol.get_const_expr().const_eval(&self.symbols) {
+                semantic::ExprKind::Lit(val)
+            } else {
+                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                    ident.name.to_string(),
+                    ident.span,
+                ));
+                semantic::ExprKind::Err
+            }
+        } else {
+            semantic::ExprKind::Ident(symbol_id)
+        };
+
         semantic::Expr {
             span: ident.span,
             kind: Box::new(kind),
