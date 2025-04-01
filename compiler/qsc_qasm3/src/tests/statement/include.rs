@@ -45,6 +45,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
+                @SimulatableIntrinsic()
                 operation my_gate(q : Qubit) : Unit is Adj + Ctl {
                     x(q);
                 }
