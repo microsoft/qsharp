@@ -69,7 +69,6 @@ fn can_use_negated_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<R
 /// The stmts can also be on the next line.
 
 #[test]
-#[ignore = "QASM3 Parser bug"]
 fn then_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -79,17 +78,19 @@ fn then_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
-            Z(q);
+            z(q);
         };
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "QASM3 Parser bug"]
 fn else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -100,19 +101,21 @@ fn else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
-            Z(q);
+            z(q);
         } else {
-            Y(q);
+            y(q);
         };
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "QASM3 Parser bug"]
 fn then_and_else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -123,13 +126,16 @@ fn then_and_else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
-            Z(q);
+            z(q);
         } else {
-            Y(q);
+            y(q);
         };
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

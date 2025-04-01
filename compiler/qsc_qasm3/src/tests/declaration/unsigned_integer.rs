@@ -39,7 +39,6 @@ fn const_implicit_bitness_int_lit_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "oq3 parser bug, capital X is not recognized as hex"]
 fn implicit_bitness_int_hex_cap_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         uint x = 0XFa_1F;
@@ -72,10 +71,9 @@ fn const_implicit_bitness_int_hex_low_decl() -> miette::Result<(), Vec<Report>> 
 }
 
 #[test]
-#[ignore = "oq3 parser bug, capital X is not recognized as hex"]
 fn const_implicit_bitness_int_hex_cap_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
-        const uint y = 0XFa_1F;
+        const uint x = 0XFa_1F;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
@@ -137,7 +135,6 @@ fn implicit_bitness_int_binary_low_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "oq3 parser bug, capital B is not recognized as binary"]
 fn implicit_bitness_int_binary_cap_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         uint x = 0B1010;
@@ -170,7 +167,6 @@ fn const_implicit_bitness_int_binary_low_decl() -> miette::Result<(), Vec<Report
 }
 
 #[test]
-#[ignore = "oq3 parser bug, capital B is not recognized as binary"]
 fn const_implicit_bitness_int_binary_cap_decl() -> miette::Result<(), Vec<Report>> {
     let source = "
         const uint x = 0B1010;

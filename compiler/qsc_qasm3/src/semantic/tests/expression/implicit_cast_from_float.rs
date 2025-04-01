@@ -531,7 +531,6 @@ fn to_explicit_complex_implicitly() {
 }
 
 #[test]
-#[ignore = "not yet implemented"]
 fn to_angle_implicitly() {
     let input = "
         float x = 42.;
@@ -541,44 +540,37 @@ fn to_angle_implicitly() {
     check_classical_decls(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-23]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-23]:
-                            symbol_id: 6
-                            ty_span: [9-14]
-                            init_expr: Expr [19-22]:
-                                ty: Float(None, true)
-                                kind: Lit: Float(42.0)
-
-            [Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: Cast float
-              | to angle
-               ,-[test:3:9]
-             2 |         float x = 42.;
-             3 |         angle y = x;
-               :         ^^^^^^^^^^^^
-             4 |
-               `----
-            , Qsc.Qasm3.Compile.CannotCast
-
-              x Cannot cast expression of type Float(None, false) to type Angle(None,
-              | false)
-               ,-[test:3:9]
-             2 |         float x = 42.;
-             3 |         angle y = x;
-               :         ^^^^^^^^^^^^
-             4 |
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [9-23]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [19-22]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.0)
+            [8] Symbol [15-16]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default
+            ClassicalDeclarationStmt [32-44]:
+                symbol_id: 9
+                ty_span: [32-37]
+                init_expr: Expr [42-43]:
+                    ty: Angle(None, false)
+                    kind: Cast [0-0]:
+                        ty: Angle(None, false)
+                        expr: Expr [42-43]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+            [9] Symbol [38-39]:
+                name: y
+                type: Angle(None, false)
+                qsharp_type: Angle
+                io_kind: Default
+        "#]],
     );
 }
 
 #[test]
-#[ignore = "not yet implemented"]
 fn to_explicit_angle_implicitly() {
     let input = "
         float x = 42.;
@@ -588,38 +580,32 @@ fn to_explicit_angle_implicitly() {
     check_classical_decls(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-23]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-23]:
-                            symbol_id: 6
-                            ty_span: [9-14]
-                            init_expr: Expr [19-22]:
-                                ty: Float(None, true)
-                                kind: Lit: Float(42.0)
-
-            [Qsc.Qasm3.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: Cast float
-              | to angle
-               ,-[test:3:9]
-             2 |         float x = 42.;
-             3 |         angle[4] y = x;
-               :         ^^^^^^^^^^^^^^^
-             4 |
-               `----
-            , Qsc.Qasm3.Compile.CannotCast
-
-              x Cannot cast expression of type Float(None, false) to type Angle(Some(4),
-              | false)
-               ,-[test:3:9]
-             2 |         float x = 42.;
-             3 |         angle[4] y = x;
-               :         ^^^^^^^^^^^^^^^
-             4 |
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [9-23]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [19-22]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.0)
+            [8] Symbol [15-16]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default
+            ClassicalDeclarationStmt [32-47]:
+                symbol_id: 9
+                ty_span: [32-40]
+                init_expr: Expr [45-46]:
+                    ty: Angle(Some(4), false)
+                    kind: Cast [0-0]:
+                        ty: Angle(Some(4), false)
+                        expr: Expr [45-46]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+            [9] Symbol [41-42]:
+                name: y
+                type: Angle(Some(4), false)
+                qsharp_type: Angle
+                io_kind: Default
+        "#]],
     );
 }
