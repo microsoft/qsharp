@@ -738,6 +738,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
+    let expr_span = expr.span;
     let ident = ast::Ident {
         id: NodeId::default(),
         span: name_span,
@@ -764,6 +765,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
     ast::Expr {
         kind: Box::new(call_kind),
+        span: expr_span,
         ..Default::default()
     }
 }
@@ -801,6 +803,7 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
     let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
     ast::Expr {
         kind: Box::new(call_kind),
+        span: name_span,
         ..Default::default()
     }
 }

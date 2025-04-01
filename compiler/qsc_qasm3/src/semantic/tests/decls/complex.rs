@@ -234,106 +234,147 @@ fn implicit_bitness_int_real_only() {
 }
 
 #[test]
-#[ignore = "Requires support for binary operators"]
 fn implicit_bitness_simple_double_pos_im() {
     check_classical_decl(
         "complex[float] x = 1.1 + 2.2im;",
         &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: binary op expr
-           ,-[test:1:20]
-         1 | complex[float] x = 1.1 + 2.2im;
-           :                    ^^^^^^^^^^^
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [0-31]:
+                symbol_id: 8
+                ty_span: [0-14]
+                init_expr: Expr [19-30]:
+                    ty: Complex(None, false)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [19-22]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(1.1, 0.0)
+                        rhs: Expr [25-30]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 2.2)
+            [8] Symbol [15-16]:
+                name: x
+                type: Complex(None, false)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-#[ignore = "Requires support for binary operators"]
 fn implicit_bitness_simple_double_neg_im() {
     check_classical_decl(
         "complex[float] x = 1.1 - 2.2im;",
         &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: binary op expr
-           ,-[test:1:20]
-         1 | complex[float] x = 1.1 - 2.2im;
-           :                    ^^^^^^^^^^^
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [0-31]:
+                symbol_id: 8
+                ty_span: [0-14]
+                init_expr: Expr [19-30]:
+                    ty: Complex(None, false)
+                    kind: BinaryOpExpr:
+                        op: Sub
+                        lhs: Expr [19-22]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(1.1, 0.0)
+                        rhs: Expr [25-30]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 2.2)
+            [8] Symbol [15-16]:
+                name: x
+                type: Complex(None, false)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-#[ignore = "Requires support for binary operators"]
 fn const_implicit_bitness_simple_double_neg_im() {
     check_classical_decl(
         "const complex[float] x = 1.1 - 2.2im;",
         &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: binary op expr
-           ,-[test:1:26]
-         1 | const complex[float] x = 1.1 - 2.2im;
-           :                          ^^^^^^^^^^^
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [0-37]:
+                symbol_id: 8
+                ty_span: [6-20]
+                init_expr: Expr [25-36]:
+                    ty: Complex(None, true)
+                    kind: BinaryOpExpr:
+                        op: Sub
+                        lhs: Expr [25-28]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(1.1, 0.0)
+                        rhs: Expr [31-36]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 2.2)
+            [8] Symbol [21-22]:
+                name: x
+                type: Complex(None, true)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-#[ignore = "Requires support for binary operators"]
 fn implicit_bitness_simple_double_neg_real() {
     check_classical_decl(
         "complex[float] x = -1.1 + 2.2im;",
         &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: binary op expr
-           ,-[test:1:20]
-         1 | complex[float] x = -1.1 + 2.2im;
-           :                    ^^^^^^^^^^^^
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [0-32]:
+                symbol_id: 8
+                ty_span: [0-14]
+                init_expr: Expr [19-31]:
+                    ty: Complex(None, false)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [20-23]:
+                            ty: Complex(None, true)
+                            kind: Cast [0-0]:
+                                ty: Complex(None, true)
+                                expr: Expr [20-23]:
+                                    ty: Float(None, true)
+                                    kind: UnaryOpExpr [20-23]:
+                                        op: Neg
+                                        expr: Expr [20-23]:
+                                            ty: Float(None, true)
+                                            kind: Lit: Float(1.1)
+                        rhs: Expr [26-31]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 2.2)
+            [8] Symbol [15-16]:
+                name: x
+                type: Complex(None, false)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
 
 #[test]
-#[ignore = "Requires support for binary operators"]
 fn const_implicit_bitness_simple_double_neg_real() {
     check_classical_decl(
         "const complex[float] x = -1.1 + 2.2im;",
         &expect![[r#"
-        Program:
-            version: <none>
-            statements: <empty>
-
-        [Qsc.Qasm3.Compile.Unimplemented
-
-          x this statement is not yet handled during OpenQASM 3 import: binary op expr
-           ,-[test:1:26]
-         1 | const complex[float] x = -1.1 + 2.2im;
-           :                          ^^^^^^^^^^^^
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [0-38]:
+                symbol_id: 8
+                ty_span: [6-20]
+                init_expr: Expr [25-37]:
+                    ty: Complex(None, true)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [26-29]:
+                            ty: Complex(None, true)
+                            kind: Cast [0-0]:
+                                ty: Complex(None, true)
+                                expr: Expr [26-29]:
+                                    ty: Float(None, true)
+                                    kind: UnaryOpExpr [26-29]:
+                                        op: Neg
+                                        expr: Expr [26-29]:
+                                            ty: Float(None, true)
+                                            kind: Lit: Float(1.1)
+                        rhs: Expr [32-37]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 2.2)
+            [8] Symbol [21-22]:
+                name: x
+                type: Complex(None, true)
+                qsharp_type: Complex
+                io_kind: Default"#]],
     );
 }
