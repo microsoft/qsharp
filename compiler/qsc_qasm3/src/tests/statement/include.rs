@@ -45,9 +45,9 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
-                let my_gate : (Qubit) => Unit = (q) => {
+                operation my_gate(q : Qubit) : Unit is Adj + Ctl {
                     x(q);
-                };
+                }
                 mutable c = [Zero];
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);
