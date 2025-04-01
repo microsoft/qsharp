@@ -255,9 +255,9 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         mutable b = [Zero, Zero];
-        let foo : (Int, Qubit[]) => Result = (i, d) => {
+        operation foo(i : Int, d : Qubit[]) : Result is Adj + Ctl {
             return QIR.Intrinsic.__quantum__qis__m__body(d[i]);
-        };
+        }
         mutable i = 15;
         mutable j = 1;
         mutable k = 2;

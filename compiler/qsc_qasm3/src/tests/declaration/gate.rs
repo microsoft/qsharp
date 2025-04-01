@@ -15,13 +15,11 @@ fn single_qubit() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let my_h : (Qubit) => Unit = (q) => {
+    expect![[r#"
+        operation my_h(q : Qubit) : Unit is Adj + Ctl {
             h(q);
-        };
-        "#
-    ]
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -37,14 +35,12 @@ fn two_qubits() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let my_h : (Qubit, Qubit) => Unit = (q, q2) => {
+    expect![[r#"
+        operation my_h(q : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
             h(q2);
             h(q);
-        };
-        "#
-    ]
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -60,9 +56,9 @@ fn single_angle_single_qubit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let my_h : (__Angle__, Qubit) => Unit = (θ, q) => {
+        operation my_h(θ : __Angle__, q : Qubit) : Unit is Adj + Ctl {
             rx(θ, q);
-        };
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -80,10 +76,10 @@ fn two_angles_two_qubits() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        let my_h : (__Angle__, __Angle__, Qubit, Qubit) => Unit = (θ, φ, q, q2) => {
+        operation my_h(θ : __Angle__, φ : __Angle__, q : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
             rx(θ, q2);
             ry(φ, q);
-        };
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())
