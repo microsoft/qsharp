@@ -400,7 +400,7 @@ impl QasmCompiler {
 
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
         // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
-        // This will call compile_binary_expr which handles angles correctly.
+        // This will call compile_binary_expr which handles angles & complex correctly.
         if matches!(&stmt.lhs.ty, Type::Angle(..) | Type::Complex(..)) {
             if stmt.indices.is_empty() {
                 let rhs = semast::Expr {
