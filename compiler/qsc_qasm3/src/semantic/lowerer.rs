@@ -257,7 +257,7 @@ impl Lowerer {
             gate_symbol("cx", 0, 2),
             gate_symbol("cy", 0, 2),
             gate_symbol("cz", 0, 2),
-            gate_symbol("cp", 0, 2),
+            gate_symbol("cp", 1, 2),
             gate_symbol("swap", 0, 2),
             gate_symbol("ccx", 0, 3),
             gate_symbol("cu", 4, 2),
