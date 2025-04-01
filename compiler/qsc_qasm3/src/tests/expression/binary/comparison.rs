@@ -25,11 +25,11 @@ fn int_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = 5;
                 mutable y = 3;
                 mutable f = (x > y);
@@ -61,11 +61,11 @@ fn uint_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = 5;
                 mutable y = 3;
                 mutable f = (x > y);
@@ -97,11 +97,11 @@ fn bit_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result, Result, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = One;
                 mutable y = Zero;
                 mutable f = (x > y);
@@ -133,11 +133,11 @@ fn bitarray_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result[], Result[], Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = [One];
                 mutable y = [Zero];
                 mutable f = (__ResultArrayAsIntBE__(x) > __ResultArrayAsIntBE__(y));
@@ -175,10 +175,10 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             operation Test(y : Int) : (Result[], Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = [One];
                 mutable a = (__ResultArrayAsIntBE__(x) > y);
                 mutable b = (__ResultArrayAsIntBE__(x) >= y);
@@ -215,11 +215,11 @@ fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Double, Double, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = 5.;
                 mutable y = 3.;
                 mutable f = (x > y);
@@ -253,11 +253,11 @@ fn bool_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable x = true;
                 mutable y = false;
                 mutable a = (x and y);

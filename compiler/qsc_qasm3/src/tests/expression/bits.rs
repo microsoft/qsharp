@@ -25,14 +25,13 @@ fn bit_array_bits_and_register_ops() -> miette::Result<(), Vec<Report>> {
         rs_a_1 = (a >> 1); // Bit shift right produces "01000111"
     "#;
     let qsharp = compile_qasm_to_qsharp_file(source)?;
-    expect![
-        r#"
+    expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result[], Result[], Result[], Result[], Result[]) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable a = [One, Zero, Zero, Zero, One, One, One, One];
                 mutable b = [Zero, One, One, One, Zero, Zero, Zero, Zero];
                 mutable ls_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
@@ -47,8 +46,7 @@ fn bit_array_bits_and_register_ops() -> miette::Result<(), Vec<Report>> {
                 set rs_a_1 = (__IntAsResultArrayBE__(__ResultArrayAsIntBE__(a) >>> 1, 8));
                 (ls_a_1, a_or_b, a_and_b, a_xor_b, rs_a_1)
             }
-        }"#
-    ]
+        }"#]]
     .assert_eq(&qsharp);
     Ok(())
 }

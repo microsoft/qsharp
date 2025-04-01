@@ -3696,7 +3696,7 @@ impl QasmCompiler {
             .collect::<Vec<_>>();
 
         (
-            build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span),
+            build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span, true),
             signature,
         )
     }
