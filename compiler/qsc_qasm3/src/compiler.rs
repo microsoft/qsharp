@@ -379,6 +379,19 @@ impl QasmCompiler {
     }
 
     fn compile_stmt(&mut self, stmt: &crate::semantic::ast::Stmt) -> Option<qsast::Stmt> {
+        if !stmt.annotations.is_empty()
+            && !matches!(
+                stmt.kind.as_ref(),
+                semast::StmtKind::QuantumGateDefinition(..) | semast::StmtKind::Def(..)
+            )
+        {
+            for annotation in &stmt.annotations {
+                self.push_semantic_error(SemanticErrorKind::InvalidAnnotationTarget(
+                    annotation.span,
+                ));
+            }
+        }
+
         match stmt.kind.as_ref() {
             semast::StmtKind::Alias(stmt) => self.compile_alias_decl_stmt(stmt),
             semast::StmtKind::Assign(stmt) => self.compile_assign_stmt(stmt),
@@ -391,7 +404,7 @@ impl QasmCompiler {
                 self.compile_calibration_grammar_stmt(stmt)
             }
             semast::StmtKind::ClassicalDecl(stmt) => self.compile_classical_decl(stmt),
-            semast::StmtKind::Def(stmt) => self.compile_def_stmt(stmt),
+            semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
             semast::StmtKind::End(stmt) => Self::compile_end_stmt(stmt),
@@ -602,7 +615,11 @@ impl QasmCompiler {
         Some(stmt)
     }
 
-    fn compile_def_stmt(&mut self, stmt: &semast::DefStmt) -> Option<qsast::Stmt> {
+    fn compile_def_stmt(
+        &mut self,
+        stmt: &semast::DefStmt,
+        annotations: &List<semast::Annotation>,
+    ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
 
@@ -629,6 +646,10 @@ impl QasmCompiler {
             qsast::CallableKind::Function
         };
 
+        let attrs = annotations
+            .iter()
+            .filter_map(|annotation| self.compile_annotation(annotation));
+
         // We use the same primitives used for declaring gates, because def declarations
         // in QASM3 can take qubits as arguments and call quantum gates.
         Some(build_function_or_operation(
@@ -642,7 +663,7 @@ impl QasmCompiler {
             return_type,
             kind,
             None,
-            Box::default(),
+            list_from_iter(attrs),
         ))
     }
 

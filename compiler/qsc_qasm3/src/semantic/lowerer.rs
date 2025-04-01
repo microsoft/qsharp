@@ -198,7 +198,7 @@ impl Lowerer {
             syntax::StmtKind::Def(stmt) => self.lower_def(stmt),
             syntax::StmtKind::DefCal(stmt) => self.lower_def_cal(stmt),
             syntax::StmtKind::Delay(stmt) => self.lower_delay(stmt),
-            syntax::StmtKind::End(stmt) => self.lower_end_stmt(stmt),
+            syntax::StmtKind::End(stmt) => Self::lower_end_stmt(stmt),
             syntax::StmtKind::ExprStmt(stmt) => self.lower_expr_stmt(stmt),
             syntax::StmtKind::ExternDecl(extern_decl) => self.lower_extern(extern_decl),
             syntax::StmtKind::For(stmt) => self.lower_for_stmt(stmt),
@@ -217,7 +217,7 @@ impl Lowerer {
             syntax::StmtKind::WhileLoop(stmt) => self.lower_while_stmt(stmt),
             syntax::StmtKind::Err => semantic::StmtKind::Err,
         };
-        let annotations = self.lower_annotations(&stmt.annotations, &stmt.kind);
+        let annotations = Self::lower_annotations(&stmt.annotations);
         semantic::Stmt {
             span: stmt.span,
             annotations: syntax::list_from_iter(annotations),
@@ -720,32 +720,14 @@ impl Lowerer {
         }
     }
 
-    fn lower_annotations(
-        &mut self,
-        annotations: &[Box<syntax::Annotation>],
-        kind: &syntax::StmtKind,
-    ) -> Vec<semantic::Annotation> {
+    fn lower_annotations(annotations: &[Box<syntax::Annotation>]) -> Vec<semantic::Annotation> {
         annotations
             .iter()
-            .map(|annotation| self.lower_annotation(annotation, kind))
+            .map(|annotation| Self::lower_annotation(annotation))
             .collect::<Vec<_>>()
     }
 
-    fn lower_annotation(
-        &mut self,
-        annotation: &syntax::Annotation,
-        kind: &syntax::StmtKind,
-    ) -> semantic::Annotation {
-        if let syntax::StmtKind::GateCall(_) = &kind {
-            self.push_unsupported_error_message(
-                format!(
-                    "Annotation @{} is only allowed on gate definitions.",
-                    annotation.identifier
-                ),
-                annotation.span,
-            );
-        }
-
+    fn lower_annotation(annotation: &syntax::Annotation) -> semantic::Annotation {
         semantic::Annotation {
             span: annotation.span,
             identifier: annotation.identifier.clone(),
@@ -1149,7 +1131,7 @@ impl Lowerer {
         semantic::StmtKind::Err
     }
 
-    fn lower_end_stmt(&mut self, stmt: &syntax::EndStmt) -> semantic::StmtKind {
+    fn lower_end_stmt(stmt: &syntax::EndStmt) -> semantic::StmtKind {
         semantic::StmtKind::End(semantic::EndStmt { span: stmt.span })
     }
 
