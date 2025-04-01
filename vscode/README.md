@@ -31,3 +31,9 @@ This extension collects usage data and sends it to Microsoft to help improve our
 Details of the telemetry sent can be seen in the source file at <https://github.com/microsoft/qsharp/blob/main/vscode/src/telemetry.ts>.
 This extension respects the `telemetry.enableTelemetry` setting which you can learn more about at
 <https://code.visualstudio.com/docs/supporting/faq#_how-to-disable-telemetry-reporting>.
+
+We follow data handling practices in accordance with the [Microsoft Privacy Statement](https://www.microsoft.com/en-us/privacy/privacystatement).
+
+## Copilot in Microsoft Quantum
+
+Please read the [AI Terms of Use](https://quantum.microsoft.com/en-us/terms-of-use). For information about Copilot in Microsoft Quantum, please refer to the [Frequently Asked Questions](https://quantum.microsoft.com/en-us/aq-copilot-faq).
