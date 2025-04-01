@@ -42,7 +42,7 @@ pub fn prepare_package_store(
     capabilities: TargetCapabilityFlags,
     package_graph_sources: PackageGraphSources,
 ) -> BuildableProgram {
-    let (std_id, mut package_store) = crate::compile::package_store_with_stdlib(capabilities);
+    let (std_id, qasm_id, mut package_store) = crate::qasm::package_store_with_qasm(capabilities);
 
     let mut canonical_package_identifier_to_package_id_mapping = FxHashMap::default();
 
@@ -79,6 +79,7 @@ pub fn prepare_package_store(
             .iter()
             .map(|(alias, b)| (*b, Some(alias.clone())))
             .chain(std::iter::once((std_id, None)))
+            .chain(std::iter::once((qasm_id, Some("QasmStd".into()))))
             .collect::<Vec<_>>();
         let (compile_unit, mut this_errors) = compile::compile(
             &package_store,
@@ -107,6 +108,7 @@ pub fn prepare_package_store(
                 .map(|pkg| (pkg, Some(alias.clone())))
         })
         .chain(std::iter::once((std_id, None)))
+        .chain(std::iter::once((qasm_id, Some("QasmStd".into()))))
         .collect::<Vec<_>>();
 
     BuildableProgram {

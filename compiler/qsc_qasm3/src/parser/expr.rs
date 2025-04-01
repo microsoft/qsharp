@@ -28,7 +28,7 @@ use super::{
         IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
         TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
-    completion::WordKinds,
+    completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     prim::{ident, many, opt, recovering_token, seq, shorten, token, FinalSep},
     scan::ParserContext,

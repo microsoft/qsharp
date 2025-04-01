@@ -7,7 +7,7 @@ use crate::{
     lex::TokenKind,
     parser::ast::PathKind,
     parser::{
-        completion::WordKinds,
+        completion::word_kinds::WordKinds,
         error::{Error, ErrorKind},
         scan::ParserContext,
         tests::{check, check_opt, check_seq},

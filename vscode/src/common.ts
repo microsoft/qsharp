@@ -14,12 +14,23 @@ import {
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
+export const openqasmLanguageId = "openqasm";
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
   return (
     document.languageId === qsharpLanguageId &&
     (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
+  );
+}
+
+// Returns true for all OpenQASM documents, including unsaved files, notebook cells, etc.
+export function isOpenQasmDocument(document: TextDocument): boolean {
+  return (
+    //document.languageId === openqasmLanguageId &&
+    (Utils.extname(document.uri) === ".qasm" || document.isUntitled) &&
     document.uri.scheme !== "git" &&
     document.uri.scheme !== "pr"
   );

@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub(crate) mod collector;
 #[cfg(test)]
 mod tests;
-pub(crate) mod word_kinds;
 
-pub(crate) use collector::ValidWordCollector;
-pub(crate) use word_kinds::WordKinds;
+pub mod collector;
+pub mod word_kinds;
+
+use collector::ValidWordCollector;
+use word_kinds::WordKinds;
 
 use super::{prgm, ParserContext};
 

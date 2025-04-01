@@ -8,7 +8,7 @@ use qsc_data_structures::span::Span;
 use std::rc::Rc;
 
 use super::{
-    completion::WordKinds,
+    completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator, gate_operand, indexed_identifier},
     prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, shorten},

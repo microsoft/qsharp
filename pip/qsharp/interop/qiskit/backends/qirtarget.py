@@ -19,6 +19,10 @@ from qiskit.circuit.controlflow import (
     WhileLoopOp,
 )
 from qiskit.circuit.library.standard_gates import (
+    PhaseGate,
+    CPhaseGate,
+    CSwapGate,
+    CUGate,
     CHGate,
     CCXGate,
     CXGate,
@@ -28,17 +32,19 @@ from qiskit.circuit.library.standard_gates import (
     CRYGate,
     CRZGate,
     RXGate,
-    RXXGate,
     RYGate,
-    RYYGate,
     RZGate,
-    RZZGate,
     HGate,
     SGate,
     SdgGate,
     SwapGate,
+    SXGate,
     TGate,
     TdgGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    UGate,
     XGate,
     YGate,
     ZGate,
@@ -89,40 +95,56 @@ class QirTarget(Target):
         # the compiler can use decompositions to implement workarounds
         self.add_instruction(Reset, name="reset")
 
-        self.add_instruction(CCXGate, name="ccx")
-        self.add_instruction(CXGate, name="cx")
-        self.add_instruction(CYGate, name="cy")
-        self.add_instruction(CZGate, name="cz")
+        # Using gphase breaks the QASM3 transpiler
+        # self.add_instruction(GlobalPhaseGate, name="gphase")
+        self.add_instruction(UGate, name="U")
 
-        self.add_instruction(RXGate(Parameter("theta")), name="rx")
-        self.add_instruction(RXXGate(Parameter("theta")), name="rxx")
-        self.add_instruction(CRXGate(Parameter("theta")), name="crx")
+        self.add_instruction(PhaseGate, name="p")
 
-        self.add_instruction(RYGate(Parameter("theta")), name="ry")
-        self.add_instruction(RYYGate(Parameter("theta")), name="ryy")
-        self.add_instruction(CRYGate(Parameter("theta")), name="cry")
-
-        self.add_instruction(RZGate(Parameter("theta")), name="rz")
-        self.add_instruction(RZZGate(Parameter("theta")), name="rzz")
-        self.add_instruction(CRZGate(Parameter("theta")), name="crz")
+        self.add_instruction(XGate, name="x")
+        self.add_instruction(YGate, name="y")
+        self.add_instruction(ZGate, name="z")
 
         self.add_instruction(HGate, name="h")
 
         self.add_instruction(SGate, name="s")
         self.add_instruction(SdgGate, name="sdg")
 
-        self.add_instruction(SwapGate, name="swap")
-
         self.add_instruction(TGate, name="t")
         self.add_instruction(TdgGate, name="tdg")
 
-        self.add_instruction(XGate, name="x")
-        self.add_instruction(YGate, name="y")
-        self.add_instruction(ZGate, name="z")
+        self.add_instruction(SXGate, name="sx")
 
-        self.add_instruction(IGate, name="id")
+        self.add_instruction(RXGate(Parameter("theta")), name="rx")
+        self.add_instruction(RYGate(Parameter("theta")), name="ry")
+        self.add_instruction(RZGate(Parameter("theta")), name="rz")
+
+        self.add_instruction(CXGate, name="cx")
+        self.add_instruction(CYGate, name="cy")
+        self.add_instruction(CZGate, name="cz")
+
+        self.add_instruction(CPhaseGate, name="cp")
+
+        self.add_instruction(CRXGate(Parameter("theta")), name="crx")
+        self.add_instruction(CRYGate(Parameter("theta")), name="cry")
+        self.add_instruction(CRZGate(Parameter("theta")), name="crz")
 
         self.add_instruction(CHGate, name="ch")
+
+        self.add_instruction(SwapGate, name="swap")
+        self.add_instruction(CCXGate, name="ccx")
+        self.add_instruction(CSwapGate, name="cswap")
+
+        self.add_instruction(CUGate, name="cu")
+
+        # OpenQASM 2 backwards compatibility
+        self.add_instruction(CXGate, name="CX")
+        # missing phase and cphase gates
+        self.add_instruction(IGate, name="id")
+
+        self.add_instruction(U1Gate, name="u1")
+        self.add_instruction(U2Gate, name="u2")
+        self.add_instruction(U3Gate, name="u3")
 
     # NOTE: The follow property intentionally shadows the property on the parent class to allow it to return `None`
     # when the value is not set, which allows bypassing transpilation checks for number of qubits. Without this,

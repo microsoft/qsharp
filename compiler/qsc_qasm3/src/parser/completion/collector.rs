@@ -56,7 +56,7 @@
 //! operation Foo() : |
 //! ```
 
-use super::WordKinds;
+use super::word_kinds::WordKinds;
 use crate::lex::{ClosedBinOp, Token, TokenKind};
 use qsc_data_structures::span::Span;
 
