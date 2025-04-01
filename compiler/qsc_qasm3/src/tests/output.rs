@@ -40,10 +40,10 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : Unit {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
@@ -91,10 +91,10 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : (Result[], Double, Double) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
@@ -142,10 +142,10 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : Result[] {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
@@ -201,10 +201,10 @@ c2[2] = measure q[4];
     let qsharp = gen_qsharp(&package.clone());
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : (Result[], Result[]) {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable c = [Zero, Zero];
                 mutable c2 = [Zero, Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(5);
