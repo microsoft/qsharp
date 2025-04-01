@@ -7,9 +7,9 @@ use num_bigint::BigInt;
 
 use qsc_ast::ast::{
     self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FieldAssign,
-    Ident, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind, Lit, Mutability, NodeId, Pat,
-    PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind, TopLevelNode,
-    Ty, TyKind,
+    FunctorExpr, FunctorExprKind, Ident, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind,
+    Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource,
+    Stmt, StmtKind, TopLevelNode, Ty, TyKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -1732,16 +1732,25 @@ pub(crate) fn build_function_or_operation(
         span: Span { lo, hi },
         ..Default::default()
     };
+
     let return_type = if let Some(ty) = return_type {
         ty
     } else {
         build_path_ident_ty("Unit")
     };
+
     let body = CallableBody::Block(Box::new(body.unwrap_or_else(|| Block {
         id: NodeId::default(),
         span: body_span,
         stmts: Box::new([]),
     })));
+
+    let functors = if matches!(kind, CallableKind::Operation) {
+        Some(Box::new(build_adj_plus_ctl_functor()))
+    } else {
+        None
+    };
+
     let decl = CallableDecl {
         id: NodeId::default(),
         span: name_span,
@@ -1753,7 +1762,7 @@ pub(crate) fn build_function_or_operation(
         generics: Box::new([]),
         input: Box::new(input_pat),
         output: Box::new(return_type),
-        functors: None,
+        functors,
         body: Box::new(body),
     };
     let item = Item {
@@ -1766,6 +1775,26 @@ pub(crate) fn build_function_or_operation(
         kind: Box::new(StmtKind::Item(Box::new(item))),
         span: gate_span,
         ..Default::default()
+    }
+}
+
+fn build_adj_plus_ctl_functor() -> FunctorExpr {
+    let adj = Box::new(FunctorExpr {
+        kind: Box::new(FunctorExprKind::Lit(ast::Functor::Adj)),
+        id: Default::default(),
+        span: Default::default(),
+    });
+
+    let ctl = Box::new(FunctorExpr {
+        kind: Box::new(FunctorExprKind::Lit(ast::Functor::Ctl)),
+        id: Default::default(),
+        span: Default::default(),
+    });
+
+    FunctorExpr {
+        kind: Box::new(FunctorExprKind::BinOp(ast::SetOp::Union, adj, ctl)),
+        id: Default::default(),
+        span: Default::default(),
     }
 }
 
