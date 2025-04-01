@@ -473,3 +473,24 @@ fn custom_gate_can_be_called_with_pow_modifier() -> miette::Result<(), Vec<Repor
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn simulatable_intrinsic_on_gates_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+
+        @SimulatableIntrinsic
+        gate my_gate(a) q {
+            rx(a) q;
+        }
+
+        qubit q;
+        my_gate(2.0) q;
+        bit result = measure q;
+    "#;
+
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
+    expect![[r#""#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
