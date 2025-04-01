@@ -401,7 +401,7 @@ impl QasmCompiler {
     fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
         // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
         // This will call compile_binary_expr which handles angles correctly.
-        if matches!(&stmt.lhs.ty, Type::Angle(..)) {
+        if matches!(&stmt.lhs.ty, Type::Angle(..) | Type::Complex(..)) {
             if stmt.indices.is_empty() {
                 let rhs = semast::Expr {
                     span: stmt.span,
@@ -1098,7 +1098,7 @@ impl QasmCompiler {
         if matches!(&binary.lhs.ty, Type::Complex(..))
             || matches!(&binary.rhs.ty, Type::Complex(..))
         {
-            return self.compile_complex_binary_op(op, lhs, rhs);
+            return Self::compile_complex_binary_op(op, lhs, rhs);
         }
 
         let is_assignment = false;
@@ -1169,7 +1169,6 @@ impl QasmCompiler {
     }
 
     fn compile_complex_binary_op(
-        &mut self,
         op: qsast::BinOp,
         lhs: qsast::Expr,
         rhs: qsast::Expr,
@@ -1187,8 +1186,9 @@ impl QasmCompiler {
             qsast::BinOp::Div => "DividedByC",
             qsast::BinOp::Exp => "PowC",
             _ => {
-                let msg = format!("complex {op:?} binary operation");
-                self.push_unsupported_error_message(msg, span);
+                // we are already pushing a semantic error in the lowerer
+                // if the operation is not supported. So, we just return
+                // an Expr::Err here.
                 return err_expr(span);
             }
         };
