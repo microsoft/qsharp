@@ -10,20 +10,22 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{
     ast_builder::{
-        build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_barrier_call,
-        build_binary_expr, build_call_no_params, build_call_with_param, build_call_with_params,
-        build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_expr_array_expr, build_for_stmt, build_gate_call_param_expr,
-        build_gate_call_with_params_and_callee, build_global_call_with_two_params,
-        build_if_expr_then_block, build_if_expr_then_block_else_block,
-        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_indexed_assignment_statement, build_lambda,
-        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
-        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
-        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
-        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-        build_path_ident_expr, build_qasm_import_decl, build_qasm_import_items, build_range_expr,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_adj_plus_ctl_functor, build_arg_pat, build_array_reverse_expr,
+        build_assignment_statement, build_barrier_call, build_binary_expr, build_call_no_params,
+        build_call_with_param, build_call_with_params, build_cast_call_by_name,
+        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
+        build_expr_array_expr, build_for_stmt, build_function_or_operation,
+        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
+        build_global_call_with_two_params, build_if_expr_then_block,
+        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
+        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
+        build_indexed_assignment_statement, build_lit_angle_expr, build_lit_bigint_expr,
+        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr,
+        build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
+        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
         build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
         build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
@@ -627,7 +629,7 @@ impl QasmCompiler {
 
         // We use the same primitives used for declaring gates, because def declarations
         // in QASM3 can take qubits as arguments and call quantum gates.
-        Some(build_lambda(
+        Some(build_function_or_operation(
             name,
             cargs,
             vec![],
@@ -637,6 +639,7 @@ impl QasmCompiler {
             stmt.span,
             return_type,
             kind,
+            None,
         ))
     }
 
@@ -899,7 +902,7 @@ impl QasmCompiler {
 
         let body = Some(self.compile_block(&stmt.body));
 
-        Some(build_lambda(
+        Some(build_function_or_operation(
             name,
             cargs,
             qargs,
@@ -909,6 +912,7 @@ impl QasmCompiler {
             stmt.span,
             None,
             qsast::CallableKind::Operation,
+            Some(build_adj_plus_ctl_functor()),
         ))
     }
 

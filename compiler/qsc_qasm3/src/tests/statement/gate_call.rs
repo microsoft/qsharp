@@ -324,3 +324,152 @@ fn implicit_cast_to_angle_works() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn custom_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        gate my_gate q1, q2 {
+            h q1;
+            h q2;
+        }
+
+        qubit[2] q;
+        my_gate q[0], q[1];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation my_gate(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+            h(q1);
+            h(q2);
+        }
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        my_gate(q[0], q[1]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn custom_gate_can_be_called_with_inv_modifier() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        gate my_gate q1, q2 {
+            h q1;
+            h q2;
+        }
+
+        qubit[2] q;
+        inv @ my_gate q[0], q[1];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation my_gate(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+            h(q1);
+            h(q2);
+        }
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        Adjoint my_gate(q[0], q[1]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn custom_gate_can_be_called_with_ctrl_modifier() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        gate my_gate q1, q2 {
+            h q1;
+            h q2;
+        }
+
+        qubit[2] ctl;
+        qubit[2] q;
+        ctrl(2) @ my_gate ctl[0], ctl[1], q[0], q[1];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation my_gate(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+            h(q1);
+            h(q2);
+        }
+        let ctl = QIR.Runtime.AllocateQubitArray(2);
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        Controlled my_gate([ctl[0], ctl[1]], (q[0], q[1]));
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn custom_gate_can_be_called_with_negctrl_modifier() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        gate my_gate q1, q2 {
+            h q1;
+            h q2;
+        }
+
+        qubit[2] ctl;
+        qubit[2] q;
+        negctrl(2) @ my_gate ctl[0], ctl[1], q[0], q[1];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation my_gate(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+            h(q1);
+            h(q2);
+        }
+        let ctl = QIR.Runtime.AllocateQubitArray(2);
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        ApplyControlledOnInt(0, my_gate, [ctl[0], ctl[1]], (q[0], q[1]));
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn custom_gate_can_be_called_with_pow_modifier() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        gate my_gate q1, q2 {
+            h q1;
+            h q2;
+        }
+
+        qubit[2] q;
+        pow(2) @ my_gate q[0], q[1];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation my_gate(q1 : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+            h(q1);
+            h(q2);
+        }
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        __Pow__(2, my_gate, (q[0], q[1]));
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

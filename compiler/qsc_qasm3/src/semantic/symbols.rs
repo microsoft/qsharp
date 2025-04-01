@@ -2,10 +2,9 @@
 // Licensed under the MIT License.
 
 use core::f64;
-use std::rc::Rc;
-
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 
 use super::{
     ast::{Expr, ExprKind, LiteralKind},
@@ -135,6 +134,12 @@ impl Symbol {
             const_expr: Some(value),
             ..self
         }
+    }
+
+    /// Returns true if they symbol's value is a const expr.
+    #[must_use]
+    pub fn is_const(&self) -> bool {
+        self.const_expr.is_some()
     }
 
     /// Returns the value of the symbol.
@@ -469,6 +474,22 @@ impl SymbolTable {
     }
 
     #[must_use]
+    pub fn is_symbol_outside_most_inner_gate_or_function_scope(&self, symbol_id: SymbolId) -> bool {
+        for scope in self.scopes.iter().rev() {
+            if scope.id_to_symbol.contains_key(&symbol_id) {
+                return false;
+            }
+            if matches!(
+                scope.kind,
+                ScopeKind::Gate | ScopeKind::Function | ScopeKind::Global
+            ) {
+                return true;
+            }
+        }
+        unreachable!("when the loop ends we will have visited at least the Global scope");
+    }
+
+    #[must_use]
     pub fn is_current_scope_global(&self) -> bool {
         matches!(self.scopes.last(), Some(scope) if scope.kind == ScopeKind::Global)
     }
@@ -479,6 +500,14 @@ impl SymbolTable {
             .iter()
             .rev()
             .any(|scope| scope.kind == ScopeKind::Function)
+    }
+
+    #[must_use]
+    pub fn is_scope_rooted_in_gate_or_subroutine(&self) -> bool {
+        self.scopes
+            .iter()
+            .rev()
+            .any(|scope| matches!(scope.kind, ScopeKind::Gate | ScopeKind::Function))
     }
 
     #[must_use]
