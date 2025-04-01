@@ -11,17 +11,17 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 use crate::{
     ast_builder::{
         build_adj_plus_ctl_functor, build_arg_pat, build_array_reverse_expr,
-        build_assignment_statement, build_barrier_call, build_binary_expr, build_call_no_params,
-        build_call_with_param, build_call_with_params, build_cast_call_by_name,
-        build_classical_decl, build_complex_from_expr, build_convert_call_expr,
-        build_expr_array_expr, build_for_stmt, build_function_or_operation,
-        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
-        build_global_call_with_two_params, build_if_expr_then_block,
-        build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
-        build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-        build_indexed_assignment_statement, build_lit_angle_expr, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
+        build_call_no_params, build_call_with_param, build_call_with_params,
+        build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
+        build_convert_call_expr, build_expr_array_expr, build_for_stmt,
+        build_function_or_operation, build_gate_call_param_expr,
+        build_gate_call_with_params_and_callee, build_global_call_with_two_params,
+        build_if_expr_then_block, build_if_expr_then_block_else_block,
+        build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
+        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_angle_expr,
+        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
+        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr,
         build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
@@ -908,7 +908,7 @@ impl QasmCompiler {
 
         let attrs = annotations
             .iter()
-            .filter_map(|annotation| Self::compile_annotation(annotation));
+            .filter_map(|annotation| self.compile_annotation(annotation));
 
         Some(build_function_or_operation(
             name,
@@ -925,50 +925,20 @@ impl QasmCompiler {
         ))
     }
 
-    fn compile_annotation(annotation: &semast::Annotation) -> Option<qsast::Attr> {
-        let name = Box::new(qsast::Ident {
-            span: annotation.span,
-            name: annotation.identifier.clone(),
-            ..Default::default()
-        });
-
-        let arg = if let Some(value) = &annotation.value {
-            Box::new(qsast::Expr {
-                span: annotation.span,
-                kind: Box::new(qsast::ExprKind::Paren(Box::new(qsast::Expr {
-                    span: annotation.span,
-                    kind: Box::new(qsast::ExprKind::Path(qsast::PathKind::Ok(Box::new(
-                        qsast::Path {
-                            id: Default::default(),
-                            span: annotation.span,
-                            segments: None,
-                            name: Box::new(qsast::Ident {
-                                span: annotation.span,
-                                name: value.clone(),
-                                ..Default::default()
-                            }),
-                        },
-                    )))),
-                    id: Default::default(),
-                }))),
-                id: Default::default(),
-            })
-        } else {
-            Box::new(qsast::Expr {
-                span: annotation.span,
-                kind: Box::new(qsast::ExprKind::Tuple(Box::default())),
-                id: Default::default(),
-            })
-        };
-
+    fn compile_annotation(&mut self, annotation: &semast::Annotation) -> Option<qsast::Attr> {
         match annotation.identifier.as_ref() {
-            "SimulatableIntrinsic" | "Config" => Some(qsast::Attr {
-                span: annotation.span,
-                name,
-                arg,
-                id: Default::default(),
-            }),
-            _ => None,
+            "SimulatableIntrinsic" | "Config" => Some(build_attr(
+                &annotation.identifier,
+                annotation.value.as_ref(),
+                annotation.span,
+            )),
+            _ => {
+                self.push_semantic_error(SemanticErrorKind::UnknownAnnotation(
+                    format!("@{}", annotation.identifier),
+                    annotation.span,
+                ));
+                None
+            }
         }
     }
 

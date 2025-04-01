@@ -416,7 +416,7 @@ impl QasmCompiler {
         let span = span_for_syntax_node(stmt.syntax());
         if let "@SimulatableIntrinsic" = text.as_str() {
             let (_at, name) = text.split_at(1);
-            Some(build_attr(name.to_string(), span))
+            Some(build_attr(name.to_string(), None, span))
         } else {
             let span = span_for_syntax_node(stmt.syntax());
             let kind = SemanticErrorKind::UnknownAnnotation(text.to_string(), span);

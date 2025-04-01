@@ -736,16 +736,6 @@ impl Lowerer {
         annotation: &syntax::Annotation,
         kind: &syntax::StmtKind,
     ) -> semantic::Annotation {
-        if !matches!(
-            annotation.identifier.to_string().as_str(),
-            "SimulatableIntrinsic" | "Config"
-        ) {
-            self.push_semantic_error(SemanticErrorKind::UnknownAnnotation(
-                format!("@{}", annotation.identifier),
-                annotation.span,
-            ));
-        }
-
         if let syntax::StmtKind::GateCall(_) = &kind {
             self.push_unsupported_error_message(
                 format!(

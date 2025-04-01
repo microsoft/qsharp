@@ -1484,19 +1484,6 @@ pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     build_stmt_semi_from_expr(expr)
 }
 
-pub(crate) fn build_attr(text: String, span: Span) -> Attr {
-    Attr {
-        id: NodeId::default(),
-        span,
-        name: Box::new(Ident {
-            name: Rc::from(text),
-            span,
-            ..Default::default()
-        }),
-        arg: Box::new(create_unit_expr(span)),
-    }
-}
-
 pub(crate) fn build_gate_decl(
     name: String,
     cargs: Vec<(String, Ty, Pat)>,
@@ -1807,5 +1794,50 @@ fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
         None
     } else {
         Some(idents.into())
+    }
+}
+
+pub(crate) fn build_attr<S>(name: S, value: Option<S>, span: Span) -> Attr
+where
+    S: AsRef<str>,
+{
+    let name = Box::new(Ident {
+        span,
+        name: name.as_ref().into(),
+        ..Default::default()
+    });
+
+    let arg = if let Some(value) = value {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Paren(Box::new(Expr {
+                span,
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+                    id: Default::default(),
+                    span,
+                    segments: None,
+                    name: Box::new(Ident {
+                        span,
+                        name: value.as_ref().into(),
+                        ..Default::default()
+                    }),
+                })))),
+                id: Default::default(),
+            }))),
+            id: Default::default(),
+        })
+    } else {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Tuple(Box::default())),
+            id: Default::default(),
+        })
+    };
+
+    Attr {
+        span,
+        name,
+        arg,
+        id: Default::default(),
     }
 }
