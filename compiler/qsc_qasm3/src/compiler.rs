@@ -22,9 +22,9 @@ use crate::{
         build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
         build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
         build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-        build_path_ident_expr, build_qasm_import_decl, build_range_expr, build_reset_call,
-        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_item, build_tuple_expr,
+        build_path_ident_expr, build_qasm_import_decl, build_qasm_import_items, build_range_expr,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
         build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
         build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
         map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
@@ -94,9 +94,18 @@ impl QasmCompiler {
     /// source file and build the appropriate package based on the
     /// configuration.
     pub fn compile(mut self, program: &crate::semantic::ast::Program) -> QasmCompileUnit {
-        self.append_runtime_import_decls();
-        self.compile_stmts(&program.statements);
+        // in non-file mode we need the runtime imports in the body
         let program_ty = self.config.program_ty.clone();
+
+        // If we are compiling for operation/fragments, we need to
+        // prepend to the list of statements.
+        // In file mode we need to add top level imports which are
+        // handled in the `build_file` method.
+        if !matches!(program_ty, ProgramType::File) {
+            self.append_runtime_import_decls();
+        }
+
+        self.compile_stmts(&program.statements);
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
             ProgramType::Operation => self.build_operation(),
@@ -114,7 +123,9 @@ impl QasmCompiler {
         let (operation, mut signature) = self.create_entry_operation(operation_name, whole_span);
         let ns = self.config.namespace();
         signature.ns = Some(ns.to_string());
-        let top = build_top_level_ns_with_item(whole_span, ns, operation);
+        let mut items = build_qasm_import_items();
+        items.push(operation);
+        let top = build_top_level_ns_with_items(whole_span, ns, items);
         (
             Package {
                 nodes: Box::new([top]),
@@ -164,6 +175,22 @@ impl QasmCompiler {
     ) -> (qsast::Item, OperationSignature) {
         let stmts = self.stmts.drain(..).collect::<Vec<_>>();
         let input = self.symbols.get_input();
+
+        // Analyze input for `Angle` types which we can't support as it would require
+        // passing a struct from Python. So we need to raise an error saying to use `float`
+        // which will preserve the angle type semantics via implicit conversion to angle
+        // in the qasm program.
+        if let Some(inputs) = &input {
+            for input in inputs {
+                if matches!(input.qsharp_ty, crate::types::Type::Angle(..)) {
+                    let message =
+                        "use `float` types for passing input, using `angle` types".to_string();
+                    let kind = SemanticErrorKind::NotSupported(message, input.span);
+                    self.push_semantic_error(kind);
+                }
+            }
+        }
+
         let output = self.symbols.get_output();
         self.create_entry_item(
             name,
@@ -175,6 +202,7 @@ impl QasmCompiler {
         )
     }
 
+    #[allow(clippy::too_many_lines)]
     fn create_entry_item<S: AsRef<str>>(
         &mut self,
         name: S,
@@ -192,69 +220,13 @@ impl QasmCompiler {
             name: name.as_ref().to_string(),
             ns: None,
         };
-        let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
-            // we have no output, but need to set the entry point return type
-            crate::types::Type::Tuple(vec![])
-        } else if let Some(output) = output {
-            let output_exprs = if is_qiskit {
-                output
-                    .iter()
-                    .rev()
-                    .filter(|symbol| {
-                        matches!(symbol.ty, crate::semantic::types::Type::BitArray(..))
-                    })
-                    .map(|symbol| {
-                        let ident =
-                            build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
-
-                        build_array_reverse_expr(ident)
-                    })
-                    .collect::<Vec<_>>()
-            } else {
-                output
-                    .iter()
-                    .map(|symbol| {
-                        build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span)
-                    })
-                    .collect::<Vec<_>>()
-            };
-            // this is the output whether it is inferred or explicitly defined
-            // map the output symbols into a return statement, add it to the nodes list,
-            // and get the entry point return type
-            let output_types = if is_qiskit {
-                output
-                    .iter()
-                    .rev()
-                    .filter(|symbol| {
-                        matches!(symbol.ty, crate::semantic::types::Type::BitArray(..))
-                    })
-                    .map(|symbol| symbol.qsharp_ty.clone())
-                    .collect::<Vec<_>>()
-            } else {
-                output
-                    .iter()
-                    .map(|symbol| symbol.qsharp_ty.clone())
-                    .collect::<Vec<_>>()
-            };
-
-            let (output_ty, output_expr) = if output_types.len() == 1 {
-                (output_types[0].clone(), output_exprs[0].clone())
-            } else {
-                let output_ty = crate::types::Type::Tuple(output_types);
-                let output_expr = build_tuple_expr(output_exprs);
-                (output_ty, output_expr)
-            };
-
-            let return_stmt = build_implicit_return_stmt(output_expr);
-            stmts.push(return_stmt);
-            output_ty
-        } else {
-            if is_qiskit {
-                let kind = SemanticErrorKind::QiskitEntryPointMissingOutput(whole_span);
-                self.push_semantic_error(kind);
-            }
-            crate::types::Type::Tuple(vec![])
-        };
+        let output_ty = self.apply_output_semantics(
+            output,
+            whole_span,
+            output_semantics,
+            &mut stmts,
+            is_qiskit,
+        );
 
         let ast_ty = map_qsharp_type_to_ast_ty(&output_ty);
         signature.output = format!("{output_ty}");
@@ -280,11 +252,112 @@ impl QasmCompiler {
                 })
             })
             .collect::<Vec<_>>();
-
+        let add_entry_point_attr = matches!(self.config.program_ty, ProgramType::File);
         (
-            build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span),
+            build_operation_with_stmts(
+                name,
+                input_pats,
+                ast_ty,
+                stmts,
+                whole_span,
+                add_entry_point_attr,
+            ),
             signature,
         )
+    }
+
+    fn apply_output_semantics(
+        &mut self,
+        output: Option<Vec<Rc<Symbol>>>,
+        whole_span: Span,
+        output_semantics: OutputSemantics,
+        stmts: &mut Vec<qsast::Stmt>,
+        is_qiskit: bool,
+    ) -> crate::types::Type {
+        let output_ty = if matches!(output_semantics, OutputSemantics::ResourceEstimation) {
+            // we have no output, but need to set the entry point return type
+            crate::types::Type::Tuple(vec![])
+        } else if let Some(output) = output {
+            let output_exprs = if is_qiskit {
+                output
+                    .iter()
+                    .rev()
+                    .filter(|symbol| {
+                        matches!(symbol.ty, crate::semantic::types::Type::BitArray(..))
+                    })
+                    .map(|symbol| {
+                        let ident =
+                            build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
+
+                        build_array_reverse_expr(ident)
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                output
+                    .iter()
+                    .map(|symbol| {
+                        let ident =
+                            build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
+                        if matches!(symbol.ty, Type::Angle(..)) {
+                            // we can't output a struct, so we need to convert it to a double
+                            build_call_with_param(
+                                "__AngleAsDouble__",
+                                &[],
+                                ident,
+                                symbol.span,
+                                symbol.span,
+                                symbol.span,
+                            )
+                        } else {
+                            ident
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+            // this is the output whether it is inferred or explicitly defined
+            // map the output symbols into a return statement, add it to the nodes list,
+            // and get the entry point return type
+            let output_types = if is_qiskit {
+                output
+                    .iter()
+                    .rev()
+                    .filter(|symbol| {
+                        matches!(symbol.ty, crate::semantic::types::Type::BitArray(..))
+                    })
+                    .map(|symbol| symbol.qsharp_ty.clone())
+                    .collect::<Vec<_>>()
+            } else {
+                output
+                    .iter()
+                    .map(|symbol| {
+                        if matches!(symbol.qsharp_ty, crate::types::Type::Angle(..)) {
+                            crate::types::Type::Double(symbol.ty.is_const())
+                        } else {
+                            symbol.qsharp_ty.clone()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+
+            let (output_ty, output_expr) = if output_types.len() == 1 {
+                (output_types[0].clone(), output_exprs[0].clone())
+            } else {
+                let output_ty = crate::types::Type::Tuple(output_types);
+                let output_expr = build_tuple_expr(output_exprs);
+                (output_ty, output_expr)
+            };
+
+            let return_stmt = build_implicit_return_stmt(output_expr);
+            stmts.push(return_stmt);
+            output_ty
+        } else {
+            if is_qiskit {
+                let kind = SemanticErrorKind::QiskitEntryPointMissingOutput(whole_span);
+                self.push_semantic_error(kind);
+            }
+            crate::types::Type::Tuple(vec![])
+        };
+        output_ty
     }
 
     /// Appends the runtime imports to the compiled statements.

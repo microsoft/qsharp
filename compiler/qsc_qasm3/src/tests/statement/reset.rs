@@ -35,11 +35,11 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
-                import QasmStd.Angle.*;
-                import QasmStd.Convert.*;
-                import QasmStd.Intrinsic.*;
                 mutable meas = [Zero];
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 Reset(q[0]);
