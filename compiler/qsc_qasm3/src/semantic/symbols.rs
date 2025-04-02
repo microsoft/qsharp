@@ -277,6 +277,7 @@ pub enum ScopeKind {
     Function,
     Gate,
     Block,
+    Loop,
 }
 
 const BUILTIN_SYMBOLS: [(&str, f64); 6] = [
@@ -424,7 +425,10 @@ impl SymbolTable {
     {
         let scopes = self.scopes.iter().rev();
         let predicate = |x: &Scope| {
-            x.kind == ScopeKind::Block || x.kind == ScopeKind::Function || x.kind == ScopeKind::Gate
+            matches!(
+                x.kind,
+                ScopeKind::Block | ScopeKind::Loop | ScopeKind::Function | ScopeKind::Gate
+            )
         };
 
         // Use scan to track the last item that returned false
@@ -508,6 +512,30 @@ impl SymbolTable {
             .iter()
             .rev()
             .any(|scope| matches!(scope.kind, ScopeKind::Gate | ScopeKind::Function))
+    }
+
+    #[must_use]
+    pub fn is_scope_rooted_in_loop_scope(&self) -> bool {
+        for scope in self.scopes.iter().rev() {
+            if matches!(scope.kind, ScopeKind::Loop) {
+                return true;
+            }
+
+            // Even though semantically correct qasm3 doesn't allow function
+            // or gate scopes outside the global scope, the user could write
+            // incorrect qasm3 while editing. This if statement warns the user
+            // if they write something like:
+            // while true {
+            //   def f() { break; }
+            // }
+            //
+            // Note that the `break` in the example will be rooted in a loop
+            // scope unless we include the following condition.
+            if matches!(scope.kind, ScopeKind::Function | ScopeKind::Gate) {
+                return false;
+            }
+        }
+        false
     }
 
     #[must_use]

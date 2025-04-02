@@ -850,8 +850,16 @@ impl Lowerer {
     }
 
     fn lower_break(&mut self, stmt: &syntax::BreakStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("break stmt", stmt.span);
-        semantic::StmtKind::Err
+        if self.symbols.is_scope_rooted_in_loop_scope() {
+            semantic::StmtKind::Break(semantic::BreakStmt { span: stmt.span })
+        } else {
+            self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                "break".into(),
+                "loop".into(),
+                stmt.span,
+            ));
+            semantic::StmtKind::Err
+        }
     }
 
     fn lower_block(&mut self, stmt: &syntax::Block) -> semantic::Block {
@@ -968,8 +976,16 @@ impl Lowerer {
     }
 
     fn lower_continue_stmt(&mut self, stmt: &syntax::ContinueStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("continue stmt", stmt.span);
-        semantic::StmtKind::Err
+        if self.symbols.is_scope_rooted_in_loop_scope() {
+            semantic::StmtKind::Continue(semantic::ContinueStmt { span: stmt.span })
+        } else {
+            self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                "continue".into(),
+                "loop".into(),
+                stmt.span,
+            ));
+            semantic::StmtKind::Err
+        }
     }
 
     fn lower_def(&mut self, stmt: &syntax::DefStmt) -> semantic::StmtKind {
@@ -1152,7 +1168,7 @@ impl Lowerer {
         let set_declaration = self.lower_enumerable_set(&stmt.set_declaration);
 
         // Push scope where the loop variable lives.
-        self.symbols.push_scope(ScopeKind::Block);
+        self.symbols.push_scope(ScopeKind::Loop);
 
         let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
@@ -1748,6 +1764,10 @@ impl Lowerer {
     }
 
     fn lower_while_stmt(&mut self, stmt: &syntax::WhileLoop) -> semantic::StmtKind {
+        // Push scope where the while loop lives. The while loop needs its own scope
+        // so that break and continue know if they are inside a valid scope.
+        self.symbols.push_scope(ScopeKind::Loop);
+
         let condition = self.lower_expr(&stmt.while_condition);
         let body = self.lower_stmt(&stmt.body);
 
@@ -1755,6 +1775,9 @@ impl Lowerer {
         // of type bool, so we try to cast it, inserting a cast if necessary.
         let cond_ty = Type::Bool(condition.ty.is_const());
         let while_condition = self.cast_expr_to_type(&cond_ty, &condition);
+
+        // Pop scope where the while loop lives.
+        self.symbols.pop_scope();
 
         semantic::StmtKind::WhileLoop(semantic::WhileLoop {
             span: stmt.span,
