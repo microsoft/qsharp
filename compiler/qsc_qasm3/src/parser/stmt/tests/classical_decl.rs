@@ -1103,3 +1103,25 @@ fn measure_register_decl() {
                                             Expr [28-29]: Lit: Int(3)"#]],
     );
 }
+
+#[test]
+fn const_decl_with_measurement_init_fails() {
+    check(
+        parse,
+        "const bit res = measure q;",
+        &expect![[r#"
+            Error(
+                Token(
+                    Open(
+                        Brace,
+                    ),
+                    Measure,
+                    Span {
+                        lo: 16,
+                        hi: 23,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
