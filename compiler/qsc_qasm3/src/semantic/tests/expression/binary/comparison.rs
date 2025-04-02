@@ -12,6 +12,7 @@ use expect_test::expect;
 
 use crate::semantic::tests::check_stmt_kinds;
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn bitarray_var_comparisons_can_be_translated() {
     let input = r#"
@@ -25,7 +26,9 @@ fn bitarray_var_comparisons_can_be_translated() {
         bool d = x != y;
     "#;
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         ClassicalDeclarationStmt [9-24]:
             symbol_id: 8
             ty_span: [9-15]
@@ -164,9 +167,11 @@ fn bitarray_var_comparisons_can_be_translated() {
                             expr: Expr [194-195]:
                                 ty: BitArray(One(1), false)
                                 kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn bitarray_var_comparison_to_int_can_be_translated() {
     let input = r#"
@@ -186,7 +191,9 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
         bool l = y != x;
     "#;
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         ClassicalDeclarationStmt [9-24]:
             symbol_id: 8
             ty_span: [9-15]
@@ -399,5 +406,6 @@ fn bitarray_var_comparison_to_int_can_be_translated() {
                             expr: Expr [339-340]:
                                 ty: BitArray(One(1), false)
                                 kind: SymbolId(8)
-    "#]]);
+    "#]],
+    );
 }
