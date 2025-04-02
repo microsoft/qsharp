@@ -46,7 +46,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
             @EntryPoint()
             operation Test() : Result[] {
                 @SimulatableIntrinsic()
-                operation my_gate(q : Qubit) : Unit is Adj + Ctl {
+                operation my_gate(q : Qubit) : Unit {
                     x(q);
                 }
                 mutable c = [Zero];

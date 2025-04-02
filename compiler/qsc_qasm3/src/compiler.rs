@@ -930,6 +930,16 @@ impl QasmCompiler {
             .iter()
             .filter_map(|annotation| self.compile_annotation(annotation));
 
+        // Do not compile functors if we have the @SimulatableIntrinsic annotation.
+        let functors = if annotations
+            .iter()
+            .any(|annotation| annotation.identifier.as_ref() == "SimulatableIntrinsic")
+        {
+            None
+        } else {
+            Some(build_adj_plus_ctl_functor())
+        };
+
         Some(build_function_or_operation(
             name,
             cargs,
@@ -940,7 +950,7 @@ impl QasmCompiler {
             stmt.span,
             None,
             qsast::CallableKind::Operation,
-            Some(build_adj_plus_ctl_functor()),
+            functors,
             list_from_iter(attrs),
         ))
     }
