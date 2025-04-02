@@ -5,49 +5,32 @@ use crate::semantic::tests::check_stmt_kinds;
 use expect_test::expect;
 
 #[test]
-fn single_stmt_body_doesnt_creates_its_own_scope() {
+fn single_stmt_body_creates_its_own_scope() {
     check_stmt_kinds(
         "
     int a = 3;
     while(true) int a = 1;
     ",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [5-15]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [5-15]:
-                            symbol_id: 8
-                            ty_span: [5-8]
-                            init_expr: Expr [13-14]:
-                                ty: Int(None, false)
-                                kind: Lit: Int(3)
-                    Stmt [20-42]:
-                        annotations: <empty>
-                        kind: WhileLoop [20-42]:
-                            condition: Expr [26-30]:
-                                ty: Bool(true)
-                                kind: Lit: Bool(true)
-                            body: Stmt [32-42]:
-                                annotations: <empty>
-                                kind: ClassicalDeclarationStmt [32-42]:
-                                    symbol_id: 8
-                                    ty_span: [32-35]
-                                    init_expr: Expr [40-41]:
-                                        ty: Int(None, false)
-                                        kind: Lit: Int(1)
-
-            [Qsc.Qasm3.Compile.RedefinedSymbol
-
-              x Redefined symbol: a.
-               ,-[test:3:21]
-             2 |     int a = 3;
-             3 |     while(true) int a = 1;
-               :                     ^
-             4 |     
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [5-15]:
+                symbol_id: 8
+                ty_span: [5-8]
+                init_expr: Expr [13-14]:
+                    ty: Int(None, false)
+                    kind: Lit: Int(3)
+            WhileLoop [20-42]:
+                condition: Expr [26-30]:
+                    ty: Bool(true)
+                    kind: Lit: Bool(true)
+                body: Stmt [32-42]:
+                    annotations: <empty>
+                    kind: ClassicalDeclarationStmt [32-42]:
+                        symbol_id: 9
+                        ty_span: [32-35]
+                        init_expr: Expr [40-41]:
+                            ty: Int(None, false)
+                            kind: Lit: Int(1)
+        "#]],
     );
 }
 

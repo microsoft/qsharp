@@ -141,6 +141,9 @@ pub enum SemanticErrorKind {
     #[error("Gate expects {0} qubit arguments, but {1} were provided.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.InvalidNumberOfQubitArgs"))]
     InvalidNumberOfQubitArgs(usize, usize, #[label] Span),
+    #[error("{0} can only appear in {1} scopes.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.InvalidScope"))]
+    InvalidScope(String, String, #[label] Span),
     #[error("Measure statements must have a name.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),
@@ -299,6 +302,7 @@ impl SemanticErrorKind {
             Self::InconsistentTypesInAlias(name, span) => {
                 Self::InconsistentTypesInAlias(name, span + offset)
             }
+            Self::InvalidScope(name, scope, span) => Self::InvalidScope(name, scope, span + offset),
             Self::IfStmtMissingExpression(name, span) => {
                 Self::IfStmtMissingExpression(name, span + offset)
             }

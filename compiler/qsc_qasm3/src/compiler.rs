@@ -400,10 +400,12 @@ impl QasmCompiler {
             semast::StmtKind::Barrier(stmt) => Self::compile_barrier_stmt(stmt),
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
+            semast::StmtKind::Break(stmt) => self.compile_break_stmt(stmt),
             semast::StmtKind::CalibrationGrammar(stmt) => {
                 self.compile_calibration_grammar_stmt(stmt)
             }
             semast::StmtKind::ClassicalDecl(stmt) => self.compile_classical_decl(stmt),
+            semast::StmtKind::Continue(stmt) => self.compile_continue_stmt(stmt),
             semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
@@ -586,6 +588,11 @@ impl QasmCompiler {
         Some(build_stmt_semi_from_expr(build_wrapped_block_expr(block)))
     }
 
+    fn compile_break_stmt(&mut self, stmt: &semast::BreakStmt) -> Option<qsast::Stmt> {
+        self.push_unsupported_error_message("break stmt", stmt.span);
+        None
+    }
+
     fn compile_calibration_grammar_stmt(
         &mut self,
         stmt: &semast::CalibrationGrammarStmt,
@@ -613,6 +620,11 @@ impl QasmCompiler {
         );
 
         Some(stmt)
+    }
+
+    fn compile_continue_stmt(&mut self, stmt: &semast::ContinueStmt) -> Option<qsast::Stmt> {
+        self.push_unsupported_error_message("continue stmt", stmt.span);
+        None
     }
 
     fn compile_def_stmt(
