@@ -13,7 +13,9 @@ fn subtraction() {
         complex x = (a - b);
     ";
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         InputDeclaration [9-32]:
             symbol_id: 8
         InputDeclaration [41-64]:
@@ -33,7 +35,8 @@ fn subtraction() {
                         rhs: Expr [90-91]:
                             ty: Complex(None, false)
                             kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -44,7 +47,9 @@ fn addition() {
         complex x = (a + b);
     ";
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         InputDeclaration [9-32]:
             symbol_id: 8
         InputDeclaration [41-64]:
@@ -64,7 +69,8 @@ fn addition() {
                         rhs: Expr [90-91]:
                             ty: Complex(None, false)
                             kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -75,7 +81,9 @@ fn multiplication() {
         complex x = (a * b);
     ";
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         InputDeclaration [9-32]:
             symbol_id: 8
         InputDeclaration [41-64]:
@@ -95,7 +103,8 @@ fn multiplication() {
                         rhs: Expr [90-91]:
                             ty: Complex(None, false)
                             kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -106,7 +115,9 @@ fn division() {
         complex x = (a / b);
     ";
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         InputDeclaration [9-32]:
             symbol_id: 8
         InputDeclaration [41-64]:
@@ -126,7 +137,8 @@ fn division() {
                         rhs: Expr [90-91]:
                             ty: Complex(None, false)
                             kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -137,7 +149,9 @@ fn power() {
         complex x = (a ** b);
     ";
 
-    check_stmt_kinds(input, &expect![[r#"
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
         InputDeclaration [9-32]:
             symbol_id: 8
         InputDeclaration [41-64]:
@@ -157,5 +171,6 @@ fn power() {
                         rhs: Expr [91-92]:
                             ty: Complex(None, false)
                             kind: SymbolId(9)
-    "#]]);
+    "#]],
+    );
 }

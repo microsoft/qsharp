@@ -490,7 +490,6 @@ fn simulatable_intrinsic_on_gates_generates_correct_qir() -> miette::Result<(), 
     "#;
 
     let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
-    expect![[r#""#]]
-    .assert_eq(&qsharp);
+    expect![[r#""#]].assert_eq(&qsharp);
     Ok(())
 }
