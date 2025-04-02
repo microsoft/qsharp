@@ -21,10 +21,10 @@ fn simulatable_intrinsic_can_be_applied_to_gate() -> miette::Result<(), Vec<Repo
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         @SimulatableIntrinsic()
-        operation my_h(q : Qubit) : Unit is Adj + Ctl {
+        operation my_h(q : Qubit) : Unit {
             h(q);
         }
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
