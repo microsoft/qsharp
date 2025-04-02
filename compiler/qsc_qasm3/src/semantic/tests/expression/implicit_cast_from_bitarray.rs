@@ -53,7 +53,9 @@ fn to_int_assignment_implicitly() {
         a = reg;
     "#;
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         ClassicalDeclarationStmt [9-20]:
             symbol_id: 8
             ty_span: [9-15]
@@ -91,7 +93,8 @@ fn to_int_assignment_implicitly() {
             type: Int(None, false)
             qsharp_type: Int
             io_kind: Default
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -102,7 +105,9 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
         a = reg;
     "#;
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         ClassicalDeclarationStmt [9-20]:
             symbol_id: 8
             ty_span: [9-15]
@@ -140,7 +145,8 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
             type: Int(Some(5), false)
             qsharp_type: Int
             io_kind: Default
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -150,7 +156,9 @@ fn to_int_with_equal_width_in_decl_implicitly() {
         int[5] a = reg;
     "#;
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         ClassicalDeclarationStmt [9-20]:
             symbol_id: 8
             ty_span: [9-15]
@@ -177,7 +185,8 @@ fn to_int_with_equal_width_in_decl_implicitly() {
             type: Int(Some(5), false)
             qsharp_type: Int
             io_kind: Default
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -188,7 +197,9 @@ fn to_int_with_higher_width_implicitly_fails() {
         a = reg;
     ";
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         Program:
             version: <none>
             statements:
@@ -227,7 +238,8 @@ fn to_int_with_higher_width_implicitly_fails() {
            :             ^^^
          5 |     
            `----
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
@@ -236,7 +248,9 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
         bit[5] reg;
         int[6] a = reg;
     ";
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         Program:
             version: <none>
             statements:
@@ -267,7 +281,8 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
            :                    ^^^
          4 |     
            `----
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
@@ -278,7 +293,9 @@ fn to_int_with_lower_width_implicitly_fails() {
         a = reg;
     ";
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         Program:
             version: <none>
             statements:
@@ -313,7 +330,8 @@ fn to_int_with_lower_width_implicitly_fails() {
            :             ^^^
          5 |     
            `----
-        ]"#]]);
+        ]"#]],
+    );
 }
 
 #[test]
@@ -323,7 +341,9 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
         int[4] a = reg;
     ";
 
-    check_classical_decls(input, &expect![[r#"
+    check_classical_decls(
+        input,
+        &expect![[r#"
         Program:
             version: <none>
             statements:
@@ -354,5 +374,6 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
            :                    ^^^
          4 |     
            `----
-        ]"#]]);
+        ]"#]],
+    );
 }
