@@ -17,9 +17,21 @@ const MAX_QUBITS = 1000;
 // For now we only support one circuit at a time.
 const MAX_CIRCUITS = 1;
 
+function isCircuitGroup(circuit: any): circuit is qviz.CircuitGroup {
+  return circuit && Array.isArray(circuit.circuits);
+}
+
+function isCircuit(circuit: any): circuit is qviz.Circuit {
+  return (
+    circuit &&
+    Array.isArray(circuit.qubits) &&
+    Array.isArray(circuit.componentGrid)
+  );
+}
+
 // This component is shared by the Python widget and the VS Code panel
 export function Circuit(props: {
-  circuit?: qviz.CircuitGroup;
+  circuit?: qviz.CircuitGroup | qviz.Circuit;
   isEditable: boolean;
   editCallback?: (fileData: qviz.CircuitGroup) => void;
 }) {
@@ -33,14 +45,20 @@ export function Circuit(props: {
     circuits: [emptyCircuit],
   };
 
-  const circuitGroup =
-    props.circuit === undefined ||
-    props.circuit.circuits === undefined ||
-    props.circuit.circuits.length === 0
-      ? emptyCircuitGroup
-      : props.circuit;
-
-  const circuit = circuitGroup.circuits[0];
+  let circuitGroup: qviz.CircuitGroup;
+  let circuit: qviz.Circuit;
+  if (isCircuitGroup(props.circuit)) {
+    circuitGroup =
+      props.circuit.circuits.length === 0 ? emptyCircuitGroup : props.circuit;
+    circuit = circuitGroup.circuits[0];
+  } else if (isCircuit(props.circuit)) {
+    circuitGroup = emptyCircuitGroup;
+    circuit = props.circuit;
+    circuitGroup.circuits[0] = circuit;
+  } else {
+    circuitGroup = emptyCircuitGroup;
+    circuit = circuitGroup.circuits[0];
+  }
 
   if (circuit.componentGrid === undefined) circuit.componentGrid = [];
   if (circuit.qubits === undefined) circuit.qubits = [];
