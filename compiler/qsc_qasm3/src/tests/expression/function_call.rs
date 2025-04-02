@@ -314,7 +314,7 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
 }
 
 #[test]
-fn simulatable_intrinsic_on_gates_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
+fn simulatable_intrinsic_on_def_stmt_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
 
