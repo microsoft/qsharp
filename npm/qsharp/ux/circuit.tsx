@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
 import { CURRENT_VERSION } from "./circuit-vis/circuit";
+import { operationListToGrid } from "./circuit-vis";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -29,12 +30,57 @@ function isCircuit(circuit: any): circuit is qviz.Circuit {
   );
 }
 
-// This component is shared by the Python widget and the VS Code panel
-export function Circuit(props: {
-  circuit?: qviz.CircuitGroup | qviz.Circuit;
-  isEditable: boolean;
-  editCallback?: (fileData: qviz.CircuitGroup) => void;
-}) {
+function toOperation(op: any): qviz.Operation {
+  let targets = [];
+  if (op.targets) {
+    targets = op.targets.map((t: any) => {
+      return {
+        qubit: t.qId,
+        result: t.cId,
+      };
+    });
+  }
+  let controls = undefined;
+  if (op.controls) {
+    controls = op.controls.map((c: any) => {
+      return {
+        qubit: c.qId,
+        result: c.cId,
+      };
+    });
+  }
+
+  if (op.isMeasurement) {
+    return {
+      ...op,
+      kind: "measurement",
+      qubits: controls || [],
+      results: targets,
+    } as qviz.Operation;
+  } else {
+    const convertedOp: qviz.Operation = {
+      ...op,
+      kind: "unitary",
+      targets,
+      controls,
+    };
+    if (op.displayArgs) {
+      convertedOp.args = [op.displayArgs];
+      // Assume the parameter is always "theta" for now
+      convertedOp.params = [{ name: "theta", type: "Double" }];
+    }
+    if (op.children) {
+      convertedOp.children = [
+        {
+          components: op.children.map((child: any) => toOperation(child)),
+        },
+      ];
+    }
+    return convertedOp;
+  }
+}
+
+function toCircuitGroup(circuit: any): qviz.CircuitGroup {
   const emptyCircuit: qviz.Circuit = {
     qubits: [],
     componentGrid: [],
@@ -45,20 +91,76 @@ export function Circuit(props: {
     circuits: [emptyCircuit],
   };
 
-  let circuitGroup: qviz.CircuitGroup;
-  let circuit: qviz.Circuit;
-  if (isCircuitGroup(props.circuit)) {
-    circuitGroup =
-      props.circuit.circuits.length === 0 ? emptyCircuitGroup : props.circuit;
-    circuit = circuitGroup.circuits[0];
-  } else if (isCircuit(props.circuit)) {
-    circuitGroup = emptyCircuitGroup;
-    circuit = props.circuit;
-    circuitGroup.circuits[0] = circuit;
-  } else {
-    circuitGroup = emptyCircuitGroup;
-    circuit = circuitGroup.circuits[0];
+  if (circuit && Object.keys(circuit).length === 0) {
+    return emptyCircuitGroup;
   }
+
+  if (circuit?.version) {
+    const version = circuit.version;
+    // If it has a "version" field, it is up-to-date
+    if (isCircuitGroup(circuit)) {
+      // If it's already a CircuitGroup, return it as is
+      return circuit;
+    } else if (isCircuit(circuit)) {
+      // If it's a Circuit, wrap it in a CircuitGroup
+      return {
+        version,
+        circuits: [circuit],
+      };
+    } else {
+      console.error(
+        "Unknown schema: circuit is neither a CircuitGroup nor a Circuit.",
+      );
+      return emptyCircuitGroup;
+    }
+  } else if (isCircuit(circuit)) {
+    // If it's a Circuit without a version, wrap it in a CircuitGroup
+    return {
+      version: CURRENT_VERSION,
+      circuits: [circuit],
+    };
+  } else if (circuit?.operations) {
+    // Legacy schema: convert to CircuitGroup
+    if (circuit.qubits === undefined || !Array.isArray(circuit.qubits)) {
+      console.error("Unknown schema: circuit is missing qubit information.");
+      return emptyCircuitGroup;
+    }
+
+    const qubits: qviz.Qubit[] = circuit.qubits.map((qubit: any) => {
+      return {
+        id: qubit.id,
+        numResults: qubit.numChildren || 0, // Rename "numChildren" to "numResults"
+      };
+    });
+
+    const componentGrid = operationListToGrid(
+      circuit.operations.map(toOperation),
+      qubits.length,
+    );
+
+    return {
+      version: CURRENT_VERSION,
+      circuits: [
+        {
+          qubits,
+          componentGrid,
+        },
+      ],
+    };
+  } else {
+    console.error("Unknown schema: circuit does not match any known format.");
+    return emptyCircuitGroup;
+  }
+}
+
+// This component is shared by the Python widget and the VS Code panel
+export function Circuit(props: {
+  circuit?: qviz.CircuitGroup | qviz.Circuit;
+  isEditable: boolean;
+  editCallback?: (fileData: qviz.CircuitGroup) => void;
+}) {
+  const circuitGroup = toCircuitGroup(props.circuit);
+  const circuit = circuitGroup.circuits[0];
 
   if (circuit.componentGrid === undefined) circuit.componentGrid = [];
   if (circuit.qubits === undefined) circuit.qubits = [];

@@ -395,7 +395,7 @@ const _addOp = (
 
 /**
  * Get the minimum and maximum register indices for a given operation.
- * Based on getMinMaxRegIdx in process.ts, but without the maxQId.
+ * Based on getMinMaxRegIdx in process.ts, but without the numQubits.
  *
  * @param operation The operation for which to get the register indices.
  * @returns A tuple containing the minimum and maximum register indices.

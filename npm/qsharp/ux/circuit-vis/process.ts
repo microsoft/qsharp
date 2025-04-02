@@ -422,21 +422,21 @@ const _offsetChildrenX = (
  * Children operations are recursively converted into a grid.
  *
  * @param operations Array of operations.
- * @param registers  Array of registers.
+ * @param numQubits  Number of qubits in the circuit.
  *
  * @returns A 2D array of operations.
  */
 const operationListToGrid = (
   operations: Operation[],
-  registers: Register[],
+  numQubits: number,
 ): ComponentGrid => {
   operations.forEach((op) => {
     if (op.children && op.children.length == 1) {
-      op.children = operationListToGrid(op.children[0].components, registers);
+      op.children = operationListToGrid(op.children[0].components, numQubits);
     }
   });
 
-  return _removePadding(_operationListToPaddedArray(operations, registers)).map(
+  return _removePadding(_operationListToPaddedArray(operations, numQubits)).map(
     (col) => ({
       components: col,
     }),
@@ -447,18 +447,18 @@ const operationListToGrid = (
  * Converts a list of operations into a padded 2D array of operations.
  *
  * @param operations Array of operations.
- * @param registers  Array of registers.
+ * @param numQubits  Number of qubits in the circuit.
  *
  * @returns A 2D array of operations padded with `null`s.
  */
 const _operationListToPaddedArray = (
   operations: Operation[],
-  registers: Register[],
+  numQubits: number,
 ): (Operation | null)[][] => {
   if (operations.length === 0) return [];
 
   // Group operations based on registers
-  const groupedOps: number[][] = _groupOperations(operations, registers);
+  const groupedOps: number[][] = _groupOperations(operations, numQubits);
 
   // Align operations on multiple registers
   const alignedOps: (number | null)[][] = _transformToColRow(
@@ -518,12 +518,12 @@ const _transformToColRow = (
  * Get the minimum and maximum register indices for a given operation.
  *
  * @param operation The operation for which to get the register indices.
- * @param maxQId The maximum qubit ID.
+ * @param numQubits The number of qubits in the circuit.
  * @returns A tuple containing the minimum and maximum register indices.
  */
 const getMinMaxRegIdx = (
   operation: Operation,
-  maxQId: number,
+  numQubits: number,
 ): [number, number] => {
   const { targets, controls } =
     operation.kind === "measurement"
@@ -545,7 +545,7 @@ const getMinMaxRegIdx = (
     ? 0
     : Math.min(...qRegIdxList);
   const maxRegIdx: number = isClassicallyControlled
-    ? maxQId - 1
+    ? numQubits - 1
     : Math.max(...qRegIdxList);
 
   return [minRegIdx, maxRegIdx];
@@ -555,22 +555,21 @@ const getMinMaxRegIdx = (
  * Group gates provided by operations into their respective registers.
  *
  * @param operations Array of operations.
- * @param registers  Array of registers.
+ * @param numQubits  Number of qubits in the circuit.
  *
  * @returns 2D array of indices where `groupedOps[i][j]` is the index of the operations
  *          at register `i` and column `j` (not yet aligned/padded).
  */
 const _groupOperations = (
   operations: Operation[],
-  registers: Register[],
+  numQubits: number,
 ): number[][] => {
-  // NOTE: We get the max ID instead of just number of keys because there can be a qubit ID that
-  // isn't acted upon and thus does not show up as a key in registers.
-  const maxQId: number =
-    Math.max(-1, ...registers.map(({ qubit }) => qubit)) + 1;
-  const groupedOps: number[][] = Array.from(Array(maxQId), () => new Array(0));
+  const groupedOps: number[][] = Array.from(
+    Array(numQubits),
+    () => new Array(0),
+  );
   operations.forEach((operation, instrIdx) => {
-    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, maxQId);
+    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, numQubits);
     // Add operation also to registers that are in-between target registers
     // so that other gates won't render in the middle.
     for (let i = minRegIdx; i <= maxRegIdx; i++) {

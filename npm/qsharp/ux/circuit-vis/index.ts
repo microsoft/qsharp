@@ -19,7 +19,15 @@ export const create = (
 };
 
 export { STYLES } from "./styles";
+export { operationListToGrid } from "./process";
 
 // Export types
 export type { StyleConfig } from "./styles";
-export type { CircuitGroup, Circuit, Qubit, Operation } from "./circuit";
+export type {
+  CircuitGroup,
+  Circuit,
+  ComponentGrid,
+  Column,
+  Qubit,
+  Operation,
+} from "./circuit";
