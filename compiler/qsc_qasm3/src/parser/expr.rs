@@ -724,6 +724,20 @@ pub(super) fn declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
     Ok(ValueExpr::Expr(expr))
 }
 
+/// These are expressions allowed in constant classical declarations.
+/// Note, that the spec doesn't specify that measurements are not allowed
+/// here, but this is a spec bug, since measuremnts can't be performed at
+/// compile time.
+pub(super) fn const_declaration_expr(s: &mut ParserContext) -> Result<ValueExpr> {
+    let expr = if let Some(expr) = opt(s, expr)? {
+        expr
+    } else {
+        lit_array(s)?
+    };
+
+    Ok(ValueExpr::Expr(expr))
+}
+
 /// These are expressions allowed in `Assign`, `AssignOp`, and return stmts.
 /// Grammar: `expression | measureExpression`.
 pub(super) fn expr_or_measurement(s: &mut ParserContext) -> Result<ValueExpr> {
