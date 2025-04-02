@@ -347,8 +347,10 @@ pub enum StmtKind {
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Block(Box<Block>),
+    Break(BreakStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
+    Continue(ContinueStmt),
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
@@ -384,8 +386,10 @@ impl Display for StmtKind {
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
             StmtKind::Block(block) => write!(f, "{block}"),
+            StmtKind::Break(stmt) => write!(f, "{stmt}"),
             StmtKind::CalibrationGrammar(grammar) => write!(f, "{grammar}"),
             StmtKind::ClassicalDecl(decl) => write!(f, "{decl}"),
+            StmtKind::Continue(stmt) => write!(f, "{stmt}"),
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
@@ -495,6 +499,28 @@ impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "Block", self.span)?;
         write_indented_list(f, &self.stmts)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct BreakStmt {
+    pub span: Span,
+}
+
+impl Display for BreakStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_header(f, "BreakStmt", self.span)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ContinueStmt {
+    pub span: Span,
+}
+
+impl Display for ContinueStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_header(f, "ContinueStmt", self.span)
     }
 }
 
