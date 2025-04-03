@@ -409,15 +409,14 @@ export function CircuitPanel(props: CircuitProps) {
           {props.title} {props.simulated ? "(Trace)" : ""}
         </h1>
       </div>
-      <div class="qs-circuit-error">{error}</div>
-      <p>{props.targetProfile}</p>
-      <p>
-        {
-          props.simulated
-            ? "WARNING: This diagram shows the result of tracing a dynamic circuit, and may change from run to run."
-            : "\xa0" // nbsp to keep line height consistent
-        }
-      </p>
+      {error && <div class="qs-circuit-error">{error}</div>}
+      {props.targetProfile && <p>{props.targetProfile}</p>}
+      {props.simulated && (
+        <p>
+          WARNING: This diagram shows the result of tracing a dynamic circuit,
+          and may change from run to run.
+        </p>
+      )}
       <p>
         Learn more at{" "}
         <a href="https://aka.ms/qdk.circuits">https://aka.ms/qdk.circuits</a>

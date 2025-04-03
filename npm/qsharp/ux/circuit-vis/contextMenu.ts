@@ -248,7 +248,6 @@ const validateExpression = (input: string): boolean => {
     return expressionRegex.test(expr);
   };
 
-  // Step 4: Validate the entire input
   return validateParentheses(input) && validate(input);
 };
 

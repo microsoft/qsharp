@@ -273,7 +273,7 @@ class CircuitEvents {
           this.movingControl,
         );
 
-        // ToDo: This shouldn't be necessary. Find out why all the operations are missing their dataAttributes from sqore
+        // Make sure the selectedOperation has location data
         if (this.selectedOperation.dataAttributes == null) {
           this.selectedOperation.dataAttributes = {
             location: selectedLocation,
