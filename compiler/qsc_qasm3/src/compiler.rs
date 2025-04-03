@@ -23,7 +23,7 @@ use crate::{
         build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
         build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
         build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
         build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
@@ -651,7 +651,7 @@ impl QasmCompiler {
             .collect();
 
         let body = Some(self.compile_block(&stmt.body));
-        let return_type = stmt.return_type.as_ref().map(map_qsharp_type_to_ast_ty);
+        let return_type = map_qsharp_type_to_ast_ty(&stmt.return_type);
         let kind = if stmt.has_qubit_params {
             qsast::CallableKind::Operation
         } else {
@@ -960,7 +960,7 @@ impl QasmCompiler {
             symbol.span,
             stmt.body.span,
             stmt.span,
-            None,
+            build_path_ident_ty("Unit"),
             qsast::CallableKind::Operation,
             functors,
             list_from_iter(attrs),

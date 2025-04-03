@@ -1689,7 +1689,7 @@ pub(crate) fn build_function_or_operation(
     name_span: Span,
     body_span: Span,
     gate_span: Span,
-    return_type: Option<Ty>,
+    return_type: Ty,
     kind: CallableKind,
     functors: Option<FunctorExpr>,
     attrs: List<Attr>,
@@ -1722,12 +1722,6 @@ pub(crate) fn build_function_or_operation(
         kind: Box::new(input_pat_kind),
         span: Span { lo, hi },
         ..Default::default()
-    };
-
-    let return_type = if let Some(ty) = return_type {
-        ty
-    } else {
-        build_path_ident_ty("Unit")
     };
 
     let body = CallableBody::Block(Box::new(body.unwrap_or_else(|| Block {

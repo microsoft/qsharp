@@ -1291,7 +1291,7 @@ pub struct DefStmt {
     pub has_qubit_params: bool,
     pub params: Box<[SymbolId]>,
     pub body: Block,
-    pub return_type: Option<crate::types::Type>,
+    pub return_type: crate::types::Type,
 }
 
 impl Display for DefStmt {
@@ -1300,7 +1300,7 @@ impl Display for DefStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
-        writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
+        writeln_field(f, "return_type", &self.return_type)?;
         write_field(f, "body", &self.body)
     }
 }
