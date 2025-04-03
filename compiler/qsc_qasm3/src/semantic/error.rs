@@ -93,6 +93,9 @@ pub enum SemanticErrorKind {
     #[error("Designator is too large.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
+    #[error("Extern declarations must be done in global scope.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.DefDeclarationInNonGlobalScope"))]
+    ExternDeclarationInNonGlobalScope(#[label] Span),
     #[error("Failed to compile all expressions in expression list.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.FailedToCompileExpressionList"))]
     FailedToCompileExpressionList(#[label] Span),
@@ -296,6 +299,9 @@ impl SemanticErrorKind {
                 Self::DefDeclarationInNonGlobalScope(span + offset)
             }
             Self::DesignatorTooLarge(span) => Self::DesignatorTooLarge(span + offset),
+            Self::ExternDeclarationInNonGlobalScope(span) => {
+                Self::ExternDeclarationInNonGlobalScope(span + offset)
+            }
             Self::FailedToCompileExpressionList(span) => {
                 Self::FailedToCompileExpressionList(span + offset)
             }

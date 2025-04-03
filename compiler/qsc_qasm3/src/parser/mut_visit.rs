@@ -801,10 +801,6 @@ pub fn walk_extern_parameter(vis: &mut impl MutVisitor, param: &mut ExternParame
             vis.visit_span(span);
             vis.visit_array_ref_type(ty);
         }
-        ExternParameter::Quantum(expr, span) => {
-            vis.visit_span(span);
-            expr.iter_mut().for_each(|expr| vis.visit_expr(expr));
-        }
         ExternParameter::Scalar(ty, span) => {
             vis.visit_span(span);
             vis.visit_scalar_type(ty);

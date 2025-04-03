@@ -1166,8 +1166,67 @@ impl Lowerer {
     }
 
     fn lower_extern(&mut self, stmt: &syntax::ExternDecl) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("extern stmt", stmt.span);
-        semantic::StmtKind::Err
+        // 1. Check that we are in the global scope. QASM3 semantics
+        //    only allow extern declarations in the global scope.
+        if !self.symbols.is_current_scope_global() {
+            let kind = SemanticErrorKind::ExternDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
+        // 2. Build the parameter's type.
+        let mut params = Vec::with_capacity(stmt.params.len());
+        let mut qsharp_params = Vec::with_capacity(stmt.params.len());
+
+        for param in &stmt.params {
+            let ty = self.lower_extern_param(param);
+            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, param.span());
+            params.push(ty);
+            qsharp_params.push(qsharp_ty);
+        }
+
+        // 2. Build the return type.
+        let (return_ty, qsharp_return_ty) = if let Some(ty) = &stmt.return_type {
+            let ty_span = ty.span;
+            let tydef = syntax::TypeDef::Scalar(ty.clone());
+            let ty = self.get_semantic_type_from_tydef(&tydef, false);
+            let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
+            (Rc::new(ty), qsharp_ty)
+        } else {
+            (
+                Rc::new(crate::semantic::types::Type::Void),
+                crate::types::Type::Tuple(Default::default()),
+            )
+        };
+
+        // 3. Push the extern symbol to the symbol table.
+        #[allow(clippy::cast_possible_truncation)]
+        let arity = stmt.params.len() as u32;
+        let name = stmt.ident.name.clone();
+        let name_span = stmt.ident.span;
+        let ty = crate::semantic::types::Type::Function(params.into(), return_ty.clone());
+        let kind = crate::types::CallableKind::Function;
+        let qsharp_ty = crate::types::Type::Callable(kind, arity, 0);
+        let symbol = Symbol::new(&name, name_span, ty, qsharp_ty, IOKind::Default);
+        let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
+
+        semantic::StmtKind::ExternDecl(semantic::ExternDecl {
+            span: stmt.span,
+            symbol_id,
+            params: qsharp_params.into(),
+            return_type: qsharp_return_ty,
+        })
+    }
+
+    fn lower_extern_param(&mut self, param: &syntax::ExternParameter) -> Type {
+        let tydef = match param {
+            syntax::ExternParameter::ArrayReference(array_reference_type, _) => {
+                syntax::TypeDef::ArrayReference(array_reference_type.clone())
+            }
+            syntax::ExternParameter::Scalar(scalar_type, _) => {
+                syntax::TypeDef::Scalar(scalar_type.clone())
+            }
+        };
+        self.get_semantic_type_from_tydef(&tydef, false)
     }
 
     fn lower_for_stmt(&mut self, stmt: &syntax::ForStmt) -> semantic::StmtKind {
