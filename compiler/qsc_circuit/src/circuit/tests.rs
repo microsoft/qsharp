@@ -57,7 +57,7 @@ fn deserialize_circuit() {
     let contents = r#"
 {
   "qubits": [ { "id": 0 }, { "id": 1 } ],
-  "component_grid": [
+  "componentGrid": [
     {
       "components": [
         { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] },
