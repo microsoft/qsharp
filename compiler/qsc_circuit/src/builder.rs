@@ -256,18 +256,6 @@ impl Builder {
     }
 
     fn finish_circuit(&self, operations: Vec<Operation>) -> Circuit {
-        // add deferred measurements
-        // if self.config.base_profile {
-        //     for (qubit, _) in &self.remapper.qubit_measurement_counts {
-        //         if self.max_ops_exceeded || operations.len() >= self.config.max_operations {
-        //             break;
-        //         }
-
-        //         // guaranteed one measurement per qubit, so result is always 0
-        //         operations.push(measurement_gate(qubit.0, 0));
-        //     }
-        // }
-
         let mut qubits = vec![];
 
         // add qubit declarations

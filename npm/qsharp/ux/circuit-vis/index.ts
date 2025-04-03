@@ -19,7 +19,7 @@ export const create = (
 };
 
 export { STYLES } from "./styles";
-export { operationListToGrid } from "./process";
+export { operationListToGrid } from "./utils";
 
 // Export types
 export type { StyleConfig } from "./styles";

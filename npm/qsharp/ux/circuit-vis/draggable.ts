@@ -6,11 +6,11 @@ import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
 import { toMetadata } from "./panel";
-import { getMinMaxRegIdx } from "./process";
 import { Sqore } from "./sqore";
 import {
   findLocation,
   getHostElems,
+  getMinMaxRegIdx,
   getToolboxElems,
   getWireData,
   locationStringToIndexes,

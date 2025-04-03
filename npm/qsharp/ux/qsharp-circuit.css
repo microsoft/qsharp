@@ -54,18 +54,18 @@
 
 /* Default style for arg-button */
 .qs-circuit .arg-button {
-  fill: var(--vscode-editor-foreground, #ffffff); /* Default text color */
-  text-decoration: none; /* No underline by default */
-  cursor: default; /* Default cursor */
-  pointer-events: none; /* Disable interaction in readonly mode */
+  fill: var(--vscode-editor-foreground, #ffffff);
+  text-decoration: none;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Edit mode style for arg-button (hyperlink appearance) */
 .qs-circuit .arg-button.edit-mode {
-  fill: var(--vscode-textLink-foreground, #0066cc); /* Hyperlink color */
-  text-decoration: underline; /* Underline for hyperlink */
-  cursor: pointer; /* Pointer cursor for clickable links */
-  pointer-events: all; /* Enable interaction in edit mode */
+  fill: var(--vscode-textLink-foreground, #0066cc);
+  text-decoration: underline;
+  cursor: pointer;
+  pointer-events: all;
 }
 
 /* Hover style for arg-button in edit mode */

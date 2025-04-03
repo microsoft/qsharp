@@ -180,6 +180,210 @@ const getKetLabel = (ket: string): string => {
   return match ? match[1] : "";
 };
 
+/**
+ * Converts a list of operations into a 2D grid of operations in col-row format.
+ * Operations will be left-justified as much as possible in the resulting grid.
+ * Children operations are recursively converted into a grid.
+ *
+ * @param operations Array of operations.
+ * @param numQubits  Number of qubits in the circuit.
+ *
+ * @returns A 2D array of operations.
+ */
+const operationListToGrid = (
+  operations: Operation[],
+  numQubits: number,
+): ComponentGrid => {
+  operations.forEach((op) => {
+    if (op.children && op.children.length == 1) {
+      op.children = operationListToGrid(op.children[0].components, numQubits);
+    }
+  });
+
+  return _removePadding(_operationListToPaddedArray(operations, numQubits)).map(
+    (col) => ({
+      components: col,
+    }),
+  );
+};
+
+/**
+ * Converts a list of operations into a padded 2D array of operations.
+ *
+ * @param operations Array of operations.
+ * @param numQubits  Number of qubits in the circuit.
+ *
+ * @returns A 2D array of operations padded with `null`s.
+ */
+const _operationListToPaddedArray = (
+  operations: Operation[],
+  numQubits: number,
+): (Operation | null)[][] => {
+  if (operations.length === 0) return [];
+
+  // Group operations based on registers
+  const groupedOps: number[][] = _groupOperations(operations, numQubits);
+
+  // Align operations on multiple registers
+  const alignedOps: (number | null)[][] = _transformToColRow(
+    _alignOps(groupedOps),
+  );
+
+  const operationArray: (Operation | null)[][] = alignedOps.map((col) =>
+    col.map((opIdx) => {
+      if (opIdx == null) return null;
+      return operations[opIdx];
+    }),
+  );
+
+  return operationArray;
+};
+
+/**
+ * Removes padding (`null` values) from a 2D array of operations.
+ *
+ * @param operations 2D array of operations padded with `null`s.
+ *
+ * @returns A 2D array of operations without `null` values.
+ */
+const _removePadding = (operations: (Operation | null)[][]): Operation[][] => {
+  return operations.map((col) => col.filter((op) => op != null));
+};
+
+/**
+ * Transforms a row-col 2D array into an equivalent col-row 2D array.
+ *
+ * @param alignedOps 2D array of operations in row-col format.
+ *
+ * @returns 2D array of operations in col-row format.
+ */
+const _transformToColRow = (
+  alignedOps: (number | null)[][],
+): (number | null)[][] => {
+  if (alignedOps.length === 0) return [];
+
+  const numRows = alignedOps.length;
+  const numCols = Math.max(...alignedOps.map((row) => row.length));
+
+  const colRowArray: (number | null)[][] = Array.from({ length: numCols }, () =>
+    Array(numRows).fill(null),
+  );
+
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < alignedOps[row].length; col++) {
+      colRowArray[col][row] = alignedOps[row][col];
+    }
+  }
+
+  return colRowArray;
+};
+
+/**
+ * Get the minimum and maximum register indices for a given operation.
+ *
+ * @param operation The operation for which to get the register indices.
+ * @param numQubits The number of qubits in the circuit.
+ * @returns A tuple containing the minimum and maximum register indices.
+ */
+const getMinMaxRegIdx = (
+  operation: Operation,
+  numQubits: number,
+): [number, number] => {
+  const { targets, controls } =
+    operation.kind === "measurement"
+      ? { targets: operation.results, controls: operation.qubits }
+      : { targets: operation.targets, controls: operation.controls };
+  const ctrls: Register[] = controls || [];
+  const qRegs: Register[] = [...ctrls, ...targets].filter(
+    ({ result }) => result === undefined,
+  );
+  const qRegIdxList: number[] = qRegs.map(({ qubit }) => qubit);
+  const clsControls: Register[] = ctrls.filter(
+    ({ result }) => result !== undefined,
+  );
+  const isClassicallyControlled: boolean = clsControls.length > 0;
+  if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
+  // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
+  // the contiguous range of registers that it covers.
+  const minRegIdx: number = isClassicallyControlled
+    ? 0
+    : Math.min(...qRegIdxList);
+  const maxRegIdx: number = isClassicallyControlled
+    ? numQubits - 1
+    : Math.max(...qRegIdxList);
+
+  return [minRegIdx, maxRegIdx];
+};
+
+/**
+ * Group gates provided by operations into their respective registers.
+ *
+ * @param operations Array of operations.
+ * @param numQubits  Number of qubits in the circuit.
+ *
+ * @returns 2D array of indices where `groupedOps[i][j]` is the index of the operations
+ *          at register `i` and column `j` (not yet aligned/padded).
+ */
+const _groupOperations = (
+  operations: Operation[],
+  numQubits: number,
+): number[][] => {
+  const groupedOps: number[][] = Array.from(
+    Array(numQubits),
+    () => new Array(0),
+  );
+  operations.forEach((operation, instrIdx) => {
+    const [minRegIdx, maxRegIdx] = getMinMaxRegIdx(operation, numQubits);
+    // Add operation also to registers that are in-between target registers
+    // so that other gates won't render in the middle.
+    for (let i = minRegIdx; i <= maxRegIdx; i++) {
+      groupedOps[i].push(instrIdx);
+    }
+  });
+  return groupedOps;
+};
+
+/**
+ * Aligns operations by padding registers with `null`s to make sure that multiqubit
+ * gates are in the same column.
+ * e.g. ---[x]---[x]--
+ *      ----------|---
+ *
+ * @param ops 2D array of operations. Each row represents a register
+ *            and the operations acting on it (in-order).
+ *
+ * @returns 2D array of aligned operations padded with `null`s.
+ */
+const _alignOps = (ops: number[][]): (number | null)[][] => {
+  let maxNumOps: number = Math.max(0, ...ops.map((regOps) => regOps.length));
+  let col = 0;
+  // Deep copy ops to be returned as paddedOps
+  const paddedOps: (number | null)[][] = ops.map((regOps) => [...regOps]);
+  while (col < maxNumOps) {
+    for (let regIdx = 0; regIdx < paddedOps.length; regIdx++) {
+      const reg: (number | null)[] = paddedOps[regIdx];
+      if (reg.length <= col) continue;
+
+      // Should never be null (nulls are only padded to previous columns)
+      const opIdx: number | null = reg[col];
+
+      // Get position of gate
+      const targetsPos: number[] = paddedOps.map((regOps) =>
+        regOps.indexOf(opIdx),
+      );
+      const gatePos: number = Math.max(-1, ...targetsPos);
+
+      // If current column is not desired gate position, pad with null
+      if (col < gatePos) {
+        paddedOps[regIdx].splice(col, 0, null);
+        maxNumOps = Math.max(maxNumOps, paddedOps[regIdx].length);
+      }
+    }
+    col++;
+  }
+  return paddedOps;
+};
+
 /**********************
  *  Finder Functions  *
  **********************/
@@ -355,6 +559,8 @@ export {
   locationStringToIndexes,
   getGateLocationString,
   getKetLabel,
+  operationListToGrid,
+  getMinMaxRegIdx,
   findGateElem,
   findLocation,
   findParentOperation,

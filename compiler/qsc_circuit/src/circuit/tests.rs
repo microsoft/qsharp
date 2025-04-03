@@ -154,10 +154,7 @@ fn control_classical() {
                 num_results: 1,
             },
             qubit(1),
-            Qubit {
-                id: 2,
-                num_results: 0,
-            },
+            qubit(2),
         ],
         component_grid: operation_list_to_component_grid(operations, 2),
     };
