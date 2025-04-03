@@ -602,10 +602,13 @@ impl Lowerer {
                 self.push_unsupported_error_message("String literals", expr.span);
                 (semantic::ExprKind::Err, Type::Err)
             }
-            syntax::LiteralKind::Duration(_, _) => {
-                self.push_unsupported_error_message("Duration literals", expr.span);
-                (semantic::ExprKind::Err, Type::Err)
-            }
+            syntax::LiteralKind::Duration(value, time_unit) => (
+                semantic::ExprKind::Lit(semantic::LiteralKind::Duration(
+                    *value,
+                    (*time_unit).into(),
+                )),
+                Type::Duration(true),
+            ),
             syntax::LiteralKind::Array(exprs) => {
                 // array literals are only valid in classical decals (const and mut)
                 // and we have to know the expected type of the array in order to lower it
@@ -2105,6 +2108,10 @@ impl Lowerer {
                     None
                 }
             },
+            Type::Duration(_) => Some(from_lit_kind(LiteralKind::Duration(
+                0.0,
+                semantic::TimeUnit::Ns,
+            ))),
             Type::BoolArray(_) => {
                 self.push_unimplemented_error_message("bool array default value", span);
                 None
@@ -2133,13 +2140,8 @@ impl Lowerer {
                 self.push_unimplemented_error_message("uint array default value", span);
                 None
             }
-            Type::Duration(_)
-            | Type::Gate(_, _)
-            | Type::Function(..)
-            | Type::Range
-            | Type::Set
-            | Type::Void => {
-                let message = format!("Default values for {ty:?} are unsupported.");
+            Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
+                let message = format!("Default values for {ty:?}");
                 self.push_unsupported_error_message(message, span);
                 None
             }
