@@ -1169,7 +1169,7 @@ impl Lowerer {
         // 1. Check that we are in the global scope. QASM3 semantics
         //    only allow extern declarations in the global scope.
         if !self.symbols.is_current_scope_global() {
-            let kind = SemanticErrorKind::DefDeclarationInNonGlobalScope(stmt.span);
+            let kind = SemanticErrorKind::ExternDeclarationInNonGlobalScope(stmt.span);
             self.push_semantic_error(kind);
         }
 
