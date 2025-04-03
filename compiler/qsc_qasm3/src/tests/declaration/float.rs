@@ -87,7 +87,6 @@ fn const_explicit_width_lit_decl() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "oq3 parser bug, can't read float with leading dot"]
 fn lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
     let source = "
         float x = .421;
@@ -104,7 +103,6 @@ fn lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "oq3 parser bug, can't read float with leading dot"]
 fn const_lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
     let source = "
         const float x = .421;
@@ -121,7 +119,6 @@ fn const_lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "oq3 parser bug, can't read float with leading dot"]
 fn const_lit_decl_leading_dot_scientific() -> miette::Result<(), Vec<Report>> {
     let source = "
         const float x = .421e2;

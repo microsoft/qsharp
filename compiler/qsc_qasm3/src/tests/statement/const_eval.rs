@@ -143,7 +143,7 @@ fn ident_const() -> miette::Result<(), Vec<Report>> {
 #[ignore = "indexed ident is not yet supported"]
 fn indexed_ident() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const uint[2] a = {1, 2};
+        const array[uint, 2] a = {1, 2};
         bit[a[1]] r;
     "#;
 

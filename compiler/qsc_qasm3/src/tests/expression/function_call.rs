@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::compile_qasm_to_qsharp;
+use crate::tests::{compile_qasm_to_qir, compile_qasm_to_qsharp};
 use expect_test::expect;
 use miette::Report;
+use qsc::target::Profile;
 
 #[test]
 fn funcall_with_no_arguments_generates_correct_qsharp() -> miette::Result<(), Vec<Report>> {
@@ -276,7 +277,11 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         function parity(arr : Result[]) : Result {
-            return 1;
+            return if 1 == 0 {
+                One
+            } else {
+                Zero
+            };
         }
         mutable p = parity(__IntAsResultArrayBE__(2, 2));
     "#]]
@@ -310,4 +315,55 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn simulatable_intrinsic_on_def_stmt_generates_correct_qir() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+
+        @SimulatableIntrinsic
+        def my_gate(qubit q) {
+            x q;
+        }
+
+        qubit q;
+        my_gate(q);
+        bit result = measure q;
+    "#;
+
+    let qsharp = compile_qasm_to_qir(source, Profile::AdaptiveRI)?;
+    expect![[r#"
+        %Result = type opaque
+        %Qubit = type opaque
+
+        define void @ENTRYPOINT__main() #0 {
+        block_0:
+          call void @my_gate(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__rt__tuple_record_output(i64 0, i8* null)
+          ret void
+        }
+
+        declare void @my_gate(%Qubit*)
+
+        declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
+
+        declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3, !4}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        !4 = !{i32 1, !"int_computations", !"i64"}
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
 }

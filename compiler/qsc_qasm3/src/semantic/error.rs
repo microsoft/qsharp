@@ -141,12 +141,18 @@ pub enum SemanticErrorKind {
     #[error("Gate expects {0} qubit arguments, but {1} were provided.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.InvalidNumberOfQubitArgs"))]
     InvalidNumberOfQubitArgs(usize, usize, #[label] Span),
+    #[error("{0} can only appear in {1} scopes.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.InvalidScope"))]
+    InvalidScope(String, String, #[label] Span),
     #[error("Measure statements must have a name.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),
     #[error("Measure statements must have a gate operand name.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.MeasureExpressionsMustHaveGateOperand"))]
     MeasureExpressionsMustHaveGateOperand(#[label] Span),
+    #[error("Return statements on a non-void subroutine should have a target expression.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.MissingTargetExpressionInReturnStmt"))]
+    MissingTargetExpressionInReturnStmt(#[label] Span),
     #[error("Control counts must be postitive integers.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.NegativeControlCount"))]
     NegativeControlCount(#[label] Span),
@@ -186,6 +192,9 @@ pub enum SemanticErrorKind {
     #[error("Reset expression must have a name.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ResetExpressionMustHaveName"))]
     ResetExpressionMustHaveName(#[label] Span),
+    #[error("Cannot return an expression from a void subroutine.")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ReturningExpressionFromVoidSubroutine"))]
+    ReturningExpressionFromVoidSubroutine(#[label] Span),
     #[error("Return statements are only allowed within subroutines.")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ReturnNotInSubroutine"))]
     ReturnNotInSubroutine(#[label] Span),
@@ -299,6 +308,7 @@ impl SemanticErrorKind {
             Self::InconsistentTypesInAlias(name, span) => {
                 Self::InconsistentTypesInAlias(name, span + offset)
             }
+            Self::InvalidScope(name, scope, span) => Self::InvalidScope(name, scope, span + offset),
             Self::IfStmtMissingExpression(name, span) => {
                 Self::IfStmtMissingExpression(name, span + offset)
             }
@@ -328,6 +338,9 @@ impl SemanticErrorKind {
             }
             Self::MeasureExpressionsMustHaveName(span) => {
                 Self::MeasureExpressionsMustHaveName(span + offset)
+            }
+            Self::MissingTargetExpressionInReturnStmt(span) => {
+                Self::MissingTargetExpressionInReturnStmt(span + offset)
             }
             Self::NegativeControlCount(span) => Self::NegativeControlCount(span + offset),
             Self::NotSupported(name, span) => Self::NotSupported(name, span + offset),
@@ -361,6 +374,9 @@ impl SemanticErrorKind {
             }
             Self::ResetExpressionMustHaveName(span) => {
                 Self::ResetExpressionMustHaveName(span + offset)
+            }
+            Self::ReturningExpressionFromVoidSubroutine(span) => {
+                Self::ReturningExpressionFromVoidSubroutine(span + offset)
             }
             Self::ReturnNotInSubroutine(span) => Self::ReturnNotInSubroutine(span + offset),
             Self::SwitchStatementMustHaveAtLeastOneCase(span) => {

@@ -602,10 +602,13 @@ impl Lowerer {
                 self.push_unsupported_error_message("String literals", expr.span);
                 (semantic::ExprKind::Err, Type::Err)
             }
-            syntax::LiteralKind::Duration(_, _) => {
-                self.push_unsupported_error_message("Duration literals", expr.span);
-                (semantic::ExprKind::Err, Type::Err)
-            }
+            syntax::LiteralKind::Duration(value, time_unit) => (
+                semantic::ExprKind::Lit(semantic::LiteralKind::Duration(
+                    *value,
+                    (*time_unit).into(),
+                )),
+                Type::Duration(true),
+            ),
             syntax::LiteralKind::Array(exprs) => {
                 // array literals are only valid in classical decals (const and mut)
                 // and we have to know the expected type of the array in order to lower it
@@ -850,8 +853,16 @@ impl Lowerer {
     }
 
     fn lower_break(&mut self, stmt: &syntax::BreakStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("break stmt", stmt.span);
-        semantic::StmtKind::Err
+        if self.symbols.is_scope_rooted_in_loop_scope() {
+            semantic::StmtKind::Break(semantic::BreakStmt { span: stmt.span })
+        } else {
+            self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                "break".into(),
+                "loop".into(),
+                stmt.span,
+            ));
+            semantic::StmtKind::Err
+        }
     }
 
     fn lower_block(&mut self, stmt: &syntax::Block) -> semantic::Block {
@@ -968,8 +979,16 @@ impl Lowerer {
     }
 
     fn lower_continue_stmt(&mut self, stmt: &syntax::ContinueStmt) -> semantic::StmtKind {
-        self.push_unimplemented_error_message("continue stmt", stmt.span);
-        semantic::StmtKind::Err
+        if self.symbols.is_scope_rooted_in_loop_scope() {
+            semantic::StmtKind::Continue(semantic::ContinueStmt { span: stmt.span })
+        } else {
+            self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                "continue".into(),
+                "loop".into(),
+                stmt.span,
+            ));
+            semantic::StmtKind::Err
+        }
     }
 
     fn lower_def(&mut self, stmt: &syntax::DefStmt) -> semantic::StmtKind {
@@ -996,9 +1015,12 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Some(ty), Some(qsharp_ty))
+            (Rc::new(ty), qsharp_ty)
         } else {
-            (None, None)
+            (
+                Rc::new(crate::semantic::types::Type::Void),
+                crate::types::Type::Tuple(Default::default()),
+            )
         };
 
         // 2. Push the function symbol to the symbol table.
@@ -1006,7 +1028,7 @@ impl Lowerer {
         let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.map(Rc::new));
+        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.clone());
 
         let has_qubit_params = stmt
             .params
@@ -1025,7 +1047,7 @@ impl Lowerer {
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         // Push the scope where the def lives.
-        self.symbols.push_scope(ScopeKind::Function);
+        self.symbols.push_scope(ScopeKind::Function(return_ty));
 
         let params = param_symbols
             .into_iter()
@@ -1152,7 +1174,7 @@ impl Lowerer {
         let set_declaration = self.lower_enumerable_set(&stmt.set_declaration);
 
         // Push scope where the loop variable lives.
-        self.symbols.push_scope(ScopeKind::Block);
+        self.symbols.push_scope(ScopeKind::Loop);
 
         let ty = self.get_semantic_type_from_scalar_ty(&stmt.ty, false);
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span);
@@ -1225,11 +1247,7 @@ impl Lowerer {
                 ));
             }
 
-            if let Some(return_ty) = return_ty {
-                (params_ty.clone(), (**return_ty).clone())
-            } else {
-                (Rc::default(), crate::semantic::types::Type::Err)
-            }
+            (params_ty.clone(), (**return_ty).clone())
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
             (Rc::default(), crate::semantic::types::Type::Err)
@@ -1660,7 +1678,7 @@ impl Lowerer {
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
-        let expr = stmt
+        let mut expr = stmt
             .expr
             .as_ref()
             .map(|expr| match &**expr {
@@ -1668,6 +1686,37 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
             })
             .map(Box::new);
+
+        let return_ty = self.symbols.get_subroutine_return_ty();
+
+        match (&mut expr, return_ty) {
+            // If we don't have a return type then we are not rooted in a subroutine scope.
+            (_, None) => {
+                self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                    "Return statements".into(),
+                    "subroutine".into(),
+                    stmt.span,
+                ));
+                return semantic::StmtKind::Err;
+            }
+            (None, Some(ty)) => {
+                if !matches!(ty.as_ref(), Type::Void) {
+                    self.push_semantic_error(
+                        SemanticErrorKind::MissingTargetExpressionInReturnStmt(stmt.span),
+                    );
+                    return semantic::StmtKind::Err;
+                }
+            }
+            (Some(expr), Some(ty)) => {
+                if matches!(ty.as_ref(), Type::Void) {
+                    self.push_semantic_error(
+                        SemanticErrorKind::ReturningExpressionFromVoidSubroutine(expr.span),
+                    );
+                    return semantic::StmtKind::Err;
+                }
+                *expr = Box::new(self.cast_expr_to_type(&ty, expr));
+            }
+        }
 
         semantic::StmtKind::Return(semantic::ReturnStmt {
             span: stmt.span,
@@ -1748,6 +1797,10 @@ impl Lowerer {
     }
 
     fn lower_while_stmt(&mut self, stmt: &syntax::WhileLoop) -> semantic::StmtKind {
+        // Push scope where the while loop lives. The while loop needs its own scope
+        // so that break and continue know if they are inside a valid scope.
+        self.symbols.push_scope(ScopeKind::Loop);
+
         let condition = self.lower_expr(&stmt.while_condition);
         let body = self.lower_stmt(&stmt.body);
 
@@ -1755,6 +1808,9 @@ impl Lowerer {
         // of type bool, so we try to cast it, inserting a cast if necessary.
         let cond_ty = Type::Bool(condition.ty.is_const());
         let while_condition = self.cast_expr_to_type(&cond_ty, &condition);
+
+        // Pop scope where the while loop lives.
+        self.symbols.pop_scope();
 
         semantic::StmtKind::WhileLoop(semantic::WhileLoop {
             span: stmt.span,
@@ -2082,6 +2138,10 @@ impl Lowerer {
                     None
                 }
             },
+            Type::Duration(_) => Some(from_lit_kind(LiteralKind::Duration(
+                0.0,
+                semantic::TimeUnit::Ns,
+            ))),
             Type::BoolArray(_) => {
                 self.push_unimplemented_error_message("bool array default value", span);
                 None
@@ -2110,13 +2170,8 @@ impl Lowerer {
                 self.push_unimplemented_error_message("uint array default value", span);
                 None
             }
-            Type::Duration(_)
-            | Type::Gate(_, _)
-            | Type::Function(..)
-            | Type::Range
-            | Type::Set
-            | Type::Void => {
-                let message = format!("Default values for {ty:?} are unsupported.");
+            Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
+                let message = format!("Default values for {ty:?}");
                 self.push_unsupported_error_message(message, span);
                 None
             }

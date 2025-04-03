@@ -23,7 +23,7 @@ use crate::{
         build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
         build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
         build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
         build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
@@ -400,10 +400,12 @@ impl QasmCompiler {
             semast::StmtKind::Barrier(stmt) => Self::compile_barrier_stmt(stmt),
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
+            semast::StmtKind::Break(stmt) => self.compile_break_stmt(stmt),
             semast::StmtKind::CalibrationGrammar(stmt) => {
                 self.compile_calibration_grammar_stmt(stmt)
             }
             semast::StmtKind::ClassicalDecl(stmt) => self.compile_classical_decl(stmt),
+            semast::StmtKind::Continue(stmt) => self.compile_continue_stmt(stmt),
             semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
@@ -586,6 +588,11 @@ impl QasmCompiler {
         Some(build_stmt_semi_from_expr(build_wrapped_block_expr(block)))
     }
 
+    fn compile_break_stmt(&mut self, stmt: &semast::BreakStmt) -> Option<qsast::Stmt> {
+        self.push_unsupported_error_message("break stmt", stmt.span);
+        None
+    }
+
     fn compile_calibration_grammar_stmt(
         &mut self,
         stmt: &semast::CalibrationGrammarStmt,
@@ -615,6 +622,11 @@ impl QasmCompiler {
         Some(stmt)
     }
 
+    fn compile_continue_stmt(&mut self, stmt: &semast::ContinueStmt) -> Option<qsast::Stmt> {
+        self.push_unsupported_error_message("continue stmt", stmt.span);
+        None
+    }
+
     fn compile_def_stmt(
         &mut self,
         stmt: &semast::DefStmt,
@@ -639,7 +651,7 @@ impl QasmCompiler {
             .collect();
 
         let body = Some(self.compile_block(&stmt.body));
-        let return_type = stmt.return_type.as_ref().map(map_qsharp_type_to_ast_ty);
+        let return_type = map_qsharp_type_to_ast_ty(&stmt.return_type);
         let kind = if stmt.has_qubit_params {
             qsast::CallableKind::Operation
         } else {
@@ -930,6 +942,16 @@ impl QasmCompiler {
             .iter()
             .filter_map(|annotation| self.compile_annotation(annotation));
 
+        // Do not compile functors if we have the @SimulatableIntrinsic annotation.
+        let functors = if annotations
+            .iter()
+            .any(|annotation| annotation.identifier.as_ref() == "SimulatableIntrinsic")
+        {
+            None
+        } else {
+            Some(build_adj_plus_ctl_functor())
+        };
+
         Some(build_function_or_operation(
             name,
             cargs,
@@ -938,9 +960,9 @@ impl QasmCompiler {
             symbol.span,
             stmt.body.span,
             stmt.span,
-            None,
+            build_path_ident_ty("Unit"),
             qsast::CallableKind::Operation,
-            Some(build_adj_plus_ctl_functor()),
+            functors,
             list_from_iter(attrs),
         ))
     }
@@ -1490,7 +1512,7 @@ impl QasmCompiler {
         _unit: TimeUnit,
         span: Span,
     ) -> qsast::Expr {
-        self.push_unsupported_error_message("timing literals", span);
+        self.push_unsupported_error_message("Timing literals", span);
         err_expr(span)
     }
 

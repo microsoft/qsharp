@@ -743,7 +743,7 @@ fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let ty = scalar_or_array_type(s)?;
     let identifier = Box::new(prim::ident(s)?);
     token(s, TokenKind::Eq)?;
-    let init_expr = expr::declaration_expr(s)?;
+    let init_expr = expr::const_declaration_expr(s)?;
     recovering_semi(s);
     let decl = ConstantDeclStmt {
         span: s.span(lo),

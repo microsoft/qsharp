@@ -274,9 +274,12 @@ pub enum ScopeKind {
     /// Global scope, which is the current scope only when no other scopes are active.
     /// This is the only scope where gates, qubits, and arrays can be declared.
     Global,
-    Function,
+    /// Function scopes need to remember their return type, so that `return` stmts
+    /// can do an implicit cast to the correct type, if any;
+    Function(Rc<Type>),
     Gate,
     Block,
+    Loop,
 }
 
 const BUILTIN_SYMBOLS: [(&str, f64); 6] = [
@@ -424,7 +427,10 @@ impl SymbolTable {
     {
         let scopes = self.scopes.iter().rev();
         let predicate = |x: &Scope| {
-            x.kind == ScopeKind::Block || x.kind == ScopeKind::Function || x.kind == ScopeKind::Gate
+            matches!(
+                x.kind,
+                ScopeKind::Block | ScopeKind::Loop | ScopeKind::Function(..) | ScopeKind::Gate
+            )
         };
 
         // Use scan to track the last item that returned false
@@ -481,7 +487,7 @@ impl SymbolTable {
             }
             if matches!(
                 scope.kind,
-                ScopeKind::Gate | ScopeKind::Function | ScopeKind::Global
+                ScopeKind::Gate | ScopeKind::Function(..) | ScopeKind::Global
             ) {
                 return true;
             }
@@ -499,7 +505,19 @@ impl SymbolTable {
         self.scopes
             .iter()
             .rev()
-            .any(|scope| scope.kind == ScopeKind::Function)
+            .any(|scope| matches!(scope.kind, ScopeKind::Function(..)))
+    }
+
+    /// Returns `None` if the current scope is not rooted in a subroutine.
+    /// Otherwise, returns the return type of the subroutine.
+    #[must_use]
+    pub fn get_subroutine_return_ty(&self) -> Option<Rc<Type>> {
+        for scope in self.scopes.iter().rev() {
+            if let ScopeKind::Function(return_ty) = &scope.kind {
+                return Some(return_ty.clone());
+            }
+        }
+        None
     }
 
     #[must_use]
@@ -507,16 +525,37 @@ impl SymbolTable {
         self.scopes
             .iter()
             .rev()
-            .any(|scope| matches!(scope.kind, ScopeKind::Gate | ScopeKind::Function))
+            .any(|scope| matches!(scope.kind, ScopeKind::Gate | ScopeKind::Function(..)))
+    }
+
+    #[must_use]
+    pub fn is_scope_rooted_in_loop_scope(&self) -> bool {
+        for scope in self.scopes.iter().rev() {
+            if matches!(scope.kind, ScopeKind::Loop) {
+                return true;
+            }
+
+            // Even though semantically correct qasm3 doesn't allow function
+            // or gate scopes outside the global scope, the user could write
+            // incorrect qasm3 while editing. This if statement warns the user
+            // if they write something like:
+            // while true {
+            //   def f() { break; }
+            // }
+            //
+            // Note that the `break` in the example will be rooted in a loop
+            // scope unless we include the following condition.
+            if matches!(scope.kind, ScopeKind::Function(..) | ScopeKind::Gate) {
+                return false;
+            }
+        }
+        false
     }
 
     #[must_use]
     pub fn is_scope_rooted_in_global(&self) -> bool {
         for scope in self.scopes.iter().rev() {
-            if scope.kind == ScopeKind::Function {
-                return false;
-            }
-            if scope.kind == ScopeKind::Gate {
+            if matches!(scope.kind, ScopeKind::Function(..) | ScopeKind::Gate) {
                 return false;
             }
         }

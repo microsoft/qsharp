@@ -1744,7 +1744,7 @@ impl From<IOKeyword> for crate::semantic::symbols::IOKind {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum TimeUnit {
     Dt,
     /// Nanoseconds.

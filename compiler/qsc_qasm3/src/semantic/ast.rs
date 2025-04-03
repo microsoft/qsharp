@@ -347,8 +347,10 @@ pub enum StmtKind {
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Block(Box<Block>),
+    Break(BreakStmt),
     CalibrationGrammar(CalibrationGrammarStmt),
     ClassicalDecl(ClassicalDeclarationStmt),
+    Continue(ContinueStmt),
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
@@ -384,8 +386,10 @@ impl Display for StmtKind {
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
             StmtKind::Block(block) => write!(f, "{block}"),
+            StmtKind::Break(stmt) => write!(f, "{stmt}"),
             StmtKind::CalibrationGrammar(grammar) => write!(f, "{grammar}"),
             StmtKind::ClassicalDecl(decl) => write!(f, "{decl}"),
+            StmtKind::Continue(stmt) => write!(f, "{stmt}"),
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
@@ -495,6 +499,28 @@ impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "Block", self.span)?;
         write_indented_list(f, &self.stmts)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct BreakStmt {
+    pub span: Span,
+}
+
+impl Display for BreakStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_header(f, "BreakStmt", self.span)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ContinueStmt {
+    pub span: Span,
+}
+
+impl Display for ContinueStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_header(f, "ContinueStmt", self.span)
     }
 }
 
@@ -1265,7 +1291,7 @@ pub struct DefStmt {
     pub has_qubit_params: bool,
     pub params: Box<[SymbolId]>,
     pub body: Block,
-    pub return_type: Option<crate::types::Type>,
+    pub return_type: crate::types::Type,
 }
 
 impl Display for DefStmt {
@@ -1274,7 +1300,7 @@ impl Display for DefStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "has_qubit_params", &self.has_qubit_params)?;
         writeln_list_field(f, "parameters", &self.params)?;
-        writeln_opt_field(f, "return_type", self.return_type.as_ref())?;
+        writeln_field(f, "return_type", &self.return_type)?;
         write_field(f, "body", &self.body)
     }
 }
@@ -1725,6 +1751,18 @@ impl Display for TimeUnit {
             TimeUnit::Us => write!(f, "us"),
             TimeUnit::Ms => write!(f, "ms"),
             TimeUnit::S => write!(f, "s"),
+        }
+    }
+}
+
+impl From<crate::parser::ast::TimeUnit> for TimeUnit {
+    fn from(value: crate::parser::ast::TimeUnit) -> Self {
+        match value {
+            syntax::TimeUnit::Dt => Self::Dt,
+            syntax::TimeUnit::Ns => Self::Ns,
+            syntax::TimeUnit::Us => Self::Us,
+            syntax::TimeUnit::Ms => Self::Ms,
+            syntax::TimeUnit::S => Self::S,
         }
     }
 }

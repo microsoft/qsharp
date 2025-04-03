@@ -7,20 +7,28 @@ use miette::Report;
 use crate::tests::compile_qasm_to_qsharp;
 
 #[test]
-#[ignore = "OPENQASM 3.0 parser bug"]
-fn bitwise_not_int() -> miette::Result<(), Vec<Report>> {
+fn bitwise_not_int_fails() {
     let source = "
         int x = 5;
         int y = ~x;
     ";
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
     expect![[r#"
-        mutable x = 5;
-        mutable y = ~~~x;
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
+        [Qsc.Qasm3.Compile.TypeDoesNotSupportedUnaryNegation
+
+          x Unary negation is not allowed for instances of Int(None, false).
+           ,-[Test.qasm:3:18]
+         2 |         int x = 5;
+         3 |         int y = ~x;
+           :                  ^
+         4 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
 }
 
 #[test]
