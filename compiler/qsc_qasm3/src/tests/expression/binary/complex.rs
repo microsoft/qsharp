@@ -10,12 +10,12 @@ fn addition() -> miette::Result<(), Vec<Report>> {
     let source = "
         input complex[float] a;
         input complex[float] b;
-        complex x = (a + b);
+        complex x = a + b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = (Microsoft.Quantum.Math.PlusC(a, b));
+        mutable x = Microsoft.Quantum.Math.PlusC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -42,12 +42,12 @@ fn subtraction() -> miette::Result<(), Vec<Report>> {
     let source = "
         input complex[float] a;
         input complex[float] b;
-        complex x = (a - b);
+        complex x = a - b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = (Microsoft.Quantum.Math.MinusC(a, b));
+        mutable x = Microsoft.Quantum.Math.MinusC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -74,12 +74,12 @@ fn multiplication() -> miette::Result<(), Vec<Report>> {
     let source = "
         input complex[float] a;
         input complex[float] b;
-        complex x = (a * b);
+        complex x = a * b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = (Microsoft.Quantum.Math.TimesC(a, b));
+        mutable x = Microsoft.Quantum.Math.TimesC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -106,12 +106,12 @@ fn division() -> miette::Result<(), Vec<Report>> {
     let source = "
         input complex[float] a;
         input complex[float] b;
-        complex x = (a / b);
+        complex x = a / b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = (Microsoft.Quantum.Math.DividedByC(a, b));
+        mutable x = Microsoft.Quantum.Math.DividedByC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -138,12 +138,12 @@ fn power() -> miette::Result<(), Vec<Report>> {
     let source = "
         input complex[float] a;
         input complex[float] b;
-        complex x = (a ** b);
+        complex x = a ** b;
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = (Microsoft.Quantum.Math.PowC(a, b));
+        mutable x = Microsoft.Quantum.Math.PowC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
