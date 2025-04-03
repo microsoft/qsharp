@@ -70,3 +70,96 @@ fn qubit_array_parameter() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn implicit_cast_to_function_return_type() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def square(int a) -> bit {
+            return a;
+        }
+    "#;
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        function square(a : Int) : Result {
+            return if a == 0 {
+                One
+            } else {
+                Zero
+            };
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn return_from_void_function() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        def square(int a) {
+            return;
+        }
+    "#;
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        function square(a : Int) : Unit {
+            return ();
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn return_expr_on_void_function_fails() {
+    let source = r#"
+        def square(int val) {
+            return val;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.ReturningExpressionFromVoidSubroutine
+
+          x Cannot return an expression from a void subroutine.
+           ,-[Test.qasm:3:20]
+         2 |         def square(int val) {
+         3 |             return val;
+           :                    ^^^
+         4 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn missing_return_expr_on_non_void_function_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            return;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.MissingTargetExpressionInReturnStmt
+
+          x Return statements on a non-void subroutine should have a target
+          | expression.
+           ,-[Test.qasm:3:13]
+         2 |         def square(int a) -> bit {
+         3 |             return;
+           :             ^^^^^^^
+         4 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
