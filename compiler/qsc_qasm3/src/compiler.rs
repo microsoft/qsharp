@@ -1512,7 +1512,7 @@ impl QasmCompiler {
         _unit: TimeUnit,
         span: Span,
     ) -> qsast::Expr {
-        self.push_unsupported_error_message("timing literals", span);
+        self.push_unsupported_error_message("Timing literals", span);
         err_expr(span)
     }
 

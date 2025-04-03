@@ -1755,6 +1755,18 @@ impl Display for TimeUnit {
     }
 }
 
+impl From<crate::parser::ast::TimeUnit> for TimeUnit {
+    fn from(value: crate::parser::ast::TimeUnit) -> Self {
+        match value {
+            syntax::TimeUnit::Dt => Self::Dt,
+            syntax::TimeUnit::Ns => Self::Ns,
+            syntax::TimeUnit::Us => Self::Us,
+            syntax::TimeUnit::Ms => Self::Ms,
+            syntax::TimeUnit::S => Self::S,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EndStmt {
     pub span: Span,
