@@ -20,7 +20,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
                             ty_span: [0-8]
                             init_expr: Expr [0-0]:
                                 ty: Duration(true)
-                                kind: Err
+                                kind: Lit: Duration(0.0, Ns)
 
             [Qsc.Qasm3.Compile.NotSupported
 
@@ -28,13 +28,6 @@ fn with_no_init_expr_has_generated_lit_expr() {
                ,-[test:1:1]
              1 | duration a;
                : ^^^^^^^^
-               `----
-            , Qsc.Qasm3.Compile.NotSupported
-
-              x Default values for Duration(false) are unsupported. are not supported.
-               ,-[test:1:1]
-             1 | duration a;
-               : ^^^^^^^^^^^
                `----
             ]"#]],
     );

@@ -17,7 +17,6 @@ use crate::{
     tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
-
 use miette::Report;
 
 #[test]
@@ -65,17 +64,16 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
         None,
     );
     let unit = compile_with_config(source, config).expect("parse failed");
-    println!("{:?}", unit.errors);
-    assert_eq!(unit.errors.len(), 5);
     for error in &unit.errors {
-        assert!(
-            error
-                .to_string()
-                .contains("Duration type values are not supported.")
-                || error
-                    .to_string()
-                    .contains("Timing literal expressions are not supported.")
-        );
+        println!("{error}");
+    }
+    assert_eq!(unit.errors.len(), 10);
+    for error in &unit.errors {
+        assert!([
+            "Duration type values are not supported.",
+            "Timing literals are not supported.",
+        ]
+        .contains(&error.to_string().as_str()));
     }
 
     Ok(())
@@ -96,7 +94,9 @@ fn stretch() {
     );
     let unit = compile_with_config(source, config).expect("parse failed");
     assert!(unit.has_errors());
-    println!("{:?}", unit.errors);
+    for error in &unit.errors {
+        println!("{error}");
+    }
     assert!(unit.errors.len() == 2);
     assert!(unit.errors[0]
         .to_string()
