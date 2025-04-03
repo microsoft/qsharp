@@ -1714,7 +1714,7 @@ impl Lowerer {
                     );
                     return semantic::StmtKind::Err;
                 }
-                *expr = Box::new(self.cast_expr_to_type(&ty, expr))
+                *expr = Box::new(self.cast_expr_to_type(&ty, expr));
             }
         }
 
