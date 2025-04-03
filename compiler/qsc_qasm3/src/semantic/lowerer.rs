@@ -1015,10 +1015,10 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (ty, qsharp_ty)
+            (Rc::new(ty), qsharp_ty)
         } else {
             (
-                crate::semantic::types::Type::Void,
+                Rc::new(crate::semantic::types::Type::Void),
                 crate::types::Type::Tuple(Default::default()),
             )
         };
@@ -1028,7 +1028,7 @@ impl Lowerer {
         let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(param_types.into(), Rc::new(return_ty));
+        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.clone());
 
         let has_qubit_params = stmt
             .params
@@ -1047,7 +1047,7 @@ impl Lowerer {
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
         // Push the scope where the def lives.
-        self.symbols.push_scope(ScopeKind::Function);
+        self.symbols.push_scope(ScopeKind::Function(return_ty));
 
         let params = param_symbols
             .into_iter()
@@ -1678,7 +1678,7 @@ impl Lowerer {
     }
 
     fn lower_return(&mut self, stmt: &syntax::ReturnStmt) -> semantic::StmtKind {
-        let expr = stmt
+        let mut expr = stmt
             .expr
             .as_ref()
             .map(|expr| match &**expr {
@@ -1686,6 +1686,37 @@ impl Lowerer {
                 syntax::ValueExpr::Measurement(expr) => self.lower_measure_expr(expr),
             })
             .map(Box::new);
+
+        let return_ty = self.symbols.get_subroutine_return_ty();
+
+        match (&mut expr, return_ty) {
+            // If we don't have a return type then we are not rooted in a subroutine scope.
+            (_, None) => {
+                self.push_semantic_error(SemanticErrorKind::InvalidScope(
+                    "Return statements".into(),
+                    "subroutine".into(),
+                    stmt.span,
+                ));
+                return semantic::StmtKind::Err;
+            }
+            (None, Some(ty)) => {
+                if !matches!(ty.as_ref(), Type::Void) {
+                    self.push_semantic_error(
+                        SemanticErrorKind::MissingTargetExpressionInReturnStmt(stmt.span),
+                    );
+                    return semantic::StmtKind::Err;
+                }
+            }
+            (Some(expr), Some(ty)) => {
+                if matches!(ty.as_ref(), Type::Void) {
+                    self.push_semantic_error(
+                        SemanticErrorKind::ReturningExpressionFromVoidSubroutine(expr.span),
+                    );
+                    return semantic::StmtKind::Err;
+                }
+                *expr = Box::new(self.cast_expr_to_type(&ty, expr))
+            }
+        }
 
         semantic::StmtKind::Return(semantic::ReturnStmt {
             span: stmt.span,
