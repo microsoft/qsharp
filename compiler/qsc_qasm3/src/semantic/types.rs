@@ -43,7 +43,7 @@ pub enum Type {
 
     // realistically the sizes could be u3
     Gate(u32, u32),
-    Function(Rc<[Type]>, Option<Rc<Type>>),
+    Function(Rc<[Type]>, Rc<Type>),
     Range,
     Set,
     Void,

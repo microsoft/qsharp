@@ -1015,9 +1015,12 @@ impl Lowerer {
             let tydef = syntax::TypeDef::Scalar(*ty.clone());
             let ty = self.get_semantic_type_from_tydef(&tydef, false);
             let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, ty_span);
-            (Some(ty), Some(qsharp_ty))
+            (ty, qsharp_ty)
         } else {
-            (None, None)
+            (
+                crate::semantic::types::Type::Void,
+                crate::types::Type::Tuple(Default::default()),
+            )
         };
 
         // 2. Push the function symbol to the symbol table.
@@ -1025,7 +1028,7 @@ impl Lowerer {
         let arity = stmt.params.len() as u32;
         let name = stmt.name.name.clone();
         let name_span = stmt.name.span;
-        let ty = crate::semantic::types::Type::Function(param_types.into(), return_ty.map(Rc::new));
+        let ty = crate::semantic::types::Type::Function(param_types.into(), Rc::new(return_ty));
 
         let has_qubit_params = stmt
             .params
@@ -1244,11 +1247,7 @@ impl Lowerer {
                 ));
             }
 
-            if let Some(return_ty) = return_ty {
-                (params_ty.clone(), (**return_ty).clone())
-            } else {
-                (Rc::default(), crate::semantic::types::Type::Err)
-            }
+            (params_ty.clone(), (**return_ty).clone())
         } else {
             self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
             (Rc::default(), crate::semantic::types::Type::Err)
