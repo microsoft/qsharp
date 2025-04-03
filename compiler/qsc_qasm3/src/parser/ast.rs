@@ -711,8 +711,16 @@ impl Display for ClassicalArgument {
 #[derive(Clone, Debug)]
 pub enum ExternParameter {
     ArrayReference(ArrayReferenceType, Span),
-    Quantum(Option<Expr>, Span),
     Scalar(ScalarType, Span),
+}
+
+impl ExternParameter {
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self {
+            ExternParameter::ArrayReference(_, span) | ExternParameter::Scalar(_, span) => *span,
+        }
+    }
 }
 
 impl Display for ExternParameter {
@@ -720,9 +728,6 @@ impl Display for ExternParameter {
         match self {
             ExternParameter::Scalar(ty, span) => {
                 write!(f, "{span}: {ty}")
-            }
-            ExternParameter::Quantum(expr, span) => {
-                write!(f, "{span}: {expr:?}")
             }
             ExternParameter::ArrayReference(ty, span) => {
                 write!(f, "{span}: {ty}")
@@ -741,7 +746,6 @@ impl WithSpan for ExternParameter {
     fn with_span(self, span: Span) -> Self {
         match self {
             ExternParameter::Scalar(ty, _) => ExternParameter::Scalar(ty, span),
-            ExternParameter::Quantum(expr, _) => ExternParameter::Quantum(expr, span),
             ExternParameter::ArrayReference(ty, _) => ExternParameter::ArrayReference(ty, span),
         }
     }

@@ -1087,17 +1087,17 @@ impl Display for QuantumGateDefinition {
 #[derive(Clone, Debug)]
 pub struct ExternDecl {
     pub span: Span,
-    pub ident: Box<Ident>,
-    pub params: List<ExternParameter>,
-    pub return_type: Option<ScalarType>,
+    pub symbol_id: SymbolId,
+    pub params: Box<[crate::types::Type]>,
+    pub return_type: crate::types::Type,
 }
 
 impl Display for ExternDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "ExternDecl", self.span)?;
-        writeln_field(f, "ident", &self.ident)?;
+        writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
-        write_opt_field(f, "return_type", self.return_type.as_ref())
+        write_field(f, "return_type", &self.return_type)
     }
 }
 
