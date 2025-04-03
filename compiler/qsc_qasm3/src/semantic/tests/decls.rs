@@ -7,6 +7,7 @@ mod bool;
 mod complex;
 mod creg;
 mod duration;
+mod extern_decl;
 mod float;
 mod int;
 mod qreg;
