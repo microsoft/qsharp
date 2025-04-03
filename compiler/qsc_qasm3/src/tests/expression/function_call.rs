@@ -277,7 +277,11 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         function parity(arr : Result[]) : Result {
-            return 1;
+            return if 1 == 0 {
+                One
+            } else {
+                Zero
+            };
         }
         mutable p = parity(__IntAsResultArrayBE__(2, 2));
     "#]]
