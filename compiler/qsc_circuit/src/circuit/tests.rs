@@ -77,7 +77,7 @@ fn deserialize_circuit() {
   ]
 }"#;
 
-    let c = serde_json::from_str::<Circuit>(contents).unwrap();
+    let c = serde_json::from_str::<Circuit>(contents).expect("Was not able to deserialize");
 
     expect![[r#"
         q_0    ── H ──── Z ──── ● ──

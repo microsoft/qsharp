@@ -171,7 +171,7 @@ const getGateLocationString = (operation: Operation): string | null => {
  */
 const getKetLabel = (ket: string): string => {
   // Check that the ket conforms to the format |{label}> or |{label}⟩
-  const ketRegex = /^\|([^\s〉⟩>]+)(?:[〉⟩>])$/;
+  const ketRegex = /^\|([^\s〉⟩〉>]+)(?:[〉⟩〉>])$/;
 
   // Match the ket string against the regex
   const match = ket.match(ketRegex);

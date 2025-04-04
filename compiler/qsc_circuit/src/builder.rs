@@ -333,7 +333,7 @@ impl Builder {
     /// classical values into `classical_args` as comma-separated values.
     fn push_vals(&mut self, vals: &[Value], qubits: &mut Vec<WireId>, classical_args: &mut String) {
         let mut any = false;
-        for v in vals.iter() {
+        for v in vals {
             let start = classical_args.len();
             self.push_val(v, qubits, classical_args);
             if classical_args.len() > start {

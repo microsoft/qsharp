@@ -12,14 +12,15 @@ use crate::{
     Circuit, Operation,
 };
 
-pub fn circuits_to_qsharp(file_name: String, circuits_json: String) -> Result<String, String> {
-    match serde_json::from_str::<CircuitGroup>(circuits_json.as_str()) {
-        Ok(circuits) => Ok(build_circuits(file_name, circuits.circuits)),
-        Err(e) => Err(format!("Error: {}", e)),
+pub fn circuits_to_qsharp(file_name: String, circuits_json: &str) -> Result<String, String> {
+    match serde_json::from_str::<CircuitGroup>(circuits_json) {
+        Ok(circuits) => Ok(build_circuits(file_name, &circuits.circuits)),
+        Err(e) => Err(format!("Error: {e}")),
     }
 }
 
-pub fn build_circuits(file_name: String, circuits: Vec<Circuit>) -> String {
+#[must_use]
+pub fn build_circuits(file_name: String, circuits: &[Circuit]) -> String {
     if circuits.len() == 1 {
         build_operation_def(file_name, &circuits[0])
     } else {
@@ -200,11 +201,18 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
     qsharp_str
 }
 
+fn get_qubit_name(qubits: &FxHashMap<usize, String>, q_id: usize) -> String {
+    qubits
+        .get(&q_id)
+        .unwrap_or_else(|| panic!("Qubit with {q_id} not found"))
+        .clone()
+}
+
 fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>) -> String {
     let args = measurement
         .qubits
         .iter()
-        .map(|q| qubits.get(&q.qubit).unwrap().clone())
+        .map(|q| get_qubit_name(qubits, q.qubit))
         .collect::<Vec<_>>();
     let args_count = args.len();
 
@@ -222,6 +230,7 @@ fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>
 fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> String {
     let mut gate = unitary.gate.as_str();
 
+    #[allow(clippy::unicode_not_nfc)]
     if gate == "|0〉" || gate == "|1〉" {
         gate = "Reset";
     }
@@ -241,7 +250,7 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
     let mut args = vec![];
 
     // Create the regex for matching numbers (both integers and doubles)
-    let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").unwrap();
+    let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").expect("Regex should compile");
 
     // Convert ints to doubles by appending a `.` to the end of the integer
     for arg in &unitary.args {
@@ -252,7 +261,7 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
                 if number.contains('.') {
                     number.to_string() // If it's already a double, leave it unchanged
                 } else {
-                    format!("{}.", number) // If it's an integer, append a `.`
+                    format!("{number}.") // If it's an integer, append a `.`
                 }
             })
             .to_string();
@@ -263,7 +272,7 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
     let targets = unitary
         .targets
         .iter()
-        .map(|t| qubits.get(&t.qubit).unwrap().clone())
+        .map(|t| get_qubit_name(qubits, t.qubit))
         .collect::<Vec<_>>();
     args.extend(targets);
 
@@ -273,7 +282,7 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
             .iter()
             .filter_map(|c| {
                 if c.result.is_none() {
-                    Some(qubits.get(&c.qubit).unwrap().clone())
+                    Some(get_qubit_name(qubits, c.qubit))
                 } else {
                     None
                 }
@@ -284,7 +293,7 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
         let args_count = args.len();
         let mut inner_args = args.join(", ");
         if args_count != 1 {
-            inner_args = format!("({})", inner_args);
+            inner_args = format!("({inner_args})");
         }
         args = vec![controls, inner_args];
     }

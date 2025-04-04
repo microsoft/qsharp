@@ -151,7 +151,7 @@ pub fn get_circuit(
 
 #[wasm_bindgen]
 pub fn circuits_to_qsharp(file_name: &str, circuits_json: &str) -> Result<String, String> {
-    qsc::circuit::circuits_to_qsharp(file_name.to_string(), circuits_json.to_string())
+    qsc::circuit::circuits_to_qsharp(file_name.to_string(), circuits_json)
         .map_err(|e| e.to_string())
 }
 

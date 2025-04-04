@@ -26,7 +26,7 @@ pub struct CircuitGroup {
 impl Display for CircuitGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for circuit in &self.circuits {
-            writeln!(f, "{}", circuit)?;
+            writeln!(f, "{circuit}")?;
         }
         Ok(())
     }
@@ -64,6 +64,7 @@ pub enum Operation {
 
 impl Operation {
     /// Returns the gate name of the operation.
+    #[must_use]
     pub fn gate(&self) -> String {
         match self {
             Operation::Measurement(m) => m.gate.clone(),
@@ -72,6 +73,7 @@ impl Operation {
     }
 
     /// Returns the arguments for the operation.
+    #[must_use]
     pub fn args(&self) -> Vec<String> {
         match self {
             Operation::Measurement(m) => m.args.clone(),
@@ -80,6 +82,7 @@ impl Operation {
     }
 
     /// Returns the children for the operation.
+    #[must_use]
     pub fn children(&self) -> &ComponentGrid {
         match self {
             Operation::Measurement(m) => &m.children,
@@ -88,6 +91,7 @@ impl Operation {
     }
 
     /// Returns if the operation is a controlled operation.
+    #[must_use]
     pub fn is_controlled(&self) -> bool {
         match self {
             Operation::Measurement(_) => false,
@@ -96,6 +100,7 @@ impl Operation {
     }
 
     /// Returns if the operation is a measurement operation.
+    #[must_use]
     pub fn is_measurement(&self) -> bool {
         match self {
             Operation::Measurement(_) => true,
@@ -104,6 +109,7 @@ impl Operation {
     }
 
     /// Returns if the operation is an adjoint operation.
+    #[must_use]
     pub fn is_adjoint(&self) -> bool {
         match self {
             Operation::Measurement(_) => false,
@@ -226,7 +232,7 @@ impl Row {
         self.add(column, CircuitObject::Object(object.to_string()));
     }
 
-    fn add_gate(&mut self, column: usize, gate: &str, args: Vec<String>, is_adjoint: bool) {
+    fn add_gate(&mut self, column: usize, gate: &str, args: &[String], is_adjoint: bool) {
         let mut gate_label = String::new();
         gate_label.push_str(gate);
         if is_adjoint {
@@ -401,10 +407,10 @@ impl Column {
         }
 
         let template = match circuit_object {
-            CircuitObject::Blank => BLANK,
+            CircuitObject::WireStart // This should never happen
+            | CircuitObject::Blank => BLANK,
             CircuitObject::Wire => QUBIT_WIRE,
             CircuitObject::WireCross => QUBIT_WIRE_CROSS,
-            CircuitObject::WireStart => BLANK, // This should never happen
             CircuitObject::DashedCross => QUBIT_WIRE_DASHED_CROSS,
             CircuitObject::Vertical => VERTICAL,
             CircuitObject::VerticalDashed => VERTICAL_DASHED,
@@ -527,7 +533,7 @@ impl Display for Circuit {
                     {
                         row.start_classical(column);
                     } else {
-                        row.add_gate(column, &o.gate(), o.args(), o.is_adjoint());
+                        row.add_gate(column, &o.gate(), &o.args(), o.is_adjoint());
                     };
                 }
 
@@ -718,7 +724,11 @@ fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<
     }
 
     let num_rows = aligned_ops.len();
-    let num_cols = aligned_ops.iter().map(|row| row.len()).max().unwrap_or(0);
+    let num_cols = aligned_ops
+        .iter()
+        .map(std::vec::Vec::len)
+        .max()
+        .unwrap_or(0);
 
     let mut col_row_array = vec![vec![None; num_rows]; num_cols];
 
@@ -771,12 +781,18 @@ fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>
         let min_reg_idx = if is_classically_controlled {
             0
         } else {
-            *q_reg_idx_list.iter().min().unwrap()
+            match q_reg_idx_list.iter().min() {
+                Some(min_reg_idx) => *min_reg_idx,
+                None => 0,
+            }
         };
         let max_reg_idx = if is_classically_controlled {
             end_q_id - 1
         } else {
-            *q_reg_idx_list.iter().max().unwrap()
+            match q_reg_idx_list.iter().max() {
+                Some(max_reg_idx) => *max_reg_idx,
+                None => end_q_id - 1,
+            }
         };
 
         for reg_ops in grouped_ops
@@ -802,7 +818,7 @@ fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>
 ///
 /// A 2D vector of optional usize values representing the aligned operations.
 fn align_ops(ops: Vec<Vec<usize>>) -> Vec<Vec<Option<usize>>> {
-    let mut max_num_ops = ops.iter().map(|reg_ops| reg_ops.len()).max().unwrap_or(0);
+    let mut max_num_ops = ops.iter().map(std::vec::Vec::len).max().unwrap_or(0);
     let mut col = 0;
     let mut padded_ops: Vec<Vec<Option<usize>>> = ops
         .into_iter()
