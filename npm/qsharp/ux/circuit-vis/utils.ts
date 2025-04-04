@@ -195,6 +195,12 @@ const operationListToGrid = (
   numQubits: number,
 ): ComponentGrid => {
   operations.forEach((op) => {
+    // The children data structure is a grid, so checking if it is
+    // length 1 is actually checking if it has a single column,
+    // or in other words, we are checking if its children are in a single list.
+    // If the operation has children in a single list, it needs to be converted to a grid.
+    // If it was already converted to a grid, but the grid was still a single list,
+    // then doing it again won't effect anything.
     if (op.children && op.children.length == 1) {
       op.children = operationListToGrid(op.children[0].components, numQubits);
     }

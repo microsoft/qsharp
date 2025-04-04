@@ -63,14 +63,6 @@ pub enum Operation {
 }
 
 impl Operation {
-    /// Returns the kind of the operation.
-    pub fn kind(&self) -> String {
-        match self {
-            Operation::Measurement(_) => "measurement".to_string(),
-            Operation::Unitary(_) => "unitary".to_string(),
-        }
-    }
-
     /// Returns the gate name of the operation.
     pub fn gate(&self) -> String {
         match self {
@@ -635,6 +627,12 @@ pub fn operation_list_to_grid(
     max_q_id: usize,
 ) -> Vec<Vec<Operation>> {
     for op in &mut operations {
+        // The children data structure is a grid, so checking if it is
+        // length 1 is actually checking if it has a single column,
+        // or in other words, we are checking if its children are in a single list.
+        // If the operation has children in a single list, it needs to be converted to a grid.
+        // If it was already converted to a grid, but the grid was still a single list,
+        // then doing it again won't effect anything.
         if op.children().len() == 1 {
             match op {
                 Operation::Measurement(m) => {

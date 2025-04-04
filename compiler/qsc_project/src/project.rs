@@ -127,6 +127,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Project.FileSystem"))]
     FileSystem { about_path: String, error: String },
 
+    #[error("Error reading circuit file: {path}: {error}")]
+    #[diagnostic(code("Qsc.Project.Circuit"))]
+    Circuit { path: String, error: String },
+
     #[error("Error fetching from GitHub: {0}")]
     #[diagnostic(code("Qsc.Project.GitHub"))]
     GitHub(String),
@@ -145,6 +149,7 @@ impl Error {
             Error::GitHubManifestParse { path, .. }
             | Error::DocumentNotInProject { path, .. }
             | Error::NoSrcDir { path }
+            | Error::Circuit { path, .. }
             | Error::ManifestParse { path, .. } => Some(path),
             // Note we don't return the path for `FileSystem` errors,
             // since for most errors such as "file not found", it's more meaningful
@@ -449,8 +454,8 @@ pub trait FileSystemAsync {
                         .to_string();
                     contents = match circuits_to_qsharp(name, contents.to_string()) {
                         Ok(c) => Ok(Arc::from(c)),
-                        Err(e) => Err(Error::FileSystem {
-                            about_path: path.to_string_lossy().to_string(),
+                        Err(e) => Err(Error::Circuit {
+                            path: path.to_string_lossy().to_string(),
                             error: e.to_string(),
                         }),
                     }?;

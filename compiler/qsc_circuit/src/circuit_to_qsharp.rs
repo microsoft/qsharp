@@ -59,13 +59,13 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         _ => "Result[]",
     };
 
-    // Check if all operations are Unitary
-    let is_ctl_adj = circuit.component_grid.iter().all(|col| {
-        col.components.iter().all(|op| {
+    // Check if any operation is not Unitary
+    let is_ctl_adj = circuit.component_grid.iter().any(|col| {
+        col.components.iter().any(|op| {
             if let Operation::Unitary(unitary) = op {
-                unitary.gate != "|0〉" && unitary.gate != "|1〉"
+                unitary.gate == "|0〉" && unitary.gate == "|1〉"
             } else {
-                false
+                true
             }
         })
     });

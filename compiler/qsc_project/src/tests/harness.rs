@@ -68,6 +68,7 @@ fn normalize(project: &mut Project, root_path: &Path) {
                 about_path: path,
                 error: s,
             }
+            | Error::Circuit { path, error: s }
             | Error::DocumentNotInProject {
                 path,
                 relative_path: s,
