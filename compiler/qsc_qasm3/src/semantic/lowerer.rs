@@ -551,7 +551,7 @@ impl Lowerer {
                 semantic::ExprKind::Lit(val)
             } else {
                 self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                    "A captured varible".into(),
+                    "A captured variable".into(),
                     ident.span,
                 ));
                 semantic::ExprKind::Err
