@@ -84,3 +84,97 @@ fn two_angles_two_qubits() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn capturing_external_variables_const_evaluate_them() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        const int a = 2;
+        const int b = 3;
+        const int c = a * b;
+        gate my_gate q {
+            int x = c;
+        }
+    "#;
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        operation my_gate(q : Qubit) : Unit is Adj + Ctl {
+            mutable x = 6;
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn capturing_non_const_external_variable_fails() {
+    let source = r#"
+        int a = 2 << (-3);
+        gate my_gate q {
+            int x = a;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.UndefinedSymbol
+
+          x Undefined symbol: a.
+           ,-[Test.qasm:4:21]
+         3 |         gate my_gate q {
+         4 |             int x = a;
+           :                     ^
+         5 |         }
+           `----
+        , Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Err to type Int(None, false)
+           ,-[Test.qasm:4:21]
+         3 |         gate my_gate q {
+         4 |             int x = a;
+           :                     ^
+         5 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn capturing_non_const_evaluatable_external_variable_fails() {
+    let source = r#"
+        const int a = 2 << (-3);
+        gate my_gate q {
+            int x = a;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.NegativeUIntValue
+
+          x uint expression must evaluate to a non-negative value, but it evaluated
+          | to -3
+           ,-[Test.qasm:2:28]
+         1 | 
+         2 |         const int a = 2 << (-3);
+           :                            ^^^^
+         3 |         gate my_gate q {
+           `----
+        , Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x A captured variable must be a const expression
+           ,-[Test.qasm:4:21]
+         3 |         gate my_gate q {
+         4 |             int x = a;
+           :                     ^
+         5 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
