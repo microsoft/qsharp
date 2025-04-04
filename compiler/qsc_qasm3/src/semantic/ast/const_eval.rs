@@ -10,33 +10,53 @@ use super::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
     SymbolId, UnaryOp, UnaryOpExpr,
 };
+use crate::semantic::Lowerer;
 use crate::stdlib::angle;
 use crate::{
     oqasm_helpers::safe_i64_to_f64,
-    semantic::{
-        symbols::SymbolTable,
-        types::{ArrayDimensions, Type},
-    },
+    semantic::types::{ArrayDimensions, Type},
 };
+use miette::Diagnostic;
 use num_bigint::BigInt;
+use qsc_data_structures::span::Span;
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
+pub enum ConstEvalError {
+    #[error("expression must be const")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustBeConst"))]
+    ExprMustBeConst(#[label] Span),
+    #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.NegativeUIntValue"))]
+    NegativeUIntValue(i64, #[label] Span),
+    #[error("{0} doesn't fit in {1}")]
+    #[diagnostic(code("Qsc.Qasm3.Compile.ValueOverflow"))]
+    ValueOverflow(String, String, #[label] Span),
+}
+
+impl ConstEvalError {}
 
 impl Expr {
-    pub fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
+    /// Tries to evaluate the expression. It takes the current `Lowerer` as
+    /// the evaluation context to resolve symbols and push errors in case
+    /// of failure.
+    pub(crate) fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         let ty = &self.ty;
         if !ty.is_const() {
+            ctx.push_const_eval_error(ConstEvalError::ExprMustBeConst(self.span));
             return None;
         }
 
         match &*self.kind {
-            ExprKind::Ident(symbol_id) => symbol_id.const_eval(symbols),
-            ExprKind::IndexedIdentifier(indexed_ident) => indexed_ident.const_eval(symbols),
-            ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(symbols),
-            ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(symbols),
+            ExprKind::Ident(symbol_id) => symbol_id.const_eval(ctx),
+            ExprKind::IndexedIdentifier(indexed_ident) => indexed_ident.const_eval(ctx),
+            ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(ctx),
+            ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
-            ExprKind::FunctionCall(function_call) => function_call.const_eval(symbols, ty),
-            ExprKind::Cast(cast) => cast.const_eval(symbols, ty),
-            ExprKind::IndexExpr(index_expr) => index_expr.const_eval(symbols, ty),
-            ExprKind::Paren(expr) => expr.const_eval(symbols),
+            ExprKind::FunctionCall(function_call) => function_call.const_eval(ctx, ty),
+            ExprKind::Cast(cast) => cast.const_eval(ctx),
+            ExprKind::IndexExpr(index_expr) => index_expr.const_eval(ctx, ty),
+            ExprKind::Paren(expr) => expr.const_eval(ctx),
             // Measurements are non-const, so we don't need to implement them.
             ExprKind::Measure(_) | ExprKind::Err => None,
         }
@@ -44,17 +64,17 @@ impl Expr {
 }
 
 impl SymbolId {
-    fn const_eval(self, symbols: &SymbolTable) -> Option<LiteralKind> {
-        let symbol = symbols[self].clone();
+    fn const_eval(self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        let symbol = ctx.symbols[self].clone();
         symbol
             .get_const_expr() // get the value of the symbol (an Expr)
-            .const_eval(symbols) // const eval that Expr
+            .const_eval(ctx) // const eval that Expr
     }
 }
 
 impl IndexedIdent {
     #[allow(clippy::unused_self)]
-    fn const_eval(&self, _symbols: &SymbolTable) -> Option<LiteralKind> {
+    fn const_eval(&self, _ctx: &mut Lowerer) -> Option<LiteralKind> {
         None
     }
 }
@@ -69,16 +89,16 @@ macro_rules! rewrap_lit {
         if let $pat = $lit {
             Some($out)
         } else {
-            None
+            unreachable!("if we hit this there is a bug in the type system")
         }
     };
 }
 
 impl UnaryOpExpr {
-    fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
         let operand_ty = &self.expr.ty;
-        let lit = self.expr.const_eval(symbols)?;
+        let lit = self.expr.const_eval(ctx)?;
 
         match &self.op {
             UnaryOp::Neg => match operand_ty {
@@ -138,86 +158,88 @@ fn assert_binary_op_ty_invariant(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) {
 
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
-    fn const_eval(&self, symbols: &SymbolTable) -> Option<LiteralKind> {
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
 
         assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
-        let lhs = self.lhs.const_eval(symbols)?;
-        let rhs = self.rhs.const_eval(symbols)?;
+        let lhs = self.lhs.const_eval(ctx);
+        let rhs = self.rhs.const_eval(ctx);
+        let (lhs, rhs) = (lhs?, rhs?);
         let lhs_ty = &self.lhs.ty;
 
         match &self.op {
             // Bit Shifts
-            BinOp::Shl => match lhs_ty {
-                Type::UInt(Some(size), _) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
-                    }
-                    let mask = (1 << size) - 1;
-                    Int((lhs << rhs) & mask)
-                }),
-                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
-                    }
-                    Int(lhs << rhs)
-                }),
-                Type::Angle(..) => {
-                    rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
-                        if rhs < 0 {
-                            return None;
-                        }
-                        Angle(lhs << rhs)
-                    })
+            BinOp::Shl => {
+                assert!(
+                    matches!(self.rhs.ty, Type::UInt(..)),
+                    "shift left rhs should have been casted to uint during lowering"
+                );
+                let LiteralKind::Int(rhs) = rhs else {
+                    unreachable!("if we hit this there is a bug in the type system");
+                };
+                if rhs < 0 {
+                    ctx.push_const_eval_error(ConstEvalError::NegativeUIntValue(
+                        rhs,
+                        self.rhs.span,
+                    ));
+                    return None;
                 }
-                Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
+
+                match lhs_ty {
+                    Type::UInt(Some(size), _) => rewrap_lit!(lhs, Int(lhs), {
+                        let mask = (1 << size) - 1;
+                        Int((lhs << rhs) & mask)
+                    }),
+                    Type::UInt(..) => rewrap_lit!(lhs, Int(lhs), Int(lhs << rhs)),
+                    Type::Angle(..) => {
+                        rewrap_lit!(lhs, Angle(lhs), Angle(lhs << rhs))
                     }
-                    // The Spec says "The shift operators shift bits off the end."
-                    // Therefore if the rhs is > 0 the value becomes zero.
-                    Bit(rhs == 0 && lhs)
-                }),
-                Type::BitArray(..) => rewrap_lit!((lhs, rhs), (Bitstring(lhs, size), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
+                    Type::Bit(..) => rewrap_lit!(lhs, Bit(lhs), {
+                        // The Spec says "The shift operators shift bits off the end."
+                        // Therefore if the rhs is > 0 the value becomes zero.
+                        Bit(rhs == 0 && lhs)
+                    }),
+                    Type::BitArray(..) => {
+                        rewrap_lit!(lhs, Bitstring(lhs, size), {
+                            let mask = BigInt::from((1 << size) - 1);
+                            Bitstring((lhs << rhs) & mask, size)
+                        })
                     }
-                    let mask = BigInt::from((1 << size) - 1);
-                    Bitstring((lhs << rhs) & mask, size)
-                }),
-                _ => None,
-            },
-            BinOp::Shr => match lhs_ty {
-                Type::UInt(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
-                    }
-                    Int(lhs >> rhs)
-                }),
-                Type::Angle(..) => {
-                    rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
-                        if rhs < 0 {
-                            return None;
-                        }
-                        Angle(lhs >> rhs)
-                    })
+                    _ => None,
                 }
-                Type::Bit(..) => rewrap_lit!((lhs, rhs), (Bit(lhs), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
+            }
+            BinOp::Shr => {
+                assert!(
+                    matches!(self.rhs.ty, Type::UInt(..)),
+                    "shift right rhs should have been casted to uint during lowering"
+                );
+                let LiteralKind::Int(rhs) = rhs else {
+                    unreachable!("if we hit this there is a bug in the type system");
+                };
+                if rhs < 0 {
+                    ctx.push_const_eval_error(ConstEvalError::NegativeUIntValue(
+                        rhs,
+                        self.rhs.span,
+                    ));
+                    return None;
+                }
+
+                match lhs_ty {
+                    Type::UInt(..) => rewrap_lit!(lhs, Int(lhs), Int(lhs >> rhs)),
+                    Type::Angle(..) => {
+                        rewrap_lit!(lhs, Angle(lhs), Angle(lhs >> rhs))
                     }
-                    // The Spec says "The shift operators shift bits off the end."
-                    // Therefore if the rhs is > 0 the value becomes zero.
-                    Bit(rhs == 0 && lhs)
-                }),
-                Type::BitArray(..) => rewrap_lit!((lhs, rhs), (Bitstring(lhs, size), Int(rhs)), {
-                    if rhs < 0 {
-                        return None;
+                    Type::Bit(..) => rewrap_lit!(lhs, Bit(lhs), {
+                        // The Spec says "The shift operators shift bits off the end."
+                        // Therefore if the rhs is > 0 the value becomes zero.
+                        Bit(rhs == 0 && lhs)
+                    }),
+                    Type::BitArray(..) => {
+                        rewrap_lit!(lhs, Bitstring(lhs, size), Bitstring(lhs >> rhs, size))
                     }
-                    Bitstring(lhs >> rhs, size)
-                }),
-                _ => None,
-            },
+                    _ => None,
+                }
+            }
 
             // Bitwise
             BinOp::AndB => match lhs_ty {
@@ -423,6 +445,10 @@ impl BinaryOpExpr {
                     }
                     Type::Angle(..) => rewrap_lit!((lhs, rhs), (Int(lhs), Angle(rhs)), {
                         if lhs < 0 {
+                            ctx.push_const_eval_error(ConstEvalError::NegativeUIntValue(
+                                lhs,
+                                self.lhs.span,
+                            ));
                             return None;
                         }
                         #[allow(clippy::cast_sign_loss)]
@@ -494,31 +520,28 @@ impl BinaryOpExpr {
 
 impl FunctionCall {
     #[allow(clippy::unused_self)]
-    fn const_eval(&self, _symbols: &SymbolTable, _ty: &Type) -> Option<LiteralKind> {
+    fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
     }
 }
 
 impl IndexExpr {
     #[allow(clippy::unused_self)]
-    fn const_eval(&self, _symbols: &SymbolTable, _ty: &Type) -> Option<LiteralKind> {
+    fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
     }
 }
 
 impl Cast {
-    fn const_eval(&self, symbols: &SymbolTable, ty: &Type) -> Option<LiteralKind> {
-        let lit = self.expr.const_eval(symbols)?;
-        let lit_ty = &self.expr.ty;
-
-        match ty {
-            Type::Bool(_) => cast_to_bool(lit_ty, lit),
-            Type::Int(_, _) => cast_to_int(lit_ty, lit),
-            Type::UInt(_, _) => cast_to_uint(lit_ty, lit),
-            Type::Float(_, _) => cast_to_float(lit_ty, lit),
-            Type::Angle(_, _) => cast_to_angle(lit, lit_ty, ty),
-            Type::Bit(_) => cast_to_bit(lit_ty, lit),
-            Type::BitArray(dims, _) => cast_to_bitarray(lit_ty, lit, dims),
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        match &self.ty {
+            Type::Bool(..) => cast_to_bool(self, ctx),
+            Type::Int(..) => cast_to_int(self, ctx),
+            Type::UInt(..) => cast_to_uint(self, ctx),
+            Type::Float(..) => cast_to_float(self, ctx),
+            Type::Angle(..) => cast_to_angle(self, ctx),
+            Type::Bit(..) => cast_to_bit(self, ctx),
+            Type::BitArray(..) => cast_to_bitarray(self, ctx),
             _ => None,
         }
     }
@@ -531,10 +554,11 @@ impl Cast {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | bool          | -    | Yes | Yes  | Yes   | Yes   | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_bool(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
+    let lit = cast.expr.const_eval(ctx)?;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => Some(lit),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bool(val)),
         Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, _), Bool(val != BigInt::ZERO)),
@@ -552,10 +576,11 @@ fn cast_to_bool(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | int           | Yes  | -   | Yes  | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_int(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
+    let lit = cast.expr.const_eval(ctx)?;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Int(i64::from(val))),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Int(i64::from(val))),
         Type::BitArray(..) => {
@@ -581,10 +606,11 @@ fn cast_to_int(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | uint          | Yes  | Yes | -    | Yes   | No    | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_uint(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Bit, Bitstring, Bool, Float, Int};
+    let lit = cast.expr.const_eval(ctx)?;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Int(i64::from(val))),
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Int(i64::from(val))),
         Type::BitArray(..) => {
@@ -611,10 +637,11 @@ fn cast_to_uint(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | float         | Yes  | Yes | Yes  | -     | No    | No  |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_float(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Bool, Float, Int};
+    let lit = cast.expr.const_eval(ctx)?;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Float(if val { 1.0 } else { 0.0 })),
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
             // TODO: we need to issue the same lint in Q#.
@@ -633,9 +660,11 @@ fn cast_to_float(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | angle         | No   | No  | No   | Yes   | -     | Yes |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_angle(lit: LiteralKind, lit_ty: &Type, target_ty: &Type) -> Option<LiteralKind> {
+fn cast_to_angle(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Float};
-    match lit_ty {
+    let lit = cast.expr.const_eval(ctx)?;
+
+    match &cast.expr.ty {
         Type::Float(size, _) => rewrap_lit!(
             lit,
             Float(val),
@@ -644,7 +673,7 @@ fn cast_to_angle(lit: LiteralKind, lit_ty: &Type, target_ty: &Type) -> Option<Li
         Type::Angle(..) => rewrap_lit!(
             lit,
             Angle(val),
-            Angle(val.cast_to_maybe_sized(target_ty.width()))
+            Angle(val.cast_to_maybe_sized(cast.ty.width()))
         ),
         Type::Bit(..) => rewrap_lit!(
             lit,
@@ -673,10 +702,11 @@ fn cast_to_angle(lit: LiteralKind, lit_ty: &Type, target_ty: &Type) -> Option<Li
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | bit           | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
+fn cast_to_bit(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bool, Int};
+    let lit = cast.expr.const_eval(ctx)?;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bit(val)),
         Type::Bit(..) => Some(lit),
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), Bit(val != 0)),
@@ -692,15 +722,21 @@ fn cast_to_bit(ty: &Type, lit: LiteralKind) -> Option<LiteralKind> {
 /// +---------------+------+-----+------+-------+-------+-----+
 /// | bitarray      | Yes  | Yes | Yes  | No    | Yes   | -   |
 /// +---------------+------+-----+------+-------+-------+-----+
-fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Option<LiteralKind> {
+fn cast_to_bitarray(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Bool, Int};
+    let lit = cast.expr.const_eval(ctx)?;
+
+    let Type::BitArray(dims, _) = &cast.ty else {
+        unreachable!("we got here after matching Type::BitArray in Cast::const_eval");
+    };
 
     let ArrayDimensions::One(size) = dims else {
+        ctx.push_unsupported_error_message("multidimensional arrays", cast.span);
         return None;
     };
     let size = *size;
 
-    match ty {
+    match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Bitstring(BigInt::from(val), size)),
         Type::Angle(..) => rewrap_lit!(lit, Angle(val), {
             let new_val = val.cast_to_maybe_sized(Some(size));
@@ -709,6 +745,11 @@ fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Opti
         Type::Bit(..) => rewrap_lit!(lit, Bit(val), Bitstring(BigInt::from(val), size)),
         Type::BitArray(..) => rewrap_lit!(lit, Bitstring(val, rhs_size), {
             if rhs_size > size {
+                ctx.push_const_eval_error(ConstEvalError::ValueOverflow(
+                    cast.expr.ty.to_string(),
+                    cast.ty.to_string(),
+                    cast.span,
+                ));
                 return None;
             }
             Bitstring(val, size)
@@ -716,6 +757,11 @@ fn cast_to_bitarray(ty: &Type, lit: LiteralKind, dims: &ArrayDimensions) -> Opti
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
             let actual_bits = number_of_bits(val);
             if actual_bits > size {
+                ctx.push_const_eval_error(ConstEvalError::ValueOverflow(
+                    cast.expr.ty.to_string(),
+                    cast.ty.to_string(),
+                    cast.span,
+                ));
                 return None;
             }
             Bitstring(BigInt::from(val), size)

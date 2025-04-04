@@ -262,3 +262,47 @@ fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result() {
         "#]],
     );
 }
+
+#[test]
+fn left_shift_casts_rhs_to_uint() {
+    let input = "
+        int x = 5;
+        int y = 3;
+        int z = x << y;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [17-18]:
+                    ty: Int(None, false)
+                    kind: Lit: Int(5)
+            ClassicalDeclarationStmt [28-38]:
+                symbol_id: 9
+                ty_span: [28-31]
+                init_expr: Expr [36-37]:
+                    ty: Int(None, false)
+                    kind: Lit: Int(3)
+            ClassicalDeclarationStmt [47-62]:
+                symbol_id: 10
+                ty_span: [47-50]
+                init_expr: Expr [55-61]:
+                    ty: Int(None, false)
+                    kind: BinaryOpExpr:
+                        op: Shl
+                        lhs: Expr [55-56]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+                        rhs: Expr [60-61]:
+                            ty: UInt(None, false)
+                            kind: Cast [0-0]:
+                                ty: UInt(None, false)
+                                expr: Expr [60-61]:
+                                    ty: Int(None, false)
+                                    kind: SymbolId(9)
+        "#]],
+    );
+}

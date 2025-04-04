@@ -77,6 +77,9 @@ pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Semantic(#[from] crate::semantic::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    ConstEval(#[from] crate::semantic::ast::const_eval::ConstEvalError),
     #[error("QASM3 Parse Error: Not Found {0}")]
     NotFound(String),
     #[error("IO Error: {0}")]
@@ -90,6 +93,7 @@ impl ErrorKind {
             ErrorKind::Parse(error, span) => Self::Parse(error, span + offset),
             ErrorKind::Parser(error) => Self::Parser(error.with_offset(offset)),
             ErrorKind::Semantic(error) => Self::Semantic(error.with_offset(offset)),
+            ErrorKind::ConstEval(error) => Self::ConstEval(error),
             ErrorKind::NotFound(error) => Self::NotFound(error),
             ErrorKind::OldIO(error) => Self::OldIO(error),
         }
