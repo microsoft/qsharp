@@ -78,12 +78,32 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
     expect![[r#"
         Qsc.Qasm3.Compile.ExprMustBeConst
 
+          x expression must be const
+           ,-[Test.qasm:5:13]
+         4 |         int c = a + 3;
+         5 |         bit[b] r1;
+           :             ^
+         6 |         bit[c] r2;
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
           x designator must be a const expression
            ,-[Test.qasm:5:13]
          4 |         int c = a + 3;
          5 |         bit[b] r1;
            :             ^
          6 |         bit[c] r2;
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x expression must be const
+           ,-[Test.qasm:6:13]
+         5 |         bit[b] r1;
+         6 |         bit[c] r2;
+           :             ^
+         7 |     
            `----
 
         Qsc.Qasm3.Compile.ExprMustBeConst
@@ -489,6 +509,16 @@ fn binary_op_shl_creg_fails() {
 
         Qsc.Qasm3.Compile.ExprMustBeConst
 
+          x expression must be const
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[3] = a << 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
           x designator must be a const expression
            ,-[Test.qasm:4:13]
          3 |         const creg b[3] = a << 2;
@@ -643,6 +673,16 @@ fn binary_op_shr_creg_fails() {
         Qsc.Qasm3.Compile.CannotCast
 
           x Cannot cast expression of type Err to type UInt(None, true)
+           ,-[Test.qasm:4:13]
+         3 |         const creg b[4] = a >> 2;
+         4 |         bit[b] r;
+           :             ^
+         5 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x expression must be const
            ,-[Test.qasm:4:13]
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;

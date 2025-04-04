@@ -775,7 +775,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
 
 // integer promotions are applied only to both operands of
 // the shift operators << and >>
-pub(crate) fn binop_requires_symmetric_int_conversion(op: syntax::BinOp) -> bool {
+pub(crate) fn binop_requires_symmetric_uint_conversion(op: syntax::BinOp) -> bool {
     matches!(op, syntax::BinOp::Shl | syntax::BinOp::Shr)
 }
 

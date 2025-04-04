@@ -163,3 +163,97 @@ fn missing_return_expr_on_non_void_function_fails() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn capturing_external_variables_const_evaluate_them() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        const int a = 2;
+        const int b = 3;
+        const int c = a * b;
+        def f() -> int {
+            return c;
+        }
+    "#;
+
+    let qsharp = compile_qasm_stmt_to_qsharp(source)?;
+    expect![[r#"
+        function f() : Int {
+            return 6;
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn capturing_non_const_external_variable_fails() {
+    let source = r#"
+        int a = 2 << (-3);
+        def f() -> int {
+            return a;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.UndefinedSymbol
+
+          x Undefined symbol: a.
+           ,-[Test.qasm:4:20]
+         3 |         def f() -> int {
+         4 |             return a;
+           :                    ^
+         5 |         }
+           `----
+        , Qsc.Qasm3.Compile.CannotCast
+
+          x Cannot cast expression of type Err to type Int(None, false)
+           ,-[Test.qasm:4:20]
+         3 |         def f() -> int {
+         4 |             return a;
+           :                    ^
+         5 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn capturing_non_const_evaluatable_external_variable_fails() {
+    let source = r#"
+        const int a = 2 << (-3);
+        def f() -> int {
+            return a;
+        }
+    "#;
+
+    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qsc.Qasm3.Compile.NegativeUIntValue
+
+          x uint expression must evaluate to a non-negative value, but it evaluated
+          | to -3
+           ,-[Test.qasm:2:28]
+         1 | 
+         2 |         const int a = 2 << (-3);
+           :                            ^^^^
+         3 |         def f() -> int {
+           `----
+        , Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x A captured variable must be a const expression
+           ,-[Test.qasm:4:20]
+         3 |         def f() -> int {
+         4 |             return a;
+           :                    ^
+         5 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
