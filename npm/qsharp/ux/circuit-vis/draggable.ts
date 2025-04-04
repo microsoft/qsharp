@@ -85,6 +85,7 @@ const createGhostElement = (
   const divElem = document.createElement("div");
   divElem.classList.add("ghost");
   divElem.appendChild(svgElem);
+  divElem.style.position = "fixed";
 
   if (container) {
     container.appendChild(divElem);
@@ -98,8 +99,8 @@ const createGhostElement = (
         })();
 
     const updateDivLeftTop = (ev: MouseEvent) => {
-      divElem.style.left = `${ev.clientX + window.scrollX - ghostWidth / 2}px`;
-      divElem.style.top = `${ev.clientY + window.scrollY - ghostHeight / 2}px`;
+      divElem.style.left = `${ev.clientX - ghostWidth / 2}px`;
+      divElem.style.top = `${ev.clientY - ghostHeight / 2}px`;
     };
 
     updateDivLeftTop(ev);

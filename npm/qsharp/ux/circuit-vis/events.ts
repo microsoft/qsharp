@@ -170,6 +170,78 @@ class CircuitEvents {
   };
 
   /**
+   * Enable auto-scrolling when dragging near the edges of the container
+   */
+  _enableAutoScroll() {
+    const scrollSpeed = 10; // Pixels per frame
+    const edgeThreshold = 50; // Distance from the edge to trigger scrolling
+
+    // Utility function to find the nearest scrollable ancestor
+    const getScrollableAncestor = (element: HTMLElement): HTMLElement => {
+      let currentElement: HTMLElement | null = element;
+      while (currentElement) {
+        const overflowY = window.getComputedStyle(currentElement).overflowY;
+        const overflowX = window.getComputedStyle(currentElement).overflowX;
+        if (
+          overflowY === "auto" ||
+          overflowY === "scroll" ||
+          overflowX === "auto" ||
+          overflowX === "scroll"
+        ) {
+          return currentElement;
+        }
+        currentElement = currentElement.parentElement;
+      }
+      return document.documentElement; // Fallback to the root element
+    };
+
+    const scrollableAncestor = getScrollableAncestor(this.container);
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const rect = scrollableAncestor.getBoundingClientRect();
+
+      // Get the scroll offsets of the scrollable ancestor
+      const scrollTop = scrollableAncestor.scrollTop;
+      const scrollLeft = scrollableAncestor.scrollLeft;
+
+      // Calculate the actual bounds relative to the document
+      const topBoundary = rect.top + scrollTop;
+      const bottomBoundary =
+        rect.top + scrollableAncestor.clientHeight + scrollTop;
+      const leftBoundary = rect.left + scrollLeft;
+      const rightBoundary =
+        rect.left + scrollableAncestor.clientWidth + scrollLeft;
+
+      // Check if the cursor is near the edges
+      if (ev.clientY < topBoundary + edgeThreshold) {
+        // Scroll up
+        scrollableAncestor.scrollTop -= scrollSpeed;
+      } else if (ev.clientY > bottomBoundary - edgeThreshold) {
+        // Scroll down
+        scrollableAncestor.scrollTop += scrollSpeed;
+      }
+
+      if (ev.clientX < leftBoundary + edgeThreshold) {
+        // Scroll left
+        scrollableAncestor.scrollLeft -= scrollSpeed;
+      } else if (ev.clientX > rightBoundary - edgeThreshold) {
+        // Scroll right
+        scrollableAncestor.scrollLeft += scrollSpeed;
+      }
+    };
+
+    const onMouseUp = () => {
+      // Remove the mousemove listener when dragging stops
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    // Add the mousemove listener when dragging starts
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
+
+  /**
    * Add events for document
    */
   _addDocumentEvents() {
@@ -265,13 +337,7 @@ class CircuitEvents {
         removeAllWireDropzones(this.circuitSvg);
         if (this.selectedOperation == null || !selectedLocation) return;
 
-        this.dragging = true;
-        createGhostElement(
-          ev,
-          this.container,
-          this.selectedOperation,
-          this.movingControl,
-        );
+        this._createGhostElement(ev);
 
         // Make sure the selectedOperation has location data
         if (this.selectedOperation.dataAttributes == null) {
@@ -316,8 +382,7 @@ class CircuitEvents {
     const type = elem.getAttribute("data-type");
     if (type == null) return;
     this.selectedOperation = defaultGateDictionary[type];
-    this.dragging = true;
-    createGhostElement(ev, this.container, this.selectedOperation, false);
+    this._createGhostElement(ev);
   };
 
   /**
@@ -505,6 +570,25 @@ class CircuitEvents {
   /*****************
    *     Misc.     *
    *****************/
+
+  /**
+   * Creates a ghost element for visual feedback during dragging.
+   * This function initializes the dragging state, enables auto-scrolling,
+   * and creates a visual representation of the selected operation.
+   *
+   * @param ev - The mouse event that triggered the creation of the ghost element.
+   */
+  _createGhostElement(ev: MouseEvent) {
+    if (this.selectedOperation == null) return;
+    this.dragging = true;
+    this._enableAutoScroll();
+    createGhostElement(
+      ev,
+      this.container,
+      this.selectedOperation,
+      this.movingControl,
+    );
+  }
 
   /**
    * Start the process of adding a control to the selected operation.
