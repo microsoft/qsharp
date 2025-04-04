@@ -4,10 +4,11 @@
 use std::ops::ShlAssign;
 use std::rc::Rc;
 
+use super::ast::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
-use super::types::binop_requires_symmetric_int_conversion;
+use super::types::binop_requires_symmetric_uint_conversion;
 use super::types::is_complex_binop_supported;
 use super::types::promote_to_uint_ty;
 use super::types::promote_width;
@@ -61,7 +62,7 @@ macro_rules! err_expr {
     };
 }
 
-pub(super) struct Lowerer {
+pub(crate) struct Lowerer {
     /// The root QASM source to compile.
     pub source: QasmSource,
     /// The source map of QASM sources for error reporting.
@@ -546,11 +547,11 @@ impl Lowerer {
             && is_symbol_outside_most_inner_gate_or_function_scope;
 
         let kind = if is_const_evaluation_necessary {
-            if let Some(val) = symbol.get_const_expr().const_eval(&self.symbols) {
+            if let Some(val) = symbol.get_const_expr().const_eval(self) {
                 semantic::ExprKind::Lit(val)
             } else {
                 self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                    ident.name.to_string(),
+                    "A captured variable".into(),
                     ident.span,
                 ));
                 semantic::ExprKind::Err
@@ -1506,7 +1507,7 @@ impl Lowerer {
             self.push_invalid_cast_error(target_ty, &expr.ty, expr.span);
             return None;
         };
-        let Some(lit) = expr.const_eval(&self.symbols) else {
+        let Some(lit) = expr.const_eval(self) else {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "ctrl modifier argument".into(),
                 expr.span,
@@ -1678,7 +1679,7 @@ impl Lowerer {
             let size_expr = Self::try_cast_expr_to_type(&Type::UInt(None, true), &size_expr);
 
             if let Some(Some(semantic::LiteralKind::Int(val))) =
-                size_expr.map(|expr| expr.const_eval(&self.symbols))
+                size_expr.map(|expr| expr.const_eval(self))
             {
                 if let Ok(size) = u32::try_from(val) {
                     (
@@ -1906,7 +1907,7 @@ impl Lowerer {
             expr_span,
         );
 
-        if let Some(lit) = expr.const_eval(&self.symbols) {
+        if let Some(lit) = expr.const_eval(self) {
             Some(lit)
         } else {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
@@ -2854,8 +2855,8 @@ impl Lowerer {
                 }
             };
             (new_left, new_right, promoted_type)
-        } else if binop_requires_symmetric_int_conversion(op) {
-            let ty = Type::Int(None, ty_constness);
+        } else if binop_requires_symmetric_uint_conversion(op) {
+            let ty = Type::UInt(None, ty_constness);
             let new_rhs = self.cast_expr_to_type(&ty, &rhs);
             (lhs, new_rhs, left_type)
         } else {
@@ -2943,7 +2944,11 @@ impl Lowerer {
     fn binop_requires_bitwise_symmetric_conversion(op: syntax::BinOp) -> bool {
         matches!(
             op,
-            syntax::BinOp::AndB | syntax::BinOp::OrB | syntax::BinOp::XorB
+            syntax::BinOp::AndB
+                | syntax::BinOp::OrB
+                | syntax::BinOp::XorB
+                | syntax::BinOp::Shl
+                | syntax::BinOp::Shr
         )
     }
 
@@ -3203,6 +3208,13 @@ impl Lowerer {
     /// Pushes a semantic error with the given kind.
     pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
         let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
+        let error = self.create_err(kind);
+        self.errors.push(error);
+    }
+
+    /// Pushes a const eval error with the given kind.
+    pub fn push_const_eval_error(&mut self, kind: ConstEvalError) {
+        let kind = crate::ErrorKind::ConstEval(kind);
         let error = self.create_err(kind);
         self.errors.push(error);
     }
