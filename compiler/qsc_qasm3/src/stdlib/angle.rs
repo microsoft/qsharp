@@ -7,37 +7,75 @@ pub(crate) mod tests;
 use num_bigint::BigInt;
 
 use crate::oqasm_helpers::safe_u64_to_f64;
+use core::f64;
 use std::convert::TryInto;
-use std::f64::consts::PI;
+use std::f64::consts::TAU;
 use std::fmt;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign, BitAnd, BitOr, BitXor, Div, DivAssign, Mul, MulAssign, Neg, Not, Shl, Shr, Sub,
+    SubAssign,
+};
 
 /// A fixed-point angle type with a specified number of bits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Angle {
-    value: u64,
-    size: u32,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Angle {
+    pub value: u64,
+    pub size: u32,
 }
 
 #[allow(dead_code)]
 impl Angle {
-    fn new(value: u64, size: u32) -> Self {
+    pub fn new(value: u64, size: u32) -> Self {
         Angle { value, size }
     }
 
-    fn from_f64(val: f64, size: u32) -> Self {
+    pub fn from_f64_maybe_sized(val: f64, size: Option<u32>) -> Angle {
+        Self::from_f64_sized(val, size.unwrap_or(f64::MANTISSA_DIGITS))
+    }
+
+    /// Takes an `f64` representing angle and:
+    ///  1. Wraps it around so that it is in the range [0, TAU).
+    ///  2. Encodes it as a binary number between 0 and (1 << size) - 1.
+    pub fn from_f64_sized(mut val: f64, size: u32) -> Angle {
+        // First, we need to convert the angle to the `[0, TAU)` range.
+        val %= TAU;
+
+        // The modulus operator leaves negative numbers as negative.
+        // So, in this case we need to add an extra `TAU`.
+        if val < 0. {
+            val += TAU;
+        }
+
+        // If the size is > f64::MANTISSA_DIGITS, the cast to f64
+        // on the next lines will loose precission.
+        if size > f64::MANTISSA_DIGITS {
+            return Self::from_f64_sized_edge_case(val, size);
+        }
+
         #[allow(clippy::cast_precision_loss)]
-        let factor = (2.0 * PI) / (1u64 << size) as f64;
+        let factor = TAU / (1u64 << size) as f64;
         #[allow(clippy::cast_possible_truncation)]
         #[allow(clippy::cast_sign_loss)]
         let value = (val / factor).round() as u64;
-        Angle { value, size }
+        Angle::new(value, size)
+    }
+
+    /// This function handles the edge case when size > `f64::MANTISSA_DIGITS`.
+    fn from_f64_sized_edge_case(val: f64, size: u32) -> Angle {
+        let angle = Self::from_f64_sized(val, f64::MANTISSA_DIGITS);
+        angle.cast(size, false)
     }
 
     fn to_bitstring(self) -> String {
         format!("{:0width$b}", self.value, width = self.size as usize)
     }
 
+    pub fn cast_to_maybe_sized(self, new_size: Option<u32>) -> Angle {
+        match new_size {
+            Some(size) => self.cast(size, false),
+            None => self,
+        }
+    }
     fn cast(&self, new_size: u32, truncate: bool) -> Self {
         match new_size.cmp(&self.size) {
             std::cmp::Ordering::Less => {
@@ -78,6 +116,91 @@ impl Angle {
         }
     }
 }
+
+impl Default for Angle {
+    fn default() -> Self {
+        Self {
+            value: 0,
+            size: f64::MANTISSA_DIGITS,
+        }
+    }
+}
+
+// Bit shift
+impl Shl<i64> for Angle {
+    type Output = Self;
+
+    fn shl(self, rhs: i64) -> Self::Output {
+        let mask = (1 << self.size) - 1;
+        Self {
+            value: (self.value << rhs) & mask,
+            size: self.size,
+        }
+    }
+}
+
+impl Shr<i64> for Angle {
+    type Output = Self;
+
+    fn shr(self, rhs: i64) -> Self::Output {
+        Self {
+            value: self.value >> rhs,
+            size: self.size,
+        }
+    }
+}
+
+// Bitwise
+
+impl Not for Angle {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        let mask = (1 << self.size) - 1;
+        Self {
+            value: !self.value & mask,
+            size: self.size,
+        }
+    }
+}
+
+impl BitAnd for Angle {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value & rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+impl BitOr for Angle {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value | rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+impl BitXor for Angle {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.size, rhs.size);
+        Self {
+            value: self.value ^ rhs.value,
+            size: self.size,
+        }
+    }
+}
+
+// Arithmetic
 
 impl Add for Angle {
     type Output = Self;
@@ -185,17 +308,26 @@ impl DivAssign<u64> for Angle {
 impl TryInto<f64> for Angle {
     type Error = &'static str;
 
+    /// Angle to float cast is not allowed in QASM3.
+    /// This function is only meant to be used in unit tests.
     fn try_into(self) -> Result<f64, Self::Error> {
         if self.size > 64 {
             return Err("Size exceeds 64 bits");
         }
+
+        // Edge case handling.
+        if self.size > f64::MANTISSA_DIGITS {
+            let angle = self.cast(f64::MANTISSA_DIGITS, false);
+            return angle.try_into();
+        }
+
         let Some(denom) = safe_u64_to_f64(1u64 << self.size) else {
             return Err("Denominator is too large");
         };
         let Some(value) = safe_u64_to_f64(self.value) else {
             return Err("Value is too large");
         };
-        let factor = (2.0 * PI) / denom;
+        let factor = TAU / denom;
         Ok(value * factor)
     }
 }

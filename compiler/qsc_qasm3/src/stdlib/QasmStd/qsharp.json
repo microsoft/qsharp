@@ -1,0 +1,9 @@
+{
+    "author": "Microsoft",
+    "license": "MIT",
+    "files": [
+      "src/QasmStd/Angle.qs",
+      "src/QasmStd/Convert.qs",
+      "src/QasmStd/Intrinsic.qs"
+    ]
+}

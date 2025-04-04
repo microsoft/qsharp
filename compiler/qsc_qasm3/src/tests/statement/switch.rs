@@ -8,7 +8,7 @@ use miette::Report;
 #[test]
 fn default_is_optional() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
             case 1 {
@@ -18,14 +18,15 @@ fn default_is_optional() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable i = 15;
         if i == 1 {
             set i = 2;
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -33,7 +34,7 @@ fn default_is_optional() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn default_as_only_case_causes_parse_error() {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
             default {
@@ -47,13 +48,13 @@ fn default_as_only_case_causes_parse_error() {
         panic!("Expected an error, got {res:?}");
     };
     assert_eq!(errors.len(), 1);
-    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+    expect![["missing switch statement cases"]].assert_eq(&errors[0].to_string());
 }
 
 #[test]
 fn no_cases_causes_parse_error() {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         int i = 15;
         switch (i) {
         }
@@ -64,13 +65,13 @@ fn no_cases_causes_parse_error() {
         panic!("Expected an error, got {res:?}");
     };
     assert_eq!(errors.len(), 1);
-    expect![r#"QASM3 Parse Error: expecting `case` keyword"#].assert_eq(&errors[0].to_string());
+    expect![["missing switch statement cases"]].assert_eq(&errors[0].to_string());
 }
 
 #[test]
 fn spec_case_1() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
 
@@ -93,21 +94,22 @@ fn spec_case_1() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         mutable i = 15;
         if i == 1 or i == 3 or i == 5 {
-            H(q);
+            h(q);
         } elif i == 2 or i == 4 or i == 6 {
-            X(q);
+            x(q);
         } elif i == -1 {
-            Y(q);
+            y(q);
         } else {
-            Z(q);
+            z(q);
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -115,7 +117,7 @@ fn spec_case_1() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_2() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
 
@@ -140,23 +142,24 @@ fn spec_case_2() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         let A = 0;
         let B = 1;
         mutable i = 15;
         if i == A {
-            H(q);
+            h(q);
         } elif i == B {
-            X(q);
+            x(q);
         } elif i == B + 1 {
-            Y(q);
+            y(q);
         } else {
-            Z(q);
+            z(q);
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -164,7 +167,7 @@ fn spec_case_2() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_3() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
         bit[2] b;
@@ -186,38 +189,35 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
-    expect![
-        r#"
+    expect![[r#"
         namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
-                function __ResultArrayAsIntBE__(results : Result[]) : Int {
-                    Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))
-                }
                 let q = QIR.Runtime.__quantum__rt__qubit_allocate();
                 mutable b = [Zero, Zero];
                 if __ResultArrayAsIntBE__(b) == 0 {
-                    H(q);
+                    h(q);
                 } elif __ResultArrayAsIntBE__(b) == 1 {
-                    X(q);
+                    x(q);
                 } elif __ResultArrayAsIntBE__(b) == 2 {
-                    Y(q);
+                    y(q);
                 } elif __ResultArrayAsIntBE__(b) == 3 {
-                    Z(q);
+                    z(q);
                 };
                 b
             }
-        }"#
-    ]
+        }"#]]
     .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "Function decls are not supported yet"]
 fn spec_case_4() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
         qubit q;
         bit[2] b;
@@ -249,10 +249,26 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        "#
-    ]
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        mutable b = [Zero, Zero];
+        operation foo(i : Int, d : Qubit[]) : Result {
+            return QIR.Intrinsic.__quantum__qis__m__body(d[i]);
+        }
+        mutable i = 15;
+        mutable j = 1;
+        mutable k = 2;
+        mutable c1 = Zero;
+        let q0 = QIR.Runtime.AllocateQubitArray(8);
+        if i == 1 {
+            set j = k + __ResultAsInt__(foo(k, q0));
+        } elif i == 2 {
+            mutable d = Microsoft.Quantum.Convert.IntAsDouble(j / k);
+        } elif i == 3 {} else {};
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -260,7 +276,7 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn spec_case_5() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        OPENQASM 3.0;
+        OPENQASM 3.1;
         include "stdgates.inc";
 
 
@@ -283,18 +299,19 @@ fn spec_case_5() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(8);
         mutable j = 30;
         mutable i = 0;
         if i == 1 or i == 2 or i == 5 or i == 12 {} elif i == 3 {
             if j == 10 or j == 15 or j == 20 {
-                H(q);
+                h(q);
             };
         };
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

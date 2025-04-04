@@ -6,13 +6,13 @@ use std::path::PathBuf;
 
 use crate::ast_builder::{
     self, build_arg_pat, build_array_reverse_expr, build_assignment_statement, build_attr,
-    build_barrier_call, build_binary_expr, build_cast_call, build_cast_call_two_params,
-    build_classical_decl, build_complex_binary_expr, build_complex_from_expr,
-    build_convert_call_expr, build_default_result_array_expr, build_expr_array_expr,
-    build_gate_call_param_expr, build_gate_decl_lambda, build_if_expr_then_block,
+    build_barrier_call, build_binary_expr, build_cast_call, build_classical_decl,
+    build_complex_binary_expr, build_complex_from_expr, build_convert_call_expr,
+    build_default_result_array_expr, build_expr_array_expr, build_gate_call_param_expr,
+    build_global_call_with_two_params, build_if_expr_then_block,
     build_if_expr_then_block_else_block, build_if_expr_then_block_else_expr,
     build_if_expr_then_expr_else_expr, build_implicit_return_stmt,
-    build_indexed_assignment_statement, build_lit_bigint_expr, build_lit_bool_expr,
+    build_indexed_assignment_statement, build_lambda, build_lit_bigint_expr, build_lit_bool_expr,
     build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
     build_lit_result_array_expr_from_bitstring, build_lit_result_expr, build_managed_qubit_alloc,
     build_math_call_no_params, build_measure_call, build_operation_with_stmts,
@@ -36,8 +36,8 @@ use crate::symbols::Symbol;
 use crate::symbols::SymbolTable;
 use crate::types::{get_indexed_type, get_qsharp_gate_name, GateModifier, QasmTypedExpr};
 use crate::{
-    CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QubitSemantics,
-    SemanticError, SemanticErrorKind,
+    semantic::SemanticErrorKind, CompilerConfig, OperationSignature, OutputSemantics, ProgramType,
+    QubitSemantics,
 };
 
 use ast::NodeId;
@@ -68,11 +68,6 @@ pub fn qasm_to_program(
     source_map: SourceMap,
     config: CompilerConfig,
 ) -> QasmCompileUnit {
-    assert!(!source.has_errors(), "Source has errors");
-    assert!(
-        source.parse_result().have_parse(),
-        "Source has not been successfully parsed"
-    );
     let compiler = QasmCompiler {
         source,
         source_map,
@@ -421,7 +416,7 @@ impl QasmCompiler {
         let span = span_for_syntax_node(stmt.syntax());
         if let "@SimulatableIntrinsic" = text.as_str() {
             let (_at, name) = text.split_at(1);
-            Some(build_attr(name.to_string(), span))
+            Some(build_attr(name.to_string(), None, span))
         } else {
             let span = span_for_syntax_node(stmt.syntax());
             let kind = SemanticErrorKind::UnknownAnnotation(text.to_string(), span);
@@ -2323,8 +2318,10 @@ impl QasmCompiler {
         };
 
         Some(ast_builder::build_for_stmt(
-            &loop_var_symbol,
-            iterable,
+            &loop_var_symbol.name,
+            loop_var_symbol.span,
+            &loop_var_symbol.qsharp_ty,
+            iterable.expr,
             body,
             stmt_span,
         ))
@@ -2477,7 +2474,7 @@ impl QasmCompiler {
                 gate_span,
             ))
         } else {
-            Some(build_gate_decl_lambda(
+            Some(build_lambda(
                 name.to_string(),
                 cargs,
                 qargs,
@@ -2485,6 +2482,8 @@ impl QasmCompiler {
                 name_span,
                 body_span,
                 gate_span,
+                None,
+                ast::CallableKind::Operation,
             ))
         }
     }
@@ -2915,11 +2914,21 @@ impl QasmCompiler {
             Type::AngleArray(_) => todo!("AngleArray to Q# type"),
             Type::ComplexArray(_) => todo!("ComplexArray to Q# type"),
             Type::BoolArray(dims) => Some(crate::types::Type::BoolArray(dims.into(), is_const)),
-            Type::Gate(cargs, qargs) => Some(crate::types::Type::Callable(
-                crate::types::CallableKind::Operation,
-                *cargs,
-                *qargs,
-            )),
+            Type::Gate(cargs, qargs) => {
+                if let (Ok(cargs), Ok(qargs)) = (u32::try_from(*cargs), u32::try_from(*qargs)) {
+                    Some(crate::types::Type::Callable(
+                        crate::types::CallableKind::Operation,
+                        cargs,
+                        qargs,
+                    ))
+                } else {
+                    let message = format!(
+                        "Gate with {cargs} control and {qargs} qubits has too many arguments"
+                    );
+                    self.push_unsupported_error_message(message, node);
+                    None
+                }
+            }
             Type::Range => Some(crate::types::Type::Range),
             Type::Set => todo!("Set to Q# type"),
             Type::Void => Some(crate::types::Type::Tuple(vec![])),
@@ -3087,7 +3096,7 @@ impl QasmCompiler {
                 },
                 Some(expr) => {
                     let span = span_for_syntax_node(expr.syntax());
-                    let kind = SemanticErrorKind::DesignatorMustBeIntLiteral(span);
+                    let kind = SemanticErrorKind::DesignatorMustBePositiveIntLiteral(span);
                     self.push_semantic_error(kind);
                     return None;
                 }
@@ -3298,7 +3307,7 @@ impl QasmCompiler {
                     if let Ok(value) = value.try_into() {
                         let value: i64 = value;
                         let expr = build_lit_int_expr(value, span);
-                        let ty = Type::Int(None, IsConst::True);
+                        let ty = Type::UInt(None, IsConst::True);
                         return Some(QasmTypedExpr { ty, expr });
                     }
                 }
@@ -3688,7 +3697,7 @@ impl QasmCompiler {
             .collect::<Vec<_>>();
 
         (
-            build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span),
+            build_operation_with_stmts(name, input_pats, ast_ty, stmts, whole_span, true),
             signature,
         )
     }
@@ -3777,8 +3786,8 @@ impl QasmCompiler {
                 };
 
                 let size_expr = build_lit_int_expr(size, Span::default());
-                let expr = build_cast_call_two_params(
-                    RuntimeFunctions::IntAsResultArrayBE,
+                let expr = build_global_call_with_two_params(
+                    "__IntAsResultArrayBE__",
                     rhs.expr.clone(),
                     size_expr,
                     name_span,
@@ -3914,7 +3923,9 @@ impl QasmCompiler {
         node: &SyntaxNode,
     ) {
         let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::Unimplemented(message.as_ref().to_string(), span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::Unimplemented(message.as_ref().to_string(), span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3924,7 +3935,7 @@ impl QasmCompiler {
     pub fn push_missing_symbol_error<S: AsRef<str>>(&mut self, name: S, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
         let kind = SemanticErrorKind::UndefinedSymbol(name.as_ref().to_string(), span);
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3938,7 +3949,7 @@ impl QasmCompiler {
 
     /// Pushes a semantic error with the given kind.
     pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
-        let kind = crate::ErrorKind::Semantic(SemanticError(kind));
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3946,7 +3957,9 @@ impl QasmCompiler {
     /// Pushes an unsupported error with the supplied message.
     pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
-        let kind = crate::ErrorKind::NotSupported(message.as_ref().to_string(), span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::NotSupported(message.as_ref().to_string(), span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }
@@ -3955,7 +3968,9 @@ impl QasmCompiler {
     pub fn push_calibration_error(&mut self, node: &SyntaxNode) {
         let span = span_for_syntax_node(node);
         let text = node.text().to_string();
-        let kind = crate::ErrorKind::CalibrationsNotSupported(text, span);
+        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(
+            SemanticErrorKind::CalibrationsNotSupported(text, span),
+        ));
         let error = self.create_err(kind);
         self.errors.push(error);
     }

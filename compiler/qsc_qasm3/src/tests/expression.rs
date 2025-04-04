@@ -3,6 +3,7 @@
 
 mod binary;
 mod bits;
+mod function_call;
 mod ident;
 mod implicit_cast_from_bit;
 mod implicit_cast_from_bitarray;

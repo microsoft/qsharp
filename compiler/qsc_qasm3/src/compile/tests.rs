@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{parse_all, print_compilation_errors, qasm_to_program_fragments};
+use crate::tests::{compile_all_fragments, print_compilation_errors};
 use miette::Report;
 
 #[test]
@@ -18,9 +18,7 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
         ("source2.qasm".into(), source2.into()),
     ];
 
-    let res = parse_all("source0.qasm", all_sources)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_all_fragments("source0.qasm", all_sources)?;
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());
     Ok(())
@@ -41,10 +39,7 @@ fn including_stdgates_multiple_times_causes_symbol_redifintion_errors(
         ("source2.qasm".into(), source2.into()),
     ];
 
-    let res = parse_all("source0.qasm", all_sources)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
-
+    let unit = compile_all_fragments("source0.qasm", all_sources)?;
     assert!(unit.has_errors());
     for error in unit.errors() {
         assert!(error.to_string().contains("Redefined symbol: "));

@@ -12,15 +12,15 @@ bit[2] c;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Result[] {
-    mutable c = [Zero, Zero];
-    c
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Result[] {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable c = [Zero, Zero];
+            c
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -32,15 +32,15 @@ bit c;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Result {
-    mutable c = Zero;
-    c
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Result {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable c = Zero;
+            c
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -52,15 +52,15 @@ bool c;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Bool {
-    mutable c = false;
-    c
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Bool {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable c = false;
+            c
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -72,15 +72,15 @@ complex[float] c;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Microsoft.Quantum.Math.Complex {
-    mutable c = Microsoft.Quantum.Math.Complex(0., 0.);
-    c
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Microsoft.Quantum.Math.Complex {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable c = Microsoft.Quantum.Math.Complex(0., 0.);
+            c
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -92,15 +92,15 @@ float f;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Double {
-    mutable f = 0.;
-    f
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Double {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable f = 0.;
+            f
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -112,15 +112,15 @@ float[42] f;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Double {
-    mutable f = 0.;
-    f
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Double {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable f = 0.;
+            f
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -132,15 +132,15 @@ int[42] i;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Int {
-    mutable i = 0;
-    i
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Int {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable i = 0;
+            i
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -152,15 +152,15 @@ int i;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Int {
-    mutable i = 0;
-    i
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Int {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable i = 0;
+            i
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -172,15 +172,15 @@ uint i;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Int {
-    mutable i = 0;
-    i
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Int {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable i = 0;
+            i
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -192,15 +192,15 @@ uint[42] i;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : Int {
-    mutable i = 0;
-    i
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : Int {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable i = 0;
+            i
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -212,15 +212,15 @@ int[65] i;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : BigInt {
-    mutable i = 0L;
-    i
-}
-"#
-    ]
+    expect![[r#"
+        operation Test() : BigInt {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable i = 0;
+            i
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -240,23 +240,46 @@ bit[2] b2;
 "#;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
-    expect![
-        r#"
-@EntryPoint()
-operation Test() : (BigInt, Int, Int, Int, Double, Bool, Result, Microsoft.Quantum.Math.Complex, Result[]) {
-    mutable bi = 0L;
-    mutable i = 0;
-    mutable ui = 0;
-    mutable u = 0;
-    mutable f = 0.;
-    mutable b = false;
-    mutable c = Zero;
-    mutable cf = Microsoft.Quantum.Math.Complex(0., 0.);
-    mutable b2 = [Zero, Zero];
-    (bi, i, ui, u, f, b, c, cf, b2)
+    expect![[r#"
+        operation Test() : (BigInt, Int, Int, Int, Double, Bool, Result, Microsoft.Quantum.Math.Complex, Result[]) {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable bi = 0;
+            mutable i = 0;
+            mutable ui = 0;
+            mutable u = 0;
+            mutable f = 0.;
+            mutable b = false;
+            mutable c = Zero;
+            mutable cf = Microsoft.Quantum.Math.Complex(0., 0.);
+            mutable b2 = [Zero, Zero];
+            (bi, i, ui, u, f, b, c, cf, b2)
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
 }
-"#
-    ]
+
+#[test]
+fn angle_is_inferred_and_returned_as_double() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+angle c;
+"#;
+
+    let qsharp = compile_qasm_to_qsharp_operation(source)?;
+    expect![[r#"
+        operation Test() : Double {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            mutable c = new __Angle__ {
+                Value = 0,
+                Size = 53
+            };
+            __AngleAsDouble__(c)
+        }
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
