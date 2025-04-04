@@ -23,10 +23,10 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
-    #[error("{0} must be a const expression")]
+    #[error("expression must be const")]
     #[diagnostic(code("Qsc.Qasm3.Compile.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
-    #[error("uint expression must evaluate to a non-negative value")]
+    #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qsc.Qasm3.Compile.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
     #[error("{0} doesn't fit in {1}")]
