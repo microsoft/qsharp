@@ -79,6 +79,10 @@ export function copyKatex(destDir) {
 
   // github markdown css
   copyFileSync(
+    join(libsDir, `github-markdown-css/github-markdown.css`),
+    join(katexDest, "github-markdown.css"),
+  );
+  copyFileSync(
     join(libsDir, `github-markdown-css/github-markdown-light.css`),
     join(katexDest, "github-markdown-light.css"),
   );
