@@ -5,76 +5,188 @@
 mod tests;
 
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 
-/// Representation of a quantum circuit.
-/// Implementation of `CircuitData` type from `qsharp-lang` npm package.
-#[derive(Clone, Serialize, Default, Debug, PartialEq)]
-pub struct Circuit {
-    pub operations: Vec<Operation>,
-    pub qubits: Vec<Qubit>,
+/// Current format version.
+pub const CURRENT_VERSION: usize = 1;
+
+fn default_version() -> Option<usize> {
+    Some(CURRENT_VERSION)
 }
 
-#[derive(Clone, Serialize, Debug, PartialEq)]
-pub struct Operation {
-    #[allow(clippy::struct_field_names)]
+/// Representation of a quantum circuit group.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct CircuitGroup {
+    pub circuits: Vec<Circuit>,
+    #[serde(default = "default_version")]
+    pub version: Option<usize>,
+}
+
+impl Display for CircuitGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for circuit in &self.circuits {
+            writeln!(f, "{}", circuit)?;
+        }
+        Ok(())
+    }
+}
+
+/// Representation of a quantum circuit.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct Circuit {
+    pub qubits: Vec<Qubit>,
+    #[serde(rename = "componentGrid")]
+    pub component_grid: ComponentGrid,
+}
+
+/// Type alias for a grid of components.
+pub type ComponentGrid = Vec<ComponentColumn>;
+
+/// Representation of a column in the component grid.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct ComponentColumn {
+    pub components: Vec<Component>,
+}
+
+/// Union type for components.
+pub type Component = Operation;
+
+/// Union type for operations.
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[serde(tag = "kind")]
+pub enum Operation {
+    #[serde(rename = "measurement")]
+    Measurement(Measurement),
+    #[serde(rename = "unitary")]
+    Unitary(Unitary),
+}
+
+impl Operation {
+    /// Returns the kind of the operation.
+    pub fn kind(&self) -> String {
+        match self {
+            Operation::Measurement(_) => "measurement".to_string(),
+            Operation::Unitary(_) => "unitary".to_string(),
+        }
+    }
+
+    /// Returns the gate name of the operation.
+    pub fn gate(&self) -> String {
+        match self {
+            Operation::Measurement(m) => m.gate.clone(),
+            Operation::Unitary(u) => u.gate.clone(),
+        }
+    }
+
+    /// Returns the arguments for the operation.
+    pub fn args(&self) -> Vec<String> {
+        match self {
+            Operation::Measurement(m) => m.args.clone(),
+            Operation::Unitary(u) => u.args.clone(),
+        }
+    }
+
+    /// Returns the children for the operation.
+    pub fn children(&self) -> &ComponentGrid {
+        match self {
+            Operation::Measurement(m) => &m.children,
+            Operation::Unitary(u) => &u.children,
+        }
+    }
+
+    /// Returns if the operation is a controlled operation.
+    pub fn is_controlled(&self) -> bool {
+        match self {
+            Operation::Measurement(_) => false,
+            Operation::Unitary(u) => !u.controls.is_empty(),
+        }
+    }
+
+    /// Returns if the operation is a measurement operation.
+    pub fn is_measurement(&self) -> bool {
+        match self {
+            Operation::Measurement(_) => true,
+            Operation::Unitary(_) => false,
+        }
+    }
+
+    /// Returns if the operation is an adjoint operation.
+    pub fn is_adjoint(&self) -> bool {
+        match self {
+            Operation::Measurement(_) => false,
+            Operation::Unitary(u) => u.is_adjoint,
+        }
+    }
+}
+
+/// Representation of a measurement operation.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct Measurement {
     pub gate: String,
-    #[serde(rename = "displayArgs")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub display_args: Option<String>,
-    #[serde(rename = "isControlled")]
-    #[serde(skip_serializing_if = "Not::not")]
-    pub is_controlled: bool,
-    #[serde(rename = "isAdjoint")]
-    #[serde(skip_serializing_if = "Not::not")]
-    pub is_adjoint: bool,
-    #[serde(rename = "isMeasurement")]
-    #[serde(skip_serializing_if = "Not::not")]
-    pub is_measurement: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub controls: Vec<Register>,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub children: ComponentGrid,
+    pub qubits: Vec<Register>,
+    pub results: Vec<Register>,
+}
+
+/// Representation of a unitary operation.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct Unitary {
+    pub gate: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub children: ComponentGrid,
     pub targets: Vec<Register>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub children: Vec<Operation>,
+    #[serde(default)]
+    pub controls: Vec<Register>,
+    #[serde(rename = "isAdjoint")]
+    #[serde(skip_serializing_if = "Not::not")]
+    #[serde(default)]
+    pub is_adjoint: bool,
 }
 
-const QUANTUM_REGISTER: usize = 0;
-const CLASSICAL_REGISTER: usize = 1;
-
-#[derive(Serialize, Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Register {
-    #[serde(rename = "qId")]
-    pub q_id: usize,
-    pub r#type: usize,
-    #[serde(rename = "cId")]
+    pub qubit: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub c_id: Option<usize>,
+    pub result: Option<usize>,
 }
 
 impl Register {
-    pub fn quantum(q_id: usize) -> Self {
+    pub fn quantum(qubit_id: usize) -> Self {
         Self {
-            q_id,
-            r#type: QUANTUM_REGISTER,
-            c_id: None,
+            qubit: qubit_id,
+            result: None,
         }
     }
 
-    pub fn classical(q_id: usize, c_id: usize) -> Self {
+    pub fn classical(qubit_id: usize, result_id: usize) -> Self {
         Self {
-            q_id,
-            r#type: CLASSICAL_REGISTER,
-            c_id: Some(c_id),
+            qubit: qubit_id,
+            result: Some(result_id),
         }
+    }
+
+    pub fn is_classical(&self) -> bool {
+        self.result.is_some()
     }
 }
 
-#[derive(PartialEq, Clone, Serialize, Debug)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Qubit {
     pub id: usize,
-    #[serde(rename = "numChildren")]
-    pub num_children: usize,
+    #[serde(rename = "numResults")]
+    #[serde(default)]
+    pub num_results: usize,
 }
 
 #[derive(Clone, Debug, Copy, Default)]
@@ -122,13 +234,15 @@ impl Row {
         self.add(column, CircuitObject::Object(object.to_string()));
     }
 
-    fn add_gate(&mut self, column: usize, gate: &str, args: Option<&str>, is_adjoint: bool) {
+    fn add_gate(&mut self, column: usize, gate: &str, args: Vec<String>, is_adjoint: bool) {
         let mut gate_label = String::new();
         gate_label.push_str(gate);
         if is_adjoint {
             gate_label.push('\'');
         }
-        if let Some(args) = args {
+
+        if !args.is_empty() {
+            let args = args.join(", ");
             let _ = write!(&mut gate_label, "({args})");
         }
 
@@ -321,19 +435,25 @@ impl Display for Circuit {
         // because those qubits need to get a gap row below them.
         let mut qubits_with_gap_row_below = FxHashSet::default();
 
-        for operation in self.operations.iter() {
-            for target in operation.targets.iter() {
-                let qubit = target.q_id;
+        for col in self.component_grid.iter() {
+            for op in col.components.iter() {
+                let targets = match op {
+                    Operation::Measurement(m) => &m.qubits,
+                    Operation::Unitary(u) => &u.targets,
+                };
+                for target in targets {
+                    let qubit = target.qubit;
 
-                if qubits_with_gap_row_below.contains(&qubit) {
-                    continue;
-                }
+                    if qubits_with_gap_row_below.contains(&qubit) {
+                        continue;
+                    }
 
-                let next_qubit = qubit + 1;
+                    let next_qubit = qubit + 1;
 
-                // Check if the next qubit is also in this operation.
-                if operation.targets.iter().any(|t| t.q_id == next_qubit) {
-                    qubits_with_gap_row_below.insert(qubit);
+                    // Check if the next qubit is also in this operation.
+                    if targets.iter().any(|t| t.qubit == next_qubit) {
+                        qubits_with_gap_row_below.insert(qubit);
+                    }
                 }
             }
         }
@@ -352,9 +472,9 @@ impl Display for Circuit {
             // the next qubit, we add an empty row to make room for the vertical connector.
             // We can just use a classical wire type for this row since the wire won't actually be rendered.
             let extra_rows = if qubits_with_gap_row_below.contains(&q.id) {
-                cmp::max(1, q.num_children)
+                cmp::max(1, q.num_results)
             } else {
-                q.num_children
+                q.num_results
             };
 
             for i in 0..extra_rows {
@@ -368,78 +488,80 @@ impl Display for Circuit {
             }
         }
 
-        for o in &self.operations {
-            // Row indexes for the targets for this operation
-            let targets = o
-                .targets
+        for (col_index, col) in self.component_grid.iter().enumerate().collect::<Vec<_>>() {
+            for o in col.components.iter() {
+                // Row indexes for the targets for this operation
+                let targets = match o {
+                    Operation::Measurement(m) => &m.results,
+                    Operation::Unitary(u) => &u.targets,
+                }
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
+                    let reg = (reg.qubit, reg.result);
                     register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
-            // Row indexes for the controls for this operation
-            let controls = o
-                .controls
+                // Row indexes for the controls for this operation
+                let controls = match o {
+                    Operation::Measurement(m) => &m.qubits,
+                    Operation::Unitary(u) => &u.controls,
+                }
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, reg.c_id);
+                    let reg = (reg.qubit, reg.result);
                     register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
-            let mut all_rows = targets.clone();
-            all_rows.extend(controls.iter());
-            all_rows.sort_unstable();
+                let mut all_rows = targets.clone();
+                all_rows.extend(controls.iter());
+                all_rows.sort_unstable();
 
-            // We'll need to know the entire range of rows for this operation so we can
-            // figure out the starting column and also so we can draw any
-            // vertical lines that cross wires.
-            let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
-                (*first, tail.last().unwrap_or(first) + 1)
-            });
+                // We'll need to know the entire range of rows for this operation so we can
+                // figure out the starting column and also so we can draw any
+                // vertical lines that cross wires.
+                let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
+                    (*first, tail.last().unwrap_or(first) + 1)
+                });
 
-            // The starting column - the first available column in all
-            // the rows that this operation spans.
-            let column = rows[begin..end]
-                .iter()
-                .map(|r| r.next_column)
-                .max()
-                .unwrap_or(1);
+                let column = col_index + 1;
 
-            // Add the operation to the diagram
-            for i in targets {
-                let row = &mut rows[i];
-                if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
-                    row.start_classical(column);
-                } else {
-                    row.add_gate(column, &o.gate, o.display_args.as_deref(), o.is_adjoint);
-                };
-            }
-
-            if o.is_controlled || o.is_measurement {
-                for i in controls {
+                // Add the operation to the diagram
+                for i in targets {
                     let row = &mut rows[i];
-                    if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
-                        row.add_object(column, "M");
+                    if matches!(row.wire, Wire::Classical { .. })
+                        && matches!(o, Operation::Measurement(_))
+                    {
+                        row.start_classical(column);
                     } else {
-                        row.add_object(column, "●");
+                        row.add_gate(column, &o.gate(), o.args(), o.is_adjoint());
                     };
                 }
 
-                // If we have a control wire, draw vertical lines spanning all
-                // control and target wires and crossing any in between
-                // (vertical lines may overlap if there are multiple controls/targets,
-                // this is ok in practice)
-                for row in &mut rows[begin..end] {
-                    row.add_vertical(column);
-                }
-            } else {
-                // No control wire. Draw dashed vertical lines to connect
-                // target wires if there are multiple targets
-                for row in &mut rows[begin..end] {
-                    row.add_dashed_vertical(column);
+                if o.is_controlled() || o.is_measurement() {
+                    for i in controls {
+                        let row = &mut rows[i];
+                        if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement() {
+                            row.add_object(column, "M");
+                        } else {
+                            row.add_object(column, "●");
+                        };
+                    }
+
+                    // If we have a control wire, draw vertical lines spanning all
+                    // control and target wires and crossing any in between
+                    // (vertical lines may overlap if there are multiple controls/targets,
+                    // this is ok in practice)
+                    for row in &mut rows[begin..end] {
+                        row.add_vertical(column);
+                    }
+                } else {
+                    // No control wire. Draw dashed vertical lines to connect
+                    // target wires if there are multiple targets
+                    for row in &mut rows[begin..end] {
+                        row.add_dashed_vertical(column);
+                    }
                 }
             }
         }
@@ -476,4 +598,247 @@ impl Display for Circuit {
 
         Ok(())
     }
+}
+
+/// Converts a 2D grid of operations into a component grid.
+///
+/// # Arguments
+///
+/// * `operations` - A 2D vector of operations to be converted.
+///
+/// # Returns
+///
+/// A component grid representing the operations.
+pub fn op_grid_to_comp_grid(operations: Vec<Vec<Operation>>) -> ComponentGrid {
+    let mut component_grid = vec![];
+    for col in operations {
+        let column = ComponentColumn { components: col };
+        component_grid.push(column);
+    }
+    component_grid
+}
+
+/// Converts a list of operations into a 2D grid of operations in col-row format.
+/// Operations will be left-justified as much as possible in the resulting grid.
+/// Children operations are recursively converted into a grid.
+///
+/// # Arguments
+///
+/// * `operations` - A vector of operations to be converted.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D array of operations.
+pub fn operation_list_to_grid(
+    mut operations: Vec<Operation>,
+    max_q_id: usize,
+) -> Vec<Vec<Operation>> {
+    for op in &mut operations {
+        if op.children().len() == 1 {
+            match op {
+                Operation::Measurement(m) => {
+                    m.children = op_grid_to_comp_grid(operation_list_to_grid(
+                        m.children.remove(0).components,
+                        max_q_id,
+                    ));
+                }
+                Operation::Unitary(u) => {
+                    u.children = op_grid_to_comp_grid(operation_list_to_grid(
+                        u.children.remove(0).components,
+                        max_q_id,
+                    ));
+                }
+            }
+        }
+    }
+    remove_padding(operation_list_to_padded_array(operations, max_q_id))
+}
+
+/// Converts a list of operations into a padded 2D array of operations.
+///
+/// # Arguments
+///
+/// * `operations` - A vector of operations to be converted.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D vector of optional operations padded with `None`.
+fn operation_list_to_padded_array(
+    operations: Vec<Operation>,
+    max_q_id: usize,
+) -> Vec<Vec<Option<Operation>>> {
+    if operations.is_empty() {
+        return vec![];
+    }
+
+    let grouped_ops = group_operations(&operations, max_q_id);
+    let aligned_ops = transform_to_col_row(align_ops(grouped_ops));
+
+    // Need to convert to optional operations so we can
+    // take operations out without messing up the indexing
+    let mut operations = operations.into_iter().map(Some).collect::<Vec<_>>();
+    aligned_ops
+        .into_iter()
+        .map(|col| {
+            col.into_iter()
+                .map(|op_idx| op_idx.and_then(|idx| operations[idx].take()))
+                .collect()
+        })
+        .collect()
+}
+
+/// Removes padding (`None` values) from a 2D array of operations.
+///
+/// # Arguments
+///
+/// * `operations` - A 2D vector of optional operations padded with `None`.
+///
+/// # Returns
+///
+/// A 2D vector of operations without `None` values.
+fn remove_padding(operations: Vec<Vec<Option<Operation>>>) -> Vec<Vec<Operation>> {
+    operations
+        .into_iter()
+        .map(|col| col.into_iter().flatten().collect())
+        .collect()
+}
+
+/// Transforms a row-col 2D array into an equivalent col-row 2D array.
+///
+/// # Arguments
+///
+/// * `aligned_ops` - A 2D vector of optional usize values in row-col format.
+///
+/// # Returns
+///
+/// A 2D vector of optional usize values in col-row format.
+fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<usize>>> {
+    if aligned_ops.is_empty() {
+        return vec![];
+    }
+
+    let num_rows = aligned_ops.len();
+    let num_cols = aligned_ops.iter().map(|row| row.len()).max().unwrap_or(0);
+
+    let mut col_row_array = vec![vec![None; num_rows]; num_cols];
+
+    for (row, row_data) in aligned_ops.into_iter().enumerate() {
+        for (col, value) in row_data.into_iter().enumerate() {
+            col_row_array[col][row] = value;
+        }
+    }
+
+    col_row_array
+}
+
+/// Groups operations by their respective registers.
+///
+/// # Arguments
+///
+/// * `operations` - A slice of operations to be grouped.
+/// * `max_q_id` - The maximum qubit ID.
+///
+/// # Returns
+///
+/// A 2D vector of indices where `groupedOps[i][j]` is the index of the operations
+/// at register `i` and column `j` (not yet aligned/padded).
+fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>> {
+    let end_q_id = max_q_id + 1; // Add one so that it is an "end" index
+    let mut grouped_ops = vec![vec![]; end_q_id];
+
+    for (instr_idx, op) in operations.iter().enumerate() {
+        let ctrls = match op {
+            Operation::Measurement(m) => &m.qubits,
+            Operation::Unitary(u) => &u.controls,
+        };
+        let targets = match op {
+            Operation::Measurement(m) => &m.results,
+            Operation::Unitary(u) => &u.targets,
+        };
+        let q_regs: Vec<_> = ctrls
+            .iter()
+            .chain(targets)
+            .filter(|reg| !reg.is_classical())
+            .collect();
+        let q_reg_idx_list: Vec<_> = q_regs.iter().map(|reg| reg.qubit).collect();
+        let cls_controls: Vec<_> = ctrls.iter().filter(|reg| reg.is_classical()).collect();
+        let is_classically_controlled = !cls_controls.is_empty();
+
+        if !is_classically_controlled && q_regs.is_empty() {
+            continue;
+        }
+
+        let min_reg_idx = if is_classically_controlled {
+            0
+        } else {
+            *q_reg_idx_list.iter().min().unwrap()
+        };
+        let max_reg_idx = if is_classically_controlled {
+            end_q_id - 1
+        } else {
+            *q_reg_idx_list.iter().max().unwrap()
+        };
+
+        for reg_ops in grouped_ops
+            .iter_mut()
+            .take(max_reg_idx + 1)
+            .skip(min_reg_idx)
+        {
+            reg_ops.push(instr_idx);
+        }
+    }
+
+    grouped_ops
+}
+
+/// Aligns operations by padding registers with `None` to make sure that multiqubit
+/// gates are in the same column.
+///
+/// # Arguments
+///
+/// * `ops` - A 2D vector of usize values representing the operations.
+///
+/// # Returns
+///
+/// A 2D vector of optional usize values representing the aligned operations.
+fn align_ops(ops: Vec<Vec<usize>>) -> Vec<Vec<Option<usize>>> {
+    let mut max_num_ops = ops.iter().map(|reg_ops| reg_ops.len()).max().unwrap_or(0);
+    let mut col = 0;
+    let mut padded_ops: Vec<Vec<Option<usize>>> = ops
+        .into_iter()
+        .map(|reg_ops| reg_ops.into_iter().map(Some).collect())
+        .collect();
+
+    while col < max_num_ops {
+        for reg_idx in 0..padded_ops.len() {
+            if padded_ops[reg_idx].len() <= col {
+                continue;
+            }
+
+            // Represents the gate at padded_ops[reg_idx][col]
+            let op_idx = padded_ops[reg_idx][col];
+
+            // The vec of where in each register the gate appears
+            let targets_pos: Vec<_> = padded_ops
+                .iter()
+                .map(|reg_ops| reg_ops.iter().position(|&x| x == op_idx))
+                .collect();
+            // The maximum column index of the gate in the target registers
+            let gate_max_col = targets_pos
+                .iter()
+                .filter_map(|&pos| pos)
+                .max()
+                .unwrap_or(usize::MAX);
+
+            if col < gate_max_col {
+                padded_ops[reg_idx].insert(col, None);
+                max_num_ops = max_num_ops.max(padded_ops[reg_idx].len());
+            }
+        }
+        col += 1;
+    }
+
+    padded_ops
 }

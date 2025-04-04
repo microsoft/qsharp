@@ -25,6 +25,16 @@ export function isQsharpDocument(document: TextDocument): boolean {
   );
 }
 
+// Returns true for all circuit documents
+export function isCircuitDocument(document: TextDocument): boolean {
+  return (
+    document.languageId === "qsc" &&
+    (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
+  );
+}
+
 // Returns true for only Q# notebook cell documents.
 export function isQsharpNotebookCell(document: TextDocument): boolean {
   return (

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "../shared/circuit.js";
+import { type CircuitGroup as CircuitData } from "../shared/circuit.js";
 import {
   IDocFile,
   IOperationInfo,
