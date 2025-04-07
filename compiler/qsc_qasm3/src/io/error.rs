@@ -4,6 +4,8 @@
 use miette::Diagnostic;
 use thiserror::Error;
 
+use super::Cycle;
+
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 #[error(transparent)]
 #[diagnostic(transparent)]
@@ -15,6 +17,10 @@ pub enum ErrorKind {
     NotFound(String),
     #[error("IO Error: {0}")]
     IO(String),
+    #[error("Multiple include: {0}")]
+    MultipleInclude(String),
+    #[error("Cyclic include:\n{0}")]
+    CyclicInclude(Cycle),
 }
 
 impl From<Error> for crate::Error {
