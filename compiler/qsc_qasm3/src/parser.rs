@@ -110,7 +110,7 @@ fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmParseResult
+pub fn parse_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmParseResult
 where
     S: AsRef<str>,
     P: AsRef<Path>,
@@ -230,13 +230,22 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<P, R>(path: P, resolver: &R) -> QasmSource
+fn parse_qasm_file<P, R>(path: P, resolver: &mut R) -> QasmSource
 where
     P: AsRef<Path>,
     R: SourceResolver,
 {
     match resolver.resolve(&path) {
-        Ok((path, source)) => parse_qasm_source(source, path, resolver),
+        Ok((path, source)) => {
+            let parse_result = parse_qasm_source(source, path, resolver);
+
+            // Once we finish parsing the source, we pop the file from the
+            // resolver. This is needed to keep track of multiple includes
+            // and cyclic includes.
+            resolver.ctx().pop_current_file();
+
+            parse_result
+        }
         Err(e) => {
             let error = crate::parser::error::ErrorKind::IO(e);
             let error = crate::parser::Error(error, None);
@@ -255,7 +264,7 @@ where
     }
 }
 
-fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmSource
+fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmSource
 where
     S: AsRef<str>,
     P: AsRef<Path>,
@@ -267,7 +276,7 @@ where
 
 fn parse_source_and_includes<P: AsRef<str>, R>(
     source: P,
-    resolver: &R,
+    resolver: &mut R,
 ) -> (Program, Vec<Error>, Vec<QasmSource>)
 where
     R: SourceResolver,
@@ -277,7 +286,7 @@ where
     (program, errors, included)
 }
 
-fn parse_includes<R>(program: &Program, resolver: &R) -> Vec<QasmSource>
+fn parse_includes<R>(program: &Program, resolver: &mut R) -> Vec<QasmSource>
 where
     R: SourceResolver,
 {

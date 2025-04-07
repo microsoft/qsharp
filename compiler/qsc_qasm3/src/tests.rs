@@ -213,9 +213,9 @@ pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec
 where
     S: AsRef<str>,
 {
-    let resolver =
+    let mut resolver =
         InMemorySourceResolver::from_iter([("Test.qasm".into(), source.as_ref().into())]);
-    let res = parse_source(source, "Test.qasm", &resolver);
+    let res = parse_source(source, "Test.qasm", &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -234,12 +234,12 @@ pub(crate) fn parse_all<P>(
 where
     P: AsRef<Path>,
 {
-    let resolver = InMemorySourceResolver::from_iter(sources);
+    let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
         .resolve(path.as_ref())
         .map_err(|e| vec![Report::new(e)])?
         .1;
-    let res = parse_source(source, path, &resolver);
+    let res = parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()

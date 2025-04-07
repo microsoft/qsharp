@@ -67,7 +67,11 @@ impl QasmParseResult {
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> miette::Result<QasmParseResult>
+pub fn parse_source<S, P, R>(
+    source: S,
+    path: P,
+    resolver: &mut R,
+) -> miette::Result<QasmParseResult>
 where
     S: AsRef<str>,
     P: AsRef<Path>,
@@ -203,7 +207,7 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<P, R>(path: P, resolver: &R) -> miette::Result<QasmSource>
+fn parse_qasm_file<P, R>(path: P, resolver: &mut R) -> miette::Result<QasmSource>
 where
     P: AsRef<Path>,
     R: SourceResolver,
@@ -212,7 +216,7 @@ where
     parse_qasm_source(source, path, resolver)
 }
 
-fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &R) -> miette::Result<QasmSource>
+fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &mut R) -> miette::Result<QasmSource>
 where
     S: AsRef<str>,
     P: AsRef<Path>,
@@ -224,7 +228,7 @@ where
 
 fn parse_source_and_includes<P: AsRef<str>, R>(
     source: P,
-    resolver: &R,
+    resolver: &mut R,
 ) -> miette::Result<(ParseOrErrors<SourceFile>, Vec<QasmSource>)>
 where
     R: SourceResolver,
@@ -240,7 +244,7 @@ where
 
 fn parse_includes<R>(
     syntax_ast: &ParseOrErrors<oq3_syntax::SourceFile>,
-    resolver: &R,
+    resolver: &mut R,
 ) -> miette::Result<Vec<QasmSource>>
 where
     R: SourceResolver,
