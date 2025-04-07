@@ -87,8 +87,7 @@ fn multiple_include_in_same_file_errors() {
 
     let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
-    expect!["source1.inc was already included in: main.qasm"]
-    .assert_eq(&errors_string);
+    expect!["source1.inc was already included in: main.qasm"].assert_eq(&errors_string);
 }
 
 #[test]
@@ -126,8 +125,7 @@ fn multiple_include_in_different_files_errors() {
 
     let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
-    expect!["source3.inc was already included in: source1.inc"]
-    .assert_eq(&errors_string);
+    expect!["source3.inc was already included in: source1.inc"].assert_eq(&errors_string);
 }
 
 #[test]
