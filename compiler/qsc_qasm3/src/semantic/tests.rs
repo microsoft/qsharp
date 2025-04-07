@@ -341,7 +341,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
                :             ^
-             5 |
+             5 |     
                `----
             , Qsc.Qasm3.Compile.CannotCast
 
@@ -350,7 +350,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
                :             ^
-             5 |
+             5 |     
                `----
             ]"#]],
     );

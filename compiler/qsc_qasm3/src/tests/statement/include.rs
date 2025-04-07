@@ -85,11 +85,9 @@ fn multiple_include_in_same_file_errors() {
         panic!("expected errors")
     };
 
-    let errors: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
-    expect![[r#"
-          x source1.inc was already included in: main.qasm
-    "#]]
+    expect!["source1.inc was already included in: main.qasm"]
     .assert_eq(&errors_string);
 }
 
@@ -126,11 +124,9 @@ fn multiple_include_in_different_files_errors() {
         panic!("expected errors")
     };
 
-    let errors: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
-    expect![[r#"
-          x source3.inc was already included in: source1.inc
-    "#]]
+    expect!["source3.inc was already included in: source1.inc"]
     .assert_eq(&errors_string);
 }
 
@@ -158,12 +154,11 @@ fn self_include_errors() {
         panic!("expected errors")
     };
 
-    let errors: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
     expect![[r#"
-          x Cyclic include:
-          |   source1.inc includes source1.inc
-    "#]]
+        Cyclic include:
+          source1.inc includes source1.inc"#]]
     .assert_eq(&errors_string);
 }
 
@@ -195,13 +190,12 @@ fn mutual_include_errors() {
         panic!("expected errors")
     };
 
-    let errors: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
     expect![[r#"
-          x Cyclic include:
-          |   source1.inc includes source2.inc
-          |   source2.inc includes source1.inc
-    "#]]
+        Cyclic include:
+          source1.inc includes source2.inc
+          source2.inc includes source1.inc"#]]
     .assert_eq(&errors_string);
 }
 
@@ -237,13 +231,13 @@ fn cyclic_include_errors() {
         panic!("expected errors")
     };
 
-    let errors: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
     let errors_string = errors.join("\n");
+
     expect![[r#"
-          x Cyclic include:
-          |   source1.inc includes source2.inc
-          |   source2.inc includes source3.inc
-          |   source3.inc includes source1.inc
-    "#]]
+        Cyclic include:
+          source1.inc includes source2.inc
+          source2.inc includes source3.inc
+          source3.inc includes source1.inc"#]]
     .assert_eq(&errors_string);
 }
