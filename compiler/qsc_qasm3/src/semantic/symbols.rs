@@ -488,6 +488,7 @@ impl SymbolTable {
     }
 
     /// Gets all symbols of a given type.
+    #[must_use]
     pub fn get_qubit_symbols(&self) -> Vec<Rc<Symbol>> {
         let mut res = Vec::new();
 
