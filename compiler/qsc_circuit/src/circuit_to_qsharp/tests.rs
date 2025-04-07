@@ -6,14 +6,14 @@ use expect_test::{expect, Expect};
 
 fn check(contents: &str, expect: &Expect) {
     let actual = match serde_json::from_str::<Circuit>(contents) {
-        Ok(circuit) => build_operation_def("Test".to_string(), &circuit),
+        Ok(circuit) => build_operation_def("Test", &circuit),
         Err(e) => format!("Error: {e}"),
     };
     expect.assert_eq(&actual);
 }
 
 fn check_circuit_group(contents: &str, expect: &Expect) {
-    let actual = match circuits_to_qsharp("Test".to_string(), contents) {
+    let actual = match circuits_to_qsharp("Test", contents) {
         Ok(circuit) => circuit,
         Err(e) => e,
     };

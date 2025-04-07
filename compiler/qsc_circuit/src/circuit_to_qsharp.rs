@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::unicode_not_nfc)]
 #[cfg(test)]
 mod tests;
 
@@ -12,35 +13,34 @@ use crate::{
     Circuit, Operation,
 };
 
-pub fn circuits_to_qsharp(file_name: String, circuits_json: &str) -> Result<String, String> {
+pub fn circuits_to_qsharp(file_name: &str, circuits_json: &str) -> Result<String, String> {
     match serde_json::from_str::<CircuitGroup>(circuits_json) {
         Ok(circuits) => Ok(build_circuits(file_name, &circuits.circuits)),
         Err(e) => Err(format!("Error: {e}")),
     }
 }
 
-#[must_use]
-pub fn build_circuits(file_name: String, circuits: &[Circuit]) -> String {
+fn build_circuits(file_name: &str, circuits: &[Circuit]) -> String {
     if circuits.len() == 1 {
         build_operation_def(file_name, &circuits[0])
     } else {
         let mut qsharp_str = String::new();
         for (index, circuit) in circuits.iter().enumerate() {
             let circuit_name = format!("{file_name}{index}");
-            let circuit_str = build_operation_def(circuit_name, circuit);
+            let circuit_str = build_operation_def(&circuit_name, circuit);
             qsharp_str.push_str(&circuit_str);
         }
         qsharp_str
     }
 }
 
-pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
+fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
     let mut indentation_level = 0;
     let qubits = circuit
         .qubits
         .iter()
         .enumerate()
-        .map(|(i, q)| (q.id, format!("qs[{}]", i)))
+        .map(|(i, q)| (q.id, format!("qs[{i}]")))
         .collect::<FxHashMap<_, _>>();
 
     let parameter = if qubits.is_empty() {
@@ -60,11 +60,11 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         _ => "Result[]",
     };
 
-    // Check if any operation is not Unitary
-    let is_ctl_adj = circuit.component_grid.iter().any(|col| {
+    // Check if all operations are Unitary
+    let is_ctl_adj = !circuit.component_grid.iter().any(|col| {
         col.components.iter().any(|op| {
             if let Operation::Unitary(unitary) = op {
-                unitary.gate == "|0〉" && unitary.gate == "|1〉"
+                unitary.gate == "|0〉" || unitary.gate == "|1〉"
             } else {
                 true
             }
@@ -72,7 +72,6 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
     });
 
     let characteristics = if is_ctl_adj { "is Ctl + Adj " } else { "" };
-
     let summary = if qubits.is_empty() {
         String::new()
     } else {
@@ -88,16 +87,11 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
     let indent = "    ".repeat(indentation_level);
 
     // Add an assert for the number of qubits
-    if !qubits.is_empty() {
-        let inner_indent = "    ".repeat(indentation_level + 1);
-        qsharp_str.push_str(&format!("{indent}if Length(qs) != {} {{\n", qubits.len()));
-        qsharp_str.push_str(&format!(
-            "{inner_indent}fail \"Invalid number of qubits. Operation {} expects a qubit register of size {}.\";\n",
-            circuit_name,
-            qubits.len()
-        ));
-        qsharp_str.push_str(&format!("{indent}}}\n"));
-    }
+    qsharp_str.push_str(&generate_qubit_validation(
+        circuit_name,
+        &qubits,
+        indentation_level,
+    ));
 
     let mut body_str = String::new();
     let mut should_add_pi = false;
@@ -107,57 +101,13 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         for op in &col.components {
             match &op {
                 Operation::Measurement(measurement) => {
-                    let operation_str = measurement_call(measurement, &qubits);
-                    let mut op_results = vec![];
-                    for reg in &measurement.results {
-                        if let Some(c_id) = reg.result {
-                            let result = (format!("c{}_{}", reg.qubit, c_id), (reg.qubit, c_id));
-                            op_results.push(result.clone());
-                        }
-                    }
-
-                    // Sort first by q_id, then by c_id
-                    op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
-                    let result = op_results
-                        .iter()
-                        .map(|(name, _)| name.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    match op_results.len() {
-                        0 => {
-                            body_str.push_str(&format!("{indent}{operation_str};\n"));
-                        }
-                        1 => {
-                            body_str
-                                .push_str(&format!("{indent}let {result} = {operation_str};\n"));
-                            measure_results.extend(op_results);
-                        }
-                        _ => {
-                            body_str
-                                .push_str(&format!("{indent}let ({result}) = {operation_str};\n"));
-                            measure_results.extend(op_results);
-                        }
-                    }
+                    body_str.push_str(
+                        handle_measurement(measurement, &qubits, &indent, &mut measure_results)
+                            .as_str(),
+                    );
                 }
                 Operation::Unitary(unitary) => {
-                    if unitary.gate == "|1〉" {
-                        // Note "|1〉" will generate two operations: Reset and X
-                        let operation_str = operation_call(unitary, &qubits);
-                        body_str.push_str(&format!("{indent}{operation_str};\n"));
-                        let op_x = Unitary {
-                            gate: "X".to_string(),
-                            is_adjoint: false,
-                            controls: vec![],
-                            targets: unitary.targets.clone(),
-                            args: vec![],
-                            children: vec![],
-                        };
-                        let operation_str = operation_call(&op_x, &qubits);
-                        body_str.push_str(&format!("{indent}{operation_str};\n"));
-                    } else {
-                        let operation_str = operation_call(unitary, &qubits);
-                        body_str.push_str(&format!("{indent}{operation_str};\n"));
-                    };
+                    body_str.push_str(handle_unitary(unitary, &qubits, &indent).as_str());
                 }
             }
 
@@ -169,36 +119,117 @@ pub fn build_operation_def(circuit_name: String, circuit: &Circuit) -> String {
         }
     }
 
-    // This is a hack to get around the fact that Q# doesn't support π as a constant
     if should_add_pi {
         // Add the π constant
         qsharp_str.push_str(&format!("{indent}let π = Std.Math.PI();\n"));
     }
 
     qsharp_str.push_str(body_str.as_str());
+    qsharp_str.push_str(&generate_return_statement(&mut measure_results, &indent));
+    qsharp_str.push_str("}\n\n");
+    qsharp_str
+}
 
-    if !measure_results.is_empty() {
-        // Sort first by q_id, then by c_id
-        measure_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
-        match measure_results.len() {
-            0 => {}
-            1 => {
-                let (name, _) = measure_results[0].clone();
-                qsharp_str.push_str(&format!("{indent}return {name};\n"));
-            }
-            _ => {
-                let results = measure_results
-                    .iter()
-                    .map(|(name, _)| name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                qsharp_str.push_str(&format!("{indent}return [{results}];\n"));
-            }
+fn generate_qubit_validation(
+    circuit_name: &str,
+    qubits: &FxHashMap<usize, String>,
+    indentation_level: usize,
+) -> String {
+    if qubits.is_empty() {
+        return String::new();
+    }
+
+    let indent = "    ".repeat(indentation_level);
+    let inner_indent = "    ".repeat(indentation_level + 1);
+    format!(
+        "{indent}if Length(qs) != {} {{\n\
+        {inner_indent}fail \"Invalid number of qubits. Operation {} expects a qubit register of size {}.\";\n\
+        {indent}}}\n",
+        qubits.len(),
+        circuit_name,
+        qubits.len()
+    )
+}
+
+fn handle_measurement(
+    measurement: &Measurement,
+    qubits: &FxHashMap<usize, String>,
+    indent: &str,
+    measure_results: &mut Vec<(String, (usize, usize))>,
+) -> String {
+    let operation_str = measurement_call(measurement, qubits);
+    let mut op_results = vec![];
+    for reg in &measurement.results {
+        if let Some(c_id) = reg.result {
+            let result = (format!("c{}_{}", reg.qubit, c_id), (reg.qubit, c_id));
+            op_results.push(result.clone());
         }
     }
 
-    qsharp_str.push_str("}\n\n");
-    qsharp_str
+    // Sort first by q_id, then by c_id
+    op_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+    let result = op_results
+        .iter()
+        .map(|(name, _)| name.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    match op_results.len() {
+        0 => {
+            format!("{indent}{operation_str};\n")
+        }
+        1 => {
+            measure_results.extend(op_results);
+            format!("{indent}let {result} = {operation_str};\n")
+        }
+        _ => {
+            measure_results.extend(op_results);
+            format!("{indent}let ({result}) = {operation_str};\n")
+        }
+    }
+}
+
+fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
+    if unitary.gate == "|1〉" {
+        // Note "|1〉" will generate two operations: Reset and X
+        let operation_str = operation_call(unitary, qubits);
+        let mut call_str = format!("{indent}{operation_str};\n");
+        let op_x = Unitary {
+            gate: "X".to_string(),
+            is_adjoint: false,
+            controls: vec![],
+            targets: unitary.targets.clone(),
+            args: vec![],
+            children: vec![],
+        };
+        let operation_str = operation_call(&op_x, qubits);
+        call_str.push_str(&format!("{indent}{operation_str};\n"));
+        call_str
+    } else {
+        let operation_str = operation_call(unitary, qubits);
+        format!("{indent}{operation_str};\n")
+    }
+}
+
+fn generate_return_statement(
+    measure_results: &mut [(String, (usize, usize))],
+    indent: &str,
+) -> String {
+    if measure_results.is_empty() {
+        return String::new();
+    }
+
+    measure_results.sort_by_key(|(_, (q_id, c_id))| (*q_id, *c_id));
+    if measure_results.len() == 1 {
+        let (name, _) = measure_results[0].clone();
+        format!("{indent}return {name};\n")
+    } else {
+        let results = measure_results
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{indent}return [{results}];\n")
+    }
 }
 
 fn get_qubit_name(qubits: &FxHashMap<usize, String>, q_id: usize) -> String {

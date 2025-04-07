@@ -422,6 +422,7 @@ impl Column {
 }
 
 impl Display for Circuit {
+    /// Formats the circuit into a diagram.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut rows = vec![];
 
@@ -433,8 +434,32 @@ impl Display for Circuit {
         // because those qubits need to get a gap row below them.
         let mut qubits_with_gap_row_below = FxHashSet::default();
 
-        for col in self.component_grid.iter() {
-            for op in col.components.iter() {
+        // Identify qubits that require gap rows
+        self.identify_qubits_with_gap_rows(&mut qubits_with_gap_row_below);
+
+        // Initialize rows for qubits and classical wires
+        self.initialize_rows(&mut rows, &mut register_to_row, &qubits_with_gap_row_below);
+
+        // Add operations to the diagram
+        self.add_operations_to_diagram(&mut rows, &register_to_row);
+
+        // Finalize the diagram by extending wires and formatting columns
+        let columns = finalize_columns(&rows);
+
+        // Draw the diagram
+        for row in rows {
+            row.fmt(f, &columns)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Circuit {
+    /// Identifies qubits that require gap rows for multi-qubit operations.
+    fn identify_qubits_with_gap_rows(&self, qubits_with_gap_row_below: &mut FxHashSet<usize>) {
+        for col in &self.component_grid {
+            for op in &col.components {
                 let targets = match op {
                     Operation::Measurement(m) => &m.qubits,
                     Operation::Unitary(u) => &u.targets,
@@ -455,8 +480,15 @@ impl Display for Circuit {
                 }
             }
         }
+    }
 
-        // Initialize all qubit and classical wires
+    /// Initializes rows for qubits and classical wires.
+    fn initialize_rows(
+        &self,
+        rows: &mut Vec<Row>,
+        register_to_row: &mut FxHashMap<(usize, Option<usize>), usize>,
+        qubits_with_gap_row_below: &FxHashSet<usize>,
+    ) {
         for q in &self.qubits {
             rows.push(Row {
                 wire: Wire::Qubit { q_id: q.id },
@@ -485,32 +517,18 @@ impl Display for Circuit {
                 register_to_row.insert((q.id, Some(i)), rows.len() - 1);
             }
         }
+    }
 
-        for (col_index, col) in self.component_grid.iter().enumerate().collect::<Vec<_>>() {
-            for o in col.components.iter() {
-                // Row indexes for the targets for this operation
-                let targets = match o {
-                    Operation::Measurement(m) => &m.results,
-                    Operation::Unitary(u) => &u.targets,
-                }
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.qubit, reg.result);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
-
-                // Row indexes for the controls for this operation
-                let controls = match o {
-                    Operation::Measurement(m) => &m.qubits,
-                    Operation::Unitary(u) => &u.controls,
-                }
-                .iter()
-                .filter_map(|reg| {
-                    let reg = (reg.qubit, reg.result);
-                    register_to_row.get(&reg).cloned()
-                })
-                .collect::<Vec<_>>();
+    /// Adds operations to the diagram.
+    fn add_operations_to_diagram(
+        &self,
+        rows: &mut [Row],
+        register_to_row: &FxHashMap<(usize, Option<usize>), usize>,
+    ) {
+        for (col_index, col) in self.component_grid.iter().enumerate() {
+            for op in &col.components {
+                let targets = get_row_indexes(op, register_to_row, true);
+                let controls = get_row_indexes(op, register_to_row, false);
 
                 let mut all_rows = targets.clone();
                 all_rows.extend(controls.iter());
@@ -525,77 +543,123 @@ impl Display for Circuit {
 
                 let column = col_index + 1;
 
-                // Add the operation to the diagram
-                for i in targets {
-                    let row = &mut rows[i];
-                    if matches!(row.wire, Wire::Classical { .. })
-                        && matches!(o, Operation::Measurement(_))
-                    {
-                        row.start_classical(column);
-                    } else {
-                        row.add_gate(column, &o.gate(), &o.args(), o.is_adjoint());
-                    };
-                }
-
-                if o.is_controlled() || o.is_measurement() {
-                    for i in controls {
-                        let row = &mut rows[i];
-                        if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement() {
-                            row.add_object(column, "M");
-                        } else {
-                            row.add_object(column, "●");
-                        };
-                    }
-
-                    // If we have a control wire, draw vertical lines spanning all
-                    // control and target wires and crossing any in between
-                    // (vertical lines may overlap if there are multiple controls/targets,
-                    // this is ok in practice)
-                    for row in &mut rows[begin..end] {
-                        row.add_vertical(column);
-                    }
-                } else {
-                    // No control wire. Draw dashed vertical lines to connect
-                    // target wires if there are multiple targets
-                    for row in &mut rows[begin..end] {
-                        row.add_dashed_vertical(column);
-                    }
-                }
+                add_operation_to_rows(op, rows, &targets, &controls, column, begin, end);
             }
         }
+    }
+}
 
-        // Find the end column for the whole circuit so that
-        // all qubit wires will extend until the end
-        let end_column = rows
-            .iter()
-            .max_by_key(|r| r.next_column)
-            .map_or(1, |r| r.next_column);
+#[allow(clippy::too_many_arguments)]
+/// Adds a single operation to the rows.
+fn add_operation_to_rows(
+    operation: &Operation,
+    rows: &mut [Row],
+    targets: &[usize],
+    controls: &[usize],
+    column: usize,
+    begin: usize,
+    end: usize,
+) {
+    for i in targets {
+        let row = &mut rows[*i];
+        if matches!(row.wire, Wire::Classical { .. })
+            && matches!(operation, Operation::Measurement(_))
+        {
+            row.start_classical(column);
+        } else {
+            row.add_gate(
+                column,
+                &operation.gate(),
+                &operation.args(),
+                operation.is_adjoint(),
+            );
+        };
+    }
 
-        // To be able to fit long-named operations, we calculate the required width for each column,
-        // based on the maximum length needed for gates, where a gate X is printed as "- X -".
-        let columns = (0..end_column)
-            .map(|column| {
-                Column::new(
-                    rows.iter()
-                        .filter_map(|row| row.objects.get(&column))
-                        .filter_map(|object| match object {
-                            CircuitObject::Object(string) => Some(string.len() + 4),
-                            _ => None,
-                        })
-                        .chain(std::iter::once(MIN_COLUMN_WIDTH))
-                        .max()
-                        .unwrap(),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        // Draw the diagram
-        for row in rows {
-            row.fmt(f, &columns)?;
+    if operation.is_controlled() || operation.is_measurement() {
+        for i in controls {
+            let row = &mut rows[*i];
+            if matches!(row.wire, Wire::Qubit { .. }) && operation.is_measurement() {
+                row.add_object(column, "M");
+            } else {
+                row.add_object(column, "●");
+            };
         }
 
-        Ok(())
+        // If we have a control wire, draw vertical lines spanning all
+        // control and target wires and crossing any in between
+        // (vertical lines may overlap if there are multiple controls/targets,
+        // this is ok in practice)
+        for row in &mut rows[begin..end] {
+            row.add_vertical(column);
+        }
+    } else {
+        // No control wire. Draw dashed vertical lines to connect
+        // target wires if there are multiple targets
+        for row in &mut rows[begin..end] {
+            row.add_dashed_vertical(column);
+        }
     }
+}
+
+/// Finalizes the columns by calculating their widths.
+fn finalize_columns(rows: &[Row]) -> Vec<Column> {
+    // Find the end column for the whole circuit so that
+    // all qubit wires will extend until the end
+    let end_column = rows
+        .iter()
+        .max_by_key(|r| r.next_column)
+        .map_or(1, |r| r.next_column);
+
+    // To be able to fit long-named operations, we calculate the required width for each column,
+    // based on the maximum length needed for gates, where a gate X is printed as "- X -".
+    (0..end_column)
+        .map(|column| {
+            Column::new(
+                rows.iter()
+                    .filter_map(|row| row.objects.get(&column))
+                    .filter_map(|object| match object {
+                        CircuitObject::Object(string) => Some(string.len() + 4),
+                        _ => None,
+                    })
+                    .chain(std::iter::once(MIN_COLUMN_WIDTH))
+                    .max()
+                    .expect("Column width should be at least 1"),
+            )
+        })
+        .collect()
+}
+
+/// Gets the row indexes for the targets or controls of an operation.
+fn get_row_indexes(
+    operation: &Operation,
+    register_to_row: &FxHashMap<(usize, Option<usize>), usize>,
+    is_target: bool,
+) -> Vec<usize> {
+    let registers = match operation {
+        Operation::Measurement(m) => {
+            if is_target {
+                &m.results
+            } else {
+                &m.qubits
+            }
+        }
+        Operation::Unitary(u) => {
+            if is_target {
+                &u.targets
+            } else {
+                &u.controls
+            }
+        }
+    };
+
+    registers
+        .iter()
+        .filter_map(|reg| {
+            let reg = (reg.qubit, reg.result);
+            register_to_row.get(&reg).copied()
+        })
+        .collect()
 }
 
 /// Converts a 2D grid of operations into a component grid.
