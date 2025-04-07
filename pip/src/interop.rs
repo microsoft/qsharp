@@ -11,8 +11,8 @@ use pyo3::types::{PyDict, PyList};
 use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, Interpreter};
-use qsc::qasm3::io::SourceResolver;
 use qsc::qasm3::io::{Error, ErrorKind};
+use qsc::qasm3::io::{SourceResolver, SourceResolverContext};
 use qsc::qasm3::{
     qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
 };
@@ -38,6 +38,7 @@ where
 {
     fs: T,
     path: PathBuf,
+    ctx: SourceResolverContext,
 }
 
 impl<T> ImportResolver<T>
@@ -48,6 +49,7 @@ where
         Self {
             fs,
             path: PathBuf::from(path.as_ref()),
+            ctx: Default::default(),
         }
     }
 }
@@ -56,11 +58,16 @@ impl<T> SourceResolver for ImportResolver<T>
 where
     T: FileSystem,
 {
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String), Error>
+    fn ctx(&mut self) -> &mut SourceResolverContext {
+        &mut self.ctx
+    }
+
+    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>,
     {
         let path = self.path.join(path);
+        self.ctx().check_include_errors(&path)?;
         let (path, source) = self
             .fs
             .read_file(path.as_ref())
@@ -101,12 +108,12 @@ pub fn run_qasm3(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         ProgramType::File,
         OutputSemantics::Qiskit,
         false,
@@ -172,14 +179,14 @@ pub(crate) fn resource_estimate_qasm3(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_type = ProgramType::File;
     let output_semantics = OutputSemantics::ResourceEstimation;
     let (package, source_map, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_type,
         output_semantics,
         false,
@@ -235,14 +242,14 @@ pub(crate) fn compile_qasm3_to_qir(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_ty = get_program_type(&kwargs)?;
     let output_semantics = get_output_semantics(&kwargs)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_ty,
         output_semantics,
         false,
@@ -261,7 +268,7 @@ pub(crate) fn compile_qasm3_to_qir(
 pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
     source: S,
     operation_name: S,
-    resolver: &R,
+    resolver: &mut R,
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
 ) -> PyResult<QasmCompileUnit> {
@@ -302,7 +309,7 @@ pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
 pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
     source: S,
     operation_name: S,
-    resolver: &R,
+    resolver: &mut R,
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
     allow_input_params: bool,
@@ -374,14 +381,14 @@ pub(crate) fn compile_qasm3_to_qsharp(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_ty = get_program_type(&kwargs)?;
     let output_semantics = get_output_semantics(&kwargs)?;
     let (package, _, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_ty,
         output_semantics,
         true,
