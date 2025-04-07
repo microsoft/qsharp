@@ -25,7 +25,7 @@ use crate::{
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
         build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
-        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_resetall_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
         build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
         build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
@@ -108,6 +108,11 @@ impl QasmCompiler {
         }
 
         self.compile_stmts(&program.statements);
+
+        if matches!(program_ty, ProgramType::File | ProgramType::Operation) {
+            self.append_qubit_cleanup_calls();
+        }
+
         let (package, signature) = match program_ty {
             ProgramType::File => self.build_file(),
             ProgramType::Operation => self.build_operation(),
@@ -434,6 +439,19 @@ impl QasmCompiler {
                 // Are we going to allow trying to compile a program with semantic errors?
                 None
             }
+        }
+    }
+
+    fn append_qubit_cleanup_calls(&mut self) {
+        for symbol in self.symbols.get_qubit_symbols() {
+            let expr = build_path_ident_expr(&symbol.name, Span::default(), Span::default());
+            let cleanup_call = if matches!(symbol.ty, Type::Qubit) {
+                build_reset_call(expr, Span::default(), Span::default())
+            } else {
+                build_resetall_call(expr, Span::default(), Span::default())
+            };
+            let stmt = build_stmt_semi_from_expr(cleanup_call);
+            self.stmts.push(stmt);
         }
     }
 

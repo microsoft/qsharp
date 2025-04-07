@@ -53,6 +53,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                ResetAll(q);
                 Microsoft.Quantum.Arrays.Reversed(c)
             }
         }"#]]

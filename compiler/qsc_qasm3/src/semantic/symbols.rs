@@ -260,6 +260,14 @@ impl Scope {
             .map(|id| self.id_to_symbol.get(id).expect("ID should exist").clone())
             .collect()
     }
+
+    fn get_qubit_symbols(&self) -> Vec<Rc<Symbol>> {
+        self.id_to_symbol
+            .values()
+            .filter(|symbol| matches!(symbol.ty, Type::Qubit | Type::QubitArray(..)))
+            .map(Clone::clone)
+            .collect()
+    }
 }
 
 /// A symbol table is a collection of scopes and manages the symbol ids.
@@ -477,6 +485,17 @@ impl SymbolTable {
         }
 
         None
+    }
+
+    /// Gets all symbols of a given type.
+    pub fn get_qubit_symbols(&self) -> Vec<Rc<Symbol>> {
+        let mut res = Vec::new();
+
+        for scope in self.scopes.iter().rev() {
+            res.extend(scope.get_qubit_symbols());
+        }
+
+        res
     }
 
     #[must_use]

@@ -53,6 +53,7 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
                 set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                ResetAll(q);
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -104,6 +105,7 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
                 set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                ResetAll(q);
                 (c, gamma, delta)
             }
         }"#]]
@@ -155,6 +157,7 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
                 set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                ResetAll(q);
                 Microsoft.Quantum.Arrays.Reversed(c)
             }
         }"#]]
@@ -221,6 +224,7 @@ c2[2] = measure q[4];
                 set c2 w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[2]);
                 set c2 w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[3]);
                 set c2 w/= 2 <- QIR.Intrinsic.__quantum__qis__m__body(q[4]);
+                ResetAll(q);
                 (Microsoft.Quantum.Arrays.Reversed(c2), Microsoft.Quantum.Arrays.Reversed(c))
             }
         }"#]]
@@ -274,6 +278,11 @@ c2[2] = measure q[4];
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 2 to %Result*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 3 to %Qubit*), %Result* inttoptr (i64 3 to %Result*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 4 to %Qubit*), %Result* inttoptr (i64 4 to %Result*))
+          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 2 to %Qubit*))
+          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 3 to %Qubit*))
+          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 4 to %Qubit*))
           call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
           call void @__quantum__rt__array_record_output(i64 3, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 4 to %Result*), i8* null)
@@ -296,6 +305,8 @@ c2[2] = measure q[4];
         declare void @__quantum__qis__barrier__body()
 
         declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
+
+        declare void @__quantum__qis__reset__body(%Qubit*) #1
 
         declare void @__quantum__rt__tuple_record_output(i64, i8*)
 
