@@ -97,15 +97,36 @@ impl SourceResolverContext {
     /// If including the path makes a cycle, returns a vector of the paths
     /// that make the cycle. Else, returns None.
     ///
-    /// This implementation uses Tarjan's strongly connected components algorithm.
-    /// Reference: <https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm>.
-    fn cycle_made_by_including_path(&mut self, path: &PathBuf) -> Option<Cycle> {
-        todo!()
+    /// To check if adding `path` to the include graph creates a cycle we just
+    /// need to verify if path is an ancestor of the current file.
+    fn cycle_made_by_including_path(&self, path: &PathBuf) -> Option<Cycle> {
+        let mut current_file = self.current_file.as_ref();
+        let mut paths = Vec::new();
+
+        while let Some(file) = current_file {
+            paths.push(file.clone());
+            current_file = self.get_parent(file);
+            if file == path {
+                return Some(Cycle {
+                    paths: paths.clone(),
+                });
+            }
+        }
+
+        None
+    }
+
+    /// Returns the file that included `path`.
+    /// Returns `None` if `path` is the "main" file.
+    fn get_parent(&self, path: &PathBuf) -> Option<&PathBuf> {
+        self.include_graph
+            .get(path)
+            .and_then(|node| node.parent.as_ref())
     }
 
     /// If the path was already included, returns the path of the file that
     /// included it. Else, returns None.
-    fn path_was_already_included(&mut self, path: &PathBuf) -> Option<PathBuf> {
+    fn path_was_already_included(&self, path: &PathBuf) -> Option<PathBuf> {
         // SAFETY: The call to expect should be unreachable, since the parent
         //         will only be None for the "main" file. But including the
         //         main file will trigger a cyclic include error before this
@@ -147,7 +168,14 @@ pub struct Cycle {
 
 impl std::fmt::Display for Cycle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let parents = self.paths[0..(self.paths.len() - 1)].iter();
+        let children = self.paths[1..].iter();
+
+        for (parent, child) in parents.zip(children) {
+            writeln!(f, "{} includes {}", parent.display(), child.display())?;
+        }
+
+        Ok(())
     }
 }
 
