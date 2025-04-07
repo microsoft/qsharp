@@ -67,6 +67,7 @@ where
         P: AsRef<Path>,
     {
         let path = self.path.join(path);
+        self.ctx().check_include_errors(&path)?;
         let (path, source) = self
             .fs
             .read_file(path.as_ref())

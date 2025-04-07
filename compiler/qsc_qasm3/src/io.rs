@@ -30,24 +30,11 @@ pub trait SourceResolver {
             )))
         })?;
 
-        // If the new path makes a cycle in the include graph, we return
-        // an error showing the cycle to the user.
-        if let Some(cycle) = self.ctx().cycle_made_by_including_path(&path) {
-            return Err(Error(ErrorKind::CyclicInclude(cycle)));
-        }
-
-        // If the new path doesn't make a cycle but it was already
-        // included before, we return a `MultipleInclude`
-        // error saying "<FILE> was already included in <FILE>".
-        if let Some(parent_file) = self.ctx().path_was_already_included(&path) {
-            return Err(Error(ErrorKind::MultipleInclude(
-                parent_file.display().to_string(),
-            )));
-        }
+        self.ctx().check_include_errors(&path)?;
 
         match std::fs::read_to_string(&path) {
             Ok(source) => {
-                self.ctx().add_path_to_include_graph(&path);
+                self.ctx().add_path_to_include_graph(path.clone());
                 Ok((path, source))
             }
             Err(_) => Err(Error(ErrorKind::NotFound(format!(
@@ -62,16 +49,53 @@ pub trait SourceResolver {
         P: AsRef<Path>;
 }
 
+pub struct IncludeGraphNode {
+    parent: Option<PathBuf>,
+    children: Vec<PathBuf>,
+}
+
 #[derive(Default)]
 pub struct SourceResolverContext {
-    // A graph representation of the include chain.
-    include_graph: FxHashMap<PathBuf, Vec<PathBuf>>,
-    current_path: Option<PathBuf>,
+    /// A graph representation of the include chain.
+    include_graph: FxHashMap<PathBuf, IncludeGraphNode>,
+    /// Path being resolved.
+    current_file: Option<PathBuf>,
 }
 
 impl SourceResolverContext {
-    /// If including the path makes a cycle, returns a vector of the paths that make the cycle.
-    /// Else, returns None.
+    pub fn check_include_errors(&mut self, path: &PathBuf) -> miette::Result<(), Error> {
+        // If the new path makes a cycle in the include graph, we return
+        // an error showing the cycle to the user.
+        if let Some(cycle) = self.cycle_made_by_including_path(path) {
+            return Err(Error(ErrorKind::CyclicInclude(cycle)));
+        }
+
+        // If the new path doesn't make a cycle but it was already
+        // included before, we return a `MultipleInclude`
+        // error saying "<FILE> was already included in <FILE>".
+        if let Some(parent_file) = self.path_was_already_included(path) {
+            return Err(Error(ErrorKind::MultipleInclude(
+                parent_file.display().to_string(),
+            )));
+        }
+
+        self.add_path_to_include_graph(path.clone());
+
+        Ok(())
+    }
+
+    /// Changes `current_path` to its parent in the `include_graph`.
+    pub fn pop_current_file(&mut self) {
+        let parent = self
+            .current_file
+            .as_ref()
+            .and_then(|file| self.include_graph.get(file).map(|node| node.parent.clone()))
+            .flatten();
+        self.current_file = parent;
+    }
+
+    /// If including the path makes a cycle, returns a vector of the paths
+    /// that make the cycle. Else, returns None.
     ///
     /// This implementation uses Tarjan's strongly connected components algorithm.
     /// Reference: <https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm>.
@@ -79,20 +103,39 @@ impl SourceResolverContext {
         todo!()
     }
 
-    /// If the path was already included, returns the path of the file that included it.
-    /// Else, returns None.
+    /// If the path was already included, returns the path of the file that
+    /// included it. Else, returns None.
     fn path_was_already_included(&mut self, path: &PathBuf) -> Option<PathBuf> {
-        todo!()
+        // SAFETY: The call to expect should be unreachable, since the parent
+        //         will only be None for the "main" file. But including the
+        //         main file will trigger a cyclic include error before this
+        //         function is called.
+        self.include_graph
+            .get(path)
+            .map(|node| node.parent.clone().expect("unreachable"))
     }
 
-    /// Adds `path` as a child of `current_path`, and then changes the `current_path` to `path`.
-    fn add_path_to_include_graph(&mut self, path: &PathBuf) {
-        todo!()
-    }
+    /// Adds `path` as a child of `current_path`, and then changes
+    /// the `current_path` to `path`.
+    fn add_path_to_include_graph(&mut self, path: PathBuf) {
+        // 1. Add path to the current file children.
+        self.current_file.as_ref().and_then(|file| {
+            self.include_graph
+                .get_mut(file)
+                .map(|node| node.children.push(path.clone()))
+        });
 
-    /// Changes `current_path` to its parent in the `include_graph`.
-    pub fn pop_current_file(&mut self) {
-        todo!()
+        // 2. Add path to the include graph.
+        self.include_graph.insert(
+            path.clone(),
+            IncludeGraphNode {
+                parent: self.current_file.clone(),
+                children: Vec::new(),
+            },
+        );
+
+        // 3. Update the current file.
+        self.current_file = Some(path);
     }
 }
 
@@ -143,28 +186,9 @@ impl SourceResolver for InMemorySourceResolver {
         P: AsRef<Path>,
     {
         let path = path.as_ref();
-        let path_buf = path.to_path_buf();
-
-        // If the new path makes a cycle in the include graph, we return
-        // an error showing the cycle to the user.
-        if let Some(cycle) = self.ctx.cycle_made_by_including_path(&path_buf) {
-            return Err(Error(ErrorKind::CyclicInclude(cycle)));
-        }
-
-        // If the new path doesn't make a cycle but it was already
-        // included before, we return a `MultipleInclude`
-        // error saying "<FILE> was already included in <FILE>".
-        if let Some(parent_file) = self.ctx.path_was_already_included(&path_buf) {
-            return Err(Error(ErrorKind::MultipleInclude(
-                parent_file.display().to_string(),
-            )));
-        }
-
+        self.ctx().check_include_errors(&path.to_path_buf())?;
         match self.sources.get(path) {
-            Some(source) => {
-                self.ctx.add_path_to_include_graph(&path_buf);
-                Ok((path.to_owned(), source.clone()))
-            }
+            Some(source) => Ok((path.to_owned(), source.clone())),
             None => Err(Error(ErrorKind::NotFound(format!(
                 "Could not resolve include file: {}",
                 path.display()
