@@ -99,7 +99,7 @@ fn compile(sources: SourceMap) {
             }
             panic!("compilation failed (first error: {})", errors[0]);
         }
-    };
+    }
 }
 
 fn compile_project(project_folder: &str) {
@@ -152,7 +152,7 @@ fn compile_project(project_folder: &str) {
             }
             panic!("compilation failed (first error: {})", errors[0]);
         }
-    };
+    }
 }
 
 fn check_lints(interpreter: &Interpreter) {

@@ -314,14 +314,14 @@ impl NoisySimulator for DensityMatrixSimulator {
             qubits,
         ) {
             handle_error!(self, err);
-        };
+        }
         if let Err(err) = self
             .state
             .as_mut()?
             .renormalize_with_trace(last_non_zero_trace)
         {
             handle_error!(self, err);
-        };
+        }
         Ok(last_non_zero_trace_outcome)
     }
 

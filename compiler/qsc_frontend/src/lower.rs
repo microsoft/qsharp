@@ -643,7 +643,7 @@ impl With<'_> {
                 return Some(self.lower_pat(&items[0]));
             }
             _ => self.lowerer.errors.push(Error::InvalidSpecPat(pat.span)),
-        };
+        }
 
         None
     }

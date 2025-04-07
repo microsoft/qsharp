@@ -329,7 +329,8 @@ pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
         // no entry expression is provided, but the signature has input parameters.
         let mut message = String::new();
         message += "Circuit has unbound input parameters\n";
-        message += &format!("  help: Parameters: {}", signature.input_params());
+        write!(message, "  help: Parameters: {}", signature.input_params())
+            .expect("writing to string should succeed");
 
         return Err(QSharpError::new_err(message));
     }
@@ -407,7 +408,8 @@ pub(crate) fn map_entry_compilation_errors(
                 )
                 .unwrap();
 
-                message.push_str(&format!("  help: Parameters: {}", sig.input_params()));
+                write!(message, "  help: Parameters: {}", sig.input_params())
+                    .expect("writing to string should succeed");
 
                 semantic.push(message);
             }

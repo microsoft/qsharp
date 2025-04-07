@@ -17,6 +17,7 @@ use qsc_rir::{
     rir::{self, ConditionCode, FcmpConditionCode, Program},
     utils::get_all_block_successors,
 };
+use std::fmt::Write;
 
 fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::fir::PackageStore {
     let mut fir_store = qsc_fir::fir::PackageStore::new();
@@ -660,11 +661,13 @@ impl ToQir<String> for rir::Callable {
         all_blocks.extend(get_all_block_successors(entry_id, program));
         for block_id in all_blocks {
             let block = program.get_block(block_id);
-            body.push_str(&format!(
+            write!(
+                body,
                 "{}:\n{}\n",
                 ToQir::<String>::to_qir(&block_id, program),
                 ToQir::<String>::to_qir(block, program)
-            ));
+            )
+            .expect("writing to string should succeed");
         }
         assert!(
             input_type.is_empty(),
@@ -723,21 +726,25 @@ fn get_module_metadata(program: &rir::Program) -> String {
             match cap {
                 TargetCapabilityFlags::IntegerComputations => {
                     let name = "int_computations";
-                    flags.push_str(&format!(
-                        "!{} = !{{i32 {}, !\"{}\", !\"i{}\"}}\n",
+                    writeln!(
+                        flags,
+                        "!{} = !{{i32 {}, !\"{}\", !\"i{}\"}}",
                         index, 1, name, 64
-                    ));
+                    )
+                    .expect("writing to string should succeed");
                     index += 1;
                 }
                 TargetCapabilityFlags::FloatingPointComputations => {
                     let name = "float_computations";
-                    flags.push_str(&format!(
-                        "!{} = !{{i32 {}, !\"{}\", !\"f{}\"}}\n",
+                    writeln!(
+                        flags,
+                        "!{} = !{{i32 {}, !\"{}\", !\"f{}\"}}",
                         index, 1, name, 64
-                    ));
+                    )
+                    .expect("writing to string should succeed");
                     index += 1;
                 }
-                _ => continue,
+                _ => {}
             }
         }
     }
@@ -745,8 +752,8 @@ fn get_module_metadata(program: &rir::Program) -> String {
     let mut metadata_def = String::new();
     metadata_def.push_str("!llvm.module.flags = !{");
     for i in 0..index - 1 {
-        metadata_def.push_str(&format!("!{i}, "));
+        write!(metadata_def, "!{i}, ").expect("writing to string should succeed");
     }
-    metadata_def.push_str(&format!("!{}}}\n", index - 1));
+    writeln!(metadata_def, "!{}}}", index - 1).expect("writing to string should succeed");
     metadata_def + &flags
 }

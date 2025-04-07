@@ -973,9 +973,9 @@ impl Resolver {
                             span: decl_item.span,
                         });
                     }
-                };
+                }
                 continue;
-            };
+            }
 
             let local_name = decl_item_name.name.clone();
 
@@ -1483,7 +1483,7 @@ impl AstVisitor<'_> for With<'_> {
             ast::ExprKind::Path(path) => {
                 if let Err(e) = self.resolver.resolve_path_kind(NameKind::Term, path) {
                     self.resolver.errors.push(e);
-                };
+                }
             }
             ast::ExprKind::TernOp(ast::TernOp::Update, container, index, replace)
             | ast::ExprKind::AssignUpdate(container, index, replace) => {
@@ -1502,7 +1502,7 @@ impl AstVisitor<'_> for With<'_> {
             ast::ExprKind::Struct(PathKind::Ok(path), copy, fields) => {
                 if let Err(e) = self.resolver.resolve_path(NameKind::Ty, path) {
                     self.resolver.errors.push(e);
-                };
+                }
                 copy.iter().for_each(|c| self.visit_expr(c));
                 fields.iter().for_each(|f| self.visit_field_assign(f));
             }
@@ -1690,7 +1690,7 @@ impl GlobalTable {
                         hir::ItemKind::Export(_, _) => {
                             unreachable!("find_item will never return an Export")
                         }
-                    };
+                    }
                 }
                 (_, hir::Visibility::Internal) => {}
             }

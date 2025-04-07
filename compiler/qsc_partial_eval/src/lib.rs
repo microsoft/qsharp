@@ -273,7 +273,7 @@ impl<'a> PartialEvaluator<'a> {
                     self.bind_value_to_immutable_ident(ident, value);
                 }
             }
-        };
+        }
     }
 
     fn bind_value_to_immutable_ident(&mut self, ident: &Ident, value: Value) {
@@ -2918,7 +2918,7 @@ impl<'a> PartialEvaluator<'a> {
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
-        };
+        }
         Ok(())
     }
 
@@ -2972,7 +2972,7 @@ impl<'a> PartialEvaluator<'a> {
                     // The variable is not known to be some literal value, so remove the static mapping.
                     current_scope.remove_static_value(rir_var.variable_id);
                 }
-            };
+            }
         } else {
             // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
             // because it is unsupported.
@@ -3019,7 +3019,7 @@ impl<'a> PartialEvaluator<'a> {
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
-        };
+        }
         Ok(())
     }
 

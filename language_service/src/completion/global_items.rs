@@ -687,7 +687,7 @@ fn fully_qualify_name(
     // qualified name.
     if !(item_comes_from_main_of_external_project) {
         fully_qualified_name.append(&mut namespace.to_vec());
-    };
+    }
 
     if let Some(name) = name {
         fully_qualified_name.push(name.into());
@@ -793,7 +793,7 @@ impl ImportItem {
     fn from_import_or_export_item(decl: &qsc::ast::ImportOrExportDecl) -> Vec<Self> {
         if decl.is_export() {
             return vec![];
-        };
+        }
         let mut buf = Vec::with_capacity(decl.items.len());
         for item in &decl.items {
             let PathKind::Ok(path) = &item.path else {

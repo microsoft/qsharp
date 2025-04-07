@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::rc::Rc;
-
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
@@ -12,6 +10,8 @@ use qsc_hir::{
     ty::{Prim, Ty},
     visit::{self, Visitor},
 };
+use std::fmt::Write;
+use std::rc::Rc;
 
 use crate::linter::{hir::declare_hir_lints, Compilation};
 
@@ -256,22 +256,27 @@ impl HirLintPass for DeprecatedWithOperator {
                     } else {
                         format!("new {} {{\n", info.ty_name)
                     };
-                    new_expr.push_str(&format!(
-                        "{:indent$}...{},\n",
+                    writeln!(
+                        new_expr,
+                        "{:indent$}...{},",
                         "",
                         innermost_expr,
                         indent = indentation
-                    ));
+                    )
+                    .expect("writing to string should succeed");
                     for (field, value) in info.field_assigns.iter().rev() {
-                        new_expr.push_str(&format!(
-                            "{:indent$}{} = {},\n",
+                        writeln!(
+                            new_expr,
+                            "{:indent$}{} = {},",
                             "",
                             field,
                             value,
                             indent = indentation
-                        ));
+                        )
+                        .expect("writing to string should succeed");
                     }
-                    new_expr.push_str(&format!("{:indent$}}}", "", indent = indentation - 4));
+                    write!(new_expr, "{:indent$}}}", "", indent = indentation - 4)
+                        .expect("writing to string should succeed");
                     let code_action_edits = vec![(new_expr, info.span)];
                     buffer.push(lint!(self, info.span, code_action_edits));
                     self.lint_info = None;

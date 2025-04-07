@@ -228,7 +228,6 @@ impl QasmCompiler {
                         annotations.push(annotation);
                         self.next_gate_as_item = true;
                     }
-                    continue;
                 }
                 Stmt::Include(include) => {
                     let Some(Some(path)) = include.file().map(|f| f.to_string()) else {
@@ -1274,10 +1273,10 @@ impl QasmCompiler {
     /// into Q# names with the appropriate modifiers/fuctors.
     /// - The `inv` modifier is the `Adjoint` fuctor.
     /// - The `pow` modifier is the `__Pow__` function which we define as a
-    ///     runtime function at the end of code generation if it is used.
+    ///   runtime function at the end of code generation if it is used.
     /// - the `ctrl` modifier is the `Controlled` functor.
-    ///     the `negctrl` modifier is a special case equivalent to
-    ///     `ApplyControlledOnInt(0, _, _, _)`.
+    ///   the `negctrl` modifier is a special case equivalent to
+    ///   `ApplyControlledOnInt(0, _, _, _)`.
     ///
     /// Apply the modifiers are applied in reverse order to the gate call.
     /// A simplified binding of the modifiers to the gate call with all
@@ -1456,7 +1455,7 @@ impl QasmCompiler {
                 SemanticErrorKind::InvalidNumberOfQubitArgs(qargs_len, qubit_args.len(), span);
             self.push_semantic_error(kind);
             return None;
-        };
+        }
         Some(())
     }
 

@@ -68,7 +68,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::Export(name, _) => {
             vis.visit_ident(name);
         }
-    };
+    }
 }
 
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
@@ -86,7 +86,7 @@ pub fn walk_callable_impl<'a>(vis: &mut impl Visitor<'a>, callable_impl: &'a Cal
         CallableImpl::SimulatableIntrinsic(spec_decl) => {
             vis.visit_spec_decl(spec_decl);
         }
-    };
+    }
 }
 
 pub fn walk_spec_impl<'a>(vis: &mut impl Visitor<'a>, spec_impl: &'a SpecImpl) {

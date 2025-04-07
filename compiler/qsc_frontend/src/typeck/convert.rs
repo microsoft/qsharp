@@ -396,7 +396,7 @@ pub(crate) fn class_constraints_from_ast(
         stack.insert(ast_bound.clone());
         if check_param_length(ast_bound, &mut errors) {
             continue;
-        };
+        }
         let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),
