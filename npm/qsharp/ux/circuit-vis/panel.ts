@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Measurement, Operation, Unitary } from "./circuit";
+import { Ket, Measurement, Operation, Unitary } from "./circuit";
 import {
   gateHeight,
   horizontalGap,
@@ -12,7 +12,7 @@ import {
 import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
 import { Sqore } from "./sqore";
-import { getGateWidth, getKetLabel } from "./utils";
+import { getGateWidth } from "./utils";
 
 /**
  * Interface for options provided through usePanel()
@@ -204,38 +204,42 @@ const toMetadata = (
 
   if (operation === undefined) return metadata;
 
-  const isMeasurement = operation.kind === "measurement";
-  const controls = isMeasurement ? undefined : operation.controls;
-  const { gate, args } = operation;
-  const ket = getKetLabel(gate);
+  switch (operation.kind) {
+    case "unitary": {
+      const { gate, controls } = operation;
 
-  // Note: there are a lot of special cases here.
-  // It would be good if we could generalize metadata the logic a bit better.
-  if (isMeasurement) {
-    metadata.type = GateType.Measure;
-    metadata.controlsY = [target];
-  } else if (gate === "SWAP") {
-    metadata.type = GateType.Swap;
-  } else if (controls && controls.length > 0) {
-    metadata.type = gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
-    metadata.label = gate;
-    if (gate !== "X") {
-      metadata.targetsY = [[target]];
+      if (gate === "SWAP") {
+        metadata.type = GateType.Swap;
+      } else if (controls && controls.length > 0) {
+        metadata.type =
+          gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
+        metadata.label = gate;
+        if (gate !== "X") {
+          metadata.targetsY = [[target]];
+        }
+      } else if (gate === "X") {
+        metadata.type = GateType.X;
+        metadata.label = gate;
+      } else {
+        metadata.type = GateType.Unitary;
+        metadata.label = gate;
+        metadata.targetsY = [[target]];
+      }
+      break;
     }
-  } else if (gate === "X") {
-    metadata.type = GateType.X;
-    metadata.label = gate;
-  } else if (ket.length > 0) {
-    metadata.type = GateType.Reset;
-    metadata.label = ket;
-    metadata.targetsY = [[target]];
-  } else {
-    metadata.type = GateType.Unitary;
-    metadata.label = gate;
-    metadata.targetsY = [[target]];
+    case "measurement":
+      metadata.type = GateType.Measure;
+      metadata.controlsY = [target];
+      break;
+    case "ket":
+      metadata.type = GateType.Reset;
+      metadata.label = operation.gate;
+      metadata.targetsY = [[target]];
+      break;
   }
 
-  if (args !== undefined && args.length > 0) metadata.displayArgs = args[0];
+  if (operation.args !== undefined && operation.args.length > 0)
+    metadata.displayArgs = operation.args[0];
 
   metadata.width = getGateWidth(metadata);
   metadata.x = x + 1 + metadata.width / 2; // offset by 1 for left padding
@@ -307,6 +311,14 @@ const _makeMeasurement = (gate: string): Measurement => {
   };
 };
 
+const _makeKet = (gate: string): Ket => {
+  return {
+    kind: "ket",
+    gate: gate,
+    targets: [{ qubit: 0 }],
+  };
+};
+
 /**
  * Object for default gate dictionary
  */
@@ -321,8 +333,8 @@ const defaultGateDictionary: GateDictionary = {
   S: _makeUnitary("S"),
   T: _makeUnitary("T"),
   Measure: _makeMeasurement("Measure"),
-  Reset: _makeUnitary("|0〉"),
-  ResetOne: _makeUnitary("|1〉"),
+  Reset: _makeKet("0"),
+  ResetOne: _makeKet("1"),
 };
 
 defaultGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];

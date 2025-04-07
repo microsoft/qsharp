@@ -78,15 +78,20 @@ export interface BaseOperation {
   conditionalRender?: ConditionalRender;
 }
 
+/**
+ * Represents a measurement operation and the registers it acts on.
+ */
 export interface Measurement extends BaseOperation {
   /** Discriminator for the Operation type */
   kind: "measurement";
+  /** The qubit registers the gate measures. */
   qubits: Register[];
+  /** The classical registers the gate writes to. */
   results: Register[];
 }
 
 /**
- * Represents an operation and the registers it acts on.
+ * Represents a unitary operation and the registers it acts on.
  */
 export interface Unitary extends BaseOperation {
   /** Discriminator for the Operation type */
@@ -100,9 +105,19 @@ export interface Unitary extends BaseOperation {
 }
 
 /**
+ * Represents a gate that sets its targets to a specific state.
+ */
+export interface Ket extends BaseOperation {
+  /** Discriminator for the Operation type */
+  kind: "ket";
+  /** Target registers the gate acts on. */
+  targets: Register[];
+}
+
+/**
  * Union type for operations.
  */
-export type Operation = Unitary | Measurement;
+export type Operation = Unitary | Measurement | Ket;
 
 /**
  * A parameter for an operation.

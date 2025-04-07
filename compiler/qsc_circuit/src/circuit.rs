@@ -60,6 +60,8 @@ pub enum Operation {
     Measurement(Measurement),
     #[serde(rename = "unitary")]
     Unitary(Unitary),
+    #[serde(rename = "ket")]
+    Ket(Ket),
 }
 
 impl Operation {
@@ -69,6 +71,7 @@ impl Operation {
         match self {
             Operation::Measurement(m) => m.gate.clone(),
             Operation::Unitary(u) => u.gate.clone(),
+            Operation::Ket(k) => k.gate.clone(),
         }
     }
 
@@ -78,6 +81,7 @@ impl Operation {
         match self {
             Operation::Measurement(m) => m.args.clone(),
             Operation::Unitary(u) => u.args.clone(),
+            Operation::Ket(k) => k.args.clone(),
         }
     }
 
@@ -87,6 +91,7 @@ impl Operation {
         match self {
             Operation::Measurement(m) => &m.children,
             Operation::Unitary(u) => &u.children,
+            Operation::Ket(k) => &k.children,
         }
     }
 
@@ -94,7 +99,7 @@ impl Operation {
     #[must_use]
     pub fn is_controlled(&self) -> bool {
         match self {
-            Operation::Measurement(_) => false,
+            Operation::Measurement(_) | Operation::Ket(_) => false,
             Operation::Unitary(u) => !u.controls.is_empty(),
         }
     }
@@ -104,7 +109,7 @@ impl Operation {
     pub fn is_measurement(&self) -> bool {
         match self {
             Operation::Measurement(_) => true,
-            Operation::Unitary(_) => false,
+            Operation::Unitary(_) | Operation::Ket(_) => false,
         }
     }
 
@@ -112,7 +117,7 @@ impl Operation {
     #[must_use]
     pub fn is_adjoint(&self) -> bool {
         match self {
-            Operation::Measurement(_) => false,
+            Operation::Measurement(_) | Operation::Ket(_) => false,
             Operation::Unitary(u) => u.is_adjoint,
         }
     }
@@ -150,6 +155,19 @@ pub struct Unitary {
     #[serde(skip_serializing_if = "Not::not")]
     #[serde(default)]
     pub is_adjoint: bool,
+}
+
+/// Representation of a gate that will set the target to a specific state.
+#[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
+pub struct Ket {
+    pub gate: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
+    pub children: ComponentGrid,
+    pub targets: Vec<Register>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
@@ -463,6 +481,7 @@ impl Circuit {
                 let targets = match op {
                     Operation::Measurement(m) => &m.qubits,
                     Operation::Unitary(u) => &u.targets,
+                    Operation::Ket(k) => &k.targets,
                 };
                 for target in targets {
                     let qubit = target.qubit;
@@ -651,6 +670,13 @@ fn get_row_indexes(
                 &u.controls
             }
         }
+        Operation::Ket(k) => {
+            if is_target {
+                &k.targets
+            } else {
+                &vec![]
+            }
+        }
     };
 
     registers
@@ -714,6 +740,12 @@ pub fn operation_list_to_grid(
                 Operation::Unitary(u) => {
                     u.children = op_grid_to_comp_grid(operation_list_to_grid(
                         u.children.remove(0).components,
+                        max_q_id,
+                    ));
+                }
+                Operation::Ket(k) => {
+                    k.children = op_grid_to_comp_grid(operation_list_to_grid(
+                        k.children.remove(0).components,
                         max_q_id,
                     ));
                 }
@@ -824,10 +856,12 @@ fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>
         let ctrls = match op {
             Operation::Measurement(m) => &m.qubits,
             Operation::Unitary(u) => &u.controls,
+            Operation::Ket(_) => &vec![],
         };
         let targets = match op {
             Operation::Measurement(m) => &m.results,
             Operation::Unitary(u) => &u.targets,
+            Operation::Ket(k) => &k.targets,
         };
         let q_regs: Vec<_> = ctrls
             .iter()

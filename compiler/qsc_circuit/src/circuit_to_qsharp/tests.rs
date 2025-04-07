@@ -487,8 +487,8 @@ fn circuit_with_ket_gates() {
   "componentGrid": [
     {
       "components": [
-        { "kind": "unitary", "gate": "|0〉", "targets": [{ "qubit": 0 }] },
-        { "kind": "unitary", "gate": "|1〉", "targets": [{ "qubit": 1 }] }
+        { "kind": "ket", "gate": "0", "targets": [{ "qubit": 0 }] },
+        { "kind": "ket", "gate": "1", "targets": [{ "qubit": 1 }] }
       ]
     }
   ],

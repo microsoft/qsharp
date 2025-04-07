@@ -129,30 +129,50 @@ const _moveY = (
   movingControl: boolean,
 ): void => {
   // Check if the source operation already has a target or control on the target wire
-  const registers =
-    sourceOperation.kind === "measurement"
-      ? [...sourceOperation.qubits, ...sourceOperation.results]
-      : [...sourceOperation.targets, ...(sourceOperation.controls || [])];
+  let registers: Register[];
+  switch (sourceOperation.kind) {
+    case "unitary":
+      registers = [
+        ...sourceOperation.targets,
+        ...(sourceOperation.controls || []),
+      ];
+      break;
+    case "measurement":
+      registers = [...sourceOperation.qubits, ...sourceOperation.results];
+      break;
+    case "ket":
+      registers = [...sourceOperation.targets]; // ToDo: is it necessary to do this ... syntax here?
+      break;
+  }
+
   const existingReg = registers.find((target) => target.qubit === targetWire);
   if (existingReg) {
     // If the target or control already exists, don't move the target/control
     return;
   }
 
-  if (sourceOperation.kind === "measurement") {
-    sourceOperation.qubits = [{ qubit: targetWire }];
-    // The measurement result is updated later in the _updateMeasurementLines function
-  } else if (movingControl) {
-    sourceOperation.controls?.forEach((control) => {
-      if (control.qubit === sourceWire) {
-        control.qubit = targetWire;
+  switch (sourceOperation.kind) {
+    case "unitary":
+      if (movingControl) {
+        sourceOperation.controls?.forEach((control) => {
+          if (control.qubit === sourceWire) {
+            control.qubit = targetWire;
+          }
+        });
+        sourceOperation.controls = sourceOperation.controls?.sort(
+          (a, b) => a.qubit - b.qubit,
+        );
+      } else {
+        sourceOperation.targets = [{ qubit: targetWire }];
       }
-    });
-    sourceOperation.controls = sourceOperation.controls?.sort(
-      (a, b) => a.qubit - b.qubit,
-    );
-  } else {
-    sourceOperation.targets = [{ qubit: targetWire }];
+      break;
+    case "measurement":
+      sourceOperation.qubits = [{ qubit: targetWire }];
+      // The measurement result is updated later in the _updateMeasurementLines function
+      break;
+    case "ket":
+      sourceOperation.targets = [{ qubit: targetWire }];
+      break;
   }
 
   // Update parent operation targets
@@ -165,7 +185,10 @@ const _moveY = (
       // Note: this is very confusing with measurements. Maybe the right thing to do
       // will become more apparent if we implement expandable measurements.
       parentOperation.results = getChildTargets(parentOperation);
-    } else if (parentOperation.kind === "unitary") {
+    } else if (
+      parentOperation.kind === "unitary" ||
+      parentOperation.kind === "ket"
+    ) {
       parentOperation.targets = getChildTargets(parentOperation);
     }
   }
@@ -203,7 +226,10 @@ const addOperation = (
   if (newSourceOperation.kind === "measurement") {
     newSourceOperation.qubits = [{ qubit: targetWire }];
     // The measurement result is updated later in the _updateMeasurementLines function
-  } else if (newSourceOperation.kind === "unitary") {
+  } else if (
+    newSourceOperation.kind === "unitary" ||
+    newSourceOperation.kind === "ket"
+  ) {
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
@@ -401,10 +427,23 @@ const _addOp = (
  * @returns A tuple containing the minimum and maximum register indices.
  */
 const _getMinMaxRegIdx = (operation: Operation): [number, number] => {
-  const { targets, controls } =
-    operation.kind === "measurement"
-      ? { targets: operation.results, controls: operation.qubits }
-      : { targets: operation.targets, controls: operation.controls };
+  let targets: Register[];
+  let controls: Register[];
+  switch (operation.kind) {
+    case "measurement":
+      targets = operation.results;
+      controls = operation.qubits;
+      break;
+    case "unitary":
+      targets = operation.targets;
+      controls = operation.controls || [];
+      break;
+    case "ket":
+      targets = operation.targets;
+      controls = [];
+      break;
+  }
+
   const ctrls: Register[] = controls || [];
   const qRegs: Register[] = [...ctrls, ...targets].filter(
     ({ result }) => result === undefined,

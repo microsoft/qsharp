@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::unicode_not_nfc)]
 #[cfg(test)]
 mod tests;
 
@@ -9,7 +8,7 @@ use regex_lite::{Captures, Regex};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    circuit::{CircuitGroup, Measurement, Unitary},
+    circuit::{CircuitGroup, Ket, Measurement, Unitary},
     Circuit, Operation,
 };
 
@@ -62,13 +61,9 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
 
     // Check if all operations are Unitary
     let is_ctl_adj = !circuit.component_grid.iter().any(|col| {
-        col.components.iter().any(|op| {
-            if let Operation::Unitary(unitary) = op {
-                unitary.gate == "|0〉" || unitary.gate == "|1〉"
-            } else {
-                true
-            }
-        })
+        col.components
+            .iter()
+            .any(|op| !matches!(op, Operation::Unitary(_)))
     });
 
     let characteristics = if is_ctl_adj { "is Ctl + Adj " } else { "" };
@@ -108,6 +103,9 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
                 }
                 Operation::Unitary(unitary) => {
                     body_str.push_str(handle_unitary(unitary, &qubits, &indent).as_str());
+                }
+                Operation::Ket(ket) => {
+                    body_str.push_str(handle_ket(ket, &qubits, &indent).as_str());
                 }
             }
 
@@ -189,15 +187,20 @@ fn handle_measurement(
 }
 
 fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
-    if unitary.gate == "|1〉" {
+    let operation_str = operation_call(unitary, qubits);
+    format!("{indent}{operation_str};\n")
+}
+
+fn handle_ket(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
+    if ket.gate == "1" {
         // Note "|1〉" will generate two operations: Reset and X
-        let operation_str = operation_call(unitary, qubits);
-        let mut call_str = format!("{indent}{operation_str};\n");
+        let ket_str = ket_call(ket, qubits);
+        let mut call_str = format!("{indent}{ket_str};\n");
         let op_x = Unitary {
             gate: "X".to_string(),
             is_adjoint: false,
             controls: vec![],
-            targets: unitary.targets.clone(),
+            targets: ket.targets.clone(),
             args: vec![],
             children: vec![],
         };
@@ -205,8 +208,8 @@ fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: 
         call_str.push_str(&format!("{indent}{operation_str};\n"));
         call_str
     } else {
-        let operation_str = operation_call(unitary, qubits);
-        format!("{indent}{operation_str};\n")
+        let ket_str = ket_call(ket, qubits);
+        format!("{indent}{ket_str};\n")
     }
 }
 
@@ -258,13 +261,18 @@ fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>
     }
 }
 
-fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> String {
-    let mut gate = unitary.gate.as_str();
+fn ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>) -> String {
+    let targets = ket
+        .targets
+        .iter()
+        .map(|q| get_qubit_name(qubits, q.qubit))
+        .collect::<Vec<_>>();
+    let args = targets.join(", ");
+    format!("Reset({args})")
+}
 
-    #[allow(clippy::unicode_not_nfc)]
-    if gate == "|0〉" || gate == "|1〉" {
-        gate = "Reset";
-    }
+fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> String {
+    let gate = unitary.gate.as_str();
 
     let is_controlled = !unitary.controls.is_empty();
 

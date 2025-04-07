@@ -59,8 +59,7 @@ const addContextMenuToHostElem = (
 
     if (
       selectedOperation.kind === "measurement" ||
-      selectedOperation.gate == "|0〉" ||
-      selectedOperation.gate == "|1〉"
+      selectedOperation.kind === "ket"
     ) {
       contextMenu.appendChild(deleteOption);
     } else if (isControl) {

@@ -529,7 +529,12 @@ class CircuitEvents {
           if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
             return true;
           }
-          const controls = op.kind === "measurement" ? op.qubits : op.controls;
+          const controls =
+            op.kind === "measurement"
+              ? op.qubits
+              : op.kind === "ket"
+                ? []
+                : op.controls;
           if (
             controls &&
             controls.some((reg) => reg.qubit == this.qubits.length - 1)

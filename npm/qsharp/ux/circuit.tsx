@@ -30,6 +30,23 @@ function isCircuit(circuit: any): circuit is qviz.Circuit {
   );
 }
 
+/**
+ * Get the label from a ket string.
+ *
+ * @param ket The ket string to extract the label from.
+ * @returns The label extracted from the ket string.
+ */
+function getKetLabel(ket: string): string {
+  // Check that the ket conforms to the format |{label}> or |{label}⟩
+  const ketRegex = /^\|([^\s〉⟩〉>]+)(?:[〉⟩〉>])$/;
+
+  // Match the ket string against the regex
+  const match = ket.match(ketRegex);
+
+  // If valid, return the inner label (captured group 1), otherwise return an empty string
+  return match ? match[1] : "";
+}
+
 function toOperation(op: any): qviz.Operation {
   let targets = [];
   if (op.targets) {
@@ -58,25 +75,35 @@ function toOperation(op: any): qviz.Operation {
       results: targets,
     } as qviz.Operation;
   } else {
-    const convertedOp: qviz.Operation = {
-      ...op,
-      kind: "unitary",
-      targets,
-      controls,
-    };
-    if (op.displayArgs) {
-      convertedOp.args = [op.displayArgs];
-      // Assume the parameter is always "theta" for now
-      convertedOp.params = [{ name: "theta", type: "Double" }];
+    const ket = getKetLabel(op.gate);
+    if (ket.length > 0) {
+      return {
+        ...op,
+        kind: "ket",
+        gate: ket,
+        targets,
+      };
+    } else {
+      const convertedOp: qviz.Operation = {
+        ...op,
+        kind: "unitary",
+        targets,
+        controls,
+      };
+      if (op.displayArgs) {
+        convertedOp.args = [op.displayArgs];
+        // Assume the parameter is always "theta" for now
+        convertedOp.params = [{ name: "theta", type: "Double" }];
+      }
+      if (op.children) {
+        convertedOp.children = [
+          {
+            components: op.children.map((child: any) => toOperation(child)),
+          },
+        ];
+      }
+      return convertedOp;
     }
-    if (op.children) {
-      convertedOp.children = [
-        {
-          components: op.children.map((child: any) => toOperation(child)),
-        },
-      ];
-    }
-    return convertedOp;
   }
 }
 

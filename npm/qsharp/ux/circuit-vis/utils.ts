@@ -93,14 +93,20 @@ const _getStringWidth = (
  */
 const getChildTargets = (operation: Operation): Register[] | [] => {
   const _recurse = (operation: Operation) => {
-    if (operation.kind === "measurement") {
-      registers.push(...operation.qubits);
-      registers.push(...operation.results);
-    } else if (operation.kind === "unitary") {
-      registers.push(...operation.targets);
-      if (operation.controls) {
-        registers.push(...operation.controls);
-      }
+    switch (operation.kind) {
+      case "measurement":
+        registers.push(...operation.qubits);
+        registers.push(...operation.results);
+        break;
+      case "unitary":
+        registers.push(...operation.targets);
+        if (operation.controls) {
+          registers.push(...operation.controls);
+        }
+        break;
+      case "ket":
+        registers.push(...operation.targets);
+        break;
     }
 
     // If there is more children, keep adding more to registers
@@ -161,23 +167,6 @@ const locationStringToIndexes = (location: string): [number, number][] => {
 const getGateLocationString = (operation: Operation): string | null => {
   if (operation.dataAttributes == null) return null;
   return operation.dataAttributes["location"];
-};
-
-/**
- * Get the label from a ket string.
- *
- * @param ket The ket string to extract the label from.
- * @returns The label extracted from the ket string.
- */
-const getKetLabel = (ket: string): string => {
-  // Check that the ket conforms to the format |{label}> or |{label}⟩
-  const ketRegex = /^\|([^\s〉⟩〉>]+)(?:[〉⟩〉>])$/;
-
-  // Match the ket string against the regex
-  const match = ket.match(ketRegex);
-
-  // If valid, return the inner label (captured group 1), otherwise return an empty string
-  return match ? match[1] : "";
 };
 
 /**
@@ -295,10 +284,23 @@ const getMinMaxRegIdx = (
   operation: Operation,
   numQubits: number,
 ): [number, number] => {
-  const { targets, controls } =
-    operation.kind === "measurement"
-      ? { targets: operation.results, controls: operation.qubits }
-      : { targets: operation.targets, controls: operation.controls };
+  let targets: Register[];
+  let controls: Register[];
+  switch (operation.kind) {
+    case "measurement":
+      targets = operation.results;
+      controls = operation.qubits;
+      break;
+    case "unitary":
+      targets = operation.targets;
+      controls = operation.controls || [];
+      break;
+    case "ket":
+      targets = operation.targets;
+      controls = [];
+      break;
+  }
+
   const ctrls: Register[] = controls || [];
   const qRegs: Register[] = [...ctrls, ...targets].filter(
     ({ result }) => result === undefined,
@@ -564,7 +566,6 @@ export {
   getChildTargets,
   locationStringToIndexes,
   getGateLocationString,
-  getKetLabel,
   operationListToGrid,
   getMinMaxRegIdx,
   findGateElem,

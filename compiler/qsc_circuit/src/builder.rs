@@ -6,8 +6,8 @@ mod tests;
 
 use crate::{
     circuit::{
-        op_grid_to_comp_grid, operation_list_to_grid, Circuit, Measurement, Operation, Register,
-        Unitary,
+        op_grid_to_comp_grid, operation_list_to_grid, Circuit, Ket, Measurement, Operation,
+        Register, Unitary,
     },
     Config,
 };
@@ -80,13 +80,13 @@ impl Backend for Builder {
         // a way to visually represent that. So decompose it into
         // a measurement and a reset gate.
         self.push_gate(measurement_gate(mapped_q.0, res_id));
-        self.push_gate(gate(KET_ZERO, [mapped_q]));
+        self.push_gate(ket_gate("0", [mapped_q]));
         id
     }
 
     fn reset(&mut self, q: usize) {
         let mapped_q = self.map(q);
-        self.push_gate(gate(KET_ZERO, [mapped_q]));
+        self.push_gate(ket_gate("0", [mapped_q]));
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
@@ -438,9 +438,6 @@ impl From<WireId> for usize {
     }
 }
 
-#[allow(clippy::unicode_not_nfc)]
-static KET_ZERO: &str = "|0〉";
-
 fn gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
     Operation::Unitary(Unitary {
         gate: name.into(),
@@ -484,6 +481,15 @@ fn measurement_gate(qubit: usize, result: usize) -> Operation {
         args: vec![],
         qubits: vec![Register::quantum(qubit)],
         results: vec![Register::classical(qubit, result)],
+        children: vec![],
+    })
+}
+
+fn ket_gate<const N: usize>(name: &str, targets: [WireId; N]) -> Operation {
+    Operation::Ket(Ket {
+        gate: name.into(),
+        args: vec![],
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     })
 }

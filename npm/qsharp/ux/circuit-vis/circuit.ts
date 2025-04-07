@@ -7,6 +7,7 @@ export {
   type Circuit,
   type ComponentGrid,
   type Column,
+  type Ket,
   type Measurement,
   type Component,
   type DataAttributes,

@@ -11,7 +11,7 @@ import {
 import { ComponentGrid, Operation, ConditionalRender } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { Register, RegisterMap } from "./register";
-import { getGateWidth, getKetLabel } from "./utils";
+import { getGateWidth } from "./utils";
 
 /**
  * Takes in a component grid and maps the operations to `metadata` objects which
@@ -64,14 +64,20 @@ const processOperations = (
             return children[reg.result].y;
           });
 
-        const targets =
-          op.kind === "measurement"
-            ? op.qubits
-            : op.kind == "unitary"
-              ? op.targets
-              : [];
+        let qubits: Register[];
+        switch (op.kind) {
+          case "unitary":
+            qubits = op.targets;
+            break;
+          case "measurement":
+            qubits = op.qubits;
+            break;
+          case "ket":
+            qubits = op.targets;
+            break;
+        }
 
-        metadata.targetsY = _splitTargetsY(targets, classicalRegY, registers);
+        metadata.targetsY = _splitTargetsY(qubits, classicalRegY, registers);
       }
 
       // Expand column size, if needed
@@ -142,10 +148,26 @@ const _opToMetadata = (
 
   if (op == null) return metadata;
 
-  const isMeasurement = op.kind === "measurement";
-  const isAdjoint = isMeasurement ? false : (op.isAdjoint ?? false);
-  const controls = isMeasurement ? op.qubits : op.controls;
-  const targets = isMeasurement ? op.results : op.targets;
+  let isAdjoint: boolean;
+  let controls: Register[] | undefined;
+  let targets: Register[];
+  switch (op.kind) {
+    case "measurement":
+      isAdjoint = false;
+      controls = op.qubits;
+      targets = op.results;
+      break;
+    case "unitary":
+      isAdjoint = op.isAdjoint ?? false;
+      controls = op.controls;
+      targets = op.targets;
+      break;
+    case "ket":
+      isAdjoint = false;
+      controls = [];
+      targets = op.targets;
+      break;
+  }
 
   const {
     gate,
@@ -155,7 +177,6 @@ const _opToMetadata = (
     isConditional,
     conditionalRender,
   } = op;
-  const ket = getKetLabel(gate);
 
   // Set y coords
   metadata.controlsY = controls?.map((reg) => _getRegY(reg, registers)) || [];
@@ -219,8 +240,11 @@ const _opToMetadata = (
     // Subtract startX (left-side) and add inner box padding (minus nested gate padding) for dashed box
     metadata.width =
       childrenInstrs.svgWidth - startX + (groupBoxPadding - gatePadding) * 2;
-  } else if (isMeasurement) {
+  } else if (op.kind === "measurement") {
     metadata.type = GateType.Measure;
+  } else if (op.kind === "ket") {
+    metadata.type = GateType.Reset;
+    metadata.label = gate;
   } else if (gate === "SWAP") {
     metadata.type = GateType.Swap;
   } else if (controls && controls.length > 0) {
@@ -229,9 +253,6 @@ const _opToMetadata = (
   } else if (gate === "X") {
     metadata.type = GateType.X;
     metadata.label = gate;
-  } else if (ket.length > 0) {
-    metadata.type = GateType.Reset;
-    metadata.label = ket;
   } else {
     // Any other gate treated as a simple unitary gate
     metadata.type = GateType.Unitary;
