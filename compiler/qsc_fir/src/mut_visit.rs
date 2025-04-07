@@ -67,7 +67,7 @@ pub fn walk_item<'a>(vis: &mut impl MutVisitor<'a>, item: &'a mut Item) {
         ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) | ItemKind::Export(name, _) => {
             vis.visit_ident(name);
         }
-    };
+    }
 }
 
 pub fn walk_callable_decl<'a>(vis: &mut impl MutVisitor<'a>, decl: &'a mut CallableDecl) {

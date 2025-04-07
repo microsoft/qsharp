@@ -599,7 +599,7 @@ impl State {
     fn leave_frame(&mut self) {
         if let Some(frame) = self.call_stack.pop_frame() {
             self.package = frame.caller;
-        };
+        }
         self.val_stack.pop();
         self.idx = self.idx_stack.pop().unwrap_or_default();
         self.exec_graph_stack.pop();

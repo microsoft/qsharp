@@ -421,7 +421,7 @@ impl Display for ParamApplication {
             Self::Array(array_param_application) => {
                 write!(f, "[Parameter Type Array] {array_param_application}")?;
             }
-        };
+        }
         Ok(())
     }
 }
@@ -468,7 +468,7 @@ impl Display for ComputeKind {
         match &self {
             ComputeKind::Quantum(quantum_properties) => write!(f, "Quantum: {quantum_properties}")?,
             ComputeKind::Classical => write!(f, "Classical")?,
-        };
+        }
         Ok(())
     }
 }
@@ -628,7 +628,7 @@ impl Display for ValueKind {
                 "Array(Content: {content_runtime_value}, Size: {size_runtime_value})"
             )?,
             Self::Element(runtime_value) => write!(f, "Element({runtime_value})")?,
-        };
+        }
         Ok(())
     }
 }
@@ -716,7 +716,7 @@ impl ValueKind {
                     RuntimeKind::Static
                 };
             }
-        };
+        }
     }
 }
 
@@ -735,7 +735,7 @@ impl Display for RuntimeKind {
             RuntimeKind::Dynamic => {
                 write!(f, "Dynamic")?;
             }
-        };
+        }
         Ok(())
     }
 }

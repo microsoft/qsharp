@@ -386,7 +386,7 @@ fn get_source_and_marker_offsets(source_with_markers: &str) -> (String, Vec<u32>
                 _ => panic!("Expected to find marker"),
             },
             None => break,
-        };
+        }
         source = source.replacen(markers, "", 1);
     }
     (source, cursor_offsets, target_offsets)

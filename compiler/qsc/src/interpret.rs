@@ -464,7 +464,7 @@ impl Interpreter {
         let unit = self.fir_store.get(self.source_package);
         if unit.entry.is_some() {
             return Ok(unit.entry_exec_graph.clone());
-        };
+        }
         Err(vec![Error::NoEntryPoint])
     }
 
@@ -1266,7 +1266,7 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
             fir::StmtKind::Item(_) | fir::StmtKind::Semi(_) => {
                 self.add_stmt(stmt_res);
             }
-        };
+        }
     }
 
     fn get_block(&self, id: BlockId) -> &'a Block {

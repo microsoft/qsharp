@@ -597,8 +597,8 @@ pub enum OutputSemantics {
     Qiskit,
     /// [OpenQASM 3 has two output modes](https://openqasm.com/language/directives.html#input-output)
     /// - If the programmer provides one or more `output` declarations, then
-    ///     variables described as outputs will be returned as output.
-    ///     The spec make no mention of endianness or order of the output.
+    ///   variables described as outputs will be returned as output.
+    ///   The spec make no mention of endianness or order of the output.
     /// - Otherwise, assume all of the declared variables are returned as output.
     OpenQasm,
     /// No output semantics are applied. The entry point returns `Unit`.

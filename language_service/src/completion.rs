@@ -268,7 +268,7 @@ fn collect_names(
                     Completion::new("Div".to_string(), CompletionItemKind::Class),
                 ]);
             }
-        };
+        }
     }
     groups
 }

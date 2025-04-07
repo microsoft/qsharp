@@ -20,7 +20,7 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
     // Get the next available variable ID for use in newly generated phi nodes.
     let mut next_var_id = get_variable_assignments(program)
         .iter()
-        .last()
+        .next_back()
         .map(|(var_id, _)| var_id.successor())
         .unwrap_or_default();
 
@@ -230,7 +230,7 @@ fn map_variable_use_in_block(block: &mut Block, var_map: &mut FxHashMap<Variable
             // Phi nodes are handled separately in the SSA transformation, but need to be passed through
             // like the unconditional terminators.
             Instruction::Phi(..) | Instruction::Jump(..) | Instruction::Return => {}
-        };
+        }
         block.0.push(instr);
     }
 }
