@@ -29,11 +29,11 @@ pub(crate) fn parse_all<P>(
 where
     P: AsRef<Path>,
 {
-    let resolver = InMemorySourceResolver::from_iter(sources);
+    let mut resolver = InMemorySourceResolver::from_iter(sources);
     let (path, source) = resolver
         .resolve(path.as_ref())
         .map_err(|e| vec![Report::new(e)])?;
-    let res = parse_source(source, path, &resolver);
+    let res = parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -50,8 +50,8 @@ pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec
 where
     S: AsRef<str>,
 {
-    let resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
-    let res = parse_source(source, "test", &resolver);
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
+    let res = parse_source(source, "test", &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -139,8 +139,8 @@ fn check_map<S>(
 ) where
     S: AsRef<str>,
 {
-    let resolver = InMemorySourceResolver::from_iter([("test".into(), input.as_ref().into())]);
-    let res = parse_source(input, "test", &resolver);
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), input.as_ref().into())]);
+    let res = parse_source(input, "test", &mut resolver);
 
     let errors = res.all_errors();
 
@@ -182,13 +182,13 @@ fn check_map_all<P>(
 ) where
     P: AsRef<Path>,
 {
-    let resolver = InMemorySourceResolver::from_iter(sources);
+    let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
         .resolve(path.as_ref())
         .map_err(|e| vec![e])
         .expect("could not load source")
         .1;
-    let res = parse_source(source, path, &resolver);
+    let res = parse_source(source, path, &mut resolver);
 
     let errors = res.all_errors();
 

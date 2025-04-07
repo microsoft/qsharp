@@ -96,18 +96,18 @@ where
     S: AsRef<str>,
     P: AsRef<Path>,
 {
-    let resolver = InMemorySourceResolver::from_iter([(
+    let mut resolver = InMemorySourceResolver::from_iter([(
         path.as_ref().display().to_string().into(),
         source.as_ref().into(),
     )]);
-    parse_source(source, path, &resolver)
+    parse_source(source, path, &mut resolver)
 }
 
 /// Parse a QASM file and return the parse result.
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &R) -> QasmSemanticParseResult
+pub fn parse_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmSemanticParseResult
 where
     S: AsRef<str>,
     P: AsRef<Path>,

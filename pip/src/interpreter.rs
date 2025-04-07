@@ -677,12 +677,12 @@ impl Interpreter {
             resolve_path,
             fetch_github,
         );
-        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
         let (package, _source_map, signature) = compile_qasm_enriching_errors(
             source,
             &operation_name,
-            &resolver,
+            &mut resolver,
             program_type,
             output_semantics,
             false,
