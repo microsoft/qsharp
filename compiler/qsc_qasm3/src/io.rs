@@ -75,6 +75,7 @@ impl SourceResolverContext {
         // error saying "<FILE> was already included in <FILE>".
         if let Some(parent_file) = self.path_was_already_included(path) {
             return Err(Error(ErrorKind::MultipleInclude(
+                path.display().to_string(),
                 parent_file.display().to_string(),
             )));
         }
@@ -107,9 +108,9 @@ impl SourceResolverContext {
             paths.push(file.clone());
             current_file = self.get_parent(file);
             if file == path {
-                return Some(Cycle {
-                    paths: paths.clone(),
-                });
+                paths.reverse();
+                paths.push(path.clone());
+                return Some(Cycle { paths });
             }
         }
 
@@ -172,7 +173,7 @@ impl std::fmt::Display for Cycle {
         let children = self.paths[1..].iter();
 
         for (parent, child) in parents.zip(children) {
-            writeln!(f, "{} includes {}", parent.display(), child.display())?;
+            write!(f, "\n  {} includes {}", parent.display(), child.display())?;
         }
 
         Ok(())

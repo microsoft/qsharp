@@ -17,9 +17,9 @@ pub enum ErrorKind {
     NotFound(String),
     #[error("IO Error: {0}")]
     IO(String),
-    #[error("Multiple include: {0}")]
-    MultipleInclude(String),
-    #[error("Cyclic include:\n{0}")]
+    #[error("{0} was already included in: {1}")]
+    MultipleInclude(String, String),
+    #[error("Cyclic include:{0}")]
     CyclicInclude(Cycle),
 }
 
