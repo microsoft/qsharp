@@ -65,7 +65,7 @@ pub trait SourceResolver {
 #[derive(Default)]
 pub struct SourceResolverContext {
     // A graph representation of the include chain.
-    include_graph: (),
+    include_graph: FxHashMap<PathBuf, Vec<PathBuf>>,
     current_path: Option<PathBuf>,
 }
 
@@ -85,12 +85,12 @@ impl SourceResolverContext {
         todo!()
     }
 
-    /// Adds `path` as a child of `current_path`, and then changes the current_path to `path`.
+    /// Adds `path` as a child of `current_path`, and then changes the `current_path` to `path`.
     fn add_path_to_include_graph(&mut self, path: &PathBuf) {
         todo!()
     }
 
-    /// Changes `current_path` to its parent in the include_graph.
+    /// Changes `current_path` to its parent in the `include_graph`.
     pub fn pop_current_file(&mut self) {
         todo!()
     }
