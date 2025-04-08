@@ -147,7 +147,10 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     circuit: string,
   ) {
     // Short-circuit if there are no changes to be made.
-    if (circuit == document.getText()) {
+    if (
+      circuit.trim().replace(/\r\n/g, "\n") ===
+      document.getText().trim().replace(/\r\n/g, "\n")
+    ) {
       return;
     }
 
@@ -158,7 +161,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     edit.replace(
       document.uri,
       new vscode.Range(0, 0, document.lineCount, 0),
-      circuit,
+      circuit.trim(),
     );
     await vscode.workspace.applyEdit(edit);
     this.savedVersion = document.version;
