@@ -450,9 +450,9 @@ impl QasmCompiler {
         for symbol in self.symbols.get_qubit_symbols() {
             let expr = build_path_ident_expr(&symbol.name, Span::default(), Span::default());
             let stmt = if matches!(symbol.ty, Type::Qubit) {
-                build_qubit_release_call(expr)
+                build_qubit_release_call(expr, symbol.span)
             } else {
-                build_qubitarray_release_call(expr)
+                build_qubitarray_release_call(expr, symbol.span)
             };
             self.stmts.push(stmt);
         }
