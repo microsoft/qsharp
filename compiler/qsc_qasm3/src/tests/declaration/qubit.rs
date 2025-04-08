@@ -59,7 +59,7 @@ fn single_qubit_decl_with_qsharp_semantics() -> miette::Result<(), Vec<Report>> 
 }
 
 #[test]
-fn fragment_does_not_generate_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> {
+fn fragment_does_not_generate_qubit_release_calls() -> miette::Result<(), Vec<Report>> {
     let source = "
         qubit q;
         qubit[3] qs;
@@ -88,7 +88,7 @@ fn fragment_does_not_generate_qubit_cleanup_calls() -> miette::Result<(), Vec<Re
 }
 
 #[test]
-fn file_generates_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> {
+fn file_generates_qubit_release_calls() -> miette::Result<(), Vec<Report>> {
     let source = "
         qubit q;
         qubit[3] qs;
@@ -114,8 +114,8 @@ fn file_generates_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> {
             operation program() : Unit {
                 let q = QIR.Runtime.__quantum__rt__qubit_allocate();
                 let qs = QIR.Runtime.AllocateQubitArray(3);
-                Reset(q);
-                ResetAll(qs);
+                QIR.Runtime.__quantum__rt__qubit_release(q);
+                QIR.Runtime.ReleaseQubitArray(qs);
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -123,7 +123,7 @@ fn file_generates_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn operation_generates_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> {
+fn operation_generates_qubit_release_calls() -> miette::Result<(), Vec<Report>> {
     let source = "
         qubit q;
         qubit[3] qs;
@@ -147,8 +147,8 @@ fn operation_generates_qubit_cleanup_calls() -> miette::Result<(), Vec<Report>> 
             import QasmStd.Intrinsic.*;
             let q = QIR.Runtime.__quantum__rt__qubit_allocate();
             let qs = QIR.Runtime.AllocateQubitArray(3);
-            Reset(q);
-            ResetAll(qs);
+            QIR.Runtime.__quantum__rt__qubit_release(q);
+            QIR.Runtime.ReleaseQubitArray(qs);
         }
     "#]]
     .assert_eq(&qsharp);

@@ -45,7 +45,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
                 Reset(q[0]);
                 h(q[0]);
                 set meas w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                ResetAll(q);
+                QIR.Runtime.ReleaseQubitArray(q);
                 Microsoft.Quantum.Arrays.Reversed(meas)
             }
         }"#]]
@@ -74,7 +74,6 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
         define void @ENTRYPOINT__main() #0 {
         block_0:
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 1 to %Qubit*))
-          call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Qubit* inttoptr (i64 2 to %Qubit*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
@@ -89,9 +88,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
 
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-        declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
-
-        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="3" "required_num_results"="1" }
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="1" }
         attributes #1 = { "irreversible" }
 
         ; module flags
@@ -130,7 +127,6 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
           call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           ret void

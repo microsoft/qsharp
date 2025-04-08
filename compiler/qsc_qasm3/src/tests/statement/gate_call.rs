@@ -127,8 +127,6 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__barrier__body()
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
-          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 1 to %Qubit*))
           call void @__quantum__rt__array_record_output(i64 1, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           ret void
@@ -137,8 +135,6 @@ fn barrier_generates_qir() -> miette::Result<(), Vec<Report>> {
         declare void @__quantum__qis__barrier__body()
 
         declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
-
-        declare void @__quantum__qis__reset__body(%Qubit*) #1
 
         declare void @__quantum__rt__array_record_output(i64, i8*)
 
@@ -500,7 +496,6 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
         block_0:
           call void @my_gate(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__m__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
-          call void @__quantum__qis__reset__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__rt__tuple_record_output(i64 0, i8* null)
           ret void
         }
@@ -508,8 +503,6 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
         declare void @my_gate(%Qubit*)
 
         declare void @__quantum__qis__m__body(%Qubit*, %Result*) #1
-
-        declare void @__quantum__qis__reset__body(%Qubit*) #1
 
         declare void @__quantum__rt__tuple_record_output(i64, i8*)
 

@@ -732,12 +732,28 @@ pub(crate) fn build_reset_call(expr: ast::Expr, name_span: Span, operand_span: S
     build_global_call_with_one_param("Reset", expr, name_span, operand_span)
 }
 
-pub(crate) fn build_resetall_call(
-    expr: ast::Expr,
-    name_span: Span,
-    operand_span: Span,
-) -> ast::Expr {
-    build_global_call_with_one_param("ResetAll", expr, name_span, operand_span)
+pub fn build_qubit_release_call(expr: ast::Expr) -> ast::Stmt {
+    let expr = build_call_with_param(
+        "__quantum__rt__qubit_release",
+        &["QIR", "Runtime"],
+        expr,
+        Span::default(),
+        Span::default(),
+        Span::default(),
+    );
+    build_stmt_semi_from_expr(expr)
+}
+
+pub fn build_qubitarray_release_call(expr: ast::Expr) -> ast::Stmt {
+    let expr = build_call_with_param(
+        "ReleaseQubitArray",
+        &["QIR", "Runtime"],
+        expr,
+        Span::default(),
+        Span::default(),
+        Span::default(),
+    );
+    build_stmt_semi_from_expr(expr)
 }
 
 pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(

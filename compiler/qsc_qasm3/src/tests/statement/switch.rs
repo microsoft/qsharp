@@ -207,7 +207,7 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
                 } elif __ResultArrayAsIntBE__(b) == 3 {
                     z(q);
                 };
-                Reset(q);
+                QIR.Runtime.__quantum__rt__qubit_release(q);
                 b
             }
         }"#]]

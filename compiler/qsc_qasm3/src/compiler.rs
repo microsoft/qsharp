@@ -24,12 +24,13 @@ use crate::{
         build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
         build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
         build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
-        build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
-        build_resetall_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_qasm_import_decl, build_qasm_import_items, build_qubit_release_call,
+        build_qubitarray_release_call, build_range_expr, build_reset_call, build_return_expr,
+        build_return_unit, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     parser::ast::{list_from_iter, List},
     semantic::{
@@ -110,7 +111,7 @@ impl QasmCompiler {
         self.compile_stmts(&program.statements);
 
         if matches!(program_ty, ProgramType::File | ProgramType::Operation) {
-            self.append_qubit_cleanup_calls();
+            self.append_qubit_release_calls();
         }
 
         let (package, signature) = match program_ty {
@@ -442,15 +443,15 @@ impl QasmCompiler {
         }
     }
 
-    fn append_qubit_cleanup_calls(&mut self) {
+    /// Appends qubit release calls at the end of the program.
+    fn append_qubit_release_calls(&mut self) {
         for symbol in self.symbols.get_qubit_symbols() {
             let expr = build_path_ident_expr(&symbol.name, Span::default(), Span::default());
-            let cleanup_call = if matches!(symbol.ty, Type::Qubit) {
-                build_reset_call(expr, Span::default(), Span::default())
+            let stmt = if matches!(symbol.ty, Type::Qubit) {
+                build_qubit_release_call(expr)
             } else {
-                build_resetall_call(expr, Span::default(), Span::default())
+                build_qubitarray_release_call(expr)
             };
-            let stmt = build_stmt_semi_from_expr(cleanup_call);
             self.stmts.push(stmt);
         }
     }
