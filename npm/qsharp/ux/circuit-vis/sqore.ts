@@ -165,7 +165,12 @@ export class Sqore {
     if (previousSvg == null) {
       container.appendChild(svg);
     } else {
-      container.replaceChild(svg, previousSvg);
+      const wrapper = previousSvg.parentElement;
+      if (wrapper) {
+        wrapper.replaceChild(svg, previousSvg);
+      } else {
+        container.replaceChild(svg, previousSvg);
+      }
     }
     this.addGateClickHandlers(container, _circuit);
 

@@ -115,4 +115,4 @@ const _qubitRegister = (
   return group([wire, label]);
 };
 
-export { formatRegisters, _classicalRegister, _qubitRegister };
+export { formatRegisters };

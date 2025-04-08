@@ -58,6 +58,7 @@ class CircuitEvents {
   private movingControl: boolean;
   private mouseUpOnCircuit: boolean;
   private dragging: boolean;
+  private disableLeftAutoScroll: boolean;
 
   constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
     this.renderFn = useRefresh;
@@ -78,6 +79,7 @@ class CircuitEvents {
     this.movingControl = false;
     this.mouseUpOnCircuit = false;
     this.dragging = false;
+    this.disableLeftAutoScroll = false;
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -165,6 +167,7 @@ class CircuitEvents {
       }
     }
     this.dragging = false;
+    this.disableLeftAutoScroll = false;
     this.movingControl = false;
     this.mouseUpOnCircuit = false;
   };
@@ -177,8 +180,8 @@ class CircuitEvents {
     const edgeThreshold = 50; // Distance from the edge to trigger scrolling
 
     // Utility function to find the nearest scrollable ancestor
-    const getScrollableAncestor = (element: HTMLElement): HTMLElement => {
-      let currentElement: HTMLElement | null = element;
+    const getScrollableAncestor = (element: Element): HTMLElement => {
+      let currentElement: Element | null = element;
       while (currentElement) {
         const overflowY = window.getComputedStyle(currentElement).overflowY;
         const overflowX = window.getComputedStyle(currentElement).overflowX;
@@ -188,29 +191,30 @@ class CircuitEvents {
           overflowX === "auto" ||
           overflowX === "scroll"
         ) {
-          return currentElement;
+          return currentElement as HTMLElement;
         }
         currentElement = currentElement.parentElement;
       }
       return document.documentElement; // Fallback to the root element
     };
 
-    const scrollableAncestor = getScrollableAncestor(this.container);
+    const scrollableAncestor = getScrollableAncestor(this.circuitSvg);
 
     const onMouseMove = (ev: MouseEvent) => {
       const rect = scrollableAncestor.getBoundingClientRect();
 
-      // Get the scroll offsets of the scrollable ancestor
-      const scrollTop = scrollableAncestor.scrollTop;
-      const scrollLeft = scrollableAncestor.scrollLeft;
+      const topBoundary = rect.top;
+      const bottomBoundary = rect.bottom;
+      const leftBoundary = rect.left;
+      const rightBoundary = rect.right;
 
-      // Calculate the actual bounds relative to the document
-      const topBoundary = rect.top + scrollTop;
-      const bottomBoundary =
-        rect.top + scrollableAncestor.clientHeight + scrollTop;
-      const leftBoundary = rect.left + scrollLeft;
-      const rightBoundary =
-        rect.left + scrollableAncestor.clientWidth + scrollLeft;
+      // If the mouse has moved past the left boundary, we want to re-enable left auto-scrolling
+      if (
+        this.disableLeftAutoScroll &&
+        ev.clientX > leftBoundary + 3 * edgeThreshold
+      ) {
+        this.disableLeftAutoScroll = false;
+      }
 
       // Check if the cursor is near the edges
       if (ev.clientY < topBoundary + edgeThreshold) {
@@ -221,7 +225,10 @@ class CircuitEvents {
         scrollableAncestor.scrollTop += scrollSpeed;
       }
 
-      if (ev.clientX < leftBoundary + edgeThreshold) {
+      if (
+        !this.disableLeftAutoScroll &&
+        ev.clientX < leftBoundary + edgeThreshold
+      ) {
         // Scroll left
         scrollableAncestor.scrollLeft -= scrollSpeed;
       } else if (ev.clientX > rightBoundary - edgeThreshold) {
@@ -382,6 +389,7 @@ class CircuitEvents {
     const type = elem.getAttribute("data-type");
     if (type == null) return;
     this.selectedOperation = defaultGateDictionary[type];
+    this.disableLeftAutoScroll = true;
     this._createGhostElement(ev);
   };
 

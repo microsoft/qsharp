@@ -6,7 +6,6 @@ import {
   gateHeight,
   horizontalGap,
   minGateWidth,
-  minToolboxHeight,
   verticalGap,
 } from "./constants";
 import { formatGate } from "./formatters/gateFormatter";
@@ -38,9 +37,24 @@ const extensionPanel =
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (container: HTMLElement, sqore: Sqore, useRefresh: () => void): void => {
     if (container.querySelector(".panel") == null) {
+      const circuit = container.querySelector("svg[id]");
+      if (circuit == null) {
+        throw new Error("No circuit found in the container");
+      }
+
+      const wrapper = _elem("div", "");
+      wrapper.style.display = "block";
+      wrapper.style.overflow = "auto";
+      wrapper.style.width = "100%";
+      wrapper.appendChild(_qubitLineControl());
+      container.appendChild(wrapper);
+      wrapper.appendChild(circuit);
+
       const panelElem = _panel(options);
-      container.prepend(_qubitLineControl());
       container.prepend(panelElem);
+      container.style.display = "flex";
+      container.style.height = "80vh";
+      container.style.width = "95vw";
     }
   };
 
@@ -102,14 +116,17 @@ const _createToolbox = (options?: PanelOptions): HTMLElement => {
   // Generate gate elements in a 3xN grid
   let prefixX = 0;
   let prefixY = 0;
-  const gateElems = objectKeys.map((key) => {
+  const gateElems = objectKeys.map((key, index) => {
     const { width: gateWidth } = toMetadata(gateDictionary[key], 0, 0);
-    if (prefixY + gateHeight + verticalGap > minToolboxHeight) {
-      prefixY = 0;
-      prefixX += gateWidth + horizontalGap;
+
+    // Increment prefixX for every gate, and reset after 2 gates (2 columns)
+    if (index % 2 === 0 && index !== 0) {
+      prefixX = 0;
+      prefixY += gateHeight + verticalGap;
     }
+
     const gateElem = _gate(gateDictionary, key.toString(), prefixX, prefixY);
-    prefixY += gateHeight + verticalGap;
+    prefixX += gateWidth + horizontalGap;
     return gateElem;
   });
 
@@ -324,14 +341,14 @@ const _makeKet = (gate: string): Ket => {
  */
 const defaultGateDictionary: GateDictionary = {
   RX: _makeUnitary("Rx"),
-  RY: _makeUnitary("Ry"),
-  RZ: _makeUnitary("Rz"),
   X: _makeUnitary("X"),
+  RY: _makeUnitary("Ry"),
   Y: _makeUnitary("Y"),
+  RZ: _makeUnitary("Rz"),
   Z: _makeUnitary("Z"),
-  H: _makeUnitary("H"),
   S: _makeUnitary("S"),
   T: _makeUnitary("T"),
+  H: _makeUnitary("H"),
   Measure: _makeMeasurement("Measure"),
   Reset: _makeKet("0"),
   ResetOne: _makeKet("1"),

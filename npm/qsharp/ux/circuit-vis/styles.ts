@@ -264,12 +264,17 @@ const _panel = `
         margin-bottom: 8px;
     }
     .toolbox-panel {
-        width: -webkit-fill-available;
+        width: 100px;
         min-height: ${minToolboxHeight}px;
+        border-right: medium solid var(--vscode-editorWidget-border, #000000);
+    }
+    .toolbox-panel .title {
+        margin-top: 6px;
     }
     .toolbox-panel-svg {
         width: -webkit-fill-available;
         min-height: ${minToolboxHeight}px;
+        height: 100%;
     }
     .ghost {
         width: ${minGateWidth}px;
@@ -283,6 +288,9 @@ const _panel = `
         justify-content: flex-start;
         align-items: center;
         margin-bottom: 8px;
+    }
+    .qubit-line-control .title {
+        margin-left: 16px;
     }
     .add-qubit-line, .remove-qubit-line {
         border-radius: 4px;
