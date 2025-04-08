@@ -786,19 +786,15 @@ const _createCustomConfirm = (
     document.body.removeChild(overlay);
   });
 
-  // Append buttons to the container
   buttonsContainer.appendChild(okButton);
   buttonsContainer.appendChild(cancelButton);
 
-  // Append elements to the confirm container
   confirmContainer.appendChild(messageElem);
   confirmContainer.appendChild(buttonsContainer);
 
-  // Append the confirm container to the overlay
   overlay.appendChild(confirmContainer);
-
-  // Append the overlay to the document body
   document.body.appendChild(overlay);
+  cancelButton.focus();
 };
 
 export { extensionEvents, CircuitEvents };
