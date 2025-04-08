@@ -154,3 +154,36 @@ fn operation_generates_qubit_release_calls() -> miette::Result<(), Vec<Report>> 
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn qsharp_semantics_does_not_generate_qubit_release_calls() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        qubit q;
+        qubit[3] qs;
+    ";
+
+    let config = CompilerConfig::new(
+        QubitSemantics::QSharp,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        None,
+        None,
+    );
+
+    let unit = compile_with_config(source, config)?;
+    let qsharp = qsharp_from_qasm_compilation(unit)?;
+
+    expect![[r#"
+        namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            @EntryPoint()
+            operation program() : Unit {
+                use q = Qubit();
+                use qs = Qubit[3];
+            }
+        }"#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

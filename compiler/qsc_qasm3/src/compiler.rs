@@ -110,7 +110,9 @@ impl QasmCompiler {
 
         self.compile_stmts(&program.statements);
 
-        if matches!(program_ty, ProgramType::File | ProgramType::Operation) {
+        if matches!(program_ty, ProgramType::File | ProgramType::Operation)
+            && matches!(self.config.qubit_semantics, QubitSemantics::Qiskit)
+        {
             self.append_qubit_release_calls();
         }
 
