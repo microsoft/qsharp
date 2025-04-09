@@ -21,7 +21,7 @@ def run_transpile_test(
         options["optimization_level"] = 0
     info = QSharpBackend()._qasm3(circuit, **options)
     lines = info.splitlines()
-    # remove the first four lines, which are the header
+    # remove the first five lines, which are the header
     # OPENQASM 3.0;
     # include "stdgates.inc";
     # include "qiskit_stdgates.inc";
