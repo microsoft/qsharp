@@ -41,6 +41,10 @@ pub enum ErrorKind {
     #[error("{0}")]
     /// `CircuitParse` variant represents errors that occur while parsing circuit files.
     CircuitParse(String),
+
+    /// `OpenQASM` compilation errors.
+    #[diagnostic(transparent)]
+    OpenQasm(#[from] crate::qasm::error::Error),
 }
 
 /// Compiles a package from its AST representation.

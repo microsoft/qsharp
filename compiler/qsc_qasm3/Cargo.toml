@@ -22,10 +22,6 @@ qsc_parse = { path = "../qsc_parse" }
 qsc_passes = { path = "../qsc_passes" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
-oq3_source_file = { workspace = true }
-oq3_syntax = { workspace = true }
-oq3_parser = { workspace = true }
-oq3_semantics = { workspace = true }
 
 [dev-dependencies]
 difference = { workspace = true }

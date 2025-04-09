@@ -31,6 +31,7 @@ use crate::{
         build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
         map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
+    io::SourceResolver,
     parser::ast::{list_from_iter, List},
     semantic::{
         ast::{
@@ -58,12 +59,22 @@ fn err_expr(span: Span) -> qsast::Expr {
     }
 }
 
-pub fn compile_with_config<S, P>(source: S, path: P, config: CompilerConfig) -> QasmCompileUnit
+pub fn compile_to_qsharp_ast_with_config<S, P, R>(
+    source: S,
+    path: P,
+    resolver: Option<&mut R>,
+    config: CompilerConfig,
+) -> QasmCompileUnit
 where
     S: AsRef<str>,
     P: AsRef<Path>,
+    R: SourceResolver,
 {
-    let res = crate::semantic::parse(source, path);
+    let res = if let Some(resolver) = resolver {
+        crate::semantic::parse_source(source, path, resolver)
+    } else {
+        crate::semantic::parse(source, path)
+    };
     let program = res.program;
 
     let compiler = crate::compiler::QasmCompiler {
@@ -749,7 +760,9 @@ impl QasmCompiler {
         let symbol = self.symbols[expr.symbol_id].clone();
         let name = &symbol.name;
         let name_span = symbol.span;
-        if expr.args.len() > 0 {
+        if expr.args.is_empty() {
+            build_call_no_params(name, &[], expr.span)
+        } else {
             let args: Vec<_> = expr
                 .args
                 .iter()
@@ -763,8 +776,6 @@ impl QasmCompiler {
             } else {
                 build_call_with_params(name, &[], args, name_span, expr.span)
             }
-        } else {
-            build_call_no_params(name, &[], expr.span)
         }
     }
 
@@ -905,6 +916,9 @@ impl QasmCompiler {
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
+        // if the gate has the name of a qasm or qiskit built-in gate
+        // it means that the stdgates libraries are not being used.
+        // we let the user compile their own gates with the same name.
 
         let cargs: Vec<_> = stmt
             .params

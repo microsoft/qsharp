@@ -22,6 +22,21 @@ if QISKIT_AVAILABLE:
     )
 
 
+# Convert the circuit to QASM3 and back to a backend.
+# Then load the QASM3 and convert it back to a circuit.
+# This is to ensure that the QASM3 conversion is semantically correct.
+# We must remove the include "qiskit_stdgates.inc" line from the QASM3
+# since the qiskit qasm loader can't support any non stdgates.inc include files.
+def round_trip_circuit(circuit, backend):
+    qasm3 = backend._qasm3(circuit)
+    # remove any lines that contain: include "qiskit_stdgates.inc";
+    qasm3 = "\n".join(
+            line for line in qasm3.splitlines() if "qiskit_stdgates.inc" not in line
+        )
+    circuit = from_qasm3(qasm3)
+    return circuit
+
+
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
 def test_run_smoke() -> None:
     circuit = QuantumCircuit(2, 2)
@@ -50,8 +65,7 @@ def test_get_counts_matches_qiskit_simulator():
     backend = QSharpBackend(target_profile=target_profile)
 
     try:
-        qasm3 = backend._qasm3(circuit)
-        circuit = from_qasm3(qasm3)
+        circuit = round_trip_circuit(circuit, backend)
 
         aersim = AerSimulator()
         job = aersim.run(circuit, shots=5)
@@ -125,8 +139,7 @@ def test_get_counts_matches_qiskit_simulator_multiple_circuits():
     backend = QSharpBackend(target_profile=target_profile)
 
     try:
-        qasm3 = backend._qasm3(circuit)
-        circuit = from_qasm3(qasm3)
+        circuit = round_trip_circuit(circuit, backend)
 
         aersim = AerSimulator()
         job = aersim.run([circuit, circuit2], shots=5)

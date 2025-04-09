@@ -25,7 +25,7 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
-use crate::oqasm_helpers::safe_i64_to_f64;
+use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::QasmSource;
 use crate::semantic::types::can_cast_literal;
@@ -76,6 +76,7 @@ pub(crate) struct Lowerer {
     pub version: Option<Version>,
     pub stmts: Vec<Stmt>,
 }
+
 impl Lowerer {
     pub fn new(source: QasmSource, source_map: SourceMap) -> Self {
         let symbols = SymbolTable::default();
@@ -170,6 +171,13 @@ impl Lowerer {
                     continue;
                 }
 
+                // special case for stdgates.inc
+                // it won't be in the includes list
+                if include.filename.to_lowercase() == "qiskit_stdgates.inc" {
+                    self.define_qiskit_stadandard_gates(include);
+                    continue;
+                }
+
                 let include = includes.next().expect("missing include");
                 self.lower_source(include);
             } else {
@@ -250,11 +258,8 @@ impl Lowerer {
             gate_symbol("t", 0, 1),
             gate_symbol("sx", 0, 1),
             gate_symbol("rx", 1, 1),
-            gate_symbol("rxx", 1, 2),
             gate_symbol("ry", 1, 1),
-            gate_symbol("ryy", 1, 2),
             gate_symbol("rz", 1, 1),
-            gate_symbol("rzz", 1, 2),
             gate_symbol("cx", 0, 2),
             gate_symbol("cy", 0, 2),
             gate_symbol("cz", 0, 2),
@@ -268,6 +273,60 @@ impl Lowerer {
             gate_symbol("u1", 1, 1),
             gate_symbol("u2", 2, 1),
             gate_symbol("u3", 3, 1),
+        ];
+        for gate in gates {
+            let name = gate.name.clone();
+            if self.symbols.insert_symbol(gate).is_err() {
+                self.push_redefined_symbol_error(name.as_str(), include.span);
+            }
+        }
+    }
+
+    /// Define the Qiskit standard gates in the symbol table.
+    /// Qiskit emits QASM3 that can't compile because it omits
+    /// definitions for many gates that aren't included in the
+    /// standard gates include file. We define them here so that
+    /// the symbol table is complete and we can lower the QASM3.
+    /// We must also define the gates in the `QasmStd` module so
+    /// that we can compile the QASM3 to Q#.
+    fn define_qiskit_stadandard_gates(&mut self, include: &syntax::IncludeStmt) {
+        fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
+            Symbol::new(
+                name,
+                Span::default(),
+                Type::Gate(cargs, qargs),
+                Default::default(),
+                Default::default(),
+            )
+        }
+        // QIR intrinsics missing from qasm std library, that Qiskit won't emit qasm defs for
+        // rxx, ryy, rzz;
+
+        // Remaining gates that are not in the qasm std library, but are standard gates in Qiskit
+        // that Qiskit wont emit correctly.
+        // dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
+
+        let gates = vec![
+            gate_symbol("rxx", 1, 2),
+            gate_symbol("ryy", 1, 2),
+            gate_symbol("rzz", 1, 2),
+            gate_symbol("dcx", 0, 2),
+            gate_symbol("ecr", 0, 2),
+            gate_symbol("r", 2, 1),
+            gate_symbol("rzx", 1, 2),
+            gate_symbol("cs", 0, 2),
+            gate_symbol("csdg", 0, 2),
+            gate_symbol("sxdg", 0, 1),
+            gate_symbol("csx", 0, 2),
+            gate_symbol("cu1", 1, 2),
+            gate_symbol("cu3", 3, 2),
+            gate_symbol("rccx", 0, 3),
+            gate_symbol("c3sqrtx", 0, 4),
+            gate_symbol("c3x", 0, 4),
+            gate_symbol("rc3x", 0, 4),
+            gate_symbol("xx_minus_yy", 2, 2),
+            gate_symbol("xx_plus_yy", 2, 2),
+            gate_symbol("ccz", 0, 3),
         ];
         for gate in gates {
             let name = gate.name.clone();
@@ -454,7 +513,7 @@ impl Lowerer {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = if lhs.indices.len() == 0 {
+        let ty = if lhs.indices.is_empty() {
             &symbol.ty
         } else {
             &self.get_indexed_type(&symbol.ty, lhs.name.span, lhs.indices.len())
@@ -1931,7 +1990,7 @@ impl Lowerer {
                 expr.span,
             ));
             return None;
-        };
+        }
 
         let Ok(val) = u32::try_from(val) else {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));
@@ -1954,7 +2013,7 @@ impl Lowerer {
                 expr.span,
             ));
             return None;
-        };
+        }
 
         let Ok(val) = u32::try_from(val) else {
             self.push_semantic_error(SemanticErrorKind::DesignatorTooLarge(expr.span));

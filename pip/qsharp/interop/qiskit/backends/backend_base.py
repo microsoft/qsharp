@@ -181,9 +181,9 @@ class BackendBase(BackendV2, ABC):
             target_gates -= set(_QISKIT_STDGATES)
             basis_gates = list(target_gates)
 
-        # selt the default options for the exporter
+        # set the default options for the exporter
         self._qasm_export_options = {
-            "includes": ("stdgates.inc",),
+            "includes": ("stdgates.inc", "qiskit_stdgates.inc",),
             "alias_classical_registers": False,
             "allow_aliasing": False,
             "disable_constants": True,
@@ -424,12 +424,15 @@ class BackendBase(BackendV2, ABC):
 
         :raises QasmError: If there is an error generating or parsing QASM.
         """
-
+        transpiled_circuit = self.transpile(circuit, **options)
         try:
             export_options = self._build_qasm_export_options(**options)
             exporter = Exporter(**export_options)
-            transpiled_circuit = self.transpile(circuit, **options)
             qasm3_source = exporter.dumps(transpiled_circuit)
+            # Qiskit QASM exporter doesn't handle experimental features correctly and always emits
+            # OPENQASM 3.0; even though switch case is not supported in QASM 3.0, so we bump
+            # the version to 3.1 for now.
+            qasm3_source = qasm3_source.replace("OPENQASM 3.0", "OPENQASM 3.1")
             return qasm3_source
         except Exception as ex:
             from .. import QasmError
