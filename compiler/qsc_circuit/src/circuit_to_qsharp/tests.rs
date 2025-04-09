@@ -585,11 +585,11 @@ fn circuit_with_sqrt_x_gate() {
                 if Length(qs) != 2 {
                     fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
                 }
-                let π = Std.Math.PI();
                 H(qs[0]);
                 Z(qs[0]);
-                Rx(π / 2.0, qs[1]);
-                Adjoint R(PauliI, π / 2.0, qs[1]);
+                H(qs[1]);
+                S(qs[1]);
+                H(qs[1]);
                 Z(qs[1]);
             }
 
@@ -634,11 +634,11 @@ fn circuit_with_ctrl_adj_sqrt_x_gate() {
                 if Length(qs) != 2 {
                     fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
                 }
-                let π = Std.Math.PI();
                 H(qs[0]);
                 Z(qs[0]);
-                Controlled R([qs[1]], (PauliI, π / 2.0, qs[0]));
-                Controlled Adjoint Rx([qs[1]], (π / 2.0, qs[0]));
+                Controlled H([qs[1]], qs[0]);
+                Controlled Adjoint S([qs[1]], qs[0]);
+                Controlled H([qs[1]], qs[0]);
                 Z(qs[1]);
             }
 

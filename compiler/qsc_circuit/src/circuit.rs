@@ -592,7 +592,7 @@ fn add_operation_to_rows(
                 &operation.args(),
                 operation.is_adjoint(),
             );
-        };
+        }
     }
 
     if operation.is_controlled() || operation.is_measurement() {
@@ -602,7 +602,7 @@ fn add_operation_to_rows(
                 row.add_object(column, "M");
             } else {
                 row.add_object(column, "●");
-            };
+            }
         }
 
         // If we have a control wire, draw vertical lines spanning all

@@ -6,6 +6,7 @@ mod tests;
 
 use regex_lite::{Captures, Regex};
 use rustc_hash::FxHashMap;
+use std::fmt::Write;
 
 use crate::{
     circuit::{CircuitGroup, Ket, Measurement, Unitary},
@@ -109,11 +110,6 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
                 }
             }
 
-            // If operation is a sqrt gate, add a π constant
-            if !should_add_pi {
-                should_add_pi = op.gate() == "SX";
-            }
-
             // Look for a `π` character in the args
             let args = op.args();
             if !should_add_pi && !args.is_empty() {
@@ -124,7 +120,8 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
 
     if should_add_pi {
         // Add the π constant
-        qsharp_str.push_str(&format!("{indent}let π = Std.Math.PI();\n"));
+        writeln!(qsharp_str, "{indent}let π = Std.Math.PI();")
+            .expect("could not write to qsharp_str");
     }
 
     qsharp_str.push_str(body_str.as_str());
@@ -192,13 +189,23 @@ fn handle_measurement(
 }
 
 fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
-    // "SX" will generate two operations: Rx and Adj R
+    // "SX" will generate three operations: H, X and H
     if unitary.gate == "SX" {
-        let pi_arg = "π / 2.0".to_string();
-        let rx_str = operation_call(
+        let h_str = operation_call(
             &Unitary {
-                gate: "Rx".to_string(),
-                args: vec![pi_arg.clone()],
+                gate: "H".to_string(),
+                args: vec![],
+                children: vec![],
+                targets: unitary.targets.clone(),
+                controls: unitary.controls.clone(),
+                is_adjoint: false,
+            },
+            qubits,
+        );
+        let s_str = operation_call(
+            &Unitary {
+                gate: "S".to_string(),
+                args: vec![],
                 children: vec![],
                 targets: unitary.targets.clone(),
                 controls: unitary.controls.clone(),
@@ -206,22 +213,7 @@ fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: 
             },
             qubits,
         );
-        let general_r_str = operation_call(
-            &Unitary {
-                gate: "R".to_string(),
-                args: vec!["PauliI".to_string(), pi_arg],
-                children: vec![],
-                targets: unitary.targets.clone(),
-                controls: unitary.controls.clone(),
-                is_adjoint: !unitary.is_adjoint, // Adj R
-            },
-            qubits,
-        );
-        if unitary.is_adjoint {
-            format!("{indent}{general_r_str};\n{indent}{rx_str};\n")
-        } else {
-            format!("{indent}{rx_str};\n{indent}{general_r_str};\n")
-        }
+        format!("{indent}{h_str};\n{indent}{s_str};\n{indent}{h_str};\n")
     } else {
         let operation_str = operation_call(unitary, qubits);
         format!("{indent}{operation_str};\n")
@@ -242,7 +234,7 @@ fn handle_ket(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> Str
             children: vec![],
         };
         let operation_str = operation_call(&op_x, qubits);
-        call_str.push_str(&format!("{indent}{operation_str};\n"));
+        writeln!(call_str, "{indent}{operation_str};").expect("could not write to call_str");
         call_str
     } else {
         let ket_str = ket_call(ket, qubits);
