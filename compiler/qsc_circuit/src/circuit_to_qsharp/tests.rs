@@ -553,3 +553,95 @@ fn circuit_with_int_args() {
         "#]],
     );
 }
+
+#[test]
+fn circuit_with_sqrt_x_gate() {
+    check(
+        r#"
+{
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] },
+        { "kind": "unitary", "gate": "SX", "targets": [{ "qubit": 1 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 1 }] }
+      ]
+    }
+  ],
+  "qubits": [{ "id": 0 }, { "id": 1 }]
+}"#,
+        &expect![[r#"
+            /// Expects a qubit register of size 2.
+            operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
+                if Length(qs) != 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                }
+                let π = Std.Math.PI();
+                H(qs[0]);
+                Z(qs[0]);
+                Rx(π / 2.0, qs[1]);
+                Adjoint R(PauliI, π / 2.0, qs[1]);
+                Z(qs[1]);
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn circuit_with_ctrl_adj_sqrt_x_gate() {
+    check(
+        r#"
+{
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 0 }] },
+        {
+          "kind": "unitary",
+          "gate": "SX",
+          "isAdjoint": true,
+          "controls": [{ "qubit": 1 }],
+          "targets": [{ "qubit": 0 }]
+        }
+      ]
+    },
+    {
+      "components": [
+        { "kind": "unitary", "gate": "Z", "targets": [{ "qubit": 1 }] }
+      ]
+    }
+  ],
+  "qubits": [{ "id": 0 }, { "id": 1 }]
+}"#,
+        &expect![[r#"
+            /// Expects a qubit register of size 2.
+            operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
+                if Length(qs) != 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                }
+                let π = Std.Math.PI();
+                H(qs[0]);
+                Z(qs[0]);
+                Controlled R([qs[1]], (PauliI, π / 2.0, qs[0]));
+                Controlled Adjoint Rx([qs[1]], (π / 2.0, qs[0]));
+                Z(qs[1]);
+            }
+
+        "#]],
+    );
+}

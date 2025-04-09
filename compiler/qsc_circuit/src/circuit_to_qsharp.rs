@@ -109,6 +109,11 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
                 }
             }
 
+            // If operation is a sqrt gate, add a π constant
+            if !should_add_pi {
+                should_add_pi = op.gate() == "SX";
+            }
+
             // Look for a `π` character in the args
             let args = op.args();
             if !should_add_pi && !args.is_empty() {
@@ -187,8 +192,40 @@ fn handle_measurement(
 }
 
 fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
-    let operation_str = operation_call(unitary, qubits);
-    format!("{indent}{operation_str};\n")
+    // "SX" will generate two operations: Rx and Adj R
+    if unitary.gate == "SX" {
+        let pi_arg = "π / 2.0".to_string();
+        let rx_str = operation_call(
+            &Unitary {
+                gate: "Rx".to_string(),
+                args: vec![pi_arg.clone()],
+                children: vec![],
+                targets: unitary.targets.clone(),
+                controls: unitary.controls.clone(),
+                is_adjoint: unitary.is_adjoint,
+            },
+            qubits,
+        );
+        let general_r_str = operation_call(
+            &Unitary {
+                gate: "R".to_string(),
+                args: vec!["PauliI".to_string(), pi_arg],
+                children: vec![],
+                targets: unitary.targets.clone(),
+                controls: unitary.controls.clone(),
+                is_adjoint: !unitary.is_adjoint, // Adj R
+            },
+            qubits,
+        );
+        if unitary.is_adjoint {
+            format!("{indent}{general_r_str};\n{indent}{rx_str};\n")
+        } else {
+            format!("{indent}{rx_str};\n{indent}{general_r_str};\n")
+        }
+    } else {
+        let operation_str = operation_call(unitary, qubits);
+        format!("{indent}{operation_str};\n")
+    }
 }
 
 fn handle_ket(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {

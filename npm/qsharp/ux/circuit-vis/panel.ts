@@ -349,9 +349,10 @@ const defaultGateDictionary: GateDictionary = {
   S: _makeUnitary("S"),
   T: _makeUnitary("T"),
   H: _makeUnitary("H"),
-  Measure: _makeMeasurement("Measure"),
+  SX: _makeUnitary("SX"),
   Reset: _makeKet("0"),
   ResetOne: _makeKet("1"),
+  Measure: _makeMeasurement("Measure"),
 };
 
 defaultGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
