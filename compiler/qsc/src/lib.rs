@@ -75,7 +75,4 @@ pub mod partial_eval {
     pub use qsc_partial_eval::Error;
 }
 
-pub mod qasm3 {
-    pub use qsc_qasm3::parse::*;
-    pub use qsc_qasm3::*;
-}
+pub mod qasm;

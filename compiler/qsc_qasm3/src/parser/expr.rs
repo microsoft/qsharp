@@ -28,7 +28,7 @@ use super::{
         IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
         TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
-    completion::WordKinds,
+    completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     prim::{ident, many, opt, recovering_token, seq, shorten, token, FinalSep},
     scan::ParserContext,
@@ -390,10 +390,7 @@ fn lit_int(lexeme: &str, radix: u32) -> Option<i64> {
 fn lit_bigint(lexeme: &str, radix: u32) -> Option<BigInt> {
     // from_str_radix does removes underscores as long as the lexeme
     // doesn't start with an underscore.
-    match BigInt::from_str_radix(lexeme, radix) {
-        Ok(value) => Some(value),
-        Err(_) => None,
-    }
+    BigInt::from_str_radix(lexeme, radix).ok()
 }
 
 fn timing_literal(lexeme: &str, token: Token, kind: TimingLiteralKind) -> Result<Option<Lit>> {

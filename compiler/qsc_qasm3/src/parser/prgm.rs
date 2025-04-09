@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     lex::{Delim, TokenKind},
-    parser::{completion::WordKinds, expr},
+    parser::{completion::word_kinds::WordKinds, expr},
 };
 
 use super::ast::{Program, Stmt, StmtKind, Version};

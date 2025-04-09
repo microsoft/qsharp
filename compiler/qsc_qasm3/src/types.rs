@@ -3,78 +3,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use oq3_semantics::types::ArrayDims;
 use qsc_data_structures::span::Span;
-use rustc_hash::FxHashMap;
-
-thread_local! {
-    /// <https://github.com/openqasm/openqasm/blob/main/examples/stdgates.inc>
-    pub static GATE_MAP: FxHashMap<&'static str, &'static str> = {
-        let mut m = FxHashMap::default();
-        // p is rz, should have been replaced by rz by transpile
-
-        m.insert("x", "X");
-        m.insert("y", "Y");
-        m.insert("z", "Z");
-
-        m.insert("h", "H");
-
-        m.insert("s", "S");
-        m.insert("sdg", "sdg");
-
-        m.insert("t", "T");
-        m.insert("tdg", "tdg");
-
-        // sx q is Rx(pi/2, q), should have been replaced by Rx by transpile
-
-        m.insert("crx", "crx");
-        m.insert("cry", "cry");
-        m.insert("crz", "crz");
-
-        m.insert("rx", "Rx");
-        m.insert("ry", "Ry");
-        m.insert("rz", "Rz");
-
-        m.insert("rxx", "Rxx");
-        m.insert("ryy", "Ryy");
-        m.insert("rzz", "Rzz");
-
-        m.insert("cx", "CNOT");
-        m.insert("cy", "CY");
-        m.insert("cz", "CZ");
-
-        // cp (controlled-phase), should have been replaced by transpile
-
-        m.insert("ch", "ch");
-
-        m.insert("id", "I");
-
-        m.insert("swap", "SWAP");
-
-        m.insert("ccx", "CCNOT");
-
-        // cswap (controlled-swap), should have been replaced by transpile
-
-        // cu (controlled-U), should have been replaced by transpile
-
-        // openqasm 2.0 gates should have been replaced by transpile
-        // CX, phase, cphase, id, u1, u2, u3
-        m
-    };
-}
-
-pub(crate) fn get_qsharp_gate_name<S: AsRef<str>>(gate_name: S) -> Option<&'static str> {
-    GATE_MAP.with(|map| map.get(gate_name.as_ref()).copied())
-}
-
-/// When compiling QASM3 expressions, we need to keep track of the sematic QASM
-/// type of the expression. This allows us to perform type checking and casting
-/// when necessary.
-#[derive(Debug, Clone, PartialEq)]
-pub struct QasmTypedExpr {
-    pub ty: oq3_semantics::types::Type,
-    pub expr: qsc_ast::ast::Expr,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum GateModifier {
@@ -148,16 +77,6 @@ pub enum ArrayDimensions {
     Three(usize, usize, usize),
 }
 
-impl From<&ArrayDims> for ArrayDimensions {
-    fn from(value: &ArrayDims) -> Self {
-        match value {
-            ArrayDims::D1(dim) => ArrayDimensions::One(*dim),
-            ArrayDims::D2(dim1, dim2) => ArrayDimensions::Two(*dim1, *dim2),
-            ArrayDims::D3(dim1, dim2, dim3) => ArrayDimensions::Three(*dim1, *dim2, *dim3),
-        }
-    }
-}
-
 impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
     fn from(value: &crate::semantic::types::ArrayDimensions) -> Self {
         match value {
@@ -229,60 +148,4 @@ impl Display for ArrayDimensions {
             ArrayDimensions::Three(..) => write!(f, "[][][]"),
         }
     }
-}
-
-/// Get the indexed type of a given type.
-/// For example, if the type is `Int[2][3]`, the indexed type is `Int[2]`.
-/// If the type is `Int[2]`, the indexed type is `Int`.
-/// If the type is `Int`, the indexed type is `None`.
-///
-/// This is useful for determining the type of an array element.
-pub(crate) fn get_indexed_type(
-    ty: &oq3_semantics::types::Type,
-) -> Option<oq3_semantics::types::Type> {
-    use oq3_semantics::types::{IsConst, Type};
-    let ty = match &ty {
-        Type::AngleArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Angle(None, IsConst::False),
-            ArrayDims::D2(l, _) => Type::AngleArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::AngleArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::BitArray(dims, is_const) => match dims {
-            ArrayDims::D1(_) => Type::Bit(is_const.clone()),
-            ArrayDims::D2(l, _) => Type::BitArray(ArrayDims::D1(*l), is_const.clone()),
-            ArrayDims::D3(l, w, _) => Type::BitArray(ArrayDims::D2(*l, *w), is_const.clone()),
-        },
-        Type::BoolArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Bool(IsConst::False),
-            ArrayDims::D2(l, _) => Type::BoolArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::BoolArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::ComplexArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Complex(None, IsConst::False),
-            ArrayDims::D2(l, _) => Type::ComplexArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::ComplexArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::FloatArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Float(None, IsConst::False),
-            ArrayDims::D2(l, _) => Type::FloatArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::FloatArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::IntArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Int(None, IsConst::False),
-            ArrayDims::D2(l, _) => Type::IntArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::IntArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::QubitArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::Qubit,
-            ArrayDims::D2(l, _) => Type::QubitArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::QubitArray(ArrayDims::D2(*l, *w)),
-        },
-        Type::UIntArray(dims) => match dims {
-            ArrayDims::D1(_) => Type::UInt(None, IsConst::False),
-            ArrayDims::D2(l, _) => Type::UIntArray(ArrayDims::D1(*l)),
-            ArrayDims::D3(l, w, _) => Type::UIntArray(ArrayDims::D2(*l, *w)),
-        },
-        _ => return None,
-    };
-    Some(ty)
 }

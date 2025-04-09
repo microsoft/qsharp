@@ -43,6 +43,59 @@ fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        gate h a { U(π/2, 0., π) a; gphase(-π/4);}
+        gate x a { U(π, 0., π) a; gphase(-π/2);}
+        gate cx a, b { ctrl @ x a, b; }
+        gate rz(λ) a { gphase(-λ/2); U(0., 0., λ) a; }
+        gate rxx(theta) a, b { h a; h b; cx a, b; rz(theta) b; cx a, b; h b; h a; }
+
+        qubit a;
+        qubit b;
+        x a;
+        rxx(π/2) a, b;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation h(a : Qubit) : Unit is Adj + Ctl {
+            U(__DoubleAsAngle__(3.141592653589793 / 2., 53), __DoubleAsAngle__(0., 53), __DoubleAsAngle__(3.141592653589793, 53), a);
+            gphase(__DoubleAsAngle__(-3.141592653589793 / 4., 53));
+        }
+        operation x(a : Qubit) : Unit is Adj + Ctl {
+            U(__DoubleAsAngle__(3.141592653589793, 53), __DoubleAsAngle__(0., 53), __DoubleAsAngle__(3.141592653589793, 53), a);
+            gphase(__DoubleAsAngle__(-3.141592653589793 / 2., 53));
+        }
+        operation cx(a : Qubit, b : Qubit) : Unit is Adj + Ctl {
+            Controlled x([a], b);
+        }
+        operation rz(λ : __Angle__, a : Qubit) : Unit is Adj + Ctl {
+            gphase(__DivideAngleByInt__(__NegAngle__(λ), 2));
+            U(__DoubleAsAngle__(0., 53), __DoubleAsAngle__(0., 53), λ, a);
+        }
+        operation rxx(theta : __Angle__, a : Qubit, b : Qubit) : Unit is Adj + Ctl {
+            h(a);
+            h(b);
+            cx(a, b);
+            rz(theta, b);
+            cx(a, b);
+            h(b);
+            h(a);
+        }
+        let a = QIR.Runtime.__quantum__rt__qubit_allocate();
+        let b = QIR.Runtime.__quantum__rt__qubit_allocate();
+        x(a);
+        rxx(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), a, b);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn x_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -521,5 +574,160 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
         !4 = !{i32 1, !"int_computations", !"i64"}
     "#]].assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn rxx_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "qiskit_stdgates.inc";
+        qubit[2] q;
+        rxx(2.0) q[1], q[0];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        rxx(__DoubleAsAngle__(2., 53), q[1], q[0]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn ryy_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "qiskit_stdgates.inc";
+        qubit[2] q;
+        ryy(2.0) q[1], q[0];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        ryy(__DoubleAsAngle__(2., 53), q[1], q[0]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn rzz_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "qiskit_stdgates.inc";
+        qubit[2] q;
+        rzz(2.0) q[1], q[0];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(2);
+        rzz(__DoubleAsAngle__(2., 53), q[1], q[0]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn rxx_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[2] q;
+        rxx(2.0) q[1], q[0];
+    "#;
+
+    compile_qasm_to_qsharp(source).expect_err("Error expected");
+    Ok(())
+}
+
+#[test]
+fn ryy_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[2] q;
+        ryy(2.0) q[1], q[0];
+    "#;
+
+    compile_qasm_to_qsharp(source).expect_err("Error expected");
+    Ok(())
+}
+
+#[test]
+fn rzz_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[2] q;
+        rzz(2.0) q[1], q[0];
+    "#;
+
+    compile_qasm_to_qsharp(source).expect_err("Error expected");
+    Ok(())
+}
+
+#[test]
+fn all_qiskit_stdgates_can_be_called_with_qiskit_stdgates_included(
+) -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "qiskit_stdgates.inc";
+        qubit[4] q;
+        rxx(pi / 2.0) q[1], q[0];
+        ryy(pi / 2.0) q[1], q[0];
+        rzz(pi / 2.0) q[1], q[0];
+        dcx q[0], q[1];
+        ecr q[0], q[1];
+        r(pi / 2.0, pi / 4.0) q[1];
+        rzx(pi / 2.0) q[1], q[0];
+        cs q[0], q[1];
+        csdg q[0], q[1];
+        sxdg q[0];
+        csx q[0], q[1];
+        cu1(pi / 2.0) q[1], q[0];
+        cu3(pi / 2.0, pi / 4.0, pi / 8.0) q[1], q[0];
+        rccx q[0], q[1], q[2];
+        c3sqrtx q[0], q[1], q[2], q[3];
+        c3x q[0], q[1], q[2], q[3];
+        rc3x q[0], q[1], q[2], q[3];
+        xx_minus_yy(pi / 2.0, pi / 4.0) q[1], q[0];
+        xx_plus_yy(pi / 2.0, pi / 4.0) q[1], q[0];
+        ccz q[0], q[1], q[2];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(4);
+        rxx(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), q[1], q[0]);
+        ryy(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), q[1], q[0]);
+        rzz(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), q[1], q[0]);
+        dcx(q[0], q[1]);
+        ecr(q[0], q[1]);
+        r(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), __DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 4., 53), q[1]);
+        rzx(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), q[1], q[0]);
+        cs(q[0], q[1]);
+        csdg(q[0], q[1]);
+        sxdg(q[0]);
+        csx(q[0], q[1]);
+        cu1(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), q[1], q[0]);
+        cu3(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), __DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 4., 53), __DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 8., 53), q[1], q[0]);
+        rccx(q[0], q[1], q[2]);
+        c3sqrtx(q[0], q[1], q[2], q[3]);
+        c3x(q[0], q[1], q[2], q[3]);
+        rc3x(q[0], q[1], q[2], q[3]);
+        xx_minus_yy(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), __DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 4., 53), q[1], q[0]);
+        xx_plus_yy(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), __DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 4., 53), q[1], q[0]);
+        ccz(q[0], q[1], q[2]);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }

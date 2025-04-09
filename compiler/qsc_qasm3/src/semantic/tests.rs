@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::fmt::Write;
+
 pub mod assignment;
 pub mod decls;
 
@@ -81,7 +83,7 @@ pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
         let mut value = decl.to_string();
         value.push('\n');
         let symbol = &symbol_table[decl.symbol_id];
-        value.push_str(&format!("[{}] {symbol}", decl.symbol_id));
+        write!(value, "[{}] {symbol}", decl.symbol_id).expect("writing symbol id");
         value
     });
 }
@@ -106,7 +108,7 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
             value.push_str(&str);
             value.push('\n');
             let symbol = &symbol_table[symbol_id];
-            value.push_str(&format!("[{symbol_id}] {symbol}"));
+            write!(value, "[{symbol_id}] {symbol}").expect("writing symbol id");
             value.push('\n');
         }
 
@@ -241,7 +243,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [196-206]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [196-206]:
-                            symbol_id: 35
+                            symbol_id: 32
                             ty_span: [196-199]
                             init_expr: Expr [204-205]:
                                 ty: Bit(true)
@@ -249,7 +251,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [211-227]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [211-227]:
-                            symbol_id: 35
+                            symbol_id: 32
                             ty_span: [211-215]
                             init_expr: Expr [220-226]:
                                 ty: Bool(false)
@@ -257,18 +259,18 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: AndL
                                     lhs: Expr [220-221]:
                                         ty: Err
-                                        kind: SymbolId(36)
+                                        kind: SymbolId(33)
                                     rhs: Expr [225-226]:
                                         ty: Bool(false)
                                         kind: Cast [0-0]:
                                             ty: Bool(false)
                                             expr: Expr [225-226]:
                                                 ty: Bit(false)
-                                                kind: SymbolId(35)
+                                                kind: SymbolId(32)
                     Stmt [140-154]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [140-154]:
-                            symbol_id: 37
+                            symbol_id: 34
                             ty_span: [140-145]
                             init_expr: Expr [150-153]:
                                 ty: Angle(None, true)
@@ -276,7 +278,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [159-179]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [159-179]:
-                            symbol_id: 38
+                            symbol_id: 35
                             ty_span: [159-164]
                             init_expr: Expr [169-178]:
                                 ty: Float(None, false)
@@ -284,7 +286,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                     op: Add
                                     lhs: Expr [169-170]:
                                         ty: Angle(None, false)
-                                        kind: SymbolId(37)
+                                        kind: SymbolId(34)
                                     rhs: Expr [173-178]:
                                         ty: Float(None, false)
                                         kind: Cast [0-0]:
@@ -295,11 +297,11 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                     Stmt [74-84]:
                         annotations: <empty>
                         kind: ClassicalDeclarationStmt [74-84]:
-                            symbol_id: 40
+                            symbol_id: 37
                             ty_span: [74-77]
                             init_expr: Expr [82-83]:
                                 ty: Err
-                                kind: SymbolId(39)
+                                kind: SymbolId(36)
 
             [Qsc.Qasm3.Compile.UndefinedSymbol
 
