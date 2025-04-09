@@ -6,18 +6,7 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { CircuitPanel, CircuitProps, setRenderer } from "qsharp-lang/ux";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - there are no types for this
-import mk from "@vscode/markdown-it-katex";
-import markdownIt from "markdown-it";
-const md = markdownIt("commonmark");
-md.use(mk, {
-  enableMathBlockInHtml: true,
-  enableMathInlineInHtml: true,
-});
-setRenderer((input: string) => md.render(input));
+import { CircuitPanel, CircuitProps } from "qsharp-lang/ux";
 
 window.addEventListener("message", onMessage);
 window.addEventListener("load", main);
