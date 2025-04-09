@@ -24,9 +24,10 @@ def run_transpile_test(
     # remove the first four lines, which are the header
     # OPENQASM 3.0;
     # include "stdgates.inc";
+    # include "qiskit_stdgates.inc";
     # bit[3] c;
     # qubit[3] q;
-    remaining_lines = lines[4:]
+    remaining_lines = lines[5:]
     result = "\n".join(remaining_lines)
     assert result == expected_output
 

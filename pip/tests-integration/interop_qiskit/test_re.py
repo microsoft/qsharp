@@ -69,8 +69,8 @@ def test_estimate_qiskit_rgqft_multiplier() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 1002,
-            "rotationDepth": 680,
+            "rotationCount": 972,
+            "rotationDepth": 666,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,
@@ -94,8 +94,8 @@ def test_estimate_qiskit_rgqft_multiplier_in_threadpool() -> None:
         {
             "numQubits": 16,
             "tCount": 90,
-            "rotationCount": 1002,
-            "rotationDepth": 680,
+            "rotationCount": 972,
+            "rotationDepth": 666,
             "cczCount": 0,
             "ccixCount": 0,
             "measurementCount": 0,

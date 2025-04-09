@@ -3,7 +3,7 @@
 
 use core::f64;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::rc::Rc;
 
 use super::{
@@ -662,3 +662,72 @@ impl std::ops::Index<SymbolId> for SymbolTable {
         self.symbols.get(index).expect("Symbol should exist")
     }
 }
+
+// create util fn that returns true if the asref<str> is in the set QASM_STD_GATES or QISKIT_STD_GATES_EXCEPT_QASM_STDGATES
+pub(crate) fn is_std_gate<S>(name: S) -> bool
+where
+    S: AsRef<str>,
+{
+    QASM_STD_GATES.contains(name.as_ref())
+        || QISKIT_STD_GATES_EXCEPT_QASM_STDGATES.contains(name.as_ref())
+}
+
+static QASM_STD_GATES: std::sync::LazyLock<FxHashSet<&'static str>> =
+    std::sync::LazyLock::new(|| {
+        let mut set = FxHashSet::default();
+        set.insert("x");
+        set.insert("p");
+        set.insert("x");
+        set.insert("y");
+        set.insert("z");
+        set.insert("h");
+        set.insert("s");
+        set.insert("t");
+        set.insert("sx");
+        set.insert("rx");
+        set.insert("rxx");
+        set.insert("ry");
+        set.insert("ryy");
+        set.insert("rz");
+        set.insert("rzz");
+        set.insert("cx");
+        set.insert("cy");
+        set.insert("cz");
+        set.insert("cp");
+        set.insert("swap");
+        set.insert("ccx");
+        set.insert("cu");
+        set.insert("CX");
+        set.insert("phase");
+        set.insert("id");
+        set.insert("u1");
+        set.insert("u2");
+        set.insert("u3");
+        set
+    });
+
+static QISKIT_STD_GATES_EXCEPT_QASM_STDGATES: std::sync::LazyLock<FxHashSet<&'static str>> =
+    std::sync::LazyLock::new(|| {
+        let mut set = FxHashSet::default();
+        set.insert("rrx");
+        set.insert("ryy");
+        set.insert("rzz");
+        set.insert("dcx");
+        set.insert("ecr");
+        set.insert("r");
+        set.insert("rzx");
+        set.insert("cs");
+        set.insert("csdg");
+        set.insert("sxdg");
+        set.insert("csx");
+        set.insert("cu1");
+        set.insert("cu3");
+        set.insert("rccx");
+        set.insert("c3sqrtx");
+        set.insert("c3x");
+        set.insert("rc3x");
+        set.insert("xx_minus_yy");
+        set.insert("xx_plus_yy");
+        set.insert("ccz");
+        set
+    });

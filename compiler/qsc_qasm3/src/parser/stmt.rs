@@ -8,7 +8,7 @@ use qsc_data_structures::span::Span;
 use std::rc::Rc;
 
 use super::{
-    completion::WordKinds,
+    completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator, gate_operand, indexed_identifier},
     prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, shorten},
@@ -381,7 +381,7 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
                 filename: v.to_string(),
             }));
         }
-    };
+    }
     Err(Error::new(ErrorKind::Rule(
         "string literal",
         next.kind,
@@ -1642,7 +1642,7 @@ fn parse_calibration_grammar_stmt(s: &mut ParserContext) -> Result<CalibrationGr
                 name: name.to_string(),
             });
         }
-    };
+    }
 
     Err(Error::new(ErrorKind::Rule(
         "string literal",

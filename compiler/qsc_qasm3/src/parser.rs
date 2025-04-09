@@ -15,7 +15,7 @@ use std::sync::Arc;
 #[cfg(test)]
 pub(crate) mod tests;
 
-mod completion;
+pub mod completion;
 mod error;
 pub use error::Error;
 mod expr;
@@ -296,7 +296,9 @@ where
             let file_path = &include.filename;
             // Skip the standard gates include file.
             // Handling of this file is done by the compiler.
-            if file_path.to_lowercase() == "stdgates.inc" {
+            if file_path.to_lowercase() == "stdgates.inc"
+                || file_path.to_lowercase() == "qiskit_stdgates.inc"
+            {
                 continue;
             }
             let source = parse_qasm_file(file_path, resolver);

@@ -168,7 +168,7 @@ def test_custom_qir_intrinsics_generates_qir():
 
     options = {
         "search_path": get_resource_path(),
-        "includes": ("stdgates.inc", "custom_intrinsics.inc"),
+        "includes": ("stdgates.inc", "qiskit_stdgates.inc", "custom_intrinsics.inc"),
     }
 
     backend = QSharpBackend(target_profile=target_profile, target=target)
@@ -199,7 +199,7 @@ def test_custom_qir_intrinsics_is_simulatable():
 
     options = {
         "search_path": get_resource_path(),
-        "includes": ("stdgates.inc", "custom_intrinsics.inc"),
+        "includes": ("stdgates.inc", "qiskit_stdgates.inc", "custom_intrinsics.inc"),
     }
 
     backend = QSharpBackend(target_profile=target_profile, target=target)

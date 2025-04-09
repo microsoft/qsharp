@@ -13,7 +13,7 @@ use super::{
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
 use crate::{
-    oqasm_helpers::safe_i64_to_f64,
+    convert::safe_i64_to_f64,
     semantic::types::{ArrayDimensions, Type},
 };
 use miette::Diagnostic;

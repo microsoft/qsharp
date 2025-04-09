@@ -37,6 +37,9 @@ pub enum ErrorKind {
     #[error("Cycle in dependency graph")]
     /// `DependencyCycle` occurs when there is a cycle in the dependency graph.
     DependencyCycle,
+
+    #[diagnostic(transparent)]
+    OpenQasm(#[from] crate::qasm::error::Error),
 }
 
 /// Compiles a package from its AST representation.
