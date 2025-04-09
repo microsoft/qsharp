@@ -14,6 +14,7 @@ import {
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
+export const qsharpCircuitLanduageId = "qsharpcircuit";
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
@@ -28,7 +29,7 @@ export function isQsharpDocument(document: TextDocument): boolean {
 // Returns true for all circuit documents
 export function isCircuitDocument(document: TextDocument): boolean {
   return (
-    document.languageId === "qsc" &&
+    document.languageId === qsharpCircuitLanduageId &&
     (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
     document.uri.scheme !== "git" &&
     document.uri.scheme !== "pr"

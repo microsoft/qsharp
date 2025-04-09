@@ -474,7 +474,7 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "qsc",
+        "id": "qsharpcircuit",
         "aliases": [
           "Q# Circuit",
           "qsc"
