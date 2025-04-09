@@ -71,7 +71,8 @@ impl Operation {
         match self {
             Operation::Measurement(m) => m.gate.clone(),
             Operation::Unitary(u) => u.gate.clone(),
-            Operation::Ket(k) => k.gate.clone(),
+            #[allow(clippy::unicode_not_nfc)]
+            Operation::Ket(k) => format!("|{}〉", k.gate),
         }
     }
 
