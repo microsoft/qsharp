@@ -56,7 +56,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       const filename = document.fileName.split(/\\|\//).pop()!.split(".")[0];
 
       const props = {
-        title: `${filename} Circuit`,
+        title: `${filename}`,
         targetProfile: "",
         simulated: false,
         calculating: false,
