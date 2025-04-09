@@ -25,11 +25,8 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _token: vscode.CancellationToken,
   ): Promise<void> {
     log.info("Resolving CircuitEditorProvider");
-    console.log("Resolving CircuitEditorProvider");
 
     // Setup initial content for the webview
     webviewPanel.webview.options = {

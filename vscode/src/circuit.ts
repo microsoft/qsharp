@@ -247,11 +247,7 @@ async function getCircuitOrError(
       simulate,
       params.operation,
     );
-    return {
-      result: "success",
-      simulated: simulate,
-      circuit: circuit,
-    };
+    return { result: "success", simulated: simulate, circuit: circuit };
   } catch (e: any) {
     let errors: IQSharpError[] = [];
     let resultCompError = false;
