@@ -3,9 +3,6 @@
 
 #![allow(clippy::too_many_lines, clippy::needless_raw_string_hashes)]
 
-use expect_test::expect;
-use qsc_data_structures::index_map::IndexMap;
-
 use crate::{
     builder::new_program,
     passes::remap_block_ids,
@@ -15,16 +12,17 @@ use crate::{
     },
     utils::build_predecessors_map,
 };
+use expect_test::expect;
+use qsc_data_structures::index_map::IndexMap;
+use std::fmt::Write;
 
 use super::build_dominator_graph;
 
 fn display_dominator_graph(doms: &IndexMap<BlockId, BlockId>) -> String {
     let mut result = String::new();
     for (block_id, dom) in doms.iter() {
-        result.push_str(&format!(
-            "Block {} dominated by block {},\n",
-            block_id.0, dom.0
-        ));
+        writeln!(result, "Block {} dominated by block {},", block_id.0, dom.0)
+            .expect("writing to string should succeed");
     }
     result
 }

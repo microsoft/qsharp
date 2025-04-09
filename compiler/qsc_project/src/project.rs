@@ -658,7 +658,7 @@ pub trait FileSystemAsync {
                 Err(e) => {
                     errors.push(e);
                 }
-            };
+            }
         }
 
         stack.pop();

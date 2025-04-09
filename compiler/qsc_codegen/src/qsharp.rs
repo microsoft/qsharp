@@ -180,7 +180,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
                     if !is_last {
                         self.write(", ");
-                    };
+                    }
                 }
 
                 self.write(";");

@@ -180,7 +180,7 @@ pub fn parse_namespaces_or_implicit(
             if let Some(x) = ns.items.get_mut(0) {
                 x.span.lo = 0;
                 x.doc = doc;
-            };
+            }
         }
         Ok(ns)
     } else {
@@ -188,7 +188,7 @@ pub fn parse_namespaces_or_implicit(
         if let Some(x) = ns.get_mut(0) {
             x.span.lo = 0;
             x.doc = doc;
-        };
+        }
         Ok(ns)
     }
 }

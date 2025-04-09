@@ -256,11 +256,8 @@ pub(super) fn scheme_for_ast_callable(
     names: &Names,
     callable: &CallableDecl,
 ) -> (Scheme, Vec<TyConversionError>) {
-    let (mut type_parameters, errors) = type_parameters_for_ast_callable(names, &callable.generics);
-    let mut errors = errors
-        .into_iter()
-        .map(TyConversionError::from)
-        .collect::<Vec<_>>();
+    let (mut type_parameters, mut errors) =
+        type_parameters_for_ast_callable(names, &callable.generics);
     let kind = callable_kind_from_ast(callable.kind);
 
     let (mut input, new_errors) = ast_pat_ty(names, &callable.input);
@@ -399,7 +396,7 @@ pub(crate) fn class_constraints_from_ast(
         stack.insert(ast_bound.clone());
         if check_param_length(ast_bound, &mut errors) {
             continue;
-        };
+        }
         let bound_result = match &*ast_bound.name.name {
             "Eq" => Ok(qsc_hir::ty::ClassConstraint::Eq),
             "Add" => Ok(qsc_hir::ty::ClassConstraint::Add),

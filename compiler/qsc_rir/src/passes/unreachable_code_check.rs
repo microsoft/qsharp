@@ -52,7 +52,7 @@ pub fn check_unreachable_blocks(program: &Program) {
     for (_, callable) in program.callables.iter() {
         if let Some(block_id) = callable.body {
             start_blocks.insert(block_id);
-        };
+        }
     }
     let mut live_blocks = FxHashSet::default();
     for block in start_blocks {

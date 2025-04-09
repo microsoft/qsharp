@@ -557,7 +557,7 @@ fn resolve_all(
         if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias.as_deref())
         {
             errors.extend(errs);
-        };
+        }
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 

@@ -71,7 +71,7 @@ impl<'a> Visitor<'a> for AstContext<'a> {
                         && item
                             .alias
                             .as_ref()
-                            .map_or(true, |a| !a.span.touches(self.offset))
+                            .is_none_or(|a| !a.span.touches(self.offset))
                     {
                         // Special case when the cursor falls *between* the
                         // `Path` and the glob asterisk,
