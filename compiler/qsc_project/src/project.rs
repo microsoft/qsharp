@@ -177,7 +177,6 @@ pub trait FileSystemAsync {
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
-    /// This function should only return files that end in *.qs and folders.
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
     /// Given a base path and a relative path, join the segments and normalize
@@ -193,7 +192,7 @@ pub trait FileSystemAsync {
         path: &str,
     ) -> miette::Result<Arc<str>>;
 
-    /// Given an initial path, fetch files matching <initial_path>/**/*.qs
+    /// Given an initial path, fetch files matching <initial_path>/**/*.qs or <initial_path>/**/*.qsc
     async fn collect_project_sources(&self, initial_path: &Path) -> ProjectResult<Vec<PathBuf>> {
         let listing = self
             .list_directory(initial_path)
@@ -418,7 +417,7 @@ pub trait FileSystemAsync {
     ) -> ProjectResult<PackageInfo> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        // For local packages, we include all *.qs files under the `src/`
+        // For local packages, we include all source files under the `src/`
         // directory, even if a `files` field is present.
         //
         // If there are files under `src/` that are missing from the `files` field,
