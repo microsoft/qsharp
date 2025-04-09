@@ -38,7 +38,7 @@ use crate::{
             BinaryOpExpr, Cast, DiscreteSet, Expr, GateOperand, GateOperandKind, IndexElement,
             IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
         },
-        symbols::{is_std_gate, IOKind, Symbol, SymbolId, SymbolTable},
+        symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, ArrayDimensions, Type},
         SemanticErrorKind,
     },
@@ -916,11 +916,9 @@ impl QasmCompiler {
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = symbol.name.clone();
-
-        // We want to avoid declaring anything in the stdgate libraries
-        if is_std_gate(&name) {
-            return None;
-        }
+        // if the gate has the name of a qasm or qiskit built-in gate
+        // it means that the stdgates libraries are not being used.
+        // we let the user compile their own gates with the same name.
 
         let cargs: Vec<_> = stmt
             .params

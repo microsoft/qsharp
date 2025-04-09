@@ -23,6 +23,7 @@ pub mod error {
 pub mod completion {
     pub use qsc_qasm3::parser::completion::*;
 }
+pub use qsc_qasm3::compile_to_qsharp_ast_with_config;
 pub use qsc_qasm3::package_store_with_qasm;
 
 #[must_use]
@@ -43,7 +44,7 @@ where
         None,
         None,
     );
-    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
+    compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }
 
 #[must_use]
@@ -65,20 +66,5 @@ where
         Some(name.as_ref().into()),
         None,
     );
-    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
-}
-
-#[must_use]
-pub fn compile_to_qsharp_ast_with_config<S, P, R>(
-    source: S,
-    path: P,
-    resolver: Option<&mut R>,
-    config: CompilerConfig,
-) -> QasmCompileUnit
-where
-    S: AsRef<str>,
-    P: AsRef<Path>,
-    R: SourceResolver,
-{
-    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
+    compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }

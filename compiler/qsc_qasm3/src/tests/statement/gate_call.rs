@@ -43,6 +43,59 @@ fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        gate h a { U(π/2, 0., π) a; gphase(-π/4);}
+        gate x a { U(π, 0., π) a; gphase(-π/2);}
+        gate cx a, b { ctrl @ x a, b; }
+        gate rz(λ) a { gphase(-λ/2); U(0., 0., λ) a; }
+        gate rxx(theta) a, b { h a; h b; cx a, b; rz(theta) b; cx a, b; h b; h a; }
+
+        qubit a;
+        qubit b;
+        x a;
+        rxx(π/2) a, b;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        operation h(a : Qubit) : Unit is Adj + Ctl {
+            U(__DoubleAsAngle__(3.141592653589793 / 2., 53), __DoubleAsAngle__(0., 53), __DoubleAsAngle__(3.141592653589793, 53), a);
+            gphase(__DoubleAsAngle__(-3.141592653589793 / 4., 53));
+        }
+        operation x(a : Qubit) : Unit is Adj + Ctl {
+            U(__DoubleAsAngle__(3.141592653589793, 53), __DoubleAsAngle__(0., 53), __DoubleAsAngle__(3.141592653589793, 53), a);
+            gphase(__DoubleAsAngle__(-3.141592653589793 / 2., 53));
+        }
+        operation cx(a : Qubit, b : Qubit) : Unit is Adj + Ctl {
+            Controlled x([a], b);
+        }
+        operation rz(λ : __Angle__, a : Qubit) : Unit is Adj + Ctl {
+            gphase(__DivideAngleByInt__(__NegAngle__(λ), 2));
+            U(__DoubleAsAngle__(0., 53), __DoubleAsAngle__(0., 53), λ, a);
+        }
+        operation rxx(theta : __Angle__, a : Qubit, b : Qubit) : Unit is Adj + Ctl {
+            h(a);
+            h(b);
+            cx(a, b);
+            rz(theta, b);
+            cx(a, b);
+            h(b);
+            h(a);
+        }
+        let a = QIR.Runtime.__quantum__rt__qubit_allocate();
+        let b = QIR.Runtime.__quantum__rt__qubit_allocate();
+        x(a);
+        rxx(__DoubleAsAngle__(Microsoft.Quantum.Math.PI() / 2., 53), a, b);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn x_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
