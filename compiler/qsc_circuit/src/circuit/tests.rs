@@ -4,8 +4,22 @@
 use super::*;
 use expect_test::expect;
 
-fn operation_list_to_component_grid(operations: Vec<Operation>, max_q_id: usize) -> ComponentGrid {
-    op_grid_to_comp_grid(operation_list_to_grid(operations, max_q_id))
+/// Converts a 2D grid of operations into a component grid.
+///
+/// # Arguments
+///
+/// * `operations` - A 2D vector of operations to be converted.
+///
+/// # Returns
+///
+/// A component grid representing the operations.
+pub fn op_grid_to_comp_grid(operations: Vec<Vec<Operation>>) -> ComponentGrid {
+    let mut component_grid = vec![];
+    for col in operations {
+        let column = ComponentColumn { components: col };
+        component_grid.push(column);
+    }
+    component_grid
 }
 
 fn qubit(id: usize) -> Qubit {
@@ -128,7 +142,7 @@ fn bell() {
                 num_results: 1,
             },
         ],
-        component_grid: operation_list_to_component_grid(operations, 1),
+        component_grid: operation_list_to_grid(operations, 1),
     };
 
     expect![[r"
@@ -156,7 +170,7 @@ fn control_classical() {
             qubit(1),
             qubit(2),
         ],
-        component_grid: operation_list_to_component_grid(operations, 2),
+        component_grid: operation_list_to_grid(operations, 2),
     };
 
     expect![[r"
@@ -176,7 +190,7 @@ fn two_measurements() {
             id: 0,
             num_results: 2,
         }],
-        component_grid: operation_list_to_component_grid(operations, 0),
+        component_grid: operation_list_to_grid(operations, 0),
     };
 
     expect![[r"

@@ -5,10 +5,7 @@
 mod tests;
 
 use crate::{
-    circuit::{
-        op_grid_to_comp_grid, operation_list_to_grid, Circuit, Ket, Measurement, Operation,
-        Register, Unitary,
-    },
+    circuit::{operation_list_to_grid, Circuit, Ket, Measurement, Operation, Register, Unitary},
     Config,
 };
 use num_bigint::BigUint;
@@ -267,10 +264,10 @@ impl Builder {
             });
         }
 
-        let max_q_id = qubits.iter().map(|qubit| qubit.id).max().unwrap_or(0);
+        let max_q_id = qubits.len() - 1;
 
         Circuit {
-            component_grid: op_grid_to_comp_grid(operation_list_to_grid(operations, max_q_id)),
+            component_grid: operation_list_to_grid(operations, max_q_id),
             qubits,
         }
     }

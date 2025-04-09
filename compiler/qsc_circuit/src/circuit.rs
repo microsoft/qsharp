@@ -689,24 +689,6 @@ fn get_row_indexes(
         .collect()
 }
 
-/// Converts a 2D grid of operations into a component grid.
-///
-/// # Arguments
-///
-/// * `operations` - A 2D vector of operations to be converted.
-///
-/// # Returns
-///
-/// A component grid representing the operations.
-pub fn op_grid_to_comp_grid(operations: Vec<Vec<Operation>>) -> ComponentGrid {
-    let mut component_grid = vec![];
-    for col in operations {
-        let column = ComponentColumn { components: col };
-        component_grid.push(column);
-    }
-    component_grid
-}
-
 /// Converts a list of operations into a 2D grid of operations in col-row format.
 /// Operations will be left-justified as much as possible in the resulting grid.
 /// Children operations are recursively converted into a grid.
@@ -718,11 +700,8 @@ pub fn op_grid_to_comp_grid(operations: Vec<Vec<Operation>>) -> ComponentGrid {
 ///
 /// # Returns
 ///
-/// A 2D array of operations.
-pub fn operation_list_to_grid(
-    mut operations: Vec<Operation>,
-    max_q_id: usize,
-) -> Vec<Vec<Operation>> {
+/// A component grid representing the operations.
+pub fn operation_list_to_grid(mut operations: Vec<Operation>, max_q_id: usize) -> ComponentGrid {
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is
         // length 1 is actually checking if it has a single column,
@@ -733,27 +712,25 @@ pub fn operation_list_to_grid(
         if op.children().len() == 1 {
             match op {
                 Operation::Measurement(m) => {
-                    m.children = op_grid_to_comp_grid(operation_list_to_grid(
-                        m.children.remove(0).components,
-                        max_q_id,
-                    ));
+                    m.children = operation_list_to_grid(m.children.remove(0).components, max_q_id);
                 }
                 Operation::Unitary(u) => {
-                    u.children = op_grid_to_comp_grid(operation_list_to_grid(
-                        u.children.remove(0).components,
-                        max_q_id,
-                    ));
+                    u.children = operation_list_to_grid(u.children.remove(0).components, max_q_id);
                 }
                 Operation::Ket(k) => {
-                    k.children = op_grid_to_comp_grid(operation_list_to_grid(
-                        k.children.remove(0).components,
-                        max_q_id,
-                    ));
+                    k.children = operation_list_to_grid(k.children.remove(0).components, max_q_id);
                 }
             }
         }
     }
-    remove_padding(operation_list_to_padded_array(operations, max_q_id))
+
+    // Convert the operations into a component grid
+    let mut component_grid = vec![];
+    for col in remove_padding(operation_list_to_padded_array(operations, max_q_id)) {
+        let column = ComponentColumn { components: col };
+        component_grid.push(column);
+    }
+    component_grid
 }
 
 /// Converts a list of operations into a padded 2D array of operations.
@@ -850,8 +827,7 @@ fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<
 /// A 2D vector of indices where `groupedOps[i][j]` is the index of the operations
 /// at register `i` and column `j` (not yet aligned/padded).
 fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>> {
-    let end_q_id = max_q_id + 1; // Add one so that it is an "end" index
-    let mut grouped_ops = vec![vec![]; end_q_id];
+    let mut grouped_ops = vec![vec![]; max_q_id + 1]; // Add one so that it is an "end" index
 
     for (instr_idx, op) in operations.iter().enumerate() {
         let ctrls = match op {
@@ -886,11 +862,11 @@ fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>
             }
         };
         let max_reg_idx = if is_classically_controlled {
-            end_q_id - 1
+            max_q_id
         } else {
             match q_reg_idx_list.iter().max() {
                 Some(max_reg_idx) => *max_reg_idx,
-                None => end_q_id - 1,
+                None => max_q_id,
             }
         };
 
