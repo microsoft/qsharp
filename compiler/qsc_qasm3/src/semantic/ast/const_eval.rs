@@ -299,7 +299,6 @@ impl BinaryOpExpr {
                 }
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                        // TODO: we need to issue the same lint in Q#.
                         #[allow(clippy::float_cmp)]
                         Bool(lhs == rhs)
                     })
@@ -321,7 +320,6 @@ impl BinaryOpExpr {
                 }
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
-                        // TODO: we need to issue the same lint in Q#.
                         #[allow(clippy::float_cmp)]
                         Bool(lhs != rhs)
                     })
@@ -586,12 +584,11 @@ fn cast_to_int(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
         Type::BitArray(..) => {
             rewrap_lit!(lit, Bitstring(val, _), Int(i64::try_from(val).ok()?))
         }
-        // TODO: UInt Overflowing behavior.
-        //       This is tricky because the inner repersentation
-        //       already is a i64. Therefore, there is nothing to do?
+        // UInt Overflowing behavior.
+        // This is tricky because the inner representation of UInt
+        // is already an i64. Therefore, there is nothing to do.
         Type::Int(..) | Type::UInt(..) => Some(lit),
         Type::Float(..) => rewrap_lit!(lit, Float(val), {
-            // TODO: we need to issue the same lint in Q#.
             #[allow(clippy::cast_possible_truncation)]
             Int(val as i64)
         }),
@@ -616,13 +613,11 @@ fn cast_to_uint(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
         Type::BitArray(..) => {
             rewrap_lit!(lit, Bitstring(val, _), Int(i64::try_from(val).ok()?))
         }
-        // TODO: Int Overflowing behavior.
-        //       This is tricky because the inner representation
-        //       is a i64. Therefore, even we might end with the
-        //       same result anyways. Need to think through this.
+        // UInt Overflowing behavior.
+        // This is tricky because the inner representation of UInt
+        // is already an i64. Therefore, there is nothing to do.
         Type::Int(..) | Type::UInt(..) => Some(lit),
         Type::Float(..) => rewrap_lit!(lit, Float(val), {
-            // TODO: we need to issue the same lint in Q#.
             #[allow(clippy::cast_possible_truncation)]
             Int(val as i64)
         }),
@@ -644,7 +639,6 @@ fn cast_to_float(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     match &cast.expr.ty {
         Type::Bool(..) => rewrap_lit!(lit, Bool(val), Float(if val { 1.0 } else { 0.0 })),
         Type::Int(..) | Type::UInt(..) => rewrap_lit!(lit, Int(val), {
-            // TODO: we need to issue the same lint in Q#.
             #[allow(clippy::cast_precision_loss)]
             Float(safe_i64_to_f64(val)?)
         }),
