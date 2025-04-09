@@ -266,8 +266,7 @@ export class Sqore {
     css.className = "qviz-style";
     svg.appendChild(css);
 
-    // ToDo: idk why we need to add this style to the document head.
-    // For some reason the style node doesn't get added to the svg above
+    // The style node doesn't get added to the svg above
     // until after the user has interacted with the circuit, so we add
     // it to the document head additionally to cover the time before the first interaction.
     if (!document.head.querySelector("style.qviz-style")) {

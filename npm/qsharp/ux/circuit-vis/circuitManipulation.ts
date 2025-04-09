@@ -141,12 +141,11 @@ const _moveY = (
       registers = [...sourceOperation.qubits, ...sourceOperation.results];
       break;
     case "ket":
-      registers = [...sourceOperation.targets]; // ToDo: is it necessary to do this ... syntax here?
+      registers = sourceOperation.targets;
       break;
   }
 
-  const existingReg = registers.find((target) => target.qubit === targetWire);
-  if (existingReg) {
+  if (registers.find((target) => target.qubit === targetWire)) {
     // If the target or control already exists, don't move the target/control
     return;
   }

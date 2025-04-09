@@ -92,7 +92,7 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
     let mut body_str = String::new();
     let mut should_add_pi = false;
 
-    // ToDo: Add support for children operations
+    // Note: In the future we may want to add support for children operations
     for col in &circuit.component_grid {
         for op in &col.components {
             match &op {
