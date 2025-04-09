@@ -2178,7 +2178,7 @@ impl Lowerer {
             }
             // if we can't cast the literal, we can't proceed
             // create a semantic error and return
-            let kind = SemanticErrorKind::CannotAssignToType(
+            let kind = SemanticErrorKind::CannotCastLiteral(
                 format!("{:?}", rhs.ty),
                 format!("{ty:?}"),
                 span,
@@ -2545,7 +2545,7 @@ impl Lowerer {
                             ty: lhs_ty.as_const(),
                         });
                     }
-                    _ => panic!("Literal must be an IntNumber or BigInt"),
+                    _ => panic!("Literal must be an Int or BigInt"),
                 }
             }
             _ => None,
