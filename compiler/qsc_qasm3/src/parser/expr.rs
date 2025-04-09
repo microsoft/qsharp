@@ -51,21 +51,10 @@ enum OpKind {
     Index,
 }
 
-// TODO: This seems to be an unnecessary wrapper.
-//       OpName::Keyword is never used.
-//       Consider removing.
 #[derive(Clone, Copy)]
 enum OpName {
     Token(TokenKind),
     Keyword(Keyword),
-}
-
-// TODO: This seems to be an unnecessary wrapper.
-//       We ended up removing the OpContext::Stmt variant.
-//       Consider removing.
-#[derive(Clone, Copy)]
-enum OpContext {
-    Precedence(u8),
 }
 
 #[derive(Clone, Copy)]
@@ -77,18 +66,18 @@ enum Assoc {
 const RANGE_PRECEDENCE: u8 = 1;
 
 pub(super) fn expr(s: &mut ParserContext) -> Result<Expr> {
-    expr_op(s, OpContext::Precedence(0))
+    expr_op(s, 0)
 }
 
 pub(super) fn expr_with_lhs(s: &mut ParserContext, lhs: Expr) -> Result<Expr> {
-    expr_op_with_lhs(s, OpContext::Precedence(0), lhs)
+    expr_op_with_lhs(s, 0, lhs)
 }
 
-fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
+fn expr_op(s: &mut ParserContext, min_precedence: u8) -> Result<Expr> {
     let lo = s.peek().span.lo;
     let lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
-        let rhs = expr_op(s, OpContext::Precedence(op.precedence))?;
+        let rhs = expr_op(s, op.precedence)?;
         Expr {
             span: s.span(lo),
             kind: Box::new(ExprKind::UnaryOp(UnaryOpExpr {
@@ -100,13 +89,11 @@ fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Expr> {
         expr_base(s)?
     };
 
-    expr_op_with_lhs(s, context, lhs)
+    expr_op_with_lhs(s, min_precedence, lhs)
 }
 
-fn expr_op_with_lhs(s: &mut ParserContext, context: OpContext, mut lhs: Expr) -> Result<Expr> {
+fn expr_op_with_lhs(s: &mut ParserContext, min_precedence: u8, mut lhs: Expr) -> Result<Expr> {
     let lo = lhs.span.lo;
-
-    let OpContext::Precedence(min_precedence) = context;
 
     while let Some(op) = infix_op(op_name(s)) {
         if op.precedence < min_precedence {
@@ -117,7 +104,7 @@ fn expr_op_with_lhs(s: &mut ParserContext, context: OpContext, mut lhs: Expr) ->
         let kind = match op.kind {
             OpKind::Binary(kind, assoc) => {
                 let precedence = next_precedence(op.precedence, assoc);
-                let rhs = expr_op(s, OpContext::Precedence(precedence))?;
+                let rhs = expr_op(s, precedence)?;
                 Box::new(ExprKind::BinaryOp(BinaryOpExpr { op: kind, lhs, rhs }))
             }
             OpKind::Funcall => {

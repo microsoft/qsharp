@@ -243,8 +243,8 @@ impl QasmCompiler {
 
         let ast_ty = map_qsharp_type_to_ast_ty(&output_ty);
         signature.output = format!("{output_ty}");
-        // TODO: This can create a collision on multiple compiles when interactive
-        // We also have issues with the new entry point inference logic
+        // This can create a collision on multiple compiles when interactive
+        // We also have issues with the new entry point inference logic.
         let input_desc = input
             .iter()
             .flat_map(|s| {
@@ -873,11 +873,8 @@ impl QasmCompiler {
         let symbol = &self.symbols[stmt.symbol_id];
 
         // input decls should have been pushed to symbol table,
-        // but should not be the stmts list.
-        // TODO: This may be an issue for tooling as there isn't a way to have a forward
-        // declared varible in Q#.
+        // but should not be in the stmts list.
         if symbol.io_kind != IOKind::Output {
-            //self.push_semantic_error(SemanticErrorKind::InvalidIODeclaration(stmt.span));
             return None;
         }
 

@@ -3011,7 +3011,6 @@ impl Lowerer {
         )
     }
 
-    // TODO: which these are parsed as different types, they are effectively the same
     fn lower_index_element(&mut self, index: &syntax::IndexElement) -> semantic::IndexElement {
         match index {
             syntax::IndexElement::DiscreteSet(set) => {
