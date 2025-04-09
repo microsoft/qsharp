@@ -181,7 +181,7 @@ class BackendBase(BackendV2, ABC):
             target_gates -= set(_QISKIT_STDGATES)
             basis_gates = list(target_gates)
 
-        # selt the default options for the exporter
+        # set the default options for the exporter
         self._qasm_export_options = {
             "includes": ("stdgates.inc", "qiskit_stdgates.inc",),
             "alias_classical_registers": False,
