@@ -246,7 +246,7 @@ impl Formatter<'_> {
         // when we get here, neither left nor right should be whitespace
 
         let are_newlines_in_spaces = whitespace.contains('\n');
-        let does_right_required_newline = matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
+        let does_right_required_newline = matches!(right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
 
         // Save the left token's status as a delimiter before updating the delimiter state
         let left_delim_state = Delimiter::from_concrete_token_kind(
@@ -275,7 +275,7 @@ impl Formatter<'_> {
         );
 
         #[allow(clippy::match_same_arms)]
-        match (&left.kind, &right.kind) {
+        match (left.kind, right.kind) {
             (Comment | Syntax(DocComment), _) => {
                 // remove whitespace at the ends of comments
                 effect_trim_comment(left, &mut edits, self.code);
@@ -692,7 +692,7 @@ fn get_token_contents<'a>(code: &'a str, token: &ConcreteToken) -> &'a str {
 
 // Rule Conditions
 
-fn is_bin_op(cooked: &TokenKind) -> bool {
+fn is_bin_op(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::Bar
@@ -716,11 +716,11 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_prefix_with_space(cooked: &TokenKind) -> bool {
+fn is_prefix_with_space(cooked: TokenKind) -> bool {
     matches!(cooked, TokenKind::TildeTildeTilde)
 }
 
-fn is_prefix_without_space(cooked: &TokenKind) -> bool {
+fn is_prefix_without_space(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::ColonColon
@@ -730,22 +730,22 @@ fn is_prefix_without_space(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_prefix(cooked: &TokenKind) -> bool {
+fn is_prefix(cooked: TokenKind) -> bool {
     is_prefix_with_space(cooked)
         || is_prefix_without_space(cooked)
         || matches!(cooked, TokenKind::DotDotDot)
 }
 
-fn is_suffix(cooked: &TokenKind) -> bool {
+fn is_suffix(cooked: TokenKind) -> bool {
     matches!(cooked, TokenKind::Bang | TokenKind::Comma)
 }
 
-fn is_prefix_keyword(keyword: &Keyword) -> bool {
+fn is_prefix_keyword(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(keyword, Not | AdjointUpper | ControlledUpper)
 }
 
-fn is_keyword_value(keyword: &Keyword) -> bool {
+fn is_keyword_value(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(
         keyword,
@@ -755,7 +755,7 @@ fn is_keyword_value(keyword: &Keyword) -> bool {
     )
 }
 
-fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
+fn is_newline_keyword_or_ampersat(cooked: TokenKind) -> bool {
     use Keyword::*;
     matches!(
         cooked,
@@ -783,7 +783,7 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_starter_keyword(keyword: &Keyword) -> bool {
+fn is_starter_keyword(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(
         keyword,
@@ -791,14 +791,14 @@ fn is_starter_keyword(keyword: &Keyword) -> bool {
     )
 }
 
-fn is_newline_after_brace(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_newline_after_brace(cooked: TokenKind, delim_state: Delimiter) -> bool {
     is_value_token_right(cooked, delim_state)
         || matches!(cooked, TokenKind::Keyword(keyword) if is_starter_keyword(keyword))
         || matches!(cooked, TokenKind::Keyword(keyword) if is_prefix_keyword(keyword))
 }
 
 /// Note that this does not include interpolated string literals
-fn is_value_lit(cooked: &TokenKind) -> bool {
+fn is_value_lit(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::BigInt(_)
@@ -808,7 +808,7 @@ fn is_value_lit(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_value_token_left(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_value_token_left(cooked: TokenKind, delim_state: Delimiter) -> bool {
     // a closed delim represents a value on the left
     if matches!(delim_state, Delimiter::Close) {
         return true;
@@ -824,7 +824,7 @@ fn is_value_token_left(cooked: &TokenKind, delim_state: Delimiter) -> bool {
     }
 }
 
-fn is_value_token_right(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_value_token_right(cooked: TokenKind, delim_state: Delimiter) -> bool {
     // an open delim represents a value on the right
     if matches!(delim_state, Delimiter::Open) {
         return true;

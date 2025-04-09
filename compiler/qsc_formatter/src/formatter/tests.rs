@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::unicode_not_nfc)]
+
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
@@ -643,7 +645,7 @@ fn formatter_continues_after_error_token() {
 
 #[test]
 fn formatter_does_not_crash_on_non_terminating_string() {
-    super::calculate_format_edits("let x = \"Hello World");
+    let _ = super::calculate_format_edits("let x = \"Hello World");
 }
 
 // Correct indentation, which increases by four spaces when a delimited block is opened and decreases when block is closed
@@ -865,7 +867,7 @@ fn type_param_lists_have_no_spaces_around_delims() {
 
 #[test]
 fn greater_than_and_less_than_bin_ops_have_spaces() {
-    check(indoc! {r#"x<y>z;"#}, &expect!["x < y > z;"])
+    check(indoc! {r#"x<y>z;"#}, &expect!["x < y > z;"]);
 }
 
 #[test]
@@ -919,7 +921,7 @@ fn newline_after_brace_before_value() {
         }
         x
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -936,7 +938,7 @@ fn newline_after_brace_before_functor() {
         }
         Adjoint Foo();
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -953,7 +955,7 @@ fn newline_after_brace_before_not_keyword() {
         }
         not true
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -970,7 +972,7 @@ fn newline_after_brace_before_starter_keyword() {
         }
         if true {}
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -987,7 +989,7 @@ fn newline_after_brace_before_brace() {
         }
         {}
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -1003,7 +1005,7 @@ fn space_after_brace_before_operator() {
             let x = 3;
         } + {}
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -1018,7 +1020,7 @@ fn newline_after_brace_before_delim() {
         () {}
         []
     "#]],
-    )
+    );
 }
 
 // Copy operator can have single space or newline
@@ -1036,7 +1038,7 @@ fn copy_operator_with_newline_is_indented() {
         w/ 0 <- 10
         w/ 1 <- 11
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -1048,7 +1050,7 @@ fn copy_operator_with_space_has_single_space() {
         &expect![[r#"
     let x = arr w/ 0 <- 10 w/ 1 <- 11
     "#]],
-    )
+    );
 }
 
 #[test]
@@ -1062,7 +1064,7 @@ fn no_space_around_carrot() {
             {}^{}
             1^2
         "#]],
-    )
+    );
 }
 
 #[test]
@@ -1074,7 +1076,7 @@ fn no_space_around_ellipse() {
         &expect![[r#"
             {}...{}
         "#]],
-    )
+    );
 }
 
 #[test]
@@ -1088,7 +1090,7 @@ fn single_space_after_spec_decl_ellipse() {
         body ... auto
         adjoint ... {}
         "#]],
-    )
+    );
 }
 
 // Remove extra whitespace from start of code
@@ -1191,9 +1193,9 @@ fn sample_has_no_formatting_changes() {
             @EntryPoint()
             operation Main() : (Result, Result[]) {
                 // Prepare an entangled state.
-                use qs = Qubit[2];  // |00〉
-                H(qs[0]);           // 1/sqrt(2)(|00〉 + |10〉)
-                CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00〉 + |11〉)
+                use qs = Qubit[2];  // |00⟩
+                H(qs[0]);           // 1/sqrt(2)(|00⟩ + |10⟩)
+                CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00⟩ + |11⟩)
 
                 // Show the quantum state before performing the joint measurement.
                 DumpMachine();
@@ -1237,7 +1239,7 @@ fn format_export_statement_no_newlines() {
 #[test]
 fn format_glob_import() {
     let input = "import
-    Microsoft.Quantum.*, 
+    Microsoft.Quantum.*,
         Foo.Bar.Baz as SomethingElse,
         AnotherThing;";
 
@@ -1259,8 +1261,8 @@ fn no_newlines_glob() {
 
 #[test]
 fn format_export_statement_newlines() {
-    let input = "export 
-    Microsoft.Quantum.Diagnostics, 
+    let input = "export
+    Microsoft.Quantum.Diagnostics,
         Foo.Bar.Baz;";
 
     check(
@@ -1273,11 +1275,12 @@ fn format_export_statement_newlines() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn export_fmt_within_namespace() {
     let input = r#"
 
 namespace Microsoft.Quantum.Arrays {
-    
+
 
     export
     All,
