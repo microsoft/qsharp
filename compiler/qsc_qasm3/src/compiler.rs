@@ -59,7 +59,7 @@ fn err_expr(span: Span) -> qsast::Expr {
     }
 }
 
-pub fn compile_to_ast_with_config<S, P, R>(
+pub fn compile_to_qsharp_ast_with_config<S, P, R>(
     source: S,
     path: P,
     resolver: Option<&mut R>,

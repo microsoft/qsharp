@@ -43,7 +43,7 @@ where
         None,
         None,
     );
-    qsc_qasm3::compile_to_ast_with_config(source, path, resolver, config)
+    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }
 
 #[must_use]
@@ -65,11 +65,11 @@ where
         Some(name.as_ref().into()),
         None,
     );
-    qsc_qasm3::compile_to_ast_with_config(source, path, resolver, config)
+    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }
 
 #[must_use]
-pub fn compile_to_ast_with_config<S, P, R>(
+pub fn compile_to_qsharp_ast_with_config<S, P, R>(
     source: S,
     path: P,
     resolver: Option<&mut R>,
@@ -80,5 +80,5 @@ where
     P: AsRef<Path>,
     R: SourceResolver,
 {
-    qsc_qasm3::compile_to_ast_with_config(source, path, resolver, config)
+    qsc_qasm3::compile_to_qsharp_ast_with_config(source, path, resolver, config)
 }
