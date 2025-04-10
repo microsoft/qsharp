@@ -16,23 +16,17 @@ import * as vscode from "vscode";
 export const qsharpLanguageId = "qsharp";
 export const qsharpCircuitLanduageId = "qsharpcircuit";
 
-// Returns true for all Q# documents, including unsaved files, notebook cells, etc.
+// Returns true for all Q# documents, including unsaved files, notebook cells, circuit files, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
   return (
-    document.languageId === qsharpLanguageId &&
-    (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
-    document.uri.scheme !== "git" &&
-    document.uri.scheme !== "pr"
-  );
-}
-
-// Returns true for all circuit documents
-export function isCircuitDocument(document: TextDocument): boolean {
-  return (
-    document.languageId === qsharpCircuitLanduageId &&
-    (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
-    document.uri.scheme !== "git" &&
-    document.uri.scheme !== "pr"
+    (document.languageId === qsharpLanguageId &&
+      (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
+      document.uri.scheme !== "git" &&
+      document.uri.scheme !== "pr") ||
+    (document.languageId === qsharpCircuitLanduageId &&
+      (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
+      document.uri.scheme !== "git" &&
+      document.uri.scheme !== "pr")
   );
 }
 

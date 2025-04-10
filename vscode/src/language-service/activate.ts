@@ -10,7 +10,6 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
-  isCircuitDocument,
   isQsharpDocument,
   isQsharpNotebookCell,
   qsharpLanguageId,
@@ -280,10 +279,7 @@ function registerDocumentUpdateHandlers(
   }
 
   async function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (
-      isCircuitDocument(document) ||
-      (isQsharpDocument(document) && !isQsharpNotebookCell(document))
-    ) {
+    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       let content = document.getText();
 
       // Check if the document is a .qsc file and convert it to Q# if needed
