@@ -11,16 +11,11 @@ use std::{cmp, fmt::Display, fmt::Write, ops::Not, vec};
 /// Current format version.
 pub const CURRENT_VERSION: usize = 1;
 
-fn default_version() -> Option<usize> {
-    Some(CURRENT_VERSION)
-}
-
 /// Representation of a quantum circuit group.
 #[derive(Clone, Serialize, Deserialize, Default, Debug, PartialEq)]
 pub struct CircuitGroup {
     pub circuits: Vec<Circuit>,
-    #[serde(default = "default_version")]
-    pub version: Option<usize>,
+    pub version: usize,
 }
 
 impl Display for CircuitGroup {

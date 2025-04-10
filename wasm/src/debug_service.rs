@@ -58,7 +58,7 @@ impl DebugService {
         let circuit = self.debugger().circuit();
         let circuitData = qsc::circuit::CircuitGroup {
             circuits: vec![circuit],
-            version: Some(qsc::circuit::CURRENT_VERSION),
+            version: qsc::circuit::CURRENT_VERSION,
         };
         serde_wasm_bindgen::to_value(&circuitData).map_err(|e| e.to_string())
     }

@@ -143,7 +143,7 @@ pub fn get_circuit(
 
     let circuit_data = qsc::circuit::CircuitGroup {
         circuits: vec![circuit],
-        version: Some(qsc::circuit::CURRENT_VERSION),
+        version: qsc::circuit::CURRENT_VERSION,
     };
 
     serde_wasm_bindgen::to_value(&circuit_data).map_err(|e| e.to_string())

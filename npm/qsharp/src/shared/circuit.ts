@@ -10,7 +10,7 @@ export const CURRENT_VERSION = 1;
 
 export interface CircuitGroup {
   circuits: Circuit[];
-  version?: number;
+  version: number;
 }
 
 /**
