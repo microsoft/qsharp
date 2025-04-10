@@ -28,22 +28,11 @@ export interface Column {
   components: Component[];
 }
 
-export type Component = Operation;
-
 /**
- * Update circuit group to current format version.
+ * Represents a component of a circuit. Currently, the only component is an operation.
+ * In the future, this may be extended to include other components.
  */
-export const updateToCurrentVersion = (
-  circuits: CircuitGroup,
-): CircuitGroup => {
-  if (circuits.version === CURRENT_VERSION) {
-    return circuits;
-  }
-  return {
-    ...circuits,
-    version: CURRENT_VERSION,
-  };
-};
+export type Component = Operation;
 
 /**
  * Represents a unique qubit resource bit.

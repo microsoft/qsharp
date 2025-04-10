@@ -17,7 +17,4 @@ export {
   type Qubit,
 } from "../../src/shared/circuit";
 
-export {
-  CURRENT_VERSION,
-  updateToCurrentVersion,
-} from "../../src/shared/circuit";
+export { CURRENT_VERSION } from "../../src/shared/circuit";

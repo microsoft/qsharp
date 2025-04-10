@@ -12,7 +12,6 @@ import {
   ComponentGrid,
   Operation,
   Column,
-  updateToCurrentVersion,
 } from "./circuit";
 import { Metadata, GateType } from "./metadata";
 import { StyleConfig, style, STYLES } from "./styles";
@@ -64,7 +63,7 @@ export class Sqore {
    * @param style Custom visualization style.
    */
   constructor(circuitGroup: CircuitGroup, style: StyleConfig | string = {}) {
-    const circuits = updateToCurrentVersion(circuitGroup);
+    const circuits = circuitGroup;
     if (
       circuits == null ||
       circuits.circuits == null ||
