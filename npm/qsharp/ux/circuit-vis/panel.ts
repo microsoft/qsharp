@@ -249,7 +249,7 @@ const toMetadata = (
       metadata.controlsY = [target];
       break;
     case "ket":
-      metadata.type = GateType.Reset;
+      metadata.type = GateType.Ket;
       metadata.label = operation.gate;
       metadata.targetsY = [[target]];
       break;

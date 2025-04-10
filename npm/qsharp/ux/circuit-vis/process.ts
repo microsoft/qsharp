@@ -43,7 +43,7 @@ const processOperations = (
 
       if (
         op != null &&
-        [GateType.Unitary, GateType.Reset, GateType.ControlledUnitary].includes(
+        [GateType.Unitary, GateType.Ket, GateType.ControlledUnitary].includes(
           metadata.type,
         )
       ) {
@@ -243,7 +243,7 @@ const _opToMetadata = (
   } else if (op.kind === "measurement") {
     metadata.type = GateType.Measure;
   } else if (op.kind === "ket") {
-    metadata.type = GateType.Reset;
+    metadata.type = GateType.Ket;
     metadata.label = gate;
   } else if (gate === "SWAP") {
     metadata.type = GateType.Swap;

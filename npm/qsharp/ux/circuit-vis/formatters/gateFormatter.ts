@@ -65,7 +65,7 @@ const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
       );
     case GateType.X:
       return _createGate([_x(metadata, nestedDepth)], metadata, nestedDepth);
-    case GateType.Reset:
+    case GateType.Ket:
       return _createGate([_ket(label, metadata)], metadata, nestedDepth);
     case GateType.Swap:
       return controlsY.length > 0
