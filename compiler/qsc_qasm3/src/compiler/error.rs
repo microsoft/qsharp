@@ -23,7 +23,7 @@ pub enum CompilerErrorKind {
     #[error("{0} are not supported")]
     #[diagnostic(code("Qsc.Qasm3.Compiler.NotSupported"))]
     NotSupported(String, #[label] Span),
-    #[error("qiskit circuits must have output registers")]
+    #[error("Qiskit circuits must have output registers")]
     #[diagnostic(code("Qsc.Qasm3.Compiler.QiskitEntryPointMissingOutput"))]
     QiskitEntryPointMissingOutput(#[label] Span),
     #[error("unexpected annotation: {0}")]
