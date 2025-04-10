@@ -25,6 +25,7 @@ fn qsharp_from_circuit() {
     check_circuit_group(
         r#"
 {
+  "version": 1,
   "circuits": [
     {
       "componentGrid": [
