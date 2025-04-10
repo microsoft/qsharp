@@ -183,7 +183,7 @@ class BackendBase(BackendV2, ABC):
 
         # set the default options for the exporter
         self._qasm_export_options = {
-            "includes": ("stdgates.inc", "qiskit_stdgates.inc",),
+            "includes": ("stdgates.inc",),
             "alias_classical_registers": False,
             "allow_aliasing": False,
             "disable_constants": True,

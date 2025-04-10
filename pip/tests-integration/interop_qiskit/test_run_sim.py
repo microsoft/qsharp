@@ -25,14 +25,8 @@ if QISKIT_AVAILABLE:
 # Convert the circuit to QASM3 and back to a backend.
 # Then load the QASM3 and convert it back to a circuit.
 # This is to ensure that the QASM3 conversion is semantically correct.
-# We must remove the include "qiskit_stdgates.inc" line from the QASM3
-# since the qiskit qasm loader can't support any non stdgates.inc include files.
 def round_trip_circuit(circuit, backend):
     qasm3 = backend._qasm3(circuit)
-    # remove any lines that contain: include "qiskit_stdgates.inc";
-    qasm3 = "\n".join(
-            line for line in qasm3.splitlines() if "qiskit_stdgates.inc" not in line
-        )
     circuit = from_qasm3(qasm3)
     return circuit
 
