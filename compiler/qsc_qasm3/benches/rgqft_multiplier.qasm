@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 OPENQASM 3.0;
 include "stdgates.inc";
 qubit[1] a;
