@@ -99,7 +99,7 @@ function updateGitHubTheme() {
   });
 }
 
-export function setThemeStylesheet() {
+function setThemeStylesheet() {
   // We need to add the right Markdown style-sheet for the theme.
 
   // For VS Code, there will be an attribute on the body called
