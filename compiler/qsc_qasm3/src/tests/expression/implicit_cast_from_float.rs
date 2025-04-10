@@ -17,7 +17,7 @@ fn to_bit_implicitly() {
         panic!("Expected error")
     };
 
-    expect![["Cannot cast expression of type Float(None, false) to type Bit(false)"]]
+    expect!["cannot cast expression of type Float(None, false) to type Bit(false)"]
         .assert_eq(&error[0].to_string());
 }
 
@@ -32,7 +32,7 @@ fn explicit_width_to_bit_implicitly() {
         panic!("Expected error")
     };
 
-    expect![[r#"Cannot cast expression of type Float(Some(64), false) to type Bit(false)"#]]
+    expect!["cannot cast expression of type Float(Some(64), false) to type Bit(false)"]
         .assert_eq(&error[0].to_string());
 }
 

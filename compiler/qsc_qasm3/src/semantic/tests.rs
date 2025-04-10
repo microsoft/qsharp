@@ -303,51 +303,51 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                                 ty: Err
                                 kind: SymbolId(36)
 
-            [Qsc.Qasm3.Compile.UndefinedSymbol
+            [Qsc.Qasm3.Lowerer.UndefinedSymbol
 
-              x Undefined symbol: v.
+              x undefined symbol: v
                ,-[source2.qasm:2:14]
              1 | bit l = 1;
              2 |     bool l = v && l; // undefined y, redefine l
                :              ^
                `----
-            , Qsc.Qasm3.Compile.CannotCast
+            , Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Err to type Bool(false)
+              x cannot cast expression of type Err to type Bool(false)
                ,-[source2.qasm:2:14]
              1 | bit l = 1;
              2 |     bool l = v && l; // undefined y, redefine l
                :              ^
                `----
-            , Qsc.Qasm3.Compile.RedefinedSymbol
+            , Qsc.Qasm3.Lowerer.RedefinedSymbol
 
-              x Redefined symbol: l.
+              x redefined symbol: l
                ,-[source2.qasm:2:10]
              1 | bit l = 1;
              2 |     bool l = v && l; // undefined y, redefine l
                :          ^
                `----
-            , Qsc.Qasm3.Compile.CannotCast
+            , Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Angle(None, false) to type Float(None,
+              x cannot cast expression of type Angle(None, false) to type Float(None,
               | false)
                ,-[source1.qasm:3:15]
              2 |     angle j = 7.0;
              3 |     float k = j + false; // invalid cast
                :               ^
                `----
-            , Qsc.Qasm3.Compile.UndefinedSymbol
+            , Qsc.Qasm3.Lowerer.UndefinedSymbol
 
-              x Undefined symbol: r.
+              x undefined symbol: r
                ,-[source0.qasm:4:13]
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r
                :             ^
              5 |     
                `----
-            , Qsc.Qasm3.Compile.CannotCast
+            , Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Err to type Bit(false)
+              x cannot cast expression of type Err to type Bit(false)
                ,-[source0.qasm:4:13]
              3 |     include "source1.qasm";
              4 |     bit c = r; // undefined symbol r

@@ -135,7 +135,7 @@ def test_generating_qir_without_registers_raises():
     try:
         with pytest.raises(QasmError) as ex:
             _ = backend.qir(circuit)
-        assert "Qiskit circuits must have output registers." in str(ex)
+        assert "Qiskit circuits must have output registers" in str(ex)
     except AssertionError:
         raise
     except Exception as ex:

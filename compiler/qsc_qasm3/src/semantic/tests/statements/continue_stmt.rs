@@ -79,9 +79,9 @@ fn continue_in_non_loop_scope_fails() {
                         annotations: <empty>
                         kind: Err
 
-            [Qsc.Qasm3.Compile.InvalidScope
+            [Qsc.Qasm3.Lowerer.InvalidScope
 
-              x continue can only appear in loop scopes.
+              x continue can only appear in loop scopes
                ,-[test:1:1]
              1 | continue;
                : ^^^^^^^^^
@@ -123,18 +123,18 @@ fn intermediate_def_scope_fails() {
                                                     annotations: <empty>
                                                     kind: Err
 
-            [Qsc.Qasm3.Compile.DefDeclarationInNonGlobalScope
+            [Qsc.Qasm3.Lowerer.DefDeclarationInNonGlobalScope
 
-              x Def declarations must be done in global scope.
+              x def declarations must be done in global scope
                ,-[test:3:13]
              2 |         while (true) {
              3 |             def f() { continue; }
                :             ^^^^^^^^^^^^^^^^^^^^^
              4 |         }
                `----
-            , Qsc.Qasm3.Compile.InvalidScope
+            , Qsc.Qasm3.Lowerer.InvalidScope
 
-              x continue can only appear in loop scopes.
+              x continue can only appear in loop scopes
                ,-[test:3:23]
              2 |         while (true) {
              3 |             def f() { continue; }
