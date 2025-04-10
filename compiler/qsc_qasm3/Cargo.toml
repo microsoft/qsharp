@@ -44,5 +44,5 @@ workspace = true
 bench = false
 
 [[bench]]
-name = "msd"
+name = "rgqft_multiplier"
 harness = false

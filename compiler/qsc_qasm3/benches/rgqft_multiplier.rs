@@ -7,11 +7,11 @@ use qsc_qasm3::{
     ProgramType, QubitSemantics,
 };
 
-const SOURCE: &str = include_str!("./msd.qasm");
+const SOURCE: &str = include_str!("./rgqft_multiplier.qasm");
 
-pub fn msd(c: &mut Criterion) {
-    c.bench_function("msd sample compilation", |b| {
-        let all_sources = [("msd.qasm".into(), SOURCE.into())];
+pub fn rgqft_multiplier(c: &mut Criterion) {
+    c.bench_function("rgqft_multiplier sample compilation", |b| {
+        let all_sources = [("rgqft_multiplier.qasm".into(), SOURCE.into())];
         let mut resolver = InMemorySourceResolver::from_iter(all_sources);
 
         b.iter(move || {
@@ -27,5 +27,5 @@ pub fn msd(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, msd);
+criterion_group!(benches, rgqft_multiplier);
 criterion_main!(benches);
