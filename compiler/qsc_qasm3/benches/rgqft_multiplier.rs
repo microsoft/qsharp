@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use qsc_qasm3::{
     compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig, OutputSemantics,
     ProgramType, QubitSemantics,
@@ -22,7 +22,7 @@ pub fn rgqft_multiplier(c: &mut Criterion) {
                 Some("Test".into()),
                 None,
             );
-            compile_to_qsharp_ast_with_config(SOURCE, "", Some(&mut resolver), config);
+            black_box(compile_to_qsharp_ast_with_config(SOURCE, "", Some(&mut resolver), config))
         });
     });
 }
