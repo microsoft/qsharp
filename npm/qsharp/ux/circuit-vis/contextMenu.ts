@@ -164,7 +164,7 @@ const promptForArguments = (
       const param = params[currentIndex];
       const defaultValue = defaultArgs[currentIndex] || "";
 
-      _createCustomPrompt(
+      _createInputPrompt(
         `Enter value for parameter "${param.name}":`,
         (userInput) => {
           if (userInput !== null) {
@@ -268,14 +268,14 @@ const _createContextMenuItem = (
 };
 
 /**
- * Create a custom prompt element
+ * Create a user input prompt element
  * @param message - The message to display in the prompt
  * @param callback - The callback function to handle the user input
  * @param defaultValue - The default value to display in the input element
  * @param validateInput - A function to validate the user input
  * @param placeholder - The placeholder text for the input element
  */
-const _createCustomPrompt = (
+const _createInputPrompt = (
   message: string,
   callback: (input: string | null) => void,
   defaultValue: string = "",
@@ -284,7 +284,7 @@ const _createCustomPrompt = (
 ) => {
   // Create the prompt overlay
   const overlay = document.createElement("div");
-  overlay.classList.add("custom-prompt-overlay");
+  overlay.classList.add("prompt-overlay");
   overlay.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -292,28 +292,28 @@ const _createCustomPrompt = (
 
   // Create the prompt container
   const promptContainer = document.createElement("div");
-  promptContainer.classList.add("custom-prompt-container");
+  promptContainer.classList.add("prompt-container");
 
   // Create the message element
   const messageElem = document.createElement("div");
-  messageElem.classList.add("custom-prompt-message");
+  messageElem.classList.add("prompt-message");
   messageElem.textContent = message;
 
   // Create the input element
   const inputElem = document.createElement("input");
-  inputElem.classList.add("custom-prompt-input");
+  inputElem.classList.add("prompt-input");
   inputElem.type = "text";
   inputElem.value = defaultValue;
   inputElem.placeholder = placeholder;
 
   // Create the buttons container
   const buttonsContainer = document.createElement("div");
-  buttonsContainer.classList.add("custom-prompt-buttons");
+  buttonsContainer.classList.add("prompt-buttons");
 
   // Create the π button
   const piButton = document.createElement("button");
   piButton.textContent = "π";
-  piButton.classList.add("pi-button", "custom-prompt-button");
+  piButton.classList.add("pi-button", "prompt-button");
   piButton.addEventListener("click", () => {
     const cursorPosition = inputElem.selectionStart || 0;
     const textBefore = inputElem.value.substring(0, cursorPosition);
@@ -326,7 +326,7 @@ const _createCustomPrompt = (
 
   // Create the OK button
   const okButton = document.createElement("button");
-  okButton.classList.add("custom-prompt-button");
+  okButton.classList.add("prompt-button");
   okButton.textContent = "OK";
   okButton.disabled = !validateInput(defaultValue);
   okButton.addEventListener("click", () => {
@@ -336,7 +336,7 @@ const _createCustomPrompt = (
 
   // Create the Cancel button
   const cancelButton = document.createElement("button");
-  cancelButton.classList.add("custom-prompt-button");
+  cancelButton.classList.add("prompt-button");
   cancelButton.textContent = "Cancel";
   cancelButton.addEventListener("click", () => {
     callback(null);

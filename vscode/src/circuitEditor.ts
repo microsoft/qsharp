@@ -36,9 +36,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.webview.onDidReceiveMessage((e) => {
       switch (e.command) {
-        case "alert":
-          vscode.window.showErrorMessage(e.text);
-          return;
         case "update":
           this.updateTextDocument(document, e.text);
           return;

@@ -42,7 +42,7 @@ const extensionDraggable = (
   const svg = container.querySelector("svg[id]") as SVGElement;
 
   const context: Context = {
-    container: container,
+    container,
     svg,
     operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),

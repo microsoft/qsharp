@@ -285,7 +285,7 @@ text {
   color: var(--vscode-menu-selectionForeground, #000000);
 }
 
-.custom-prompt-overlay {
+.prompt-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -298,7 +298,7 @@ text {
   z-index: 1000;
 }
 
-.custom-prompt-container {
+.prompt-container {
   background: var(--vscode-editor-background, #ffffff);
   color: var(--vscode-editor-foreground, #000000);
   padding: 20px;
@@ -309,13 +309,13 @@ text {
   max-width: 90%;
 }
 
-.custom-prompt-message {
+.prompt-message {
   margin-bottom: 10px;
   color: var(--vscode-editor-foreground, #000000);
   font-size: 1rem;
 }
 
-.custom-prompt-input {
+.prompt-input {
   width: 100%;
   padding: 8px;
   margin-bottom: 10px;
@@ -327,12 +327,12 @@ text {
   box-sizing: border-box;
 }
 
-.custom-prompt-buttons {
+.prompt-buttons {
   display: flex;
   justify-content: space-between;
 }
 
-.custom-prompt-button {
+.prompt-button {
   padding: 8px 16px;
   margin: 0 5px;
   background: var(--vscode-button-background, #007acc);
@@ -342,11 +342,11 @@ text {
   border-radius: 4px;
 }
 
-.custom-prompt-button:hover {
+.prompt-button:hover {
   background: var(--vscode-button-hoverBackground, #005a9e);
 }
 
-.custom-prompt-button:disabled {
+.prompt-button:disabled {
   background: var(--vscode-button-secondaryBackground, #d4d4d4);
   color: var(--vscode-disabledForeground, #a1a1a1);
   border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);

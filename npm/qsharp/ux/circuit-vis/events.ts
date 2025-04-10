@@ -49,21 +49,23 @@ class CircuitEvents {
   renderFn: () => void;
   componentGrid: ComponentGrid;
   qubits: Qubit[];
-  private container: HTMLElement;
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
   private wireData: number[];
-  private selectedOperation: Operation | null;
-  private selectedWire: number | null;
-  private movingControl: boolean;
-  private mouseUpOnCircuit: boolean;
-  private dragging: boolean;
-  private disableLeftAutoScroll: boolean;
+  private selectedOperation: Operation | null = null;
+  private selectedWire: number | null = null;
+  private movingControl: boolean = false;
+  private mouseUpOnCircuit: boolean = false;
+  private dragging: boolean = false;
+  private disableLeftAutoScroll: boolean = false;
 
-  constructor(container: HTMLElement, sqore: Sqore, useRefresh: () => void) {
+  constructor(
+    private container: HTMLElement,
+    sqore: Sqore,
+    useRefresh: () => void,
+  ) {
     this.renderFn = useRefresh;
 
-    this.container = container;
     this.circuitSvg = container.querySelector("svg[id]") as SVGElement;
     this.dropzoneLayer = container.querySelector(
       ".dropzone-layer",
@@ -73,13 +75,6 @@ class CircuitEvents {
     this.qubits = sqore.circuit.qubits;
 
     this.wireData = getWireData(this.container);
-    this.selectedOperation = null;
-    this.selectedWire = null;
-
-    this.movingControl = false;
-    this.mouseUpOnCircuit = false;
-    this.dragging = false;
-    this.disableLeftAutoScroll = false;
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -110,9 +105,6 @@ class CircuitEvents {
     if (ev.ctrlKey && selectedLocation) {
       this.container.classList.remove("moving");
       this.container.classList.add("copying");
-    } else if (ev.key == "Delete" && selectedLocation) {
-      removeOperation(this, selectedLocation);
-      this.renderFn();
     }
   };
 
@@ -566,7 +558,7 @@ class CircuitEvents {
             numOperations === 1
               ? `There is ${numOperations} operation associated with the last qubit line. Do you want to remove it?`
               : `There are ${numOperations} operations associated with the last qubit line. Do you want to remove them?`;
-          _createCustomConfirm(message, (confirmed) => {
+          _createConfirmPrompt(message, (confirmed) => {
             if (confirmed) {
               // Remove all operations associated with the last qubit line
               findAndRemoveOperations(this.componentGrid, check);
@@ -739,17 +731,17 @@ class CircuitEvents {
 }
 
 /**
- * Create a custom confirm dialog box
+ * Create a confirm dialog box
  * @param message - The message to display in the confirm dialog
  * @param callback - The callback function to handle the user's response (true for OK, false for Cancel)
  */
-const _createCustomConfirm = (
+const _createConfirmPrompt = (
   message: string,
   callback: (confirmed: boolean) => void,
 ) => {
   // Create the confirm overlay
   const overlay = document.createElement("div");
-  overlay.classList.add("custom-prompt-overlay");
+  overlay.classList.add("prompt-overlay");
   overlay.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -757,20 +749,20 @@ const _createCustomConfirm = (
 
   // Create the confirm container
   const confirmContainer = document.createElement("div");
-  confirmContainer.classList.add("custom-prompt-container");
+  confirmContainer.classList.add("prompt-container");
 
   // Create the message element
   const messageElem = document.createElement("div");
-  messageElem.classList.add("custom-prompt-message");
+  messageElem.classList.add("prompt-message");
   messageElem.textContent = message;
 
   // Create the buttons container
   const buttonsContainer = document.createElement("div");
-  buttonsContainer.classList.add("custom-prompt-buttons");
+  buttonsContainer.classList.add("prompt-buttons");
 
   // Create the OK button
   const okButton = document.createElement("button");
-  okButton.classList.add("custom-prompt-button");
+  okButton.classList.add("prompt-button");
   okButton.textContent = "OK";
   okButton.addEventListener("click", () => {
     callback(true); // User confirmed
@@ -779,7 +771,7 @@ const _createCustomConfirm = (
 
   // Create the Cancel button
   const cancelButton = document.createElement("button");
-  cancelButton.classList.add("custom-prompt-button");
+  cancelButton.classList.add("prompt-button");
   cancelButton.textContent = "Cancel";
   cancelButton.addEventListener("click", () => {
     callback(false); // User canceled
