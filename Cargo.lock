@@ -1278,6 +1278,7 @@ name = "qsc_qasm3"
 version = "0.0.0"
 dependencies = [
  "bitflags",
+ "criterion",
  "difference",
  "enum-iterator",
  "expect-test",
