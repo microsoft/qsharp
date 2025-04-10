@@ -578,9 +578,8 @@ fn simulatable_intrinsic_on_gate_stmt_generates_correct_qir() -> miette::Result<
 }
 
 #[test]
-fn rxx_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+fn rxx_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        include "qiskit_stdgates.inc";
         qubit[2] q;
         rxx(2.0) q[1], q[0];
     "#;
@@ -598,9 +597,8 @@ fn rxx_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Resul
 }
 
 #[test]
-fn ryy_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+fn ryy_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        include "qiskit_stdgates.inc";
         qubit[2] q;
         ryy(2.0) q[1], q[0];
     "#;
@@ -618,9 +616,8 @@ fn ryy_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Resul
 }
 
 #[test]
-fn rzz_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+fn rzz_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        include "qiskit_stdgates.inc";
         qubit[2] q;
         rzz(2.0) q[1], q[0];
     "#;
@@ -638,46 +635,8 @@ fn rzz_gate_with_one_angle_can_be_called_with_qiskit_stdgates() -> miette::Resul
 }
 
 #[test]
-fn rxx_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
+fn all_qiskit_stdgates_can_be_called_included() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        include "stdgates.inc";
-        qubit[2] q;
-        rxx(2.0) q[1], q[0];
-    "#;
-
-    compile_qasm_to_qsharp(source).expect_err("Error expected");
-    Ok(())
-}
-
-#[test]
-fn ryy_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
-    let source = r#"
-        include "stdgates.inc";
-        qubit[2] q;
-        ryy(2.0) q[1], q[0];
-    "#;
-
-    compile_qasm_to_qsharp(source).expect_err("Error expected");
-    Ok(())
-}
-
-#[test]
-fn rzz_gate_cannot_be_called_without_qiskit_stdgates() -> miette::Result<(), Vec<Report>> {
-    let source = r#"
-        include "stdgates.inc";
-        qubit[2] q;
-        rzz(2.0) q[1], q[0];
-    "#;
-
-    compile_qasm_to_qsharp(source).expect_err("Error expected");
-    Ok(())
-}
-
-#[test]
-fn all_qiskit_stdgates_can_be_called_with_qiskit_stdgates_included(
-) -> miette::Result<(), Vec<Report>> {
-    let source = r#"
-        include "qiskit_stdgates.inc";
         qubit[4] q;
         rxx(pi / 2.0) q[1], q[0];
         ryy(pi / 2.0) q[1], q[0];

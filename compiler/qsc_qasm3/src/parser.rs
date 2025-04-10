@@ -296,9 +296,7 @@ where
             let file_path = &include.filename;
             // Skip the standard gates include file.
             // Handling of this file is done by the compiler.
-            if file_path.to_lowercase() == "stdgates.inc"
-                || file_path.to_lowercase() == "qiskit_stdgates.inc"
-            {
+            if file_path.to_lowercase() == "stdgates.inc" {
                 continue;
             }
             let source = parse_qasm_file(file_path, resolver);
