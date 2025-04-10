@@ -4,31 +4,25 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use qsc_qasm3::{
     compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig, OutputSemantics,
-    ProgramType, QubitSemantics,
+    ProgramType, QasmCompileUnit, QubitSemantics,
 };
+
+fn rgqft_multiplier(source: &str) -> QasmCompileUnit {
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
+    );
+    compile_to_qsharp_ast_with_config(source, "", None::<&mut InMemorySourceResolver>, config)
+}
 
 pub fn rgqft_multiplier_1q(c: &mut Criterion) {
     const SOURCE: &str = include_str!("./rgqft_multiplier_1q.qasm");
 
     c.bench_function("rgqft_multiplier_1q sample compilation", |b| {
-        let all_sources = [("rgqft_multiplier_1q.qasm".into(), SOURCE.into())];
-        let mut resolver = InMemorySourceResolver::from_iter(all_sources);
-
-        b.iter(move || {
-            let config = CompilerConfig::new(
-                QubitSemantics::Qiskit,
-                OutputSemantics::Qiskit,
-                ProgramType::File,
-                Some("Test".into()),
-                None,
-            );
-            black_box(compile_to_qsharp_ast_with_config(
-                SOURCE,
-                "",
-                Some(&mut resolver),
-                config,
-            ))
-        });
+        b.iter(move || black_box(rgqft_multiplier(SOURCE)));
     });
 }
 
@@ -36,24 +30,7 @@ pub fn rgqft_multiplier_4q(c: &mut Criterion) {
     const SOURCE: &str = include_str!("./rgqft_multiplier_4q.qasm");
 
     c.bench_function("rgqft_multiplier_4q sample compilation", |b| {
-        let all_sources = [("rgqft_multiplier_4q.qasm".into(), SOURCE.into())];
-        let mut resolver = InMemorySourceResolver::from_iter(all_sources);
-
-        b.iter(move || {
-            let config = CompilerConfig::new(
-                QubitSemantics::Qiskit,
-                OutputSemantics::Qiskit,
-                ProgramType::File,
-                Some("Test".into()),
-                None,
-            );
-            black_box(compile_to_qsharp_ast_with_config(
-                SOURCE,
-                "",
-                Some(&mut resolver),
-                config,
-            ))
-        });
+        b.iter(move || black_box(rgqft_multiplier(SOURCE)));
     });
 }
 
