@@ -22,6 +22,7 @@ use num_traits::FromPrimitive;
 use num_traits::Num;
 use qsc_data_structures::span::Span;
 use qsc_frontend::{compile::SourceMap, error::WithSource};
+use rustc_hash::FxHashMap;
 
 use super::symbols::{IOKind, Symbol, SymbolTable};
 
@@ -167,14 +168,7 @@ impl Lowerer {
                 // special case for stdgates.inc
                 // it won't be in the includes list
                 if include.filename.to_lowercase() == "stdgates.inc" {
-                    self.define_stdgates(include);
-                    continue;
-                }
-
-                // special case for stdgates.inc
-                // it won't be in the includes list
-                if include.filename.to_lowercase() == "qiskit_stdgates.inc" {
-                    self.define_qiskit_stadandard_gates(include);
+                    self.define_stdgates(include.span);
                     continue;
                 }
 
@@ -238,7 +232,7 @@ impl Lowerer {
     /// The sdg, tdg, crx, cry, crz, and ch are defined
     /// as their bare gates, and modifiers are applied
     /// when calling them.
-    fn define_stdgates(&mut self, include: &syntax::IncludeStmt) {
+    fn define_stdgates(&mut self, span: Span) {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
             Symbol::new(
                 name,
@@ -277,7 +271,7 @@ impl Lowerer {
         for gate in gates {
             let name = gate.name.clone();
             if self.symbols.insert_symbol(gate).is_err() {
-                self.push_redefined_symbol_error(name.as_str(), include.span);
+                self.push_redefined_symbol_error(name.as_str(), span);
             }
         }
     }
@@ -289,7 +283,45 @@ impl Lowerer {
     /// the symbol table is complete and we can lower the QASM3.
     /// We must also define the gates in the `QasmStd` module so
     /// that we can compile the QASM3 to Q#.
-    fn define_qiskit_stadandard_gates(&mut self, include: &syntax::IncludeStmt) {
+    fn define_qiskit_standard_gate_if_needed<S>(&mut self, name: S, span: Span)
+    where
+        S: AsRef<str>,
+    {
+        const QISKIT_STDGATES: [&str; 20] = [
+            "rxx",
+            "ryy",
+            "rzz",
+            "dcx",
+            "ecr",
+            "r",
+            "rzx",
+            "cs",
+            "csdg",
+            "sxdg",
+            "csx",
+            "cu1",
+            "cu3",
+            "rccx",
+            "c3sqrtx",
+            "c3x",
+            "rc3x",
+            "xx_minus_yy",
+            "xx_plus_yy",
+            "ccz",
+        ];
+        // only define the gate if it is not already defined
+        // and it is in the list of Qiskit standard gates
+        if self.symbols.get_symbol_by_name(&name).is_none()
+            && QISKIT_STDGATES.contains(&name.as_ref())
+        {
+            self.define_qiskit_standard_gate(name, span);
+        }
+    }
+
+    fn define_qiskit_standard_gate<S>(&mut self, name: S, span: Span)
+    where
+        S: AsRef<str>,
+    {
         fn gate_symbol(name: &str, cargs: u32, qargs: u32) -> Symbol {
             Symbol::new(
                 name,
@@ -305,34 +337,32 @@ impl Lowerer {
         // Remaining gates that are not in the qasm std library, but are standard gates in Qiskit
         // that Qiskit wont emit correctly.
         // dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
-
-        let gates = vec![
-            gate_symbol("rxx", 1, 2),
-            gate_symbol("ryy", 1, 2),
-            gate_symbol("rzz", 1, 2),
-            gate_symbol("dcx", 0, 2),
-            gate_symbol("ecr", 0, 2),
-            gate_symbol("r", 2, 1),
-            gate_symbol("rzx", 1, 2),
-            gate_symbol("cs", 0, 2),
-            gate_symbol("csdg", 0, 2),
-            gate_symbol("sxdg", 0, 1),
-            gate_symbol("csx", 0, 2),
-            gate_symbol("cu1", 1, 2),
-            gate_symbol("cu3", 3, 2),
-            gate_symbol("rccx", 0, 3),
-            gate_symbol("c3sqrtx", 0, 4),
-            gate_symbol("c3x", 0, 4),
-            gate_symbol("rc3x", 0, 4),
-            gate_symbol("xx_minus_yy", 2, 2),
-            gate_symbol("xx_plus_yy", 2, 2),
-            gate_symbol("ccz", 0, 3),
-        ];
-        for gate in gates {
-            let name = gate.name.clone();
-            if self.symbols.insert_symbol(gate).is_err() {
-                self.push_redefined_symbol_error(name.as_str(), include.span);
-            }
+        //iter)
+        let gates = FxHashMap::from_iter([
+            ("rxx", gate_symbol("rxx", 1, 2)),
+            ("ryy", gate_symbol("ryy", 1, 2)),
+            ("rzz", gate_symbol("rzz", 1, 2)),
+            ("dcx", gate_symbol("dcx", 0, 2)),
+            ("ecr", gate_symbol("ecr", 0, 2)),
+            ("r", gate_symbol("r", 2, 1)),
+            ("rzx", gate_symbol("rzx", 1, 2)),
+            ("cs", gate_symbol("cs", 0, 2)),
+            ("csdg", gate_symbol("csdg", 0, 2)),
+            ("sxdg", gate_symbol("sxdg", 0, 1)),
+            ("csx", gate_symbol("csx", 0, 2)),
+            ("cu1", gate_symbol("cu1", 1, 2)),
+            ("cu3", gate_symbol("cu3", 3, 2)),
+            ("rccx", gate_symbol("rccx", 0, 3)),
+            ("c3sqrtx", gate_symbol("c3sqrtx", 0, 4)),
+            ("c3x", gate_symbol("c3x", 0, 4)),
+            ("rc3x", gate_symbol("rc3x", 0, 4)),
+            ("xx_minus_yy", gate_symbol("xx_minus_yy", 2, 2)),
+            ("xx_plus_yy", gate_symbol("xx_plus_yy", 2, 2)),
+            ("ccz", gate_symbol("ccz", 0, 3)),
+        ]);
+        let gate = gates.get(name.as_ref()).expect("missing gate symbol");
+        if self.symbols.insert_symbol(gate.clone()).is_err() {
+            self.push_redefined_symbol_error(name.as_ref(), span);
         }
     }
 
@@ -1433,17 +1463,20 @@ impl Lowerer {
         }
 
         let mut name = stmt.name.name.to_string();
-        if let Some((qsharp_name, implicit_modifier)) =
+        if let Some((gate_name, implicit_modifier)) =
             try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
         {
-            // Override the gate name if Q# name is another.
-            name = qsharp_name;
+            // Override the gate name if we mapped with modifiers
+            name = gate_name;
 
             // 2. Get implicit modifiers and make them explicit.
             //    Q: Do we need this during lowering?
             //    A: Yes, we need it to check the gate_call arity.
             modifiers.push(implicit_modifier);
         }
+
+        // need a workaround for qiskit generating gate calls without having declared the gate
+        self.define_qiskit_standard_gate_if_needed(&name, stmt.name.span);
 
         // 3. Check that the gate_name actually refers to a gate in the symbol table
         //    and get its symbol_id & symbol. Make sure to use the name that could've
