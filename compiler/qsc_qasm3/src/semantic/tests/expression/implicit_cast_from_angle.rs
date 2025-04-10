@@ -154,7 +154,7 @@ fn to_implicit_int_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Int(None, false)
                ,-[test:3:17]
@@ -197,7 +197,7 @@ fn to_explicit_int_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Int(Some(32),
               | false)
@@ -241,7 +241,7 @@ fn to_implicit_uint_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type UInt(None,
               | false)
@@ -293,7 +293,7 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type UInt(None,
               | false)
@@ -337,7 +337,7 @@ fn to_explicit_uint_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type UInt(Some(32),
               | false)
@@ -381,7 +381,7 @@ fn to_explicit_bigint_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Int(Some(65),
               | false)
@@ -425,7 +425,7 @@ fn to_implicit_float_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Float(None,
               | false)
@@ -469,7 +469,7 @@ fn to_explicit_float_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Float(Some(32),
               | false)
@@ -513,7 +513,7 @@ fn to_implicit_complex_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type Complex(None,
               | false)
@@ -557,7 +557,7 @@ fn to_explicit_complex_implicitly_fails() {
                                 ty: Angle(None, false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
               x Cannot cast expression of type Angle(None, false) to type
               | Complex(Some(32), false)

@@ -120,7 +120,7 @@ fn capturing_non_const_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.UndefinedSymbol
+        [Qsc.Qasm3.Lowerer.UndefinedSymbol
 
           x Undefined symbol: a.
            ,-[Test.qasm:4:21]
@@ -129,7 +129,7 @@ fn capturing_non_const_external_variable_fails() {
            :                     ^
          5 |         }
            `----
-        , Qsc.Qasm3.Compile.CannotCast
+        , Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Err to type Int(None, false)
            ,-[Test.qasm:4:21]
@@ -166,7 +166,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
            :                            ^^^^
          3 |         gate my_gate q {
            `----
-        , Qsc.Qasm3.Compile.ExprMustBeConst
+        , Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x A captured variable must be a const expression
            ,-[Test.qasm:4:21]

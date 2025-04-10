@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod error;
+
 use core::f64;
 use std::{path::Path, rc::Rc};
 
+use error::CompilerErrorKind;
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use qsc_frontend::{compile::SourceMap, error::WithSource};
@@ -40,7 +43,6 @@ use crate::{
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, ArrayDimensions, Type},
-        SemanticErrorKind,
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
@@ -198,8 +200,8 @@ impl QasmCompiler {
                 if matches!(input.qsharp_ty, crate::types::Type::Angle(..)) {
                     let message =
                         "use `float` types for passing input, using `angle` types".to_string();
-                    let kind = SemanticErrorKind::NotSupported(message, input.span);
-                    self.push_semantic_error(kind);
+                    let kind = CompilerErrorKind::NotSupported(message, input.span);
+                    self.push_compiler_error(kind);
                 }
             }
         }
@@ -365,8 +367,8 @@ impl QasmCompiler {
             output_ty
         } else {
             if is_qiskit {
-                let kind = SemanticErrorKind::QiskitEntryPointMissingOutput(whole_span);
-                self.push_semantic_error(kind);
+                let kind = CompilerErrorKind::QiskitEntryPointMissingOutput(whole_span);
+                self.push_compiler_error(kind);
             }
             crate::types::Type::Tuple(vec![])
         };
@@ -397,7 +399,7 @@ impl QasmCompiler {
             )
         {
             for annotation in &stmt.annotations {
-                self.push_semantic_error(SemanticErrorKind::InvalidAnnotationTarget(
+                self.push_compiler_error(CompilerErrorKind::InvalidAnnotationTarget(
                     annotation.span,
                 ));
             }
@@ -814,12 +816,12 @@ impl QasmCompiler {
                 semast::GateModifierKind::Ctrl(num_ctrls) => {
                     // remove the last n qubits from the qubit list
                     if qubits.len() < *num_ctrls as usize {
-                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                        let kind = CompilerErrorKind::InvalidNumberOfQubitArgs(
                             *num_ctrls as usize,
                             qubits.len(),
                             modifier.span,
                         );
-                        self.push_semantic_error(kind);
+                        self.push_compiler_error(kind);
                         return None;
                     }
                     let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
@@ -834,12 +836,12 @@ impl QasmCompiler {
                 semast::GateModifierKind::NegCtrl(num_ctrls) => {
                     // remove the last n qubits from the qubit list
                     if qubits.len() < *num_ctrls as usize {
-                        let kind = SemanticErrorKind::InvalidNumberOfQubitArgs(
+                        let kind = CompilerErrorKind::InvalidNumberOfQubitArgs(
                             *num_ctrls as usize,
                             qubits.len(),
                             modifier.span,
                         );
-                        self.push_semantic_error(kind);
+                        self.push_compiler_error(kind);
                         return None;
                     }
                     let ctrl = qubits.split_off(qubits.len().saturating_sub(*num_ctrls as usize));
@@ -986,7 +988,7 @@ impl QasmCompiler {
                 annotation.span,
             )),
             _ => {
-                self.push_semantic_error(SemanticErrorKind::UnknownAnnotation(
+                self.push_compiler_error(CompilerErrorKind::UnknownAnnotation(
                     format!("@{}", annotation.identifier),
                     annotation.span,
                 ));
@@ -1560,19 +1562,19 @@ impl QasmCompiler {
 
     /// Pushes an unsupported error with the supplied message.
     pub fn push_unsupported_error_message<S: AsRef<str>>(&mut self, message: S, span: Span) {
-        let kind = SemanticErrorKind::NotSupported(message.as_ref().to_string(), span);
-        self.push_semantic_error(kind);
+        let kind = CompilerErrorKind::NotSupported(message.as_ref().to_string(), span);
+        self.push_compiler_error(kind);
     }
 
     /// Pushes an unimplemented error with the supplied message.
     pub fn push_unimplemented_error_message<S: AsRef<str>>(&mut self, message: S, span: Span) {
-        let kind = SemanticErrorKind::Unimplemented(message.as_ref().to_string(), span);
-        self.push_semantic_error(kind);
+        let kind = CompilerErrorKind::Unimplemented(message.as_ref().to_string(), span);
+        self.push_compiler_error(kind);
     }
 
     /// Pushes a semantic error with the given kind.
-    pub fn push_semantic_error(&mut self, kind: SemanticErrorKind) {
-        let kind = crate::ErrorKind::Semantic(crate::semantic::Error(kind));
+    pub fn push_compiler_error(&mut self, kind: CompilerErrorKind) {
+        let kind = crate::ErrorKind::Compiler(error::Error(kind));
         let error = crate::Error(kind);
         let error = WithSource::from_map(&self.source_map, error);
         self.errors.push(error);

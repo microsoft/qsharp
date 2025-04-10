@@ -39,7 +39,7 @@ fn if_branch_doesnt_create_its_own_scope() {
                                         kind: Lit: Int(1)
                             else_body: <none>
 
-            [Qsc.Qasm3.Compile.RedefinedSymbol
+            [Qsc.Qasm3.Lowerer.RedefinedSymbol
 
               x Redefined symbol: a.
                ,-[test:3:19]
@@ -90,7 +90,7 @@ fn else_branch_doesnt_create_its_own_scope() {
                                         ty: Int(None, false)
                                         kind: Lit: Int(1)
 
-            [Qsc.Qasm3.Compile.RedefinedSymbol
+            [Qsc.Qasm3.Lowerer.RedefinedSymbol
 
               x Redefined symbol: a.
                ,-[test:4:14]

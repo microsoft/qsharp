@@ -18,7 +18,7 @@ fn with_invalid_instruction_fails() {
                         annotations: <empty>
                         kind: Err
 
-            [Qsc.Qasm3.Compile.ClassicalStmtInBox
+            [Qsc.Qasm3.Lowerer.ClassicalStmtInBox
 
               x invalid classical statement in box
                ,-[test:2:9]
@@ -27,7 +27,7 @@ fn with_invalid_instruction_fails() {
                :         ^^^^^^
              3 |     }
                `----
-            , Qsc.Qasm3.Compile.Unimplemented
+            , Qsc.Qasm3.Lowerer.Unimplemented
 
               x this statement is not yet handled during OpenQASM 3 import: box stmt
                ,-[test:1:1]
@@ -51,14 +51,14 @@ fn with_duration_fails() {
                         annotations: <empty>
                         kind: Err
 
-            [Qsc.Qasm3.Compile.NotSupported
+            [Qsc.Qasm3.Lowerer.NotSupported
 
               x Box with duration are not supported.
                ,-[test:1:6]
              1 | box [4us] { }
                :      ^^^
                `----
-            , Qsc.Qasm3.Compile.Unimplemented
+            , Qsc.Qasm3.Lowerer.Unimplemented
 
               x this statement is not yet handled during OpenQASM 3 import: box stmt
                ,-[test:1:1]

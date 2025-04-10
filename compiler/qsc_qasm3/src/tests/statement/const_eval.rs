@@ -86,7 +86,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          6 |         bit[c] r2;
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:5:13]
@@ -106,7 +106,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          7 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:6:13]
@@ -487,7 +487,7 @@ fn binary_op_shl_creg_fails() {
          4 |         bit[b] r;
            `----
 
-        Qsc.Qasm3.Compile.UndefinedSymbol
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
 
           x Undefined symbol: b.
            ,-[Test.qasm:4:13]
@@ -497,7 +497,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.CannotCast
+        Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
@@ -517,7 +517,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:4:13]
@@ -660,7 +660,7 @@ fn binary_op_shr_creg_fails() {
          4 |         bit[b] r;
            `----
 
-        Qsc.Qasm3.Compile.UndefinedSymbol
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
 
           x Undefined symbol: b.
            ,-[Test.qasm:4:13]
@@ -670,7 +670,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.CannotCast
+        Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
@@ -690,7 +690,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:4:13]

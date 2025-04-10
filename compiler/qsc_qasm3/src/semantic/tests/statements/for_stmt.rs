@@ -30,7 +30,7 @@ fn shadowing_loop_variable_in_single_stmt_body_fails() {
                                         ty: Int(None, false)
                                         kind: Lit: Int(2)
 
-            [Qsc.Qasm3.Compile.RedefinedSymbol
+            [Qsc.Qasm3.Lowerer.RedefinedSymbol
 
               x Redefined symbol: x.
                ,-[test:3:13]

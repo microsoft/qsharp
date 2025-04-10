@@ -141,7 +141,7 @@ fn funcall_with_too_few_arguments_generates_error() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.InvalidNumberOfClassicalArgs
+        [Qsc.Qasm3.Lowerer.InvalidNumberOfClassicalArgs
 
           x Gate expects 1 classical arguments, but 0 were provided.
            ,-[Test.qasm:6:9]
@@ -169,7 +169,7 @@ fn funcall_with_too_many_arguments_generates_error() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.InvalidNumberOfClassicalArgs
+        [Qsc.Qasm3.Lowerer.InvalidNumberOfClassicalArgs
 
           x Gate expects 1 classical arguments, but 2 were provided.
            ,-[Test.qasm:6:9]
@@ -248,7 +248,7 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.CannotCast
+        [Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Float(None, false) to type Bit(false)
            ,-[Test.qasm:6:17]
@@ -304,7 +304,7 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.CannotCast
+        [Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Int(None, true) to type QubitArray(One(2))
            ,-[Test.qasm:6:24]

@@ -61,6 +61,75 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), Vec<Report>> {
+    let source0 = r#"
+        include "stdgates.inc";
+        include "source1.qasm";
+    "#;
+    let source1 = r#"include "source2.qasm";"#;
+    let source2 = "bit a;";
+    let all_sources = [
+        ("source0.qasm".into(), source0.into()),
+        ("source1.qasm".into(), source1.into()),
+        ("source2.qasm".into(), source2.into()),
+    ];
+
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
+    );
+    let r = compile_all_with_config("source0.qasm", all_sources, config)?;
+    let qsharp = qsharp_from_qasm_compilation(r)?;
+    expect![[r#"
+        namespace qasm3_import {
+            import QasmStd.Angle.*;
+            import QasmStd.Convert.*;
+            import QasmStd.Intrinsic.*;
+            @EntryPoint()
+            operation Test() : Unit {
+                mutable a = Zero;
+                ()
+            }
+        }"#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn including_stdgates_multiple_times_causes_symbol_redifintion_errors() {
+    let source0 = r#"
+        include "stdgates.inc";
+        include "source1.qasm";
+    "#;
+    let source1 = r#"include "source2.qasm";"#;
+    let source2 = r#"include "stdgates.inc";"#;
+    let all_sources = [
+        ("source0.qasm".into(), source0.into()),
+        ("source1.qasm".into(), source1.into()),
+        ("source2.qasm".into(), source2.into()),
+    ];
+
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::Qiskit,
+        ProgramType::File,
+        Some("Test".into()),
+        None,
+    );
+
+    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+        panic!("expected errors")
+    };
+
+    let errors: Vec<_> = errors.iter().map(|e| format!("{e}")).collect();
+    let errors_string = errors.join("\n");
+    expect!["Not Found Could not resolve include file: main.qasm"].assert_eq(&errors_string);
+}
+
+#[test]
 fn multiple_include_in_same_file_errors() {
     let main = r#"
         include "source1.inc";

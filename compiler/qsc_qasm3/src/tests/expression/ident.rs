@@ -18,7 +18,7 @@ fn unresolved_idenfiers_raise_symbol_error() {
     let errs: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qsc.Qasm3.Compile.UndefinedSymbol
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
 
           x Undefined symbol: t.
            ,-[Test.qasm:2:19]
@@ -28,7 +28,7 @@ fn unresolved_idenfiers_raise_symbol_error() {
          3 |     
            `----
 
-        Qsc.Qasm3.Compile.CannotCast
+        Qsc.Qasm3.Lowerer.CannotCast
 
           x Cannot cast expression of type Err to type Float(None, false)
            ,-[Test.qasm:2:19]

@@ -58,6 +58,9 @@ impl Error {
 pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
+    Compiler(#[from] crate::compiler::error::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
     IO(#[from] crate::io::Error),
     #[error("QASM3 Parse Error: {0}")]
     Parse(String, #[label] Span),
