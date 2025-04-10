@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type CircuitGroup as CircuitData } from "../shared/circuit.js";
+import {
+  CURRENT_VERSION,
+  type CircuitGroup as CircuitData,
+} from "../shared/circuit.js";
 import type {
   DebugService,
   IBreakpointSpan,
@@ -92,7 +95,11 @@ export class QSharpDebugService implements IDebugService {
   }
 
   async getCircuit(): Promise<CircuitData> {
-    return this.debugService.get_circuit();
+    const circuit = this.debugService.get_circuit();
+    return {
+      circuits: [circuit],
+      version: CURRENT_VERSION,
+    };
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {

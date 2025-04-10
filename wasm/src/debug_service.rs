@@ -56,11 +56,7 @@ impl DebugService {
 
     pub fn get_circuit(&self) -> Result<JsValue, String> {
         let circuit = self.debugger().circuit();
-        let circuitData = qsc::circuit::CircuitGroup {
-            circuits: vec![circuit],
-            version: qsc::circuit::CURRENT_VERSION,
-        };
-        serde_wasm_bindgen::to_value(&circuitData).map_err(|e| e.to_string())
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
     }
 
     pub fn get_stack_frames(&self) -> IStackFrameList {

@@ -141,12 +141,7 @@ pub fn get_circuit(
         .circuit(entry_point, simulate)
         .map_err(interpret_errors_into_qsharp_errors_json)?;
 
-    let circuit_data = qsc::circuit::CircuitGroup {
-        circuits: vec![circuit],
-        version: qsc::circuit::CURRENT_VERSION,
-    };
-
-    serde_wasm_bindgen::to_value(&circuit_data).map_err(|e| e.to_string())
+    serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
 }
 
 #[wasm_bindgen]
