@@ -489,7 +489,7 @@ fn binary_op_shl_creg_fails() {
 
         Qsc.Qasm3.Lowerer.UndefinedSymbol
 
-          x Undefined symbol: b.
+          x undefined symbol: b
            ,-[Test.qasm:4:13]
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
@@ -499,7 +499,7 @@ fn binary_op_shl_creg_fails() {
 
         Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type Err to type UInt(None, true)
+          x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
@@ -662,7 +662,7 @@ fn binary_op_shr_creg_fails() {
 
         Qsc.Qasm3.Lowerer.UndefinedSymbol
 
-          x Undefined symbol: b.
+          x undefined symbol: b
            ,-[Test.qasm:4:13]
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
@@ -672,7 +672,7 @@ fn binary_op_shr_creg_fails() {
 
         Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type Err to type UInt(None, true)
+          x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;

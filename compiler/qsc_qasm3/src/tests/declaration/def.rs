@@ -126,7 +126,7 @@ fn return_expr_on_void_function_fails() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.ReturningExpressionFromVoidSubroutine
 
-          x Cannot return an expression from a void subroutine.
+          x cannot return an expression from a void subroutine
            ,-[Test.qasm:3:20]
          2 |         def square(int val) {
          3 |             return val;
@@ -152,8 +152,7 @@ fn missing_return_expr_on_non_void_function_fails() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.MissingTargetExpressionInReturnStmt
 
-          x Return statements on a non-void subroutine should have a target
-          | expression.
+          x return statements on a non-void subroutine should have a target expression
            ,-[Test.qasm:3:13]
          2 |         def square(int a) -> bit {
          3 |             return;
@@ -201,7 +200,7 @@ fn capturing_non_const_external_variable_fails() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.UndefinedSymbol
 
-          x Undefined symbol: a.
+          x undefined symbol: a
            ,-[Test.qasm:4:20]
          3 |         def f() -> int {
          4 |             return a;
@@ -210,7 +209,7 @@ fn capturing_non_const_external_variable_fails() {
            `----
         , Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type Err to type Int(None, false)
+          x cannot cast expression of type Err to type Int(None, false)
            ,-[Test.qasm:4:20]
          3 |         def f() -> int {
          4 |             return a;
@@ -247,7 +246,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
            `----
         , Qsc.Qasm3.Lowerer.ExprMustBeConst
 
-          x A captured variable must be a const expression
+          x a captured variable must be a const expression
            ,-[Test.qasm:4:20]
          3 |         def f() -> int {
          4 |             return a;

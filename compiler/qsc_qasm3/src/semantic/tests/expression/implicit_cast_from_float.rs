@@ -37,7 +37,7 @@ fn to_bit_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Float(None, false) to type Bit(false)
+              x cannot cast expression of type Float(None, false) to type Bit(false)
                ,-[test:3:17]
              2 |         float x = 42.;
              3 |         bit y = x;
@@ -80,7 +80,7 @@ fn explicit_width_to_bit_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Float(Some(64), false) to type Bit(false)
+              x cannot cast expression of type Float(Some(64), false) to type Bit(false)
                ,-[test:3:17]
              2 |         float[64] x = 42.;
              3 |         bit y = x;

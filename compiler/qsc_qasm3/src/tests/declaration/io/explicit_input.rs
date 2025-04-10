@@ -232,7 +232,7 @@ input angle a;
 
     assert_eq!(
         error[0].to_string(),
-        "use `float` types for passing input, using `angle` types are not supported."
+        "use `float` types for passing input, using `angle` types are not supported"
     );
 }
 

@@ -78,7 +78,7 @@ fn no_allowed_in_non_global_scope() {
 
             [Qsc.Qasm3.Lowerer.DefDeclarationInNonGlobalScope
 
-              x Extern declarations must be done in global scope.
+              x extern declarations must be done in global scope
                ,-[test:1:3]
              1 | { extern f(); }
                :   ^^^^^^^^^^^

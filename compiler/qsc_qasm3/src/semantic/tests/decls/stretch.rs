@@ -24,14 +24,14 @@ fn with_no_init_expr_has_generated_lit_expr() {
 
             [Qsc.Qasm3.Lowerer.NotSupported
 
-              x Stretch type values are not supported.
+              x stretch type values are not supported
                ,-[test:1:1]
              1 | stretch a;
                : ^^^^^^^
                `----
             , Qsc.Qasm3.Lowerer.NotSupported
 
-              x Stretch default values are not supported.
+              x stretch default values are not supported
                ,-[test:1:1]
              1 | stretch a;
                : ^^^^^^^^^^

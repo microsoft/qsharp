@@ -161,5 +161,5 @@ fn loop_variables_should_be_scoped_to_for_loop() {
         panic!("Expected error");
     };
 
-    expect![[r#"Undefined symbol: i."#]].assert_eq(&errors[0].to_string());
+    expect!["undefined symbol: i"].assert_eq(&errors[0].to_string());
 }

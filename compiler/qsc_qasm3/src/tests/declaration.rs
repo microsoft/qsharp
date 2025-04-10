@@ -70,8 +70,8 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
     assert_eq!(unit.errors.len(), 10);
     for error in &unit.errors {
         assert!([
-            "Duration type values are not supported.",
-            "Timing literals are not supported.",
+            "duration type values are not supported",
+            "timing literals are not supported",
         ]
         .contains(&error.to_string().as_str()));
     }
@@ -100,8 +100,8 @@ fn stretch() {
     assert!(unit.errors.len() == 2);
     assert!(unit.errors[0]
         .to_string()
-        .contains("Stretch type values are not supported."),);
+        .contains("stretch type values are not supported"),);
     assert!(unit.errors[1]
         .to_string()
-        .contains("Stretch default values are not supported."),);
+        .contains("stretch default values are not supported"),);
 }

@@ -114,7 +114,7 @@ fn unknown_annotation_raises_error() {
     let Err(errors) = compile_qasm_to_qsharp(source) else {
         panic!("Expected an error");
     };
-    expect![r#"Unexpected annotation: @SomeUnknownAnnotation."#].assert_eq(&errors[0].to_string());
+    expect!["unexpected annotation: @SomeUnknownAnnotation"].assert_eq(&errors[0].to_string());
 }
 
 #[test]

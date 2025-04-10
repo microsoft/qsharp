@@ -53,7 +53,7 @@ fn with_duration_fails() {
 
             [Qsc.Qasm3.Lowerer.NotSupported
 
-              x Box with duration are not supported.
+              x Box with duration are not supported
                ,-[test:1:6]
              1 | box [4us] { }
                :      ^^^

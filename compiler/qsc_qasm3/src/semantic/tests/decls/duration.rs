@@ -24,7 +24,7 @@ fn with_no_init_expr_has_generated_lit_expr() {
 
             [Qsc.Qasm3.Lowerer.NotSupported
 
-              x Duration type values are not supported.
+              x duration type values are not supported
                ,-[test:1:1]
              1 | duration a;
                : ^^^^^^^^

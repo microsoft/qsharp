@@ -230,7 +230,7 @@ fn to_int_with_higher_width_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type BitArray(One(5), false) to type
+              x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(6), false)
                ,-[test:4:13]
              3 |         bit[5] reg;
@@ -273,7 +273,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type BitArray(One(5), false) to type
+              x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(6), false)
                ,-[test:3:20]
              2 |         bit[5] reg;
@@ -322,7 +322,7 @@ fn to_int_with_lower_width_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type BitArray(One(5), false) to type
+              x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(4), false)
                ,-[test:4:13]
              3 |         bit[5] reg;
@@ -366,7 +366,7 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type BitArray(One(5), false) to type
+              x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(4), false)
                ,-[test:3:20]
              2 |         bit[5] reg;

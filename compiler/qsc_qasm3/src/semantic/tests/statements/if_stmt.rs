@@ -41,7 +41,7 @@ fn if_branch_doesnt_create_its_own_scope() {
 
             [Qsc.Qasm3.Lowerer.RedefinedSymbol
 
-              x Redefined symbol: a.
+              x redefined symbol: a
                ,-[test:3:19]
              2 |     int a = 2;
              3 |     if (true) int a = 1;
@@ -92,7 +92,7 @@ fn else_branch_doesnt_create_its_own_scope() {
 
             [Qsc.Qasm3.Lowerer.RedefinedSymbol
 
-              x Redefined symbol: a.
+              x redefined symbol: a
                ,-[test:4:14]
              3 |     if (true) {}
              4 |     else int a = 1;

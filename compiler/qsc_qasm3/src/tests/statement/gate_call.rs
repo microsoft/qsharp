@@ -247,7 +247,7 @@ fn cx_called_with_one_qubit_generates_error() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.InvalidNumberOfQubitArgs
 
-          x Gate expects 2 qubit arguments, but 1 were provided.
+          x gate expects 2 qubit arguments, but 1 were provided
            ,-[Test.qasm:4:9]
          3 |         qubit[2] q;
          4 |         cx q[0];
@@ -273,7 +273,7 @@ fn cx_called_with_too_many_qubits_generates_error() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.InvalidNumberOfQubitArgs
 
-          x Gate expects 2 qubit arguments, but 3 were provided.
+          x gate expects 2 qubit arguments, but 3 were provided
            ,-[Test.qasm:4:9]
          3 |         qubit[3] q;
          4 |         cx q[0], q[1], q[2];
@@ -299,7 +299,7 @@ fn rx_gate_with_no_angles_generates_error() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.InvalidNumberOfClassicalArgs
 
-          x Gate expects 1 classical arguments, but 0 were provided.
+          x gate expects 1 classical arguments, but 0 were provided
            ,-[Test.qasm:4:9]
          3 |         qubit q;
          4 |         rx q;
@@ -345,7 +345,7 @@ fn rx_gate_with_too_many_angles_generates_error() {
     expect![[r#"
         [Qsc.Qasm3.Lowerer.InvalidNumberOfClassicalArgs
 
-          x Gate expects 1 classical arguments, but 2 were provided.
+          x gate expects 1 classical arguments, but 2 were provided
            ,-[Test.qasm:4:9]
          3 |         qubit q;
          4 |         rx(2.0, 3.0) q;

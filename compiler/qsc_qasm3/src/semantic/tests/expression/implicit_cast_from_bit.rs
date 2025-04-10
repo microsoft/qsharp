@@ -357,7 +357,7 @@ fn to_implicit_float_implicitly_fails() {
 
             [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Bit(false) to type Float(None, false)
+              x cannot cast expression of type Bit(false) to type Float(None, false)
                ,-[test:3:19]
              2 |         bit x = 1;
              3 |         float y = x;

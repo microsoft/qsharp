@@ -81,7 +81,7 @@ fn break_in_non_loop_scope_fails() {
 
             [Qsc.Qasm3.Lowerer.InvalidScope
 
-              x break can only appear in loop scopes.
+              x break can only appear in loop scopes
                ,-[test:1:1]
              1 | break;
                : ^^^^^^
@@ -125,7 +125,7 @@ fn intermediate_def_scope_fails() {
 
             [Qsc.Qasm3.Lowerer.DefDeclarationInNonGlobalScope
 
-              x Def declarations must be done in global scope.
+              x def declarations must be done in global scope
                ,-[test:3:13]
              2 |         while (true) {
              3 |             def f() { break; }
@@ -134,7 +134,7 @@ fn intermediate_def_scope_fails() {
                `----
             , Qsc.Qasm3.Lowerer.InvalidScope
 
-              x break can only appear in loop scopes.
+              x break can only appear in loop scopes
                ,-[test:3:23]
              2 |         while (true) {
              3 |             def f() { break; }

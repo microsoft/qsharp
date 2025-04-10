@@ -1443,7 +1443,7 @@ impl QasmCompiler {
                 // but we can still create an identifier for the hardware qubit
                 // and let the rest of the containing expression compile to
                 // catch any other errors
-                let message = "Hardware qubit operands";
+                let message = "hardware qubit operands";
                 self.push_unsupported_error_message(message, op.span);
                 build_path_ident_expr(hw.name.clone(), hw.span, op.span)
             }
@@ -1525,7 +1525,7 @@ impl QasmCompiler {
         _unit: TimeUnit,
         span: Span,
     ) -> qsast::Expr {
-        self.push_unsupported_error_message("Timing literals", span);
+        self.push_unsupported_error_message("timing literals", span);
         err_expr(span)
     }
 

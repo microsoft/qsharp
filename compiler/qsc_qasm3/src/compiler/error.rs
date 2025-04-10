@@ -14,19 +14,19 @@ pub struct Error(pub CompilerErrorKind);
 /// safety checks to ensure that the QASM code is valid.
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum CompilerErrorKind {
-    #[error("{0} are not supported.")]
-    #[diagnostic(code("Qsc.Qasm3.Compiler.NotSupported"))]
-    NotSupported(String, #[label] Span),
-    #[error("Qiskit circuits must have output registers.")]
-    #[diagnostic(code("Qsc.Qasm3.Compiler.QiskitEntryPointMissingOutput"))]
-    QiskitEntryPointMissingOutput(#[label] Span),
-    #[error("Annotations only valid on def and gate statements.")]
+    #[error("annotations only valid on def and gate statements")]
     #[diagnostic(code("Qsc.Qasm3.Compiler.InvalidAnnotationTarget"))]
     InvalidAnnotationTarget(#[label] Span),
-    #[error("Gate expects {0} qubit arguments, but {1} were provided.")]
+    #[error("gate expects {0} qubit arguments, but {1} were provided")]
     #[diagnostic(code("Qsc.Qasm3.Compiler.InvalidNumberOfQubitArgs"))]
     InvalidNumberOfQubitArgs(usize, usize, #[label] Span),
-    #[error("Unexpected annotation: {0}.")]
+    #[error("{0} are not supported")]
+    #[diagnostic(code("Qsc.Qasm3.Compiler.NotSupported"))]
+    NotSupported(String, #[label] Span),
+    #[error("qiskit circuits must have output registers")]
+    #[diagnostic(code("Qsc.Qasm3.Compiler.QiskitEntryPointMissingOutput"))]
+    QiskitEntryPointMissingOutput(#[label] Span),
+    #[error("unexpected annotation: {0}")]
     #[diagnostic(code("Qsc.Qasm3.Compiler.UnknownAnnotation"))]
     UnknownAnnotation(String, #[label] Span),
     #[error("this statement is not yet handled during OpenQASM 3 import: {0}")]

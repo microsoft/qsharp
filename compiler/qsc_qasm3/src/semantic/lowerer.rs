@@ -102,7 +102,7 @@ impl Lowerer {
 
         assert!(
             self.symbols.is_current_scope_global(),
-            "Scope stack was non popped correctly."
+            "scope stack was non popped correctly"
         );
 
         let program = semantic::Program {
@@ -610,7 +610,7 @@ impl Lowerer {
                 semantic::ExprKind::Lit(val)
             } else {
                 self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                    "A captured variable".into(),
+                    "a captured variable".into(),
                     ident.span,
                 ));
                 semantic::ExprKind::Err
@@ -659,7 +659,7 @@ impl Lowerer {
                 Type::Complex(None, true),
             ),
             syntax::LiteralKind::String(_) => {
-                self.push_unsupported_error_message("String literals", expr.span);
+                self.push_unsupported_error_message("string literals", expr.span);
                 (semantic::ExprKind::Err, Type::Err)
             }
             syntax::LiteralKind::Duration(value, time_unit) => (
@@ -808,7 +808,7 @@ impl Lowerer {
             Type::Bit(_) => crate::types::Type::Result(is_const),
             Type::Qubit => crate::types::Type::Qubit,
             Type::HardwareQubit => {
-                let message = "HardwareQubit to Q# type";
+                let message = "hardware qubit to Q# type";
                 self.push_unsupported_error_message(message, span);
                 crate::types::Type::Err
             }
@@ -828,11 +828,11 @@ impl Lowerer {
             Type::Complex(_, _) => crate::types::Type::Complex(is_const),
             Type::Bool(_) => crate::types::Type::Bool(is_const),
             Type::Duration(_) => {
-                self.push_unsupported_error_message("Duration type values", span);
+                self.push_unsupported_error_message("duration type values", span);
                 crate::types::Type::Err
             }
             Type::Stretch(_) => {
-                self.push_unsupported_error_message("Stretch type values", span);
+                self.push_unsupported_error_message("stretch type values", span);
                 crate::types::Type::Err
             }
             Type::BitArray(dims, _) => crate::types::Type::ResultArray(dims.into(), is_const),
@@ -857,7 +857,7 @@ impl Lowerer {
             Type::Void => crate::types::Type::Tuple(vec![]),
             Type::Err => crate::types::Type::Err,
             _ => {
-                let msg = format!("Converting {ty:?} to Q# type");
+                let msg = format!("converting {ty:?} to Q# type");
                 self.push_unimplemented_error_message(msg, span);
                 crate::types::Type::Err
             }
@@ -1602,7 +1602,7 @@ impl Lowerer {
         }
         // if we are at the root and we have an include, we should have
         // already handled it and we are in an invalid state
-        panic!("Include should have been handled in lower_source")
+        panic!("include should have been handled in lower_source")
     }
 
     fn lower_io_decl(&mut self, stmt: &syntax::IODeclaration) -> semantic::StmtKind {
@@ -1812,7 +1812,7 @@ impl Lowerer {
             // If we don't have a return type then we are not rooted in a subroutine scope.
             (_, None) => {
                 self.push_semantic_error(SemanticErrorKind::InvalidScope(
-                    "Return statements".into(),
+                    "return statements".into(),
                     "subroutine".into(),
                     stmt.span,
                 ));
@@ -2225,22 +2225,22 @@ impl Lowerer {
             Type::Float(_, _) => Some(from_lit_kind(LiteralKind::Float(0.0))),
             Type::Complex(_, _) => Some(from_lit_kind(LiteralKind::Complex(0.0, 0.0))),
             Type::Stretch(_) => {
-                let message = "Stretch default values";
+                let message = "stretch default values";
                 self.push_unsupported_error_message(message, span);
                 None
             }
             Type::Qubit => {
-                let message = "Qubit default values";
+                let message = "qubit default values";
                 self.push_unsupported_error_message(message, span);
                 None
             }
             Type::HardwareQubit => {
-                let message = "HardwareQubit default values";
+                let message = "hardware qubit default values";
                 self.push_unsupported_error_message(message, span);
                 None
             }
             Type::QubitArray(_) => {
-                let message = "QubitArray default values";
+                let message = "qubit array default values";
                 self.push_unsupported_error_message(message, span);
                 None
             }
@@ -2290,7 +2290,7 @@ impl Lowerer {
                 None
             }
             Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
-                let message = format!("Default values for {ty:?}");
+                let message = format!("default values for {ty:?}");
                 self.push_unsupported_error_message(message, span);
                 None
             }
@@ -2323,7 +2323,7 @@ impl Lowerer {
         kind: &semantic::LiteralKind,
     ) -> Option<semantic::Expr> {
         assert!(matches!(*rhs.kind, semantic::ExprKind::Lit(..)));
-        assert!(rhs.ty.is_const(), "Literals must have const types");
+        assert!(rhs.ty.is_const(), "literals must have const types");
 
         if *ty == rhs.ty {
             // Base case, we shouldn't have gotten here
@@ -2486,8 +2486,8 @@ impl Lowerer {
                         });
                     }
                     let kind = SemanticErrorKind::InvalidCastValueRange(
-                        "Integer".to_string(),
-                        "Double".to_string(),
+                        "int".to_string(),
+                        "float".to_string(),
                         span,
                     );
                     self.push_semantic_error(kind);
@@ -2507,9 +2507,9 @@ impl Lowerer {
                             ty: lhs_ty.as_const(),
                         });
                     }
-                    panic!("Value must be 0 or 1");
+                    panic!("value must be 0 or 1");
                 } else {
-                    panic!("Literal must be an IntNumber");
+                    panic!("literal must be an Int");
                 }
             }
             (Type::Int(width, _), Type::Int(_, _) | Type::UInt(_, _)) => {
@@ -2530,8 +2530,8 @@ impl Lowerer {
                             BigInt::shl_assign(&mut cap, width);
                             if *value >= cap {
                                 self.push_semantic_error(SemanticErrorKind::InvalidCastValueRange(
-                                    "BigInt".to_string(),
-                                    "Int".to_string(),
+                                    value.to_string(),
+                                    format!("int[{width}]"),
                                     span,
                                 ));
                                 return None;
@@ -2545,7 +2545,7 @@ impl Lowerer {
                             ty: lhs_ty.as_const(),
                         });
                     }
-                    _ => panic!("Literal must be an Int or BigInt"),
+                    _ => panic!("literal must be an Int or BigInt"),
                 }
             }
             _ => None,
@@ -2553,7 +2553,7 @@ impl Lowerer {
         if result.is_none() {
             // we assert that the type can be casted
             // but we didn't cast it, so this is a bug
-            panic!("Literal type cast failed lhs: {:?}, rhs: {:?}", ty, rhs.ty);
+            panic!("literal type cast failed lhs: {:?}, rhs: {:?}", ty, rhs.ty);
         } else {
             result
         }
