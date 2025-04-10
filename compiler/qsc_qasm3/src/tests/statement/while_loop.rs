@@ -55,6 +55,6 @@ fn using_cond_that_cannot_implicit_cast_to_bool_fail() {
         panic!("Expected error");
     };
 
-    expect!["Cannot cast expression of type Qubit to type Bool(false)"]
+    expect!["cannot cast expression of type Qubit to type Bool(false)"]
         .assert_eq(&errors[0].to_string());
 }

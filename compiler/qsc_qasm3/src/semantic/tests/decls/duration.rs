@@ -22,9 +22,9 @@ fn with_no_init_expr_has_generated_lit_expr() {
                                 ty: Duration(true)
                                 kind: Lit: Duration(0.0, Ns)
 
-            [Qsc.Qasm3.Compile.NotSupported
+            [Qsc.Qasm3.Lowerer.NotSupported
 
-              x Duration type values are not supported.
+              x duration type values are not supported
                ,-[test:1:1]
              1 | duration a;
                : ^^^^^^^^

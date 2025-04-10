@@ -162,6 +162,6 @@ fn to_implicit_float_implicitly_fails() {
         panic!("Expected error")
     };
 
-    expect![["Cannot cast expression of type Bit(false) to type Float(None, false)"]]
+    expect!["cannot cast expression of type Bit(false) to type Float(None, false)"]
         .assert_eq(&error[0].to_string());
 }

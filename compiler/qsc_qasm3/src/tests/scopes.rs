@@ -52,7 +52,7 @@ fn cannot_access_mutable_decls_from_global_scope() {
     let Err(errors) = compile_qasm_to_qsharp(source) else {
         panic!("Expected an error");
     };
-    expect![r#"Undefined symbol: i."#].assert_eq(&errors[0].to_string());
+    expect!["undefined symbol: i"].assert_eq(&errors[0].to_string());
 }
 
 #[test]

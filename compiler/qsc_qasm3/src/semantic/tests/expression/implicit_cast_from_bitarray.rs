@@ -200,45 +200,45 @@ fn to_int_with_higher_width_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-18]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-18]:
-                        symbol_id: 8
-                        ty_span: [9-15]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(6), true)
-                            kind: Lit: Int(0)
-                Stmt [27-38]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [27-38]:
-                        symbol_id: 9
-                        ty_span: [27-33]
-                        init_expr: Expr [0-0]:
-                            ty: BitArray(One(5), true)
-                            kind: Lit: Bitstring("00000")
-                Stmt [47-55]:
-                    annotations: <empty>
-                    kind: AssignStmt [47-55]:
-                        symbol_id: 8
-                        lhs_span: [47-48]
-                        rhs: Expr [51-54]:
-                            ty: BitArray(One(5), false)
-                            kind: SymbolId(9)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-18]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-18]:
+                            symbol_id: 8
+                            ty_span: [9-15]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(6), true)
+                                kind: Lit: Int(0)
+                    Stmt [27-38]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [27-38]:
+                            symbol_id: 9
+                            ty_span: [27-33]
+                            init_expr: Expr [0-0]:
+                                ty: BitArray(One(5), true)
+                                kind: Lit: Bitstring("00000")
+                    Stmt [47-55]:
+                        annotations: <empty>
+                        kind: AssignStmt [47-55]:
+                            symbol_id: 8
+                            lhs_span: [47-48]
+                            rhs: Expr [51-54]:
+                                ty: BitArray(One(5), false)
+                                kind: SymbolId(9)
 
-        [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type BitArray(One(5), false) to type
-          | Int(Some(6), false)
-           ,-[test:4:13]
-         3 |         bit[5] reg;
-         4 |         a = reg;
-           :             ^^^
-         5 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type BitArray(One(5), false) to type
+              | Int(Some(6), false)
+               ,-[test:4:13]
+             3 |         bit[5] reg;
+             4 |         a = reg;
+               :             ^^^
+             5 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -251,37 +251,37 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-15]
-                        init_expr: Expr [0-0]:
-                            ty: BitArray(One(5), true)
-                            kind: Lit: Bitstring("00000")
-                Stmt [29-44]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [29-44]:
-                        symbol_id: 9
-                        ty_span: [29-35]
-                        init_expr: Expr [40-43]:
-                            ty: BitArray(One(5), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-15]
+                            init_expr: Expr [0-0]:
+                                ty: BitArray(One(5), true)
+                                kind: Lit: Bitstring("00000")
+                    Stmt [29-44]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [29-44]:
+                            symbol_id: 9
+                            ty_span: [29-35]
+                            init_expr: Expr [40-43]:
+                                ty: BitArray(One(5), false)
+                                kind: SymbolId(8)
 
-        [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type BitArray(One(5), false) to type
-          | Int(Some(6), false)
-           ,-[test:3:20]
-         2 |         bit[5] reg;
-         3 |         int[6] a = reg;
-           :                    ^^^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type BitArray(One(5), false) to type
+              | Int(Some(6), false)
+               ,-[test:3:20]
+             2 |         bit[5] reg;
+             3 |         int[6] a = reg;
+               :                    ^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -296,41 +296,41 @@ fn to_int_with_lower_width_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-24]:
-                    annotations: <empty>
-                    kind: InputDeclaration [9-24]:
-                        symbol_id: 8
-                Stmt [33-44]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [33-44]:
-                        symbol_id: 9
-                        ty_span: [33-39]
-                        init_expr: Expr [0-0]:
-                            ty: BitArray(One(5), true)
-                            kind: Lit: Bitstring("00000")
-                Stmt [53-61]:
-                    annotations: <empty>
-                    kind: AssignStmt [53-61]:
-                        symbol_id: 8
-                        lhs_span: [53-54]
-                        rhs: Expr [57-60]:
-                            ty: BitArray(One(5), false)
-                            kind: SymbolId(9)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-24]:
+                        annotations: <empty>
+                        kind: InputDeclaration [9-24]:
+                            symbol_id: 8
+                    Stmt [33-44]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [33-44]:
+                            symbol_id: 9
+                            ty_span: [33-39]
+                            init_expr: Expr [0-0]:
+                                ty: BitArray(One(5), true)
+                                kind: Lit: Bitstring("00000")
+                    Stmt [53-61]:
+                        annotations: <empty>
+                        kind: AssignStmt [53-61]:
+                            symbol_id: 8
+                            lhs_span: [53-54]
+                            rhs: Expr [57-60]:
+                                ty: BitArray(One(5), false)
+                                kind: SymbolId(9)
 
-        [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type BitArray(One(5), false) to type
-          | Int(Some(4), false)
-           ,-[test:4:13]
-         3 |         bit[5] reg;
-         4 |         a = reg;
-           :             ^^^
-         5 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type BitArray(One(5), false) to type
+              | Int(Some(4), false)
+               ,-[test:4:13]
+             3 |         bit[5] reg;
+             4 |         a = reg;
+               :             ^^^
+             5 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -344,36 +344,36 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-15]
-                        init_expr: Expr [0-0]:
-                            ty: BitArray(One(5), true)
-                            kind: Lit: Bitstring("00000")
-                Stmt [29-44]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [29-44]:
-                        symbol_id: 9
-                        ty_span: [29-35]
-                        init_expr: Expr [40-43]:
-                            ty: BitArray(One(5), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-15]
+                            init_expr: Expr [0-0]:
+                                ty: BitArray(One(5), true)
+                                kind: Lit: Bitstring("00000")
+                    Stmt [29-44]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [29-44]:
+                            symbol_id: 9
+                            ty_span: [29-35]
+                            init_expr: Expr [40-43]:
+                                ty: BitArray(One(5), false)
+                                kind: SymbolId(8)
 
-        [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
-          x Cannot cast expression of type BitArray(One(5), false) to type
-          | Int(Some(4), false)
-           ,-[test:3:20]
-         2 |         bit[5] reg;
-         3 |         int[4] a = reg;
-           :                    ^^^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type BitArray(One(5), false) to type
+              | Int(Some(4), false)
+               ,-[test:3:20]
+             2 |         bit[5] reg;
+             3 |         int[4] a = reg;
+               :                    ^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }

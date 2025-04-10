@@ -395,9 +395,9 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                                         ty: Int(None, true)
                                         kind: Lit: Int(7)
 
-            [Qsc.Qasm3.Compile.CannotCast
+            [Qsc.Qasm3.Lowerer.CannotCast
 
-              x Cannot cast expression of type Int(None, true) to type Angle(None, true)
+              x cannot cast expression of type Int(None, true) to type Angle(None, true)
                ,-[test:1:18]
              1 | const angle x = -7;
                :                  ^
@@ -423,17 +423,16 @@ fn explicit_zero_width_fails() {
                                 ty: Float(None, true)
                                 kind: Lit: Float(42.1)
 
-            [Qsc.Qasm3.Compile.TypeWidthMustBePositiveIntConstExpr
+            [Qsc.Qasm3.Lowerer.TypeWidthMustBePositiveIntConstExpr
 
-              x Type width must be a positive integer const expression.
+              x type width must be a positive integer const expression
                ,-[test:1:7]
              1 | angle[0] x = 42.1;
                :       ^
                `----
-            , Qsc.Qasm3.Compile.CannotAssignToType
+            , Qsc.Qasm3.Lowerer.CannotCastLiteral
 
-              x Cannot assign a value of Float(None, true) type to a classical variable of
-              | Err type.
+              x cannot cast literal expression of type Float(None, true) to type Err
                ,-[test:1:1]
              1 | angle[0] x = 42.1;
                : ^^^^^^^^^^^^^^^^^^
@@ -459,17 +458,16 @@ fn explicit_width_over_64_fails() {
                                 ty: Float(None, true)
                                 kind: Lit: Float(42.1)
 
-            [Qsc.Qasm3.Compile.TypeMaxWidthExceeded
+            [Qsc.Qasm3.Lowerer.TypeMaxWidthExceeded
 
-              x angle max width is 64 but 65 was provided.
+              x angle max width is 64 but 65 was provided
                ,-[test:1:7]
              1 | const angle[65] x = 42.1;
                :       ^^^^^^^^^
                `----
-            , Qsc.Qasm3.Compile.CannotAssignToType
+            , Qsc.Qasm3.Lowerer.CannotCastLiteral
 
-              x Cannot assign a value of Float(None, true) type to a classical variable of
-              | Err type.
+              x cannot cast literal expression of type Float(None, true) to type Err
                ,-[test:1:1]
              1 | const angle[65] x = 42.1;
                : ^^^^^^^^^^^^^^^^^^^^^^^^^

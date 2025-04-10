@@ -36,11 +36,6 @@ pub struct Error(pub ErrorKind);
 
 impl Error {
     #[must_use]
-    pub fn with_offset(self, offset: u32) -> Self {
-        Self(self.0.with_offset(offset))
-    }
-
-    #[must_use]
     pub fn is_syntax_error(&self) -> bool {
         matches!(self.0, ErrorKind::Parse(_, _))
     }
@@ -63,6 +58,9 @@ impl Error {
 pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
+    Compiler(#[from] crate::compiler::error::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
     IO(#[from] crate::io::Error),
     #[error("QASM3 Parse Error: {0}")]
     Parse(String, #[label] Span),
@@ -79,20 +77,6 @@ pub enum ErrorKind {
     NotFound(String),
     #[error("IO Error: {0}")]
     OldIO(String),
-}
-
-impl ErrorKind {
-    fn with_offset(self, offset: u32) -> Self {
-        match self {
-            ErrorKind::IO(error) => Self::IO(error),
-            ErrorKind::Parse(error, span) => Self::Parse(error, span + offset),
-            ErrorKind::Parser(error) => Self::Parser(error.with_offset(offset)),
-            ErrorKind::Semantic(error) => Self::Semantic(error.with_offset(offset)),
-            ErrorKind::ConstEval(error) => Self::ConstEval(error),
-            ErrorKind::NotFound(error) => Self::NotFound(error),
-            ErrorKind::OldIO(error) => Self::OldIO(error),
-        }
-    }
 }
 
 /// Qubit semantics differ between Q# and Qiskit. This enum is used to

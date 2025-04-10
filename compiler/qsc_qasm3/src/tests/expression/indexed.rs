@@ -19,7 +19,7 @@ fn indexed_bit_cannot_be_implicitly_converted_to_float() {
     };
 
     assert_eq!(1, errors.len(), "Expected one error");
-    expect!["Cannot cast expression of type Bit(false) to type Float(None, true)"]
+    expect!["cannot cast expression of type Bit(false) to type Float(None, true)"]
         .assert_eq(&errors[0].to_string());
 }
 
