@@ -10,6 +10,7 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
+  isCircuitDocument,
   isQsharpDocument,
   isQsharpNotebookCell,
   qsharpLanguageId,
@@ -199,7 +200,9 @@ function registerDocumentUpdateHandlers(
     if (isQsharpDocument(document)) {
       const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
-        : QsharpDocumentType.Qsharp;
+        : isCircuitDocument(document)
+          ? QsharpDocumentType.Circuit
+          : QsharpDocumentType.Qsharp;
       sendTelemetryEvent(
         EventType.OpenedDocument,
         { documentType },
@@ -213,9 +216,11 @@ function registerDocumentUpdateHandlers(
     vscode.workspace.onDidOpenTextDocument((document) => {
       const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
-        : isQsharpDocument(document)
-          ? QsharpDocumentType.Qsharp
-          : QsharpDocumentType.Other;
+        : isCircuitDocument(document)
+          ? QsharpDocumentType.Circuit
+          : isQsharpDocument(document)
+            ? QsharpDocumentType.Qsharp
+            : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,

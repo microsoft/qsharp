@@ -23,10 +23,17 @@ export function isQsharpDocument(document: TextDocument): boolean {
       (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
       document.uri.scheme !== "git" &&
       document.uri.scheme !== "pr") ||
-    (document.languageId === qsharpCircuitLanguageId &&
-      (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
-      document.uri.scheme !== "git" &&
-      document.uri.scheme !== "pr")
+    isCircuitDocument(document)
+  );
+}
+
+// Returns true for all circuit documents
+export function isCircuitDocument(document: TextDocument): boolean {
+  return (
+    document.languageId === qsharpCircuitLanguageId &&
+    (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
   );
 }
 
