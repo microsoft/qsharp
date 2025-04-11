@@ -21,7 +21,8 @@ export function isQsharpDocument(document: TextDocument): boolean {
     document.languageId === qsharpLanguageId &&
     (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
     document.uri.scheme !== "git" &&
-    document.uri.scheme !== "pr"
+    document.uri.scheme !== "pr" &&
+    !document.uri.scheme.startsWith("chat")
   );
 }
 

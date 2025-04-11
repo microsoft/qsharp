@@ -93,20 +93,26 @@ export function startTestDiscovery(
       if (msg.detail.success) {
         run.passed(testCase);
       } else {
-        const failureLocation =
+        const failureLocationUri =
           msg.detail?.value?.uri ||
           (msg.detail?.value?.related &&
             msg.detail.value.related[0].location?.source) ||
           null;
+        // If there was no 'uri' on 'value', then the 'range' on 'value' tends to be unreliable too,
+        // so use the span on the first related location if available.
+        const failureLocationRange =
+          !msg.detail?.value?.uri && msg.detail?.value?.related?.[0]
+            ? msg.detail.value.related[0].location.span
+            : msg.detail.value.range;
 
         const message: vscode.TestMessage = {
           message: msg.detail.value.message,
           location:
-            failureLocation === null
+            failureLocationUri === null
               ? undefined
               : {
-                  range: toVsCodeRange(msg.detail.value.range),
-                  uri: vscode.Uri.parse(failureLocation),
+                  range: toVsCodeRange(failureLocationRange),
+                  uri: vscode.Uri.parse(failureLocationUri),
                 },
         };
         run.failed(testCase, message);
