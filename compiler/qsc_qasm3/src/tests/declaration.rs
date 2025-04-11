@@ -5,6 +5,7 @@ mod array;
 mod bit;
 mod bool;
 mod complex;
+mod def;
 mod float;
 mod gate;
 mod integer;
@@ -13,14 +14,12 @@ mod qubit;
 mod unsigned_integer;
 
 use crate::{
-    tests::{fail_on_compilation_errors, parse, qasm_to_program_fragments},
+    tests::{compile_fragments, compile_with_config, fail_on_compilation_errors},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
-
 use miette::Report;
 
 #[test]
-#[ignore = "oq3 parser bug, can't read float with leading dot"]
 fn classical() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         int[10] a;
@@ -35,7 +34,6 @@ fn classical() -> miette::Result<(), Vec<Report>> {
         qubit q2;
         bit[4] b1 = "0100";
         bit[8] b2 = "1001_0100";
-        bit b3 = "1";
         bool i = true;
         bool j = false;
         const float[64] k = 5.5e3;
@@ -43,9 +41,7 @@ fn classical() -> miette::Result<(), Vec<Report>> {
         float[32] m = .1e+3;
     "#;
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = qasm_to_program_fragments(res.source, res.source_map);
+    let unit = compile_fragments(source)?;
     fail_on_compilation_errors(&unit);
     Ok(())
 }
@@ -60,30 +56,24 @@ fn duration_literal() -> miette::Result<(), Vec<Report>> {
         duration dur4 = 1s;
     ";
 
-    let res = parse(source)?;
-    assert!(!res.has_errors());
-    let unit = crate::qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::Fragments,
-            None,
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::Fragments,
+        None,
+        None,
     );
-    println!("{:?}", unit.errors);
-    assert!(unit.errors.len() == 5);
+    let unit = compile_with_config(source, config).expect("parse failed");
     for error in &unit.errors {
-        assert!(
-            error
-                .to_string()
-                .contains("Duration type values are not supported.")
-                || error
-                    .to_string()
-                    .contains("Timing literal expressions are not supported.")
-        );
+        println!("{error}");
+    }
+    assert_eq!(unit.errors.len(), 10);
+    for error in &unit.errors {
+        assert!([
+            "duration type values are not supported",
+            "timing literals are not supported",
+        ]
+        .contains(&error.to_string().as_str()));
     }
 
     Ok(())
@@ -95,23 +85,23 @@ fn stretch() {
         stretch s;
     ";
 
-    let res = parse(source).expect("should parse");
-    assert!(!res.has_errors());
-    let unit = crate::compile::qasm_to_program(
-        res.source,
-        res.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            OutputSemantics::OpenQasm,
-            ProgramType::Fragments,
-            None,
-            None,
-        ),
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::Fragments,
+        None,
+        None,
     );
+    let unit = compile_with_config(source, config).expect("parse failed");
     assert!(unit.has_errors());
-    println!("{:?}", unit.errors);
-    assert!(unit.errors.len() == 1);
+    for error in &unit.errors {
+        println!("{error}");
+    }
+    assert!(unit.errors.len() == 2);
     assert!(unit.errors[0]
         .to_string()
-        .contains("Stretch type values are not supported."),);
+        .contains("stretch type values are not supported"),);
+    assert!(unit.errors[1]
+        .to_string()
+        .contains("stretch default values are not supported"),);
 }

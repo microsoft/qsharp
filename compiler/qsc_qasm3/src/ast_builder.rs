@@ -6,14 +6,17 @@ use std::rc::Rc;
 use num_bigint::BigInt;
 
 use qsc_ast::ast::{
-    self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Ident, Item, Lit,
-    Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource, Stmt,
-    StmtKind, TopLevelNode, Ty, TyKind,
+    self, Attr, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, FieldAssign,
+    FunctorExpr, FunctorExprKind, Ident, ImportOrExportDecl, ImportOrExportItem, Item, ItemKind,
+    Lit, Mutability, NodeId, Pat, PatKind, Path, PathKind, QubitInit, QubitInitKind, QubitSource,
+    Stmt, StmtKind, TopLevelNode, Ty, TyKind,
 };
 use qsc_data_structures::span::Span;
 
 use crate::{
+    parser::ast::{list_from_iter, List},
     runtime::RuntimeFunctions,
+    stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };
 
@@ -278,6 +281,55 @@ pub(crate) fn build_lit_int_expr(value: i64, span: Span) -> Expr {
         id: NodeId::default(),
         span,
         kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(value)))),
+    }
+}
+
+fn build_ident(name: &str) -> Ident {
+    Ident {
+        name: Rc::from(name),
+        ..Default::default()
+    }
+}
+
+pub(crate) fn build_lit_angle_expr(angle: Angle, span: Span) -> Expr {
+    let alloc_ident = build_ident("__Angle__");
+    let path_kind = PathKind::Ok(Box::new(Path {
+        segments: None,
+        name: Box::new(alloc_ident),
+        id: NodeId::default(),
+        span: Span::default(),
+    }));
+    let value_expr = Box::new(Expr {
+        #[allow(clippy::cast_possible_wrap)]
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(angle.value as i64)))),
+        ..Default::default()
+    });
+    let size_expr = Box::new(Expr {
+        kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(i64::from(angle.size))))),
+        ..Default::default()
+    });
+
+    let fields = list_from_iter([
+        FieldAssign {
+            span,
+            field: Box::new(build_ident("Value")),
+            value: value_expr,
+            ..Default::default()
+        },
+        FieldAssign {
+            span,
+            field: Box::new(build_ident("Size")),
+            value: size_expr,
+            ..Default::default()
+        },
+    ]);
+
+    let kind = Box::new(ExprKind::Struct(path_kind, None, fields));
+
+    Expr {
+        id: NodeId::default(),
+        span,
+        kind,
     }
 }
 
@@ -631,6 +683,15 @@ pub(crate) fn build_cast_call_two_params(
     build_global_call_with_two_params(name, fst, snd, name_span, operand_span)
 }
 
+pub(crate) fn build_cast_call_by_name(
+    name: &str,
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    build_global_call_with_one_param(name, expr, name_span, operand_span)
+}
+
 pub(crate) fn build_cast_call(
     function: RuntimeFunctions,
     expr: ast::Expr,
@@ -677,6 +738,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
+    let expr_span = expr.span;
     let ident = ast::Ident {
         id: NodeId::default(),
         span: name_span,
@@ -703,6 +765,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
     ast::Expr {
         kind: Box::new(call_kind),
+        span: expr_span,
         ..Default::default()
     }
 }
@@ -740,6 +803,7 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
     let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
     ast::Expr {
         kind: Box::new(call_kind),
+        span: name_span,
         ..Default::default()
     }
 }
@@ -810,7 +874,7 @@ pub(crate) fn build_call_with_param(
     operand: Expr,
     name_span: Span,
     operand_span: Span,
-    stmt_span: Span,
+    call_span: Span,
 ) -> Expr {
     let segments = build_idents(idents);
     let fn_name = Ident {
@@ -838,7 +902,38 @@ pub(crate) fn build_call_with_param(
 
     Expr {
         id: NodeId::default(),
-        span: stmt_span,
+        span: call_span,
+        kind: Box::new(call),
+    }
+}
+
+pub(crate) fn build_call_with_params(
+    name: &str,
+    idents: &[&str],
+    operands: Vec<Expr>,
+    name_span: Span,
+    call_span: Span,
+) -> Expr {
+    let segments = build_idents(idents);
+    let fn_name = Ident {
+        name: Rc::from(name),
+        span: name_span,
+        ..Default::default()
+    };
+    let path_expr = Expr {
+        kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+            segments,
+            name: Box::new(fn_name),
+            id: NodeId::default(),
+            span: Span::default(),
+        })))),
+        ..Default::default()
+    };
+    let call = ExprKind::Call(Box::new(path_expr), Box::new(build_tuple_expr(operands)));
+
+    Expr {
+        id: NodeId::default(),
+        span: call_span,
         kind: Box::new(call),
     }
 }
@@ -855,6 +950,14 @@ pub(crate) fn build_stmt_semi_from_expr(expr: Expr) -> Stmt {
     Stmt {
         id: NodeId::default(),
         span: expr.span,
+        kind: Box::new(StmtKind::Semi(Box::new(expr))),
+    }
+}
+
+pub(crate) fn build_stmt_semi_from_expr_with_span(expr: Expr, span: Span) -> Stmt {
+    Stmt {
+        id: NodeId::default(),
+        span,
         kind: Box::new(StmtKind::Semi(Box::new(expr))),
     }
 }
@@ -884,6 +987,94 @@ pub(crate) fn build_expr_wrapped_block_expr(expr: Expr) -> Block {
             kind: Box::new(StmtKind::Expr(Box::new(expr))),
             ..Default::default()
         })]),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl() -> Vec<Stmt> {
+    build_qasm_import_items()
+        .into_iter()
+        .map(|item| Stmt {
+            kind: Box::new(StmtKind::Item(Box::new(item))),
+            span: Span::default(),
+            id: NodeId::default(),
+        })
+        .collect()
+}
+
+pub(crate) fn build_qasm_import_items() -> Vec<Item> {
+    vec![
+        build_qasm_import_decl_angle(),
+        build_qasm_import_decl_convert(),
+        build_qasm_import_decl_intrinsic(),
+    ]
+}
+
+pub(crate) fn build_qasm_import_decl_angle() -> Item {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Angle")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl_convert() -> Item {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Convert")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
+    }
+}
+
+pub(crate) fn build_qasm_import_decl_intrinsic() -> Item {
+    let path_kind = Path {
+        segments: Some(Box::new([build_ident("QasmStd")])),
+        name: Box::new(build_ident("Intrinsic")),
+        id: NodeId::default(),
+        span: Span::default(),
+    };
+    let items = vec![ImportOrExportItem {
+        span: Span::default(),
+        path: PathKind::Ok(Box::new(path_kind)),
+        alias: None,
+        is_glob: true,
+    }];
+    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
+    Item {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ItemKind::ImportOrExport(decl)),
+        doc: "".into(),
+        attrs: Box::new([]),
     }
 }
 
@@ -998,10 +1189,10 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
     }
 }
 
-pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
+pub(crate) fn build_top_level_ns_with_items<S: AsRef<str>>(
     whole_span: Span,
     ns: S,
-    entry: ast::Item,
+    items: Vec<ast::Item>,
 ) -> TopLevelNode {
     TopLevelNode::Namespace(qsc_ast::ast::Namespace {
         id: NodeId::default(),
@@ -1012,9 +1203,21 @@ pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
             id: NodeId::default(),
         }]
         .into(),
-        items: Box::new([Box::new(entry)]),
+        items: items
+            .into_iter()
+            .map(Box::new)
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         doc: "".into(),
     })
+}
+
+pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
+    whole_span: Span,
+    ns: S,
+    entry: ast::Item,
+) -> TopLevelNode {
+    build_top_level_ns_with_items(whole_span, ns, vec![entry])
 }
 
 pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
@@ -1023,12 +1226,13 @@ pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
     output_ty: Ty,
     stmts: Vec<ast::Stmt>,
     whole_span: Span,
+    add_entry_point: bool,
 ) -> ast::Item {
     let mut attrs = vec![];
     // If there are no input parameters, add an attribute to mark this
     // as an entry point. We will get a Q# compilation error if we
     // attribute an operation with EntryPoint and it has input parameters.
-    if input_pats.is_empty() {
+    if input_pats.is_empty() && add_entry_point {
         attrs.push(Box::new(qsc_ast::ast::Attr {
             id: NodeId::default(),
             span: Span::default(),
@@ -1115,6 +1319,7 @@ pub(crate) fn build_unary_op_expr(op: ast::UnOp, expr: ast::Expr, prefix_span: S
 
 pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
     match output_ty {
+        crate::types::Type::Angle(_) => build_path_ident_ty("__Angle__"),
         crate::types::Type::Result(_) => build_path_ident_ty("Result"),
         crate::types::Type::Qubit => build_path_ident_ty("Qubit"),
         crate::types::Type::BigInt(_) => build_path_ident_ty("BigInt"),
@@ -1151,6 +1356,7 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = map_qsharp_type_to_ast_ty(&crate::types::Type::Tuple(tys.clone()));
             wrap_array_ty_by_dims(dims, ty)
         }
+        crate::types::Type::Err => Ty::default(),
     }
 }
 
@@ -1177,8 +1383,10 @@ fn wrap_ty_in_array(ty: Ty) -> Ty {
 }
 
 pub(crate) fn build_for_stmt(
-    loop_var: &crate::symbols::Symbol,
-    iter: crate::types::QasmTypedExpr,
+    loop_var_name: &str,
+    loop_var_span: Span,
+    loop_var_qsharp_ty: &crate::types::Type,
+    iter: Expr,
     body: Block,
     stmt_span: Span,
 ) -> Stmt {
@@ -1188,15 +1396,15 @@ pub(crate) fn build_for_stmt(
                 Box::new(Pat {
                     kind: Box::new(PatKind::Bind(
                         Box::new(Ident {
-                            name: loop_var.name.clone().into(),
-                            span: loop_var.span,
+                            name: loop_var_name.into(),
+                            span: loop_var_span,
                             ..Default::default()
                         }),
-                        Some(Box::new(map_qsharp_type_to_ast_ty(&loop_var.qsharp_ty))),
+                        Some(Box::new(map_qsharp_type_to_ast_ty(loop_var_qsharp_ty))),
                     )),
                     ..Default::default()
                 }),
-                Box::new(iter.expr),
+                Box::new(iter),
                 Box::new(body),
             )),
             span: stmt_span,
@@ -1254,15 +1462,14 @@ pub(crate) fn build_end_stmt(span: Span) -> Stmt {
     };
 
     let kind = ExprKind::Fail(Box::new(message));
-    Stmt {
-        kind: Box::new(StmtKind::Expr(Box::new(Expr {
-            kind: Box::new(kind),
-            span,
-            ..Default::default()
-        }))),
+
+    let expr = Expr {
+        kind: Box::new(kind),
         span,
         ..Default::default()
-    }
+    };
+
+    build_stmt_semi_from_expr_with_span(expr, span)
 }
 
 pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr {
@@ -1277,19 +1484,6 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
 pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span);
     build_stmt_semi_from_expr(expr)
-}
-
-pub(crate) fn build_attr(text: String, span: Span) -> Attr {
-    Attr {
-        id: NodeId::default(),
-        span,
-        name: Box::new(Ident {
-            name: Rc::from(text),
-            span,
-            ..Default::default()
-        }),
-        arg: Box::new(create_unit_expr(span)),
-    }
 }
 
 pub(crate) fn build_gate_decl(
@@ -1362,7 +1556,8 @@ pub(crate) fn build_gate_decl(
     }
 }
 
-pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+pub(crate) fn build_lambda<S: AsRef<str>>(
     name: S,
     cargs: Vec<(String, Ty, Pat)>,
     qargs: Vec<(String, Ty, Pat)>,
@@ -1370,6 +1565,8 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     name_span: Span,
     body_span: Span,
     gate_span: Span,
+    return_type: Option<Ty>,
+    kind: CallableKind,
 ) -> Stmt {
     let args = cargs
         .into_iter()
@@ -1404,15 +1601,15 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
         })
         .map(Box::new)
         .collect::<Vec<_>>();
-    let input_pat = if args.len() > 1 {
+    let input_pat = if args.len() == 1 {
         ast::Pat {
-            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
+            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
             span: Span { lo, hi },
             ..Default::default()
         }
     } else {
         ast::Pat {
-            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
+            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
             span: Span { lo, hi },
             ..Default::default()
         }
@@ -1429,29 +1626,35 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     let lambda_expr = Expr {
         id: NodeId::default(),
         kind: Box::new(ExprKind::Lambda(
-            CallableKind::Operation,
+            kind,
             Box::new(input_pat),
             Box::new(block_expr),
         )),
         span: gate_span,
     };
     let ty_args = args.iter().map(|(_, ty, _)| ty.clone()).collect::<Vec<_>>();
-    let input_ty = if args.len() > 1 {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
-            ..Default::default()
-        }
-    } else {
+    let input_ty = if args.len() == 1 {
         ast::Ty {
             kind: Box::new(ast::TyKind::Paren(Box::new(ty_args[0].clone()))),
             ..Default::default()
         }
+    } else {
+        ast::Ty {
+            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
+            ..Default::default()
+        }
     };
+    let return_type = if let Some(ty) = return_type {
+        ty
+    } else {
+        build_path_ident_ty("Unit")
+    };
+
     let lambda_ty = ast::Ty {
         kind: Box::new(ast::TyKind::Arrow(
-            CallableKind::Operation,
+            kind,
             Box::new(input_ty),
-            Box::new(build_path_ident_ty("Unit")),
+            Box::new(return_type),
             None,
         )),
         ..Default::default()
@@ -1477,6 +1680,104 @@ pub(crate) fn build_gate_decl_lambda<S: AsRef<str>>(
     }
 }
 
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
+pub(crate) fn build_function_or_operation(
+    name: String,
+    cargs: Vec<(String, Ty, Pat)>,
+    qargs: Vec<(String, Ty, Pat)>,
+    body: Option<Block>,
+    name_span: Span,
+    body_span: Span,
+    gate_span: Span,
+    return_type: Ty,
+    kind: CallableKind,
+    functors: Option<FunctorExpr>,
+    attrs: List<Attr>,
+) -> Stmt {
+    let args = cargs
+        .into_iter()
+        .chain(qargs)
+        .map(|(_, _, pat)| Box::new(pat))
+        .collect::<Vec<_>>();
+
+    let lo = args
+        .iter()
+        .min_by_key(|x| x.span.lo)
+        .map(|x| x.span.lo)
+        .unwrap_or_default();
+
+    let hi = args
+        .iter()
+        .max_by_key(|x| x.span.hi)
+        .map(|x| x.span.hi)
+        .unwrap_or_default();
+
+    let input_pat_kind = if args.len() == 1 {
+        PatKind::Paren(args[0].clone())
+    } else {
+        PatKind::Tuple(args.into_boxed_slice())
+    };
+
+    let input_pat = Pat {
+        kind: Box::new(input_pat_kind),
+        span: Span { lo, hi },
+        ..Default::default()
+    };
+
+    let body = CallableBody::Block(Box::new(body.unwrap_or_else(|| Block {
+        id: NodeId::default(),
+        span: body_span,
+        stmts: Box::new([]),
+    })));
+
+    let decl = CallableDecl {
+        id: NodeId::default(),
+        span: name_span,
+        kind,
+        name: Box::new(Ident {
+            name: name.into(),
+            ..Default::default()
+        }),
+        generics: Box::new([]),
+        input: Box::new(input_pat),
+        output: Box::new(return_type),
+        functors: functors.map(Box::new),
+        body: Box::new(body),
+    };
+    let item = Item {
+        span: gate_span,
+        kind: Box::new(ast::ItemKind::Callable(Box::new(decl))),
+        attrs,
+        ..Default::default()
+    };
+
+    Stmt {
+        kind: Box::new(StmtKind::Item(Box::new(item))),
+        span: gate_span,
+        ..Default::default()
+    }
+}
+
+pub(crate) fn build_adj_plus_ctl_functor() -> FunctorExpr {
+    let adj = Box::new(FunctorExpr {
+        kind: Box::new(FunctorExprKind::Lit(ast::Functor::Adj)),
+        id: Default::default(),
+        span: Default::default(),
+    });
+
+    let ctl = Box::new(FunctorExpr {
+        kind: Box::new(FunctorExprKind::Lit(ast::Functor::Ctl)),
+        id: Default::default(),
+        span: Default::default(),
+    });
+
+    FunctorExpr {
+        kind: Box::new(FunctorExprKind::BinOp(ast::SetOp::Union, adj, ctl)),
+        id: Default::default(),
+        span: Default::default(),
+    }
+}
+
 fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
     let idents = idents
         .iter()
@@ -1489,5 +1790,50 @@ fn build_idents(idents: &[&str]) -> Option<Box<[Ident]>> {
         None
     } else {
         Some(idents.into())
+    }
+}
+
+pub(crate) fn build_attr<S>(name: S, value: Option<S>, span: Span) -> Attr
+where
+    S: AsRef<str>,
+{
+    let name = Box::new(Ident {
+        span,
+        name: name.as_ref().into(),
+        ..Default::default()
+    });
+
+    let arg = if let Some(value) = value {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Paren(Box::new(Expr {
+                span,
+                kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
+                    id: Default::default(),
+                    span,
+                    segments: None,
+                    name: Box::new(Ident {
+                        span,
+                        name: value.as_ref().into(),
+                        ..Default::default()
+                    }),
+                })))),
+                id: Default::default(),
+            }))),
+            id: Default::default(),
+        })
+    } else {
+        Box::new(Expr {
+            span,
+            kind: Box::new(ExprKind::Tuple(Box::default())),
+            id: Default::default(),
+        })
+    };
+
+    Attr {
+        span,
+        name,
+        arg,
+        id: Default::default(),
     }
 }

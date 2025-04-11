@@ -240,12 +240,12 @@ impl OutputSemantics {
     }
 }
 
-impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
+impl From<OutputSemantics> for qsc::qasm::OutputSemantics {
     fn from(output_semantics: OutputSemantics) -> Self {
         match output_semantics {
-            OutputSemantics::Qiskit => qsc::qasm3::OutputSemantics::Qiskit,
-            OutputSemantics::OpenQasm => qsc::qasm3::OutputSemantics::OpenQasm,
-            OutputSemantics::ResourceEstimation => qsc::qasm3::OutputSemantics::ResourceEstimation,
+            OutputSemantics::Qiskit => qsc::qasm::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc::qasm::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc::qasm::OutputSemantics::ResourceEstimation,
         }
     }
 }
@@ -300,12 +300,12 @@ impl ProgramType {
     }
 }
 
-impl From<ProgramType> for qsc::qasm3::ProgramType {
+impl From<ProgramType> for qsc::qasm::ProgramType {
     fn from(output_semantics: ProgramType) -> Self {
         match output_semantics {
-            ProgramType::File => qsc::qasm3::ProgramType::File,
-            ProgramType::Operation => qsc::qasm3::ProgramType::Operation,
-            ProgramType::Fragments => qsc::qasm3::ProgramType::Fragments,
+            ProgramType::File => qsc::qasm::ProgramType::File,
+            ProgramType::Operation => qsc::qasm::ProgramType::Operation,
+            ProgramType::Fragments => qsc::qasm::ProgramType::Fragments,
         }
     }
 }
@@ -677,12 +677,12 @@ impl Interpreter {
             resolve_path,
             fetch_github,
         );
-        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
         let (package, _source_map, signature) = compile_qasm_enriching_errors(
             source,
             &operation_name,
-            &resolver,
+            &mut resolver,
             program_type,
             output_semantics,
             false,

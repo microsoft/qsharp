@@ -12,11 +12,33 @@ fn unresolved_idenfiers_raise_symbol_error() {
         float x = t;
     ";
 
-    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
-        panic!("Expected an error");
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
     };
-    assert_eq!(1, errors.len(), "Expected one error");
-    expect![r#"Undefined symbol: t."#].assert_eq(&errors[0].to_string());
+    let errs: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
+
+          x undefined symbol: t
+           ,-[Test.qasm:2:19]
+         1 | 
+         2 |         float x = t;
+           :                   ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.CannotCast
+
+          x cannot cast expression of type Err to type Float(None, false)
+           ,-[Test.qasm:2:19]
+         1 | 
+         2 |         float x = t;
+           :                   ^
+         3 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
 }
 
 // this test verifies QASM behavior that would normally be allowed
@@ -32,7 +54,7 @@ fn redefining_symbols_in_same_scope_raise_symbol_error() {
         panic!("Expected an error");
     };
     assert_eq!(1, errors.len(), "Expected one error");
-    expect![r#"Redefined symbol: x."#].assert_eq(&errors[0].to_string());
+    expect!["redefined symbol: x"].assert_eq(&errors[0].to_string());
 }
 
 #[test]
@@ -45,6 +67,9 @@ fn resolved_idenfiers_are_compiled_as_refs() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![
         r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable p = Microsoft.Quantum.Math.PI();
         mutable x = p;
     "#

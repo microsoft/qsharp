@@ -5,6 +5,7 @@ use expect_test::expect;
 
 use crate::tests::compile_qasm_to_qsharp;
 
+mod angle;
 mod arithmetic_conversions;
 mod comparison;
 mod complex;
@@ -33,8 +34,7 @@ fn binary_expr_fail_parse_missing_lhs() {
         panic!("Expected error");
     };
 
-    expect![r#"QASM3 Parse Error: atom_expr: expected expression"#]
-        .assert_eq(&errors[0].to_string());
+    expect![r#"expected EOF, found `<`"#].assert_eq(&errors[0].to_string());
 }
 
 #[test]
@@ -48,5 +48,5 @@ fn binary_expr_fail_parse_missing_rhs() {
         panic!("Expected error");
     };
 
-    expect![r#"QASM3 Parse Error: expr_bp: expected expression"#].assert_eq(&errors[0].to_string());
+    expect![r#"expected expression, found `;`"#].assert_eq(&errors[0].to_string());
 }

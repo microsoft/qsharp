@@ -21,14 +21,10 @@ fn to_bit_and_back_implicitly() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
-        function __ResultAsBool__(input : Result) : Bool {
-            Microsoft.Quantum.Convert.ResultAsBool(input)
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable _bit0 = Zero;
         mutable _bit1 = Zero;
         set _bit0 = One;
@@ -36,8 +32,7 @@ fn to_bit_and_back_implicitly() -> miette::Result<(), Vec<Report>> {
         set _bit0 = _bit1;
         set _bit0 = _bit1;
         set a = __ResultAsBool__(_bit1);
-        "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -50,15 +45,13 @@ fn to_bit_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsResult__(input : Bool) : Result {
-            Microsoft.Quantum.Convert.BoolAsResult(input)
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsResult__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -71,19 +64,13 @@ fn to_implicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsInt__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -96,19 +83,13 @@ fn to_explicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsInt__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -121,19 +102,13 @@ fn to_implicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsInt__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -146,19 +121,13 @@ fn to_explicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsInt__(value : Bool) : Int {
-            if value {
-                1
-            } else {
-                0
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsInt__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -171,19 +140,13 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsBigInt__(value : Bool) : BigInt {
-            if value {
-                1L
-            } else {
-                0L
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsBigInt__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -196,19 +159,13 @@ fn to_implicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsDouble__(value : Bool) : Double {
-            if value {
-                1.
-            } else {
-                0.
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsDouble__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -221,19 +178,13 @@ fn to_explicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        function __BoolAsDouble__(value : Bool) : Double {
-            if value {
-                1.
-            } else {
-                0.
-            }
-        }
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
         mutable x = true;
         mutable y = __BoolAsDouble__(x);
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

@@ -32,7 +32,7 @@ def generate_repro_information(
         return message
 
     try:
-        qsharp_source = backend.qsharp(circuit, **options)
+        qsharp_source = backend._qsharp(circuit, **options)
         message += "Q# source:"
         message += "\n"
         message += str(qsharp_source)
