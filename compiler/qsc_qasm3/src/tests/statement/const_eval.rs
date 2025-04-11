@@ -103,7 +103,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
 
         Qsc.Qasm3.Lowerer.ExprMustBeConst
@@ -113,7 +113,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -471,7 +471,7 @@ fn binary_op_shl_creg_fails() {
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:2:15]
-         1 |
+         1 | 
          2 |         const creg a[3] = "101";
            :               ^^^^
          3 |         const creg b[3] = a << 2;
@@ -494,7 +494,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Lowerer.CannotCast
@@ -504,7 +504,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Compile.ExprMustBeConst
@@ -514,7 +514,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Lowerer.ExprMustBeConst
@@ -524,7 +524,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -644,7 +644,7 @@ fn binary_op_shr_creg_fails() {
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:2:15]
-         1 |
+         1 | 
          2 |         const creg a[4] = "1011";
            :               ^^^^
          3 |         const creg b[4] = a >> 2;
@@ -667,7 +667,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Lowerer.CannotCast
@@ -677,7 +677,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Compile.ExprMustBeConst
@@ -687,7 +687,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qsc.Qasm3.Lowerer.ExprMustBeConst
@@ -697,7 +697,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -2075,57 +2075,57 @@ fn fuzzer_issue_2294() {
           x expected `;`, found EOF
            ,-[Test.qasm:3:5]
          2 |         ctrl(5/_)@l
-         3 |
+         3 |     
            `----
 
         Qasm3.Parse.MissingGateCallOperands
 
           x missing gate call operands
            ,-[Test.qasm:2:9]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :         ^^^^^^^^^^^
-         3 |
+         3 |     
            `----
 
         Qsc.Qasm3.Lowerer.UndefinedSymbol
 
           x undefined symbol: _
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qsc.Qasm3.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Float(None, true)
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qsc.Qasm3.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qsc.Qasm3.Lowerer.ExprMustBeConst
 
           x ctrl modifier argument must be a const expression
            ,-[Test.qasm:2:14]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :              ^^^
-         3 |
+         3 |     
            `----
     "#]]
     .assert_eq(&errs_string);
