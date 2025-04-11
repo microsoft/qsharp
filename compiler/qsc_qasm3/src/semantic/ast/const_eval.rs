@@ -161,11 +161,12 @@ impl BinaryOpExpr {
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         use LiteralKind::{Angle, Bit, Bitstring, Bool, Float, Int};
 
-        assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
         let lhs = self.lhs.const_eval(ctx);
         let rhs = self.rhs.const_eval(ctx);
         let (lhs, rhs) = (lhs?, rhs?);
         let lhs_ty = &self.lhs.ty;
+
+        assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
 
         match &self.op {
             // Bit Shifts
