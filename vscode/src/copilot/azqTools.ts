@@ -106,7 +106,7 @@ function startRefreshingWorkspace(
 /**
  * Gets the list of available workspace connections.
  */
-async function getWorkspaces(): Promise<{
+export async function getWorkspaces(): Promise<{
   result: { workspaceIds: string[] };
 }> {
   return {
@@ -118,7 +118,7 @@ async function getWorkspaces(): Promise<{
  * Gets the ID of the active workspace for this conversation,
  * or throws if no workspace connections are available.
  */
-async function getActiveWorkspace(
+export async function getActiveWorkspace(
   toolState: ToolState,
 ): Promise<{ result: { workspaceId: string } }> {
   const workspace = await getConversationWorkspace(toolState);
@@ -128,7 +128,7 @@ async function getActiveWorkspace(
 /**
  * Sets the active workspace for this conversation.
  */
-async function setActiveWorkspace(
+export async function setActiveWorkspace(
   toolState: ToolState,
   { workspace_id: workspaceId }: { workspace_id: string },
 ): Promise<{ result: string }> {
@@ -241,7 +241,7 @@ type JobOverview = {
  * Gets job details for the job with the given ID from the active workspace,
  * or throws if the job is not found.
  */
-async function getJob(
+export async function getJob(
   toolState: ToolState,
   { job_id }: { job_id: string },
 ): Promise<{
@@ -269,7 +269,7 @@ type DownloadJobResult = {
  * Download the results of the job with the given ID from the active workspace.
  * Throws if the job can't be found or the results can't be downloaded for any reason.
  */
-async function downloadJobResults(
+export async function downloadJobResults(
   toolState: ToolState,
   args: { job_id: string },
 ): Promise<DownloadJobResult> {
@@ -357,7 +357,7 @@ function formatHistogramBuckets(
 /**
  * Gets the list of the providers and targets in the current workspace.
  */
-async function getProviders(
+export async function getProviders(
   toolState: ToolState,
 ): Promise<{ result: Provider[] }> {
   const workspace = await getConversationWorkspace(toolState);
@@ -367,7 +367,7 @@ async function getProviders(
 /**
  * Gets details about a specific target by its name.
  */
-async function getTarget(
+export async function getTarget(
   toolState: ToolState,
   { target_id }: { target_id: string },
 ): Promise<{ result: Target | undefined }> {
@@ -384,7 +384,7 @@ async function getTarget(
 /**
  * Submits the Q# program in the currently visible editor window to Azure Quantum.
  */
-async function submitToTarget(
+export async function submitToTarget(
   toolState: ToolState,
   {
     job_name: jobName,
@@ -459,7 +459,7 @@ async function submitToTarget(
 /**
  * Starts the user flow to connect to an Azure Quantum Workspace.
  */
-async function connectToWorkspace(
+export async function connectToWorkspace(
   conversationState: ToolState,
 ): Promise<{ result: string }> {
   const initialWsList = await getWorkspaces();
