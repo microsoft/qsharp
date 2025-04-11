@@ -29,15 +29,18 @@ import {
 /**
  * Given an array of operations (in metadata format), return the SVG representation.
  *
- * @param opsMetadata Array of Metadata representation of operations.
+ * @param opsMetadata 2D array of Metadata representation of operations.
  * @param nestedDepth Depth of nested operations (used in classically controlled and grouped operations).
  *
  * @returns SVG representation of operations.
  */
-const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
-  const formattedGates: SVGElement[] = opsMetadata.map((metadata) =>
-    _formatGate(metadata, nestedDepth),
-  );
+const formatGates = (
+  opsMetadata: Metadata[][],
+  nestedDepth = 0,
+): SVGElement => {
+  const formattedGates: SVGElement[] = opsMetadata
+    .map((col) => col.map((metadata) => formatGate(metadata, nestedDepth)))
+    .flat();
   return group(formattedGates);
 };
 
@@ -49,7 +52,7 @@ const formatGates = (opsMetadata: Metadata[], nestedDepth = 0): SVGElement => {
  *
  * @returns SVG representation of gate.
  */
-const _formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
+const formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
   const { type, x, controlsY, targetsY, label, displayArgs, width } = metadata;
   switch (type) {
     case GateType.Measure:
@@ -62,6 +65,8 @@ const _formatGate = (metadata: Metadata, nestedDepth = 0): SVGElement => {
       );
     case GateType.X:
       return _createGate([_x(metadata, nestedDepth)], metadata, nestedDepth);
+    case GateType.Ket:
+      return _createGate([_ket(label, metadata)], metadata, nestedDepth);
     case GateType.Swap:
       return controlsY.length > 0
         ? _controlledGate(metadata, nestedDepth)
@@ -209,12 +214,14 @@ const _measure = (x: number, y: number): SVGElement => {
     "gate-measure",
   );
   const mArc: SVGElement = arc(x + 5, y + 2, width / 2 - 5, height / 2 - 8);
+  mArc.style.pointerEvents = "none";
   const meter: SVGElement = line(
     x + width / 2,
     y + 8,
     x + width - 8,
     y - height / 2 + 8,
   );
+  meter.style.pointerEvents = "none";
   return group([mBox, mArc, meter]);
 };
 
@@ -226,7 +233,9 @@ const _measure = (x: number, y: number): SVGElement => {
  * @param y                Array of y coords of registers acted upon by gate.
  * @param width            Width of gate.
  * @param displayArgs           Arguments passed in to gate.
+ * @param params  Non-Qubit required parameters for the unitary gate.
  * @param renderDashedLine If true, draw dashed lines between non-adjacent unitaries.
+ * @param cssClass         Optional CSS class to apply to the unitary gate for styling.
  *
  * @returns SVG representation of unitary gate.
  */
@@ -237,6 +246,7 @@ const _unitary = (
   width: number,
   displayArgs?: string,
   renderDashedLine = true,
+  cssClass?: string,
 ): SVGElement => {
   if (y.length === 0)
     throw new Error(
@@ -248,7 +258,7 @@ const _unitary = (
     const maxY: number = group[group.length - 1],
       minY: number = group[0];
     const height: number = maxY - minY + gateHeight;
-    return _unitaryBox(label, x, minY, width, height, displayArgs);
+    return _unitaryBox(label, x, minY, width, height, displayArgs, cssClass);
   });
 
   // Draw dashed line between disconnected unitaries
@@ -273,6 +283,7 @@ const _unitary = (
  * @param width  Width of gate.
  * @param height Height of gate.
  * @param displayArgs Arguments passed in to gate.
+ * @param cssClass Optional CSS class to apply to the unitary gate for styling.
  *
  * @returns SVG representation of unitary box.
  */
@@ -283,16 +294,22 @@ const _unitaryBox = (
   width: number,
   height: number = gateHeight,
   displayArgs?: string,
+  cssClass?: string,
 ): SVGElement => {
   y -= gateHeight / 2;
   const uBox: SVGElement = box(x - width / 2, y, width, height);
+  if (cssClass != null) {
+    uBox.setAttribute("class", cssClass);
+  }
   const labelY = y + height / 2 - (displayArgs == null ? 0 : 7);
   const labelText: SVGElement = text(label, x, labelY);
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
-    const argText: SVGElement = text(displayArgs, x, argStrY, argsFontSize);
-    elems.push(argText);
+
+    const argButton: SVGElement = text(displayArgs, x, argStrY, argsFontSize);
+    argButton.setAttribute("class", "arg-button");
+    elems.push(argButton);
   }
   return group(elems);
 };
@@ -315,8 +332,10 @@ const _swap = (metadata: Metadata, nestedDepth: number): SVGElement => {
   const bg: SVGElement = box(x1, y1, x2, y2, "gate-swap");
   const crosses: SVGElement[] = ys.map((y) => _cross(x, y));
   const vertLine: SVGElement = line(x, ys[0], x, ys[1]);
+  vertLine.style.pointerEvents = "none";
   return group([bg, ...crosses, vertLine]);
 };
+
 /**
  * Creates the SVG for an X gate
  *
@@ -328,6 +347,30 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
   const ys = targetsY.flatMap((y) => y as number[]);
   return _oplus(x, ys[0]);
 };
+
+/**
+ * Creates the SVG for a ket notation (e.g "|0⟩" or "|1⟩") gate.
+ *
+ * @param label    The label for the ket notation (e.g., "0" or "1").
+ * @param metadata The metadata object containing information about the gate's position and appearance.
+ *
+ * @returns SVG representation of the ket notation gate.
+ */
+const _ket = (label: string, metadata: Metadata): SVGElement => {
+  const { x, targetsY, width } = metadata;
+  const gate = _unitary(
+    `|${label}〉`,
+    x,
+    targetsY as number[][],
+    width,
+    undefined,
+    false,
+    "gate-ket",
+  );
+  gate.querySelector("text")!.setAttribute("class", "ket-text");
+  return gate;
+};
+
 /**
  * Generates cross for display in SWAP gate.
  *
@@ -396,6 +439,7 @@ const _controlledGate = (
   const maxY: number = Math.max(...controlsY, ...(targetsY as number[]));
   const minY: number = Math.min(...controlsY, ...(targetsY as number[]));
   const vertLine: SVGElement = line(x, minY, x, maxY);
+  vertLine.style.pointerEvents = "none";
   const svg: SVGElement = _createGate(
     [vertLine, ...controlledDotsSvg, ...targetGateSvgs],
     metadata,
@@ -439,7 +483,7 @@ const _groupedOperations = (
   const box: SVGElement = dashedBox(x1, y1, x2, y2);
   const elems: SVGElement[] = [box];
   if (children != null)
-    elems.push(formatGates(children as Metadata[], nestedDepth + 1));
+    elems.push(formatGates(children as Metadata[][], nestedDepth + 1));
   return _createGate(elems, metadata, nestedDepth);
 };
 
@@ -457,7 +501,7 @@ const _classicalControlled = (
 ): SVGElement => {
   const { controlsY, dataAttributes } = metadata;
   const targetsY: number[] = metadata.targetsY as number[];
-  const children: Metadata[][] = metadata.children as Metadata[][];
+  const children: Metadata[][][] = metadata.children as Metadata[][][];
   let { x, width } = metadata;
 
   const controlY = controlsY[0];
@@ -543,15 +587,4 @@ const _controlCircle = (
     class: "classically-controlled-btn",
   });
 
-export {
-  formatGates,
-  _formatGate,
-  _createGate,
-  _zoomButton,
-  _measure,
-  _unitary,
-  _swap,
-  _controlledGate,
-  _groupedOperations,
-  _classicalControlled,
-};
+export { formatGates, formatGate };

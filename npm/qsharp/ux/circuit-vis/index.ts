@@ -2,29 +2,32 @@
 // Licensed under the MIT license.
 
 import { Sqore } from "./sqore";
-import { Circuit } from "./circuit";
 import { StyleConfig } from "./styles";
+import { CircuitGroup } from "./circuit";
 
 /**
- * Render `circuit` into `container` at the specified layer depth.
+ * Initializes Sqore object with custom styles.
  *
- * @param circuit Circuit to be visualized.
- * @param container HTML element for rendering visualization into.
+ * @param circuitGroup Group of circuits to be visualized.
  * @param style Custom visualization style.
- * @param renderDepth Initial layer depth at which to render gates.
  */
-export const draw = (
-  circuit: Circuit,
-  container: HTMLElement,
+export const create = (
+  circuitGroup: CircuitGroup,
   style: StyleConfig | string = {},
-  renderDepth = 0,
-): void => {
-  const sqore = new Sqore(circuit, style);
-  sqore.draw(container, renderDepth);
+): Sqore => {
+  return new Sqore(circuitGroup, style);
 };
 
 export { STYLES } from "./styles";
+export { operationListToGrid } from "./utils";
 
 // Export types
 export type { StyleConfig } from "./styles";
-export type { Circuit, Qubit, Operation } from "./circuit";
+export type {
+  CircuitGroup,
+  Circuit,
+  ComponentGrid,
+  Column,
+  Qubit,
+  Operation,
+} from "./circuit";

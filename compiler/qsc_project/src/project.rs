@@ -8,6 +8,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
+use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
@@ -126,6 +127,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Project.FileSystem"))]
     FileSystem { about_path: String, error: String },
 
+    #[error("Error reading circuit file: {path}: {error}")]
+    #[diagnostic(code("Qsc.Project.Circuit"))]
+    Circuit { path: String, error: String },
+
     #[error("Error fetching from GitHub: {0}")]
     #[diagnostic(code("Qsc.Project.GitHub"))]
     GitHub(String),
@@ -144,6 +149,7 @@ impl Error {
             Error::GitHubManifestParse { path, .. }
             | Error::DocumentNotInProject { path, .. }
             | Error::NoSrcDir { path }
+            | Error::Circuit { path, .. }
             | Error::ManifestParse { path, .. } => Some(path),
             // Note we don't return the path for `FileSystem` errors,
             // since for most errors such as "file not found", it's more meaningful
@@ -171,7 +177,6 @@ pub trait FileSystemAsync {
     async fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
-    /// This function should only return files that end in *.qs and folders.
     async fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
 
     /// Given a base path and a relative path, join the segments and normalize
@@ -187,7 +192,7 @@ pub trait FileSystemAsync {
         path: &str,
     ) -> miette::Result<Arc<str>>;
 
-    /// Given an initial path, fetch files matching <initial_path>/**/*.qs
+    /// Given an initial path, fetch files matching <initial_path>/**/*.qs or <initial_path>/**/*.qsc
     async fn collect_project_sources(&self, initial_path: &Path) -> ProjectResult<Vec<PathBuf>> {
         let listing = self
             .list_directory(initial_path)
@@ -243,8 +248,11 @@ pub trait FileSystemAsync {
             })?;
         let mut files = vec![];
         for item in filter_hidden_files(listing.into_iter()) {
+            let extension = item.entry_extension();
             match item.entry_type() {
-                Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item.path()),
+                Ok(EntryType::File) if extension == "qs" || extension == "qsc" => {
+                    files.push(item.path());
+                }
                 Ok(EntryType::Folder) => {
                     files.append(&mut self.collect_project_sources_inner(&item.path()).await?);
                 }
@@ -409,7 +417,7 @@ pub trait FileSystemAsync {
     ) -> ProjectResult<PackageInfo> {
         let manifest = self.parse_manifest_in_dir(directory).await?;
 
-        // For local packages, we include all *.qs files under the `src/`
+        // For local packages, we include all source files under the `src/`
         // directory, even if a `files` field is present.
         //
         // If there are files under `src/` that are missing from the `files` field,
@@ -419,22 +427,40 @@ pub trait FileSystemAsync {
         // all the found files in the package sources. This way compilation
         // can continue as the user probably intended, without compounding errors.
 
-        let mut all_qs_files = self.collect_project_sources(directory).await?;
+        let mut all_project_files = self.collect_project_sources(directory).await?;
 
         let mut listed_files = self
             .collect_sources_from_files_field(directory, &manifest)
             .await?;
 
         if !listed_files.is_empty() {
-            Self::validate_files_list(directory, &mut all_qs_files, &mut listed_files, errors);
+            Self::validate_files_list(directory, &mut all_project_files, &mut listed_files, errors);
         }
 
-        let mut sources = Vec::with_capacity(all_qs_files.len());
-        for path in all_qs_files {
-            sources.push(self.read_file(&path).await.map_err(|e| Error::FileSystem {
-                about_path: path.to_string_lossy().to_string(),
-                error: e.to_string(),
-            })?);
+        let mut sources = Vec::with_capacity(all_project_files.len());
+        for path in all_project_files {
+            let (name, mut contents) =
+                self.read_file(&path).await.map_err(|e| Error::FileSystem {
+                    about_path: path.to_string_lossy().to_string(),
+                    error: e.to_string(),
+                })?;
+            if let Some(ext) = path.extension() {
+                if ext == "qsc" {
+                    let name = path
+                        .file_stem()
+                        .expect("File should have name")
+                        .to_string_lossy()
+                        .to_string();
+                    contents = match circuits_to_qsharp(&name, contents.as_ref()) {
+                        Ok(c) => Ok(Arc::from(c)),
+                        Err(e) => Err(Error::Circuit {
+                            path: path.to_string_lossy().to_string(),
+                            error: e.to_string(),
+                        }),
+                    }?;
+                }
+            }
+            sources.push((name, contents));
         }
 
         let mut dependencies = FxHashMap::default();

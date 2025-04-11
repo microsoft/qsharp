@@ -123,7 +123,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           return;
         }
 
-        async function getQsFilesInDir(dir: vscode.Uri) {
+        async function getSourceFilesInDir(dir: vscode.Uri) {
           const dirFiles = (await vscode.workspace.fs.readDirectory(dir)).sort(
             (a, b) => {
               // To order the list, put files before directories, then sort alphabetically
@@ -132,15 +132,20 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
             },
           );
           for (const [name, type] of dirFiles) {
-            if (type === vscode.FileType.File && name.endsWith(".qs")) {
+            if (
+              type === vscode.FileType.File &&
+              (name.endsWith(".qs") || name.endsWith(".qsc")) &&
+              name !== ".qs" &&
+              name !== ".qsc"
+            ) {
               files.push(vscode.Uri.joinPath(dir, name).toString());
             } else if (type === vscode.FileType.Directory) {
-              await getQsFilesInDir(vscode.Uri.joinPath(dir, name));
+              await getSourceFilesInDir(vscode.Uri.joinPath(dir, name));
             }
           }
           return files;
         }
-        await getQsFilesInDir(srcDir);
+        await getSourceFilesInDir(srcDir);
 
         // Update the files property of the qsharp.json and write back to the document
         const srcDirPrefix = srcDir.toString() + "";

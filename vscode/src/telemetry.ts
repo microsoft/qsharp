@@ -284,6 +284,7 @@ type EventTypes = {
 export enum QsharpDocumentType {
   JupyterCell = "JupyterCell",
   Qsharp = "Qsharp",
+  Circuit = "Circuit",
   Other = "Other",
 }
 

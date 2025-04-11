@@ -13,12 +13,10 @@ export enum RegisterType {
  * Represents a register resource.
  */
 export interface Register {
-  /** Type of register. If missing defaults to Qubit. */
-  type?: RegisterType;
   /** Qubit register ID. */
-  qId: number;
-  /** Classical register ID (if classical register). */
-  cId?: number;
+  qubit: number;
+  /** Classical register ID. If present, register is classical register. */
+  result?: number;
 }
 
 /**

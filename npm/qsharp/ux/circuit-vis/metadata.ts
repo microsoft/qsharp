@@ -15,6 +15,8 @@ export enum GateType {
   Swap,
   /** X gate. */
   X,
+  /** |0〉 or |1〉 gate. */
+  Ket,
   /** Single/multi qubit unitary gate. */
   Unitary,
   /** Single/multi controlled unitary gate. */
@@ -50,7 +52,7 @@ export interface Metadata {
   /** Gate width. */
   width: number;
   /** Children operations as part of group. */
-  children?: (Metadata | Metadata[])[];
+  children?: Metadata[][] | Metadata[][][];
   /** Custom data attributes to attach to gate element. */
   dataAttributes?: DataAttributes;
 }
