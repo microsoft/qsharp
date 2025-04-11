@@ -1,24 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::io::{InMemorySourceResolver, SourceResolver};
+use crate::semantic::{parse_source, QasmSemanticParseResult};
 use crate::stdlib::compile::package_store_with_qasm;
-use crate::{CompilerConfig, OutputSemantics, ProgramType, QasmCompileUnit, QubitSemantics};
+use crate::{
+    compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
+    QasmCompileUnit, QubitSemantics,
+};
 use miette::Report;
+use qsc::compile::compile_ast;
 use qsc::interpret::Error;
+use qsc::target::Profile;
 use qsc::{
     ast::{mut_visit::MutVisitor, Package, Stmt, TopLevelNode},
-    target::Profile,
     SourceMap, Span,
 };
 use qsc_hir::hir::PackageId;
+use qsc_passes::PackageType;
 use std::{path::Path, sync::Arc};
-
-use crate::io::{InMemorySourceResolver, SourceResolver};
-use crate::semantic::{parse_source, QasmSemanticParseResult};
 
 pub(crate) mod assignment;
 pub(crate) mod declaration;
 pub(crate) mod expression;
+pub(crate) mod fuzz;
 pub(crate) mod output;
 pub(crate) mod sample_circuits;
 pub(crate) mod scopes;
@@ -195,6 +200,40 @@ fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Rep
             .collect::<Vec<_>>()
     })?;
     Ok(qir)
+}
+
+/// used to do full compilation with best effort of the input.
+/// This is useful for fuzz testing.
+fn compile_qasm_best_effort(source: &str, profile: Profile) {
+    let (stdid, qasmid, store) = package_store_with_qasm(profile.into());
+
+    let mut resolver = InMemorySourceResolver::from_iter([]);
+    let config = CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        Some("Fuzz".into()),
+        None,
+    );
+
+    let unit =
+        compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
+    let (sources, _, package, _) = unit.into_tuple();
+
+    let dependencies = vec![
+        (PackageId::CORE, None),
+        (stdid, None),
+        (qasmid, Some("QasmStd".into())),
+    ];
+
+    let (mut _unit, _errors) = compile_ast(
+        &store,
+        &dependencies,
+        package.expect("package must exist"),
+        sources,
+        PackageType::Lib,
+        profile.into(),
+    );
 }
 
 pub(crate) fn gen_qsharp_stmt(stmt: &Stmt) -> String {
