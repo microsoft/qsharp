@@ -1982,3 +1982,151 @@ fn cast_to_bit() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn binary_op_err_type_fails() {
+    let source = r#"
+        int[a + b] x = 2;
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
+
+          x undefined symbol: a
+           ,-[Test.qasm:2:13]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :             ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
+
+          x undefined symbol: b
+           ,-[Test.qasm:2:17]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :                 ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.CannotCast
+
+          x cannot cast expression of type Err to type UInt(None, true)
+           ,-[Test.qasm:2:13]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :             ^^^^^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x expression must be const
+           ,-[Test.qasm:2:13]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :             ^^^^^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
+
+          x designator must be a const expression
+           ,-[Test.qasm:2:13]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :             ^^^^^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.CannotCastLiteral
+
+          x cannot cast literal expression of type Int(None, true) to type Err
+           ,-[Test.qasm:2:9]
+         1 | 
+         2 |         int[a + b] x = 2;
+           :         ^^^^^^^^^^^^^^^^^
+         3 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn fuzzer_issue_2294() {
+    let source = r#"
+        ctrl(5/_)@l
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm3.Parse.Token
+
+          x expected `;`, found EOF
+           ,-[Test.qasm:3:5]
+         2 |         ctrl(5/_)@l
+         3 |     
+           `----
+
+        Qasm3.Parse.MissingGateCallOperands
+
+          x missing gate call operands
+           ,-[Test.qasm:2:9]
+         1 | 
+         2 |         ctrl(5/_)@l
+           :         ^^^^^^^^^^^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.UndefinedSymbol
+
+          x undefined symbol: _
+           ,-[Test.qasm:2:16]
+         1 | 
+         2 |         ctrl(5/_)@l
+           :                ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.CannotCast
+
+          x cannot cast expression of type Err to type Float(None, true)
+           ,-[Test.qasm:2:16]
+         1 | 
+         2 |         ctrl(5/_)@l
+           :                ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Compile.ExprMustBeConst
+
+          x expression must be const
+           ,-[Test.qasm:2:16]
+         1 | 
+         2 |         ctrl(5/_)@l
+           :                ^
+         3 |     
+           `----
+
+        Qsc.Qasm3.Lowerer.ExprMustBeConst
+
+          x ctrl modifier argument must be a const expression
+           ,-[Test.qasm:2:14]
+         1 | 
+         2 |         ctrl(5/_)@l
+           :              ^^^
+         3 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}

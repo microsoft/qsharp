@@ -122,7 +122,7 @@ pub enum ErrorKind {
     #[error("missing switch statement case labels")]
     #[diagnostic(code("Qasm3.Parse.MissingSwitchCaseLabels"))]
     MissingSwitchCaseLabels(#[label] Span),
-    #[error("missing switch statement case labels")]
+    #[error("missing gate call operands")]
     #[diagnostic(code("Qasm3.Parse.MissingGateCallOperands"))]
     MissingGateCallOperands(#[label] Span),
     #[error("expected an item or closing brace, found {0}")]
