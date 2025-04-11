@@ -29,6 +29,7 @@ import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
 import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
+import { registerLanguageModelTools } from "./gh-copilot/ghCopilot";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -82,6 +83,7 @@ export async function activate(
   initFileSystem(context);
   initProjectCreator(context);
   registerCopilotPanel(context);
+  registerLanguageModelTools(context);
 
   log.info("Q# extension activated.");
 

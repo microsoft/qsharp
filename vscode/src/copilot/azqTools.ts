@@ -147,13 +147,16 @@ async function setActiveWorkspace(
 const jobLimit = 10;
 const jobLimitDays = 14;
 
-async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
+async function getRecentJobs(
+  workspace: WorkspaceConnection,
+  lastNDays?: number,
+): Promise<Job[]> {
   if (workspace) {
     const jobs = workspace.jobs;
 
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - jobLimitDays);
+    start.setDate(start.getDate() - (lastNDays ?? jobLimitDays));
 
     const limitedJobs = (
       jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs
@@ -164,7 +167,10 @@ async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
   }
 }
 
-export async function getJobs(conversationState: ToolState): Promise<{
+export async function getJobs(
+  conversationState: ToolState,
+  args?: { lastNDays: number },
+): Promise<{
   result: {
     recentJobs: JobOverview[];
     lastNJobs: number;
@@ -173,30 +179,36 @@ export async function getJobs(conversationState: ToolState): Promise<{
 }> {
   const workspace = await getConversationWorkspace(conversationState);
 
-  const recentJobs = (await getRecentJobs(workspace)).map((job) => {
-    // Don't return the object directly as it may contain extra properties
-    // that may be too large when the tool output is JSON-ified.
-    // (notably `errorData`).
-    //
-    // Only explicitly include fields that are part of the `JobOverview` type,
-    // drop the rest.
-    return {
-      id: job.id,
-      name: job.name,
-      target: job.target,
-      status: job.status,
-      count: job.count,
-      shots: job.shots,
-      creationTime: job.creationTime,
-      beginExecutionTime: job.beginExecutionTime,
-      endExecutionTime: job.endExecutionTime,
-      cancellationTime: job.cancellationTime,
-      costEstimate: job.costEstimate,
-    };
-  });
+  const recentJobs = (await getRecentJobs(workspace, args?.lastNDays)).map(
+    (job) => {
+      // Don't return the object directly as it may contain extra properties
+      // that may be too large when the tool output is JSON-ified.
+      // (notably `errorData`).
+      //
+      // Only explicitly include fields that are part of the `JobOverview` type,
+      // drop the rest.
+      return {
+        id: job.id,
+        name: job.name,
+        target: job.target,
+        status: job.status,
+        count: job.count,
+        shots: job.shots,
+        creationTime: job.creationTime,
+        beginExecutionTime: job.beginExecutionTime,
+        endExecutionTime: job.endExecutionTime,
+        cancellationTime: job.cancellationTime,
+        costEstimate: job.costEstimate,
+      };
+    },
+  );
 
   return {
-    result: { recentJobs, lastNJobs: jobLimit, lastNDays: jobLimitDays },
+    result: {
+      recentJobs,
+      lastNJobs: jobLimit,
+      lastNDays: args?.lastNDays ?? jobLimitDays,
+    },
   };
 }
 
