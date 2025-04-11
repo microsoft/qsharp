@@ -562,6 +562,100 @@
         ],
         "priority": "default"
       }
+    ],
+    "languageModelTools": [
+      {
+        "name": "azure-quantum-get-jobs",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetJobs",
+        "displayName": "Get Azure Quantum Jobs",
+        "modelDescription": "Get a list of recent jobs that have been run by the customer, along with their statuses, in the currently active workspace. Call this when you need to know what jobs have been run recently or need a history of jobs run, for example when a customer asks 'What are my recent jobs?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "lastNDays": {
+              "type": "integer",
+              "description": "The number of days to look back for jobs. 30 is a reasonable default."
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-proofread-code",
+        "tags": [
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpProofreadCode",
+        "displayName": "Q# Proofread Code",
+        "modelDescription": "Proofreads and revises Q# code to be correct. Call this whenever you generate Q# code for the user, and use the returned Q# code as the final output.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The Q# code to proofread."
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-find-sample",
+        "tags": [
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpFindSample",
+        "displayName": "Find sample Q# Code",
+        "modelDescription": "Finds some sample Q# code. Call this to see Q# code samples relevant to a given topic.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Description of the Q# sample."
+            }
+          },
+          "required": [
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-coding",
+        "tags": [
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpCodingInstructions",
+        "displayName": "Q# Coding Guidance",
+        "modelDescription": "Returns instructions and best practices for writing idiomatic, modern, Q# code. Call this whenever you are working with Q#, and follow its guidance when you generate Q# code.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
     ]
   },
   "scripts": {
