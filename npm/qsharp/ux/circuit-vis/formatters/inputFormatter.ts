@@ -55,7 +55,7 @@ const formatInputs = (
   });
 
   return {
-    qubitWires: group(qubitWires),
+    qubitWires: group(qubitWires, { class: "qubit-input-states" }),
     registers,
     svgHeight: currY,
   };

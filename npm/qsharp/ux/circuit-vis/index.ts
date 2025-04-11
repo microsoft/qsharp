@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import { Sqore } from "./sqore";
-import { StyleConfig } from "./styles";
 import { CircuitGroup } from "./circuit";
 
 /**
@@ -11,18 +10,13 @@ import { CircuitGroup } from "./circuit";
  * @param circuitGroup Group of circuits to be visualized.
  * @param style Custom visualization style.
  */
-export const create = (
-  circuitGroup: CircuitGroup,
-  style: StyleConfig | string = {},
-): Sqore => {
-  return new Sqore(circuitGroup, style);
+export const create = (circuitGroup: CircuitGroup): Sqore => {
+  return new Sqore(circuitGroup);
 };
 
-export { STYLES } from "./styles";
 export { operationListToGrid } from "./utils";
 
 // Export types
-export type { StyleConfig } from "./styles";
 export type {
   CircuitGroup,
   Circuit,

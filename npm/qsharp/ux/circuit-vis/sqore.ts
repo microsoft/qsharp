@@ -14,9 +14,8 @@ import {
   Column,
 } from "./circuit";
 import { Metadata, GateType } from "./metadata";
-import { StyleConfig, style, STYLES } from "./styles";
 import { createUUID } from "./utils";
-import { svgNS } from "./constants";
+import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
 import { extensionDraggable } from "./draggable";
 import { extensionEvents } from "./events";
 import { extensionPanel, PanelOptions } from "./panel";
@@ -51,18 +50,16 @@ type Extension = {
 export class Sqore {
   circuitGroup: CircuitGroup;
   circuit: Circuit;
-  style: StyleConfig = {};
   gateRegistry: GateRegistry = {};
   extensions: Extension[] = [];
   renderDepth = 0;
 
   /**
-   * Initializes Sqore object with custom styles.
+   * Initializes Sqore object.
    *
    * @param circuitGroup Group of circuits to be visualized.
-   * @param style Custom visualization style.
    */
-  constructor(circuitGroup: CircuitGroup, style: StyleConfig | string = {}) {
+  constructor(circuitGroup: CircuitGroup) {
     const circuits = circuitGroup;
     if (
       circuits == null ||
@@ -76,7 +73,6 @@ export class Sqore {
     this.circuitGroup = circuits;
     // For now we only visualize the first circuit in the group
     this.circuit = circuits.circuits[0];
-    this.style = this.getStyle(style);
     this.extensions = [];
   }
 
@@ -94,26 +90,6 @@ export class Sqore {
     this.renderCircuit(container);
 
     return this;
-  }
-
-  /**
-   * Retrieve style for visualization.
-   *
-   * @param style Custom style or style name.
-   *
-   * @returns Custom style.
-   */
-  private getStyle(style: StyleConfig | string = {}): StyleConfig {
-    if (typeof style === "string" || style instanceof String) {
-      const styleName: string = style as string;
-      // eslint-disable-next-line no-prototype-builtins
-      if (!STYLES.hasOwnProperty(styleName)) {
-        console.error(`No style ${styleName} found in STYLES.`);
-        return {};
-      }
-      style = STYLES[styleName];
-    }
-    return style;
   }
 
   /**
@@ -260,20 +236,19 @@ export class Sqore {
     svg.style.setProperty("max-width", "fit-content");
 
     // Add styles
-    const css = document.createElement("style");
-    css.innerHTML = style(this.style);
-    css.className = "qviz-style";
-    svg.appendChild(css);
+    document.documentElement.style.setProperty(
+      "--minToolboxHeight",
+      `${minToolboxHeight}px`,
+    );
+    document.documentElement.style.setProperty(
+      "--minGateWidth",
+      `${minGateWidth}px`,
+    );
+    document.documentElement.style.setProperty(
+      "--gateHeight",
+      `${gateHeight}px`,
+    );
 
-    // The style node doesn't get added to the svg above
-    // until after the user has interacted with the circuit, so we add
-    // it to the document head additionally to cover the time before the first interaction.
-    if (!document.head.querySelector("style.qviz-style")) {
-      const docCss = document.createElement("style");
-      docCss.innerHTML = style(this.style);
-      docCss.className = "qviz-style";
-      document.head.appendChild(docCss);
-    }
     // Add body elements
     elements.forEach((element: SVGElement) => svg.appendChild(element));
 

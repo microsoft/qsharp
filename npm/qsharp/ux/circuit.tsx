@@ -336,10 +336,6 @@ function ZoomableCircuit(props: {
     } else {
       qviz.create(circuitGroup).draw(container);
     }
-    // circuit-vis hardcodes the styles in the SVG.
-    // Remove the style elements -- we'll define the styles in our own CSS.
-    const styleElements = container.querySelectorAll("style");
-    styleElements?.forEach((tag) => tag.remove());
 
     return container.getElementsByClassName("qviz")[0]!;
   }

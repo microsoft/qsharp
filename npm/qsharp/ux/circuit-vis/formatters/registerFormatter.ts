@@ -34,7 +34,7 @@ const formatRegisters = (
       formattedRegs.push(_classicalRegister(x, gateY, endX, y));
     });
   });
-  return group(formattedRegs);
+  return group(formattedRegs, { class: "wires" });
 };
 
 /**
@@ -105,7 +105,7 @@ const _qubitRegister = (
   y: number,
   labelOffset = 16,
 ): SVGElement => {
-  const wire: SVGElement = line(regLineStart, y, endX, y);
+  const wire: SVGElement = line(regLineStart, y, endX, y, "qubit-wire");
 
   const label: SVGElement = text(`q${qId}`, regLineStart, y - labelOffset);
   label.setAttribute("dominant-baseline", "hanging");

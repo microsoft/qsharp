@@ -501,19 +501,9 @@ const findOperation = (
  * @returns An array of y values corresponding to the circuit wires.
  */
 const getWireData = (container: HTMLElement): number[] => {
-  // elems include qubit wires and lines of measure gates
-  const elems = container.querySelectorAll<SVGGElement>(
-    "svg[id] > g:nth-child(3) > g",
-  );
-  // filter out <g> elements having more than 2 elements because
-  // qubit wires contain only 2 elements: <line> and <text>
-  // lines of measure gates contain 4 <line> elements
-  const wireElems = Array.from(elems).filter(
-    (elem) => elem.childElementCount < 3,
-  );
-  const wireData = wireElems.map((wireElem) => {
-    const lineElem = wireElem.children[0] as SVGLineElement;
-    return Number(lineElem.getAttribute("y1"));
+  const wireElems = container.querySelectorAll<SVGGElement>(".qubit-wire");
+  const wireData = Array.from(wireElems).map((wireElem) => {
+    return Number(wireElem.getAttribute("y1"));
   });
   return wireData;
 };
