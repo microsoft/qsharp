@@ -49,6 +49,98 @@ fn basic_manifest() {
 }
 
 #[test]
+fn local_circuits() {
+    check(
+        &"circuit_files".into(),
+        &expect![[r#"
+            Project {
+                name: "circuit_files",
+                path: "circuit_files/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "circuit_files/src/Circuit1.qsc",
+                                "/// Expects a qubit register of size 2.\noperation Circuit1(qs : Qubit[]) : Unit is Ctl + Adj {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit1 expects a qubit register of size 2.\";\n    }\n    H(qs[0]);\n    Controlled X([qs[0]], qs[1]);\n}\n\n",
+                            ),
+                            (
+                                "circuit_files/src/Main.qs",
+                                "import SubFolder.Circuit2.Circuit2;\r\nimport Circuit1.Circuit1;\r\noperation Main() : Unit {\r\n    use qs = Qubit[2];\r\n    Circuit1(qs);\r\n    Circuit2(qs);\r\n}\r\n\r\nexport\r\n    Circuit1 as Circuit1,\r\n    Circuit2 as Circuit2;",
+                            ),
+                            (
+                                "circuit_files/src/SubFolder/Circuit2.qsc",
+                                "/// Expects a qubit register of size 2.\noperation Circuit2(qs : Qubit[]) : Result[] {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit2 expects a qubit register of size 2.\";\n    }\n    let c0_0 = M(qs[0]);\n    let c1_0 = M(qs[1]);\n    Reset(qs[0]);\n    Reset(qs[1]);\n    return [c0_0, c1_0];\n}\n\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {},
+                        package_type: None,
+                    },
+                    packages: {},
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
+fn dependency_circuits() {
+    check(
+        &"with_local_circuit_dep".into(),
+        &expect![[r#"
+            Project {
+                name: "with_local_circuit_dep",
+                path: "with_local_circuit_dep/qsharp.json",
+                package_graph_sources: PackageGraphSources {
+                    root: PackageInfo {
+                        sources: [
+                            (
+                                "with_local_circuit_dep/src/Main.qs",
+                                "operation Main() : Unit {\n    use qs = Qubit[2];\n    MyDep.Circuit1(qs);\n    MyDep.Circuit2(qs);\n}\n",
+                            ),
+                        ],
+                        language_features: LanguageFeatures(
+                            0,
+                        ),
+                        dependencies: {
+                            "MyDep": "{\"path\":\"circuit_files\"}",
+                        },
+                        package_type: None,
+                    },
+                    packages: {
+                        "{\"path\":\"circuit_files\"}": PackageInfo {
+                            sources: [
+                                (
+                                    "circuit_files/src/Circuit1.qsc",
+                                    "/// Expects a qubit register of size 2.\noperation Circuit1(qs : Qubit[]) : Unit is Ctl + Adj {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit1 expects a qubit register of size 2.\";\n    }\n    H(qs[0]);\n    Controlled X([qs[0]], qs[1]);\n}\n\n",
+                                ),
+                                (
+                                    "circuit_files/src/Main.qs",
+                                    "import SubFolder.Circuit2.Circuit2;\r\nimport Circuit1.Circuit1;\r\noperation Main() : Unit {\r\n    use qs = Qubit[2];\r\n    Circuit1(qs);\r\n    Circuit2(qs);\r\n}\r\n\r\nexport\r\n    Circuit1 as Circuit1,\r\n    Circuit2 as Circuit2;",
+                                ),
+                                (
+                                    "circuit_files/src/SubFolder/Circuit2.qsc",
+                                    "/// Expects a qubit register of size 2.\noperation Circuit2(qs : Qubit[]) : Result[] {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit2 expects a qubit register of size 2.\";\n    }\n    let c0_0 = M(qs[0]);\n    let c1_0 = M(qs[1]);\n    Reset(qs[0]);\n    Reset(qs[1]);\n    return [c0_0, c1_0];\n}\n\n",
+                                ),
+                            ],
+                            language_features: LanguageFeatures(
+                                0,
+                            ),
+                            dependencies: {},
+                            package_type: None,
+                        },
+                    },
+                },
+                lints: [],
+                errors: [],
+            }"#]],
+    );
+}
+
+#[test]
 fn circular_imports() {
     check(
         &"circular_imports".into(),
