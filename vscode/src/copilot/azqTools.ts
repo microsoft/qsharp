@@ -18,7 +18,7 @@ import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
 import { HistogramData } from "./shared.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
-import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+// import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -316,7 +316,8 @@ export async function downloadJobResults(
         shotCount,
       };
       return {
-        result: "Results were successfully rendered.",
+        // result: "Results were successfully rendered.",
+        result: JSON.stringify({ histogram }),
         widgetData: histogram,
       };
     }
@@ -423,12 +424,12 @@ export async function submitToTarget(
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
-  const confirmed = await CopilotView.getConfirmation(
-    `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
-  );
-  if (!confirmed) {
-    return { result: "Job submission was cancelled by the user" };
-  }
+  // const confirmed = await CopilotView.getConfirmation(
+  //   `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+  // );
+  // if (!confirmed) {
+  //   return { result: "Job submission was cancelled by the user" };
+  // }
 
   try {
     const token = await getTokenForWorkspace(workspace);
