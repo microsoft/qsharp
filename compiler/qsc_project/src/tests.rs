@@ -65,7 +65,7 @@ fn local_circuits() {
                             ),
                             (
                                 "circuit_files/src/Main.qs",
-                                "import SubFolder.Circuit2.Circuit2;\r\nimport Circuit1.Circuit1;\r\noperation Main() : Unit {\r\n    use qs = Qubit[2];\r\n    Circuit1(qs);\r\n    Circuit2(qs);\r\n}\r\n\r\nexport\r\n    Circuit1 as Circuit1,\r\n    Circuit2 as Circuit2;",
+                                "import SubFolder.Circuit2.Circuit2;\nimport Circuit1.Circuit1;\noperation Main() : Unit {\n    use qs = Qubit[2];\n    Circuit1(qs);\n    Circuit2(qs);\n}\n\nexport\n    Circuit1 as Circuit1,\n    Circuit2 as Circuit2;\n",
                             ),
                             (
                                 "circuit_files/src/SubFolder/Circuit2.qsc",
@@ -119,7 +119,7 @@ fn dependency_circuits() {
                                 ),
                                 (
                                     "circuit_files/src/Main.qs",
-                                    "import SubFolder.Circuit2.Circuit2;\r\nimport Circuit1.Circuit1;\r\noperation Main() : Unit {\r\n    use qs = Qubit[2];\r\n    Circuit1(qs);\r\n    Circuit2(qs);\r\n}\r\n\r\nexport\r\n    Circuit1 as Circuit1,\r\n    Circuit2 as Circuit2;",
+                                    "import SubFolder.Circuit2.Circuit2;\nimport Circuit1.Circuit1;\noperation Main() : Unit {\n    use qs = Qubit[2];\n    Circuit1(qs);\n    Circuit2(qs);\n}\n\nexport\n    Circuit1 as Circuit1,\n    Circuit2 as Circuit2;\n",
                                 ),
                                 (
                                     "circuit_files/src/SubFolder/Circuit2.qsc",
