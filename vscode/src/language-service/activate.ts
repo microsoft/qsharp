@@ -288,7 +288,7 @@ function registerDocumentUpdateHandlers(
       let content = document.getText();
 
       // Check if the document is a .qsc file and convert it to Q# if needed
-      if (document.fileName.endsWith(".qsc")) {
+      if (isCircuitDocument(document)) {
         try {
           const name = document.fileName.split(/\\|\//).pop()!.split(".")[0];
           content = await circuitsToQSharp(name, content);

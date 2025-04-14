@@ -444,22 +444,7 @@ pub trait FileSystemAsync {
                     about_path: path.to_string_lossy().to_string(),
                     error: e.to_string(),
                 })?;
-            if let Some(ext) = path.extension() {
-                if ext == "qsc" {
-                    let name = path
-                        .file_stem()
-                        .expect("File should have name")
-                        .to_string_lossy()
-                        .to_string();
-                    contents = match circuits_to_qsharp(&name, contents.as_ref()) {
-                        Ok(c) => Ok(Arc::from(c)),
-                        Err(e) => Err(Error::Circuit {
-                            path: path.to_string_lossy().to_string(),
-                            error: e.to_string(),
-                        }),
-                    }?;
-                }
-            }
+            contents = process_circuit_file(&path, contents)?;
             sources.push((name, contents));
         }
 
@@ -662,6 +647,25 @@ pub trait FileSystemAsync {
 
         stack.pop();
     }
+}
+
+fn process_circuit_file(path: &Path, contents: Arc<str>) -> Result<Arc<str>, Error> {
+    if let Some(ext) = path.extension() {
+        if ext == "qsc" {
+            let name = path
+                .file_stem()
+                .expect("File should have name")
+                .to_string_lossy()
+                .to_string();
+            return circuits_to_qsharp(&name, contents.as_ref())
+                .map(Arc::from)
+                .map_err(|e| Error::Circuit {
+                    path: path.to_string_lossy().to_string(),
+                    error: e.to_string(),
+                });
+        }
+    }
+    Ok(contents)
 }
 
 /// Filters out any hidden files (files that start with '.')

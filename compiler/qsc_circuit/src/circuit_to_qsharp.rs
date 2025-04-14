@@ -9,15 +9,13 @@ use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
 use crate::{
-    circuit::{CircuitGroup, Ket, Measurement, Unitary},
+    circuit::{Ket, Measurement, Unitary},
+    json_to_circuit::json_to_circuits,
     Circuit, Operation,
 };
 
 pub fn circuits_to_qsharp(file_name: &str, circuits_json: &str) -> Result<String, String> {
-    match serde_json::from_str::<CircuitGroup>(circuits_json) {
-        Ok(circuits) => Ok(build_circuits(file_name, &circuits.circuits)),
-        Err(e) => Err(format!("Error: {e}")),
-    }
+    json_to_circuits(circuits_json).map(|circuits| build_circuits(file_name, &circuits.circuits))
 }
 
 fn build_circuits(file_name: &str, circuits: &[Circuit]) -> String {
