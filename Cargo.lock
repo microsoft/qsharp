@@ -1289,6 +1289,7 @@ dependencies = [
  "num-traits",
  "qsc",
  "qsc_ast",
+ "qsc_codegen",
  "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",

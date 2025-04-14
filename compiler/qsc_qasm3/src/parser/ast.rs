@@ -16,6 +16,8 @@ use std::{
     rc::Rc,
 };
 
+use super::prim::SeqItem;
+
 /// An alternative to `Vec<T>` that uses less stack space.
 pub(crate) type List<T> = Box<[Box<T>]>;
 
@@ -1033,8 +1035,8 @@ impl Display for QubitDeclaration {
 pub struct QuantumGateDefinition {
     pub span: Span,
     pub ident: Box<Ident>,
-    pub params: List<Ident>,
-    pub qubits: List<Ident>,
+    pub params: List<SeqItem<Ident>>,
+    pub qubits: List<SeqItem<Ident>>,
     pub body: Box<Block>,
 }
 

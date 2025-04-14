@@ -11,7 +11,10 @@ use super::{
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
     expr::{self, designator, gate_operand, indexed_identifier},
-    prim::{self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, shorten},
+    prim::{
+        self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, seq_item,
+        shorten, SeqItem,
+    },
     Result,
 };
 use crate::{
@@ -614,7 +617,7 @@ fn parse_gatedef(s: &mut ParserContext) -> Result<StmtKind> {
     token(s, TokenKind::Keyword(crate::keyword::Keyword::Gate))?;
     let ident = Box::new(prim::ident(s)?);
     let params = opt(s, gate_params)?.unwrap_or_else(Vec::new);
-    let (qubits, _) = seq(s, prim::ident)?;
+    let (qubits, _) = seq_item(s, prim::ident)?;
     let body = Box::new(parse_block(s)?);
     Ok(StmtKind::QuantumGateDefinition(QuantumGateDefinition {
         span: s.span(lo),
@@ -625,9 +628,9 @@ fn parse_gatedef(s: &mut ParserContext) -> Result<StmtKind> {
     }))
 }
 
-fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<Ident>> {
+fn gate_params(s: &mut ParserContext<'_>) -> Result<Vec<SeqItem<Ident>>> {
     token(s, TokenKind::Open(Delim::Paren))?;
-    let (params, _) = seq(s, prim::ident)?;
+    let (params, _) = seq_item(s, prim::ident)?;
     token(s, TokenKind::Close(Delim::Paren))?;
     Ok(params)
 }
