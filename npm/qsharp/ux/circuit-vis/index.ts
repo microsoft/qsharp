@@ -5,13 +5,23 @@ import { Sqore } from "./sqore";
 import { CircuitGroup } from "./circuit";
 
 /**
- * Initializes Sqore object with custom styles.
+ * Render `circuit` into `container` at the specified layer depth.
  *
  * @param circuitGroup Group of circuits to be visualized.
- * @param style Custom visualization style.
+ * @param container HTML element for rendering visualization into.
+ * @param renderDepth Initial layer depth at which to render gates.
+ * @param isEditable Whether the circuit is editable.
+ * @param editCallback Callback function to be called when the circuit is edited.
  */
-export const create = (circuitGroup: CircuitGroup): Sqore => {
-  return new Sqore(circuitGroup);
+export const draw = (
+  circuitGroup: CircuitGroup,
+  container: HTMLElement,
+  renderDepth = 0,
+  isEditable = false,
+  editCallback?: (circuitGroup: CircuitGroup) => void,
+): void => {
+  const sqore = new Sqore(circuitGroup, isEditable, editCallback);
+  sqore.draw(container, renderDepth);
 };
 
 export { operationListToGrid } from "./utils";

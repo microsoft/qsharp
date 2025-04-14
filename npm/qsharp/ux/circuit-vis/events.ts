@@ -5,7 +5,7 @@ import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
 import { ComponentGrid, Operation, Qubit, Unitary } from "./circuit";
 import { Sqore } from "./sqore";
-import { defaultGateDictionary } from "./panel";
+import { toolboxGateDictionary } from "./panel";
 import {
   getGateLocationString,
   findOperation,
@@ -34,7 +34,13 @@ import {
 
 let events: CircuitEvents | null = null;
 
-const extensionEvents = (
+/**
+ * Creates and attaches the events that allow editing of the circuit.
+ *
+ * @param container     HTML element for rendering visualization into
+ * @param sqore         Sqore object
+ */
+const enableEvents = (
   container: HTMLElement,
   sqore: Sqore,
   useRefresh: () => void,
@@ -380,7 +386,7 @@ class CircuitEvents {
     const elem = ev.currentTarget as HTMLElement;
     const type = elem.getAttribute("data-type");
     if (type == null) return;
-    this.selectedOperation = defaultGateDictionary[type];
+    this.selectedOperation = toolboxGateDictionary[type];
     this.disableLeftAutoScroll = true;
     this._createGhostElement(ev);
   };
@@ -789,4 +795,4 @@ const _createConfirmPrompt = (
   cancelButton.focus();
 };
 
-export { extensionEvents, CircuitEvents };
+export { enableEvents, CircuitEvents };

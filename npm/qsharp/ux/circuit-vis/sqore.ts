@@ -16,9 +16,9 @@ import {
 import { Metadata, GateType } from "./metadata";
 import { createUUID } from "./utils";
 import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
-import { extensionDraggable } from "./draggable";
-import { extensionEvents } from "./events";
-import { extensionPanel, PanelOptions } from "./panel";
+import { createDragzones } from "./draggable";
+import { enableEvents } from "./events";
+import { createPanel } from "./panel";
 
 /**
  * Contains metadata for visualization.
@@ -40,40 +40,37 @@ type GateRegistry = {
   [location: string]: Operation;
 };
 
-type Extension = {
-  (container: HTMLElement, sqore: Sqore, useRefresh: () => void): void;
-};
-
 /**
  * Entrypoint class for rendering circuit visualizations.
  */
 export class Sqore {
-  circuitGroup: CircuitGroup;
   circuit: Circuit;
   gateRegistry: GateRegistry = {};
-  extensions: Extension[] = [];
   renderDepth = 0;
 
   /**
    * Initializes Sqore object.
    *
    * @param circuitGroup Group of circuits to be visualized.
+   * @param isEditable Whether the circuit is editable.
+   * @param editCallback Callback function to be called when the circuit is edited.
    */
-  constructor(circuitGroup: CircuitGroup) {
-    const circuits = circuitGroup;
+  constructor(
+    public circuitGroup: CircuitGroup,
+    readonly isEditable = false,
+    private editCallback?: (circuitGroup: CircuitGroup) => void,
+  ) {
     if (
-      circuits == null ||
-      circuits.circuits == null ||
-      circuits.circuits.length === 0
+      this.circuitGroup == null ||
+      this.circuitGroup.circuits == null ||
+      this.circuitGroup.circuits.length === 0
     ) {
       throw new Error(
         `No circuit found in file. Please provide a valid circuit.`,
       );
     }
-    this.circuitGroup = circuits;
     // For now we only visualize the first circuit in the group
-    this.circuit = circuits.circuits[0];
-    this.extensions = [];
+    this.circuit = this.circuitGroup.circuits[0];
   }
 
   /**
@@ -82,14 +79,12 @@ export class Sqore {
    * @param container HTML element for rendering visualization into.
    * @param renderDepth Initial layer depth at which to render gates.
    */
-  draw(container: HTMLElement, renderDepth = 0): Sqore {
+  draw(container: HTMLElement, renderDepth = 0): void {
     // Inject into container
     if (container == null) throw new Error(`Container not provided.`);
 
     this.renderDepth = renderDepth;
     this.renderCircuit(container);
-
-    return this;
   }
 
   /**
@@ -149,12 +144,13 @@ export class Sqore {
     }
     this.addGateClickHandlers(container, _circuit);
 
-    // Run extensions after every render or refresh
-    const extensions = this.extensions;
-    if (extensions != null) {
-      extensions.map((extension) =>
-        extension(container, this, () => this.renderCircuit(container)),
-      );
+    if (this.isEditable) {
+      createDragzones(container, this);
+      createPanel(container);
+      enableEvents(container, this, () => this.renderCircuit(container));
+      if (this.editCallback != undefined) {
+        this.editCallback(this.minimizeCircuits(this.circuitGroup));
+      }
     }
   }
 
@@ -468,34 +464,6 @@ export class Sqore {
         }
       }),
     );
-  }
-
-  public useDraggable(): Sqore {
-    this.extensions = [...this.extensions, extensionDraggable];
-    return this;
-  }
-
-  public usePanel(options?: PanelOptions): Sqore {
-    this.extensions = [...this.extensions, extensionPanel(options)];
-    return this;
-  }
-
-  public useEvents(): Sqore {
-    this.extensions = [...this.extensions, extensionEvents];
-    return this;
-  }
-
-  public useOnCircuitChange(callback: (fileData: CircuitGroup) => void): Sqore {
-    const extensionOnCircuitChange = (
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      _container: HTMLElement,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      _sqore: Sqore,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      _useRefresh: () => void,
-    ) => callback(this.minimizeCircuits(this.circuitGroup));
-    this.extensions = [...this.extensions, extensionOnCircuitChange];
-    return this;
   }
 
   // Minimize the circuits in a circuit group to remove dataAttributes

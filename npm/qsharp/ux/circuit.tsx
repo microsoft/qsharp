@@ -327,16 +327,7 @@ function ZoomableCircuit(props: {
     isEditable: boolean,
     editCallback?: (fileData: qviz.CircuitGroup) => void,
   ) {
-    if (isEditable) {
-      let circuitPanel = qviz.create(circuitGroup).useDraggable().usePanel();
-      if (editCallback) {
-        circuitPanel = circuitPanel.useOnCircuitChange(editCallback);
-      }
-      circuitPanel.useEvents().draw(container);
-    } else {
-      qviz.create(circuitGroup).draw(container);
-    }
-
+    qviz.draw(circuitGroup, container, 0, isEditable, editCallback);
     return container.getElementsByClassName("qviz")[0]!;
   }
 

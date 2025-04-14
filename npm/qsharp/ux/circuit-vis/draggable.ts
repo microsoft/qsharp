@@ -18,38 +18,25 @@ import {
 
 interface Context {
   container: HTMLElement;
-  svg: SVGElement;
   operationGrid: ComponentGrid;
   wireData: number[];
-  renderFn: () => void;
   paddingY: number;
-  selectedId: string | null;
-  selectedWire: string | null;
 }
 
 /**
- * Add draggable elements.
+ * Create dragzones elements for dragging on circuit.
  *
- * @param Container     HTML element for rendering visualization into.
+ * @param container     HTML element for rendering visualization into
  * @param sqore         Sqore object
- * @param useRefresh    Function to trigger circuit re-rendering
  */
-const extensionDraggable = (
-  container: HTMLElement,
-  sqore: Sqore,
-  useRefresh: () => void,
-): void => {
+const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
   const svg = container.querySelector("svg[id]") as SVGElement;
 
   const context: Context = {
     container,
-    svg,
     operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),
-    renderFn: useRefresh,
     paddingY: 20,
-    selectedId: null,
-    selectedWire: null,
   };
   _addStyles(container, getWireData(container));
   _addDataWires(container);
@@ -358,7 +345,7 @@ const _dropzoneLayer = (context: Context) => {
 };
 
 export {
-  extensionDraggable,
+  createDragzones,
   createGhostElement,
   createWireDropzone,
   removeAllWireDropzones,

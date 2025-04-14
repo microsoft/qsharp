@@ -10,53 +10,34 @@ import {
 } from "./constants";
 import { formatGate } from "./formatters/gateFormatter";
 import { GateType, Metadata } from "./metadata";
-import { Sqore } from "./sqore";
 import { getGateWidth } from "./utils";
 
 /**
- * Interface for options provided through usePanel()
+ * Create a panel for the circuit visualization.
+ * @param container     HTML element for rendering visualization into
  */
-interface PanelOptions {
-  displaySize?: number;
-  gateDictionary?: GateDictionary;
-}
-
-/**
- * Entry point to run extensionPanel
- * @param options   User-provided object to customize extensionPanel
- * @returns         Curried function of entry point to run extensionPanel
- */
-const extensionPanel =
-  (options?: PanelOptions) =>
-  /**
-   * Curried function of entry point to run extensionPanel
-   * @param container     HTML element for rendering visualization into
-   * @param sqore         Sqore object
-   * @param useRefresh    Function to trigger circuit re-rendering
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  (container: HTMLElement, sqore: Sqore, useRefresh: () => void): void => {
-    if (container.querySelector(".panel") == null) {
-      const circuit = container.querySelector("svg[id]");
-      if (circuit == null) {
-        throw new Error("No circuit found in the container");
-      }
-
-      const wrapper = _elem("div", "");
-      wrapper.style.display = "block";
-      wrapper.style.overflow = "auto";
-      wrapper.style.width = "100%";
-      wrapper.appendChild(_qubitLineControl());
-      container.appendChild(wrapper);
-      wrapper.appendChild(circuit);
-
-      const panelElem = _panel(options);
-      container.prepend(panelElem);
-      container.style.display = "flex";
-      container.style.height = "80vh";
-      container.style.width = "95vw";
+const createPanel = (container: HTMLElement): void => {
+  if (container.querySelector(".panel") == null) {
+    const circuit = container.querySelector("svg[id]");
+    if (circuit == null) {
+      throw new Error("No circuit found in the container");
     }
-  };
+
+    const wrapper = _elem("div", "");
+    wrapper.style.display = "block";
+    wrapper.style.overflow = "auto";
+    wrapper.style.width = "100%";
+    wrapper.appendChild(_qubitLineControl());
+    container.appendChild(wrapper);
+    wrapper.appendChild(circuit);
+
+    const panelElem = _panel();
+    container.prepend(panelElem);
+    container.style.display = "flex";
+    container.style.height = "80vh";
+    container.style.width = "95vw";
+  }
+};
 
 const _qubitLineControl = (): HTMLElement => {
   const qubitLineControlElem = _elem("div", "qubit-line-control");
@@ -83,41 +64,26 @@ const _removeQubitLineControl = (): HTMLElement => {
 /**
  * Function to produce panel element
  * @param context       Context object to manage extension state
- * @param options       User-provided object to customize extensionPanel
  * @returns             HTML element for panel
  */
-const _panel = (options?: PanelOptions): HTMLElement => {
+const _panel = (): HTMLElement => {
   const panelElem = _elem("div");
   panelElem.className = "panel";
-  _children(panelElem, [_createToolbox(options)]);
+  _children(panelElem, [_createToolbox()]);
   return panelElem;
 };
 
 /**
  * Function to produce toolbox element
  * @param context       Context object to manage extension state
- * @param options       User-provided object to customize extensionPanel
  * @returns             HTML element for toolbox
  */
-const _createToolbox = (options?: PanelOptions): HTMLElement => {
-  let gateDictionary = defaultGateDictionary;
-  let objectKeys = Object.keys(gateDictionary);
-  if (options != null) {
-    const { displaySize, gateDictionary: customGateDictionary } = options;
-    if (displaySize) {
-      objectKeys = objectKeys.slice(0, displaySize);
-    }
-    if (customGateDictionary) {
-      gateDictionary = { ...defaultGateDictionary, ...customGateDictionary };
-      objectKeys = Object.keys(gateDictionary);
-    }
-  }
-
+const _createToolbox = (): HTMLElement => {
   // Generate gate elements in a 3xN grid
   let prefixX = 0;
   let prefixY = 0;
-  const gateElems = objectKeys.map((key, index) => {
-    const { width: gateWidth } = toMetadata(gateDictionary[key], 0, 0);
+  const gateElems = Object.keys(toolboxGateDictionary).map((key, index) => {
+    const { width: gateWidth } = toMetadata(toolboxGateDictionary[key], 0, 0);
 
     // Increment prefixX for every gate, and reset after 2 gates (2 columns)
     if (index % 2 === 0 && index !== 0) {
@@ -125,7 +91,12 @@ const _createToolbox = (options?: PanelOptions): HTMLElement => {
       prefixY += gateHeight + verticalGap;
     }
 
-    const gateElem = _gate(gateDictionary, key.toString(), prefixX, prefixY);
+    const gateElem = _gate(
+      toolboxGateDictionary,
+      key.toString(),
+      prefixX,
+      prefixY,
+    );
     prefixX += gateWidth + horizontalGap;
     return gateElem;
   });
@@ -339,7 +310,7 @@ const _makeKet = (gate: string): Ket => {
 /**
  * Object for default gate dictionary
  */
-const defaultGateDictionary: GateDictionary = {
+const toolboxGateDictionary: GateDictionary = {
   RX: _makeUnitary("Rx"),
   X: _makeUnitary("X"),
   RY: _makeUnitary("Ry"),
@@ -355,9 +326,8 @@ const defaultGateDictionary: GateDictionary = {
   Measure: _makeMeasurement("Measure"),
 };
 
-defaultGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
-defaultGateDictionary["RY"].params = [{ name: "theta", type: "Double" }];
-defaultGateDictionary["RZ"].params = [{ name: "theta", type: "Double" }];
+toolboxGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
+toolboxGateDictionary["RY"].params = [{ name: "theta", type: "Double" }];
+toolboxGateDictionary["RZ"].params = [{ name: "theta", type: "Double" }];
 
-export { extensionPanel, defaultGateDictionary, toMetadata };
-export type { PanelOptions };
+export { createPanel, toolboxGateDictionary, toMetadata };
