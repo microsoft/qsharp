@@ -838,12 +838,7 @@ pub fn build_gate_call_param_expr(args: Vec<Expr>, remaining: usize) -> Expr {
 }
 
 pub(crate) fn build_math_call_no_params(name: &str, span: Span) -> Expr {
-    build_call_no_params(
-        name,
-        &["Microsoft", "Quantum", "Math"],
-        span,
-        Default::default(),
-    )
+    build_call_no_params(name, &["Microsoft", "Quantum", "Math"], span, span)
 }
 
 pub(crate) fn build_call_no_params(
