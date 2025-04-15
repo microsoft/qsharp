@@ -238,7 +238,8 @@ const validateExpression = (input: string): boolean => {
     // Validate the remaining expression (without parentheses)
     const sign = "[+-]?";
     const number = "((\\d+(\\.\\d*)?))"; // Matches integers and decimals
-    const value = `${sign}(${number}|π)`; // Matches a signed number or π
+    const pi = "(?i:π|pi)"; // Matches π or pi
+    const value = `${sign}(${number}|${pi})`; // Matches a signed number or π
     const operator = "[+\\-*/]"; // Matches arithmetic operators
     const expressionRegex = new RegExp(
       `^${value}(\\s*${operator}\\s*${value})*$`,
