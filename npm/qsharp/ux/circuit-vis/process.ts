@@ -415,7 +415,7 @@ const _fillMetadataX = (
     }),
   );
 
-  return endX;
+  return endX + gatePadding;
 };
 
 /**
