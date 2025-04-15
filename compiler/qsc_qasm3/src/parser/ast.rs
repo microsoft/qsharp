@@ -651,12 +651,15 @@ impl Display for RangeDefinition {
 #[derive(Clone, Debug)]
 pub struct QuantumGateModifier {
     pub span: Span,
+    pub modifier_keyword_span: Span,
     pub kind: GateModifierKind,
 }
 
 impl Display for QuantumGateModifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumGateModifier {}: {}", self.span, self.kind)
+        writeln_header(f, "QuantumGateModifier", self.span)?;
+        writeln_field(f, "modifier_keyword_span", &self.modifier_keyword_span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 

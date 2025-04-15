@@ -677,12 +677,15 @@ impl Display for RangeDefinition {
 #[derive(Clone, Debug)]
 pub struct QuantumGateModifier {
     pub span: Span,
+    pub modifier_keyword_span: Span,
     pub kind: GateModifierKind,
 }
 
 impl Display for QuantumGateModifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumGateModifier {}: {}", self.span, self.kind)
+        writeln_header(f, "QuantumGateModifier", self.span)?;
+        writeln_field(f, "modifier_keyword_span", &self.modifier_keyword_span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -1537,6 +1540,7 @@ impl Display for BinaryOpExpr {
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub span: Span,
+    pub fn_name_span: Span,
     pub symbol_id: SymbolId,
     pub args: List<Expr>,
 }
@@ -1544,6 +1548,7 @@ pub struct FunctionCall {
 impl Display for FunctionCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "FunctionCall", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
     }

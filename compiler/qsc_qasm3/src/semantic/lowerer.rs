@@ -1420,6 +1420,7 @@ impl Lowerer {
 
         let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
             span: expr.span,
+            fn_name_span: expr.name.span,
             symbol_id,
             args,
         }));
@@ -1465,7 +1466,7 @@ impl Lowerer {
         if let Some((gate_name, implicit_modifier)) =
             try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
         {
-            // Override the gate name if we mapped with modifiers
+            // Override the gate name if we mapped with modifiers.
             name = gate_name;
 
             // 2. Get implicit modifiers and make them explicit.
@@ -1541,7 +1542,7 @@ impl Lowerer {
         // But it won't need to check arities, know about implicit modifiers, or do
         // any casting of classical args. There is still some inherit complexity to
         // building a Q# gate call with this information, but it won't be cluttered
-        // by all the semantic analysis.
+        // by all the QASM semantic analysis.
     }
 
     /// This is just syntax sugar around a gate call.
@@ -1582,6 +1583,7 @@ impl Lowerer {
 
         Some(semantic::QuantumGateModifier {
             span: modifier.span,
+            modifier_keyword_span: modifier.modifier_keyword_span,
             kind,
         })
     }
@@ -3389,6 +3391,7 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
 
     let make_modifier = |kind| semantic::QuantumGateModifier {
         span: name_span,
+        modifier_keyword_span: name_span,
         kind,
     };
 

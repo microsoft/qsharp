@@ -826,6 +826,7 @@ pub fn walk_enumerable_set(vis: &mut impl MutVisitor, set: &mut EnumerableSet) {
 
 pub fn walk_gate_modifier(vis: &mut impl MutVisitor, modifier: &mut QuantumGateModifier) {
     vis.visit_span(&mut modifier.span);
+    vis.visit_span(&mut modifier.modifier_keyword_span);
     match &mut modifier.kind {
         GateModifierKind::Inv => {}
         GateModifierKind::Pow(expr) => vis.visit_expr(expr),

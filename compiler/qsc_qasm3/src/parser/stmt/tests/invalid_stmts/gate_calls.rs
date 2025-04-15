@@ -82,7 +82,9 @@ fn pow_with_two_args() {
                 annotations: <empty>
                 kind: GateCall [0-17]:
                     modifiers:
-                        QuantumGateModifier [0-11]: Pow Expr [4-5]: Lit: Int(2)
+                        QuantumGateModifier [0-11]:
+                            modifier_keyword_span: [0-3]
+                            kind: Pow Expr [4-5]: Lit: Int(2)
                     name: Ident [12-13] "x"
                     args: <empty>
                     duration: <none>
@@ -117,7 +119,9 @@ fn ctrl_with_two_args() {
                 annotations: <empty>
                 kind: GateCall [0-22]:
                     modifiers:
-                        QuantumGateModifier [0-12]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
+                        QuantumGateModifier [0-12]:
+                            modifier_keyword_span: [0-4]
+                            kind: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
                     name: Ident [13-14] "x"
                     args: <empty>
                     duration: <none>
@@ -154,7 +158,9 @@ fn negctrl_with_two_args() {
                 annotations: <empty>
                 kind: GateCall [0-25]:
                     modifiers:
-                        QuantumGateModifier [0-15]: NegCtrl Some(Expr { span: Span { lo: 8, hi: 9 }, kind: Lit(Lit { span: Span { lo: 8, hi: 9 }, kind: Int(2) }) })
+                        QuantumGateModifier [0-15]:
+                            modifier_keyword_span: [0-7]
+                            kind: NegCtrl Some(Expr { span: Span { lo: 8, hi: 9 }, kind: Lit(Lit { span: Span { lo: 8, hi: 9 }, kind: Int(2) }) })
                     name: Ident [16-17] "x"
                     args: <empty>
                     duration: <none>
@@ -191,8 +197,12 @@ fn inv_with_arg() {
                 annotations: <empty>
                 kind: GateCall [0-25]:
                     modifiers:
-                        QuantumGateModifier [0-8]: Inv
-                        QuantumGateModifier [9-15]: Ctrl None
+                        QuantumGateModifier [0-8]:
+                            modifier_keyword_span: [0-3]
+                            kind: Inv
+                        QuantumGateModifier [9-15]:
+                            modifier_keyword_span: [9-13]
+                            kind: Ctrl None
                     name: Ident [16-17] "x"
                     args: <empty>
                     duration: <none>

@@ -1589,15 +1589,19 @@ fn parse_gphase(
 /// ) AT`.
 fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
     let lo = s.peek().span.lo;
+    let modifier_keyword_span;
 
     let kind = if opt(s, |s| token(s, TokenKind::Inv))?.is_some() {
+        modifier_keyword_span = s.span(lo);
         GateModifierKind::Inv
     } else if opt(s, |s| token(s, TokenKind::Pow))?.is_some() {
+        modifier_keyword_span = s.span(lo);
         token(s, TokenKind::Open(Delim::Paren))?;
         let expr = expr::expr(s)?;
         recovering_token(s, TokenKind::Close(Delim::Paren));
         GateModifierKind::Pow(expr)
     } else if opt(s, |s| token(s, TokenKind::Ctrl))?.is_some() {
+        modifier_keyword_span = s.span(lo);
         let expr = opt(s, |s| {
             token(s, TokenKind::Open(Delim::Paren))?;
             let expr = expr::expr(s)?;
@@ -1607,6 +1611,7 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
         GateModifierKind::Ctrl(expr)
     } else {
         token(s, TokenKind::NegCtrl)?;
+        modifier_keyword_span = s.span(lo);
         let expr = opt(s, |s| {
             token(s, TokenKind::Open(Delim::Paren))?;
             let expr = expr::expr(s)?;
@@ -1620,6 +1625,7 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
 
     Ok(QuantumGateModifier {
         span: s.span(lo),
+        modifier_keyword_span,
         kind,
     })
 }

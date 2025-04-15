@@ -763,7 +763,7 @@ impl QasmCompiler {
         let name = &symbol.name;
         let name_span = symbol.span;
         if expr.args.is_empty() {
-            build_call_no_params(name, &[], expr.span)
+            build_call_no_params(name, &[], expr.span, expr.fn_name_span)
         } else {
             let args: Vec<_> = expr
                 .args
@@ -793,6 +793,7 @@ impl QasmCompiler {
         // Take the number of qubit args that the gates expects from the source qubits.
         let gate_qubits =
             qubits.split_off(qubits.len().saturating_sub(stmt.quantum_arity as usize));
+
         // Then merge the classical args with the qubit args. This will give
         // us the args for the call prior to wrapping in tuples for controls.
         let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
@@ -805,7 +806,7 @@ impl QasmCompiler {
                     callee = build_unary_op_expr(
                         qsast::UnOp::Functor(qsast::Functor::Adj),
                         callee,
-                        modifier.span,
+                        modifier.modifier_keyword_span,
                     );
                 }
                 semast::GateModifierKind::Pow(expr) => {
@@ -830,7 +831,7 @@ impl QasmCompiler {
                     callee = build_unary_op_expr(
                         qsast::UnOp::Functor(qsast::Functor::Ctl),
                         callee,
-                        modifier.span,
+                        modifier.modifier_keyword_span,
                     );
                 }
                 semast::GateModifierKind::NegCtrl(num_ctrls) => {
@@ -848,8 +849,11 @@ impl QasmCompiler {
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     let lit_0 = build_lit_int_expr(0, Span::default());
                     args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
-                    callee =
-                        build_path_ident_expr("ApplyControlledOnInt", modifier.span, stmt.span);
+                    callee = build_path_ident_expr(
+                        "ApplyControlledOnInt",
+                        modifier.modifier_keyword_span,
+                        stmt.span,
+                    );
                 }
             }
         }
