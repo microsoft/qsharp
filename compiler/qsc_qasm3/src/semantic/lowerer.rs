@@ -528,6 +528,7 @@ impl Lowerer {
         semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
             span,
             symbol_id,
+            name_span: index_expr.name.span,
             indices,
             rhs,
         })

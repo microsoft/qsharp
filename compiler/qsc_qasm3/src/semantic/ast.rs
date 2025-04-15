@@ -1465,6 +1465,7 @@ impl Display for AssignStmt {
 pub struct IndexedAssignStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub name_span: Span,
     pub indices: List<IndexElement>,
     pub rhs: Expr,
 }
@@ -1473,6 +1474,7 @@ impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         writeln_list_field(f, "indices", &self.indices)?;
         write_field(f, "rhs", &self.rhs)
     }

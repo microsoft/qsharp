@@ -493,7 +493,7 @@ impl QasmCompiler {
         let index_expr = indices[0].clone();
 
         let stmt = build_indexed_assignment_statement(
-            symbol.span,
+            stmt.name_span,
             symbol.name.clone(),
             index_expr,
             rhs,
@@ -559,6 +559,7 @@ impl QasmCompiler {
             let stmt = semast::IndexedAssignStmt {
                 span: stmt.span,
                 symbol_id: stmt.symbol_id,
+                name_span: stmt.lhs.span,
                 indices: stmt.indices.clone(),
                 rhs,
             };
