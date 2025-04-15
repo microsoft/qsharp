@@ -1111,6 +1111,7 @@ pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
     pub symbol_id: SymbolId,
+    pub gate_name_span: Span,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
@@ -1123,6 +1124,7 @@ impl Display for GateCall {
         writeln_header(f, "GateCall", self.span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "gate_name_span", &self.gate_name_span)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;

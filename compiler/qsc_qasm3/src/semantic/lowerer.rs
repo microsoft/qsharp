@@ -1531,6 +1531,7 @@ impl Lowerer {
             span: stmt.span,
             modifiers,
             symbol_id,
+            gate_name_span: stmt.name.span,
             args,
             qubits,
             duration,

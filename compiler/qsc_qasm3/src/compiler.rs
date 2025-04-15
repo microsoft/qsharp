@@ -761,7 +761,7 @@ impl QasmCompiler {
     fn compile_function_call_expr(&mut self, expr: &semast::FunctionCall) -> qsast::Expr {
         let symbol = self.symbols[expr.symbol_id].clone();
         let name = &symbol.name;
-        let name_span = symbol.span;
+        let name_span = expr.fn_name_span;
         if expr.args.is_empty() {
             build_call_no_params(name, &[], expr.span, expr.fn_name_span)
         } else {
@@ -798,7 +798,7 @@ impl QasmCompiler {
         // us the args for the call prior to wrapping in tuples for controls.
         let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
         let mut args = build_gate_call_param_expr(args, qubits.len());
-        let mut callee = build_path_ident_expr(&symbol.name, symbol.span, stmt.span);
+        let mut callee = build_path_ident_expr(&symbol.name, stmt.gate_name_span, stmt.span);
 
         for modifier in &stmt.modifiers {
             match &modifier.kind {
