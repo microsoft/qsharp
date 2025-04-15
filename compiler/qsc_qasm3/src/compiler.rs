@@ -970,7 +970,7 @@ impl QasmCompiler {
             cargs,
             qargs,
             body,
-            symbol.span,
+            stmt.name_span,
             stmt.body.span,
             stmt.span,
             build_path_ident_ty("Unit"),
@@ -1137,7 +1137,7 @@ impl QasmCompiler {
                 span: expr.span,
                 ..Default::default()
             },
-            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
+            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, expr.span),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
                 self.compile_indexed_ident_expr(indexed_ident)
             }
@@ -1158,9 +1158,8 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> qsast::Expr {
+    fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> qsast::Expr {
         let symbol = &self.symbols[symbol_id];
-        let span = symbol.span;
         match symbol.name.as_str() {
             "euler" | "ℇ" => build_math_call_no_params("E", span),
             "pi" | "π" => build_math_call_no_params("PI", span),

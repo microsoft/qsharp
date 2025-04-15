@@ -1068,6 +1068,7 @@ impl Display for QubitArrayDeclaration {
 #[derive(Clone, Debug)]
 pub struct QuantumGateDefinition {
     pub span: Span,
+    pub name_span: Span,
     pub symbol_id: SymbolId,
     pub params: Box<[SymbolId]>,
     pub qubits: Box<[SymbolId]>,
@@ -1077,6 +1078,7 @@ pub struct QuantumGateDefinition {
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Gate", self.span)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_list_field(f, "qubits", &self.qubits)?;

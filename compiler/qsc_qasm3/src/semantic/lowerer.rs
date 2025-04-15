@@ -1757,8 +1757,7 @@ impl Lowerer {
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Qubit;
                 let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
-                let symbol =
-                    Symbol::new(&arg.name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+                let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
             .collect::<Box<_>>();
@@ -1773,6 +1772,7 @@ impl Lowerer {
 
         semantic::StmtKind::QuantumGateDefinition(semantic::QuantumGateDefinition {
             span: stmt.span,
+            name_span: stmt.ident.span,
             symbol_id,
             params,
             qubits,
