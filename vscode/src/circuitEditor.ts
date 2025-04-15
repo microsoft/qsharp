@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   private static readonly viewType = "qsharp-webview.circuit";
-  savedVersion: number | undefined;
+  updatingDocument: boolean = false;
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     log.info("Registering CircuitEditorProvider");
@@ -65,26 +65,21 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     };
 
     // Update the webview when the text document changes
-    // const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
-    //   (event) => {
-    //     if (event.document.uri.toString() === document.uri.toString()) {
-    //       if (
-    //         this.savedVersion !== undefined &&
-    //         event.document.version > this.savedVersion
-    //       ) {
-    //         // Update the webview with the new document content
-    //         updateWebview();
-    //       }
-    //     }
-    //   },
-    // );
+    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
+      (event) => {
+        if (event.document.uri.toString() === document.uri.toString()) {
+          if (!this.updatingDocument && event.contentChanges.length > 0) {
+            // Update the webview with the new document content
+            updateWebview();
+          }
+        }
+      },
+    );
 
-    // // Dispose of the event listener when the webview is closed
-    // webviewPanel.onDidDispose(() => {
-    //   changeDocumentSubscription.dispose();
-    // });
-
-    updateWebview();
+    // Dispose of the event listener when the webview is closed
+    webviewPanel.onDidDispose(() => {
+      changeDocumentSubscription.dispose();
+    });
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {
@@ -155,7 +150,8 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       new vscode.Range(0, 0, document.lineCount, 0),
       circuit.trim(),
     );
+    this.updatingDocument = true;
     await vscode.workspace.applyEdit(edit);
-    this.savedVersion = document.version;
+    this.updatingDocument = false;
   }
 }
