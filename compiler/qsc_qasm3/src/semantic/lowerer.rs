@@ -1738,7 +1738,7 @@ impl Lowerer {
         //                    error saying there is a missing item. This is what Rust does.
         //                 2. Treat the missing item as a Type::Err and make it part of the gate
         //                    signature, this is what Q# does.
-        //              We decided to go with (1) because it avois propagating the SeqItem enum
+        //              We decided to go with (1) because it avoids propagating the SeqItem enum
         //              to the compiler, which is simpler.
         let params = stmt
             .params
