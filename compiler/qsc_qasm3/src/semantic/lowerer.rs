@@ -1147,7 +1147,7 @@ impl Lowerer {
             .collect();
 
         let body = semantic::Block {
-            span: stmt.span,
+            span: stmt.body.span,
             stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
         };
 
@@ -1765,7 +1765,7 @@ impl Lowerer {
             .collect::<Box<_>>();
 
         let body = semantic::Block {
-            span: stmt.span,
+            span: stmt.body.span,
             stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
         };
 
