@@ -792,7 +792,11 @@ const _createConfirmPrompt = (
 
   overlay.appendChild(confirmContainer);
   document.body.appendChild(overlay);
-  cancelButton.focus();
+
+  // Remove focus from any currently focused element
+  if (document.activeElement) {
+    (document.activeElement as HTMLElement).blur();
+  }
 };
 
 export { enableEvents, CircuitEvents };
