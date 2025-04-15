@@ -185,13 +185,16 @@ impl QasmCompiler {
 
     /// Returns a span containing all the statements in the program.
     fn whole_span(&self) -> Span {
-        if let Some(last) = self.stmts.last() {
-            Span {
-                lo: 0,
-                hi: last.span.hi,
-            }
-        } else {
-            Span::default()
+        let main_src = self
+            .source_map
+            .iter()
+            .next()
+            .expect("there is at least one source");
+
+        #[allow(clippy::cast_possible_truncation)]
+        Span {
+            lo: main_src.offset,
+            hi: main_src.offset + main_src.contents.len() as u32,
         }
     }
 
