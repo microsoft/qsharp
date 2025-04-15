@@ -133,7 +133,7 @@ impl QasmCompiler {
     /// Build a package with namespace and an operation
     /// containing the compiled statements.
     fn build_file(&mut self) -> (Package, Option<OperationSignature>) {
-        let whole_span = Span::default();
+        let whole_span = self.whole_span();
         let operation_name = self.config.operation_name();
         let (operation, mut signature) = self.create_entry_operation(operation_name, whole_span);
         let ns = self.config.namespace();
@@ -152,7 +152,7 @@ impl QasmCompiler {
 
     /// Creates an operation with the given name.
     fn build_operation(&mut self) -> (qsast::Package, Option<OperationSignature>) {
-        let whole_span = Span::default();
+        let whole_span = self.whole_span();
         let operation_name = self.config.operation_name();
         let (operation, signature) = self.create_entry_operation(operation_name, whole_span);
         (
@@ -180,6 +180,18 @@ impl QasmCompiler {
         qsast::Package {
             nodes,
             ..Default::default()
+        }
+    }
+
+    /// Returns a span containing all the statements in the program.
+    fn whole_span(&self) -> Span {
+        if let Some(last) = self.stmts.last() {
+            Span {
+                lo: 0,
+                hi: last.span.hi,
+            }
+        } else {
+            Span::default()
         }
     }
 
