@@ -38,7 +38,6 @@ fn fuzz_2297_referencing_angle_parameter() {
 /// compiled to operations when they take qubit arguments.
 #[test]
 fn fuzz_2297_def() {
-    // let source = r#"gate g1 g1_q0 {gate g1_q0 b {}b}"#;
     let source = r#"
     def g(qubit q0) {
         def q0(qubit q1) {}
@@ -61,11 +60,13 @@ fn fuzz_2297_with_trailing_comma() {
             q1;
         }
     "#;
+    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2298() {
     let source = r#"gate y()a{gate a,b{}b"#;
+    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
