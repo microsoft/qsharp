@@ -749,7 +749,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
         span: name_span,
         kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
             segments: None,
             name: Box::new(ident),
         })))),
@@ -787,7 +787,7 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
         span: name_span,
         kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
             segments: None,
             name: Box::new(ident),
         })))),
@@ -893,8 +893,9 @@ pub(crate) fn build_call_with_param(
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
         })))),
+        span: name_span,
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -931,8 +932,9 @@ pub(crate) fn build_call_with_params(
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
         })))),
+        span: name_span,
         ..Default::default()
     };
     let call = ExprKind::Call(Box::new(path_expr), Box::new(build_tuple_expr(operands)));
@@ -1128,6 +1130,7 @@ where
 
     let pat = Pat {
         kind: Box::new(PatKind::Bind(Box::new(ident), tydef)),
+        span: name_span,
         ..Default::default()
     };
     let mutability = if is_const {
