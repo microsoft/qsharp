@@ -30,7 +30,7 @@ fn begin_document() {
         "|OPENQASM 3;",
         &expect![[r#"
             WordKinds(
-                Annotation | Barrier | Box | Break | Cal | Const | Continue | CReg | Def | DefCal | DefCalGrammar | Delay | End | Extern | False | For | Gate | If | Include | Input | Let | OpenQASM | Output | Pragma | QReg | Qubit | Reset | True | Return | Switch | While,
+                Annotation | Barrier | Box | Break | Cal | Const | Continue | CReg | Ctrl | Def | DefCal | DefCalGrammar | Delay | End | Extern | False | For | Gate | If | Include | Input | Inv | Let | Measure | NegCtrl | OpenQASM | Output | Pow | Pragma | QReg | Qubit | Reset | True | Return | Switch | While,
             )
         "#]],
     );
@@ -42,7 +42,7 @@ fn end_of_version() {
         "OPENQASM 3;|",
         &expect![[r#"
             WordKinds(
-                Annotation | Barrier | Box | Break | Cal | Const | Continue | CReg | Def | DefCal | DefCalGrammar | Delay | End | Extern | False | For | Gate | If | Include | Input | Let | Output | Pragma | QReg | Qubit | Reset | True | Return | Switch | While,
+                Annotation | Barrier | Box | Break | Cal | Const | Continue | CReg | Ctrl | Def | DefCal | DefCalGrammar | Delay | End | Extern | False | For | Gate | If | Include | Input | Inv | Let | Measure | NegCtrl | Output | Pow | Pragma | QReg | Qubit | Reset | True | Return | Switch | While,
             )
         "#]],
     );

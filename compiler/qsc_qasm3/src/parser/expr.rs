@@ -736,7 +736,7 @@ pub(crate) fn expr_list(s: &mut ParserContext) -> Result<Vec<Expr>> {
 
 pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
     let lo = s.peek().span.lo;
-    token(s, TokenKind::Measure)?;
+    token(s, TokenKind::Keyword(Keyword::Measure))?;
     let measure_token_span = s.span(lo);
     let operand = gate_operand(s)?;
 

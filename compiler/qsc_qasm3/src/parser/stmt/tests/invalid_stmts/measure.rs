@@ -178,34 +178,38 @@ fn measure_cant_be_used_in_sub_expressions() {
         parse,
         "a = 2 * measure $0;",
         &expect![[r#"
-        Error(
-            Rule(
-                "expression",
-                Measure,
-                Span {
-                    lo: 8,
-                    hi: 15,
-                },
-            ),
-        )
-    "#]],
+            Error(
+                Rule(
+                    "expression",
+                    Keyword(
+                        Measure,
+                    ),
+                    Span {
+                        lo: 8,
+                        hi: 15,
+                    },
+                ),
+            )
+        "#]],
     );
     check(
         parse,
         "a = (measure $0) + (measure $1);",
         &expect![[r#"
-        Error(
-            Token(
-                Close(
-                    Paren,
+            Error(
+                Token(
+                    Close(
+                        Paren,
+                    ),
+                    Keyword(
+                        Measure,
+                    ),
+                    Span {
+                        lo: 5,
+                        hi: 12,
+                    },
                 ),
-                Measure,
-                Span {
-                    lo: 5,
-                    hi: 12,
-                },
-            ),
-        )
-    "#]],
+            )
+        "#]],
     );
 }
