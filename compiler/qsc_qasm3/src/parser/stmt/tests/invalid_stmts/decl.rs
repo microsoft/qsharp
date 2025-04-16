@@ -744,17 +744,19 @@ fn backed_arrays_cant_use_dim() {
         parse,
         "array[uint[8], #dim=2] myvar;",
         &expect![[r#"
-        Error(
-            Rule(
-                "scalar or array type",
-                Dim,
-                Span {
-                    lo: 15,
-                    hi: 19,
-                },
-            ),
-        )
-    "#]],
+            Error(
+                Rule(
+                    "scalar or array type",
+                    Keyword(
+                        Dim,
+                    ),
+                    Span {
+                        lo: 15,
+                        hi: 19,
+                    },
+                ),
+            )
+        "#]],
     );
 }
 

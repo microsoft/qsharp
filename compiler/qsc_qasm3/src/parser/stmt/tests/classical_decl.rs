@@ -1115,7 +1115,9 @@ fn const_decl_with_measurement_init_fails() {
                     Open(
                         Brace,
                     ),
-                    Measure,
+                    Keyword(
+                        Measure,
+                    ),
                     Span {
                         lo: 16,
                         hi: 23,

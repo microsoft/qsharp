@@ -588,7 +588,7 @@ fn array_reference_ty(s: &mut ParserContext) -> Result<ArrayReferenceType> {
     let base_type = array_base_type(s)?;
     token(s, TokenKind::Comma)?;
 
-    let dimensions = if token(s, TokenKind::Dim).is_ok() {
+    let dimensions = if token(s, TokenKind::Keyword(Keyword::Dim)).is_ok() {
         token(s, TokenKind::Eq)?;
         vec![expr::expr(s)?]
     } else {
@@ -1591,16 +1591,16 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
     let lo = s.peek().span.lo;
     let modifier_keyword_span;
 
-    let kind = if opt(s, |s| token(s, TokenKind::Inv))?.is_some() {
+    let kind = if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Inv)))?.is_some() {
         modifier_keyword_span = s.span(lo);
         GateModifierKind::Inv
-    } else if opt(s, |s| token(s, TokenKind::Pow))?.is_some() {
+    } else if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Pow)))?.is_some() {
         modifier_keyword_span = s.span(lo);
         token(s, TokenKind::Open(Delim::Paren))?;
         let expr = expr::expr(s)?;
         recovering_token(s, TokenKind::Close(Delim::Paren));
         GateModifierKind::Pow(expr)
-    } else if opt(s, |s| token(s, TokenKind::Ctrl))?.is_some() {
+    } else if opt(s, |s| token(s, TokenKind::Keyword(Keyword::Ctrl)))?.is_some() {
         modifier_keyword_span = s.span(lo);
         let expr = opt(s, |s| {
             token(s, TokenKind::Open(Delim::Paren))?;
@@ -1610,7 +1610,7 @@ fn gate_modifier(s: &mut ParserContext) -> Result<QuantumGateModifier> {
         })?;
         GateModifierKind::Ctrl(expr)
     } else {
-        token(s, TokenKind::NegCtrl)?;
+        token(s, TokenKind::Keyword(Keyword::NegCtrl))?;
         modifier_keyword_span = s.span(lo);
         let expr = opt(s, |s| {
             token(s, TokenKind::Open(Delim::Paren))?;
