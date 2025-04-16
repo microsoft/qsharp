@@ -34,7 +34,7 @@ pub struct Error(pub ErrorKind);
 impl Error {
     #[must_use]
     pub fn is_syntax_error(&self) -> bool {
-        matches!(self.0, ErrorKind::Parse(_, _))
+        matches!(self.0, ErrorKind::Parser(..))
     }
 
     #[must_use]
@@ -59,8 +59,6 @@ pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
     IO(#[from] crate::io::Error),
-    #[error("QASM3 Parse Error: {0}")]
-    Parse(String, #[label] Span),
     #[error(transparent)]
     #[diagnostic(transparent)]
     Parser(#[from] crate::parser::Error),
@@ -70,10 +68,6 @@ pub enum ErrorKind {
     #[error(transparent)]
     #[diagnostic(transparent)]
     ConstEval(#[from] crate::semantic::const_eval::ConstEvalError),
-    #[error("QASM3 Parse Error: Not Found {0}")]
-    NotFound(String),
-    #[error("IO Error: {0}")]
-    OldIO(String),
 }
 
 /// Qubit semantics differ between Q# and Qiskit. This enum is used to
