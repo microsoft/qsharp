@@ -472,13 +472,29 @@ class CircuitEvents {
           );
         } else if (sourceLocation && this.selectedWire != null) {
           if (copying) {
-            addOperation(
-              this,
-              this.selectedOperation,
-              targetLoc,
-              targetWire,
-              insertNewColumn,
-            );
+            if (
+              this.movingControl &&
+              this.selectedOperation.kind === "unitary"
+            ) {
+              addControl(this.selectedOperation, targetWire);
+              moveOperation(
+                this,
+                sourceLocation,
+                targetLoc,
+                this.selectedWire,
+                targetWire,
+                false,
+                insertNewColumn,
+              );
+            } else {
+              addOperation(
+                this,
+                this.selectedOperation,
+                targetLoc,
+                targetWire,
+                insertNewColumn,
+              );
+            }
           } else {
             moveOperation(
               this,
