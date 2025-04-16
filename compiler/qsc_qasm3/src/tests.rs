@@ -494,7 +494,5 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
     let despanned_qasm_ast = despanned_qasm_ast.to_string();
     let despanned_qsharp_ast = despanned_qsharp_ast.to_string();
 
-    println!("{qsharp_src}");
-
     difference::assert_diff!(&despanned_qasm_ast, &despanned_qsharp_ast, "\n", 0);
 }
