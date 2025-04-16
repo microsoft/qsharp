@@ -63,7 +63,10 @@ where
     where
         P: AsRef<Path>,
     {
-        let path = self.path.join(path);
+        let path = self
+            .fs
+            .resolve_path(self.path.as_path(), path.as_ref())
+            .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
         self.ctx().check_include_errors(&path)?;
         let (path, source) = self
             .fs
