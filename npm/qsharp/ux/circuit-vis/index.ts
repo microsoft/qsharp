@@ -24,8 +24,6 @@ export const draw = (
   sqore.draw(container, renderDepth);
 };
 
-export { operationListToGrid } from "./utils";
-
 // Export types
 export type {
   CircuitGroup,

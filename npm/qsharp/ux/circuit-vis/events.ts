@@ -9,7 +9,6 @@ import { toolboxGateDictionary } from "./panel";
 import {
   getGateLocationString,
   findOperation,
-  getMinMaxRegIdx,
   getToolboxElems,
   getGateElems,
   getHostElems,
@@ -31,6 +30,7 @@ import {
   createWireDropzone,
   removeAllWireDropzones,
 } from "./draggable";
+import { getMinMaxRegIdx } from "../../src/utils";
 
 let events: CircuitEvents | null = null;
 

@@ -18,3 +18,4 @@ export {
 } from "../../src/shared/circuit";
 
 export { CURRENT_VERSION } from "../../src/shared/circuit";
+export { toCircuitGroup } from "../../src/shared/legacyCircuitUpdate";

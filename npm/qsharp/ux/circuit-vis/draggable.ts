@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+import { getMinMaxRegIdx } from "../../src/utils";
 import { ComponentGrid, Operation } from "./circuit";
 import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
@@ -10,7 +11,6 @@ import { Sqore } from "./sqore";
 import {
   findLocation,
   getHostElems,
-  getMinMaxRegIdx,
   getToolboxElems,
   getWireData,
   locationStringToIndexes,
