@@ -18,6 +18,9 @@ use crate::{
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use miette::Report;
+use qsc::target::Profile;
+
+use super::compile_qasm_best_effort;
 
 #[test]
 fn classical() -> miette::Result<(), Vec<Report>> {
@@ -104,4 +107,10 @@ fn stretch() {
     assert!(unit.errors[1]
         .to_string()
         .contains("stretch default values are not supported"),);
+}
+
+#[test]
+fn gate_decl_with_missing_seq_item_doesnt_panic() {
+    let source = r#"gate g1 x,,y {}"#;
+    compile_qasm_best_effort(source, Profile::Unrestricted);
 }

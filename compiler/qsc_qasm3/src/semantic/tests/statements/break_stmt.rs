@@ -118,7 +118,7 @@ fn intermediate_def_scope_fails() {
                                             has_qubit_params: false
                                             parameters: <empty>
                                             return_type: ()
-                                            body: Block [36-54]:
+                                            body: Block [44-54]:
                                                 Stmt [46-52]:
                                                     annotations: <empty>
                                                     kind: Err

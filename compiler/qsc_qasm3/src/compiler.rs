@@ -133,7 +133,7 @@ impl QasmCompiler {
     /// Build a package with namespace and an operation
     /// containing the compiled statements.
     fn build_file(&mut self) -> (Package, Option<OperationSignature>) {
-        let whole_span = Span::default();
+        let whole_span = self.whole_span();
         let operation_name = self.config.operation_name();
         let (operation, mut signature) = self.create_entry_operation(operation_name, whole_span);
         let ns = self.config.namespace();
@@ -152,7 +152,7 @@ impl QasmCompiler {
 
     /// Creates an operation with the given name.
     fn build_operation(&mut self) -> (qsast::Package, Option<OperationSignature>) {
-        let whole_span = Span::default();
+        let whole_span = self.whole_span();
         let operation_name = self.config.operation_name();
         let (operation, signature) = self.create_entry_operation(operation_name, whole_span);
         (
@@ -180,6 +180,21 @@ impl QasmCompiler {
         qsast::Package {
             nodes,
             ..Default::default()
+        }
+    }
+
+    /// Returns a span containing all the statements in the program.
+    fn whole_span(&self) -> Span {
+        let main_src = self
+            .source_map
+            .iter()
+            .next()
+            .expect("there is at least one source");
+
+        #[allow(clippy::cast_possible_truncation)]
+        Span {
+            lo: main_src.offset,
+            hi: main_src.offset + main_src.contents.len() as u32,
         }
     }
 
@@ -493,7 +508,7 @@ impl QasmCompiler {
         let index_expr = indices[0].clone();
 
         let stmt = build_indexed_assignment_statement(
-            symbol.span,
+            stmt.name_span,
             symbol.name.clone(),
             index_expr,
             rhs,
@@ -559,6 +574,7 @@ impl QasmCompiler {
             let stmt = semast::IndexedAssignStmt {
                 span: stmt.span,
                 symbol_id: stmt.symbol_id,
+                name_span: stmt.lhs.span,
                 indices: stmt.indices.clone(),
                 rhs,
             };
@@ -761,9 +777,9 @@ impl QasmCompiler {
     fn compile_function_call_expr(&mut self, expr: &semast::FunctionCall) -> qsast::Expr {
         let symbol = self.symbols[expr.symbol_id].clone();
         let name = &symbol.name;
-        let name_span = symbol.span;
+        let name_span = expr.fn_name_span;
         if expr.args.is_empty() {
-            build_call_no_params(name, &[], expr.span)
+            build_call_no_params(name, &[], expr.span, expr.fn_name_span)
         } else {
             let args: Vec<_> = expr
                 .args
@@ -793,11 +809,12 @@ impl QasmCompiler {
         // Take the number of qubit args that the gates expects from the source qubits.
         let gate_qubits =
             qubits.split_off(qubits.len().saturating_sub(stmt.quantum_arity as usize));
+
         // Then merge the classical args with the qubit args. This will give
         // us the args for the call prior to wrapping in tuples for controls.
         let args: Vec<_> = args.into_iter().chain(gate_qubits).collect();
         let mut args = build_gate_call_param_expr(args, qubits.len());
-        let mut callee = build_path_ident_expr(&symbol.name, symbol.span, stmt.span);
+        let mut callee = build_path_ident_expr(&symbol.name, stmt.gate_name_span, stmt.span);
 
         for modifier in &stmt.modifiers {
             match &modifier.kind {
@@ -805,7 +822,7 @@ impl QasmCompiler {
                     callee = build_unary_op_expr(
                         qsast::UnOp::Functor(qsast::Functor::Adj),
                         callee,
-                        modifier.span,
+                        modifier.modifier_keyword_span,
                     );
                 }
                 semast::GateModifierKind::Pow(expr) => {
@@ -830,7 +847,7 @@ impl QasmCompiler {
                     callee = build_unary_op_expr(
                         qsast::UnOp::Functor(qsast::Functor::Ctl),
                         callee,
-                        modifier.span,
+                        modifier.modifier_keyword_span,
                     );
                 }
                 semast::GateModifierKind::NegCtrl(num_ctrls) => {
@@ -848,8 +865,11 @@ impl QasmCompiler {
                     let ctrls = build_expr_array_expr(ctrl, modifier.span);
                     let lit_0 = build_lit_int_expr(0, Span::default());
                     args = build_tuple_expr(vec![lit_0, callee, ctrls, args]);
-                    callee =
-                        build_path_ident_expr("ApplyControlledOnInt", modifier.span, stmt.span);
+                    callee = build_path_ident_expr(
+                        "ApplyControlledOnInt",
+                        modifier.modifier_keyword_span,
+                        stmt.span,
+                    );
                 }
             }
         }
@@ -970,7 +990,7 @@ impl QasmCompiler {
             cargs,
             qargs,
             body,
-            symbol.span,
+            stmt.name_span,
             stmt.body.span,
             stmt.span,
             build_path_ident_ty("Unit"),
@@ -1137,7 +1157,7 @@ impl QasmCompiler {
                 span: expr.span,
                 ..Default::default()
             },
-            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id),
+            semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, expr.span),
             semast::ExprKind::IndexedIdentifier(indexed_ident) => {
                 self.compile_indexed_ident_expr(indexed_ident)
             }
@@ -1158,9 +1178,8 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_ident_expr(&mut self, symbol_id: SymbolId) -> qsast::Expr {
+    fn compile_ident_expr(&mut self, symbol_id: SymbolId, span: Span) -> qsast::Expr {
         let symbol = &self.symbols[symbol_id];
-        let span = symbol.span;
         match symbol.name.as_str() {
             "euler" | "ℇ" => build_math_call_no_params("E", span),
             "pi" | "π" => build_math_call_no_params("PI", span),

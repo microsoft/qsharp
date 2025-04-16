@@ -33,6 +33,7 @@ miette = { workspace = true, features = ["fancy"] }
 # loading qasm from file.
 qsc = { path = "../qsc" }
 qsc_qasm3 = { path = ".", features = ["fs"] }
+qsc_codegen = { path = "../qsc_codegen" }
 
 [features]
 fs = []

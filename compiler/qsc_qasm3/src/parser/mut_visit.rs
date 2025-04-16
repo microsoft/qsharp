@@ -551,8 +551,14 @@ fn walk_pragma_stmt(vis: &mut impl MutVisitor, stmt: &mut Pragma) {
 fn walk_quantum_gate_definition_stmt(vis: &mut impl MutVisitor, stmt: &mut QuantumGateDefinition) {
     vis.visit_span(&mut stmt.span);
     vis.visit_ident(&mut stmt.ident);
-    stmt.params.iter_mut().for_each(|p| vis.visit_ident(p));
-    stmt.qubits.iter_mut().for_each(|p| vis.visit_ident(p));
+    stmt.params.iter_mut().for_each(|p| match &mut **p {
+        super::prim::SeqItem::Item(i) => vis.visit_ident(i),
+        super::prim::SeqItem::Missing(span) => vis.visit_span(span),
+    });
+    stmt.qubits.iter_mut().for_each(|p| match &mut **p {
+        super::prim::SeqItem::Item(i) => vis.visit_ident(i),
+        super::prim::SeqItem::Missing(span) => vis.visit_span(span),
+    });
     vis.visit_block(&mut stmt.body);
 }
 
@@ -820,6 +826,7 @@ pub fn walk_enumerable_set(vis: &mut impl MutVisitor, set: &mut EnumerableSet) {
 
 pub fn walk_gate_modifier(vis: &mut impl MutVisitor, modifier: &mut QuantumGateModifier) {
     vis.visit_span(&mut modifier.span);
+    vis.visit_span(&mut modifier.modifier_keyword_span);
     match &mut modifier.kind {
         GateModifierKind::Inv => {}
         GateModifierKind::Pow(expr) => vis.visit_expr(expr),

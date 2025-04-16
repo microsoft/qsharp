@@ -441,7 +441,7 @@ pub(crate) fn build_path_ident_expr<S: AsRef<str>>(
     };
     let path = ast::Path {
         id: NodeId::default(),
-        span: Span::default(),
+        span: name_span,
         segments: None,
         name: Box::new(ident),
     };
@@ -749,7 +749,7 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
         span: name_span,
         kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
             segments: None,
             name: Box::new(ident),
         })))),
@@ -787,7 +787,7 @@ pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
         span: name_span,
         kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
             segments: None,
             name: Box::new(ident),
         })))),
@@ -838,10 +838,15 @@ pub fn build_gate_call_param_expr(args: Vec<Expr>, remaining: usize) -> Expr {
 }
 
 pub(crate) fn build_math_call_no_params(name: &str, span: Span) -> Expr {
-    build_call_no_params(name, &["Microsoft", "Quantum", "Math"], span)
+    build_call_no_params(name, &["Microsoft", "Quantum", "Math"], span, span)
 }
 
-pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> Expr {
+pub(crate) fn build_call_no_params(
+    name: &str,
+    idents: &[&str],
+    fn_call_span: Span,
+    fn_name_span: Span,
+) -> Expr {
     let segments = build_idents(idents);
     let fn_name = Ident {
         name: Rc::from(name),
@@ -852,8 +857,9 @@ pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> E
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
-            span: Span::default(),
+            span: fn_name_span,
         })))),
+        span: fn_name_span,
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -863,7 +869,7 @@ pub(crate) fn build_call_no_params(name: &str, idents: &[&str], span: Span) -> E
 
     Expr {
         id: NodeId::default(),
-        span,
+        span: fn_call_span,
         kind: Box::new(call),
     }
 }
@@ -887,8 +893,9 @@ pub(crate) fn build_call_with_param(
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
         })))),
+        span: name_span,
         ..Default::default()
     };
     let call = ExprKind::Call(
@@ -925,8 +932,9 @@ pub(crate) fn build_call_with_params(
             segments,
             name: Box::new(fn_name),
             id: NodeId::default(),
-            span: Span::default(),
+            span: name_span,
         })))),
+        span: name_span,
         ..Default::default()
     };
     let call = ExprKind::Call(Box::new(path_expr), Box::new(build_tuple_expr(operands)));
@@ -1122,6 +1130,7 @@ where
 
     let pat = Pat {
         kind: Box::new(PatKind::Bind(Box::new(ident), tydef)),
+        span: name_span,
         ..Default::default()
     };
     let mutability = if is_const {
@@ -1482,7 +1491,7 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
 }
 
 pub(crate) fn build_barrier_call(span: Span) -> Stmt {
-    let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span);
+    let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span, span);
     build_stmt_semi_from_expr(expr)
 }
 
