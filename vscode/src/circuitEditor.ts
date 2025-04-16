@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
@@ -9,7 +8,6 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
   updatingDocument: boolean = false;
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
-    log.info("Registering CircuitEditorProvider");
     const provider = new CircuitEditorProvider(context);
     const providerRegistration = vscode.window.registerCustomEditorProvider(
       CircuitEditorProvider.viewType,
@@ -18,16 +16,12 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     return providerRegistration;
   }
 
-  constructor(private readonly context: vscode.ExtensionContext) {
-    log.info("Constructing CircuitEditorProvider");
-  }
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
   ): Promise<void> {
-    log.info("Resolving CircuitEditorProvider");
-
     // Setup initial content for the webview
     webviewPanel.webview.options = {
       enableScripts: true,
