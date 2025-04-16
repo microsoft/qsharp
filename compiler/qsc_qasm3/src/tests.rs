@@ -117,6 +117,7 @@ where
     Ok(unit)
 }
 
+#[allow(dead_code)]
 pub fn compile_all<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
@@ -134,6 +135,7 @@ where
     compile_all_with_config(path, sources, config)
 }
 
+#[allow(dead_code)]
 pub fn compile_all_fragments<P>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
@@ -391,17 +393,6 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
 
 fn get_last_statement_as_qsharp(package: &Package) -> String {
     let qsharp = match package.nodes.iter().last() {
-        Some(i) => match i {
-            TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
-            TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),
-        },
-        None => panic!("Expected Stmt, got None"),
-    };
-    qsharp
-}
-
-fn get_first_statement_as_qsharp(package: &Package) -> String {
-    let qsharp = match package.nodes.get(1) {
         Some(i) => match i {
             TopLevelNode::Namespace(_) => panic!("Expected Stmt, got Namespace"),
             TopLevelNode::Stmt(stmt) => gen_qsharp_stmt(stmt.as_ref()),

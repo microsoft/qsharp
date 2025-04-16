@@ -23,7 +23,6 @@ pub struct Angle {
     pub size: u32,
 }
 
-#[allow(dead_code)]
 impl Angle {
     pub fn new(value: u64, size: u32) -> Self {
         Angle { value, size }
@@ -66,6 +65,7 @@ impl Angle {
         angle.cast(size, false)
     }
 
+    #[cfg(test)]
     fn to_bitstring(self) -> String {
         format!("{:0width$b}", self.value, width = self.size as usize)
     }
