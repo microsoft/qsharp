@@ -14,7 +14,6 @@ pub mod io;
 mod keyword;
 mod lex;
 pub mod parser;
-mod runtime;
 pub mod semantic;
 mod types;
 

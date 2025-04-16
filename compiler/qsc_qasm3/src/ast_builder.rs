@@ -15,7 +15,6 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     parser::ast::{list_from_iter, List},
-    runtime::RuntimeFunctions,
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };
@@ -668,47 +667,12 @@ pub(crate) fn build_if_expr_then_block(cond: Expr, then_block: Block, span: Span
     }
 }
 
-pub(crate) fn build_cast_call_two_params(
-    function: RuntimeFunctions,
-    fst: ast::Expr,
-    snd: ast::Expr,
-    name_span: Span,
-    operand_span: Span,
-) -> ast::Expr {
-    let name = match function {
-        RuntimeFunctions::IntAsResultArrayBE => "__IntAsResultArrayBE__",
-        _ => panic!("Unsupported cast function"),
-    };
-
-    build_global_call_with_two_params(name, fst, snd, name_span, operand_span)
-}
-
 pub(crate) fn build_cast_call_by_name(
     name: &str,
     expr: ast::Expr,
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
-    build_global_call_with_one_param(name, expr, name_span, operand_span)
-}
-
-pub(crate) fn build_cast_call(
-    function: RuntimeFunctions,
-    expr: ast::Expr,
-    name_span: Span,
-    operand_span: Span,
-) -> ast::Expr {
-    let name = match function {
-        RuntimeFunctions::BoolAsResult => "__BoolAsResult__",
-        RuntimeFunctions::BoolAsInt => "__BoolAsInt__",
-        RuntimeFunctions::BoolAsBigInt => "__BoolAsBigInt__",
-        RuntimeFunctions::BoolAsDouble => "__BoolAsDouble__",
-        RuntimeFunctions::ResultAsBool => "__ResultAsBool__",
-        RuntimeFunctions::ResultAsInt => "__ResultAsInt__",
-        RuntimeFunctions::ResultAsBigInt => "__ResultAsBigInt__",
-        RuntimeFunctions::ResultArrayAsIntBE => "__ResultArrayAsIntBE__",
-        _ => panic!("Unsupported cast function"),
-    };
     build_global_call_with_one_param(name, expr, name_span, operand_span)
 }
 
