@@ -37,10 +37,7 @@ pub trait SourceResolver {
                 self.ctx().add_path_to_include_graph(path.clone());
                 Ok((path, source))
             }
-            Err(_) => Err(Error(ErrorKind::NotFound(format!(
-                "Could not resolve include file: {}",
-                path.display()
-            )))),
+            Err(error) => Err(Error(ErrorKind::IO(error.to_string()))),
         }
     }
     #[cfg(not(feature = "fs"))]
