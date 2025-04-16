@@ -374,6 +374,11 @@
         "category": "Q#"
       },
       {
+        "command": "qsharp-vscode.renderLatex",
+        "title": "Render LaTeX",
+        "category": "Q#"
+      },
+      {
         "command": "qsharp-vscode.workspacesRefresh",
         "category": "Q#",
         "title": "Refresh Azure Quantum workspaces",
@@ -839,6 +844,30 @@
           "properties": {},
           "required": [],
           "additionalProperties": false
+        }
+      },
+      {
+        "name": "render-latex",
+        "tags": [
+          "latex",
+          "quantum"
+        ],
+        "toolReferenceName": "renderLatex",
+        "displayName": "Render LaTeX",
+        "modelDescription": "Renders Markdown that includes LaTeX content within $ and $$ blocks. Call this to render Markdown that includes LaTeX blocks.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The raw Markdown content from the prior chat response that includes LaTeX inside $ and $$ markers"
+            }
+          },
+          "required": [
+            "code"
+          ]
         }
       }
     ]

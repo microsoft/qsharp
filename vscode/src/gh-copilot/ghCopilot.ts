@@ -26,6 +26,7 @@ const toolDefinitions: {
   { name: "qsharp-proofread-code", tool: proofreadCode },
   { name: "qsharp-find-sample", tool: findSample },
   { name: "qsharp-coding", tool: qsharpCoding },
+  { name: "render-latex", tool: renderLatex },
 ];
 
 const workspaceState: ToolState = {};
@@ -103,6 +104,16 @@ use q = Qubit(); // ${input.description}
 
 async function qsharpCoding() {
   return "The `namespace` keyword is deprecated in recent versions of Q#. Don't wrap code in a namespace.";
+}
+
+async function renderLatex(input: { code: string }) {
+  log.info("Rendering LaTeX", input.code);
+  let content = input.code;
+  content = content.replace(/\\\(([^]*?)\\\)/g, (_, expr) => `$${expr}$`);
+  content = content.replace(/\\\[([^]*?)\\\]/g, (_, expr) => `$$${expr}$$`);
+
+  vscode.commands.executeCommand("qsharp-vscode.renderLatex", { content });
+  return "Response was rendered in a new editor tab.";
 }
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
