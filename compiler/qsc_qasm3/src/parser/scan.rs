@@ -40,8 +40,6 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    // while we work through the conversion, allow dead code to avoid warnings
-    #[allow(dead_code)]
     pub fn with_word_collector(input: &'a str, word_collector: &'a mut ValidWordCollector) -> Self {
         let mut scanner = Scanner::new(input);
 
@@ -76,6 +74,7 @@ impl<'a> ParserContext<'a> {
 
     /// Moves the scanner to the start of the current token,
     /// returning the span of the skipped trivia.
+    #[cfg(test)]
     pub(super) fn skip_trivia(&mut self) -> Span {
         self.scanner.skip_trivia()
     }
@@ -152,6 +151,7 @@ impl<'a> Scanner<'a> {
 
     /// Moves the scanner to the start of the current token,
     /// returning the span of the skipped trivia.
+    #[cfg(test)]
     pub(super) fn skip_trivia(&mut self) -> Span {
         let lo = self.offset;
         self.offset = self.peek.span.lo;

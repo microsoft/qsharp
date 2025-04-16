@@ -54,7 +54,7 @@ enum OpKind {
 #[derive(Clone, Copy)]
 enum OpName {
     Token(TokenKind),
-    Keyword(Keyword),
+    Keyword,
 }
 
 #[derive(Clone, Copy)]
@@ -62,8 +62,6 @@ enum Assoc {
     Left,
     Right,
 }
-
-const RANGE_PRECEDENCE: u8 = 1;
 
 pub(super) fn expr(s: &mut ParserContext) -> Result<Expr> {
     expr_op(s, 0)
@@ -534,7 +532,7 @@ pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
 
 fn op_name(s: &ParserContext) -> OpName {
     match s.peek().kind {
-        TokenKind::Keyword(keyword) => OpName::Keyword(keyword),
+        TokenKind::Keyword(_) => OpName::Keyword,
         kind => OpName::Token(kind),
     }
 }

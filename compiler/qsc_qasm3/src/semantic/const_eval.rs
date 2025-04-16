@@ -6,10 +6,11 @@
 //! and sizes of arrays. Therefore, those are the only const evaluation
 //! paths that are implemented.
 
-use super::{
+use super::ast::{
     BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
-    SymbolId, UnaryOp, UnaryOpExpr,
+    UnaryOp, UnaryOpExpr,
 };
+use super::symbols::SymbolId;
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
 use crate::{

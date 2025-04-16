@@ -155,7 +155,7 @@ impl Symbol {
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use crate::parser::ast::display_utils;
+        use crate::display_utils;
         display_utils::writeln_header(f, "Symbol", self.span)?;
         display_utils::writeln_field(f, "name", &self.name)?;
         display_utils::writeln_field(f, "type", &self.ty)?;

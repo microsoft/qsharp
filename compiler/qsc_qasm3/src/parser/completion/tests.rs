@@ -24,12 +24,6 @@ fn check_valid_words(input: &str, expect: &expect_test::Expect) {
     expect.assert_debug_eq(&w);
 }
 
-fn check_valid_words_no_source_name(input: &str, expect: &expect_test::Expect) {
-    let (input, cursor) = get_source_and_cursor(input);
-    let w = possible_words_at_offset_in_source(&input, cursor);
-    expect.assert_debug_eq(&w);
-}
-
 #[test]
 fn begin_document() {
     check_valid_words(

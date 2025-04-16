@@ -15,7 +15,6 @@ use qsc_data_structures::span::Span;
 
 use crate::{
     parser::ast::{list_from_iter, List},
-    runtime::RuntimeFunctions,
     stdlib::angle::Angle,
     types::{ArrayDimensions, Complex},
 };
@@ -249,6 +248,8 @@ pub(crate) fn build_expr_array_expr(values: Vec<qsc_ast::ast::Expr>, span: Span)
     }
 }
 
+// This will be used to compile arrays in the near future.
+#[allow(dead_code)]
 pub(crate) fn build_default_result_array_expr(len: usize, span: Span) -> Expr {
     let exprs: Vec<_> = (0..len)
         .map(|_| Box::new(build_lit_result_expr(ast::Result::Zero, Span::default())))
@@ -362,35 +363,6 @@ pub(crate) fn build_binary_expr(
         span,
         kind: Box::new(expr_kind),
     }
-}
-
-pub(crate) fn is_complex_binop_supported(op: qsc_ast::ast::BinOp) -> bool {
-    matches!(
-        op,
-        ast::BinOp::Add | ast::BinOp::Sub | ast::BinOp::Mul | ast::BinOp::Div | ast::BinOp::Exp
-    )
-}
-
-pub(crate) fn build_complex_binary_expr(
-    is_assignment: bool,
-    qsop: ast::BinOp,
-    lhs: ast::Expr,
-    rhs: ast::Expr,
-    span: Span,
-) -> ast::Expr {
-    let name = match qsop {
-        ast::BinOp::Add => "PlusC",
-        ast::BinOp::Sub => "MinusC",
-        ast::BinOp::Mul => "TimesC",
-        ast::BinOp::Div => "DividedByC",
-        ast::BinOp::Exp => "PowC",
-        _ => unreachable!("Unsupported complex binary operation"),
-    };
-
-    if is_assignment {
-        unreachable!("Unsupported complex binary operation");
-    }
-    build_math_call_from_exprs(name, vec![lhs, rhs], span)
 }
 
 pub(crate) fn build_math_call_from_exprs(name: &str, exprs: Vec<Expr>, span: Span) -> Expr {
@@ -668,47 +640,12 @@ pub(crate) fn build_if_expr_then_block(cond: Expr, then_block: Block, span: Span
     }
 }
 
-pub(crate) fn build_cast_call_two_params(
-    function: RuntimeFunctions,
-    fst: ast::Expr,
-    snd: ast::Expr,
-    name_span: Span,
-    operand_span: Span,
-) -> ast::Expr {
-    let name = match function {
-        RuntimeFunctions::IntAsResultArrayBE => "__IntAsResultArrayBE__",
-        _ => panic!("Unsupported cast function"),
-    };
-
-    build_global_call_with_two_params(name, fst, snd, name_span, operand_span)
-}
-
 pub(crate) fn build_cast_call_by_name(
     name: &str,
     expr: ast::Expr,
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
-    build_global_call_with_one_param(name, expr, name_span, operand_span)
-}
-
-pub(crate) fn build_cast_call(
-    function: RuntimeFunctions,
-    expr: ast::Expr,
-    name_span: Span,
-    operand_span: Span,
-) -> ast::Expr {
-    let name = match function {
-        RuntimeFunctions::BoolAsResult => "__BoolAsResult__",
-        RuntimeFunctions::BoolAsInt => "__BoolAsInt__",
-        RuntimeFunctions::BoolAsBigInt => "__BoolAsBigInt__",
-        RuntimeFunctions::BoolAsDouble => "__BoolAsDouble__",
-        RuntimeFunctions::ResultAsBool => "__ResultAsBool__",
-        RuntimeFunctions::ResultAsInt => "__ResultAsInt__",
-        RuntimeFunctions::ResultAsBigInt => "__ResultAsBigInt__",
-        RuntimeFunctions::ResultArrayAsIntBE => "__ResultArrayAsIntBE__",
-        _ => panic!("Unsupported cast function"),
-    };
     build_global_call_with_one_param(name, expr, name_span, operand_span)
 }
 
@@ -978,14 +915,6 @@ pub(crate) fn build_wrapped_block_expr(block: Block) -> Expr {
     }
 }
 
-pub(crate) fn build_stmt_wrapped_block_expr(stmt: Stmt) -> Block {
-    Block {
-        id: NodeId::default(),
-        span: stmt.span,
-        stmts: Box::new([Box::new(stmt)]),
-    }
-}
-
 pub(crate) fn build_expr_wrapped_block_expr(expr: Expr) -> Block {
     Block {
         id: NodeId::default(),
@@ -1219,14 +1148,6 @@ pub(crate) fn build_top_level_ns_with_items<S: AsRef<str>>(
             .into_boxed_slice(),
         doc: "".into(),
     })
-}
-
-pub(crate) fn build_top_level_ns_with_item<S: AsRef<str>>(
-    whole_span: Span,
-    ns: S,
-    entry: ast::Item,
-) -> TopLevelNode {
-    build_top_level_ns_with_items(whole_span, ns, vec![entry])
 }
 
 pub(crate) fn build_operation_with_stmts<S: AsRef<str>>(
@@ -1493,200 +1414,6 @@ pub(crate) fn build_index_expr(expr: Expr, index_expr: Expr, span: Span) -> Expr
 pub(crate) fn build_barrier_call(span: Span) -> Stmt {
     let expr = build_call_no_params("__quantum__qis__barrier__body", &[], span, span);
     build_stmt_semi_from_expr(expr)
-}
-
-pub(crate) fn build_gate_decl(
-    name: String,
-    cargs: Vec<(String, Ty, Pat)>,
-    qargs: Vec<(String, Ty, Pat)>,
-    body: Option<Block>,
-    name_span: Span,
-    body_span: Span,
-    gate_span: Span,
-) -> Stmt {
-    let args = cargs
-        .into_iter()
-        .chain(qargs)
-        .map(|(_, _, pat)| Box::new(pat))
-        .collect::<Vec<_>>();
-
-    let lo = args
-        .iter()
-        .min_by_key(|x| x.span.lo)
-        .map(|x| x.span.lo)
-        .unwrap_or_default();
-
-    let hi = args
-        .iter()
-        .max_by_key(|x| x.span.hi)
-        .map(|x| x.span.hi)
-        .unwrap_or_default();
-
-    let input_pat_kind = if args.len() > 1 {
-        PatKind::Tuple(args.into_boxed_slice())
-    } else {
-        PatKind::Paren(args[0].clone())
-    };
-
-    let input_pat = Pat {
-        kind: Box::new(input_pat_kind),
-        span: Span { lo, hi },
-        ..Default::default()
-    };
-    let body = CallableBody::Block(Box::new(body.unwrap_or_else(|| Block {
-        id: NodeId::default(),
-        span: body_span,
-        stmts: Box::new([]),
-    })));
-    let decl = CallableDecl {
-        id: NodeId::default(),
-        span: name_span,
-        kind: CallableKind::Operation,
-        name: Box::new(Ident {
-            name: name.into(),
-            ..Default::default()
-        }),
-        generics: Box::new([]),
-        input: Box::new(input_pat),
-        output: Box::new(build_path_ident_ty("Unit")),
-        functors: None,
-        body: Box::new(body),
-    };
-    let item = Item {
-        span: gate_span,
-        kind: Box::new(ast::ItemKind::Callable(Box::new(decl))),
-        ..Default::default()
-    };
-
-    Stmt {
-        kind: Box::new(StmtKind::Item(Box::new(item))),
-        span: gate_span,
-        ..Default::default()
-    }
-}
-
-#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
-pub(crate) fn build_lambda<S: AsRef<str>>(
-    name: S,
-    cargs: Vec<(String, Ty, Pat)>,
-    qargs: Vec<(String, Ty, Pat)>,
-    body: Option<Block>,
-    name_span: Span,
-    body_span: Span,
-    gate_span: Span,
-    return_type: Option<Ty>,
-    kind: CallableKind,
-) -> Stmt {
-    let args = cargs
-        .into_iter()
-        .chain(qargs)
-        .map(|(name, ty, pat)| (name, ty, pat.span))
-        .collect::<Vec<_>>();
-
-    let lo = args
-        .iter()
-        .min_by_key(|(_, _, span)| span.lo)
-        .map(|(_, _, span)| span.lo)
-        .unwrap_or_default();
-
-    let hi = args
-        .iter()
-        .max_by_key(|(_, _, span)| span.hi)
-        .map(|(_, _, span)| span.hi)
-        .unwrap_or_default();
-
-    let name_args = args
-        .iter()
-        .map(|(name, _, span)| Pat {
-            kind: Box::new(PatKind::Bind(
-                Box::new(Ident {
-                    span: *span,
-                    name: Rc::from(name.as_ref()),
-                    ..Default::default()
-                }),
-                None,
-            )),
-            ..Default::default()
-        })
-        .map(Box::new)
-        .collect::<Vec<_>>();
-    let input_pat = if args.len() == 1 {
-        ast::Pat {
-            kind: Box::new(ast::PatKind::Paren(name_args[0].clone())),
-            span: Span { lo, hi },
-            ..Default::default()
-        }
-    } else {
-        ast::Pat {
-            kind: Box::new(PatKind::Tuple(name_args.into_boxed_slice())),
-            span: Span { lo, hi },
-            ..Default::default()
-        }
-    };
-
-    let block_expr = build_wrapped_block_expr(body.map_or_else(
-        || Block {
-            id: NodeId::default(),
-            span: body_span,
-            stmts: Box::new([]),
-        },
-        |block| block,
-    ));
-    let lambda_expr = Expr {
-        id: NodeId::default(),
-        kind: Box::new(ExprKind::Lambda(
-            kind,
-            Box::new(input_pat),
-            Box::new(block_expr),
-        )),
-        span: gate_span,
-    };
-    let ty_args = args.iter().map(|(_, ty, _)| ty.clone()).collect::<Vec<_>>();
-    let input_ty = if args.len() == 1 {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Paren(Box::new(ty_args[0].clone()))),
-            ..Default::default()
-        }
-    } else {
-        ast::Ty {
-            kind: Box::new(ast::TyKind::Tuple(ty_args.into_boxed_slice())),
-            ..Default::default()
-        }
-    };
-    let return_type = if let Some(ty) = return_type {
-        ty
-    } else {
-        build_path_ident_ty("Unit")
-    };
-
-    let lambda_ty = ast::Ty {
-        kind: Box::new(ast::TyKind::Arrow(
-            kind,
-            Box::new(input_ty),
-            Box::new(return_type),
-            None,
-        )),
-        ..Default::default()
-    };
-    Stmt {
-        span: gate_span,
-        kind: Box::new(StmtKind::Local(
-            Mutability::Immutable,
-            Box::new(Pat {
-                kind: Box::new(PatKind::Bind(
-                    Box::new(Ident {
-                        span: name_span,
-                        name: Rc::from(name.as_ref()),
-                        ..Default::default()
-                    }),
-                    Some(Box::new(lambda_ty)),
-                )),
-                ..Default::default()
-            }),
-            Box::new(lambda_expr),
-        )),
-        ..Default::default()
-    }
 }
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]

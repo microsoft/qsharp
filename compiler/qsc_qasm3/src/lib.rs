@@ -1,15 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// while we work through the conversion, allow dead code to avoid warnings
-#![allow(dead_code)]
-
 mod ast_builder;
 mod compiler;
 mod stdlib;
 pub use compiler::compile_to_qsharp_ast_with_config;
 pub use stdlib::package_store_with_qasm;
 mod convert;
+pub mod display_utils;
 pub mod io;
 mod keyword;
 mod lex;
@@ -72,7 +70,7 @@ pub enum ErrorKind {
     Semantic(#[from] crate::semantic::Error),
     #[error(transparent)]
     #[diagnostic(transparent)]
-    ConstEval(#[from] crate::semantic::ast::const_eval::ConstEvalError),
+    ConstEval(#[from] crate::semantic::const_eval::ConstEvalError),
     #[error("QASM3 Parse Error: Not Found {0}")]
     NotFound(String),
     #[error("IO Error: {0}")]
