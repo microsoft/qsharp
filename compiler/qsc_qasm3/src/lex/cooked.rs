@@ -87,7 +87,14 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
+    /// `@DOT_SEPARETED_IDENTIFIER REST_OF_LINE`
+    /// Examples:
+    ///   @Microsoft.SimulatableIntrinsic
+    ///   @Microsoft.Config Base
     Annotation,
+    /// `pragma REST_OF_LINE`
+    ///  or
+    /// `#pragma REST_OF_LINE`
     Pragma,
     Keyword(Keyword),
     Type(Type),
