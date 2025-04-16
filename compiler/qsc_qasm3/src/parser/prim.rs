@@ -198,6 +198,75 @@ where
     Ok((xs, final_sep))
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum SeqItem<T> {
+    Item(T),
+    Missing(Span),
+}
+
+impl std::fmt::Display for SeqItem<Ident> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SeqItem::Item(x) => write!(f, "{x}"),
+            SeqItem::Missing(span) => write!(f, "Missing {span}"),
+        }
+    }
+}
+
+impl<T> SeqItem<T> {
+    pub fn item(self) -> Option<T> {
+        match self {
+            SeqItem::Item(x) => Some(x),
+            SeqItem::Missing(_) => None,
+        }
+    }
+
+    pub fn item_as_ref(&self) -> Option<&T> {
+        match self {
+            SeqItem::Item(x) => Some(x),
+            SeqItem::Missing(_) => None,
+        }
+    }
+
+    pub fn is_missing(&self) -> bool {
+        matches!(self, SeqItem::Missing(_))
+    }
+}
+
+/// Parses a sequence of items separated by commas.
+/// Supports recovering on missing items.
+pub(super) fn seq_item<T>(
+    s: &mut ParserContext,
+    mut p: impl Parser<T>,
+) -> Result<(Vec<SeqItem<T>>, FinalSep)> {
+    let mut xs = Vec::new();
+    let mut final_sep = FinalSep::Missing;
+    while s.peek().kind == TokenKind::Comma {
+        let mut span = s.peek().span;
+        span.hi = span.lo;
+        s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
+        xs.push(SeqItem::Missing(span));
+        s.advance();
+    }
+    while let Some(x) = opt(s, &mut p)? {
+        xs.push(SeqItem::Item(x));
+        if token(s, TokenKind::Comma).is_ok() {
+            while s.peek().kind == TokenKind::Comma {
+                let mut span = s.peek().span;
+                span.hi = span.lo;
+                s.push_error(Error::new(ErrorKind::MissingSeqEntry(span)));
+                xs.push(SeqItem::Missing(span));
+                s.advance();
+            }
+            final_sep = FinalSep::Present;
+        } else {
+            final_sep = FinalSep::Missing;
+            break;
+        }
+    }
+    Ok((xs, final_sep))
+}
+
 /// Try to parse with the given parser.
 ///
 /// If the parser fails on the first token, returns the default value.

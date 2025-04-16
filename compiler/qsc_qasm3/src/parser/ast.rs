@@ -16,6 +16,8 @@ use std::{
     rc::Rc,
 };
 
+use super::prim::SeqItem;
+
 /// An alternative to `Vec<T>` that uses less stack space.
 pub(crate) type List<T> = Box<[Box<T>]>;
 
@@ -649,12 +651,15 @@ impl Display for RangeDefinition {
 #[derive(Clone, Debug)]
 pub struct QuantumGateModifier {
     pub span: Span,
+    pub modifier_keyword_span: Span,
     pub kind: GateModifierKind,
 }
 
 impl Display for QuantumGateModifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumGateModifier {}: {}", self.span, self.kind)
+        writeln_header(f, "QuantumGateModifier", self.span)?;
+        writeln_field(f, "modifier_keyword_span", &self.modifier_keyword_span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -1033,8 +1038,8 @@ impl Display for QubitDeclaration {
 pub struct QuantumGateDefinition {
     pub span: Span,
     pub ident: Box<Ident>,
-    pub params: List<Ident>,
-    pub qubits: List<Ident>,
+    pub params: List<SeqItem<Ident>>,
+    pub qubits: List<SeqItem<Ident>>,
     pub body: Box<Block>,
 }
 

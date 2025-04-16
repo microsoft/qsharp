@@ -478,7 +478,6 @@ impl Lowerer {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
-            return semantic::StmtKind::Err;
         }
 
         semantic::StmtKind::Assign(semantic::AssignStmt {
@@ -529,6 +528,7 @@ impl Lowerer {
         semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
             span,
             symbol_id,
+            name_span: index_expr.name.span,
             indices,
             rhs,
         })
@@ -1148,7 +1148,7 @@ impl Lowerer {
             .collect();
 
         let body = semantic::Block {
-            span: stmt.span,
+            span: stmt.body.span,
             stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
         };
 
@@ -1421,6 +1421,7 @@ impl Lowerer {
 
         let kind = Box::new(semantic::ExprKind::FunctionCall(semantic::FunctionCall {
             span: expr.span,
+            fn_name_span: expr.name.span,
             symbol_id,
             args,
         }));
@@ -1466,7 +1467,7 @@ impl Lowerer {
         if let Some((gate_name, implicit_modifier)) =
             try_get_qsharp_name_and_implicit_modifiers(&name, stmt.name.span)
         {
-            // Override the gate name if we mapped with modifiers
+            // Override the gate name if we mapped with modifiers.
             name = gate_name;
 
             // 2. Get implicit modifiers and make them explicit.
@@ -1531,6 +1532,7 @@ impl Lowerer {
             span: stmt.span,
             modifiers,
             symbol_id,
+            gate_name_span: stmt.name.span,
             args,
             qubits,
             duration,
@@ -1542,7 +1544,7 @@ impl Lowerer {
         // But it won't need to check arities, know about implicit modifiers, or do
         // any casting of classical args. There is still some inherit complexity to
         // building a Q# gate call with this information, but it won't be cluttered
-        // by all the semantic analysis.
+        // by all the QASM semantic analysis.
     }
 
     /// This is just syntax sugar around a gate call.
@@ -1583,6 +1585,7 @@ impl Lowerer {
 
         Some(semantic::QuantumGateModifier {
             span: modifier.span,
+            modifier_keyword_span: modifier.modifier_keyword_span,
             kind,
         })
     }
@@ -1707,9 +1710,17 @@ impl Lowerer {
 
         // 2. Push the gate symbol to the symbol table.
         #[allow(clippy::cast_possible_truncation)]
-        let classical_arity = stmt.params.len() as u32;
+        let classical_arity = stmt
+            .params
+            .iter()
+            .filter_map(|seq_item| seq_item.item_as_ref())
+            .count() as u32;
         #[allow(clippy::cast_possible_truncation)]
-        let quantum_arity = stmt.qubits.len() as u32;
+        let quantum_arity = stmt
+            .qubits
+            .iter()
+            .filter_map(|seq_item| seq_item.item_as_ref())
+            .count() as u32;
         let name = stmt.ident.name.clone();
         let ty = crate::semantic::types::Type::Gate(classical_arity, quantum_arity);
         let qsharp_ty = crate::types::Type::Callable(
@@ -1723,31 +1734,40 @@ impl Lowerer {
         // Push the scope where the gate definition lives.
         self.symbols.push_scope(ScopeKind::Gate);
 
+        // Design Note: If a formal parameter is missing (i.e. there are two consecutive commas and we
+        //              have a missing item in the formal parameters list), we have two options:
+        //                 1. Treat the missing item as if it wasn't there, and just push a parser
+        //                    error saying there is a missing item. This is what Rust does.
+        //                 2. Treat the missing item as a Type::Err and make it part of the gate
+        //                    signature, this is what Q# does.
+        //              We decided to go with (1) because it avoids propagating the SeqItem enum
+        //              to the compiler, which is simpler.
         let params = stmt
             .params
             .iter()
+            .filter_map(|seq_item| seq_item.item_as_ref())
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Angle(None, false);
                 let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
                 let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
-            .collect();
+            .collect::<Box<_>>();
 
         let qubits = stmt
             .qubits
             .iter()
+            .filter_map(|seq_item| seq_item.item_as_ref())
             .map(|arg| {
                 let ty = crate::semantic::types::Type::Qubit;
                 let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty, Span::default());
-                let symbol =
-                    Symbol::new(&arg.name, stmt.ident.span, ty, qsharp_ty, IOKind::Default);
+                let symbol = Symbol::new(&arg.name, arg.span, ty, qsharp_ty, IOKind::Default);
                 self.try_insert_or_get_existing_symbol_id(&arg.name, symbol)
             })
-            .collect();
+            .collect::<Box<_>>();
 
         let body = semantic::Block {
-            span: stmt.span,
+            span: stmt.body.span,
             stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
         };
 
@@ -1756,6 +1776,7 @@ impl Lowerer {
 
         semantic::StmtKind::QuantumGateDefinition(semantic::QuantumGateDefinition {
             span: stmt.span,
+            name_span: stmt.ident.span,
             symbol_id,
             params,
             qubits,
@@ -3372,6 +3393,7 @@ fn try_get_qsharp_name_and_implicit_modifiers<S: AsRef<str>>(
 
     let make_modifier = |kind| semantic::QuantumGateModifier {
         span: name_span,
+        modifier_keyword_span: name_span,
         kind,
     };
 

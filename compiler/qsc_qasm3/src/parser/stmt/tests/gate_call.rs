@@ -92,7 +92,9 @@ fn gate_with_no_qubits() {
                 annotations: <empty>
                 kind: GateCall [0-8]:
                     modifiers:
-                        QuantumGateModifier [0-5]: Inv
+                        QuantumGateModifier [0-5]:
+                            modifier_keyword_span: [0-3]
+                            kind: Inv
                     name: Ident [6-7] "H"
                     args: <empty>
                     duration: <none>
@@ -147,7 +149,9 @@ fn gate_call_inv_modifier() {
                 annotations: <empty>
                 kind: GateCall [0-11]:
                     modifiers:
-                        QuantumGateModifier [0-5]: Inv
+                        QuantumGateModifier [0-5]:
+                            modifier_keyword_span: [0-3]
+                            kind: Inv
                     name: Ident [6-7] "H"
                     args: <empty>
                     duration: <none>
@@ -170,8 +174,12 @@ fn gate_call_ctrl_inv_modifiers() {
                 annotations: <empty>
                 kind: GateCall [0-38]:
                     modifiers:
-                        QuantumGateModifier [0-9]: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
-                        QuantumGateModifier [10-15]: Inv
+                        QuantumGateModifier [0-9]:
+                            modifier_keyword_span: [0-4]
+                            kind: Ctrl Some(Expr { span: Span { lo: 5, hi: 6 }, kind: Lit(Lit { span: Span { lo: 5, hi: 6 }, kind: Int(2) }) })
+                        QuantumGateModifier [10-15]:
+                            modifier_keyword_span: [10-13]
+                            kind: Inv
                     name: Ident [16-18] "Rx"
                     args:
                         Expr [19-25]: BinaryOpExpr:

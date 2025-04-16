@@ -166,7 +166,9 @@ fn gphase_inv_modifier() {
                 kind: GPhase [0-16]:
                     gphase_token_span: [6-12]
                     modifiers:
-                        QuantumGateModifier [0-5]: Inv
+                        QuantumGateModifier [0-5]:
+                            modifier_keyword_span: [0-3]
+                            kind: Inv
                     args:
                         Expr [13-14]: Ident [13-14] "a"
                     duration: <none>
@@ -185,8 +187,12 @@ fn gphase_ctrl_inv_modifiers() {
                 kind: GPhase [0-31]:
                     gphase_token_span: [13-19]
                     modifiers:
-                        QuantumGateModifier [0-6]: Ctrl None
-                        QuantumGateModifier [7-12]: Inv
+                        QuantumGateModifier [0-6]:
+                            modifier_keyword_span: [0-4]
+                            kind: Ctrl None
+                        QuantumGateModifier [7-12]:
+                            modifier_keyword_span: [7-10]
+                            kind: Inv
                     args:
                         Expr [20-26]: BinaryOpExpr:
                             op: Div

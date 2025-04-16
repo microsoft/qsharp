@@ -677,12 +677,15 @@ impl Display for RangeDefinition {
 #[derive(Clone, Debug)]
 pub struct QuantumGateModifier {
     pub span: Span,
+    pub modifier_keyword_span: Span,
     pub kind: GateModifierKind,
 }
 
 impl Display for QuantumGateModifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "QuantumGateModifier {}: {}", self.span, self.kind)
+        writeln_header(f, "QuantumGateModifier", self.span)?;
+        writeln_field(f, "modifier_keyword_span", &self.modifier_keyword_span)?;
+        write_field(f, "kind", &self.kind)
     }
 }
 
@@ -1068,6 +1071,7 @@ impl Display for QubitArrayDeclaration {
 #[derive(Clone, Debug)]
 pub struct QuantumGateDefinition {
     pub span: Span,
+    pub name_span: Span,
     pub symbol_id: SymbolId,
     pub params: Box<[SymbolId]>,
     pub qubits: Box<[SymbolId]>,
@@ -1077,6 +1081,7 @@ pub struct QuantumGateDefinition {
 impl Display for QuantumGateDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "Gate", self.span)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_list_field(f, "parameters", &self.params)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
@@ -1106,6 +1111,7 @@ pub struct GateCall {
     pub span: Span,
     pub modifiers: List<QuantumGateModifier>,
     pub symbol_id: SymbolId,
+    pub gate_name_span: Span,
     pub args: List<Expr>,
     pub qubits: List<GateOperand>,
     pub duration: Option<Expr>,
@@ -1118,6 +1124,7 @@ impl Display for GateCall {
         writeln_header(f, "GateCall", self.span)?;
         writeln_list_field(f, "modifiers", &self.modifiers)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "gate_name_span", &self.gate_name_span)?;
         writeln_list_field(f, "args", &self.args)?;
         writeln_list_field(f, "qubits", &self.qubits)?;
         writeln_opt_field(f, "duration", self.duration.as_ref())?;
@@ -1458,6 +1465,7 @@ impl Display for AssignStmt {
 pub struct IndexedAssignStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
+    pub name_span: Span,
     pub indices: List<IndexElement>,
     pub rhs: Expr,
 }
@@ -1466,6 +1474,7 @@ impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
+        writeln_field(f, "name_span", &self.name_span)?;
         writeln_list_field(f, "indices", &self.indices)?;
         write_field(f, "rhs", &self.rhs)
     }
@@ -1535,6 +1544,7 @@ impl Display for BinaryOpExpr {
 #[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub span: Span,
+    pub fn_name_span: Span,
     pub symbol_id: SymbolId,
     pub args: List<Expr>,
 }
@@ -1542,6 +1552,7 @@ pub struct FunctionCall {
 impl Display for FunctionCall {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "FunctionCall", self.span)?;
+        writeln_field(f, "fn_name_span", &self.fn_name_span)?;
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         write_list_field(f, "args", &self.args)
     }
