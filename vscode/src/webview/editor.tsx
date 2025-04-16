@@ -35,6 +35,15 @@ function onMessage(event: any) {
     return;
   }
   switch (message.command) {
+    case "error": {
+      document.body.innerHTML = `
+        <div class="error">
+          <h1>${message.props.title}</h1>
+          <p>${message.props.message}</p>
+        </div>
+      `;
+      return;
+    }
     case "circuit":
       {
         // Check if the received circuit is different from the current state

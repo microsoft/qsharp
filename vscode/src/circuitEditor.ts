@@ -40,8 +40,22 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     const updateWebview = () => {
-      const circuit = this.getDocumentAsJson(document);
+      const result = this.getDocumentAsJson(document);
       const filename = document.fileName.split(/\\|\//).pop()!.split(".")[0];
+
+      if (result.error) {
+        const message = {
+          command: "error",
+          props: {
+            title: `${filename}`,
+            message: result.error,
+          },
+        };
+        webviewPanel.webview.postMessage(message);
+        return;
+      }
+
+      const circuit = result.data;
 
       const props = {
         title: `${filename}`,
@@ -110,18 +124,19 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
       </html>`;
   }
 
-  private getDocumentAsJson(document: vscode.TextDocument): any {
+  private getDocumentAsJson(document: vscode.TextDocument): {
+    error?: string;
+    data?: any;
+  } {
     const text = document.getText();
     if (text.trim().length === 0) {
-      return {};
+      return { data: {} };
     }
 
     try {
-      return JSON.parse(text);
+      return { data: JSON.parse(text) };
     } catch {
-      throw new Error(
-        "Could not get document as json. Content is not valid json",
-      );
+      return { error: "Content is not valid JSON" };
     }
   }
 
