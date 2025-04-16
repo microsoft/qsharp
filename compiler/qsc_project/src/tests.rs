@@ -8,7 +8,7 @@
 mod harness;
 
 use expect_test::expect;
-use harness::check;
+use harness::{check, check_file_in_project};
 
 #[test]
 fn basic_manifest() {
@@ -48,95 +48,46 @@ fn basic_manifest() {
     );
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn local_circuits() {
-    check(
+    check_file_in_project(
         &"circuit_files".into(),
         &expect![[r#"
-            Project {
-                name: "circuit_files",
-                path: "circuit_files/qsharp.json",
-                package_graph_sources: PackageGraphSources {
-                    root: PackageInfo {
-                        sources: [
-                            (
-                                "circuit_files/src/Circuit1.qsc",
-                                "/// Expects a qubit register of size 2.\noperation Circuit1(qs : Qubit[]) : Unit is Ctl + Adj {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit1 expects a qubit register of size 2.\";\n    }\n    H(qs[0]);\n    Controlled X([qs[0]], qs[1]);\n}\n\n",
-                            ),
-                            (
-                                "circuit_files/src/Main.qs",
-                                "import SubFolder.Circuit2.Circuit2;\nimport Circuit1.Circuit1;\noperation Main() : Unit {\n    use qs = Qubit[2];\n    Circuit1(qs);\n    Circuit2(qs);\n}\n\nexport\n    Circuit1 as Circuit1,\n    Circuit2 as Circuit2;\n",
-                            ),
-                            (
-                                "circuit_files/src/SubFolder/Circuit2.qsc",
-                                "/// Expects a qubit register of size 2.\noperation Circuit2(qs : Qubit[]) : Result[] {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit2 expects a qubit register of size 2.\";\n    }\n    let c0_0 = M(qs[0]);\n    let c1_0 = M(qs[1]);\n    Reset(qs[0]);\n    Reset(qs[1]);\n    return [c0_0, c1_0];\n}\n\n",
-                            ),
-                        ],
-                        language_features: LanguageFeatures(
-                            0,
-                        ),
-                        dependencies: {},
-                        package_type: None,
-                    },
-                    packages: {},
-                },
-                lints: [],
-                errors: [],
-            }"#]],
+        [
+            (
+                "root",
+                [
+                    "circuit_files/src/Circuit1.qsc",
+                    "circuit_files/src/Main.qs",
+                    "circuit_files/src/SubFolder/Circuit2.qsc",
+                ],
+            ),
+        ]"#]],
     );
 }
 
 #[test]
 fn dependency_circuits() {
-    check(
+    check_file_in_project(
         &"with_local_circuit_dep".into(),
         &expect![[r#"
-            Project {
-                name: "with_local_circuit_dep",
-                path: "with_local_circuit_dep/qsharp.json",
-                package_graph_sources: PackageGraphSources {
-                    root: PackageInfo {
-                        sources: [
-                            (
-                                "with_local_circuit_dep/src/Main.qs",
-                                "operation Main() : Unit {\n    use qs = Qubit[2];\n    MyDep.Circuit1(qs);\n    MyDep.Circuit2(qs);\n}\n",
-                            ),
-                        ],
-                        language_features: LanguageFeatures(
-                            0,
-                        ),
-                        dependencies: {
-                            "MyDep": "{\"path\":\"circuit_files\"}",
-                        },
-                        package_type: None,
-                    },
-                    packages: {
-                        "{\"path\":\"circuit_files\"}": PackageInfo {
-                            sources: [
-                                (
-                                    "circuit_files/src/Circuit1.qsc",
-                                    "/// Expects a qubit register of size 2.\noperation Circuit1(qs : Qubit[]) : Unit is Ctl + Adj {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit1 expects a qubit register of size 2.\";\n    }\n    H(qs[0]);\n    Controlled X([qs[0]], qs[1]);\n}\n\n",
-                                ),
-                                (
-                                    "circuit_files/src/Main.qs",
-                                    "import SubFolder.Circuit2.Circuit2;\nimport Circuit1.Circuit1;\noperation Main() : Unit {\n    use qs = Qubit[2];\n    Circuit1(qs);\n    Circuit2(qs);\n}\n\nexport\n    Circuit1 as Circuit1,\n    Circuit2 as Circuit2;\n",
-                                ),
-                                (
-                                    "circuit_files/src/SubFolder/Circuit2.qsc",
-                                    "/// Expects a qubit register of size 2.\noperation Circuit2(qs : Qubit[]) : Result[] {\n    if Length(qs) != 2 {\n        fail \"Invalid number of qubits. Operation Circuit2 expects a qubit register of size 2.\";\n    }\n    let c0_0 = M(qs[0]);\n    let c1_0 = M(qs[1]);\n    Reset(qs[0]);\n    Reset(qs[1]);\n    return [c0_0, c1_0];\n}\n\n",
-                                ),
-                            ],
-                            language_features: LanguageFeatures(
-                                0,
-                            ),
-                            dependencies: {},
-                            package_type: None,
-                        },
-                    },
-                },
-                lints: [],
-                errors: [],
-            }"#]],
+        [
+            (
+                "root",
+                [
+                    "with_local_circuit_dep/src/Main.qs",
+                ],
+            ),
+            (
+                "{\"path\":\"circuit_files\"}",
+                [
+                    "circuit_files/src/Circuit1.qsc",
+                    "circuit_files/src/Main.qs",
+                    "circuit_files/src/SubFolder/Circuit2.qsc",
+                ],
+            ),
+        ]"#]],
     );
 }
 

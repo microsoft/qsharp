@@ -33,6 +33,46 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     expect.assert_eq(&format!("{project:#?}"));
 }
 
+pub fn check_file_in_project(project_path: &PathBuf, expect: &Expect) {
+    let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root_path.push(PathBuf::from("src"));
+    root_path.push(PathBuf::from("tests"));
+    root_path.push(PathBuf::from("projects"));
+    let mut absolute_project_path = root_path.clone();
+    absolute_project_path.push(project_path);
+    let manifest = Manifest::load_from_path(absolute_project_path)
+        .expect("manifest should load")
+        .expect("manifest should contain descriptor");
+    let fs = StdFs;
+    let mut project = fs
+        .load_project(&manifest.manifest_dir, None)
+        .expect("project should load");
+
+    normalize(&mut project, &root_path);
+
+    // Collect sources grouped by package
+    let mut sources_by_package = Vec::new();
+
+    // Collect root sources
+    let mut root_sources = Vec::new();
+    for (path, _contents) in &project.package_graph_sources.root.sources {
+        root_sources.push(path.to_string());
+    }
+    sources_by_package.push(("root".to_string(), root_sources));
+
+    // Collect package sources
+    for (package_name, package_info) in &project.package_graph_sources.packages {
+        let mut package_sources = Vec::new();
+        for (path, _contents) in &package_info.sources {
+            package_sources.push(path.to_string());
+        }
+        sources_by_package.push((package_name.to_string().clone(), package_sources));
+    }
+
+    // Use expect to validate the sources
+    expect.assert_eq(&format!("{sources_by_package:#?}"));
+}
+
 /// If the `Project` contains absolute paths, replace them with relative paths
 /// so that running the tests on different machines produce the same results.
 /// Some error messages may contain paths formatted into strings, in that case

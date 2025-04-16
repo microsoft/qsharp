@@ -8,7 +8,6 @@ use crate::{
 use async_trait::async_trait;
 use futures::FutureExt;
 use miette::Diagnostic;
-use qsc_circuit::circuit_to_qsharp::circuits_to_qsharp;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_linter::LintConfig;
 use rustc_hash::FxHashMap;
@@ -439,13 +438,10 @@ pub trait FileSystemAsync {
 
         let mut sources = Vec::with_capacity(all_project_files.len());
         for path in all_project_files {
-            let (name, mut contents) =
-                self.read_file(&path).await.map_err(|e| Error::FileSystem {
-                    about_path: path.to_string_lossy().to_string(),
-                    error: e.to_string(),
-                })?;
-            contents = process_circuit_file(&path, contents)?;
-            sources.push((name, contents));
+            sources.push(self.read_file(&path).await.map_err(|e| Error::FileSystem {
+                about_path: path.to_string_lossy().to_string(),
+                error: e.to_string(),
+            })?);
         }
 
         let mut dependencies = FxHashMap::default();
@@ -647,25 +643,6 @@ pub trait FileSystemAsync {
 
         stack.pop();
     }
-}
-
-fn process_circuit_file(path: &Path, contents: Arc<str>) -> Result<Arc<str>, Error> {
-    if let Some(ext) = path.extension() {
-        if ext == "qsc" {
-            let name = path
-                .file_stem()
-                .expect("File should have name")
-                .to_string_lossy()
-                .to_string();
-            return circuits_to_qsharp(&name, contents.as_ref())
-                .map(Arc::from)
-                .map_err(|e| Error::Circuit {
-                    path: path.to_string_lossy().to_string(),
-                    error: e.to_string(),
-                });
-        }
-    }
-    Ok(contents)
 }
 
 /// Filters out any hidden files (files that start with '.')

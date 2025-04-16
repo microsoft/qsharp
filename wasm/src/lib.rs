@@ -144,11 +144,6 @@ pub fn get_circuit(
     serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
 }
 
-#[wasm_bindgen]
-pub fn circuits_to_qsharp(file_name: &str, circuits_json: &str) -> Result<String, String> {
-    qsc::circuit::circuits_to_qsharp(file_name, circuits_json).map_err(|e| e.to_string())
-}
-
 #[allow(clippy::needless_pass_by_value)]
 fn interpret_errors_into_qsharp_errors_json(errs: Vec<qsc::interpret::Error>) -> String {
     serde_json::to_string(&interpret_errors_into_qsharp_errors(&errs))

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import {
-  circuitsToQSharp,
   ILanguageService,
   getLanguageService,
   loadWasmModule,
@@ -285,18 +284,7 @@ function registerDocumentUpdateHandlers(
 
   async function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-      let content = document.getText();
-
-      // Check if the document is a .qsc file and convert it to Q# if needed
-      if (isCircuitDocument(document)) {
-        try {
-          const name = document.fileName.split(/\\|\//).pop()!.split(".")[0];
-          content = await circuitsToQSharp(name, content);
-        } catch (error: any) {
-          log.error(`Failed to convert .qsc file to Q#: ${error.message}`);
-          return; // Skip updating the language service if conversion fails
-        }
-      }
+      const content = document.getText();
 
       languageService.updateDocument(
         document.uri.toString(),
