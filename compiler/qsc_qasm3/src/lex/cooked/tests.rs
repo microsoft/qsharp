@@ -29,13 +29,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         TokenKind::Keyword(keyword) => Some(keyword.to_string()),
         TokenKind::Type(type_) => Some(type_.to_string()),
         TokenKind::GPhase => Some("gphase".to_string()),
-        TokenKind::Inv => Some("inv".to_string()),
-        TokenKind::Pow => Some("pow".to_string()),
-        TokenKind::Ctrl => Some("ctrl".to_string()),
-        TokenKind::NegCtrl => Some("negctrl".to_string()),
-        TokenKind::Dim => Some("dim".to_string()),
         TokenKind::DurationOf => Some("durationof".to_string()),
-        TokenKind::Measure => Some("measure".to_string()),
         TokenKind::Semicolon => Some(";".to_string()),
         TokenKind::Arrow => Some("->".to_string()),
         TokenKind::At => Some("@".to_string()),
@@ -1223,18 +1217,20 @@ fn dim() {
     check(
         "dim",
         &expect![[r#"
-        [
-            Ok(
-                Token {
-                    kind: Identifier,
-                    span: Span {
-                        lo: 0,
-                        hi: 3,
+            [
+                Ok(
+                    Token {
+                        kind: Keyword(
+                            Dim,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 3,
+                        },
                     },
-                },
-            ),
-        ]
-    "#]],
+                ),
+            ]
+        "#]],
     );
 }
 
@@ -1243,17 +1239,19 @@ fn sharp_dim() {
     check(
         "#dim",
         &expect![[r#"
-        [
-            Ok(
-                Token {
-                    kind: Dim,
-                    span: Span {
-                        lo: 0,
-                        hi: 4,
+            [
+                Ok(
+                    Token {
+                        kind: Keyword(
+                            Dim,
+                        ),
+                        span: Span {
+                            lo: 0,
+                            hi: 4,
+                        },
                     },
-                },
-            ),
-        ]
-    "#]],
+                ),
+            ]
+        "#]],
     );
 }

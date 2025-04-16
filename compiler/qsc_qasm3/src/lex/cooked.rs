@@ -87,20 +87,21 @@ impl Error {
 /// A token kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
 pub enum TokenKind {
+    /// `@DOT_SEPARETED_IDENTIFIER REST_OF_LINE`
+    /// Examples:
+    ///   @Microsoft.SimulatableIntrinsic
+    ///   @Microsoft.Config Base
     Annotation,
+    /// `pragma REST_OF_LINE`
+    ///  or
+    /// `#pragma REST_OF_LINE`
     Pragma,
     Keyword(Keyword),
     Type(Type),
 
     // Builtin identifiers and operations
     GPhase,
-    Inv,
-    Pow,
-    Ctrl,
-    NegCtrl,
-    Dim,
     DurationOf,
-    Measure,
 
     Literal(Literal),
 
@@ -151,13 +152,7 @@ impl Display for TokenKind {
             TokenKind::Keyword(keyword) => write!(f, "keyword `{keyword}`"),
             TokenKind::Type(type_) => write!(f, "keyword `{type_}`"),
             TokenKind::GPhase => write!(f, "gphase"),
-            TokenKind::Inv => write!(f, "inv"),
-            TokenKind::Pow => write!(f, "pow"),
-            TokenKind::Ctrl => write!(f, "ctrl"),
-            TokenKind::NegCtrl => write!(f, "negctrl"),
-            TokenKind::Dim => write!(f, "dim"),
             TokenKind::DurationOf => write!(f, "durationof"),
-            TokenKind::Measure => write!(f, "measure"),
             TokenKind::Literal(literal) => write!(f, "literal `{literal}`"),
             TokenKind::Open(Delim::Brace) => write!(f, "`{{`"),
             TokenKind::Open(Delim::Bracket) => write!(f, "`[`"),
@@ -527,9 +522,6 @@ impl<'a> Lexer<'a> {
                 let ident = &self.input[(token.offset as usize)..(self.offset() as usize)];
                 let cooked_ident = Self::ident(ident);
                 match cooked_ident {
-                    // A `dim` token without a `#` in front should be
-                    // treated as an identifier and not as a keyword.
-                    TokenKind::Dim => Ok(Some(TokenKind::Identifier)),
                     TokenKind::Keyword(Keyword::Pragma) => {
                         self.eat_to_end_of_line();
                         Ok(Some(TokenKind::Pragma))
@@ -577,7 +569,7 @@ impl<'a> Lexer<'a> {
                 self.expect(raw::TokenKind::Ident, TokenKind::Identifier)?;
                 let ident = &self.input[(token.offset as usize + 1)..(self.offset() as usize)];
                 match Self::ident(ident) {
-                    TokenKind::Dim => Ok(Some(TokenKind::Dim)),
+                    TokenKind::Keyword(Keyword::Dim) => Ok(Some(TokenKind::Keyword(Keyword::Dim))),
                     TokenKind::Keyword(Keyword::Pragma) => {
                         self.eat_to_end_of_line();
                         Ok(Some(TokenKind::Pragma))
@@ -731,13 +723,7 @@ impl<'a> Lexer<'a> {
     fn ident(ident: &str) -> TokenKind {
         match ident {
             "gphase" => TokenKind::GPhase,
-            "inv" => TokenKind::Inv,
-            "pow" => TokenKind::Pow,
-            "ctrl" => TokenKind::Ctrl,
-            "negctrl" => TokenKind::NegCtrl,
-            "dim" => TokenKind::Dim,
             "durationof" => TokenKind::DurationOf,
-            "measure" => TokenKind::Measure,
             ident => {
                 if let Ok(keyword) = ident.parse::<Keyword>() {
                     TokenKind::Keyword(keyword)
