@@ -9,61 +9,14 @@ pub mod decls;
 pub mod expression;
 pub mod statements;
 
-use std::path::Path;
-use std::sync::Arc;
-
+use super::parse_source;
 use crate::io::InMemorySourceResolver;
 use crate::io::SourceResolver;
-
-use super::parse_source;
-
-use super::QasmSemanticParseResult;
-
 use expect_test::expect;
-use miette::Report;
-
 use expect_test::Expect;
-
-pub(crate) fn parse_all<P>(
-    path: P,
-    sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
-    let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let (path, source) = resolver
-        .resolve(path.as_ref())
-        .map_err(|e| vec![Report::new(e)])?;
-    let res = parse_source(source, path, &mut resolver);
-    if res.source.has_errors() {
-        let errors = res
-            .errors()
-            .into_iter()
-            .map(|e| Report::new(e.clone()))
-            .collect();
-        Err(errors)
-    } else {
-        Ok(res)
-    }
-}
-
-pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    S: AsRef<str>,
-{
-    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
-    let res = parse_source(source, "test", &mut resolver);
-    if res.source.has_errors() {
-        let errors = res
-            .errors()
-            .into_iter()
-            .map(|e| Report::new(e.clone()))
-            .collect();
-        return Err(errors);
-    }
-    Ok(res)
-}
+use miette::Report;
+use std::path::Path;
+use std::sync::Arc;
 
 pub(super) fn check(input: &str, expect: &Expect) {
     check_map(input, expect, |p, _| p.to_string());

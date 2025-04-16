@@ -42,8 +42,6 @@ pub fn package_store_with_qasm(
     }
 }
 
-pub const OPENQASM_LIBRARY_URI_SCHEME: &str = "openqasm-library-source";
-
 pub const STD_LIB: &[(&str, &str)] = &[
     (
         "openqasm-library-source:QasmStd/Angle.qs",

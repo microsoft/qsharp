@@ -36,6 +36,7 @@ fn addition() {
     );
 }
 
+#[test]
 fn addition_assign_op() {
     let input = "
         input complex[float] a;
@@ -46,26 +47,25 @@ fn addition_assign_op() {
     check_stmt_kinds(
         input,
         &expect![[r#"
-        InputDeclaration [9-32]:
-            symbol_id: 8
-        InputDeclaration [41-64]:
-            symbol_id: 9
-        ClassicalDeclarationStmt [73-93]:
-            symbol_id: 10
-            ty_span: [73-80]
-            init_expr: Expr [85-92]:
-                ty: Complex(None, false)
-                kind: Paren Expr [86-91]:
+            InputDeclaration [9-32]:
+                symbol_id: 8
+            ClassicalDeclarationStmt [41-57]:
+                symbol_id: 9
+                ty_span: [41-48]
+                init_expr: Expr [53-56]:
+                    ty: Complex(None, true)
+                    kind: Lit: Complex(0.0, 0.0)
+            AssignOpStmt [66-73]:
+                symbol_id: 9
+                indices: <empty>
+                op: Add
+                lhs: Expr [71-72]:
                     ty: Complex(None, false)
-                    kind: BinaryOpExpr:
-                        op: Add
-                        lhs: Expr [86-87]:
-                            ty: Complex(None, false)
-                            kind: SymbolId(8)
-                        rhs: Expr [90-91]:
-                            ty: Complex(None, false)
-                            kind: SymbolId(9)
-    "#]],
+                    kind: SymbolId(8)
+                rhs: Expr [71-72]:
+                    ty: Complex(None, false)
+                    kind: SymbolId(8)
+        "#]],
     );
 }
 

@@ -4,14 +4,13 @@
 #[cfg(test)]
 pub(crate) mod tests;
 
+use super::ast::Ident;
 use super::{
     error::{Error, ErrorKind},
     scan::ParserContext,
     Parser, Result,
 };
-use crate::{lex::TokenKind, parser::completion::word_kinds::WordKinds};
-
-use super::ast::{Ident, IncompletePath, Path, PathKind};
+use crate::lex::TokenKind;
 
 use qsc_data_structures::span::{Span, WithSpan};
 
@@ -19,21 +18,6 @@ use qsc_data_structures::span::{Span, WithSpan};
 pub(super) enum FinalSep {
     Present,
     Missing,
-}
-
-impl FinalSep {
-    pub(super) fn reify<T, U>(
-        self,
-        mut xs: Vec<T>,
-        mut as_paren: impl FnMut(T) -> U,
-        mut as_seq: impl FnMut(Box<[T]>) -> U,
-    ) -> U {
-        if self == Self::Missing && xs.len() == 1 {
-            as_paren(xs.pop().expect("vector should have exactly one item"))
-        } else {
-            as_seq(xs.into_boxed_slice())
-        }
-    }
 }
 
 pub(super) fn token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
@@ -68,78 +52,6 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Ident> {
             peek.kind,
             peek.span,
         )))
-    }
-}
-
-/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
-/// this can be a namespace name (in an open statement or namespace declaration),
-/// a reference to an item, like `Microsoft.Quantum.Diagnostics.DumpMachine`,
-/// or a field access.
-///
-/// Path parser. If parsing fails, also returns any valid segments
-/// that were parsed up to the final `.` token.
-pub(super) fn path(
-    s: &mut ParserContext,
-    kind: WordKinds,
-) -> std::result::Result<Box<Path>, (Error, Option<Box<IncompletePath>>)> {
-    s.expect(kind);
-
-    let lo = s.peek().span.lo;
-    let i = ident(s).map_err(|e| (e, None))?;
-
-    let mut parts = vec![i];
-    while token(s, TokenKind::Dot).is_ok() {
-        s.expect(WordKinds::PathSegment);
-        match ident(s) {
-            Ok(ident) => parts.push(ident),
-            Err(error) => {
-                let trivia_span = s.skip_trivia();
-                let keyword = trivia_span.hi == trivia_span.lo
-                    && matches!(s.peek().kind, TokenKind::Keyword(_));
-                if keyword {
-                    // Consume any keyword that comes immediately after the final
-                    // dot, assuming it was intended to be part of the path.
-                    s.advance();
-                }
-
-                return Err((
-                    error,
-                    Some(Box::new(IncompletePath {
-                        span: s.span(lo),
-                        segments: parts.into(),
-                        keyword,
-                    })),
-                ));
-            }
-        }
-    }
-
-    let name = parts.pop().expect("path should have at least one part");
-    let namespace = if parts.is_empty() {
-        None
-    } else {
-        Some(parts.into())
-    };
-
-    Ok(Box::new(Path {
-        span: s.span(lo),
-        segments: namespace,
-        name: name.into(),
-    }))
-}
-
-/// Recovering [`Path`] parser. Parsing only fails if no segments
-/// were successfully parsed. If any segments were successfully parsed,
-/// returns a [`PathKind::Err`] containing the segments that were
-/// successfully parsed up to the final `.` token.
-pub(super) fn recovering_path(s: &mut ParserContext, kind: WordKinds) -> Result<PathKind> {
-    match path(s, kind) {
-        Ok(path) => Ok(PathKind::Ok(path)),
-        Err((error, Some(incomplete_path))) => {
-            s.push_error(error);
-            Ok(PathKind::Err(Some(incomplete_path)))
-        }
-        Err((error, None)) => Err(error),
     }
 }
 
@@ -269,29 +181,6 @@ pub(super) fn seq_item<T>(
 
 /// Try to parse with the given parser.
 ///
-/// If the parser fails on the first token, returns the default value.
-///
-/// If the parser fails after consuming some tokens, propagates the error.
-pub(super) fn parse_or_else<T>(
-    s: &mut ParserContext,
-    default: impl FnOnce(Span) -> T,
-    mut p: impl Parser<T>,
-) -> Result<T> {
-    let lo = s.peek().span.lo;
-    match p(s) {
-        Ok(value) => Ok(value),
-        Err(error) if advanced(s, lo) => Err(error),
-        Err(error) => {
-            s.push_error(error);
-            // The whitespace will become part of the error span
-            s.skip_trivia();
-            Ok(default(s.span(lo)))
-        }
-    }
-}
-
-/// Try to parse with the given parser.
-///
 /// If the parser fails on the first token, propagates the error.
 ///
 /// If the parser fails after consuming some tokens, performs
@@ -312,39 +201,6 @@ pub(super) fn recovering<T>(
             Ok(default(s.span(offset)))
         }
         Err(error) => Err(error),
-    }
-}
-
-/// Try to parse with the given parser.
-///
-/// If the parser fails on the first token, returns the default value.
-///
-/// If the parser fails after consuming some tokens, performs
-/// recovery by advancing until the next token in `tokens` is found.
-/// The recovery token is consumed.
-///
-/// This behavior is a combination of [`recovering`] and [`parse_or_else`],
-/// and provides the most aggressive error recovery.
-pub(super) fn recovering_parse_or_else<T>(
-    s: &mut ParserContext,
-    default: impl FnOnce(Span) -> T,
-    tokens: &[TokenKind],
-    mut p: impl Parser<T>,
-) -> T {
-    let lo = s.peek().span.lo;
-    match p(s) {
-        Ok(value) => value,
-        Err(error) => {
-            s.push_error(error);
-
-            if advanced(s, lo) {
-                s.recover(tokens);
-            } else {
-                // The whitespace will become part of the error node span
-                s.skip_trivia();
-            }
-            default(s.span(lo))
-        }
     }
 }
 
@@ -379,12 +235,4 @@ pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
 
 fn advanced(s: &ParserContext, from: u32) -> bool {
     s.peek().span.lo > from
-}
-
-fn map_rule_name(name: &'static str, error: Error) -> Error {
-    Error::new(match error.0 {
-        ErrorKind::Rule(_, found, span) => ErrorKind::Rule(name, found, span),
-        ErrorKind::Convert(_, found, span) => ErrorKind::Convert(name, found, span),
-        kind => kind,
-    })
 }

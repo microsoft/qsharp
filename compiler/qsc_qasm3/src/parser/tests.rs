@@ -68,17 +68,6 @@ pub(super) fn check_opt<T: Display>(parser: impl Parser<Option<T>>, input: &str,
     });
 }
 
-#[allow(dead_code)]
-pub(super) fn check_vec<T: Display>(parser: impl Parser<Vec<T>>, input: &str, expect: &Expect) {
-    check_map(parser, input, expect, |values| {
-        values
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",\n")
-    });
-}
-
 pub(super) fn check_seq<T: Display>(
     parser: impl Parser<(Vec<T>, FinalSep)>,
     input: &str,

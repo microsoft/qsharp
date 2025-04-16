@@ -22,17 +22,18 @@ use crate::{
         build_gate_call_with_params_and_callee, build_global_call_with_two_params,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_indexed_assignment_statement, build_lit_angle_expr,
-        build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr,
-        build_lit_int_expr, build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
-        build_qasm_import_decl, build_qasm_import_items, build_range_expr, build_reset_call,
-        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_implicit_return_stmt, build_index_expr, build_indexed_assignment_statement,
+        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
+        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
+        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
+        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
+        build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
+        build_qasm_import_items, build_range_expr, build_reset_call, build_return_expr,
+        build_return_unit, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
+        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{list_from_iter, List},
@@ -1221,14 +1222,7 @@ impl QasmCompiler {
 
         let ident =
             build_path_ident_expr(&symbol.name, indexed_ident.name_span, indexed_ident.span);
-        qsast::Expr {
-            id: qsast::NodeId::default(),
-            span,
-            kind: Box::new(qsast::ExprKind::Index(
-                Box::new(ident),
-                Box::new(index[0].clone()),
-            )),
-        }
+        build_index_expr(ident, index[0].clone(), span)
     }
 
     fn compile_unary_op_expr(&mut self, unary: &UnaryOpExpr) -> qsast::Expr {

@@ -4,7 +4,7 @@
 use std::ops::ShlAssign;
 use std::rc::Rc;
 
-use super::ast::const_eval::ConstEvalError;
+use super::const_eval::ConstEvalError;
 use super::symbols::ScopeKind;
 use super::types::binop_requires_asymmetric_angle_op;
 use super::types::binop_requires_int_conversion_for_type;
