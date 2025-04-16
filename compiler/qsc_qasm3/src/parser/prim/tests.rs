@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{ident, opt, seq};
+use super::{ident, opt, seq, token};
 use crate::{
     keyword::Keyword,
     lex::TokenKind,
-    parser::ast::PathKind,
+    parser::ast::{IncompletePath, Path, PathKind},
     parser::{
         completion::word_kinds::WordKinds,
         error::{Error, ErrorKind},
@@ -17,8 +17,73 @@ use expect_test::expect;
 
 use qsc_data_structures::span::Span;
 
-fn path(s: &mut ParserContext) -> Result<PathKind, Error> {
-    super::recovering_path(s, WordKinds::empty())
+/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
+/// this can be a namespace name (in an open statement or namespace declaration),
+/// a reference to an item, like `Microsoft.Quantum.Diagnostics.DumpMachine`,
+/// or a field access.
+///
+/// Path parser. If parsing fails, also returns any valid segments
+/// that were parsed up to the final `.` token.
+pub(super) fn path(
+    s: &mut ParserContext,
+) -> std::result::Result<Box<Path>, (Error, Option<Box<IncompletePath>>)> {
+    let lo = s.peek().span.lo;
+    let i = ident(s).map_err(|e| (e, None))?;
+
+    let mut parts = vec![i];
+    while token(s, TokenKind::Dot).is_ok() {
+        s.expect(WordKinds::PathSegment);
+        match ident(s) {
+            Ok(ident) => parts.push(ident),
+            Err(error) => {
+                let trivia_span = s.skip_trivia();
+                let keyword = trivia_span.hi == trivia_span.lo
+                    && matches!(s.peek().kind, TokenKind::Keyword(_));
+                if keyword {
+                    // Consume any keyword that comes immediately after the final
+                    // dot, assuming it was intended to be part of the path.
+                    s.advance();
+                }
+
+                return Err((
+                    error,
+                    Some(Box::new(IncompletePath {
+                        span: s.span(lo),
+                        segments: parts.into(),
+                        keyword,
+                    })),
+                ));
+            }
+        }
+    }
+
+    let name = parts.pop().expect("path should have at least one part");
+    let namespace = if parts.is_empty() {
+        None
+    } else {
+        Some(parts.into())
+    };
+
+    Ok(Box::new(Path {
+        span: s.span(lo),
+        segments: namespace,
+        name: name.into(),
+    }))
+}
+
+/// Recovering [`Path`] parser. Parsing only fails if no segments
+/// were successfully parsed. If any segments were successfully parsed,
+/// returns a [`PathKind::Err`] containing the segments that were
+/// successfully parsed up to the final `.` token.
+fn recovering_path(s: &mut ParserContext) -> Result<PathKind, Error> {
+    match path(s) {
+        Ok(path) => Ok(PathKind::Ok(path)),
+        Err((error, Some(incomplete_path))) => {
+            s.push_error(error);
+            Ok(PathKind::Err(Some(incomplete_path)))
+        }
+        Err((error, None)) => Err(error),
+    }
 }
 
 #[test]
@@ -88,7 +153,7 @@ fn ident_keyword() {
 #[test]
 fn path_single() {
     check(
-        path,
+        recovering_path,
         "Foo",
         &expect![[r#"
         Path [0-3]:
@@ -100,7 +165,7 @@ fn path_single() {
 #[test]
 fn path_double() {
     check(
-        path,
+        recovering_path,
         "Foo.Bar",
         &expect![[r#"
             Path [0-7]:
@@ -113,7 +178,7 @@ fn path_double() {
 #[test]
 fn path_triple() {
     check(
-        path,
+        recovering_path,
         "Foo.Bar.Baz",
         &expect![[r#"
             Path [0-11]:
@@ -127,7 +192,7 @@ fn path_triple() {
 #[test]
 fn path_trailing_dot() {
     check(
-        path,
+        recovering_path,
         "Foo.Bar.",
         &expect![[r#"
             Err IncompletePath [0-8]:    segments:
@@ -152,7 +217,7 @@ fn path_trailing_dot() {
 #[test]
 fn path_followed_by_keyword() {
     check(
-        path,
+        recovering_path,
         "Foo.Bar.in",
         &expect![[r#"
             Err IncompletePath [0-10]:    segments:
@@ -179,7 +244,7 @@ fn path_followed_by_keyword() {
 #[test]
 fn opt_succeed() {
     check_opt(
-        |s| opt(s, path),
+        |s| opt(s, recovering_path),
         "Foo.Bar",
         &expect![[r#"
             Path [0-7]:
@@ -191,13 +256,13 @@ fn opt_succeed() {
 
 #[test]
 fn opt_fail_no_consume() {
-    check_opt(|s| opt(s, path), "123", &expect!["None"]);
+    check_opt(|s| opt(s, recovering_path), "123", &expect!["None"]);
 }
 
 #[test]
 fn opt_fail_consume() {
     check_opt(
-        |s| opt(s, path),
+        |s| opt(s, recovering_path),
         "Foo.$",
         &expect![[r#"
             Err IncompletePath [0-5]:    segments:

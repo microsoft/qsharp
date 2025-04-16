@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod const_eval;
-
 use num_bigint::BigInt;
-use qsc_data_structures::span::{Span, WithSpan};
+use qsc_data_structures::span::Span;
 use std::{
     fmt::{self, Display, Formatter},
     hash::Hash,
@@ -12,14 +10,11 @@ use std::{
 };
 
 use crate::{
-    parser::ast::{
-        display_utils::{
-            write_field, write_header, write_indented_list, write_list_field, write_opt_field,
-            write_opt_list_field, writeln_field, writeln_header, writeln_list_field,
-            writeln_opt_field,
-        },
-        List,
+    display_utils::{
+        write_field, write_header, write_indented_list, write_list_field, write_opt_field,
+        write_opt_list_field, writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
     },
+    parser::ast::List,
     semantic::symbols::SymbolId,
     stdlib::angle::Angle,
 };
@@ -72,34 +67,6 @@ impl Display for Annotation {
     }
 }
 
-/// A path that may or may not have been successfully parsed.
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum PathKind {
-    /// A successfully parsed path.
-    Ok(Box<Path>),
-    /// An invalid path.
-    Err(Option<Box<IncompletePath>>),
-}
-
-impl Default for PathKind {
-    fn default() -> Self {
-        PathKind::Err(None)
-    }
-}
-
-impl Display for PathKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            PathKind::Ok(path) => write!(f, "{path}"),
-            PathKind::Err(Some(incomplete_path)) => {
-                write!(f, "Err IncompletePath {}:", incomplete_path.span)?;
-                write_list_field(f, "segments", &incomplete_path.segments)
-            }
-            PathKind::Err(None) => write!(f, "Err",),
-        }
-    }
-}
-
 /// A path that was successfully parsed up to a certain `.`,
 /// but is missing its final identifier.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -132,12 +99,6 @@ impl Display for Path {
         writeln_header(f, "Path", self.span)?;
         writeln_field(f, "name", &self.name)?;
         write_opt_list_field(f, "segments", self.segments.as_ref())
-    }
-}
-
-impl WithSpan for Path {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
     }
 }
 
@@ -313,12 +274,6 @@ pub struct HardwareQubit {
 impl Display for HardwareQubit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "HardwareQubit {}: {}", self.span, self.name)
-    }
-}
-
-impl WithSpan for HardwareQubit {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
     }
 }
 
@@ -524,21 +479,6 @@ impl Display for ContinueStmt {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Identifier {
-    Ident(Box<Ident>),
-    IndexedIdent(Box<IndexedIdent>),
-}
-
-impl Display for Identifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Identifier::Ident(ident) => write!(f, "{ident}"),
-            Identifier::IndexedIdent(ident) => write!(f, "{ident}"),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident {
     pub span: Span,
@@ -557,12 +497,6 @@ impl Default for Ident {
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Ident {} \"{}\"", self.span, self.name)
-    }
-}
-
-impl WithSpan for Ident {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
     }
 }
 
@@ -585,12 +519,6 @@ impl Display for IndexedIdent {
     }
 }
 
-impl WithSpan for IndexedIdent {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ExprStmt {
     pub span: Span,
@@ -609,12 +537,6 @@ pub struct Expr {
     pub span: Span,
     pub kind: Box<ExprKind>,
     pub ty: super::types::Type,
-}
-
-impl WithSpan for Expr {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
 }
 
 impl Display for Expr {
@@ -659,12 +581,6 @@ pub struct RangeDefinition {
     pub step: Option<Expr>,
 }
 
-impl WithSpan for RangeDefinition {
-    fn with_span(self, span: Span) -> Self {
-        Self { span, ..self }
-    }
-}
-
 impl Display for RangeDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "RangeDefinition", self.span)?;
@@ -704,141 +620,6 @@ impl Display for GateModifierKind {
             GateModifierKind::Pow(expr) => write!(f, "Pow {expr}"),
             GateModifierKind::Ctrl(ctrls) => write!(f, "Ctrl {ctrls:?}"),
             GateModifierKind::NegCtrl(ctrls) => write!(f, "NegCtrl {ctrls:?}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ClassicalArgument {
-    pub span: Span,
-    pub ty: ScalarType,
-    pub name: Identifier,
-    pub access: Option<AccessControl>,
-}
-
-impl Display for ClassicalArgument {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if let Some(access) = &self.access {
-            write!(
-                f,
-                "ClassicalArgument {}: {}, {}, {}",
-                self.span, self.ty, self.name, access
-            )
-        } else {
-            write!(
-                f,
-                "ClassicalArgument {}: {}, {}",
-                self.span, self.ty, self.name
-            )
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum ExternParameter {
-    Scalar(ScalarType, Span),
-    Quantum(Option<Expr>, Span),
-    ArrayReference(ArrayReferenceType, Span),
-}
-
-impl Display for ExternParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ExternParameter::Scalar(ty, span) => {
-                write!(f, "{span}: {ty}")
-            }
-            ExternParameter::Quantum(expr, span) => {
-                write!(f, "{span}: {expr:?}")
-            }
-            ExternParameter::ArrayReference(ty, span) => {
-                write!(f, "{span}: {ty}")
-            }
-        }
-    }
-}
-
-impl Default for ExternParameter {
-    fn default() -> Self {
-        ExternParameter::Scalar(ScalarType::default(), Span::default())
-    }
-}
-
-impl WithSpan for ExternParameter {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            ExternParameter::Scalar(ty, _) => ExternParameter::Scalar(ty, span),
-            ExternParameter::Quantum(expr, _) => ExternParameter::Quantum(expr, span),
-            ExternParameter::ArrayReference(ty, _) => ExternParameter::ArrayReference(ty, span),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ScalarType {
-    pub span: Span,
-    pub kind: ScalarTypeKind,
-}
-
-impl Display for ScalarType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "ScalarType {}: {}", self.span, self.kind)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub enum ScalarTypeKind {
-    Bit(BitType),
-    Int(IntType),
-    UInt(UIntType),
-    Float(FloatType),
-    Complex(ComplexType),
-    Angle(AngleType),
-    BoolType,
-    Duration,
-    Stretch,
-    // Any usage of Err should have pushed a parse error
-    #[default]
-    Err,
-}
-
-impl Display for ScalarTypeKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ScalarTypeKind::Int(int) => write!(f, "{int}"),
-            ScalarTypeKind::UInt(uint) => write!(f, "{uint}"),
-            ScalarTypeKind::Float(float) => write!(f, "{float}"),
-            ScalarTypeKind::Complex(complex) => write!(f, "{complex}"),
-            ScalarTypeKind::Angle(angle) => write!(f, "{angle}"),
-            ScalarTypeKind::Bit(bit) => write!(f, "{bit}"),
-            ScalarTypeKind::BoolType => write!(f, "BoolType"),
-            ScalarTypeKind::Duration => write!(f, "Duration"),
-            ScalarTypeKind::Stretch => write!(f, "Stretch"),
-            ScalarTypeKind::Err => write!(f, "Err"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum ArrayBaseTypeKind {
-    Int(IntType),
-    UInt(UIntType),
-    Float(FloatType),
-    Complex(ComplexType),
-    Angle(AngleType),
-    BoolType,
-    Duration,
-}
-
-impl Display for ArrayBaseTypeKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ArrayBaseTypeKind::Int(int) => write!(f, "ArrayBaseTypeKind {int}"),
-            ArrayBaseTypeKind::UInt(uint) => write!(f, "ArrayBaseTypeKind {uint}"),
-            ArrayBaseTypeKind::Float(float) => write!(f, "ArrayBaseTypeKind {float}"),
-            ArrayBaseTypeKind::Complex(complex) => write!(f, "ArrayBaseTypeKind {complex}"),
-            ArrayBaseTypeKind::Angle(angle) => write!(f, "ArrayBaseTypeKind {angle}"),
-            ArrayBaseTypeKind::Duration => write!(f, "ArrayBaseTypeKind DurationType"),
-            ArrayBaseTypeKind::BoolType => write!(f, "ArrayBaseTypeKind BoolType"),
         }
     }
 }
@@ -918,80 +699,6 @@ impl Display for BitType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "BitType", self.span)?;
         write_opt_field(f, "size", self.size.as_ref())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum TypeDef {
-    Scalar(ScalarType),
-    Array(ArrayType),
-    ArrayReference(ArrayReferenceType),
-}
-
-impl TypeDef {
-    pub fn span(&self) -> Span {
-        match self {
-            TypeDef::Scalar(ident) => ident.span,
-            TypeDef::Array(array) => array.span,
-            TypeDef::ArrayReference(array) => array.span,
-        }
-    }
-}
-
-impl Display for TypeDef {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            TypeDef::Scalar(scalar) => write!(f, "{scalar}"),
-            TypeDef::Array(array) => write!(f, "{array}"),
-            TypeDef::ArrayReference(array) => write!(f, "{array}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ArrayType {
-    pub span: Span,
-    pub base_type: ArrayBaseTypeKind,
-    pub dimensions: List<Expr>,
-}
-
-impl Display for ArrayType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ArrayType", self.span)?;
-        writeln_field(f, "base_type", &self.base_type)?;
-        write_list_field(f, "dimensions", &self.dimensions)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ArrayReferenceType {
-    pub span: Span,
-    pub mutability: AccessControl,
-    pub base_type: ArrayBaseTypeKind,
-    pub dimensions: List<Expr>,
-}
-
-impl Display for ArrayReferenceType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ArrayReferenceType", self.span)?;
-        writeln_field(f, "mutability", &self.mutability)?;
-        writeln_field(f, "base_type", &self.base_type)?;
-        writeln_list_field(f, "dimensions", &self.dimensions)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum AccessControl {
-    ReadOnly,
-    Mutable,
-}
-
-impl Display for AccessControl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            AccessControl::ReadOnly => write!(f, "ReadOnly"),
-            AccessControl::Mutable => write!(f, "Mutable"),
-        }
     }
 }
 
@@ -1222,72 +929,6 @@ impl Display for OutputDeclaration {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "ty_span", &self.ty_span)?;
         write_field(f, "init_expr", &self.init_expr)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ScalarTypedParameter {
-    pub span: Span,
-    pub ty: Box<ScalarType>,
-    pub ident: Ident,
-}
-
-impl Display for ScalarTypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ScalarTypedParameter", self.span)?;
-        writeln_field(f, "ty", &self.ty)?;
-        write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for ScalarTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct QuantumTypedParameter {
-    pub span: Span,
-    pub size: Option<Expr>,
-    pub ident: Ident,
-}
-
-impl Display for QuantumTypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "QuantumTypedParameter", self.span)?;
-        writeln_opt_field(f, "size", self.size.as_ref())?;
-        write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for QuantumTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { size, ident, .. } = self;
-        Self { span, size, ident }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ArrayTypedParameter {
-    pub span: Span,
-    pub ty: Box<ArrayReferenceType>,
-    pub ident: Ident,
-}
-
-impl Display for ArrayTypedParameter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "ArrayTypedParameter", self.span)?;
-        writeln_field(f, "ty", &self.ty)?;
-        write_field(f, "ident", &self.ident)
-    }
-}
-
-impl WithSpan for ArrayTypedParameter {
-    fn with_span(self, span: Span) -> Self {
-        let Self { ty, ident, .. } = self;
-        Self { span, ty, ident }
     }
 }
 
@@ -1703,40 +1344,12 @@ pub enum IndexSetItem {
     Err,
 }
 
-/// This is needed to able to use `IndexSetItem` in the `seq` combinator.
-impl WithSpan for IndexSetItem {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            IndexSetItem::RangeDefinition(range) => {
-                IndexSetItem::RangeDefinition(range.with_span(span))
-            }
-            IndexSetItem::Expr(expr) => IndexSetItem::Expr(expr.with_span(span)),
-            IndexSetItem::Err => IndexSetItem::Err,
-        }
-    }
-}
-
 impl Display for IndexSetItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
             IndexSetItem::Expr(expr) => write!(f, "{expr}"),
             IndexSetItem::Err => write!(f, "Err"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum IOKeyword {
-    Input,
-    Output,
-}
-
-impl Display for IOKeyword {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            IOKeyword::Input => write!(f, "input"),
-            IOKeyword::Output => write!(f, "output"),
         }
     }
 }

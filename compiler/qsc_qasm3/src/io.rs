@@ -44,7 +44,7 @@ pub trait SourceResolver {
         }
     }
     #[cfg(not(feature = "fs"))]
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
+    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>;
 }

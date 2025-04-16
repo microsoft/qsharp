@@ -3,17 +3,6 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use qsc_data_structures::span::Span;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum GateModifier {
-    /// The `adjoint` modifier.
-    Inv(Span),
-    Pow(Option<i64>, Span),
-    Ctrl(Option<usize>, Span),
-    NegCtrl(Option<usize>, Span),
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Complex {
     pub real: f64,
@@ -54,7 +43,6 @@ pub enum Type {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CallableKind {
     /// A function.
-    #[allow(dead_code)]
     Function,
     /// An operation.
     Operation,

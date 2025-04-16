@@ -12,6 +12,7 @@ use qsc_frontend::error::WithSource;
 use std::path::Path;
 
 pub(crate) mod ast;
+pub(crate) mod const_eval;
 pub mod error;
 mod lowerer;
 pub use error::Error;

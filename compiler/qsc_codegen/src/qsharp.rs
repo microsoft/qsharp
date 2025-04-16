@@ -62,22 +62,6 @@ pub fn write_package_string(package: &Package) -> String {
 }
 
 #[must_use]
-pub fn write_item_string(item: &Item) -> String {
-    let mut output = Vec::new();
-    let mut gen = QSharpGen::new(&mut output);
-
-    gen.visit_item(item);
-
-    let s = match std::str::from_utf8(&output) {
-        Ok(v) => v.to_owned(),
-        Err(e) => format!("Invalid UTF-8 sequence: {e}"),
-    };
-
-    output.clear();
-    format_str(&s)
-}
-
-#[must_use]
 pub fn write_stmt_string(stmt: &ast::Stmt) -> String {
     let mut output = Vec::new();
     let mut gen = QSharpGen::new(&mut output);
