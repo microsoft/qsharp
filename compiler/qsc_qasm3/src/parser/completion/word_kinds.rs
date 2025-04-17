@@ -32,7 +32,10 @@ bitflags! {
         // Begin names.
         //
 
-        /// A path in an expression. Callables, UDT constructors, local variables.
+        /// A path in an expression. Namespaced annotations and pragmas
+        /// as suggested by the QASM3 spec. Examples:
+        /// `pragma Microsoft.Profile.Base`
+        /// `@Microsoft.SimulatableIntrinsic`
         const PathExpr = 1 << 0;
 
         /// A path segment that follows a `.`
@@ -82,7 +85,6 @@ bitflags! {
         const False = keyword_bit(Keyword::False);
         const For = keyword_bit(Keyword::For);
         const Gate = keyword_bit(Keyword::Gate);
-        const GPhase = keyword_bit(Keyword::GPhase);
         const If = keyword_bit(Keyword::If);
         const In = keyword_bit(Keyword::In);
         const Include = keyword_bit(Keyword::Include);
