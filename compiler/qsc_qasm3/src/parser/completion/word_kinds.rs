@@ -34,8 +34,8 @@ bitflags! {
 
         /// A path in an expression. Namespaced annotations and pragmas
         /// as suggested by the QASM3 spec. Examples:
-        /// `pragma Microsoft.Profile.Base`
-        /// `@Microsoft.SimulatableIntrinsic`
+        /// `pragma qsharp.Profile.Base`
+        /// `@qsharp.SimulatableIntrinsic`
         const PathExpr = 1 << 0;
 
         /// A path segment that follows a `.`
