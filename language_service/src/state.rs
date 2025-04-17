@@ -14,7 +14,7 @@ use log::{debug, trace};
 use miette::Diagnostic;
 use qsc::line_column::Encoding;
 use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
-use qsc_linter::LintConfig;
+use qsc_linter::LintOrGroupConfig;
 use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::PathBuf;
@@ -65,7 +65,7 @@ struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
     pub language_features: LanguageFeatures,
-    pub lints_config: Vec<LintConfig>,
+    pub lints_config: Vec<LintOrGroupConfig>,
 }
 
 impl Default for Configuration {
@@ -84,7 +84,7 @@ pub struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
-    pub lints_config: Vec<LintConfig>,
+    pub lints_config: Vec<LintOrGroupConfig>,
 }
 
 pub(super) struct CompilationStateUpdater<'a> {
@@ -644,9 +644,26 @@ fn merge_configurations(
     let mut override_lints = compilation_overrides.lints_config.clone();
     override_lints.retain(|override_lint| {
         for merged_lint in &mut merged_lints {
-            if merged_lint.kind == override_lint.kind {
-                merged_lint.level = override_lint.level;
-                return false;
+            match (merged_lint, override_lint) {
+                (
+                    LintOrGroupConfig::Lint(lint_config),
+                    LintOrGroupConfig::Lint(lint_config_override),
+                ) => {
+                    if lint_config.kind == lint_config_override.kind {
+                        lint_config.level = lint_config_override.level;
+                        return false;
+                    }
+                }
+                (
+                    LintOrGroupConfig::Group(group_config),
+                    LintOrGroupConfig::Group(group_config_override),
+                ) => {
+                    if group_config.lint_group == group_config_override.lint_group {
+                        group_config.level = group_config_override.level;
+                        return false;
+                    }
+                }
+                _ => (),
             }
         }
         true
