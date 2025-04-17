@@ -22,7 +22,7 @@ import "./webview.css";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-import { setThemeStylesheet } from "./utils";
+import { setThemeStylesheet } from "./theme";
 const md = markdownIt("commonmark");
 md.use(mk, {
   enableMathBlockInHtml: true,

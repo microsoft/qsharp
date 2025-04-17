@@ -7,7 +7,7 @@ const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
 import { CircuitPanel, CircuitProps } from "qsharp-lang/ux";
-import { setThemeStylesheet } from "./utils";
+import { setThemeStylesheet } from "./theme";
 
 window.addEventListener("message", onMessage);
 window.addEventListener("load", main);
