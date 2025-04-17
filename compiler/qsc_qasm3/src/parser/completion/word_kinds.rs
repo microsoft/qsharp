@@ -32,15 +32,15 @@ bitflags! {
         // Begin names.
         //
 
-        /// A path in an expression. Callables, UDT constructors, local variables.
+        /// A path in an expression. Namespaced annotations and pragmas
+        /// as suggested by the QASM3 spec. Examples:
+        /// `pragma qsharp.Profile.Base`
+        /// `@qsharp.SimulatableIntrinsic`
         const PathExpr = 1 << 0;
 
         /// A path segment that follows a `.`
         /// A more specific name kind can be inferred from a recovered AST.
         const PathSegment = 1 << 1;
-        /// A primitive class.
-        const PrimitiveClass = 1 << 2;
-
 
         //
         // End names.
@@ -51,7 +51,7 @@ bitflags! {
         //
 
         /// An annotation, without the leading `@`.
-        const Annotation = 1 << 3;
+        const Annotation = 1 << 2;
 
 
         //
@@ -82,7 +82,6 @@ bitflags! {
         const False = keyword_bit(Keyword::False);
         const For = keyword_bit(Keyword::For);
         const Gate = keyword_bit(Keyword::Gate);
-        const GPhase = keyword_bit(Keyword::GPhase);
         const If = keyword_bit(Keyword::If);
         const In = keyword_bit(Keyword::In);
         const Include = keyword_bit(Keyword::Include);
@@ -108,7 +107,7 @@ bitflags! {
     }
 }
 
-const KEYWORDS_START: u8 = 4;
+const KEYWORDS_START: u8 = 3;
 const fn keyword_bit(k: Keyword) -> u128 {
     1 << (k as u8 + KEYWORDS_START)
 }
