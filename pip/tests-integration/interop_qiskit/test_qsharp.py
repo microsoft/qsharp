@@ -26,7 +26,7 @@ def test_qsharp_smoke() -> None:
     backend = QSharpBackend()
     res = backend._qsharp(circuit)
     assert res is not None
-    assert "qasm3_import" in res
+    assert "qasm_import" in res
     assert "operation smoke() : Result[]" in res
     assert "Microsoft.Quantum.Arrays.Reversed" in res
 

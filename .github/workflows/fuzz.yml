@@ -7,7 +7,6 @@ env:
   TMIN_LOG_FNAME: fuzz.tmin.log               # File name to redirect the fuzzing input minimization log to.
   GH_ISSUE_TEMPLATE_RFPATH: .github/ISSUE_TEMPLATE/fuzz_bug_report.md
                                               # GitHub issue template rel file path.
-  TARGET_NAME: compile                        # Fuzzing target name. Fuzzes the `compile` func of the Q# compiler.
   ARTIFACTS_RDPATH: fuzz/artifacts            # Fuzzing artifacts rel dir path.
   SEEDS_RDPATH: fuzz/seed_inputs              # Fuzzing seed inputs rel dir path.
   SEEDS_FNAME: list.txt                       # Fuzzing seed inputs list file name.
@@ -31,11 +30,15 @@ jobs:
   fuzz:
     name: Fuzzing
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]                   # Fuzzing is not supported on Win. The macos is temporarily removed
                                               # because of low availability.
-    runs-on: ${{ matrix.os }}
+        target_name: [qsharp, qasm]
 
+    runs-on: ${{ matrix.os }}
+    permissions:
+      issues: write
     steps:
       - name: Install and Configure Tools
         run: |
@@ -49,6 +52,7 @@ jobs:
           submodules: "true"
 
       - name: Gather the Seed Inputs
+        if: matrix.target_name == 'qsharp'
         run: |
           cd $OWNER_RDPATH                    # Enter the dir containing the fuzzing infra.
 
@@ -56,22 +60,22 @@ jobs:
           REPOS="Quantum Quantum-NC QuantumKatas QuantumLibraries iqsharp qdk-python qsharp-compiler qsharp-runtime"
           for REPO in $REPOS ; do
             git clone --depth 1 --single-branch --no-tags --recurse-submodules --shallow-submodules --jobs 4 \
-              https://github.com/microsoft/$REPO.git $SEEDS_RDPATH/$TARGET_NAME/$REPO
+              https://github.com/microsoft/$REPO.git $SEEDS_RDPATH/${{ matrix.target_name }}/$REPO
           done
 
           # Build a comma-separated list of all the .qs files in $SEEDS_FNAME file:
-          find $SEEDS_RDPATH/$TARGET_NAME -name "*.qs" | tr "\n" "," > \
-            $SEEDS_RDPATH/$TARGET_NAME/$SEEDS_FNAME
+          find $SEEDS_RDPATH/${{ matrix.target_name }} -name "*.qs" | tr "\n" "," > \
+            $SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME
 
       - name: Build and Run the Fuzz Target
         run: |
           cd $OWNER_RDPATH               # Enter the dir containing the fuzzing infra.
-          cargo fuzz build --release --sanitizer=none --features do_fuzz $TARGET_NAME  # Build the fuzz target.
+          cargo fuzz build --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }}  # Build the fuzz target.
 
           # Run fuzzing for specified number of seconds and redirect the `stderr` to a file
           # whose name is specified by the STDERR_LOG_FNAME env var:
-          RUST_BACKTRACE=1 cargo fuzz run --release --sanitizer=none --features do_fuzz $TARGET_NAME -- \
-            -seed_inputs=@$SEEDS_RDPATH/$TARGET_NAME/$SEEDS_FNAME \
+          RUST_BACKTRACE=1 cargo fuzz run --release --sanitizer=none --features do_fuzz ${{ matrix.target_name }} -- \
+            -seed_inputs=@$SEEDS_RDPATH/${{ matrix.target_name }}/$SEEDS_FNAME \
             -max_total_time=$DURATION_SEC \
             -rss_limit_mb=4096 \
             -max_len=20000 \
@@ -116,20 +120,20 @@ jobs:
                                                                 # the subsequent `run:` and `uses:` steps.
 
           # Determine the name of a file containing the input of interest (that triggers the panic/crash):
-          if [ -e $ARTIFACTS_RDPATH/$TARGET_NAME/crash-* ]; then    # Panic and Stack Overflow Cases.
+          if [ -e $ARTIFACTS_RDPATH/${{ matrix.target_name }}/crash-* ]; then    # Panic and Stack Overflow Cases.
             TO_MINIMIZE_FNAME=crash-*;
-          elif [ -e $ARTIFACTS_RDPATH/$TARGET_NAME/oom-* ]; then    # Out-of-Memory Case.
+          elif [ -e $ARTIFACTS_RDPATH/${{ matrix.target_name }}/oom-* ]; then    # Out-of-Memory Case.
             TO_MINIMIZE_FNAME=oom-*;
           else
-            echo -e "File to minimize not found.\nContents of artifacts dir \"$ARTIFACTS_RDPATH/$TARGET_NAME/\":"
-            ls $ARTIFACTS_RDPATH/$TARGET_NAME/
+            echo -e "File to minimize not found.\nContents of artifacts dir \"$ARTIFACTS_RDPATH/${{ matrix.target_name }}/\":"
+            ls $ARTIFACTS_RDPATH/${{ matrix.target_name }}/
           fi
 
           if [ "$TO_MINIMIZE_FNAME" != "" ]; then
             echo "TO_MINIMIZE_FNAME: $TO_MINIMIZE_FNAME"
 
             # Minimize the input:
-            ( cargo fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 $TARGET_NAME $ARTIFACTS_RDPATH/$TARGET_NAME/$TO_MINIMIZE_FNAME 2>&1 ) > \
+            ( cargo fuzz tmin --release --sanitizer=none --features do_fuzz -r 10000 ${{ matrix.target_name }} $ARTIFACTS_RDPATH/${{ matrix.target_name }}/$TO_MINIMIZE_FNAME 2>&1 ) > \
               $TMIN_LOG_FNAME || MINIMIZATION_FAILED=1
 
             # Get the minimized input relative faile path:
@@ -137,12 +141,12 @@ jobs:
               # Minimization failed, get the latest successful minimized input relative faile path:
               MINIMIZED_INPUT_RFPATH=`
                 cat $TMIN_LOG_FNAME | grep "CRASH_MIN: minimizing crash input: " | tail -n 1 |
-                sed "s|^.*\($ARTIFACTS_RDPATH/$TARGET_NAME/[^\']*\).*|\1|"`
+                sed "s|^.*\($ARTIFACTS_RDPATH/${{ matrix.target_name }}/[^\']*\).*|\1|"`
             else
               # Minimization Succeeded, get the reported minimized input relative faile path::
               MINIMIZED_INPUT_RFPATH=`
                 cat $TMIN_LOG_FNAME | grep "failed to minimize beyond" |
-                sed "s|.*\($ARTIFACTS_RDPATH/$TARGET_NAME/[^ ]*\).*|\1|" `
+                sed "s|.*\($ARTIFACTS_RDPATH/${{ matrix.target_name }}/[^ ]*\).*|\1|" `
             fi
             echo "MINIMIZED_INPUT_RFPATH: $MINIMIZED_INPUT_RFPATH"
             echo "MINIMIZED_INPUT_RFPATH=$MINIMIZED_INPUT_RFPATH" >> "$GITHUB_ENV"
@@ -187,8 +191,8 @@ jobs:
           path: |
             ${{ env.OWNER_RDPATH }}/${{ env.STDERR_LOG_FNAME }}
             ${{ env.OWNER_RDPATH }}/${{ env.TMIN_LOG_FNAME }}
-            ${{ env.OWNER_RDPATH }}/${{ env.ARTIFACTS_RDPATH }}/${{ env.TARGET_NAME }}/*
-            ${{ env.OWNER_RDPATH }}/${{ env.SEEDS_RDPATH }}/${{ env.TARGET_NAME }}/${{ env.SEEDS_FNAME }}
+            ${{ env.OWNER_RDPATH }}/${{ env.ARTIFACTS_RDPATH }}/${{ matrix.target_name }}/*
+            ${{ env.OWNER_RDPATH }}/${{ env.SEEDS_RDPATH }}/${{ matrix.target_name }}/${{ env.SEEDS_FNAME }}
           if-no-files-found: error
 
       - name: "If Fuzzing Failed: Report GutHub Issue"

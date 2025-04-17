@@ -8,16 +8,14 @@ use std::fmt::Write;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
 use qsc::interpret::{into_errors, Interpreter};
-use qsc::qasm3::io::SourceResolver;
-use qsc::qasm3::{
-    qasm_to_program, CompilerConfig, OperationSignature, QasmCompileUnit, QubitSemantics,
-};
+use qsc::qasm::io::{SourceResolver, SourceResolverContext};
+use qsc::qasm::{OperationSignature, QubitSemantics};
 use qsc::target::Profile;
 use qsc::{
-    ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures,
-    PackageStore, SourceMap,
+    ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures, SourceMap,
 };
 use qsc::{Backend, PackageType, SparseSim};
 
@@ -30,13 +28,14 @@ use crate::interpreter::{
 use resource_estimator as re;
 
 /// `SourceResolver` implementation that uses the provided `FileSystem`
-/// to resolve qasm3 include statements.
+/// to resolve qasm include statements.
 pub(crate) struct ImportResolver<T>
 where
     T: FileSystem,
 {
     fs: T,
     path: PathBuf,
+    ctx: SourceResolverContext,
 }
 
 impl<T> ImportResolver<T>
@@ -47,6 +46,7 @@ where
         Self {
             fs,
             path: PathBuf::from(path.as_ref()),
+            ctx: Default::default(),
         }
     }
 }
@@ -55,12 +55,23 @@ impl<T> SourceResolver for ImportResolver<T>
 where
     T: FileSystem,
 {
-    fn resolve<P>(&self, path: P) -> miette::Result<(PathBuf, String)>
+    fn ctx(&mut self) -> &mut SourceResolverContext {
+        &mut self.ctx
+    }
+
+    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), qsc::qasm::io::Error>
     where
         P: AsRef<Path>,
     {
-        let path = self.path.join(path);
-        let (path, source) = self.fs.read_file(path.as_ref())?;
+        let path = self
+            .fs
+            .resolve_path(self.path.as_path(), path.as_ref())
+            .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
+        self.ctx().check_include_errors(&path)?;
+        let (path, source) = self
+            .fs
+            .read_file(path.as_ref())
+            .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
         Ok((
             PathBuf::from(path.as_ref().to_owned()),
             source.as_ref().to_owned(),
@@ -76,7 +87,7 @@ where
 #[pyo3(
     signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
 )]
-pub fn run_qasm3(
+pub fn run_qasm(
     py: Python,
     source: &str,
     callback: Option<PyObject>,
@@ -97,12 +108,12 @@ pub fn run_qasm3(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         ProgramType::File,
         OutputSemantics::Qiskit,
         false,
@@ -152,7 +163,7 @@ pub(crate) fn run_ast(
 #[pyo3(
     signature = (source, job_params, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn resource_estimate_qasm3(
+pub(crate) fn resource_estimate_qasm(
     py: Python,
     source: &str,
     job_params: &str,
@@ -168,20 +179,20 @@ pub(crate) fn resource_estimate_qasm3(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_type = ProgramType::File;
     let output_semantics = OutputSemantics::ResourceEstimation;
     let (package, source_map, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_type,
         output_semantics,
         false,
     )?;
 
-    match crate::interop::estimate_qasm3(package, source_map, job_params) {
+    match crate::interop::estimate_qasm(package, source_map, job_params) {
         Ok(estimate) => Ok(estimate),
         Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
             Err(QSharpError::new_err(format_errors(
@@ -215,7 +226,7 @@ pub(crate) fn resource_estimate_qasm3(
 #[pyo3(
     signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn compile_qasm3_to_qir(
+pub(crate) fn compile_qasm_to_qir(
     py: Python,
     source: &str,
     read_file: Option<PyObject>,
@@ -231,14 +242,14 @@ pub(crate) fn compile_qasm3_to_qir(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_ty = get_program_type(&kwargs)?;
     let output_semantics = get_output_semantics(&kwargs)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_ty,
         output_semantics,
         false,
@@ -254,67 +265,28 @@ pub(crate) fn compile_qasm3_to_qir(
     generate_qir_from_ast(entry_expr, &mut interpreter)
 }
 
-pub(crate) fn compile_qasm<S: AsRef<str>, R: SourceResolver>(
-    source: S,
-    operation_name: S,
-    resolver: &R,
-    program_ty: ProgramType,
-    output_semantics: OutputSemantics,
-) -> PyResult<QasmCompileUnit> {
-    let parse_result = qsc::qasm3::parse::parse_source(
-        source,
-        format!("{}.qasm", operation_name.as_ref()),
-        resolver,
-    )
-    .map_err(|report| {
-        // this will only fail if a file cannot be read
-        // most likely due to a missing file or search path
-        QasmError::new_err(format!("{report:?}"))
-    })?;
-
-    if parse_result.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(
-            parse_result.errors(),
-        )));
-    }
-    let unit = qasm_to_program(
-        parse_result.source,
-        parse_result.source_map,
-        CompilerConfig::new(
-            QubitSemantics::Qiskit,
-            output_semantics.into(),
-            program_ty.into(),
-            Some(operation_name.as_ref().into()),
-            None,
-        ),
-    );
-
-    if unit.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
-    }
-    Ok(unit)
-}
-
 pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
     source: S,
     operation_name: S,
-    resolver: &R,
+    resolver: &mut R,
     program_ty: ProgramType,
     output_semantics: OutputSemantics,
     allow_input_params: bool,
 ) -> PyResult<(Package, SourceMap, OperationSignature)> {
-    let unit = compile_qasm(
-        source,
-        operation_name,
-        resolver,
-        program_ty,
-        output_semantics,
-    )?;
+    let path = format!("{}.qasm", operation_name.as_ref());
+    let config = qsc::qasm::CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        output_semantics.into(),
+        program_ty.into(),
+        Some(operation_name.as_ref().into()),
+        None,
+    );
+    let unit = qsc::qasm::compile_to_qsharp_ast_with_config(source, path, Some(resolver), config);
 
-    if unit.has_errors() {
-        return Err(QasmError::new_err(format_qasm_errors(unit.errors())));
+    let (source_map, errors, package, sig) = unit.into_tuple();
+    if !errors.is_empty() {
+        return Err(QasmError::new_err(format_qasm_errors(errors)));
     }
-    let (source_map, _, package, sig) = unit.into_tuple();
     let Some(package) = package else {
         return Err(QasmError::new_err("package should have had value"));
     };
@@ -355,7 +327,7 @@ fn generate_qir_from_ast<S: AsRef<str>>(
 #[pyo3(
     signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn compile_qasm3_to_qsharp(
+pub(crate) fn compile_qasm_to_qsharp(
     py: Python,
     source: &str,
     read_file: Option<PyObject>,
@@ -370,14 +342,14 @@ pub(crate) fn compile_qasm3_to_qsharp(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
     let program_ty = get_program_type(&kwargs)?;
     let output_semantics = get_output_semantics(&kwargs)?;
     let (package, _, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
-        &resolver,
+        &mut resolver,
         program_ty,
         output_semantics,
         true,
@@ -467,10 +439,10 @@ fn map_qirgen_errors(errors: Vec<interpret::Error>) -> PyErr {
     QSharpError::new_err(message)
 }
 
-/// Estimates the resources required to run a QASM3 program
+/// Estimates the resources required to run a QASM program
 /// represented by the provided AST. The source map is used for
 /// error reporting during compilation or runtime.
-fn estimate_qasm3(
+fn estimate_qasm(
     ast_package: Package,
     source_map: SourceMap,
     params: &str,
@@ -495,8 +467,8 @@ fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimat
         .collect::<Vec<_>>()
 }
 
-/// Formats a list of QASM3 errors into a single string.
-pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc::qasm3::Error>>) -> String {
+/// Formats a list of QASM errors into a single string.
+pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc::qasm::error::Error>>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -537,12 +509,14 @@ fn create_interpreter_from_ast(
     language_features: LanguageFeatures,
     package_type: PackageType,
 ) -> Result<Interpreter, Vec<interpret::Error>> {
-    let mut store = PackageStore::new(qsc::compile::core());
-    let mut dependencies = Vec::new();
-
     let capabilities = profile.into();
+    let (stdid, qasmid, mut store) = qsc::qasm::package_store_with_qasm(capabilities);
+    let dependencies = vec![
+        (PackageId::CORE, None),
+        (stdid, None),
+        (qasmid, Some("QasmStd".into())),
+    ];
 
-    dependencies.push((store.insert(qsc::compile::std(&store, capabilities)), None));
     let (mut unit, errors) = qsc::compile::compile_ast(
         &store,
         &dependencies,
