@@ -663,7 +663,7 @@ fn merge_configurations(
                         return false;
                     }
                 }
-                _ => continue,
+                _ => (),
             }
         }
         true
