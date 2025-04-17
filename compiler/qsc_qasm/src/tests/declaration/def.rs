@@ -234,7 +234,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qasm.Compile.NegativeUIntValue
+        [Qasm.Compiler.NegativeUIntValue
 
           x uint expression must evaluate to a non-negative value, but it evaluated
           | to -3

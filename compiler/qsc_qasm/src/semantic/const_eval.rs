@@ -25,13 +25,13 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
     #[error("expression must be const")]
-    #[diagnostic(code("Qasm.Compile.ExprMustBeConst"))]
+    #[diagnostic(code("Qasm.Compiler.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
-    #[diagnostic(code("Qasm.Compile.NegativeUIntValue"))]
+    #[diagnostic(code("Qasm.Compiler.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
     #[error("{0} doesn't fit in {1}")]
-    #[diagnostic(code("Qasm.Compile.ValueOverflow"))]
+    #[diagnostic(code("Qasm.Compiler.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
 }
 
