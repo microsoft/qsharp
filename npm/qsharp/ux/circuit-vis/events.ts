@@ -483,7 +483,7 @@ class CircuitEvents {
                 targetLoc,
                 this.selectedWire,
                 targetWire,
-                false,
+                this.movingControl,
                 insertNewColumn,
               );
             } else {
