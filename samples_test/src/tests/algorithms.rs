@@ -136,8 +136,6 @@ pub const QRNG_EXPECT_DEBUG: Expect = expect![[r#"
     46"#]];
 pub const QRNGNISQ_EXPECT: Expect = expect!["[Zero, Zero, One, One, One]"];
 pub const QRNGNISQ_EXPECT_DEBUG: Expect = expect!["[Zero, Zero, One, One, One]"];
-pub const RANDOMBIT_EXPECT: Expect = expect!["Zero"];
-pub const RANDOMBIT_EXPECT_DEBUG: Expect = expect!["Zero"];
 pub const SHOR_EXPECT: Expect = expect![[r#"
     *** Factorizing 187, attempt 1.
     Estimating period of 182.
