@@ -89,8 +89,8 @@ impl Error {
 pub enum TokenKind {
     /// `@DOT_SEPARETED_IDENTIFIER REST_OF_LINE`
     /// Examples:
-    ///   @Microsoft.SimulatableIntrinsic
-    ///   @Microsoft.Config Base
+    ///   @qsharp.SimulatableIntrinsic
+    ///   @qsharp.Config Base
     Annotation,
     /// `pragma REST_OF_LINE`
     ///  or

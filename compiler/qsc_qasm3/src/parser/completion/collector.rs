@@ -57,7 +57,7 @@
 //! ```
 
 use super::WordKinds;
-use crate::lex::{ClosedBinOp, Token, TokenKind};
+use crate::lex::{Token, TokenKind};
 use qsc_data_structures::span::Span;
 
 pub(crate) struct ValidWordCollector {
@@ -163,7 +163,8 @@ fn cursor_at_token(cursor_offset: u32, next_token: Token, scanner_offset: u32) -
         // Order matters here as the cases overlap.
         TokenKind::Identifier
         | TokenKind::Keyword(_)
-        | TokenKind::ClosedBinOp(ClosedBinOp::AmpAmp | ClosedBinOp::BarBar)
+        | TokenKind::GPhase
+        | TokenKind::DurationOf
         | TokenKind::Eof => {
             // next token is a word or eof, so count if cursor touches either side of the token
             scanner_offset <= cursor_offset && cursor_offset <= next_token.span.hi
