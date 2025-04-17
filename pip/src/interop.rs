@@ -28,7 +28,7 @@ use crate::interpreter::{
 use resource_estimator as re;
 
 /// `SourceResolver` implementation that uses the provided `FileSystem`
-/// to resolve qasm3 include statements.
+/// to resolve qasm include statements.
 pub(crate) struct ImportResolver<T>
 where
     T: FileSystem,
@@ -87,7 +87,7 @@ where
 #[pyo3(
     signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
 )]
-pub fn run_qasm3(
+pub fn run_qasm(
     py: Python,
     source: &str,
     callback: Option<PyObject>,
@@ -163,7 +163,7 @@ pub(crate) fn run_ast(
 #[pyo3(
     signature = (source, job_params, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn resource_estimate_qasm3(
+pub(crate) fn resource_estimate_qasm(
     py: Python,
     source: &str,
     job_params: &str,
@@ -192,7 +192,7 @@ pub(crate) fn resource_estimate_qasm3(
         false,
     )?;
 
-    match crate::interop::estimate_qasm3(package, source_map, job_params) {
+    match crate::interop::estimate_qasm(package, source_map, job_params) {
         Ok(estimate) => Ok(estimate),
         Err(errors) if matches!(errors[0], re::Error::Interpreter(_)) => {
             Err(QSharpError::new_err(format_errors(
@@ -226,7 +226,7 @@ pub(crate) fn resource_estimate_qasm3(
 #[pyo3(
     signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn compile_qasm3_to_qir(
+pub(crate) fn compile_qasm_to_qir(
     py: Python,
     source: &str,
     read_file: Option<PyObject>,
@@ -327,7 +327,7 @@ fn generate_qir_from_ast<S: AsRef<str>>(
 #[pyo3(
     signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn compile_qasm3_to_qsharp(
+pub(crate) fn compile_qasm_to_qsharp(
     py: Python,
     source: &str,
     read_file: Option<PyObject>,
@@ -439,10 +439,10 @@ fn map_qirgen_errors(errors: Vec<interpret::Error>) -> PyErr {
     QSharpError::new_err(message)
 }
 
-/// Estimates the resources required to run a QASM3 program
+/// Estimates the resources required to run a QASM program
 /// represented by the provided AST. The source map is used for
 /// error reporting during compilation or runtime.
-fn estimate_qasm3(
+fn estimate_qasm(
     ast_package: Package,
     source_map: SourceMap,
     params: &str,
@@ -467,7 +467,7 @@ fn into_estimation_errors(errors: Vec<interpret::Error>) -> Vec<resource_estimat
         .collect::<Vec<_>>()
 }
 
-/// Formats a list of QASM3 errors into a single string.
+/// Formats a list of QASM errors into a single string.
 pub(crate) fn format_qasm_errors(errors: Vec<WithSource<qsc::qasm::error::Error>>) -> String {
     errors
         .into_iter()

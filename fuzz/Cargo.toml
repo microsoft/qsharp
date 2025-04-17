@@ -32,7 +32,7 @@ test = false
 doc = false
 
 [[bin]]
-name = "qasm3"
-path = "fuzz_targets/qasm3.rs"
+name = "qasm"
+path = "fuzz_targets/qasm.rs"
 test = false
 doc = false

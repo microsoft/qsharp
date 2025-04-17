@@ -1011,7 +1011,7 @@ dependencies = [
  "qsc_partial_eval",
  "qsc_passes",
  "qsc_project",
- "qsc_qasm3",
+ "qsc_qasm",
  "qsc_rca",
  "rustc-hash",
  "thiserror",
@@ -1276,7 +1276,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qsc_qasm3"
+name = "qsc_qasm"
 version = "0.0.0"
 dependencies = [
  "bitflags",
@@ -1297,7 +1297,7 @@ dependencies = [
  "qsc_hir",
  "qsc_parse",
  "qsc_passes",
- "qsc_qasm3",
+ "qsc_qasm",
  "rustc-hash",
  "thiserror",
 ]

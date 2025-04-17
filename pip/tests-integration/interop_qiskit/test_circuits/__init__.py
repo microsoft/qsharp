@@ -15,14 +15,14 @@ def generate_repro_information(
     message += "\n"
 
     try:
-        qasm3_source = backend._qasm3(circuit, **options)
-        message += "QASM3 source:"
+        qasm_source = backend._qasm(circuit, **options)
+        message += "QASM source:"
         message += "\n"
-        message += str(qasm3_source)
+        message += str(qasm_source)
     except Exception as ex:
         # if the conversion fails, print the circuit as a string
-        # as a fallback since we won't have the qasm3 source
-        message += "\nFailed converting QuantumCircuit to QASM3:\n"
+        # as a fallback since we won't have the qasm source
+        message += "\nFailed converting QuantumCircuit to QASM:\n"
         message += str(ex)
         message += "\n"
         message += "QuantumCircuit rendered:"

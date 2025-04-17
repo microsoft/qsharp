@@ -1,1 +1,0 @@
-fuzz/seed_inputs/qasm3/input.qasm

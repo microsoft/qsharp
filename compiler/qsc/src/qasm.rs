@@ -3,28 +3,26 @@
 
 use std::path::Path;
 
-use qsc_qasm3::io::SourceResolver;
-pub use qsc_qasm3::CompilerConfig;
-pub use qsc_qasm3::OperationSignature;
-pub use qsc_qasm3::OutputSemantics;
-pub use qsc_qasm3::ProgramType;
-pub use qsc_qasm3::QasmCompileUnit;
-pub use qsc_qasm3::QubitSemantics;
+use qsc_qasm::io::SourceResolver;
+pub use qsc_qasm::{
+    CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
+    QubitSemantics,
+};
 pub mod io {
-    pub use qsc_qasm3::io::*;
+    pub use qsc_qasm::io::*;
 }
 pub mod parser {
-    pub use qsc_qasm3::parser::*;
+    pub use qsc_qasm::parser::*;
 }
 pub mod error {
-    pub use qsc_qasm3::Error;
-    pub use qsc_qasm3::ErrorKind;
+    pub use qsc_qasm::Error;
+    pub use qsc_qasm::ErrorKind;
 }
 pub mod completion {
-    pub use qsc_qasm3::parser::completion::*;
+    pub use qsc_qasm::parser::completion::*;
 }
-pub use qsc_qasm3::compile_to_qsharp_ast_with_config;
-pub use qsc_qasm3::package_store_with_qasm;
+pub use qsc_qasm::compile_to_qsharp_ast_with_config;
+pub use qsc_qasm::package_store_with_qasm;
 
 #[must_use]
 pub fn parse_raw_qasm_as_fragments<S, P, R>(

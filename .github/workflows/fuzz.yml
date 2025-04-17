@@ -34,7 +34,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]                   # Fuzzing is not supported on Win. The macos is temporarily removed
                                               # because of low availability.
-        target_name: [qsharp, qasm3]
+        target_name: [qsharp, qasm]
 
     runs-on: ${{ matrix.os }}
     permissions:
