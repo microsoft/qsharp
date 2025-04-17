@@ -293,6 +293,37 @@ class Interpreter:
         """
         ...
 
+    def interpret_qasm3(
+        self,
+        input: str,
+        output_fn: Callable[[Output], None],
+        read_file: Callable[[str], Tuple[str, str]],
+        list_directory: Callable[[str], List[Dict[str, str]]],
+        resolve_path: Callable[[str, str], str],
+        fetch_github: Callable[[str, str, str, str], str],
+        **kwargs
+    ) -> Any:
+        """
+        Interprets OpenQASM3 source code.
+        :param input: The OpenQASM3 source code to interpret.
+        output_fn (Callable[[Output], None]): The function to handle the output of the execution.
+        read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
+        list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
+        resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
+        fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
+
+        **kwargs: Additional keyword arguments to pass to the execution.
+          - name (str): The name of the program. This is used as the entry point for the program.
+          - search_path (Optional[str]): The optional search path for resolving file references.
+          - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+          - program_type (ProgramType, optional): The type of program compilation to perform.
+
+        :returns value: The value returned by the last statement in the input.
+        :raises QSharpError: If there is an error interpreting the input.
+        """
+        ...
+
+
 class Result(Enum):
     """
     A Q# measurement result.

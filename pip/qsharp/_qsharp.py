@@ -398,6 +398,88 @@ def eval(
     else:
         return results["result"]
 
+def eval_qasm3(
+    source: str,
+    *,
+    save_events: bool = False,
+    **kwargs: Optional[Dict[str, Any]],
+) -> Any:
+    """
+    Evaluates Q# source code.
+
+    Output is printed to console.
+
+    :param source: The Q# source code to evaluate.
+    :param save_events: If true, all output will be saved and returned. If false, they will be printed.
+    **kwargs: Additional keyword arguments to pass to the execution.
+        - name (str): The name of the program. This is used as the entry point for the program.
+        - search_path (Optional[str]): The optional search path for resolving file references.
+        - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+        - program_type (ProgramType, optional): The type of program compilation to perform.
+
+    :returns value: The value returned by the last statement in the source code or the saved output if `save_events` is true.
+    :raises QSharpError: If there is an error evaluating the source code.
+    """
+    ipython_helper()
+
+    results: ShotResult = {
+        "events": [],
+        "result": None,
+        "messages": [],
+        "matrices": [],
+        "dumps": [],
+    }
+
+    def on_save_events(output: Output) -> None:
+        # Append the output to the last shot's output list
+        if output.is_matrix():
+            results["events"].append(output)
+            results["matrices"].append(output)
+        elif output.is_state_dump():
+            state_dump = StateDump(output.state_dump())
+            results["events"].append(state_dump)
+            results["dumps"].append(state_dump)
+        elif output.is_message():
+            stringified = str(output)
+            results["events"].append(stringified)
+            results["messages"].append(stringified)
+
+    def callback(output: Output) -> None:
+        if _in_jupyter:
+            try:
+                display(output)
+                return
+            except:
+                # If IPython is not available, fall back to printing the output
+                pass
+        print(output, flush=True)
+
+    from ._fs import read_file, list_directory, resolve
+    from ._http import fetch_github
+
+    telemetry_events.on_eval_qasm3()
+    start_time = monotonic()
+
+    # remove any entries from kwargs with a None key or None value
+    kwargs = {k: v for k, v in kwargs.items() if k is not None and v is not None}
+
+    results["result"] = get_interpreter().interpret_qasm3(
+        source,
+        on_save_events if save_events else callback,
+        read_file,
+        list_directory,
+        resolve,
+        fetch_github,
+        **kwargs,
+    )
+
+    durationMs = (monotonic() - start_time) * 1000
+    telemetry_events.on_eval_qasm3_end(durationMs)
+
+    if save_events:
+        return results
+    else:
+        return results["result"]
 
 # Helper function that knows how to create a function that invokes a callable. This will be
 # used by the underlying native code to create functions for callables on the fly that know

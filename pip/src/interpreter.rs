@@ -6,7 +6,9 @@ use crate::{
     fs::file_system,
     interop::{
         compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
-        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+        create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
+        get_search_path, map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3,
+        ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -21,6 +23,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qsc::{
+    error::WithSource,
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
@@ -30,6 +33,7 @@ use qsc::{
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
+    qasm::{compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -430,6 +434,92 @@ impl Interpreter {
         }
     }
 
+    /// Interprets OpenQASM 3 source code.
+    ///
+    /// :param input: The OpenQASM source code to interpret.
+    /// :param output_fn: A callback function that will be called with each output.
+    ///
+    /// :returns value: The value returned by the last statement in the input.
+    ///
+    /// :raises QSharpError: If there is an error interpreting the input.
+    #[pyo3(signature=(input, output_fn, read_file, list_directory, resolve_path, fetch_github, **kwargs))]
+    #[allow(clippy::needless_pass_by_value)]
+    #[allow(clippy::too_many_arguments)]
+    fn interpret_qasm3(
+        &mut self,
+        py: Python,
+        input: &str,
+        output_fn: Option<PyObject>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+
+        let operation_name = get_operation_name(&kwargs)?;
+        let search_path = get_search_path(&kwargs)?;
+        let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+        let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::OpenQasm)?;
+
+        let fs =
+            create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+
+        let config = CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            output_semantics.into(),
+            program_ty.into(),
+            Some(operation_name.into()),
+            None,
+        );
+
+        let unit = compile_to_qsharp_ast_with_config(input, "<none>", Some(&mut resolver), config);
+        let (sources, errors, package, _) = unit.into_tuple();
+
+        if !errors.is_empty() {
+            let errors = errors
+                .iter()
+                .map(|e| {
+                    use qsc::compile::ErrorKind;
+                    use qsc::interpret::Error;
+                    let error = e.error().clone();
+                    let kind = ErrorKind::OpenQasm(error);
+                    let v = WithSource::from_map(&sources, kind);
+                    Error::Compile(v)
+                })
+                .collect();
+            return Err(QSharpError::new_err(format_errors(errors)));
+        }
+
+        let package = package.expect("Should have a package");
+        let mut receiver = OptionalCallbackReceiver {
+            callback: output_fn,
+            py,
+        };
+
+        match self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, input, package)
+        {
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
     /// Sets the quantum seed for the interpreter.
     #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
@@ -667,8 +757,9 @@ impl Interpreter {
         let seed = crate::interop::get_seed(&kwargs);
         let shots = crate::interop::get_shots(&kwargs)?;
         let search_path = crate::interop::get_search_path(&kwargs)?;
-        let program_type = crate::interop::get_program_type(&kwargs)?;
-        let output_semantics = crate::interop::get_output_semantics(&kwargs)?;
+        let program_type = crate::interop::get_program_type(&kwargs, || ProgramType::File)?;
+        let output_semantics =
+            crate::interop::get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
 
         let fs = crate::interop::create_filesystem_from_py(
             py,

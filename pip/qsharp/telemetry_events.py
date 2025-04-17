@@ -72,6 +72,19 @@ def on_eval_end(durationMs: float) -> None:
         type="histogram",
     )
 
+def on_eval_qasm3() -> None:
+    log_telemetry(
+        "qsharp.eval_qasm3",
+        1,
+    )
+
+
+def on_eval_qasm3_end(durationMs: float) -> None:
+    log_telemetry(
+        "qsharp.eval_qasm3.durationMs",
+        durationMs,
+        type="histogram",
+    )
 
 def on_run_cell() -> None:
     log_telemetry(

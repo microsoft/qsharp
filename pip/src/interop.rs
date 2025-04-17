@@ -244,8 +244,8 @@ pub(crate) fn compile_qasm3_to_qir(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_ty = get_program_type(&kwargs)?;
-    let output_semantics = get_output_semantics(&kwargs)?;
+    let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+    let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
@@ -344,8 +344,8 @@ pub(crate) fn compile_qasm3_to_qsharp(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_ty = get_program_type(&kwargs)?;
-    let output_semantics = get_output_semantics(&kwargs)?;
+    let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+    let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, _, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
@@ -586,19 +586,27 @@ pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
 }
 
 /// Extracts the program type from the kwargs dictionary.
-pub(crate) fn get_program_type(kwargs: &Bound<'_, PyDict>) -> PyResult<ProgramType> {
+pub(crate) fn get_program_type<D>(kwargs: &Bound<'_, PyDict>, default: D) -> PyResult<ProgramType>
+where
+    D: FnOnce() -> ProgramType,
+{
     let target = kwargs
         .get_item("program_ty")?
-        .map_or_else(|| Ok(ProgramType::File), |x| x.extract::<ProgramType>())?;
+        .map_or_else(|| Ok(default()), |x| x.extract::<ProgramType>())?;
     Ok(target)
 }
 
 /// Extracts the output semantics from the kwargs dictionary.
-pub(crate) fn get_output_semantics(kwargs: &Bound<'_, PyDict>) -> PyResult<OutputSemantics> {
-    let target = kwargs.get_item("output_semantics")?.map_or_else(
-        || Ok(OutputSemantics::Qiskit),
-        |x| x.extract::<OutputSemantics>(),
-    )?;
+pub(crate) fn get_output_semantics<D>(
+    kwargs: &Bound<'_, PyDict>,
+    default: D,
+) -> PyResult<OutputSemantics>
+where
+    D: FnOnce() -> OutputSemantics,
+{
+    let target = kwargs
+        .get_item("output_semantics")?
+        .map_or_else(|| Ok(default()), |x| x.extract::<OutputSemantics>())?;
     Ok(target)
 }
 
