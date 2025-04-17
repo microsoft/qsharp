@@ -41,9 +41,6 @@ bitflags! {
         /// A path segment that follows a `.`
         /// A more specific name kind can be inferred from a recovered AST.
         const PathSegment = 1 << 1;
-        /// A primitive class.
-        const PrimitiveClass = 1 << 2;
-
 
         //
         // End names.
@@ -54,7 +51,7 @@ bitflags! {
         //
 
         /// An annotation, without the leading `@`.
-        const Annotation = 1 << 3;
+        const Annotation = 1 << 2;
 
 
         //
@@ -110,7 +107,7 @@ bitflags! {
     }
 }
 
-const KEYWORDS_START: u8 = 4;
+const KEYWORDS_START: u8 = 3;
 const fn keyword_bit(k: Keyword) -> u128 {
     1 << (k as u8 + KEYWORDS_START)
 }
