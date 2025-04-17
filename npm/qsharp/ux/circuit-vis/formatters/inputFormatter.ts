@@ -29,7 +29,7 @@ const formatInputs = (
   let currY: number = startY;
   qubits.forEach(({ id, numResults }) => {
     // Add qubit wire to list of qubit wires
-    qubitWires.push(_qubitInput(currY));
+    qubitWires.push(_qubitInput(currY, id.toString()));
 
     // Create qubit register
     registers[id] = { type: RegisterType.Qubit, y: currY };
@@ -68,8 +68,39 @@ const formatInputs = (
  *
  * @returns SVG text component for the input register.
  */
-const _qubitInput = (y: number): SVGElement => {
-  const el: SVGElement = text("|𝜓⟩", leftPadding, y, 16);
+const _qubitInput = (y: number, subscript?: string): SVGElement => {
+  const el: SVGElement = text("", leftPadding, y, 16);
+
+  // Create the main text node
+  const mainText = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "tspan",
+  );
+  mainText.textContent = "|𝜓";
+
+  // Create the subscript node if provided
+  if (subscript) {
+    const subscriptText = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "tspan",
+    );
+    subscriptText.textContent = subscript;
+    subscriptText.setAttribute("baseline-shift", "sub");
+    subscriptText.setAttribute("font-size", "65%");
+    mainText.appendChild(subscriptText);
+  }
+
+  // Add the closing part of the text
+  const closingText = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "tspan",
+  );
+  closingText.textContent = "⟩";
+
+  // Append all parts to the main SVG text element
+  el.appendChild(mainText);
+  el.appendChild(closingText);
+
   el.setAttribute("text-anchor", "start");
   el.setAttribute("dominant-baseline", "middle");
   return el;
