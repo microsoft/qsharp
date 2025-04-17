@@ -26,33 +26,50 @@
       "title": "Lints",
       "type": "array",
       "items": {
+        "title": "lint",
         "type": "object",
-        "properties": {
-          "lint": {
-            "type": "string",
-            "enum": [
-              "divisionByZero",
-              "needlessParens",
-              "redundantSemicolons",
-              "deprecatedNewtype",
-              "deprecatedSet",
-              "discourageChainAssignment",
-              "doubleEquality",
-              "needlessOperation",
-              "deprecatedFunctionConstructor",
-              "deprecatedWithOperator",
-              "deprecatedDoubleColonOperator"
-            ]
+        "oneOf": [
+          {
+            "properties": {
+              "group": {
+                "type": "string",
+                "enum": ["deprecations"]
+              },
+              "level": {
+                "type": "string",
+                "enum": ["allow", "warn", "error"]
+              }
+            },
+            "required": ["group", "level"],
+            "additionalProperties": false
           },
-          "group": {
-            "type": "string",
-            "enum": ["deprecations"]
-          },
-          "level": {
-            "type": "string",
-            "enum": ["allow", "warn", "error"]
+          {
+            "properties": {
+              "lint": {
+                "type": "string",
+                "enum": [
+                  "divisionByZero",
+                  "needlessParens",
+                  "redundantSemicolons",
+                  "deprecatedNewtype",
+                  "deprecatedSet",
+                  "discourageChainAssignment",
+                  "doubleEquality",
+                  "needlessOperation",
+                  "deprecatedFunctionConstructor",
+                  "deprecatedWithOperator",
+                  "deprecatedDoubleColonOperator"
+                ]
+              },
+              "level": {
+                "type": "string",
+                "enum": ["allow", "warn", "error"]
+              }
+            },
+            "required": ["lint", "level"],
+            "additionalProperties": false
           }
-        }
+        ]
       }
     },
     "dependencies": {
