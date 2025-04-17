@@ -1297,7 +1297,6 @@ dependencies = [
  "qsc_hir",
  "qsc_parse",
  "qsc_passes",
- "qsc_qasm",
  "rustc-hash",
  "thiserror",
 ]
