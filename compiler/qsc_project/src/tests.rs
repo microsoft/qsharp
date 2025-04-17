@@ -8,7 +8,7 @@
 mod harness;
 
 use expect_test::expect;
-use harness::{check, check_file_in_project};
+use harness::{check, check_files_in_project};
 
 #[test]
 fn basic_manifest() {
@@ -51,7 +51,7 @@ fn basic_manifest() {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn local_circuits() {
-    check_file_in_project(
+    check_files_in_project(
         &"circuit_files".into(),
         &expect![[r#"
         [
@@ -69,7 +69,7 @@ fn local_circuits() {
 
 #[test]
 fn dependency_circuits() {
-    check_file_in_project(
+    check_files_in_project(
         &"with_local_circuit_dep".into(),
         &expect![[r#"
         [

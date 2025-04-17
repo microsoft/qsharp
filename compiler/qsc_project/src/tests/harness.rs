@@ -33,7 +33,7 @@ pub fn check(project_path: &PathBuf, expect: &Expect) {
     expect.assert_eq(&format!("{project:#?}"));
 }
 
-pub fn check_file_in_project(project_path: &PathBuf, expect: &Expect) {
+pub fn check_files_in_project(project_path: &PathBuf, expect: &Expect) {
     let mut root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     root_path.push(PathBuf::from("src"));
     root_path.push(PathBuf::from("tests"));
