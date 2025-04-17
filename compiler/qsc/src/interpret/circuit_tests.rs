@@ -512,7 +512,8 @@ fn custom_intrinsic_mixed_args() {
     "]]
     .assert_eq(&circ.to_string());
 
-    assert_eq!(circ.operations.len(), 1);
+    assert_eq!(circ.component_grid.len(), 1);
+    assert_eq!(circ.component_grid[0].components.len(), 1);
 }
 
 #[test]

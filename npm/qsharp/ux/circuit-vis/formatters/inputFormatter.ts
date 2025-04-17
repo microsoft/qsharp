@@ -27,7 +27,7 @@ const formatInputs = (
   const registers: RegisterMap = {};
 
   let currY: number = startY;
-  qubits.forEach(({ id, numChildren }) => {
+  qubits.forEach(({ id, numResults }) => {
     // Add qubit wire to list of qubit wires
     qubitWires.push(_qubitInput(currY));
 
@@ -35,7 +35,7 @@ const formatInputs = (
     registers[id] = { type: RegisterType.Qubit, y: currY };
 
     // If there are no attached classical registers, increment y by fixed register height
-    if (numChildren == null || numChildren === 0) {
+    if (numResults == null || numResults === 0) {
       currY += registerHeight;
       return;
     }
@@ -44,7 +44,7 @@ const formatInputs = (
     currY += classicalRegHeight;
 
     // Add classical wires
-    registers[id].children = Array.from(Array(numChildren), () => {
+    registers[id].children = Array.from(Array(numResults), () => {
       const clsReg: RegisterMetadata = {
         type: RegisterType.Classical,
         y: currY,
@@ -55,7 +55,7 @@ const formatInputs = (
   });
 
   return {
-    qubitWires: group(qubitWires),
+    qubitWires: group(qubitWires, { class: "qubit-input-states" }),
     registers,
     svgHeight: currY,
   };
@@ -69,7 +69,7 @@ const formatInputs = (
  * @returns SVG text component for the input register.
  */
 const _qubitInput = (y: number): SVGElement => {
-  const el: SVGElement = text("|0⟩", leftPadding, y, 16);
+  const el: SVGElement = text("|𝜓⟩", leftPadding, y, 16);
   el.setAttribute("text-anchor", "start");
   el.setAttribute("dominant-baseline", "middle");
   return el;

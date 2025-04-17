@@ -2,29 +2,34 @@
 // Licensed under the MIT license.
 
 import { Sqore } from "./sqore";
-import { Circuit } from "./circuit";
-import { StyleConfig } from "./styles";
+import { CircuitGroup } from "./circuit";
 
 /**
  * Render `circuit` into `container` at the specified layer depth.
  *
- * @param circuit Circuit to be visualized.
+ * @param circuitGroup Group of circuits to be visualized.
  * @param container HTML element for rendering visualization into.
- * @param style Custom visualization style.
  * @param renderDepth Initial layer depth at which to render gates.
+ * @param isEditable Whether the circuit is editable.
+ * @param editCallback Callback function to be called when the circuit is edited.
  */
 export const draw = (
-  circuit: Circuit,
+  circuitGroup: CircuitGroup,
   container: HTMLElement,
-  style: StyleConfig | string = {},
   renderDepth = 0,
+  isEditable = false,
+  editCallback?: (circuitGroup: CircuitGroup) => void,
 ): void => {
-  const sqore = new Sqore(circuit, style);
+  const sqore = new Sqore(circuitGroup, isEditable, editCallback);
   sqore.draw(container, renderDepth);
 };
 
-export { STYLES } from "./styles";
-
 // Export types
-export type { StyleConfig } from "./styles";
-export type { Circuit, Qubit, Operation } from "./circuit";
+export type {
+  CircuitGroup,
+  Circuit,
+  ComponentGrid,
+  Column,
+  Qubit,
+  Operation,
+} from "./circuit";

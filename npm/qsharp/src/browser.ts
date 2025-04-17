@@ -192,4 +192,4 @@ export type {
 
 export * as utils from "./utils.js";
 
-export type { Circuit as CircuitData } from "./shared/circuit.js";
+export type { CircuitGroup as CircuitData } from "./shared/circuit.js";
