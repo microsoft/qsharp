@@ -748,7 +748,7 @@ function generateKatasContent(katasPath, outputPath) {
 }
 
 // Generate HTML and Markdown versions of the katas bundle
-// emitHtml = true;
-// generateKatasContent(katasContentPath, katasGeneratedContentPath);
-// emitHtml = false;
-// generateKatasContent(katasContentPath, katasGeneratedContentPath);
+emitHtml = true;
+generateKatasContent(katasContentPath, katasGeneratedContentPath);
+emitHtml = false;
+generateKatasContent(katasContentPath, katasGeneratedContentPath);
