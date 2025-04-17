@@ -96,15 +96,20 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
             match &op {
                 Operation::Measurement(measurement) => {
                     body_str.push_str(
-                        handle_measurement(measurement, &qubits, &indent, &mut measure_results)
-                            .as_str(),
+                        generate_measurement_call(
+                            measurement,
+                            &qubits,
+                            &indent,
+                            &mut measure_results,
+                        )
+                        .as_str(),
                     );
                 }
                 Operation::Unitary(unitary) => {
-                    body_str.push_str(handle_unitary(unitary, &qubits, &indent).as_str());
+                    body_str.push_str(generate_unitary_call(unitary, &qubits, &indent).as_str());
                 }
                 Operation::Ket(ket) => {
-                    body_str.push_str(handle_ket(ket, &qubits, &indent).as_str());
+                    body_str.push_str(generate_ket_call(ket, &qubits, &indent).as_str());
                 }
             }
 
@@ -151,7 +156,7 @@ fn generate_qubit_validation(
     )
 }
 
-fn handle_measurement(
+fn generate_measurement_call(
     measurement: &Measurement,
     qubits: &FxHashMap<usize, String>,
     indent: &str,
@@ -188,7 +193,11 @@ fn handle_measurement(
     }
 }
 
-fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
+fn generate_unitary_call(
+    unitary: &Unitary,
+    qubits: &FxHashMap<usize, String>,
+    indent: &str,
+) -> String {
     // "SX" will generate three operations: H, X and H
     if unitary.gate == "SX" {
         let h_str = operation_call(
@@ -220,7 +229,7 @@ fn handle_unitary(unitary: &Unitary, qubits: &FxHashMap<usize, String>, indent: 
     }
 }
 
-fn handle_ket(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
+fn generate_ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
     if ket.gate == "1" {
         // Note "|1〉" will generate two operations: Reset and X
         let ket_str = ket_call(ket, qubits);
