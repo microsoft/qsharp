@@ -19,28 +19,6 @@ use rustc_hash::FxHashMap;
 pub trait SourceResolver {
     fn ctx(&mut self) -> &mut SourceResolverContext;
 
-    #[cfg(feature = "fs")]
-    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
-    where
-        P: AsRef<Path>,
-    {
-        let path = std::fs::canonicalize(path).map_err(|e| {
-            Error(ErrorKind::IO(format!(
-                "Could not resolve include file path: {e}"
-            )))
-        })?;
-
-        self.ctx().check_include_errors(&path)?;
-
-        match std::fs::read_to_string(&path) {
-            Ok(source) => {
-                self.ctx().add_path_to_include_graph(path.clone());
-                Ok((path, source))
-            }
-            Err(error) => Err(Error(ErrorKind::IO(error.to_string()))),
-        }
-    }
-    #[cfg(not(feature = "fs"))]
     fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
     where
         P: AsRef<Path>;
