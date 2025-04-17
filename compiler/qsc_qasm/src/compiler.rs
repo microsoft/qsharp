@@ -693,7 +693,7 @@ impl QasmCompiler {
             .filter_map(|annotation| self.compile_annotation(annotation));
 
         // We use the same primitives used for declaring gates, because def declarations
-        // in QASM3 can take qubits as arguments and call quantum gates.
+        // in QASM can take qubits as arguments and call quantum gates.
         Some(build_function_or_operation(
             name,
             cargs,

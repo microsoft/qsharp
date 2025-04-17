@@ -34,7 +34,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;

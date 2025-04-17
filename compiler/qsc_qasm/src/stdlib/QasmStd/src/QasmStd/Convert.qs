@@ -3,7 +3,7 @@
 
 import Std.Math.AbsI;
 
-/// The POW function is used to implement the `pow` modifier in QASM3 for integers.
+/// The POW function is used to implement the `pow` modifier in QASM for integers.
 operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj + Ctl), target : 'T) : Unit {
     let op = if N > 0 { () => op(target) } else { () => Adjoint op(target) };
     for _ in 1..AbsI(N) {
@@ -11,7 +11,7 @@ operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj + Ctl), target : 'T) : Unit
     }
 }
 
-/// The ``BARRIER`` function is used to implement the `barrier` statement in QASM3.
+/// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.
 /// The `@SimulatableIntrinsic` attribute is used to mark the operation for QIR
 /// generation.
 /// Q# doesn't support barriers, so this is a no-op. We need to figure out what
@@ -20,13 +20,13 @@ operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj + Ctl), target : 'T) : Unit
 operation __quantum__qis__barrier__body() : Unit {}
 
 
-/// The ``BOOL_AS_RESULT`` function is used to implement the cast expr in QASM3 for bool to bit.
-/// This already exists in the Q# library, but is defined as a marker for casts from QASM3.
+/// The ``BOOL_AS_RESULT`` function is used to implement the cast expr in QASM for bool to bit.
+/// This already exists in the Q# library, but is defined as a marker for casts from QASM.
 function __BoolAsResult__(input: Bool) : Result {
     Microsoft.Quantum.Convert.BoolAsResult(input)
 }
 
-/// The ``BOOL_AS_INT`` function is used to implement the cast expr in QASM3 for bool to int.
+/// The ``BOOL_AS_INT`` function is used to implement the cast expr in QASM for bool to int.
 function __BoolAsInt__(value: Bool) : Int {
     if value {
         1
@@ -35,7 +35,7 @@ function __BoolAsInt__(value: Bool) : Int {
     }
 }
 
-/// The ``BOOL_AS_BIGINT`` function is used to implement the cast expr in QASM3 for bool to big int.
+/// The ``BOOL_AS_BIGINT`` function is used to implement the cast expr in QASM for bool to big int.
 
 function __BoolAsBigInt__(value: Bool) : BigInt {
     if value {
@@ -45,7 +45,7 @@ function __BoolAsBigInt__(value: Bool) : BigInt {
     }
 }
 
-/// The ``BOOL_AS_DOUBLE`` function is used to implement the cast expr in QASM3 for bool to int.
+/// The ``BOOL_AS_DOUBLE`` function is used to implement the cast expr in QASM for bool to int.
 
 function __BoolAsDouble__(value: Bool) : Double {
     if value {
@@ -55,13 +55,13 @@ function __BoolAsDouble__(value: Bool) : Double {
     }
 }
 
-/// The ``RESULT_AS_BOOL`` function is used to implement the cast expr in QASM3 for bit to bool.
-/// This already exists in the Q# library, but is defined as a marker for casts from QASM3.
+/// The ``RESULT_AS_BOOL`` function is used to implement the cast expr in QASM for bit to bool.
+/// This already exists in the Q# library, but is defined as a marker for casts from QASM.
 function __ResultAsBool__(input: Result) : Bool {
     Microsoft.Quantum.Convert.ResultAsBool(input)
 }
 
-/// The ``RESULT_AS_INT`` function is used to implement the cast expr in QASM3 for bit to bool.
+/// The ``RESULT_AS_INT`` function is used to implement the cast expr in QASM for bit to bool.
 function __ResultAsInt__(input: Result) : Int {
     if Microsoft.Quantum.Convert.ResultAsBool(input) {
         1
@@ -70,7 +70,7 @@ function __ResultAsInt__(input: Result) : Int {
     }
 }
 
-/// The ``RESULT_AS_BIGINT`` function is used to implement the cast expr in QASM3 for bit to bool.
+/// The ``RESULT_AS_BIGINT`` function is used to implement the cast expr in QASM for bit to bool.
 function __ResultAsBigInt__(input: Result) : BigInt {
     if Microsoft.Quantum.Convert.ResultAsBool(input) {
         1L
@@ -79,7 +79,7 @@ function __ResultAsBigInt__(input: Result) : BigInt {
     }
 }
 
-/// The ``INT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM3 for int to bit[].
+/// The ``INT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for int to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
     mutable runningValue = number;
@@ -91,7 +91,7 @@ function __IntAsResultArrayBE__(number : Int, bits : Int) : Result[] {
     Microsoft.Quantum.Arrays.Reversed(result)
 }
 
-/// The ``RESULT_ARRAY_AS_INT_BE`` function is used to implement the cast expr in QASM3 for bit[] to uint.
+/// The ``RESULT_ARRAY_AS_INT_BE`` function is used to implement the cast expr in QASM for bit[] to uint.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function __ResultArrayAsIntBE__(results : Result[]) : Int {
      Microsoft.Quantum.Convert.ResultArrayAsInt(Microsoft.Quantum.Arrays.Reversed(results))

@@ -39,7 +39,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let r = compile_all_with_config("source0.qasm", all_sources, config)?;
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -84,7 +84,7 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
     let r = compile_all_with_config("source0.qasm", all_sources, config)?;
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;

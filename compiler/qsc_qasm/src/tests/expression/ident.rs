@@ -18,7 +18,7 @@ fn unresolved_idenfiers_raise_symbol_error() {
     let errs: Vec<_> = errors.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: t
            ,-[Test.qasm:2:19]
@@ -28,7 +28,7 @@ fn unresolved_idenfiers_raise_symbol_error() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCast
+        Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Float(None, false)
            ,-[Test.qasm:2:19]
@@ -54,7 +54,7 @@ fn redefining_symbols_in_same_scope_raise_symbol_error() {
         panic!("Expected an error");
     };
     assert_eq!(1, errors.len(), "Expected one error");
-    expect!["redefined symbol: x"].assert_eq(&errors[0].to_string());
+    expect![["redefined symbol: x"]].assert_eq(&errors[0].to_string());
 }
 
 #[test]

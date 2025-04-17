@@ -355,7 +355,7 @@ fn to_implicit_float_implicitly_fails() {
                                 ty: Bit(false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Float(None, false)
                ,-[test:3:19]

@@ -20,212 +20,212 @@ pub struct Error(pub SemanticErrorKind);
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum SemanticErrorKind {
     #[error("annotation missing target statement")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.AnnotationWithoutStatement"))]
+    #[diagnostic(code("Qasm.Lowerer.AnnotationWithoutStatement"))]
     AnnotationWithoutStatement(#[label] Span),
     #[error("array literals are only allowed in classical declarations")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ArrayLiteralInNonClassicalDecl"))]
+    #[diagnostic(code("Qasm.Lowerer.ArrayLiteralInNonClassicalDecl"))]
     ArrayLiteralInNonClassicalDecl(#[label] Span),
     #[error("array size must be a non-negative integer const expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
+    #[diagnostic(code("Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
     ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
     #[error("calibration statements are not supported: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CalibrationsNotSupported"))]
+    #[diagnostic(code("Qasm.Lowerer.CalibrationsNotSupported"))]
     CalibrationsNotSupported(String, #[label] Span),
     #[error("cannot alias type {0}. Only qubit and qubit[] can be aliased")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotAliasType"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotAliasType"))]
     CannotAliasType(String, #[label] Span),
     #[error("cannot apply operator {0} to types {1} and {2}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotApplyOperatorToTypes"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotApplyOperatorToTypes"))]
     CannotApplyOperatorToTypes(String, String, String, #[label] Span),
     #[error("cannot assign a value of {0} type to a classical variable of {1} type")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotAssignToType"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotAssignToType"))]
     CannotAssignToType(String, String, #[label] Span),
     #[error("cannot call an expression that is not a function")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotCallNonFunction"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotCallNonFunction"))]
     CannotCallNonFunction(#[label] Span),
     #[error("cannot call a gate that is not a gate")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotCallNonGate"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotCallNonGate"))]
     CannotCallNonGate(#[label] Span),
     #[error("cannot cast expression of type {0} to type {1}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotCast"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotCast"))]
     CannotCast(String, String, #[label] Span),
     #[error("cannot cast literal expression of type {0} to type {1}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotCastLiteral"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotCastLiteral"))]
     CannotCastLiteral(String, String, #[label] Span),
     #[error("cannot index variables of type {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotIndexType"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotIndexType"))]
     CannotIndexType(String, #[label] Span),
     #[error("cannot update const variable {0}")]
     #[diagnostic(help("mutable variables must be declared without the keyword `const`"))]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CannotUpdateConstVariable"))]
+    #[diagnostic(code("Qasm.Lowerer.CannotUpdateConstVariable"))]
     CannotUpdateConstVariable(String, #[label] Span),
     #[error("cannot cast expression of type {0} to type {1} as it would cause truncation")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.CastWouldCauseTruncation"))]
+    #[diagnostic(code("Qasm.Lowerer.CastWouldCauseTruncation"))]
     CastWouldCauseTruncation(String, String, #[label] Span),
     #[error("invalid classical statement in box")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ClassicalStmtInBox"))]
+    #[diagnostic(code("Qasm.Lowerer.ClassicalStmtInBox"))]
     ClassicalStmtInBox(#[label] Span),
     #[error("complex numbers in assignment binary expressions are not yet supported")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ComplexBinaryAssignment"))]
+    #[diagnostic(code("Qasm.Lowerer.ComplexBinaryAssignment"))]
     ComplexBinaryAssignment(#[label] Span),
     #[error("designator must be a positive literal integer")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.DesignatorMustBePositiveIntLiteral"))]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorMustBePositiveIntLiteral"))]
     DesignatorMustBePositiveIntLiteral(#[label] Span),
     #[error("def declarations must be done in global scope")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.DefDeclarationInNonGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     DefDeclarationInNonGlobalScope(#[label] Span),
     #[error("designator is too large")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.DesignatorTooLarge"))]
+    #[diagnostic(code("Qasm.Lowerer.DesignatorTooLarge"))]
     DesignatorTooLarge(#[label] Span),
     #[error("{0} must be a const expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ExprMustBeConst"))]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(String, #[label] Span),
     #[error("{0} must fit in a u32")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ExprMustFitInU32"))]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustFitInU32"))]
     ExprMustFitInU32(String, #[label] Span),
     #[error("extern declarations must be done in global scope")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.DefDeclarationInNonGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.DefDeclarationInNonGlobalScope"))]
     ExternDeclarationInNonGlobalScope(#[label] Span),
     #[error("failed to compile all expressions in expression list")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.FailedToCompileExpressionList"))]
+    #[diagnostic(code("Qasm.Lowerer.FailedToCompileExpressionList"))]
     FailedToCompileExpressionList(#[label] Span),
     #[error("for iterable must have a set expression, range expression, or iterable expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ForIterableInvalidExpression"))]
+    #[diagnostic(code("Qasm.Lowerer.ForIterableInvalidExpression"))]
     ForIterableInvalidExpression(#[label] Span),
     #[error("for statements must have a body or statement")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ForStatementsMustHaveABodyOrStatement"))]
+    #[diagnostic(code("Qasm.Lowerer.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
     #[error("if statement missing {0} expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.IfStmtMissingExpression"))]
+    #[diagnostic(code("Qasm.Lowerer.IfStmtMissingExpression"))]
     IfStmtMissingExpression(String, #[label] Span),
     #[error("include {0} could not be found")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.IncludeNotFound"))]
+    #[diagnostic(code("Qasm.Lowerer.IncludeNotFound"))]
     IncludeNotFound(String, #[label] Span),
     #[error("include {0} must be declared in global scope")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.IncludeNotInGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.IncludeNotInGlobalScope"))]
     IncludeNotInGlobalScope(String, #[label] Span),
     #[error("include {0} must be declared in global scope")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.IncludeStatementMissingPath"))]
+    #[diagnostic(code("Qasm.Lowerer.IncludeStatementMissingPath"))]
     IncludeStatementMissingPath(#[label] Span),
     #[error("inconsistent types in alias expression: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InconsistentTypesInAlias"))]
+    #[diagnostic(code("Qasm.Lowerer.InconsistentTypesInAlias"))]
     InconsistentTypesInAlias(String, #[label] Span),
     #[error("indexed must be a single expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.IndexMustBeSingleExpr"))]
+    #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
     #[error("assigning {0} values to {1} must be in a range that be converted to {1}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidCastValueRange"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),
     #[error("gate operands other than qubits or qubit arrays are not supported")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidGateOperand"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidGateOperand"))]
     InvalidGateOperand(#[label] Span),
     #[error("control counts must be integer literals")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidControlCount"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidControlCount"))]
     InvalidControlCount(#[label] Span),
     #[error("gate operands other than qubit arrays are not supported")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidIndexedGateOperand"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidIndexedGateOperand"))]
     InvalidIndexedGateOperand(#[label] Span),
     #[error("gate expects {0} classical arguments, but {1} were provided")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidNumberOfClassicalArgs"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidNumberOfClassicalArgs"))]
     InvalidNumberOfClassicalArgs(usize, usize, #[label] Span),
     #[error("gate expects {0} qubit arguments, but {1} were provided")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidNumberOfQubitArgs"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidNumberOfQubitArgs"))]
     InvalidNumberOfQubitArgs(usize, usize, #[label] Span),
     #[error("{0} can only appear in {1} scopes")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.InvalidScope"))]
+    #[diagnostic(code("Qasm.Lowerer.InvalidScope"))]
     InvalidScope(String, String, #[label] Span),
     #[error("measure statements must have a name")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.MeasureExpressionsMustHaveName"))]
+    #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveName"))]
     MeasureExpressionsMustHaveName(#[label] Span),
     #[error("measure statements must have a gate operand name")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.MeasureExpressionsMustHaveGateOperand"))]
+    #[diagnostic(code("Qasm.Lowerer.MeasureExpressionsMustHaveGateOperand"))]
     MeasureExpressionsMustHaveGateOperand(#[label] Span),
     #[error("return statements on a non-void subroutine should have a target expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.MissingTargetExpressionInReturnStmt"))]
+    #[diagnostic(code("Qasm.Lowerer.MissingTargetExpressionInReturnStmt"))]
     MissingTargetExpressionInReturnStmt(#[label] Span),
     #[error("control counts must be postitive integers")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.NegativeControlCount"))]
+    #[diagnostic(code("Qasm.Lowerer.NegativeControlCount"))]
     NegativeControlCount(#[label] Span),
     #[error("{0} are not supported")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.NotSupported"))]
+    #[diagnostic(code("Qasm.Lowerer.NotSupported"))]
     NotSupported(String, #[label] Span),
     #[error("{0} were introduced in version {1}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.NotSupportedInThisVersion"))]
+    #[diagnostic(code("Qasm.Lowerer.NotSupportedInThisVersion"))]
     NotSupportedInThisVersion(String, String, #[label] Span),
     #[error("the operator {0} is not valid with lhs {1} and rhs {2}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.OperatorNotSupportedForTypes"))]
+    #[diagnostic(code("Qasm.Lowerer.OperatorNotSupportedForTypes"))]
     OperatorNotSupportedForTypes(String, String, String, #[label] Span),
     #[error("pow gate modifiers must have an exponent")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.PowModifierMustHaveExponent"))]
+    #[diagnostic(code("Qasm.Lowerer.PowModifierMustHaveExponent"))]
     PowModifierMustHaveExponent(#[label] Span),
     #[error("quantum declarations must be done in global scope")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.QuantumDeclarationInNonGlobalScope"))]
+    #[diagnostic(code("Qasm.Lowerer.QuantumDeclarationInNonGlobalScope"))]
     QuantumDeclarationInNonGlobalScope(#[label] Span),
     #[error("quantum typed values cannot be used in binary expressions")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.QuantumTypesInBinaryExpression"))]
+    #[diagnostic(code("Qasm.Lowerer.QuantumTypesInBinaryExpression"))]
     QuantumTypesInBinaryExpression(#[label] Span),
     #[error("range expressions must have a start")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.RangeExpressionsMustHaveStart"))]
+    #[diagnostic(code("Qasm.Lowerer.RangeExpressionsMustHaveStart"))]
     RangeExpressionsMustHaveStart(#[label] Span),
     #[error("range expressions must have a stop")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.RangeExpressionsMustHaveStop"))]
+    #[diagnostic(code("Qasm.Lowerer.RangeExpressionsMustHaveStop"))]
     RangeExpressionsMustHaveStop(#[label] Span),
     #[error("redefined symbol: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.RedefinedSymbol"))]
+    #[diagnostic(code("Qasm.Lowerer.RedefinedSymbol"))]
     RedefinedSymbol(String, #[label] Span),
     #[error("reset expression must have a gate operand")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ResetExpressionMustHaveGateOperand"))]
+    #[diagnostic(code("Qasm.Lowerer.ResetExpressionMustHaveGateOperand"))]
     ResetExpressionMustHaveGateOperand(#[label] Span),
     #[error("reset expression must have a name")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ResetExpressionMustHaveName"))]
+    #[diagnostic(code("Qasm.Lowerer.ResetExpressionMustHaveName"))]
     ResetExpressionMustHaveName(#[label] Span),
     #[error("cannot return an expression from a void subroutine")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ReturningExpressionFromVoidSubroutine"))]
+    #[diagnostic(code("Qasm.Lowerer.ReturningExpressionFromVoidSubroutine"))]
     ReturningExpressionFromVoidSubroutine(#[label] Span),
     #[error("return statements are only allowed within subroutines")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.ReturnNotInSubroutine"))]
+    #[diagnostic(code("Qasm.Lowerer.ReturnNotInSubroutine"))]
     ReturnNotInSubroutine(#[label] Span),
     #[error("switch statement must have at least one non-default case")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.SwitchStatementMustHaveAtLeastOneCase"))]
+    #[diagnostic(code("Qasm.Lowerer.SwitchStatementMustHaveAtLeastOneCase"))]
     SwitchStatementMustHaveAtLeastOneCase(#[label] Span),
     #[error("too many controls specified")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TooManyControls"))]
+    #[diagnostic(code("Qasm.Lowerer.TooManyControls"))]
     TooManyControls(#[label] Span),
     #[error("too many indicies specified")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TooManyIndices"))]
+    #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
     #[error("bitwise not `~` is not allowed for instances of {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TypeDoesNotSupportBitwiseNot"))]
+    #[diagnostic(code("Qasm.Lowerer.TypeDoesNotSupportBitwiseNot"))]
     TypeDoesNotSupportBitwiseNot(String, #[label] Span),
     #[error("unary negation is not allowed for instances of {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TypeDoesNotSupportedUnaryNegation"))]
+    #[diagnostic(code("Qasm.Lowerer.TypeDoesNotSupportedUnaryNegation"))]
     TypeDoesNotSupportedUnaryNegation(String, #[label] Span),
     #[error("{0} max width is {1} but {2} was provided")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TypeMaxWidthExceeded"))]
+    #[diagnostic(code("Qasm.Lowerer.TypeMaxWidthExceeded"))]
     TypeMaxWidthExceeded(String, usize, usize, #[label] Span),
     #[error("types differ by dimensions and are incompatible")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TypeRankError"))]
+    #[diagnostic(code("Qasm.Lowerer.TypeRankError"))]
     TypeRankError(#[label] Span),
     #[error("type width must be a positive integer const expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.TypeWidthMustBePositiveIntConstExpr"))]
+    #[diagnostic(code("Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr"))]
     TypeWidthMustBePositiveIntConstExpr(#[label] Span),
     #[error("undefined symbol: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.UndefinedSymbol"))]
+    #[diagnostic(code("Qasm.Lowerer.UndefinedSymbol"))]
     UndefinedSymbol(String, #[label] Span),
     #[error("unexpected parser error: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.UnexpectedParserError"))]
+    #[diagnostic(code("Qasm.Lowerer.UnexpectedParserError"))]
     UnexpectedParserError(String, #[label] Span),
     #[error("this statement is not yet handled during OpenQASM 3 import: {0}")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.Unimplemented"))]
+    #[diagnostic(code("Qasm.Lowerer.Unimplemented"))]
     Unimplemented(String, #[label] Span),
     #[error("unknown index operation kind")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.UnknownIndexedOperatorKind"))]
+    #[diagnostic(code("Qasm.Lowerer.UnknownIndexedOperatorKind"))]
     UnknownIndexedOperatorKind(#[label] Span),
     #[error("unsupported version: '{0}'")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.UnsupportedVersion"))]
+    #[diagnostic(code("Qasm.Lowerer.UnsupportedVersion"))]
     UnsupportedVersion(String, #[label] Span),
     #[error("while statement missing {0} expression")]
-    #[diagnostic(code("Qsc.Qasm3.Lowerer.WhileStmtMissingExpression"))]
+    #[diagnostic(code("Qasm.Lowerer.WhileStmtMissingExpression"))]
     WhileStmtMissingExpression(String, #[label] Span),
 }
 

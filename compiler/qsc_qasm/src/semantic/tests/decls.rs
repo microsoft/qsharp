@@ -29,7 +29,7 @@ fn duration_and_stretch_types_without_init_exprs() {
         &expect![[r#"
 
 
-            [Qsc.Qasm3.Compile.NotSupported
+            [Qasm.Compile.NotSupported
 
               x Duration type values are not supported.
                ,-[test:2:9]
@@ -38,7 +38,7 @@ fn duration_and_stretch_types_without_init_exprs() {
                :         ^^^^^^^^
              3 |         stretch n;
                `----
-            , Qsc.Qasm3.Compile.NotSupported
+            , Qasm.Compile.NotSupported
 
               x Stretch type values are not supported.
                ,-[test:3:9]
@@ -68,7 +68,7 @@ fn scalar_ty_designator_must_be_positive() {
                                 ty: Err
                                 kind: Err
 
-            [Qsc.Qasm3.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
 
               x type width must be a positive integer const expression
                ,-[test:1:5]
@@ -104,14 +104,14 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                                 ty: Err
                                 kind: Err
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Angle(None, true) to type UInt(None, true)
                ,-[test:1:29]
              1 | const angle size = 2.0; int[size] i;
                :                             ^^^^
                `----
-            , Qsc.Qasm3.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            , Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
 
               x type width must be a positive integer const expression
                ,-[test:1:29]

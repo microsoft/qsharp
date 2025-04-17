@@ -24,7 +24,7 @@ fn int_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -60,7 +60,7 @@ fn uint_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -96,7 +96,7 @@ fn bit_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -132,7 +132,7 @@ fn bitarray_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -174,7 +174,7 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -214,7 +214,7 @@ fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -252,7 +252,7 @@ fn bool_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;

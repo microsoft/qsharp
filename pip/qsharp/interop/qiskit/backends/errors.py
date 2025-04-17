@@ -18,7 +18,7 @@ class Errors(Enum):
         elif self == Errors.RUN_TERMINATED_WITHOUT_OUTPUT:
             return "Run terminated without valid output."
         elif self == Errors.FAILED_TO_EXPORT_QASM:
-            return "Failed to export QASM3 source."
+            return "Failed to export QASM source."
         elif self == Errors.MISSING_NUMBER_OF_SHOTS:
             return "The number of shots must be specified."
         elif self == Errors.INPUT_MUST_BE_QC:

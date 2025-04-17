@@ -190,7 +190,7 @@ fn spec_case_3() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;

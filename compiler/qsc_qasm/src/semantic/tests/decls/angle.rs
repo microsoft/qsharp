@@ -395,7 +395,7 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                                         ty: Int(None, true)
                                         kind: Lit: Int(7)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Int(None, true) to type Angle(None, true)
                ,-[test:1:18]
@@ -423,14 +423,14 @@ fn explicit_zero_width_fails() {
                                 ty: Float(None, true)
                                 kind: Lit: Float(42.1)
 
-            [Qsc.Qasm3.Lowerer.TypeWidthMustBePositiveIntConstExpr
+            [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
 
               x type width must be a positive integer const expression
                ,-[test:1:7]
              1 | angle[0] x = 42.1;
                :       ^
                `----
-            , Qsc.Qasm3.Lowerer.CannotCastLiteral
+            , Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type Float(None, true) to type Err
                ,-[test:1:1]
@@ -458,14 +458,14 @@ fn explicit_width_over_64_fails() {
                                 ty: Float(None, true)
                                 kind: Lit: Float(42.1)
 
-            [Qsc.Qasm3.Lowerer.TypeMaxWidthExceeded
+            [Qasm.Lowerer.TypeMaxWidthExceeded
 
               x angle max width is 64 but 65 was provided
                ,-[test:1:7]
              1 | const angle[65] x = 42.1;
                :       ^^^^^^^^^
                `----
-            , Qsc.Qasm3.Lowerer.CannotCastLiteral
+            , Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type Float(None, true) to type Err
                ,-[test:1:1]

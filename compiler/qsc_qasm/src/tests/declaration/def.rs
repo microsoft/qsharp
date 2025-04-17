@@ -124,7 +124,7 @@ fn return_expr_on_void_function_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Lowerer.ReturningExpressionFromVoidSubroutine
+        [Qasm.Lowerer.ReturningExpressionFromVoidSubroutine
 
           x cannot return an expression from a void subroutine
            ,-[Test.qasm:3:20]
@@ -150,7 +150,7 @@ fn missing_return_expr_on_non_void_function_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Lowerer.MissingTargetExpressionInReturnStmt
+        [Qasm.Lowerer.MissingTargetExpressionInReturnStmt
 
           x return statements on a non-void subroutine should have a target expression
            ,-[Test.qasm:3:13]
@@ -198,7 +198,7 @@ fn capturing_non_const_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Lowerer.UndefinedSymbol
+        [Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: a
            ,-[Test.qasm:4:20]
@@ -207,7 +207,7 @@ fn capturing_non_const_external_variable_fails() {
            :                    ^
          5 |         }
            `----
-        , Qsc.Qasm3.Lowerer.CannotCast
+        , Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Int(None, false)
            ,-[Test.qasm:4:20]
@@ -234,7 +234,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Compile.NegativeUIntValue
+        [Qasm.Compile.NegativeUIntValue
 
           x uint expression must evaluate to a non-negative value, but it evaluated
           | to -3
@@ -244,7 +244,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
            :                            ^^^^
          3 |         def f() -> int {
            `----
-        , Qsc.Qasm3.Lowerer.ExprMustBeConst
+        , Qasm.Lowerer.ExprMustBeConst
 
           x a captured variable must be a const expression
            ,-[Test.qasm:4:20]

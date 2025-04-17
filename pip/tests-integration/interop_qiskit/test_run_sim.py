@@ -26,8 +26,8 @@ if QISKIT_AVAILABLE:
 # Then load the QASM3 and convert it back to a circuit.
 # This is to ensure that the QASM3 conversion is semantically correct.
 def round_trip_circuit(circuit, backend):
-    qasm3 = backend._qasm3(circuit)
-    circuit = from_qasm3(qasm3)
+    qasm = backend._qasm(circuit)
+    circuit = from_qasm3(qasm)
     return circuit
 
 

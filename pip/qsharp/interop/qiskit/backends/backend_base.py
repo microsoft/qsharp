@@ -294,7 +294,7 @@ class BackendBase(BackendV2, ABC):
         pass
 
     def _compile(self, run_input: List[QuantumCircuit], **options) -> List[Compilation]:
-        # for each run input, convert to qasm3
+        # for each run input, convert to qasm
         compilations = []
         for circuit in run_input:
             args = options.copy()
@@ -302,7 +302,7 @@ class BackendBase(BackendV2, ABC):
                 circuit, QuantumCircuit
             ), "Input must be a QuantumCircuit."
             start = monotonic()
-            qasm = self._qasm3(circuit, **args)
+            qasm = self._qasm(circuit, **args)
             end = monotonic()
 
             time_taken = end - start
@@ -407,7 +407,7 @@ class BackendBase(BackendV2, ABC):
         transpiled_circuit = self._transpile(circuit, **options)
         return transpiled_circuit
 
-    def _qasm3(self, circuit: QuantumCircuit, **options) -> str:
+    def _qasm(self, circuit: QuantumCircuit, **options) -> str:
         """Converts a Qiskit QuantumCircuit to QASM 3 for the current backend.
 
         Args:
@@ -419,7 +419,7 @@ class BackendBase(BackendV2, ABC):
                   'includes', 'search_path'.
 
         Returns:
-            str: The converted QASM3 code as a string. Any supplied includes
+            str: The converted QASM code as a string. Any supplied includes
             are emitted as include statements at the top of the program.
 
         :raises QasmError: If there is an error generating or parsing QASM.
@@ -455,14 +455,14 @@ class BackendBase(BackendV2, ABC):
                   'includes', 'search_path'.
               - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
         Returns:
-            str: The converted QASM3 code as a string. Any supplied includes
+            str: The converted QASM code as a string. Any supplied includes
             are emitted as include statements at the top of the program.
 
         :raises QSharpError: If there is an error evaluating the source code.
         :raises QasmError: If there is an error generating, parsing, or compiling QASM.
         """
 
-        qasm3_source = self._qasm3(circuit, **kwargs)
+        qasm_source = self._qasm(circuit, **kwargs)
 
         args = {
             "name": kwargs.get("name", circuit.name),
@@ -476,7 +476,7 @@ class BackendBase(BackendV2, ABC):
         ):
             args["output_semantics"] = output_semantics
 
-        qsharp_source = self._qasm3_to_qsharp(qasm3_source, **args)
+        qsharp_source = self._qasm_to_qsharp(qasm_source, **args)
         return qsharp_source
 
     def qir(
@@ -506,7 +506,7 @@ class BackendBase(BackendV2, ABC):
         if target_profile == TargetProfile.Unrestricted:
             raise ValueError(str(Errors.UNRESTRICTED_INVALID_QIR_TARGET))
 
-        qasm3_source = self._qasm3(circuit, **kwargs)
+        qasm_source = self._qasm(circuit, **kwargs)
 
         args = {
             "name": name,
@@ -524,18 +524,18 @@ class BackendBase(BackendV2, ABC):
         ):
             args["output_semantics"] = output_semantics
 
-        return self._qasm3_to_qir(qasm3_source, **args)
+        return self._qasm_to_qir(qasm_source, **args)
 
-    def _qasm3_to_qir(
+    def _qasm_to_qir(
         self,
         source: str,
         **kwargs,
     ) -> str:
-        from ...._native import compile_qasm3_to_qir
+        from ...._native import compile_qasm_to_qir
         from ...._fs import read_file, list_directory, resolve
         from ...._http import fetch_github
 
-        return compile_qasm3_to_qir(
+        return compile_qasm_to_qir(
             source,
             read_file,
             list_directory,
@@ -544,16 +544,16 @@ class BackendBase(BackendV2, ABC):
             **kwargs,
         )
 
-    def _qasm3_to_qsharp(
+    def _qasm_to_qsharp(
         self,
         source: str,
         **kwargs,
     ) -> str:
-        from ...._native import compile_qasm3_to_qsharp
+        from ...._native import compile_qasm_to_qsharp
         from ...._fs import read_file, list_directory, resolve
         from ...._http import fetch_github
 
-        return compile_qasm3_to_qsharp(
+        return compile_qasm_to_qsharp(
             source,
             read_file,
             list_directory,

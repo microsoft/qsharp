@@ -228,7 +228,7 @@ fn to_int_with_higher_width_implicitly_fails() {
                                 ty: BitArray(One(5), false)
                                 kind: SymbolId(9)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(6), false)
@@ -271,7 +271,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
                                 ty: BitArray(One(5), false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(6), false)
@@ -320,7 +320,7 @@ fn to_int_with_lower_width_implicitly_fails() {
                                 ty: BitArray(One(5), false)
                                 kind: SymbolId(9)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(4), false)
@@ -364,7 +364,7 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
                                 ty: BitArray(One(5), false)
                                 kind: SymbolId(8)
 
-            [Qsc.Qasm3.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type BitArray(One(5), false) to type
               | Int(Some(4), false)

@@ -127,7 +127,7 @@ impl CompilerConfig {
     fn namespace(&self) -> Arc<str> {
         self.namespace
             .clone()
-            .unwrap_or_else(|| Arc::from("qasm3_import"))
+            .unwrap_or_else(|| Arc::from("qasm_import"))
     }
 }
 

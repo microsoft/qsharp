@@ -76,7 +76,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:5:13]
@@ -86,7 +86,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          6 |         bit[c] r2;
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:5:13]
@@ -96,7 +96,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          6 |         bit[c] r2;
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:6:13]
@@ -106,7 +106,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          7 |     
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:6:13]
@@ -467,7 +467,7 @@ fn binary_op_shl_creg_fails() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm3.Parse.Rule
+        Qasm.Parse.Rule
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:2:15]
@@ -477,7 +477,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
            `----
 
-        Qasm3.Parse.Rule
+        Qasm.Parse.Rule
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:3:15]
@@ -487,7 +487,7 @@ fn binary_op_shl_creg_fails() {
          4 |         bit[b] r;
            `----
 
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: b
            ,-[Test.qasm:4:13]
@@ -497,7 +497,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCast
+        Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
@@ -507,7 +507,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:4:13]
@@ -517,7 +517,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:4:13]
@@ -640,7 +640,7 @@ fn binary_op_shr_creg_fails() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm3.Parse.Rule
+        Qasm.Parse.Rule
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:2:15]
@@ -650,7 +650,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
            `----
 
-        Qasm3.Parse.Rule
+        Qasm.Parse.Rule
 
           x expected scalar or array type, found keyword `creg`
            ,-[Test.qasm:3:15]
@@ -660,7 +660,7 @@ fn binary_op_shr_creg_fails() {
          4 |         bit[b] r;
            `----
 
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: b
            ,-[Test.qasm:4:13]
@@ -670,7 +670,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCast
+        Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:4:13]
@@ -680,7 +680,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:4:13]
@@ -690,7 +690,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:4:13]
@@ -1995,7 +1995,7 @@ fn binary_op_err_type_fails() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: a
            ,-[Test.qasm:2:13]
@@ -2005,7 +2005,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: b
            ,-[Test.qasm:2:17]
@@ -2015,7 +2015,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCast
+        Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:2:13]
@@ -2025,7 +2025,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:13]
@@ -2035,7 +2035,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:2:13]
@@ -2045,7 +2045,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCastLiteral
+        Qasm.Lowerer.CannotCastLiteral
 
           x cannot cast literal expression of type Int(None, true) to type Err
            ,-[Test.qasm:2:9]
@@ -2070,7 +2070,7 @@ fn fuzzer_issue_2294() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm3.Parse.Token
+        Qasm.Parse.Token
 
           x expected `;`, found EOF
            ,-[Test.qasm:3:5]
@@ -2078,7 +2078,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qasm3.Parse.MissingGateCallOperands
+        Qasm.Parse.MissingGateCallOperands
 
           x missing gate call operands
            ,-[Test.qasm:2:9]
@@ -2088,7 +2088,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.UndefinedSymbol
+        Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: _
            ,-[Test.qasm:2:16]
@@ -2098,7 +2098,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.CannotCast
+        Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Float(None, true)
            ,-[Test.qasm:2:16]
@@ -2108,7 +2108,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qsc.Qasm3.Compile.ExprMustBeConst
+        Qasm.Compile.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:16]
@@ -2118,7 +2118,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qsc.Qasm3.Lowerer.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x ctrl modifier argument must be a const expression
            ,-[Test.qasm:2:14]

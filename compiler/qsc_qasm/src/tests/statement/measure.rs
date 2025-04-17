@@ -110,7 +110,7 @@ fn measuring_hardware_qubits_generates_an_error() {
     }
 
     expect![[r#"
-        Qsc.Qasm3.Compiler.NotSupported
+        Qasm.Compiler.NotSupported
 
           x hardware qubit operands are not supported
            ,-[Test.qasm:3:21]

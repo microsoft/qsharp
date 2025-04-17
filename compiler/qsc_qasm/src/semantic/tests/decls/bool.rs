@@ -42,7 +42,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
                                 ty: Err
                                 kind: Err
 
-            [Qsc.Qasm3.Compile.Unimplemented
+            [Qasm.Compile.Unimplemented
 
               x this statement is not yet handled during OpenQASM 3 import: semantic type
               | from array type

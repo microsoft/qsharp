@@ -38,7 +38,7 @@ fn quantum() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "qasm3 parser does not support old-style decls yet"]
+#[ignore = "qasm parser does not support old-style decls yet"]
 fn classical_old_style_decls() -> miette::Result<(), Vec<Report>> {
     let source = "
         creg a[2];
@@ -52,7 +52,7 @@ fn classical_old_style_decls() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "qasm3 parser does not support old-style decls yet"]
+#[ignore = "qasm parser does not support old-style decls yet"]
 fn quantum_old_style_decls() -> miette::Result<(), Vec<Report>> {
     let source = "
         qreg q1[5];

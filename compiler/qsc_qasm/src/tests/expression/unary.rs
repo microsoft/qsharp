@@ -18,7 +18,7 @@ fn bitwise_not_int_fails() {
     };
 
     expect![[r#"
-        [Qsc.Qasm3.Lowerer.TypeDoesNotSupportedUnaryNegation
+        [Qasm.Lowerer.TypeDoesNotSupportedUnaryNegation
 
           x unary negation is not allowed for instances of Int(None, false)
            ,-[Test.qasm:3:18]

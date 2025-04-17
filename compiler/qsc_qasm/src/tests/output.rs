@@ -39,7 +39,7 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -90,7 +90,7 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -141,7 +141,7 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     fail_on_compilation_errors(&unit);
     let qsharp = gen_qsharp(&unit.package.expect("no package found"));
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
@@ -200,7 +200,7 @@ c2[2] = measure q[4];
     let package = unit.package.expect("no package found");
     let qsharp = gen_qsharp(&package.clone());
     expect![[r#"
-        namespace qasm3_import {
+        namespace qasm_import {
             import QasmStd.Angle.*;
             import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;

@@ -5,8 +5,8 @@ use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     interop::{
-        compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
-        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+        compile_qasm_enriching_errors, compile_qasm_to_qir, compile_qasm_to_qsharp,
+        map_entry_compilation_errors, resource_estimate_qasm, run_ast, run_qasm, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -79,12 +79,12 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
-    // QASM3 interop
+    // QASM interop
     m.add("QasmError", py.get_type::<QasmError>())?;
-    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_to_qsharp, m)?)?;
     Ok(())
 }
 
@@ -648,7 +648,7 @@ impl Interpreter {
     #[pyo3(
         signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
     )]
-    pub fn _run_qasm3(
+    pub fn _run_qasm(
         &mut self,
         py: Python,
         source: &str,

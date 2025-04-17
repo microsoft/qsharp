@@ -436,7 +436,7 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
                                 ty: Int(None, true)
                                 kind: Lit: Int(9007199254740993)
 
-            [Qsc.Qasm3.Lowerer.InvalidCastValueRange
+            [Qasm.Lowerer.InvalidCastValueRange
 
               x assigning Int(None, true) values to Float(None, false) must be in a range
               | that be converted to Float(None, false)
@@ -444,7 +444,7 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
                `----
-            , Qsc.Qasm3.Lowerer.CannotCastLiteral
+            , Qasm.Lowerer.CannotCastLiteral
 
               x cannot cast literal expression of type Int(None, true) to type Float(None,
               | false)

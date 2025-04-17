@@ -87,55 +87,55 @@ pub enum ErrorKind {
     #[diagnostic(transparent)]
     Lex(lex::Error),
     #[error("invalid {0} literal")]
-    #[diagnostic(code("Qasm3.Parse.Literal"))]
+    #[diagnostic(code("Qasm.Parse.Literal"))]
     Lit(&'static str, #[label] Span),
     #[error("unknown escape sequence: `{0}`")]
-    #[diagnostic(code("Qasm3.Parse.Escape"))]
+    #[diagnostic(code("Qasm.Parse.Escape"))]
     Escape(char, #[label] Span),
     #[error("expected {0}, found {1}")]
-    #[diagnostic(code("Qasm3.Parse.Token"))]
+    #[diagnostic(code("Qasm.Parse.Token"))]
     Token(TokenKind, TokenKind, #[label] Span),
     #[error("Empty statements are not supported")]
-    #[diagnostic(code("Qasm3.Parse.EmptyStatement"))]
+    #[diagnostic(code("Qasm.Parse.EmptyStatement"))]
     EmptyStatement(#[label] Span),
     #[error("Annotation missing target statement.")]
-    #[diagnostic(code("Qasm3.Parse.FloatingAnnotation"))]
+    #[diagnostic(code("Qasm.Parse.FloatingAnnotation"))]
     FloatingAnnotation(#[label] Span),
     #[error("expected {0}, found {1}")]
-    #[diagnostic(code("Qasm3.Parse.Rule"))]
+    #[diagnostic(code("Qasm.Parse.Rule"))]
     Rule(&'static str, TokenKind, #[label] Span),
     #[error("expected {0}, found {1}")]
-    #[diagnostic(code("Qasm3.Parse.Convert"))]
+    #[diagnostic(code("Qasm.Parse.Convert"))]
     Convert(&'static str, &'static str, #[label] Span),
     #[error("expected statement to end with a semicolon")]
-    #[diagnostic(code("Qasm3.Parse.MissingSemi"))]
+    #[diagnostic(code("Qasm.Parse.MissingSemi"))]
     MissingSemi(#[label] Span),
     #[error("expected inputs to be parenthesized")]
-    #[diagnostic(code("Qasm3.Parse.MissingParens"))]
+    #[diagnostic(code("Qasm.Parse.MissingParens"))]
     MissingParens(#[label] Span),
     #[error("missing entry in sequence")]
-    #[diagnostic(code("Qasm3.Parse.MissingSeqEntry"))]
+    #[diagnostic(code("Qasm.Parse.MissingSeqEntry"))]
     MissingSeqEntry(#[label] Span),
     #[error("missing switch statement cases")]
-    #[diagnostic(code("Qasm3.Parse.MissingSwitchCases"))]
+    #[diagnostic(code("Qasm.Parse.MissingSwitchCases"))]
     MissingSwitchCases(#[label] Span),
     #[error("missing switch statement case labels")]
-    #[diagnostic(code("Qasm3.Parse.MissingSwitchCaseLabels"))]
+    #[diagnostic(code("Qasm.Parse.MissingSwitchCaseLabels"))]
     MissingSwitchCaseLabels(#[label] Span),
     #[error("missing gate call operands")]
-    #[diagnostic(code("Qasm3.Parse.MissingGateCallOperands"))]
+    #[diagnostic(code("Qasm.Parse.MissingGateCallOperands"))]
     MissingGateCallOperands(#[label] Span),
     #[error("expected an item or closing brace, found {0}")]
-    #[diagnostic(code("Qasm3.Parse.ExpectedItem"))]
+    #[diagnostic(code("Qasm.Parse.ExpectedItem"))]
     ExpectedItem(TokenKind, #[label] Span),
     #[error("gphase gate requires exactly one angle")]
-    #[diagnostic(code("Qasm3.Parse.GPhaseInvalidArguments"))]
+    #[diagnostic(code("Qasm.Parse.GPhaseInvalidArguments"))]
     GPhaseInvalidArguments(#[label] Span),
     #[error("invalid gate call designator")]
-    #[diagnostic(code("Qasm3.Parse.InvalidGateCallDesignator"))]
+    #[diagnostic(code("Qasm.Parse.InvalidGateCallDesignator"))]
     InvalidGateCallDesignator(#[label] Span),
     #[error("multiple index operators are only allowed in assignments")]
-    #[diagnostic(code("Qasm3.Parse.MultipleIndexOperators"))]
+    #[diagnostic(code("Qasm.Parse.MultipleIndexOperators"))]
     MultipleIndexOperators(#[label] Span),
     #[error(transparent)]
     #[diagnostic(transparent)]
