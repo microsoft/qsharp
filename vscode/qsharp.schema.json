@@ -37,11 +37,16 @@
               "deprecatedNewtype",
               "deprecatedSet",
               "discourageChainAssignment",
+              "doubleEquality",
               "needlessOperation",
               "deprecatedFunctionConstructor",
               "deprecatedWithOperator",
               "deprecatedDoubleColonOperator"
             ]
+          },
+          "group": {
+            "type": "string",
+            "enum": ["deprecations"]
           },
           "level": {
             "type": "string",
