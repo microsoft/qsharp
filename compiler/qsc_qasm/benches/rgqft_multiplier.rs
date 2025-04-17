@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use qsc_qasm3::{
+use qsc_qasm::{
     compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig, OutputSemantics,
     ProgramType, QasmCompileUnit, QubitSemantics,
 };

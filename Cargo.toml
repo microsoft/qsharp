@@ -18,7 +18,7 @@ members = [
     "compiler/qsc_partial_eval",
     "compiler/qsc_passes",
     "compiler/qsc_project",
-    "compiler/qsc_qasm3",
+    "compiler/qsc_qasm",
     "compiler/qsc_rir",
     "fuzz",
     "katas",

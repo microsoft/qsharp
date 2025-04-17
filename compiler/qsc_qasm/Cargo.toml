@@ -1,5 +1,5 @@
 [package]
-name = "qsc_qasm3"
+name = "qsc_qasm"
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -32,7 +32,7 @@ miette = { workspace = true, features = ["fancy"] }
 # Self import adding fs feature so that we can test
 # loading qasm from file.
 qsc = { path = "../qsc" }
-qsc_qasm3 = { path = ".", features = ["fs"] }
+qsc_qasm = { path = ".", features = ["fs"] }
 qsc_codegen = { path = "../qsc_codegen" }
 
 [features]
