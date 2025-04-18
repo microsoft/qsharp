@@ -299,6 +299,7 @@ export function Editor(props: {
     return () => {
       log.info("Disposing a monaco editor");
       window.removeEventListener("resize", onResize);
+      props.languageService.closeDocument(srcModel.uri.toString());
       newEditor.dispose();
     };
   }, []);
