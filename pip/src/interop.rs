@@ -287,9 +287,6 @@ pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
     if !errors.is_empty() {
         return Err(QasmError::new_err(format_qasm_errors(errors)));
     }
-    let Some(package) = package else {
-        return Err(QasmError::new_err("package should have had value"));
-    };
 
     let Some(signature) = sig else {
         return Err(QasmError::new_err(

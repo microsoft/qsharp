@@ -194,7 +194,7 @@ where
 fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Report>> {
     let unit = compile(source)?;
     fail_on_compilation_errors(&unit);
-    let package = unit.package.expect("no package found");
+    let package = unit.package;
     let qir = generate_qir_from_ast(package, unit.source_map, profile).map_err(|errors| {
         errors
             .iter()
@@ -231,7 +231,7 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
     let (mut _unit, _errors) = compile_ast(
         &store,
         &dependencies,
-        package.expect("package must exist"),
+        package,
         sources,
         PackageType::Lib,
         profile.into(),
@@ -244,7 +244,7 @@ pub(crate) fn gen_qsharp_stmt(stmt: &Stmt) -> String {
 
 #[allow(dead_code)]
 pub(crate) fn compare_compilation_to_qsharp(unit: &QasmCompileUnit, expected: &str) {
-    let package = unit.package.as_ref().expect("package must exist");
+    let package = &unit.package;
     let despanned_ast = AstDespanner.despan(package);
     let qsharp = gen_qsharp(&despanned_ast);
     difference::assert_diff!(&qsharp, expected, "\n", 0);
@@ -306,10 +306,7 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
     }
-    let Some(package) = unit.package else {
-        panic!("Expected package, got None");
-    };
-    let qsharp = gen_qsharp(&package);
+    let qsharp = gen_qsharp(&unit.package);
     Ok(qsharp)
 }
 
@@ -326,10 +323,7 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
     }
-    let Some(package) = unit.package else {
-        panic!("Expected package, got None");
-    };
-    let qsharp = gen_qsharp(&package);
+    let qsharp = gen_qsharp(&unit.package);
     Ok(qsharp)
 }
 
@@ -357,10 +351,7 @@ pub fn qsharp_from_qasm_compilation(unit: QasmCompileUnit) -> miette::Result<Str
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
     }
-    let Some(package) = unit.package else {
-        panic!("Expected package, got None");
-    };
-    let qsharp = gen_qsharp(&package);
+    let qsharp = gen_qsharp(&unit.package);
     Ok(qsharp)
 }
 
@@ -384,10 +375,7 @@ pub fn compile_qasm_stmt_to_qsharp_with_semantics(
         let errors = unit.errors.into_iter().map(Report::new).collect();
         return Err(errors);
     }
-    let Some(package) = unit.package else {
-        panic!("Expected package, got None");
-    };
-    let qsharp = get_last_statement_as_qsharp(&package);
+    let qsharp = get_last_statement_as_qsharp(&unit.package);
     Ok(qsharp)
 }
 
@@ -471,8 +459,7 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
         Some(&mut resolver),
         config,
     );
-    let qasm_package = unit.package.as_ref().expect("package must exist");
-    let despanned_qasm_ast = AstDespanner.despan(qasm_package);
+    let despanned_qasm_ast = AstDespanner.despan(&unit.package);
 
     // 2. Generate Q# source from the QASM ast.
     let qsharp_src = gen_qsharp(&despanned_qasm_ast);

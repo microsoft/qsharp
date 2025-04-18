@@ -33,9 +33,6 @@ fn it_compiles() {
 
     print_compilation_errors(&unit);
     assert!(!unit.has_errors());
-    let Some(package) = &unit.package else {
-        panic!("no package found");
-    };
-    let qsharp = gen_qsharp(package);
+    let qsharp = gen_qsharp(&unit.package);
     println!("{qsharp}");
 }

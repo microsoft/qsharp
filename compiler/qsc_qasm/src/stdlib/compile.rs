@@ -16,6 +16,8 @@ fn compiles_with_base_profile() {
     let _ = package_store_with_qasm(TargetCapabilityFlags::empty());
 }
 
+/// return a tuple with the stdlib package id, the qasm library package id, and the package store
+/// that contains the core, std, and qasmstd packages.
 #[must_use]
 pub fn package_store_with_qasm(
     capabilities: TargetCapabilityFlags,
