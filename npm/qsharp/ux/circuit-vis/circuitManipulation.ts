@@ -129,25 +129,47 @@ const _moveY = (
   movingControl: boolean,
 ): void => {
   // Check if the source operation already has a target or control on the target wire
-  let registers: Register[];
+  let targets: Register[];
   switch (sourceOperation.kind) {
     case "unitary":
-      registers = [
-        ...sourceOperation.targets,
-        ...(sourceOperation.controls || []),
-      ];
+    case "ket":
+      targets = sourceOperation.targets;
       break;
     case "measurement":
-      registers = [...sourceOperation.qubits, ...sourceOperation.results];
-      break;
-    case "ket":
-      registers = sourceOperation.targets;
+      targets = sourceOperation.qubits;
       break;
   }
 
-  if (registers.find((target) => target.qubit === targetWire)) {
-    // If the target or control already exists, don't move the target/control
+  let controls: Register[];
+  switch (sourceOperation.kind) {
+    case "unitary":
+      controls = sourceOperation.controls || [];
+      break;
+    case "measurement":
+    case "ket":
+      controls = [];
+      break;
+  }
+
+  let likeRegisters: Register[];
+  let unlikeRegisters: Register[];
+  if (movingControl) {
+    likeRegisters = controls;
+    unlikeRegisters = targets;
+  } else {
+    likeRegisters = targets;
+    unlikeRegisters = controls;
+  }
+
+  // If a similar register already exists, don't move the gate
+  if (likeRegisters.find((reg) => reg.qubit === targetWire)) {
     return;
+  }
+
+  // If a different kind of register already exists, swap the control and target
+  if (unlikeRegisters.find((reg) => reg.qubit === targetWire)) {
+    const index = unlikeRegisters.findIndex((reg) => reg.qubit === targetWire);
+    unlikeRegisters[index].qubit = sourceWire;
   }
 
   switch (sourceOperation.kind) {
