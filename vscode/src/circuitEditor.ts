@@ -12,6 +12,7 @@ export class CircuitEditorProvider implements vscode.CustomTextEditorProvider {
     const providerRegistration = vscode.window.registerCustomEditorProvider(
       CircuitEditorProvider.viewType,
       provider,
+      { webviewOptions: { retainContextWhenHidden: true } },
     );
     return providerRegistration;
   }
