@@ -792,14 +792,6 @@ pub(crate) fn is_complex_binop_supported(op: syntax::BinOp) -> bool {
 
 /// Returns true if the binary op is supported for the `lhs` and `rhs` types.
 /// Any conversions have been made explicit by inserting casts during lowering.
-/// Note: the type of the binary expression doesn't need to be the same as the
-///       operands, for example, comparison operators can have integer operands
-///       but their type is boolean.
-/// We can write a simpler implementation under that assumption.
-///
-/// There are some exceptions:
-///  1. The rhs in Shl and Shr must be of type `UInt`.
-///  2. Angle can be multiplied and divided by `UInt`.
 pub(crate) fn binary_op_is_supported_for_types(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) -> bool {
     use Type::*;
 
