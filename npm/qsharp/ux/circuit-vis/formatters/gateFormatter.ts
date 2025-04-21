@@ -303,6 +303,23 @@ const _unitaryBox = (
   }
   const labelY = y + height / 2 - (displayArgs == null ? 0 : 7);
   const labelText: SVGElement = text(label, x, labelY);
+  /*
+  By default, use KaTeX_Math for gate labels.
+  if label starts with "|" format as a ket with KaTeX_Main.
+   - if the label is "|0⟩" or "|1⟩", format all with KaTeX_Main, else inside ket is also KaTeX_Math
+  if label ends with "'" replace with a dagger with KaTeX_Main font.
+  */
+  if (label.startsWith("|")) {
+    labelText.style.fontFamily = "KaTeX_Main";
+  } else {
+    // labelText.style.fontFamily = "KaTeX_Math";
+    labelText.style.fontFamily = "KaTeX_Main";
+  }
+  if (label.endsWith("'")) {
+    const justLabel = label.slice(0, -1);
+    labelText.innerHTML = `${justLabel}<tspan dx="1" dy="-3" class="dagger" style="font-size: 0.8em;">†</tspan>`;
+  }
+
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
@@ -359,7 +376,7 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
 const _ket = (label: string, metadata: Metadata): SVGElement => {
   const { x, targetsY, width } = metadata;
   const gate = _unitary(
-    `|${label}〉`,
+    `|${label}⟩`,
     x,
     targetsY as number[][],
     width,
