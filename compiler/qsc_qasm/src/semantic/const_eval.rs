@@ -39,8 +39,6 @@ pub enum ConstEvalError {
     UnsupportedBinaryOp(String, String, String, #[label] Span),
 }
 
-impl ConstEvalError {}
-
 impl Expr {
     /// Tries to evaluate the expression. It takes the current `Lowerer` as
     /// the evaluation context to resolve symbols and push errors in case
