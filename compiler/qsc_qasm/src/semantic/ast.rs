@@ -309,6 +309,8 @@ pub enum StmtKind {
     Def(DefStmt),
     DefCal(DefCalStmt),
     Delay(DelayStmt),
+    /// Gets compiled to a no-op.
+    Empty,
     End(EndStmt),
     ExprStmt(ExprStmt),
     ExternDecl(ExternDecl),
@@ -348,6 +350,7 @@ impl Display for StmtKind {
             StmtKind::Def(def) => write!(f, "{def}"),
             StmtKind::DefCal(defcal) => write!(f, "{defcal}"),
             StmtKind::Delay(delay) => write!(f, "{delay}"),
+            StmtKind::Empty => write!(f, "Empty"),
             StmtKind::End(end_stmt) => write!(f, "{end_stmt}"),
             StmtKind::ExprStmt(expr) => write!(f, "{expr}"),
             StmtKind::ExternDecl(decl) => write!(f, "{decl}"),

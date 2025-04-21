@@ -43,7 +43,7 @@ use crate::{
             IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
-        types::{promote_types, ArrayDimensions, Type},
+        types::{promote_types, Type},
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
@@ -438,6 +438,7 @@ impl QasmCompiler {
             semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
+            semast::StmtKind::Empty => None,
             semast::StmtKind::End(stmt) => Self::compile_end_stmt(stmt),
             semast::StmtKind::ExprStmt(stmt) => self.compile_expr_stmt(stmt),
             semast::StmtKind::ExternDecl(stmt) => self.compile_extern_stmt(stmt),
@@ -1411,7 +1412,7 @@ impl QasmCompiler {
             crate::semantic::types::Type::Int(_, _) | crate::semantic::types::Type::UInt(_, _) => {
                 Self::cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
-            crate::semantic::types::Type::BitArray(ArrayDimensions::One(size), _) => {
+            crate::semantic::types::Type::BitArray(size, _) => {
                 Self::cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
             }
             _ => err_expr(cast.span),
@@ -1692,10 +1693,7 @@ impl QasmCompiler {
         size: u32,
         span: Span,
     ) -> qsast::Expr {
-        assert!(matches!(
-            expr_ty,
-            Type::BitArray(ArrayDimensions::One(_), _)
-        ));
+        assert!(matches!(expr_ty, Type::BitArray(_, _)));
 
         let name_span = expr.span;
         let operand_span = span;
@@ -1862,10 +1860,7 @@ impl QasmCompiler {
         let name_span = expr.span;
         let operand_span = span;
         match ty {
-            Type::BitArray(dims, _) => {
-                let ArrayDimensions::One(size) = dims else {
-                    return err_expr(span);
-                };
+            Type::BitArray(size, _) => {
                 let size = i64::from(*size);
 
                 let size_expr = build_lit_int_expr(size, Span::default());

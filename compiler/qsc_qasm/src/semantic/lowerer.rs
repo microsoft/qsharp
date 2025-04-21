@@ -29,9 +29,9 @@ use super::symbols::{IOKind, Symbol, SymbolTable};
 use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
 use crate::parser::QasmSource;
+use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
-use crate::semantic::types::ArrayDimensions;
 use crate::stdlib::angle::Angle;
 
 use super::ast as semantic;
@@ -183,6 +183,7 @@ impl Lowerer {
 
     #[allow(clippy::too_many_lines)]
     fn lower_stmt(&mut self, stmt: &syntax::Stmt) -> semantic::Stmt {
+        let annotations = list_from_iter(Self::lower_annotations(&stmt.annotations));
         let kind = match &*stmt.kind {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
             syntax::StmtKind::Assign(stmt) => self.lower_assign(stmt),
@@ -206,11 +207,45 @@ impl Lowerer {
             syntax::StmtKind::ExternDecl(extern_decl) => self.lower_extern(extern_decl),
             syntax::StmtKind::For(stmt) => self.lower_for_stmt(stmt),
             syntax::StmtKind::If(stmt) => self.lower_if_stmt(stmt),
-            syntax::StmtKind::GateCall(stmt) => self.lower_gate_call_stmt(stmt),
-            syntax::StmtKind::GPhase(stmt) => self.lower_gphase_stmt(stmt),
+            syntax::StmtKind::GateCall(stmt) => {
+                // Since we need to compile a broadcast call into multiple
+                // statements, we push directly to self.stmts and return
+                // an empty statement.
+                for kind in self.lower_gate_call_stmt(stmt) {
+                    let stmt = semantic::Stmt {
+                        span: stmt.span,
+                        annotations: annotations.clone(),
+                        kind: Box::new(kind),
+                    };
+                    self.stmts.push(stmt);
+                }
+                return semantic::Stmt {
+                    span: Span::default(),
+                    annotations: Box::default(),
+                    kind: Box::new(semantic::StmtKind::Empty),
+                };
+            }
+            syntax::StmtKind::GPhase(stmt) => {
+                // Since we need to compile a broadcast call into multiple
+                // statements, we push directly to self.stmts and return
+                // an empty statement.
+                for kind in self.lower_gphase_stmt(stmt) {
+                    let stmt = semantic::Stmt {
+                        span: stmt.span,
+                        annotations: annotations.clone(),
+                        kind: Box::new(kind),
+                    };
+                    self.stmts.push(stmt);
+                }
+                return semantic::Stmt {
+                    span: Span::default(),
+                    annotations: Box::default(),
+                    kind: Box::new(semantic::StmtKind::Empty),
+                };
+            }
             syntax::StmtKind::Include(stmt) => self.lower_include(stmt),
             syntax::StmtKind::IODeclaration(stmt) => self.lower_io_decl(stmt),
-            syntax::StmtKind::Measure(stmt) => self.lower_measure(stmt),
+            syntax::StmtKind::Measure(stmt) => self.lower_measure_arrow_stmt(stmt),
             syntax::StmtKind::Pragma(stmt) => self.lower_pragma(stmt),
             syntax::StmtKind::QuantumGateDefinition(stmt) => self.lower_gate_def(stmt),
             syntax::StmtKind::QuantumDecl(stmt) => self.lower_quantum_decl(stmt),
@@ -220,10 +255,10 @@ impl Lowerer {
             syntax::StmtKind::WhileLoop(stmt) => self.lower_while_stmt(stmt),
             syntax::StmtKind::Err => semantic::StmtKind::Err,
         };
-        let annotations = Self::lower_annotations(&stmt.annotations);
+
         semantic::Stmt {
             span: stmt.span,
-            annotations: syntax::list_from_iter(annotations),
+            annotations,
             kind: Box::new(kind),
         }
     }
@@ -670,7 +705,7 @@ impl Lowerer {
             }
             syntax::LiteralKind::Bitstring(value, size) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(value.clone(), *size)),
-                Type::BitArray(super::types::ArrayDimensions::from(*size), true),
+                Type::BitArray(*size, true),
             ),
             syntax::LiteralKind::Bool(value) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bool(*value)),
@@ -865,8 +900,13 @@ impl Lowerer {
                 self.push_unsupported_error_message("stretch type values", span);
                 crate::types::Type::Err
             }
-            Type::BitArray(dims, _) => crate::types::Type::ResultArray(dims.into(), is_const),
-            Type::QubitArray(dims) => crate::types::Type::QubitArray(dims.into()),
+            Type::BitArray(size, _) => crate::types::Type::ResultArray(
+                crate::types::ArrayDimensions::One(*size as usize),
+                is_const,
+            ),
+            Type::QubitArray(size) => {
+                crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(*size as usize))
+            }
             Type::IntArray(size, dims) | Type::UIntArray(size, dims) => {
                 if let Some(size) = size {
                     if *size > 64 {
@@ -1195,7 +1235,7 @@ impl Lowerer {
     fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
         let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
             if let Some(size) = self.const_eval_array_size_designator_from_expr(size) {
-                let ty = crate::semantic::types::Type::QubitArray(ArrayDimensions::One(size));
+                let ty = crate::semantic::types::Type::QubitArray(size);
                 let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
                     size as usize,
                 ));
@@ -1433,7 +1473,8 @@ impl Lowerer {
         }
     }
 
-    fn lower_gate_call_stmt(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
+    #[allow(clippy::too_many_lines)]
+    fn lower_gate_call_stmt(&mut self, stmt: &syntax::GateCall) -> Vec<semantic::StmtKind> {
         // 1. Lower all the fields:
         //   1.1. Lower the modifiers.
         let mut modifiers = stmt
@@ -1444,7 +1485,7 @@ impl Lowerer {
         // If we couldn't compute the modifiers there is no way to compile the gates
         // correctly, since we can't check its arity. In this case we return an Err.
         if modifiers.len() != stmt.modifiers.len() {
-            return semantic::StmtKind::Err;
+            return vec![semantic::StmtKind::Err];
         }
 
         //   1.3. Lower the args.
@@ -1521,14 +1562,84 @@ impl Lowerer {
             ));
         }
 
-        // 6. Return:
-        //   6.1. Gate symbol_id.
-        //   6.2. All controls made explicit.
-        //   6.3. Classical args.
-        //   6.4. Quantum args in the order expected by the compiler.
+        // 5.1 Reverse the modifiers to match the order expected by the compiler.
         modifiers.reverse();
         let modifiers = list_from_iter(modifiers);
-        semantic::StmtKind::GateCall(semantic::GateCall {
+
+        // 6. Check if we need to do broadcasting.
+        let mut register_type = None;
+
+        for qubit in &qubits {
+            if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
+                if matches!(expr.ty, Type::QubitArray(..)) {
+                    register_type = Some(&expr.ty);
+                }
+                break;
+            }
+        }
+
+        // If at least one of the quantum args was a register
+        // we try to do broadcasting.
+        if let Some(register_type) = register_type {
+            // 6.1 Check that all the quantum registers are of the same type/size.
+            let mut resgisters_sizes_disagree = false;
+            for qubit in &qubits {
+                if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
+                    if !base_types_equal(register_type, &expr.ty) {
+                        resgisters_sizes_disagree = true;
+                        self.push_semantic_error(
+                            SemanticErrorKind::BroadcastCallQuantumArgsDisagreeInSize(
+                                register_type.to_string(),
+                                expr.ty.to_string(),
+                                expr.span,
+                            ),
+                        );
+                    }
+                }
+            }
+
+            // If the register sizes disagree, we don't have sane information
+            // to generate multiple statements based on the sizes. So, we
+            // return ::Err in this case.
+            if resgisters_sizes_disagree {
+                return vec![semantic::StmtKind::Err];
+            }
+
+            // 6.2 Convert the broadcast call in a list of simple stmts.
+            let mut stmts = Vec::new();
+
+            let Type::QubitArray(indexed_dim_size) = register_type else {
+                unreachable!("we set register_type iff we find a QubitArray");
+            };
+
+            for index in 0..(*indexed_dim_size) {
+                let qubits = qubits
+                    .iter()
+                    .map(|qubit| Self::index_qubit_register((**qubit).clone(), index));
+                let qubits = list_from_iter(qubits);
+
+                stmts.push(semantic::StmtKind::GateCall(semantic::GateCall {
+                    span: stmt.span,
+                    modifiers: modifiers.clone(),
+                    symbol_id,
+                    gate_name_span: stmt.name.span,
+                    args: args.clone(),
+                    qubits,
+                    duration: duration.clone(),
+                    classical_arity,
+                    quantum_arity,
+                }));
+            }
+
+            return stmts;
+        }
+
+        // 7. This is the base case with no broadcasting. We return:
+        //   7.1. Gate symbol_id.
+        //   7.2. All controls made explicit.
+        //   7.3. Classical args.
+        //   7.4. Quantum args in the order expected by the compiler.
+        vec![semantic::StmtKind::GateCall(semantic::GateCall {
             span: stmt.span,
             modifiers,
             symbol_id,
@@ -1538,7 +1649,7 @@ impl Lowerer {
             duration,
             classical_arity,
             quantum_arity,
-        })
+        })]
 
         // The compiler will be left to do all things that need explicit Q# knowledge.
         // But it won't need to check arities, know about implicit modifiers, or do
@@ -1547,8 +1658,38 @@ impl Lowerer {
         // by all the QASM semantic analysis.
     }
 
+    fn index_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
+        match op.kind {
+            semantic::GateOperandKind::Expr(expr) => {
+                assert!(matches!(expr.ty, Type::QubitArray(..)));
+                semantic::GateOperand {
+                    span: op.span,
+                    kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr {
+                        span: op.span,
+                        kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                            span: op.span,
+                            collection: *expr,
+                            index: semantic::IndexElement::DiscreteSet(semantic::DiscreteSet {
+                                span: op.span,
+                                values: Box::new([Box::new(semantic::Expr {
+                                    span: op.span,
+                                    kind: Box::new(semantic::ExprKind::Lit(
+                                        semantic::LiteralKind::Int(index.into()),
+                                    )),
+                                    ty: Type::UInt(None, true),
+                                })]),
+                            }),
+                        })),
+                        ty: Type::Qubit,
+                    })),
+                }
+            }
+            _ => unreachable!("by this point `op` is guaranteed to be a quantum register"),
+        }
+    }
+
     /// This is just syntax sugar around a gate call.
-    fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
+    fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> Vec<semantic::StmtKind> {
         let name = syntax::Ident {
             span: stmt.gphase_token_span,
             name: "gphase".into(),
@@ -1678,8 +1819,8 @@ impl Lowerer {
         })
     }
 
-    fn lower_measure(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
-        // `measure q -> c;` is syntax sugar for `c = measure q;`
+    /// `measure q -> c;` is syntax sugar for `c = measure q;`
+    fn lower_measure_arrow_stmt(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
         if let Some(target) = &stmt.target {
             self.lower_assign(&syntax::AssignStmt {
                 span: stmt.span,
@@ -1795,10 +1936,7 @@ impl Lowerer {
                 size_expr.map(|expr| expr.const_eval(self))
             {
                 if let Ok(size) = u32::try_from(val) {
-                    (
-                        Type::QubitArray(ArrayDimensions::One(size)),
-                        Some((size, span)),
-                    )
+                    (Type::QubitArray(size), Some((size, span)))
                 } else {
                     let message = "quantum register size".into();
                     self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
@@ -2088,10 +2226,7 @@ impl Lowerer {
                     let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-                    crate::semantic::types::Type::BitArray(
-                        super::types::ArrayDimensions::from(size),
-                        is_const,
-                    )
+                    crate::semantic::types::Type::BitArray(size, is_const)
                 }
                 None => crate::semantic::types::Type::Bit(is_const),
             },
@@ -2298,19 +2433,10 @@ impl Lowerer {
                 self.push_unsupported_error_message(message, span);
                 None
             }
-            Type::BitArray(dims, _) => match dims {
-                ArrayDimensions::One(size) => Some(from_lit_kind(
-                    semantic::LiteralKind::Bitstring(BigInt::ZERO, *size),
-                )),
-                ArrayDimensions::Err => None,
-                _ => {
-                    self.push_unimplemented_error_message(
-                        "multidimensional bit array default value",
-                        span,
-                    );
-                    None
-                }
-            },
+            Type::BitArray(size, _) => Some(from_lit_kind(semantic::LiteralKind::Bitstring(
+                BigInt::ZERO,
+                *size,
+            ))),
             Type::Duration(_) => Some(from_lit_kind(LiteralKind::Duration(
                 0.0,
                 semantic::TimeUnit::Ns,
@@ -2414,12 +2540,9 @@ impl Lowerer {
         }
         // if lhs_ty is 1 dim bitarray and rhs is int/uint, we can cast
         let (is_int_to_bit_array, size) = match &lhs_ty {
-            Type::BitArray(dims, _) => {
+            Type::BitArray(size, _) => {
                 if matches!(rhs.ty, Type::Int(..) | Type::UInt(..)) {
-                    match dims {
-                        &ArrayDimensions::One(size) => (true, size),
-                        _ => (false, 0),
-                    }
+                    (true, *size)
                 } else {
                     (false, 0)
                 }
@@ -2666,7 +2789,7 @@ impl Lowerer {
             Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
             Type::Float(_, _) => Self::cast_float_expr_to_type(ty, expr),
             Type::Int(_, _) | Type::UInt(_, _) => Self::cast_int_expr_to_type(ty, expr),
-            Type::BitArray(dims, _) => Self::cast_bitarray_expr_to_type(dims, ty, expr),
+            Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             _ => None,
         }
     }
@@ -2783,13 +2906,10 @@ impl Lowerer {
     }
 
     fn cast_bitarray_expr_to_type(
-        dims: &ArrayDimensions,
+        array_width: u32,
         ty: &Type,
         rhs: &semantic::Expr,
     ) -> Option<semantic::Expr> {
-        let ArrayDimensions::One(array_width) = dims else {
-            return None;
-        };
         if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
             return None;
         }
@@ -2797,7 +2917,7 @@ impl Lowerer {
         // verfiy widths
         let int_width = ty.width();
 
-        if int_width.is_none() || (int_width == Some(*array_width)) {
+        if int_width.is_none() || (int_width == Some(array_width)) {
             Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
         } else {
             None
@@ -3039,14 +3159,14 @@ impl Lowerer {
             syntax::BinOp::AndB | syntax::BinOp::OrB | syntax::BinOp::XorB
         ) && matches!(
             left_type,
-            Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
+            Type::Bit(..) | Type::UInt(..) | Type::BitArray(_, _)
         )) {
             return true;
         }
         if (matches!(op, syntax::BinOp::Shl | syntax::BinOp::Shr)
             && matches!(
                 left_type,
-                Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
+                Type::Bit(..) | Type::UInt(..) | Type::BitArray(_, _)
             ))
         {
             return true;

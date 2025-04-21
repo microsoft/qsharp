@@ -13,10 +13,7 @@ use super::ast::{
 use super::symbols::SymbolId;
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
-use crate::{
-    convert::safe_i64_to_f64,
-    semantic::types::{ArrayDimensions, Type},
-};
+use crate::{convert::safe_i64_to_f64, semantic::types::Type};
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
@@ -722,13 +719,8 @@ fn cast_to_bitarray(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Bool, Int};
     let lit = cast.expr.const_eval(ctx)?;
 
-    let Type::BitArray(dims, _) = &cast.ty else {
+    let Type::BitArray(size, _) = &cast.ty else {
         unreachable!("we got here after matching Type::BitArray in Cast::const_eval");
-    };
-
-    let ArrayDimensions::One(size) = dims else {
-        ctx.push_unsupported_error_message("multidimensional arrays", cast.span);
-        return None;
     };
     let size = *size;
 

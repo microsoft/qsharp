@@ -28,6 +28,9 @@ pub enum SemanticErrorKind {
     #[error("array size must be a non-negative integer const expression")]
     #[diagnostic(code("Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
     ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
+    #[error("first quantum arg is of type {0} but found an arg of type {1}")]
+    #[diagnostic(code("Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize"))]
+    BroadcastCallQuantumArgsDisagreeInSize(String, String, #[label] Span),
     #[error("calibration statements are not supported: {0}")]
     #[diagnostic(code("Qasm.Lowerer.CalibrationsNotSupported"))]
     CalibrationsNotSupported(String, #[label] Span),

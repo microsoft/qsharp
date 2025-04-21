@@ -29,8 +29,8 @@ pub enum Type {
     HardwareQubit,
 
     // magic arrays
-    BitArray(ArrayDimensions, bool),
-    QubitArray(ArrayDimensions),
+    BitArray(u32, bool),
+    QubitArray(u32),
 
     // proper arrays
     BoolArray(ArrayDimensions),
@@ -159,13 +159,11 @@ impl Type {
     pub fn num_dims(&self) -> usize {
         match self {
             Type::AngleArray(_, dims)
-            | Type::BitArray(dims, _)
             | Type::BoolArray(dims)
             | Type::DurationArray(dims)
             | Type::ComplexArray(_, dims)
             | Type::FloatArray(_, dims)
             | Type::IntArray(_, dims)
-            | Type::QubitArray(dims)
             | Type::UIntArray(_, dims) => dims.num_dims(),
             _ => 0,
         }
@@ -181,12 +179,6 @@ impl Type {
     #[must_use]
     pub fn get_indexed_type(&self) -> Option<Self> {
         let ty = match self {
-            Type::BitArray(dims, is_const) => indexed_type_builder(
-                || Type::Bit(*is_const),
-                |d| Type::BitArray(d, *is_const),
-                dims,
-            ),
-            Type::QubitArray(dims) => indexed_type_builder(|| Type::Qubit, Type::QubitArray, dims),
             Type::BoolArray(dims) => {
                 indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims)
             }
@@ -234,7 +226,7 @@ impl Type {
             Type::Float(w, _) => Self::Float(*w, true),
             Type::Int(w, _) => Self::Int(*w, true),
             Type::UInt(w, _) => Self::UInt(*w, true),
-            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), true),
+            Type::BitArray(size, _) => Self::BitArray(*size, true),
             _ => self.clone(),
         }
     }
@@ -250,7 +242,7 @@ impl Type {
             Type::Float(w, _) => Self::Float(*w, false),
             Type::Int(w, _) => Self::Int(*w, false),
             Type::UInt(w, _) => Self::UInt(*w, false),
-            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), false),
+            Type::BitArray(size, _) => Self::BitArray(*size, false),
             _ => self.clone(),
         }
     }
@@ -332,6 +324,20 @@ impl ArrayDimensions {
             ArrayDimensions::Err => 0,
         }
     }
+
+    #[must_use]
+    pub fn indexed_dim_size(&self) -> Option<u32> {
+        match self {
+            ArrayDimensions::One(d)
+            | ArrayDimensions::Two(_, d)
+            | ArrayDimensions::Three(_, _, d)
+            | ArrayDimensions::Four(_, _, _, d)
+            | ArrayDimensions::Five(_, _, _, _, d)
+            | ArrayDimensions::Six(_, _, _, _, _, d)
+            | ArrayDimensions::Seven(_, _, _, _, _, _, d) => Some(*d),
+            ArrayDimensions::Err => None,
+        }
+    }
 }
 
 /// When two types are combined, the result is a type that can represent both.
@@ -406,11 +412,8 @@ fn get_uint_ty(ty: &Type) -> Option<Type> {
         Some(Type::UInt(ty.width(), ty.is_const()))
     } else if matches!(ty, Type::Bool(..) | Type::Bit(..)) {
         Some(Type::UInt(Some(1), ty.is_const()))
-    } else if let Type::BitArray(dims, _) = ty {
-        match dims {
-            ArrayDimensions::One(d) => Some(Type::UInt(Some(*d), ty.is_const())),
-            _ => None,
-        }
+    } else if let Type::BitArray(size, _) = ty {
+        Some(Type::UInt(Some(*size), ty.is_const()))
     } else {
         None
     }
@@ -498,9 +501,9 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Float(lhs_width, _), Type::Float(rhs_width, _))
         | (Type::Angle(lhs_width, _), Type::Angle(rhs_width, _))
         | (Type::Complex(lhs_width, _), Type::Complex(rhs_width, _)) => lhs_width == rhs_width,
-        (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
-        | (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
-        | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
+        (Type::BitArray(lhs_dim, _), Type::BitArray(rhs_dim, _))
+        | (Type::QubitArray(lhs_dim), Type::QubitArray(rhs_dim)) => lhs_dim == rhs_dim,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
         (Type::IntArray(lhs_width, lhs_dims), Type::IntArray(rhs_width, rhs_dims))
         | (Type::UIntArray(lhs_width, lhs_dims), Type::UIntArray(rhs_width, rhs_dims))
         | (Type::FloatArray(lhs_width, lhs_dims), Type::FloatArray(rhs_width, rhs_dims))
@@ -536,8 +539,8 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Complex(_, _), Type::Complex(_, _))
         | (Type::Gate(_, _), Type::Gate(_, _)) => true,
         (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
-        | (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
         | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
         (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
         | (Type::UIntArray(_, lhs_dims), Type::UIntArray(_, rhs_dims))
         | (Type::FloatArray(_, lhs_dims), Type::FloatArray(_, rhs_dims))
@@ -579,9 +582,8 @@ pub fn can_cast_literal(lhs_ty: &Type, ty_lit: &Type) -> bool {
         }
         || {
             match lhs_ty {
-                Type::BitArray(dims, _) => {
-                    matches!(dims, ArrayDimensions::One(_))
-                        && matches!(ty_lit, Type::Int(_, _) | Type::UInt(_, _))
+                Type::BitArray(_, _) => {
+                    matches!(ty_lit, Type::Int(_, _) | Type::UInt(_, _))
                 }
                 _ => false,
             }
@@ -607,15 +609,10 @@ pub(crate) fn can_cast_literal_with_value_knowledge(lhs_ty: &Type, kind: &Litera
 // https://openqasm.com/language/classical.html
 pub(crate) fn unary_op_can_be_applied_to_type(op: syntax::UnaryOp, ty: &Type) -> bool {
     match op {
-        syntax::UnaryOp::NotB => match ty {
-            Type::Bit(_) | Type::UInt(_, _) | Type::Angle(_, _) => true,
-            Type::BitArray(dims, _) | Type::UIntArray(_, dims) | Type::AngleArray(_, dims) => {
-                // the spe says "registers of the same size" which is a bit ambiguous
-                // but we can assume that it means that the array is a single dim
-                matches!(dims, ArrayDimensions::One(_))
-            }
-            _ => false,
-        },
+        syntax::UnaryOp::NotB => matches!(
+            ty,
+            Type::Bit(_) | Type::UInt(_, _) | Type::Angle(_, _) | Type::BitArray(_, _)
+        ),
         syntax::UnaryOp::NotL => matches!(ty, Type::Bool(_)),
         syntax::UnaryOp::Neg => {
             matches!(ty, Type::Int(_, _) | Type::Float(_, _) | Type::Angle(_, _))
@@ -664,14 +661,7 @@ pub(crate) fn binop_requires_int_conversion_for_type(
         | syntax::BinOp::Lt
         | syntax::BinOp::Lte
         | syntax::BinOp::Neq => match (lhs, rhs) {
-            (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _)) => {
-                match (lhs_dims, rhs_dims) {
-                    (ArrayDimensions::One(lhs_size), ArrayDimensions::One(rhs_size)) => {
-                        lhs_size == rhs_size
-                    }
-                    _ => false,
-                }
-            }
+            (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _)) => lhs_size == rhs_size,
             _ => false,
         },
         _ => false,
@@ -745,7 +735,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
         (left_type, right_type),
         (Type::Int(..) | Type::UInt(..), Type::BitArray(..))
     ) {
-        let Type::BitArray(ArrayDimensions::One(size), _) = right_type else {
+        let Type::BitArray(size, _) = right_type else {
             return None;
         };
 
@@ -760,7 +750,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
         (left_type, right_type),
         (Type::BitArray(..), Type::Int(..) | Type::UInt(..))
     ) {
-        let Type::BitArray(ArrayDimensions::One(size), _) = left_type else {
+        let Type::BitArray(size, _) = left_type else {
             return None;
         };
 
