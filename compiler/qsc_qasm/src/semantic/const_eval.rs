@@ -11,6 +11,7 @@ use super::ast::{
     UnaryOp, UnaryOpExpr,
 };
 use super::symbols::SymbolId;
+use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
 use crate::{
@@ -25,14 +26,17 @@ use thiserror::Error;
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
     #[error("expression must be const")]
-    #[diagnostic(code("Qasm.Compiler.ExprMustBeConst"))]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
-    #[diagnostic(code("Qasm.Compiler.NegativeUIntValue"))]
+    #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
     #[error("{0} doesn't fit in {1}")]
-    #[diagnostic(code("Qasm.Compiler.ValueOverflow"))]
+    #[diagnostic(code("Qasm.Lowerer.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
+    #[error("{0} is not supported between types {1} and {2}")]
+    #[diagnostic(code("Qasm.Lowerer.UnsupportedBinaryOp"))]
+    UnsupportedBinaryOp(String, String, String, #[label] Span),
 }
 
 impl ConstEvalError {}
@@ -133,30 +137,6 @@ impl UnaryOpExpr {
     }
 }
 
-/// By this point it is guaranteed that the lhs and rhs are of the same type.
-/// Any conversions have been made explicit by inserting casts during lowering.
-/// Note: the type of the binary expression doesn't need to be the same as the
-///       operands, for example, comparison operators can have integer operands
-///       but their type is boolean.
-/// We can write a simpler implementation under that assumption.
-///
-/// There are some exceptions:
-///  1. The rhs in Shl and Shr must be of type `UInt`.
-///  2. Angle can be multiplied and divided by `UInt`.
-fn assert_binary_op_ty_invariant(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) {
-    // Exceptions:
-    if matches!(
-        (op, lhs_ty, rhs_ty),
-        (BinOp::Shl | BinOp::Shr, _, _)
-            | (BinOp::Mul | BinOp::Div, Type::Angle(..), Type::UInt(..))
-            | (BinOp::Mul, Type::UInt(..), Type::Angle(..))
-    ) {
-        return;
-    }
-
-    assert_eq!(lhs_ty, rhs_ty);
-}
-
 impl BinaryOpExpr {
     #[allow(clippy::too_many_lines)]
     fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
@@ -167,7 +147,15 @@ impl BinaryOpExpr {
         let (lhs, rhs) = (lhs?, rhs?);
         let lhs_ty = &self.lhs.ty;
 
-        assert_binary_op_ty_invariant(self.op, &self.lhs.ty, &self.rhs.ty);
+        if !binary_op_is_supported_for_types(self.op, &self.lhs.ty, &self.rhs.ty) {
+            ctx.push_const_eval_error(ConstEvalError::UnsupportedBinaryOp(
+                self.op.to_string(),
+                self.lhs.ty.to_string(),
+                self.rhs.ty.to_string(),
+                self.span(),
+            ));
+            return None;
+        }
 
         match &self.op {
             // Bit Shifts
