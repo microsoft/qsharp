@@ -9,7 +9,7 @@ use lowerer::Lowerer;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 
-use std::path::Path;
+use std::sync::Arc;
 
 pub(crate) mod ast;
 pub(crate) mod const_eval;
@@ -92,15 +92,8 @@ impl QasmSemanticParseResult {
     }
 }
 
-pub(crate) fn parse<S, P>(source: S, path: P) -> QasmSemanticParseResult
-where
-    S: AsRef<str>,
-    P: AsRef<Path>,
-{
-    let mut resolver = InMemorySourceResolver::from_iter([(
-        path.as_ref().display().to_string().into(),
-        source.as_ref().into(),
-    )]);
+pub(crate) fn parse(source: Arc<str>, path: Arc<str>) -> QasmSemanticParseResult {
+    let mut resolver = InMemorySourceResolver::from_iter([(path.clone(), source.clone())]);
     parse_source(source, path, &mut resolver)
 }
 
@@ -108,10 +101,12 @@ where
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmSemanticParseResult
+pub fn parse_source<R>(
+    source: Arc<str>,
+    path: Arc<str>,
+    resolver: &mut R,
+) -> QasmSemanticParseResult
 where
-    S: AsRef<str>,
-    P: AsRef<Path>,
     R: SourceResolver,
 {
     let res = crate::parser::parse_source(source, path, resolver);

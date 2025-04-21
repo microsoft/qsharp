@@ -36,7 +36,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
         Some("Test".into()),
         None,
     );
-    let r = compile_all_with_config("source0.qasm", all_sources, config)?;
+    let r = compile_all_with_config("source0.qasm".into(), all_sources, config)?;
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
@@ -79,7 +79,7 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
         Some("Test".into()),
         None,
     );
-    let r = compile_all_with_config("source0.qasm", all_sources, config)?;
+    let r = compile_all_with_config("source0.qasm".into(), all_sources, config)?;
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
@@ -116,7 +116,7 @@ fn including_stdgates_multiple_times_causes_symbol_redifintion_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 
@@ -146,7 +146,7 @@ fn multiple_include_in_same_file_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 
@@ -184,7 +184,7 @@ fn multiple_include_in_different_files_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 
@@ -213,7 +213,7 @@ fn self_include_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 
@@ -249,7 +249,7 @@ fn mutual_include_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 
@@ -290,7 +290,7 @@ fn cyclic_include_errors() {
         None,
     );
 
-    let Err(errors) = compile_all_with_config("main.qasm", all_sources, config) else {
+    let Err(errors) = compile_all_with_config("main.qasm".into(), all_sources, config) else {
         panic!("expected errors")
     };
 

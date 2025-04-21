@@ -479,7 +479,7 @@ impl Interpreter {
 
         let fs =
             create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+        let mut resolver = ImportResolver::new(fs, search_path.into());
 
         let config = CompilerConfig::new(
             QubitSemantics::Qiskit,
@@ -489,7 +489,12 @@ impl Interpreter {
             None,
         );
 
-        let unit = compile_to_qsharp_ast_with_config(input, "<none>", Some(&mut resolver), config);
+        let unit = compile_to_qsharp_ast_with_config(
+            input.into(),
+            "<none>".into(),
+            Some(&mut resolver),
+            config,
+        );
         let (sources, errors, package, _) = unit.into_tuple();
 
         if !errors.is_empty() {

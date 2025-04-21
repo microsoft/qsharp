@@ -10,7 +10,9 @@ use qsc::{
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
     packages::{prepare_package_store, BuildableProgram},
-    project, resolve,
+    project,
+    qasm::{io::InMemorySourceResolver, CompileRawQasmResult},
+    resolve,
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
@@ -54,6 +56,11 @@ pub(crate) enum CompilationKind {
     /// contains multiple `Source`s, with each source corresponding
     /// to a cell.
     Notebook { project: Option<Project> },
+    OpenQASM {
+        package_graph_sources: PackageGraphSources,
+        /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
+        friendly_name: Arc<str>,
+    },
 }
 
 impl Compilation {
@@ -239,11 +246,61 @@ impl Compilation {
         }
     }
 
+    pub(crate) fn new_qasm(
+        package_type: PackageType,
+        target_profile: Profile,
+        package_graph_sources: PackageGraphSources,
+        project_errors: Vec<project::Error>,
+        friendly_name: &Arc<str>,
+    ) -> Self {
+        let (path, source) = package_graph_sources
+            .root
+            .sources
+            .first()
+            .expect("expected to find qasm source");
+
+        let mut resolver = package_graph_sources
+            .root
+            .sources
+            .clone()
+            .into_iter()
+            .collect::<InMemorySourceResolver>();
+        let capabilities = target_profile.into();
+
+        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, compile_errors) =
+            qsc::qasm::compile_raw_qasm(
+                source.clone(),
+                path.clone(),
+                Some(&mut resolver),
+                package_type,
+                capabilities,
+            );
+
+        let dependencies = dependencies
+            .into_iter()
+            .chain(once((source_package_id, None)))
+            .collect();
+
+        Self {
+            package_store: store,
+            user_package_id: source_package_id,
+            kind: CompilationKind::OpenQASM {
+                package_graph_sources,
+                friendly_name: friendly_name.clone(),
+            },
+            compile_errors,
+            project_errors,
+            dependencies,
+            test_cases: vec![],
+        }
+    }
+
     /// Returns a human-readable compilation name if one exists.
     /// Notebooks don't have human-readable compilation names.
     pub fn friendly_project_name(&self) -> Option<Arc<str>> {
         match &self.kind {
-            CompilationKind::OpenProject { friendly_name, .. } => Some(friendly_name.clone()),
+            CompilationKind::OpenProject { friendly_name, .. }
+            | CompilationKind::OpenQASM { friendly_name, .. } => Some(friendly_name.clone()),
             CompilationKind::Notebook { .. } => None,
         }
     }
@@ -358,6 +415,16 @@ impl Compilation {
                 language_features,
                 lints_config,
                 project.clone(),
+            ),
+            CompilationKind::OpenQASM {
+                ref package_graph_sources,
+                ref friendly_name,
+            } => Self::new_qasm(
+                package_type,
+                target_profile,
+                package_graph_sources.clone(),
+                Vec::new(), // project errors will stay the same
+                friendly_name,
             ),
         };
 

@@ -190,6 +190,51 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
 }
 
 #[test]
+fn bitarray_multiple_values_var_comparison_to_int_can_be_translated(
+) -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        bit[3] x = "110";
+        input int y;
+        bool a = (x > y);
+        bool b = (x >= y);
+        bool c = (x < y);
+        bool d = (x <= y);
+        bool e = (x == y);
+        bool f = (x != y);
+        bool g = (y > x);
+        bool h = (y >= x);
+        bool i = (y < x);
+        bool j = (y <= x);
+        bool k = (y == x);
+        bool l = (y != x);
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp_file(source)?;
+    expect![[r#"
+        namespace qasm_import {
+            import QasmStd.Intrinsic.*;
+            operation Test(y : Int) : (Result[], Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
+                mutable x = [One, One, Zero];
+                mutable a = (QasmStd.Convert.ResultArrayAsIntBE(x) > y);
+                mutable b = (QasmStd.Convert.ResultArrayAsIntBE(x) >= y);
+                mutable c = (QasmStd.Convert.ResultArrayAsIntBE(x) < y);
+                mutable d = (QasmStd.Convert.ResultArrayAsIntBE(x) <= y);
+                mutable e = (QasmStd.Convert.ResultArrayAsIntBE(x) == y);
+                mutable f = (QasmStd.Convert.ResultArrayAsIntBE(x) != y);
+                mutable g = (y > QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable h = (y >= QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable i = (y < QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable j = (y <= QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable k = (y == QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable l = (y != QasmStd.Convert.ResultArrayAsIntBE(x));
+                (x, a, b, c, d, e, f, g, h, i, j, k, l)
+            }
+        }"#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let source = "
         float x = 5;

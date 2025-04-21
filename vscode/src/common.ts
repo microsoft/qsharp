@@ -15,6 +15,7 @@ import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 export const qsharpCircuitLanguageId = "qsharpcircuit";
+export const openqasmLanguageId = "openqasm";
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, circuit files, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
@@ -48,6 +49,18 @@ export function isQsharpNotebookCell(document: TextDocument): boolean {
   return (
     document.languageId === qsharpLanguageId &&
     document.uri.scheme === "vscode-notebook-cell"
+  );
+}
+
+// Returns true for all OpenQASM documents, including unsaved files, notebook cells, etc.
+export function isOpenQasmDocument(document: TextDocument): boolean {
+  return (
+    //document.languageId === openqasmLanguageId &&
+    (Utils.extname(document.uri) === ".qasm" ||
+      Utils.extname(document.uri) === ".inc" ||
+      document.isUntitled) &&
+    document.uri.scheme !== "git" &&
+    document.uri.scheme !== "pr"
   );
 }
 
