@@ -128,7 +128,7 @@ impl QasmCompiler {
             ProgramType::Fragments => (self.build_fragments(), None),
         };
 
-        QasmCompileUnit::new(self.source_map, self.errors, Some(package), signature)
+        QasmCompileUnit::new(self.source_map, self.errors, package, signature)
     }
 
     /// Build a package with namespace and an operation
