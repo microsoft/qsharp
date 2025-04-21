@@ -1,5 +1,7 @@
-use serde::{Deserialize, Serialize};
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+use serde::{Deserialize, Serialize};
 use crate::{LintKind, LintLevel};
 
 /// End-user configuration for a lint group.
