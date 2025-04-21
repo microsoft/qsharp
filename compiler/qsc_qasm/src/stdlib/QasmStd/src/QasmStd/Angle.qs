@@ -8,6 +8,7 @@ import Std.Convert.IntAsBigInt;
 import Std.Convert.IntAsBoolArray;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
+import Std.Math.RoundHalfAwayFromZero;
 import Convert.__IntAsResultArrayBE__;
 import Convert.__ResultAsInt__;
 
@@ -254,20 +255,3 @@ function __NegAngle__(angle : __Angle__) : __Angle__ {
     let value = (1 <<< size) - value;
     new __Angle__ { Value = value, Size = size }
 }
-
-// not exported
-function RoundHalfAwayFromZero(value : Double) : Int {
-    let roundedValue = Microsoft.Quantum.Math.Round(value);
-    let EPSILON = 2.2204460492503131e-16;
-    let diff = Std.Math.AbsD(value - Std.Convert.IntAsDouble(roundedValue));
-    if (Std.Math.AbsD(diff - 0.5) < EPSILON) {
-        if (value > 0.0) {
-            return roundedValue + 1;
-        } else {
-            return roundedValue - 1;
-        }
-    } else {
-        return roundedValue;
-    }
-}
-
