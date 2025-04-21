@@ -468,9 +468,6 @@ fn empty_circuit_with_qubits() {
         &expect![[r#"
             /// Expects a qubit register of size 2.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
-                }
             }
 
         "#]],
@@ -482,7 +479,13 @@ fn circuit_with_qubit_missing_num_results() {
     check(
         r#"
 {
-  "componentGrid": [],
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    }
+  ],
   "qubits": [
     { "id": 0 }
   ]
@@ -493,6 +496,7 @@ fn circuit_with_qubit_missing_num_results() {
                 if Length(qs) != 1 {
                     fail "Invalid number of qubits. Operation Test expects a qubit register of size 1.";
                 }
+                H(qs[0]);
             }
 
         "#]],
