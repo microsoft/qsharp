@@ -9,7 +9,6 @@ use qsc_data_structures::span::Span;
 use qsc_frontend::compile::SourceMap;
 use qsc_frontend::error::WithSource;
 use scan::ParserContext;
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -89,7 +88,7 @@ impl QasmParseResult {
 /// We have to do this after a full parse as we don't know what files will be loaded
 /// until we have parsed all the includes.
 fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
-    let source_file = source_map.find_by_name(&source.path().display().to_string());
+    let source_file = source_map.find_by_name(&source.path());
     let offset = source_file.map_or(0, |source| source.offset);
     // Update the errors' offset
     source
@@ -110,10 +109,8 @@ fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmParseResult
+pub fn parse_source<R>(source: Arc<str>, path: Arc<str>, resolver: &mut R) -> QasmParseResult
 where
-    S: AsRef<str>,
-    P: AsRef<Path>,
     R: SourceResolver,
 {
     let res = parse_qasm_source(source, path, resolver);
@@ -131,10 +128,7 @@ fn create_source_map(source: &QasmSource) -> SourceMap {
 
 /// Recursively collect all source files from the includes
 fn collect_source_files(source: &QasmSource, files: &mut Vec<(Arc<str>, Arc<str>)>) {
-    files.push((
-        Arc::from(source.path().to_string_lossy().to_string()),
-        Arc::from(source.source()),
-    ));
+    files.push((source.path(), source.source()));
     // Collect all source files from the includes, this
     // begins the recursive process of collecting all source files.
     for include in source.includes() {
@@ -147,7 +141,7 @@ fn collect_source_files(source: &QasmSource, files: &mut Vec<(Arc<str>, Arc<str>
 pub struct QasmSource {
     /// The path to the source file. This is used for error reporting.
     /// This path is just a name, it does not have to exist on disk.
-    path: PathBuf,
+    path: Arc<str>,
     /// The source code of the file.
     source: Arc<str>,
     /// The parsed AST of the source file or any parse errors.
@@ -160,16 +154,17 @@ pub struct QasmSource {
 }
 
 impl QasmSource {
-    pub fn new<T: AsRef<str>, P: AsRef<Path>>(
-        source: T,
-        file_path: P,
+    #[must_use]
+    pub fn new(
+        source: Arc<str>,
+        path: Arc<str>,
         program: Program,
         errors: Vec<Error>,
         included: Vec<QasmSource>,
     ) -> QasmSource {
         QasmSource {
-            path: file_path.as_ref().to_owned(),
-            source: source.as_ref().into(),
+            path,
+            source,
             program,
             errors,
             included,
@@ -208,7 +203,7 @@ impl QasmSource {
     }
 
     #[must_use]
-    pub fn path(&self) -> PathBuf {
+    pub fn path(&self) -> Arc<str> {
         self.path.clone()
     }
 
@@ -218,8 +213,8 @@ impl QasmSource {
     }
 
     #[must_use]
-    pub fn source(&self) -> &str {
-        self.source.as_ref()
+    pub fn source(&self) -> Arc<str> {
+        self.source.clone()
     }
 }
 
@@ -230,14 +225,13 @@ impl QasmSource {
 /// This function is the start of a recursive process that will resolve all
 /// includes in the QASM file. Any includes are parsed as if their contents
 /// were defined where the include statement is.
-fn parse_qasm_file<P, R>(path: P, resolver: &mut R) -> QasmSource
+fn parse_qasm_file<R>(path: &Arc<str>, resolver: &mut R) -> QasmSource
 where
-    P: AsRef<Path>,
     R: SourceResolver,
 {
-    match resolver.resolve(&path) {
+    match resolver.resolve(path.clone()) {
         Ok((path, source)) => {
-            let parse_result = parse_qasm_source(source, path, resolver);
+            let parse_result = parse_qasm_source(source, path.clone(), resolver);
 
             // Once we finish parsing the source, we pop the file from the
             // resolver. This is needed to keep track of multiple includes
@@ -250,7 +244,7 @@ where
             let error = crate::parser::error::ErrorKind::IO(e);
             let error = crate::parser::Error(error, None);
             QasmSource {
-                path: path.as_ref().to_owned(),
+                path: path.clone(),
                 source: Default::default(),
                 program: Program {
                     span: Span::default(),
@@ -264,10 +258,8 @@ where
     }
 }
 
-fn parse_qasm_source<S, P, R>(source: S, path: P, resolver: &mut R) -> QasmSource
+fn parse_qasm_source<R>(source: Arc<str>, path: Arc<str>, resolver: &mut R) -> QasmSource
 where
-    S: AsRef<str>,
-    P: AsRef<Path>,
     R: SourceResolver,
 {
     let (program, errors, includes) = parse_source_and_includes(source.as_ref(), resolver);

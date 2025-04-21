@@ -13,12 +13,14 @@ use super::protocol::{
 use log::{debug, trace};
 use miette::Diagnostic;
 use qsc::line_column::Encoding;
+use qsc::qasm::parser::ast::StmtKind;
 use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintOrGroupConfig;
-use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
+use qsc_project::{
+    FileSystemAsync, JSProjectHost, PackageCache, PackageGraphSources, PackageInfo, Project,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::path::PathBuf;
-use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
 pub(super) struct CompilationState {
@@ -150,14 +152,8 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = match self.load_manifest(&doc_uri).await {
-            Ok(Some(p)) => p,
-            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
-            Err(errors) => Project {
-                errors,
-                ..Project::from_single_file(doc_uri.clone(), text.clone())
-            },
-        };
+        // load qasm project from root file via parse
+        let project = self.load_project_from_doc_uri(&doc_uri, &text).await;
 
         let compilation_uri = project.path.clone();
 
@@ -186,6 +182,24 @@ impl<'a> CompilationStateUpdater<'a> {
         self.insert_buffer_aware_compilation(project);
 
         self.publish_diagnostics_and_test_callables();
+    }
+
+    async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
+        match self.load_manifest(doc_uri).await {
+            Ok(Some(p)) => p,
+            Ok(None) => {
+                if is_openqasm_file(doc_uri) {
+                    if let Ok(Some(project)) = self.load_openqasm_project(doc_uri).await {
+                        return project;
+                    }
+                }
+                Project::from_single_file(doc_uri.clone(), text.clone())
+            }
+            Err(errors) => Project {
+                errors,
+                ..Project::from_single_file(doc_uri.clone(), text.clone())
+            },
+        }
     }
 
     /// Attempts to resolve a manifest for the given document uri.
@@ -257,15 +271,27 @@ impl<'a> CompilationStateUpdater<'a> {
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
-            let compilation = Compilation::new(
-                configuration.package_type,
-                configuration.target_profile,
-                configuration.language_features,
-                &configuration.lints_config,
-                loaded_project.package_graph_sources,
-                loaded_project.errors,
-                &loaded_project.name,
-            );
+            // todo, this doesn't differentiate between compilation types
+            let package_graph_sources = loaded_project.package_graph_sources;
+            let compilation = if is_openqasm_project(&package_graph_sources) {
+                Compilation::new_qasm(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    package_graph_sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                )
+            } else {
+                Compilation::new(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    configuration.language_features,
+                    &configuration.lints_config,
+                    package_graph_sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                )
+            };
 
             state
                 .compilations
@@ -580,6 +606,95 @@ impl<'a> CompilationStateUpdater<'a> {
             (self.test_callable_receiver)(TestCallables { callables });
         });
     }
+
+    async fn load_openqasm_project(
+        &self,
+        doc_uri: &Arc<str>,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
+        let mut loaded_files = FxHashMap::default();
+        let mut pending_includes = vec![];
+        let mut errors = vec![];
+
+        pending_includes.push(doc_uri.clone());
+
+        while let Some(current) = pending_includes.pop() {
+            if loaded_files.contains_key(&current) {
+                // We've already loaded this include, so skip it.
+                // We'll let the source resolver handle any duplicates.
+                // and cyclic dependency errors.
+                continue;
+            }
+
+            match self.project_host.read_file(&current).await {
+                Ok((file, source)) => {
+                    loaded_files.insert(file, source.clone());
+
+                    let (program, _errors) = qsc::qasm::parser::parse(source.as_ref());
+
+                    let includes: Vec<Arc<str>> = program
+                        .statements
+                        .iter()
+                        .filter_map(|stmt| {
+                            if let StmtKind::Include(include) = &*stmt.kind {
+                                Some(include.filename.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
+                    for include in includes {
+                        if include == "stdgates.inc".into() {
+                            // Don't include stdgates.inc, as it is a special case.
+                            continue;
+                        }
+                        if loaded_files.contains_key(&include) {
+                            // We've already loaded this include, so skip it.
+                            continue;
+                        }
+
+                        pending_includes.push(include);
+                    }
+                }
+                Err(e) => {
+                    errors.push(project::Error::FileSystem {
+                        about_path: doc_uri.to_string(),
+                        error: e.to_string(),
+                    });
+                }
+            }
+        }
+
+        let sources = loaded_files.into_iter().collect::<Vec<_>>();
+
+        Ok(Some(Project {
+            package_graph_sources: PackageGraphSources {
+                root: PackageInfo {
+                    sources,
+                    language_features: LanguageFeatures::default(),
+                    dependencies: FxHashMap::default(),
+                    package_type: None,
+                },
+                packages: FxHashMap::default(),
+            },
+            path: doc_uri.clone(),
+            name: doc_uri.clone(),
+            lints: Vec::default(),
+            errors,
+        }))
+    }
+}
+
+fn is_openqasm_project(package_graph_sources: &PackageGraphSources) -> bool {
+    package_graph_sources
+        .root
+        .sources
+        .iter()
+        .any(|(file_path, _)| is_openqasm_file(file_path))
+}
+
+fn is_openqasm_file(doc_uri: &Arc<str>) -> bool {
+    doc_uri.ends_with("qasm") || doc_uri.ends_with("inc")
 }
 
 impl CompilationState {

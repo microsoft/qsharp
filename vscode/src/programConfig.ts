@@ -3,7 +3,7 @@
 
 import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpDocument } from "./common";
+import { isOpenQasmDocument, isQsharpDocument } from "./common";
 import { getTarget } from "./config";
 import { loadProject } from "./projectSystem";
 
@@ -43,7 +43,7 @@ type FullProgramConfigOrError =
  *   operate on the "current" project.
  */
 export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
-  const docUri = getActiveQSharpDocumentUri();
+  const docUri = getActiveQSharpDocumentUri() || getActiveOpenQasmDocumentUri();
   if (!docUri) {
     return {
       success: false,
@@ -62,6 +62,18 @@ export function getActiveQSharpDocumentUri(): vscode.Uri | undefined {
   const editor = vscode.window.activeTextEditor;
 
   return editor?.document && isQsharpDocument(editor.document)
+    ? editor.document.uri
+    : undefined;
+}
+
+/**
+ * @returns The URI of the currently active Q# document, or undefined if the current
+ *   active editor is not a Q# document.
+ */
+export function getActiveOpenQasmDocumentUri(): vscode.Uri | undefined {
+  const editor = vscode.window.activeTextEditor;
+
+  return editor?.document && isOpenQasmDocument(editor.document)
     ? editor.document.uri
     : undefined;
 }

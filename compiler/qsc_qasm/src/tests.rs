@@ -18,7 +18,7 @@ use qsc::{
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 pub(crate) mod assignment;
 pub(crate) mod declaration;
@@ -118,13 +118,10 @@ where
 }
 
 #[allow(dead_code)]
-pub fn compile_all<P>(
-    path: P,
+pub fn compile_all(
+    path: Arc<str>,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::Qiskit,
@@ -136,13 +133,10 @@ where
 }
 
 #[allow(dead_code)]
-pub fn compile_all_fragments<P>(
-    path: P,
+pub fn compile_all_fragments(
+    path: Arc<str>,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -167,14 +161,11 @@ where
     compile_with_config(source, config)
 }
 
-pub fn compile_all_with_config<P>(
-    path: P,
+pub fn compile_all_with_config(
+    path: Arc<str>,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let res = parse_all(path, sources)?;
     assert!(!res.has_syntax_errors());
     let program = res.program;
@@ -218,8 +209,12 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
         None,
     );
 
-    let unit =
-        compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
+    let unit = compile_to_qsharp_ast_with_config(
+        source.into(),
+        "source.qasm".into(),
+        Some(&mut resolver),
+        config,
+    );
     let (sources, _, package, _) = unit.into_tuple();
 
     let dependencies = vec![
@@ -256,7 +251,7 @@ where
 {
     let mut resolver =
         InMemorySourceResolver::from_iter([("Test.qasm".into(), source.as_ref().into())]);
-    let res = parse_source(source, "Test.qasm", &mut resolver);
+    let res = parse_source(source.as_ref().into(), "Test.qasm".into(), &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -268,16 +263,13 @@ where
     Ok(res)
 }
 
-pub(crate) fn parse_all<P>(
-    path: P,
+pub(crate) fn parse_all(
+    path: Arc<str>,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
     let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
-        .resolve(path.as_ref())
+        .resolve(path.clone())
         .map_err(|e| vec![Report::new(e)])?
         .1;
     let res = parse_source(source, path, &mut resolver);
@@ -454,8 +446,8 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
     );
     let mut resolver = crate::io::InMemorySourceResolver::from_iter([]);
     let unit = crate::compile_to_qsharp_ast_with_config(
-        source,
-        "source.qasm",
+        source.into(),
+        "source.qasm".into(),
         Some(&mut resolver),
         config,
     );

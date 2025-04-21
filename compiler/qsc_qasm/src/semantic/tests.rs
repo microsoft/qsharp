@@ -15,15 +15,14 @@ use crate::io::SourceResolver;
 use expect_test::expect;
 use expect_test::Expect;
 use miette::Report;
-use std::path::Path;
 use std::sync::Arc;
 
 pub(super) fn check(input: &str, expect: &Expect) {
-    check_map(input, expect, |p, _| p.to_string());
+    check_map(input.into(), expect, |p, _| p.to_string());
 }
 
 pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
-    check_map(input, expect, |program, symbol_table| {
+    check_map(input.into(), expect, |program, symbol_table| {
         let kind = program
             .statements
             .first()
@@ -42,7 +41,7 @@ pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
 }
 
 pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
-    check_map(input, expect, |program, symbol_table| {
+    check_map(input.into(), expect, |program, symbol_table| {
         let kinds = program
             .statements
             .iter()
@@ -69,7 +68,7 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
 }
 
 pub(super) fn check_stmt_kind(input: &str, expect: &Expect) {
-    check_map(input, expect, |p, _| {
+    check_map(input.into(), expect, |p, _| {
         p.statements
             .first()
             .expect("reading first statement")
@@ -79,22 +78,20 @@ pub(super) fn check_stmt_kind(input: &str, expect: &Expect) {
 }
 
 pub(super) fn check_stmt_kinds(input: &str, expect: &Expect) {
-    check_map(input, expect, |p, _| {
+    check_map(input.into(), expect, |p, _| {
         p.statements
             .iter()
             .fold(String::new(), |acc, x| format!("{acc}{}\n", x.kind))
     });
 }
 
-fn check_map<S>(
-    input: S,
+fn check_map(
+    input: Arc<str>,
     expect: &Expect,
     selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
-) where
-    S: AsRef<str>,
-{
+) {
     let mut resolver = InMemorySourceResolver::from_iter([("test".into(), input.as_ref().into())]);
-    let res = parse_source(input, "test", &mut resolver);
+    let res = parse_source(input, "test".into(), &mut resolver);
 
     let errors = res.all_errors();
 
@@ -118,27 +115,23 @@ fn check_map<S>(
     }
 }
 
-pub(super) fn check_all<P>(
-    path: P,
+pub(super) fn check_all(
+    path: &str,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     expect: &Expect,
-) where
-    P: AsRef<Path>,
-{
-    check_map_all(path, sources, expect, |p, _| p.to_string());
+) {
+    check_map_all(path.into(), sources, expect, |p, _| p.to_string());
 }
 
-fn check_map_all<P>(
-    path: P,
+fn check_map_all(
+    path: Arc<str>,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     expect: &Expect,
     selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
-) where
-    P: AsRef<Path>,
-{
+) {
     let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
-        .resolve(path.as_ref())
+        .resolve(path.clone())
         .map_err(|e| vec![e])
         .expect("could not load source")
         .1;

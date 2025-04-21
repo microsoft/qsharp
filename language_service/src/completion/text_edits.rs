@@ -27,11 +27,10 @@ impl TextEditRange {
         };
         finder.visit_package(&compilation.user_unit().ast.package);
 
-        let insert_open_at = match compilation.kind {
-            CompilationKind::OpenProject { .. } => finder.start_of_namespace,
-            // Since notebooks don't typically contain namespace declarations,
-            // open statements should just get before the first non-whitespace
-            // character (i.e. at the top of the cell)
+        let insert_open_at = match &compilation.kind {
+            CompilationKind::OpenProject { .. } | CompilationKind::OpenQASM { .. } => {
+                finder.start_of_namespace
+            }
             CompilationKind::Notebook { .. } => Some(Self::get_first_non_whitespace_in_source(
                 compilation,
                 offset,
