@@ -12,6 +12,38 @@ import { ComponentGrid, Operation } from "./circuit";
 import { Register } from "./register";
 
 /**
+ * Performs a deep equality check between two objects or arrays.
+ * @param obj1 - The first object or array to compare.
+ * @param obj2 - The second object or array to compare.
+ * @returns True if the objects are deeply equal, false otherwise.
+ */
+export const deepEqual = (obj1: any, obj2: any): boolean => {
+  if (obj1 === obj2) return true;
+
+  if (
+    obj1 === null ||
+    obj2 === null ||
+    typeof obj1 !== "object" ||
+    typeof obj2 !== "object"
+  ) {
+    return false;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
  * Generate a UUID using `Math.random`.
  * Note: this implementation came from https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
  * and is not cryptographically secure but works for our use case.
