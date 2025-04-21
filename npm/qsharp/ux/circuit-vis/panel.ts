@@ -322,7 +322,6 @@ const toolboxGateDictionary: GateDictionary = {
   H: _makeUnitary("H"),
   SX: _makeUnitary("SX"),
   Reset: _makeKet("0"),
-  ResetOne: _makeKet("1"),
   Measure: _makeMeasurement("Measure"),
 };
 
