@@ -3,7 +3,7 @@
 
 use crate::{
     lints::hir::{CombinedHirLints, HirLint},
-    Lint, LintConfig, LintLevel,
+    Lint, LintLevel,
 };
 use qsc_hir::{
     hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},
@@ -21,9 +21,9 @@ pub fn run_hir_lints(
     let config: Vec<(HirLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
-        .filter_map(|lint_config| {
-            if let LintKind::Hir(kind) = lint_config.kind {
-                Some((kind, lint_config.level))
+        .filter_map(|lint| {
+            if let LintKind::Hir(kind) = lint.kind {
+                Some((kind, lint.level))
             } else {
                 None
             }
@@ -264,4 +264,4 @@ macro_rules! declare_hir_lints {
 
 pub(crate) use declare_hir_lints;
 
-use super::{Compilation, LintKind};
+use super::{Compilation, LintConfig, LintKind};
