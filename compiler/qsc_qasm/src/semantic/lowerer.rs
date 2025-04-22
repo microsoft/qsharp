@@ -468,7 +468,7 @@ impl Lowerer {
     }
 
     fn lower_assign_stmt(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {
-        match &stmt.lhs {
+        match &*stmt.lhs {
             syntax::IdentOrIndexedIdent::Ident(ident) => {
                 self.lower_simple_assign_stmt(ident, &stmt.rhs, stmt.span)
             }
@@ -568,7 +568,7 @@ impl Lowerer {
     }
 
     fn lower_assign_op_stmt(&mut self, stmt: &syntax::AssignOpStmt) -> semantic::StmtKind {
-        match &stmt.lhs {
+        match &*stmt.lhs {
             syntax::IdentOrIndexedIdent::Ident(ident) => {
                 self.lower_simple_assign_op_stmt(ident, stmt.op, &stmt.rhs, stmt.span)
             }
@@ -1919,7 +1919,7 @@ impl Lowerer {
         if let Some(target) = &stmt.target {
             self.lower_assign_stmt(&syntax::AssignStmt {
                 span: stmt.span,
-                lhs: *target.clone(),
+                lhs: Box::new(*target.clone()),
                 rhs: syntax::ValueExpr::Measurement(stmt.measurement.clone()),
             })
         } else {

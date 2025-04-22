@@ -219,7 +219,7 @@ fn disambiguate_ident(
         recovering_semi(s);
         Ok(StmtKind::Assign(AssignStmt {
             span: s.span(lo),
-            lhs: ident_or_indexed_ident,
+            lhs: Box::new(ident_or_indexed_ident),
             rhs: expr,
         }))
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
@@ -230,7 +230,7 @@ fn disambiguate_ident(
         Ok(StmtKind::AssignOp(AssignOpStmt {
             span: s.span(lo),
             op,
-            lhs: ident_or_indexed_ident,
+            lhs: Box::new(ident_or_indexed_ident),
             rhs: expr,
         }))
     } else if s.peek().kind == TokenKind::Open(Delim::Paren) {
@@ -1324,7 +1324,7 @@ fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<Exp
 fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Let))?;
-    let ident = IdentOrIndexedIdent::Ident(prim::ident(s)?);
+    let ident = Box::new(IdentOrIndexedIdent::Ident(prim::ident(s)?));
     token(s, TokenKind::Eq)?;
     let exprs = expr::alias_expr(s)?;
     recovering_semi(s);

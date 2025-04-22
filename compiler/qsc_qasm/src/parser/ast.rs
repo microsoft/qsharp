@@ -314,7 +314,7 @@ impl WithSpan for HardwareQubit {
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
     pub span: Span,
-    pub ident: IdentOrIndexedIdent,
+    pub ident: Box<IdentOrIndexedIdent>,
     pub exprs: List<Expr>,
 }
 
@@ -753,7 +753,7 @@ impl Display for GateModifierKind {
 pub struct ClassicalArgument {
     pub span: Span,
     pub ty: ScalarType,
-    pub name: IdentOrIndexedIdent,
+    pub name: Box<IdentOrIndexedIdent>,
     pub access: Option<AccessControl>,
 }
 
@@ -1569,7 +1569,7 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub lhs: IdentOrIndexedIdent,
+    pub lhs: Box<IdentOrIndexedIdent>,
     pub rhs: ValueExpr,
 }
 
@@ -1585,7 +1585,7 @@ impl Display for AssignStmt {
 pub struct AssignOpStmt {
     pub span: Span,
     pub op: BinOp,
-    pub lhs: IdentOrIndexedIdent,
+    pub lhs: Box<IdentOrIndexedIdent>,
     pub rhs: ValueExpr,
 }
 
