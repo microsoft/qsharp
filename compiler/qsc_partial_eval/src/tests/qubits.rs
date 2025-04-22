@@ -377,6 +377,6 @@ fn qubit_relabel_in_dynamic_block_triggers_capability_error() {
 
     assert_error(
         &error,
-        &expect!["CapabilityError(UseOfDynamicQubit(Span { lo: 60198, hi: 60211 }))"],
+        &expect!["CapabilityError(UseOfDynamicQubit(Span { lo: 60173, hi: 60186 }))"],
     );
 }
