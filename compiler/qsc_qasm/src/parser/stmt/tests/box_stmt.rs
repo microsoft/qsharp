@@ -29,10 +29,7 @@ fn box_stmt() {
                                 duration: <none>
                                 qubits:
                                     GateOperand [21-23]:
-                                        kind: IndexedIdent [21-23]:
-                                            name: Ident [21-23] "q0"
-                                            index_span: [0-0]
-                                            indices: <empty>
+                                        kind: Ident [21-23] "q0"
                         Stmt [33-44]:
                             annotations: <empty>
                             kind: GateCall [33-44]:
@@ -43,10 +40,7 @@ fn box_stmt() {
                                 duration: <none>
                                 qubits:
                                     GateOperand [41-43]:
-                                        kind: IndexedIdent [41-43]:
-                                            name: Ident [41-43] "q1"
-                                            index_span: [0-0]
-                                            indices: <empty>"#]],
+                                        kind: Ident [41-43] "q1""#]],
     );
 }
 
@@ -74,10 +68,7 @@ fn box_stmt_with_designator() {
                                 duration: <none>
                                 qubits:
                                     GateOperand [26-28]:
-                                        kind: IndexedIdent [26-28]:
-                                            name: Ident [26-28] "q0"
-                                            index_span: [0-0]
-                                            indices: <empty>
+                                        kind: Ident [26-28] "q0"
                         Stmt [38-49]:
                             annotations: <empty>
                             kind: GateCall [38-49]:
@@ -88,9 +79,6 @@ fn box_stmt_with_designator() {
                                 duration: <none>
                                 qubits:
                                     GateOperand [46-48]:
-                                        kind: IndexedIdent [46-48]:
-                                            name: Ident [46-48] "q1"
-                                            index_span: [0-0]
-                                            indices: <empty>"#]],
+                                        kind: Ident [46-48] "q1""#]],
     );
 }

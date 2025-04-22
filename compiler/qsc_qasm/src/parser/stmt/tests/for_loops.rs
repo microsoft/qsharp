@@ -30,10 +30,7 @@ fn simple_for_stmt() {
                             Stmt [38-44]:
                                 annotations: <empty>
                                 kind: AssignStmt [38-44]:
-                                    lhs: IndexedIdent [38-39]:
-                                        name: Ident [38-39] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [38-39] "a"
                                     rhs: Expr [42-43]: Lit: Int(0)"#]],
     );
 }
@@ -81,10 +78,7 @@ fn simple_for_stmt_stmt_body() {
                     body: Stmt [36-42]:
                         annotations: <empty>
                         kind: AssignStmt [36-42]:
-                            lhs: IndexedIdent [36-37]:
-                                name: Ident [36-37] "a"
-                                index_span: [0-0]
-                                indices: <empty>
+                            lhs: Ident [36-37] "a"
                             rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
@@ -114,10 +108,7 @@ fn for_stmt_iterating_over_range() {
                             Stmt [36-42]:
                                 annotations: <empty>
                                 kind: AssignStmt [36-42]:
-                                    lhs: IndexedIdent [36-37]:
-                                        name: Ident [36-37] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [36-37] "a"
                                     rhs: Expr [40-41]: Lit: Int(0)"#]],
     );
 }
@@ -147,10 +138,7 @@ fn for_stmt_iterating_over_range_no_step() {
                             Stmt [34-40]:
                                 annotations: <empty>
                                 kind: AssignStmt [34-40]:
-                                    lhs: IndexedIdent [34-35]:
-                                        name: Ident [34-35] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [34-35] "a"
                                     rhs: Expr [38-39]: Lit: Int(0)"#]],
     );
 }
@@ -177,10 +165,7 @@ fn for_stmt_iterating_over_expr() {
                             Stmt [31-37]:
                                 annotations: <empty>
                                 kind: AssignStmt [31-37]:
-                                    lhs: IndexedIdent [31-32]:
-                                        name: Ident [31-32] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [31-32] "a"
                                     rhs: Expr [35-36]: Lit: Int(0)"#]],
     );
 }
@@ -212,10 +197,7 @@ fn for_stmt_with_continue_stmt() {
                             Stmt [38-44]:
                                 annotations: <empty>
                                 kind: AssignStmt [38-44]:
-                                    lhs: IndexedIdent [38-39]:
-                                        name: Ident [38-39] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [38-39] "a"
                                     rhs: Expr [42-43]: Lit: Int(0)
                             Stmt [53-62]:
                                 annotations: <empty>
@@ -250,10 +232,7 @@ fn for_loop_with_break_stmt() {
                             Stmt [38-44]:
                                 annotations: <empty>
                                 kind: AssignStmt [38-44]:
-                                    lhs: IndexedIdent [38-39]:
-                                        name: Ident [38-39] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [38-39] "a"
                                     rhs: Expr [42-43]: Lit: Int(0)
                             Stmt [53-59]:
                                 annotations: <empty>
@@ -284,10 +263,7 @@ fn single_stmt_for_stmt() {
                             duration: <none>
                             qubits:
                                 GateOperand [18-19]:
-                                    kind: IndexedIdent [18-19]:
-                                        name: Ident [18-19] "q"
-                                        index_span: [0-0]
-                                        indices: <empty>"#]],
+                                    kind: Ident [18-19] "q""#]],
     );
 }
 
@@ -318,10 +294,7 @@ fn annotations_in_single_stmt_for_stmt() {
                                 identifier: "bar"
                                 value: <none>
                         kind: AssignStmt [55-61]:
-                            lhs: IndexedIdent [55-56]:
-                                name: Ident [55-56] "x"
-                                index_span: [0-0]
-                                indices: <empty>
+                            lhs: Ident [55-56] "x"
                             rhs: Expr [59-60]: Lit: Int(5)"#]],
     );
 }
@@ -357,10 +330,7 @@ fn nested_single_stmt_for_stmt() {
                                     duration: <none>
                                     qubits:
                                         GateOperand [34-35]:
-                                            kind: IndexedIdent [34-35]:
-                                                name: Ident [34-35] "q"
-                                                index_span: [0-0]
-                                                indices: <empty>"#]],
+                                            kind: Ident [34-35] "q""#]],
     );
 }
 

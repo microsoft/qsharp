@@ -263,14 +263,14 @@ fn disambiguate_ident(
 
         Ok(parse_gate_call_with_expr(s, expr)?)
     } else {
-        let ident_span;
+        let expr_span;
         let kind = match ident_or_indexed_ident {
             IdentOrIndexedIdent::Ident(ident) => {
-                ident_span = ident.span;
+                expr_span = ident.span;
                 ExprKind::Ident(ident)
             }
             IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
-                ident_span = indexed_ident.ident.span;
+                expr_span = indexed_ident.span;
                 if indexed_ident.indices.len() > 1 {
                     s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
                         indexed_ident.span,
@@ -288,7 +288,7 @@ fn disambiguate_ident(
         };
 
         let expr = Expr {
-            span: ident_span,
+            span: expr_span,
             kind: Box::new(kind),
         };
 

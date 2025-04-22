@@ -16,10 +16,7 @@ fn measure_identifier() {
                 kind: MeasureArrowStmt [0-10]:
                     measurement: MeasureExpr [0-9]:
                         operand: GateOperand [8-9]:
-                            kind: IndexedIdent [8-9]:
-                                name: Ident [8-9] "q"
-                                index_span: [0-0]
-                                indices: <empty>
+                            kind: Ident [8-9] "q"
                     target: <none>"#]],
     );
 }
@@ -36,7 +33,7 @@ fn measure_indented_ident() {
                     measurement: MeasureExpr [0-12]:
                         operand: GateOperand [8-12]:
                             kind: IndexedIdent [8-12]:
-                                name: Ident [8-9] "q"
+                                ident: Ident [8-9] "q"
                                 index_span: [9-12]
                                 indices:
                                     IndexSet [10-11]:
@@ -73,14 +70,8 @@ fn measure_arrow_into_ident() {
                 kind: MeasureArrowStmt [0-15]:
                     measurement: MeasureExpr [0-9]:
                         operand: GateOperand [8-9]:
-                            kind: IndexedIdent [8-9]:
-                                name: Ident [8-9] "q"
-                                index_span: [0-0]
-                                indices: <empty>
-                    target: IndexedIdent [13-14]:
-                        name: Ident [13-14] "a"
-                        index_span: [0-0]
-                        indices: <empty>"#]],
+                            kind: Ident [8-9] "q"
+                    target: Ident [13-14] "a""#]],
     );
 }
 
@@ -95,12 +86,9 @@ fn measure_arrow_into_indented_ident() {
                 kind: MeasureArrowStmt [0-18]:
                     measurement: MeasureExpr [0-9]:
                         operand: GateOperand [8-9]:
-                            kind: IndexedIdent [8-9]:
-                                name: Ident [8-9] "q"
-                                index_span: [0-0]
-                                indices: <empty>
+                            kind: Ident [8-9] "q"
                     target: IndexedIdent [13-17]:
-                        name: Ident [13-14] "a"
+                        ident: Ident [13-14] "a"
                         index_span: [14-17]
                         indices:
                             IndexSet [15-16]:
@@ -115,18 +103,12 @@ fn assign_measure_stmt() {
         parse,
         "c = measure q;",
         &expect![[r#"
-        Stmt [0-14]:
-            annotations: <empty>
-            kind: AssignStmt [0-14]:
-                lhs: IndexedIdent [0-1]:
-                    name: Ident [0-1] "c"
-                    index_span: [0-0]
-                    indices: <empty>
-                rhs: MeasureExpr [4-13]:
-                    operand: GateOperand [12-13]:
-                        kind: IndexedIdent [12-13]:
-                            name: Ident [12-13] "q"
-                            index_span: [0-0]
-                            indices: <empty>"#]],
+            Stmt [0-14]:
+                annotations: <empty>
+                kind: AssignStmt [0-14]:
+                    lhs: Ident [0-1] "c"
+                    rhs: MeasureExpr [4-13]:
+                        operand: GateOperand [12-13]:
+                            kind: Ident [12-13] "q""#]],
     );
 }

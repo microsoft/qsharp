@@ -1161,7 +1161,7 @@ fn measure_indexed_identifier() {
             MeasureExpr [0-20]:
                 operand: GateOperand [8-20]:
                     kind: IndexedIdent [8-20]:
-                        name: Ident [8-14] "qubits"
+                        ident: Ident [8-14] "qubits"
                         index_span: [14-20]
                         indices:
                             IndexSet [15-16]:

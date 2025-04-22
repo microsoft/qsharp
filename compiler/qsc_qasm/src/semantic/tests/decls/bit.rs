@@ -33,11 +33,11 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
                 symbol_id: 8
                 ty_span: [0-6]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(One(4), true)
+                    ty: BitArray(4, true)
                     kind: Lit: Bitstring("0000")
             [8] Symbol [7-8]:
                 name: a
-                type: BitArray(One(4), false)
+                type: BitArray(4, false)
                 qsharp_type: Result[]
                 io_kind: Default"#]],
     );

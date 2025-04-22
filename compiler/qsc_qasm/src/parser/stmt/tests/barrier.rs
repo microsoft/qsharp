@@ -16,13 +16,10 @@ fn barrier() {
                 kind: BarrierStmt [0-20]:
                     operands:
                         GateOperand [8-9]:
-                            kind: IndexedIdent [8-9]:
-                                name: Ident [8-9] "r"
-                                index_span: [0-0]
-                                indices: <empty>
+                            kind: Ident [8-9] "r"
                         GateOperand [11-15]:
                             kind: IndexedIdent [11-15]:
-                                name: Ident [11-12] "q"
+                                ident: Ident [11-12] "q"
                                 index_span: [12-15]
                                 indices:
                                     IndexSet [13-14]:

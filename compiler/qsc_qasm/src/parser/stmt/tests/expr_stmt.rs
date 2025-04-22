@@ -43,10 +43,7 @@ fn assignment() {
             Stmt [0-6]:
                 annotations: <empty>
                 kind: AssignStmt [0-6]:
-                    lhs: IndexedIdent [0-1]:
-                        name: Ident [0-1] "a"
-                        index_span: [0-0]
-                        indices: <empty>
+                    lhs: Ident [0-1] "a"
                     rhs: Expr [4-5]: Lit: Int(1)"#]],
     );
 }
@@ -61,7 +58,7 @@ fn index_assignment() {
                 annotations: <empty>
                 kind: AssignStmt [0-9]:
                     lhs: IndexedIdent [0-4]:
-                        name: Ident [0-1] "a"
+                        ident: Ident [0-1] "a"
                         index_span: [1-4]
                         indices:
                             IndexSet [2-3]:
@@ -81,7 +78,7 @@ fn multi_index_assignment() {
                 annotations: <empty>
                 kind: AssignStmt [0-12]:
                     lhs: IndexedIdent [0-7]:
-                        name: Ident [0-1] "a"
+                        ident: Ident [0-1] "a"
                         index_span: [1-7]
                         indices:
                             IndexSet [2-3]:
@@ -104,10 +101,7 @@ fn assignment_op() {
                 annotations: <empty>
                 kind: AssignOpStmt [0-7]:
                     op: Add
-                    lhs: IndexedIdent [0-1]:
-                        name: Ident [0-1] "a"
-                        index_span: [0-0]
-                        indices: <empty>
+                    lhs: Ident [0-1] "a"
                     rhs: Expr [5-6]: Lit: Int(1)"#]],
     );
 }
@@ -123,7 +117,7 @@ fn index_assignment_op() {
                 kind: AssignOpStmt [0-10]:
                     op: Add
                     lhs: IndexedIdent [0-4]:
-                        name: Ident [0-1] "a"
+                        ident: Ident [0-1] "a"
                         index_span: [1-4]
                         indices:
                             IndexSet [2-3]:
@@ -144,7 +138,7 @@ fn multi_index_assignment_op() {
                 kind: AssignOpStmt [0-13]:
                     op: Add
                     lhs: IndexedIdent [0-7]:
-                        name: Ident [0-1] "a"
+                        ident: Ident [0-1] "a"
                         index_span: [1-7]
                         indices:
                             IndexSet [2-3]:
@@ -166,10 +160,7 @@ fn assignment_and_unop() {
             Stmt [0-12]:
                 annotations: <empty>
                 kind: AssignStmt [0-12]:
-                    lhs: IndexedIdent [0-1]:
-                        name: Ident [0-1] "c"
-                        index_span: [0-0]
-                        indices: <empty>
+                    lhs: Ident [0-1] "c"
                     rhs: Expr [4-11]: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [4-5]: Ident [4-5] "a"
@@ -188,10 +179,7 @@ fn assignment_unop_and() {
             Stmt [0-12]:
                 annotations: <empty>
                 kind: AssignStmt [0-12]:
-                    lhs: IndexedIdent [0-1]:
-                        name: Ident [0-1] "d"
-                        index_span: [0-0]
-                        indices: <empty>
+                    lhs: Ident [0-1] "d"
                     rhs: Expr [4-11]: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [4-6]: UnaryOpExpr:
@@ -319,25 +307,25 @@ fn index_expr_with_multiple_index_operators_errors() {
         parse,
         "Name[1][2];",
         &expect![[r#"
-        Stmt [0-11]:
-            annotations: <empty>
-            kind: ExprStmt [0-11]:
-                expr: Expr [0-10]: IndexExpr [0-10]:
-                    collection: Expr [0-4]: Ident [0-4] "Name"
-                    index: IndexSet [5-6]:
-                        values:
-                            Expr [5-6]: Lit: Int(1)
+            Stmt [0-11]:
+                annotations: <empty>
+                kind: ExprStmt [0-11]:
+                    expr: Expr [0-10]: IndexExpr [0-10]:
+                        collection: Expr [0-4]: Ident [0-4] "Name"
+                        index: IndexSet [5-6]:
+                            values:
+                                Expr [5-6]: Lit: Int(1)
 
-        [
-            Error(
-                MultipleIndexOperators(
-                    Span {
-                        lo: 0,
-                        hi: 10,
-                    },
+            [
+                Error(
+                    MultipleIndexOperators(
+                        Span {
+                            lo: 0,
+                            hi: 10,
+                        },
+                    ),
                 ),
-            ),
-        ]"#]],
+            ]"#]],
     );
 }
 

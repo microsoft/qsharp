@@ -16,10 +16,7 @@ fn reset_ident() {
                 kind: ResetStmt [0-8]:
                     reset_token_span: [0-5]
                     operand: GateOperand [6-7]:
-                        kind: IndexedIdent [6-7]:
-                            name: Ident [6-7] "a"
-                            index_span: [0-0]
-                            indices: <empty>"#]],
+                        kind: Ident [6-7] "a""#]],
     );
 }
 
@@ -35,7 +32,7 @@ fn reset_indexed_ident() {
                     reset_token_span: [0-5]
                     operand: GateOperand [6-10]:
                         kind: IndexedIdent [6-10]:
-                            name: Ident [6-7] "a"
+                            ident: Ident [6-7] "a"
                             index_span: [7-10]
                             indices:
                                 IndexSet [8-9]:

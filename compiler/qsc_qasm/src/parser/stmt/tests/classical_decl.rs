@@ -1092,7 +1092,7 @@ fn measure_register_decl() {
                     init_expr: MeasureExpr [10-30]:
                         operand: GateOperand [18-30]:
                             kind: IndexedIdent [18-30]:
-                                name: Ident [18-24] "qubits"
+                                ident: Ident [18-24] "qubits"
                                 index_span: [24-30]
                                 indices:
                                     IndexSet [25-26]:
