@@ -5,10 +5,7 @@ import Std.Math.AbsI;
 
 /// The POW function is used to implement the `pow` modifier in QASM for integers.
 operation __Pow__<'T>(N: Int, op: ('T => Unit is Adj + Ctl), target : 'T) : Unit {
-    let op = if N > 0 { () => op(target) } else { () => Adjoint op(target) };
-    for _ in 1..AbsI(N) {
-        op()
-    }
+    ApplyOperationPower(N, () => op(target));
 }
 
 /// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.

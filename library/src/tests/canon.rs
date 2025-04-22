@@ -556,3 +556,18 @@ fn check_apply_xor_in_place_l() {
         &Value::Int(953),
     );
 }
+
+#[test]
+fn check_apply_operation_power_i() {
+    test_expression(
+        {
+            "{
+            use q = Qubit();
+            ApplyOperationPower(12, () => Rx(Std.Math.PI()/16.0, q));
+            ApplyOperationPower(-3, () => Rx(Std.Math.PI()/4.0, q));
+            M(q)
+        }"
+        },
+        &Value::RESULT_ZERO,
+    );
+}
