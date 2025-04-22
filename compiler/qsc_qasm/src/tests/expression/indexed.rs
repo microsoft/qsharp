@@ -106,7 +106,6 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -116,12 +115,21 @@ fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable ans = [One, Zero, One, Zero, One];
+        let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
+        if __ResultAsInt__(ans[0..3]) == 4 {
+            x(qq);
+        };
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -131,7 +139,16 @@ fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        mutable ans = [One, Zero, One, Zero, One];
+        let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
+        if __ResultAsInt__(ans[0..3..2]) == 4 {
+            x(qq);
+        };
+    "#]].assert_eq(&qsharp);
     Ok(())
 }
 
