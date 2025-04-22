@@ -306,7 +306,7 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
     expect![[r#"
         [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, true) to type QubitArray(One(2))
+          x cannot cast expression of type Int(None, true) to type QubitArray(2)
            ,-[Test.qasm:6:24]
          5 | 
          6 |         bit p = parity(2);

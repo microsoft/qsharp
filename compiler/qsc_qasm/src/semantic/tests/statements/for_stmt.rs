@@ -5,41 +5,29 @@ use crate::semantic::tests::check_stmt_kinds;
 use expect_test::expect;
 
 #[test]
-fn shadowing_loop_variable_in_single_stmt_body_fails() {
+fn shadowing_loop_variable_in_single_stmt_body() {
     check_stmt_kinds(
         "
     for int x in {}
         int x = 2;
     ",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [5-39]:
-                        annotations: <empty>
-                        kind: ForStmt [5-39]:
-                            loop_variable: 8
-                            iterable: DiscreteSet [18-20]:
-                                values: <empty>
-                            body: Stmt [29-39]:
-                                annotations: <empty>
-                                kind: ClassicalDeclarationStmt [29-39]:
-                                    symbol_id: 8
-                                    ty_span: [29-32]
-                                    init_expr: Expr [37-38]:
-                                        ty: Int(None, false)
-                                        kind: Lit: Int(2)
-
-            [Qasm.Lowerer.RedefinedSymbol
-
-              x redefined symbol: x
-               ,-[test:3:13]
-             2 |     for int x in {}
-             3 |         int x = 2;
-               :             ^
-             4 |     
-               `----
-            ]"#]],
+            ForStmt [5-39]:
+                loop_variable: 8
+                iterable: DiscreteSet [18-20]:
+                    values: <empty>
+                body: Stmt [29-39]:
+                    annotations: <empty>
+                    kind: Block [29-39]:
+                        Stmt [29-39]:
+                            annotations: <empty>
+                            kind: ClassicalDeclarationStmt [29-39]:
+                                symbol_id: 9
+                                ty_span: [29-32]
+                                init_expr: Expr [37-38]:
+                                    ty: Int(None, false)
+                                    kind: Lit: Int(2)
+        "#]],
     );
 }
 
@@ -95,12 +83,15 @@ fn loop_creates_its_own_scope() {
                     values: <empty>
                 body: Stmt [167-177]:
                     annotations: <empty>
-                    kind: ClassicalDeclarationStmt [167-177]:
-                        symbol_id: 10
-                        ty_span: [167-170]
-                        init_expr: Expr [175-176]:
-                            ty: Int(None, false)
-                            kind: Lit: Int(1)
+                    kind: Block [167-177]:
+                        Stmt [167-177]:
+                            annotations: <empty>
+                            kind: ClassicalDeclarationStmt [167-177]:
+                                symbol_id: 10
+                                ty_span: [167-170]
+                                init_expr: Expr [175-176]:
+                                    ty: Int(None, false)
+                                    kind: Lit: Int(1)
         "#]],
     );
 }

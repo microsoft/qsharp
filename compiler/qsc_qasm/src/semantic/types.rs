@@ -165,6 +165,7 @@ impl Type {
             | Type::FloatArray(_, dims)
             | Type::IntArray(_, dims)
             | Type::UIntArray(_, dims) => dims.num_dims(),
+            Type::BitArray(..) | Type::QubitArray(..) => 1,
             _ => 0,
         }
     }
@@ -179,6 +180,8 @@ impl Type {
     #[must_use]
     pub fn get_indexed_type(&self) -> Option<Self> {
         let ty = match self {
+            Type::BitArray(_, constness) => Type::Bit(*constness),
+            Type::QubitArray(_) => Type::Qubit,
             Type::BoolArray(dims) => {
                 indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims)
             }

@@ -175,14 +175,13 @@ impl Lowerer {
                 let include = includes.next().expect("missing include");
                 self.lower_source(include);
             } else {
-                let stmt = self.lower_stmt(stmt);
-                self.stmts.push(stmt);
+                let mut stmts = self.lower_stmt(stmt);
+                self.stmts.append(&mut stmts);
             }
         }
     }
 
-    #[allow(clippy::too_many_lines)]
-    fn lower_stmt(&mut self, stmt: &syntax::Stmt) -> semantic::Stmt {
+    fn lower_stmt(&mut self, stmt: &syntax::Stmt) -> Vec<semantic::Stmt> {
         let annotations = list_from_iter(Self::lower_annotations(&stmt.annotations));
         let kind = match &*stmt.kind {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
@@ -208,40 +207,28 @@ impl Lowerer {
             syntax::StmtKind::For(stmt) => self.lower_for_stmt(stmt),
             syntax::StmtKind::If(stmt) => self.lower_if_stmt(stmt),
             syntax::StmtKind::GateCall(stmt) => {
-                // Since we need to compile a broadcast call into multiple
-                // statements, we push directly to self.stmts and return
-                // an empty statement.
+                let mut stmts = Vec::new();
                 for kind in self.lower_gate_call_stmt(stmt) {
                     let stmt = semantic::Stmt {
                         span: stmt.span,
                         annotations: annotations.clone(),
                         kind: Box::new(kind),
                     };
-                    self.stmts.push(stmt);
+                    stmts.push(stmt);
                 }
-                return semantic::Stmt {
-                    span: Span::default(),
-                    annotations: Box::default(),
-                    kind: Box::new(semantic::StmtKind::Empty),
-                };
+                return stmts;
             }
             syntax::StmtKind::GPhase(stmt) => {
-                // Since we need to compile a broadcast call into multiple
-                // statements, we push directly to self.stmts and return
-                // an empty statement.
+                let mut stmts = Vec::new();
                 for kind in self.lower_gphase_stmt(stmt) {
                     let stmt = semantic::Stmt {
                         span: stmt.span,
                         annotations: annotations.clone(),
                         kind: Box::new(kind),
                     };
-                    self.stmts.push(stmt);
+                    stmts.push(stmt);
                 }
-                return semantic::Stmt {
-                    span: Span::default(),
-                    annotations: Box::default(),
-                    kind: Box::new(semantic::StmtKind::Empty),
-                };
+                return stmts;
             }
             syntax::StmtKind::Include(stmt) => self.lower_include(stmt),
             syntax::StmtKind::IODeclaration(stmt) => self.lower_io_decl(stmt),
@@ -256,11 +243,11 @@ impl Lowerer {
             syntax::StmtKind::Err => semantic::StmtKind::Err,
         };
 
-        semantic::Stmt {
+        vec![semantic::Stmt {
             span: stmt.span,
             annotations,
             kind: Box::new(kind),
-        }
+        }]
     }
 
     /// Define the standard gates in the symbol table.
@@ -1056,14 +1043,17 @@ impl Lowerer {
         }
     }
 
-    fn lower_block(&mut self, stmt: &syntax::Block) -> semantic::Block {
+    fn lower_block(&mut self, block: &syntax::Block) -> semantic::Block {
         self.symbols.push_scope(ScopeKind::Block);
-        let stmts = stmt.stmts.iter().map(|stmt| self.lower_stmt(stmt));
+        let mut stmts = Vec::new();
+        for stmt in &block.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
         let stmts = list_from_iter(stmts);
         self.symbols.pop_scope();
 
         semantic::Block {
-            span: stmt.span,
+            span: block.span,
             stmts,
         }
     }
@@ -1248,9 +1238,14 @@ impl Lowerer {
             })
             .collect();
 
+        let mut stmts = Vec::new();
+        for stmt in &stmt.body.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
+
         let body = semantic::Block {
             span: stmt.body.span,
-            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+            stmts: list_from_iter(stmts),
         };
 
         // Pop the scope where the def lives.
@@ -1420,6 +1415,33 @@ impl Lowerer {
         self.get_semantic_type_from_tydef(&tydef, false)
     }
 
+    /// If the body is a block, lowers the block pushing a scope.
+    /// If the body is a single statement, also creates a block and
+    /// pushes a scope, this is needed to handle broadcasting gate calls.
+    fn lower_stmt_or_block_body(&mut self, stmt: &syntax::Stmt) -> semantic::Stmt {
+        if matches!(&*stmt.kind, syntax::StmtKind::Block(..)) {
+            let stmts = self.lower_stmt(stmt);
+            assert_eq!(stmts.len(), 1);
+            stmts
+                .into_iter()
+                .next()
+                .expect("there is exactly one element in the vector")
+        } else {
+            self.symbols.push_scope(ScopeKind::Block);
+            let stmts = self.lower_stmt(stmt);
+            self.symbols.pop_scope();
+
+            semantic::Stmt {
+                span: stmt.span,
+                annotations: Box::default(),
+                kind: Box::new(semantic::StmtKind::Block(Box::new(semantic::Block {
+                    span: stmt.span,
+                    stmts: list_from_iter(stmts),
+                }))),
+            }
+        }
+    }
+
     fn lower_for_stmt(&mut self, stmt: &syntax::ForStmt) -> semantic::StmtKind {
         let set_declaration = self.lower_enumerable_set(&stmt.set_declaration);
 
@@ -1447,7 +1469,7 @@ impl Lowerer {
         // The body of the for loop could be a single statement redefining
         // the loop variable, in which case we need to push a redefined
         // symbol error.
-        let body = self.lower_stmt(&stmt.body);
+        let body = self.lower_stmt_or_block_body(&stmt.body);
 
         // Pop the scope where the loop variable lives.
         self.symbols.pop_scope();
@@ -1462,8 +1484,13 @@ impl Lowerer {
 
     fn lower_if_stmt(&mut self, stmt: &syntax::IfStmt) -> semantic::StmtKind {
         let condition = self.lower_expr(&stmt.condition);
-        let if_body = self.lower_stmt(&stmt.if_body);
-        let else_body = stmt.else_body.as_ref().map(|body| self.lower_stmt(body));
+
+        let if_body = self.lower_stmt_or_block_body(&stmt.if_body);
+
+        let else_body = stmt
+            .else_body
+            .as_ref()
+            .map(|else_body| self.lower_stmt_or_block_body(else_body));
 
         // The semantics of a if statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
@@ -1970,9 +1997,14 @@ impl Lowerer {
             })
             .collect::<Box<_>>();
 
+        let mut stmts = Vec::new();
+        for stmt in &stmt.body.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
+
         let body = semantic::Block {
             span: stmt.body.span,
-            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+            stmts: list_from_iter(stmts),
         };
 
         // Pop the scope where the gate definition lives.
@@ -2176,7 +2208,7 @@ impl Lowerer {
         self.symbols.push_scope(ScopeKind::Loop);
 
         let condition = self.lower_expr(&stmt.while_condition);
-        let body = self.lower_stmt(&stmt.body);
+        let body = self.lower_stmt_or_block_body(&stmt.body);
 
         // The semantics of a while statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.

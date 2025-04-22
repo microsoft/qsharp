@@ -21,7 +21,7 @@ fn for_loops_can_iterate_over_discrete_set() -> miette::Result<(), Vec<Report>> 
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -43,7 +43,7 @@ fn for_loops_can_have_stmt_bodies() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -66,7 +66,7 @@ fn for_loops_can_iterate_over_range() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in 0..2..20 {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -89,7 +89,7 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0.;
         for f : Double in [1.2, -3.4, 0.5, 9.8] {
-            set sum += f;
+            set sum = sum + f;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -142,7 +142,7 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
         mutable sum = 0;
         let reg = [One, Zero, One, Zero, One];
         for b : Result in reg {
-            set sum += __ResultAsInt__(b);
+            set sum = sum + __ResultAsInt__(b);
         }
     "#]]
     .assert_eq(&qsharp);

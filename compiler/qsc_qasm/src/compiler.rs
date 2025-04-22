@@ -438,7 +438,6 @@ impl QasmCompiler {
             semast::StmtKind::Def(def_stmt) => self.compile_def_stmt(def_stmt, &stmt.annotations),
             semast::StmtKind::DefCal(stmt) => self.compile_def_cal_stmt(stmt),
             semast::StmtKind::Delay(stmt) => self.compile_delay_stmt(stmt),
-            semast::StmtKind::Empty => None,
             semast::StmtKind::End(stmt) => Self::compile_end_stmt(stmt),
             semast::StmtKind::ExprStmt(stmt) => self.compile_expr_stmt(stmt),
             semast::StmtKind::ExternDecl(stmt) => self.compile_extern_stmt(stmt),

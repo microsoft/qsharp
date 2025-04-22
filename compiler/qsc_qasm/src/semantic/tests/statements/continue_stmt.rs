@@ -24,7 +24,10 @@ fn for_loop() {
                             kind: Lit: Int(3)
                 body: Stmt [23-32]:
                     annotations: <empty>
-                    kind: ContinueStmt [23-32]:
+                    kind: Block [23-32]:
+                        Stmt [23-32]:
+                            annotations: <empty>
+                            kind: ContinueStmt [23-32]:
         "#]],
     );
 }
@@ -40,7 +43,10 @@ fn while_loop() {
                     kind: Lit: Bool(true)
                 body: Stmt [13-22]:
                     annotations: <empty>
-                    kind: ContinueStmt [13-22]:
+                    kind: Block [13-22]:
+                        Stmt [13-22]:
+                            annotations: <empty>
+                            kind: ContinueStmt [13-22]:
         "#]],
     );
 }
