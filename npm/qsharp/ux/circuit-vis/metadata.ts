@@ -15,7 +15,7 @@ export enum GateType {
   Swap,
   /** X gate. */
   X,
-  /** |0〉 or |1〉 gate. */
+  /** |0⟩or |1⟩ gate. */
   Ket,
   /** Single/multi qubit unitary gate. */
   Unitary,

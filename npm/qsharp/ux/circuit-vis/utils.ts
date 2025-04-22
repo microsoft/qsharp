@@ -327,6 +327,20 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
     : [];
 };
 
+// Non-ASCII chars are fraught with danger. Copy/paste these when possible.
+// Use the following regex in VS Code to find invalid unicode chars
+// [^\x20-\x7e\u{03b8}-\u{03c8}\u{2020}\u{2223}\u{27e8}\u{27e9}]
+
+const mathChars = {
+  theta: "θ", // \u{03b8}
+  pi: "π", // \u{03c0}
+  psi: "ψ", // \u{03c8}
+  dagger: "†", // \u{2020}
+  divides: "∣", // \u{2223}
+  langle: "⟨", // \u{27e8}
+  rangle: "⟩", // \u{27e9}
+};
+
 export {
   createUUID,
   getGateWidth,
@@ -342,4 +356,5 @@ export {
   getToolboxElems,
   getHostElems,
   getGateElems,
+  mathChars,
 };

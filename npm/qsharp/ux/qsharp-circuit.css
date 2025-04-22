@@ -39,7 +39,17 @@
   fill: var(--main-color);
   dominant-baseline: middle;
   text-anchor: middle;
-  font-family: Arial;
+  /* font-family: Arial; */
+}
+
+.qs-maintext {
+  font-family: "KaTeX_Main", "MathJax_Zero", sans-serif;
+  font-style: normal;
+}
+
+.qs-mathtext {
+  font-family: "KaTeX_Math", "MathJax_Zero", math, serif;
+  font-style: italic;
 }
 
 /* Background for gates */
@@ -58,6 +68,7 @@
   text-decoration: none;
   cursor: default;
   pointer-events: none;
+  word-spacing: -0.2em;
 }
 
 /* Edit mode style for arg-button (hyperlink appearance) */

@@ -225,6 +225,34 @@ const _measure = (x: number, y: number): SVGElement => {
   return group([mBox, mArc, meter]);
 };
 
+const use_katex = true;
+
+function _style_gate_text(gate: SVGTextElement) {
+  if (!use_katex) return;
+  let label = gate.textContent || "";
+
+  // In general, use the regular math font
+  gate.classList.add("qs-maintext");
+  // gate.style.fontFamily = "KaTeX_Main";
+  // gate.style.fontStyle = "normal";
+  // gate.style.fontSize = "14px";
+
+  // Wrap any latin or greek letters in tspan with KaTeX_Math font
+  // Style the entire Greek + Coptic block (https://unicodeplus.com/block/0370)
+  // Note this deliberately leaves ASCII digits [0-9] non-italic
+  const italicChars = /[a-zA-Z\u{0370}-\u{03ff}]+/gu;
+
+  label = label.replace(italicChars, `<tspan class='qs-mathtext'>$&</tspan>`);
+
+  // Replace a trailing ' with the proper unicode dagger symbol
+  label = label.replace(
+    /'$/,
+    `<tspan dx="2" dy="-3" style="font-size: 0.8em;">†</tspan>`,
+  );
+
+  gate.innerHTML = label;
+}
+
 /**
  * Creates the SVG for a unitary gate on an arbitrary number of qubits.
  *
@@ -302,29 +330,15 @@ const _unitaryBox = (
     uBox.setAttribute("class", cssClass);
   }
   const labelY = y + height / 2 - (displayArgs == null ? 0 : 7);
-  const labelText: SVGElement = text(label, x, labelY);
-  /*
-  By default, use KaTeX_Math for gate labels.
-  if label starts with "|" format as a ket with KaTeX_Main.
-   - if the label is "|0⟩" or "|1⟩", format all with KaTeX_Main, else inside ket is also KaTeX_Math
-  if label ends with "'" replace with a dagger with KaTeX_Main font.
-  */
-  if (label.startsWith("|")) {
-    labelText.style.fontFamily = "KaTeX_Main";
-  } else {
-    // labelText.style.fontFamily = "KaTeX_Math";
-    labelText.style.fontFamily = "KaTeX_Main";
-  }
-  if (label.endsWith("'")) {
-    const justLabel = label.slice(0, -1);
-    labelText.innerHTML = `${justLabel}<tspan dx="1" dy="-3" class="dagger" style="font-size: 0.8em;">†</tspan>`;
-  }
+  const labelText = text(label, x, labelY);
+  _style_gate_text(labelText);
 
   const elems = [uBox, labelText];
   if (displayArgs != null) {
     const argStrY = y + height / 2 + 8;
 
-    const argButton: SVGElement = text(displayArgs, x, argStrY, argsFontSize);
+    const argButton = text(displayArgs, x, argStrY, argsFontSize);
+    _style_gate_text(argButton);
     argButton.setAttribute("class", "arg-button");
     elems.push(argButton);
   }
@@ -366,7 +380,7 @@ const _x = (metadata: Metadata, _: number): SVGElement => {
 };
 
 /**
- * Creates the SVG for a ket notation (e.g "|0⟩" or "|1⟩") gate.
+ * Creates the SVG for a ket notation (e.g "∣0⟩" or "∣1⟩") gate.
  *
  * @param label    The label for the ket notation (e.g., "0" or "1").
  * @param metadata The metadata object containing information about the gate's position and appearance.
@@ -384,7 +398,7 @@ const _ket = (label: string, metadata: Metadata): SVGElement => {
     false,
     "gate-ket",
   );
-  gate.querySelector("text")!.setAttribute("class", "ket-text");
+  gate.querySelector("text")!.classList.add("ket-text");
   return gate;
 };
 
