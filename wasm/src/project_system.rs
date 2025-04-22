@@ -4,7 +4,7 @@
 use crate::{diagnostic::project_errors_into_qsharp_errors, serializable_type};
 use async_trait::async_trait;
 use miette::Report;
-use qsc::{linter::LintConfig, packages::BuildableProgram, LanguageFeatures};
+use qsc::{linter::LintOrGroupConfig, packages::BuildableProgram, LanguageFeatures};
 use qsc_project::{EntryType, FileSystemAsync, JSFileEntry, JSProjectHost, PackageCache};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -267,7 +267,7 @@ serializable_type! {
         pub package_type: Option<String>,
     },
     r#"
-    
+
     export interface IPackageInfo {
         sources: [string, string][];
         languageFeatures: string[];
@@ -302,7 +302,7 @@ serializable_type! {
         pub project_name: String,
         pub project_uri: String,
         pub package_graph_sources: PackageGraphSources,
-        pub lints: Vec<LintConfig>,
+        pub lints: Vec<LintOrGroupConfig>,
     },
     r#"export interface IProjectConfig {
         /**
@@ -314,10 +314,7 @@ serializable_type! {
          */
         projectUri: string;
         packageGraphSources: IPackageGraphSources;
-        lints: {
-          lint: string;
-          level: string;
-        }[];
+        lints: ({ lint: string; level: string } | { group: string; level: string })[];
         errors: string[];
     }"#,
     IProjectConfig

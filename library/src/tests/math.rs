@@ -367,8 +367,28 @@ fn check_floor() {
 
 #[test]
 fn check_round() {
-    test_expression("Microsoft.Quantum.Math.Round(3.1)", &Value::Int(3));
-    test_expression("Microsoft.Quantum.Math.Round(-3.7)", &Value::Int(-4));
+    test_expression("Std.Math.Round(0.5-1.0e-16)", &Value::Int(0));
+    test_expression("Std.Math.Round(0.5)", &Value::Int(0));
+    test_expression("Std.Math.Round(0.5+1.0e-16)", &Value::Int(1));
+    test_expression("Std.Math.Round(3.1)", &Value::Int(3));
+    test_expression("Std.Math.Round(-3.7)", &Value::Int(-4));
+    test_expression("Std.Math.Round(-3.5)", &Value::Int(-3));
+}
+
+#[test]
+fn check_round_away_from_zero() {
+    test_expression(
+        "Std.Math.RoundHalfAwayFromZero(0.5-1.0e-16)",
+        &Value::Int(0),
+    );
+    test_expression("Std.Math.RoundHalfAwayFromZero(0.5)", &Value::Int(1));
+    test_expression(
+        "Std.Math.RoundHalfAwayFromZero(0.5+1.0e-16)",
+        &Value::Int(1),
+    );
+    test_expression("Std.Math.RoundHalfAwayFromZero(3.1)", &Value::Int(3));
+    test_expression("Std.Math.RoundHalfAwayFromZero(-3.7)", &Value::Int(-4));
+    test_expression("Std.Math.RoundHalfAwayFromZero(-3.5)", &Value::Int(-4));
 }
 
 //

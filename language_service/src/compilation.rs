@@ -14,7 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
-use qsc_linter::{LintConfig, LintLevel};
+use qsc_linter::{LintLevel, LintOrGroupConfig};
 use qsc_project::{PackageGraphSources, Project};
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
@@ -62,7 +62,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
         package_graph_sources: PackageGraphSources,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
@@ -127,7 +127,7 @@ impl Compilation {
         cells: I,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
         project: Option<Project>,
     ) -> Self
     where
@@ -330,7 +330,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
-        lints_config: &[LintConfig],
+        lints_config: &[LintOrGroupConfig],
     ) {
         let sources = self
             .user_unit()
@@ -408,7 +408,7 @@ fn run_linter_passes(
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     package_store: &PackageStore,
     unit: &CompileUnit,
-    config: &[LintConfig],
+    config: &[LintOrGroupConfig],
 ) {
     if errors.is_empty() {
         let lints = qsc::linter::run_lints(package_store, unit, Some(config));
