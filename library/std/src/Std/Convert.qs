@@ -171,7 +171,7 @@ function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[] {
 ///
 /// # Output
 /// Int representation of a number.
-function BigIntAsInt(number: BigInt) : Int {
+function BigIntAsInt(number : BigInt) : Int {
     let max = 9_223_372_036_854_775_807L;
     let min = -9_223_372_036_854_775_808L;
     Fact(number >= min and number <= max, $"`number`=number is too big to fit into Int.");
