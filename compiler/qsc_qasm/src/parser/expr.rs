@@ -24,9 +24,9 @@ use crate::parser::Result;
 use super::{
     ast::{
         list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
-        GateOperand, GateOperandKind, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet,
-        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
-        TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
+        GateOperand, GateOperandKind, HardwareQubit, Ident, IdentOrIndexedIdent, IndexElement,
+        IndexExpr, IndexSet, IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr,
+        RangeDefinition, TimeUnit, TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
@@ -749,8 +749,8 @@ pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
 
 pub(crate) fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        GateOperandKind::IndexedIdent(Box::new(indexed_ident))
+    let kind = if let Some(ident_or_indexed_ident) = opt(s, ident_or_indexed_ident)? {
+        GateOperandKind::IdentOrIndexedIdent(Box::new(ident_or_indexed_ident))
     } else {
         GateOperandKind::HardwareQubit(Box::new(hardware_qubit(s)?))
     };
@@ -773,22 +773,23 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
 }
 
 /// Grammar: `Identifier indexOperator*`.
-pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
+pub(crate) fn ident_or_indexed_ident(s: &mut ParserContext) -> Result<IdentOrIndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
     let index_lo = s.peek().span.lo;
     let indices = list_from_iter(many(s, index_operand)?);
-    let index_span = if indices.is_empty() {
-        Span::default()
+
+    if indices.is_empty() {
+        Ok(IdentOrIndexedIdent::Ident(name))
     } else {
-        s.span(index_lo)
-    };
-    Ok(IndexedIdent {
-        span: s.span(lo),
-        index_span,
-        name,
-        indices,
-    })
+        let index_span = s.span(index_lo);
+        Ok(IdentOrIndexedIdent::IndexedIdent(IndexedIdent {
+            span: s.span(lo),
+            index_span,
+            ident: name,
+            indices,
+        }))
+    }
 }
 
 /// Grammar:

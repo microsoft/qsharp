@@ -690,3 +690,72 @@ fn all_qiskit_stdgates_can_be_called_included() -> miette::Result<(), Vec<Report
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn broadcast_one_qubit_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[2] qs;
+        h qs;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let qs = QIR.Runtime.AllocateQubitArray(2);
+        h(qs[[0]]);
+        h(qs[[1]]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn broadcast_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] ctrls;
+        qubit[3] targets;
+        cx ctrls, targets;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let ctrls = QIR.Runtime.AllocateQubitArray(3);
+        let targets = QIR.Runtime.AllocateQubitArray(3);
+        cx(ctrls[[0]], targets[[0]]);
+        cx(ctrls[[1]], targets[[1]]);
+        cx(ctrls[[2]], targets[[2]]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn broadcast_controlled_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] ctrls;
+        qubit[3] targets;
+        inv @ cx ctrls, targets;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let ctrls = QIR.Runtime.AllocateQubitArray(3);
+        let targets = QIR.Runtime.AllocateQubitArray(3);
+        Adjoint cx(ctrls[[0]], targets[[0]]);
+        Adjoint cx(ctrls[[1]], targets[[1]]);
+        Adjoint cx(ctrls[[2]], targets[[2]]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

@@ -267,7 +267,7 @@ impl Display for GateOperand {
 
 #[derive(Clone, Debug, Default)]
 pub enum GateOperandKind {
-    IndexedIdent(Box<IndexedIdent>),
+    IdentOrIndexedIdent(Box<IdentOrIndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
     #[default]
     Err,
@@ -276,7 +276,7 @@ pub enum GateOperandKind {
 impl Display for GateOperandKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IndexedIdent(ident) => write!(f, "{ident}"),
+            Self::IdentOrIndexedIdent(ident) => write!(f, "{ident}"),
             Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
             Self::Err => write!(f, "Error"),
         }
@@ -286,7 +286,7 @@ impl Display for GateOperandKind {
 impl WithSpan for GateOperandKind {
     fn with_span(self, span: Span) -> Self {
         match self {
-            Self::IndexedIdent(ident) => Self::IndexedIdent(ident.with_span(span)),
+            Self::IdentOrIndexedIdent(ident) => Self::IdentOrIndexedIdent(ident.with_span(span)),
             Self::HardwareQubit(qubit) => Self::HardwareQubit(qubit.with_span(span)),
             Self::Err => Self::Err,
         }
@@ -314,7 +314,7 @@ impl WithSpan for HardwareQubit {
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
     pub span: Span,
-    pub ident: Identifier,
+    pub ident: IdentOrIndexedIdent,
     pub exprs: List<Expr>,
 }
 
@@ -492,26 +492,35 @@ impl Display for Block {
 }
 
 #[derive(Clone, Debug)]
-pub enum Identifier {
-    Ident(Box<Ident>),
-    IndexedIdent(Box<IndexedIdent>),
+pub enum IdentOrIndexedIdent {
+    Ident(Ident),
+    IndexedIdent(IndexedIdent),
 }
 
-impl Identifier {
+impl IdentOrIndexedIdent {
     #[must_use]
     pub fn span(&self) -> Span {
         match self {
-            Identifier::Ident(ident) => ident.span,
-            Identifier::IndexedIdent(ident) => ident.span,
+            IdentOrIndexedIdent::Ident(ident) => ident.span,
+            IdentOrIndexedIdent::IndexedIdent(ident) => ident.span,
         }
     }
 }
 
-impl Display for Identifier {
+impl Display for IdentOrIndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Identifier::Ident(ident) => write!(f, "{ident}"),
-            Identifier::IndexedIdent(ident) => write!(f, "{ident}"),
+            IdentOrIndexedIdent::Ident(ident) => write!(f, "{ident}"),
+            IdentOrIndexedIdent::IndexedIdent(ident) => write!(f, "{ident}"),
+        }
+    }
+}
+
+impl WithSpan for IdentOrIndexedIdent {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            Self::Ident(ident) => Self::Ident(ident.with_span(span)),
+            Self::IndexedIdent(ident) => Self::IndexedIdent(ident.with_span(span)),
         }
     }
 }
@@ -547,14 +556,14 @@ impl WithSpan for Ident {
 pub struct IndexedIdent {
     pub span: Span,
     pub index_span: Span,
-    pub name: Ident,
+    pub ident: Ident,
     pub indices: List<IndexElement>,
 }
 
 impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "ident", &self.ident)?;
         writeln_field(f, "index_span", &self.index_span)?;
         write_list_field(f, "indices", &self.indices)
     }
@@ -684,7 +693,7 @@ impl Display for GateModifierKind {
 pub struct ClassicalArgument {
     pub span: Span,
     pub ty: ScalarType,
-    pub name: Identifier,
+    pub name: IdentOrIndexedIdent,
     pub access: Option<AccessControl>,
 }
 
@@ -1144,7 +1153,7 @@ impl Display for BoxStmt {
 pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
-    pub target: Option<Box<IndexedIdent>>,
+    pub target: Option<Box<IdentOrIndexedIdent>>,
 }
 
 impl Display for MeasureArrowStmt {
@@ -1500,7 +1509,7 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub lhs: IndexedIdent,
+    pub lhs: IdentOrIndexedIdent,
     pub rhs: ValueExpr,
 }
 
@@ -1516,7 +1525,7 @@ impl Display for AssignStmt {
 pub struct AssignOpStmt {
     pub span: Span,
     pub op: BinOp,
-    pub lhs: IndexedIdent,
+    pub lhs: IdentOrIndexedIdent,
     pub rhs: ValueExpr,
 }
 

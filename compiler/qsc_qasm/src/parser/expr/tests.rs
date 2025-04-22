@@ -1124,11 +1124,11 @@ fn hardware_qubit() {
 #[test]
 fn indexed_identifier() {
     check(
-        super::indexed_identifier,
+        super::ident_or_indexed_ident,
         "arr[1][2]",
         &expect![[r#"
             IndexedIdent [0-9]:
-                name: Ident [0-3] "arr"
+                ident: Ident [0-3] "arr"
                 index_span: [3-9]
                 indices:
                     IndexSet [4-5]:

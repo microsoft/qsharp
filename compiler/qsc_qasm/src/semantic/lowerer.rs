@@ -186,8 +186,8 @@ impl Lowerer {
         let annotations = list_from_iter(Self::lower_annotations(&stmt.annotations));
         let kind = match &*stmt.kind {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
-            syntax::StmtKind::Assign(stmt) => self.lower_assign(stmt),
-            syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op(stmt),
+            syntax::StmtKind::Assign(stmt) => self.lower_assign_stmt(stmt),
+            syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op_stmt(stmt),
             syntax::StmtKind::Barrier(stmt) => self.lower_barrier_stmt(stmt),
             syntax::StmtKind::Box(stmt) => self.lower_box(stmt),
             syntax::StmtKind::Break(stmt) => self.lower_break(stmt),
@@ -480,15 +480,18 @@ impl Lowerer {
         })
     }
 
-    fn lower_assign(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {
-        if stmt.lhs.indices.is_empty() {
-            self.lower_simple_assign_expr(&stmt.lhs.name, &stmt.rhs, stmt.span)
-        } else {
-            self.lower_indexed_assign_expr(&stmt.lhs, &stmt.rhs, stmt.span)
+    fn lower_assign_stmt(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {
+        match &stmt.lhs {
+            syntax::IdentOrIndexedIdent::Ident(ident) => {
+                self.lower_simple_assign_stmt(ident, &stmt.rhs, stmt.span)
+            }
+            syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                self.lower_indexed_assign_stmt(indexed_ident, &stmt.rhs, stmt.span)
+            }
         }
     }
 
-    fn lower_simple_assign_expr(
+    fn lower_simple_assign_stmt(
         &mut self,
         ident: &syntax::Ident,
         rhs: &syntax::ValueExpr,
@@ -523,21 +526,24 @@ impl Lowerer {
         })
     }
 
-    fn lower_indexed_assign_expr(
+    fn lower_indexed_assign_stmt(
         &mut self,
-        index_expr: &syntax::IndexedIdent,
+        indexed_ident: &syntax::IndexedIdent,
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
-        let ident = index_expr.name.clone();
+        let ident = indexed_ident.ident.clone();
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let indexed_ty =
-            &self.get_indexed_type(&symbol.ty, index_expr.name.span, index_expr.indices.len());
+        let indexed_ty = &self.get_indexed_type(
+            &symbol.ty,
+            indexed_ident.ident.span,
+            indexed_ident.indices.len(),
+        );
 
         let indices = list_from_iter(
-            index_expr
+            indexed_ident
                 .indices
                 .iter()
                 .map(|index| self.lower_index_element(index)),
@@ -563,57 +569,112 @@ impl Lowerer {
         semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
             span,
             symbol_id,
-            name_span: index_expr.name.span,
+            name_span: indexed_ident.ident.span,
             indices,
             rhs,
         })
     }
 
-    fn lower_assign_op(&mut self, stmt: &syntax::AssignOpStmt) -> semantic::StmtKind {
-        let op = stmt.op.into();
-        let lhs = &stmt.lhs;
-        let rhs = &stmt.rhs;
-        let ident = lhs.name.clone();
+    fn lower_assign_op_stmt(&mut self, stmt: &syntax::AssignOpStmt) -> semantic::StmtKind {
+        match &stmt.lhs {
+            syntax::IdentOrIndexedIdent::Ident(ident) => {
+                self.lower_simple_assign_op_stmt(ident, stmt.op, &stmt.rhs, stmt.span)
+            }
+            syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                self.lower_indexed_assign_op_stmt(indexed_ident, stmt.op, &stmt.rhs, stmt.span)
+            }
+        }
+    }
 
+    fn lower_simple_assign_op_stmt(
+        &mut self,
+        ident: &syntax::Ident,
+        op: syntax::BinOp,
+        rhs: &syntax::ValueExpr,
+        span: Span,
+    ) -> semantic::StmtKind {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = if lhs.indices.is_empty() {
-            &symbol.ty
-        } else {
-            &self.get_indexed_type(&symbol.ty, lhs.name.span, lhs.indices.len())
-        };
-        let indices = list_from_iter(
-            lhs.indices
-                .iter()
-                .map(|index| self.lower_index_element(index)),
-        );
-
+        let ty = symbol.ty.clone();
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
         }
 
-        let lhs = self.lower_indexed_ident_expr(lhs);
+        let lhs = self.lower_ident_expr(ident);
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), ty, stmt.span)
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(ty, &expr)
+                self.cast_expr_to_type(&ty, &expr)
             }
         };
 
-        semantic::StmtKind::AssignOp(semantic::AssignOpStmt {
-            span: stmt.span,
+        let binary_expr = self.lower_binary_op_expr(op, lhs, rhs, span);
+
+        semantic::StmtKind::Assign(semantic::AssignStmt {
             symbol_id,
+            lhs_span: ident.span,
+            rhs: binary_expr,
+            span,
+        })
+    }
+
+    fn lower_indexed_assign_op_stmt(
+        &mut self,
+        indexed_ident: &syntax::IndexedIdent,
+        op: syntax::BinOp,
+        rhs: &syntax::ValueExpr,
+        span: Span,
+    ) -> semantic::StmtKind {
+        let ident = indexed_ident.ident.clone();
+        let (symbol_id, symbol) =
+            self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
+
+        if symbol.ty.is_const() {
+            let kind =
+                SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
+            self.push_semantic_error(kind);
+        }
+
+        let indexed_ty = &self.get_indexed_type(
+            &symbol.ty,
+            indexed_ident.ident.span,
+            indexed_ident.indices.len(),
+        );
+
+        let indices = list_from_iter(
+            indexed_ident
+                .indices
+                .iter()
+                .map(|index| self.lower_index_element(index)),
+        );
+
+        let lhs = self.lower_indexed_ident_expr(indexed_ident);
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(indexed_ty, &expr)
+            }
+        };
+
+        let binary_expr = self.lower_binary_op_expr(op, lhs, rhs, span);
+
+        semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
+            span,
+            symbol_id,
+            name_span: indexed_ident.ident.span,
             indices,
-            op,
-            lhs,
-            rhs,
+            rhs: binary_expr,
         })
     }
 
@@ -1659,6 +1720,17 @@ impl Lowerer {
     }
 
     fn index_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
+        let index = semantic::IndexElement::DiscreteSet(semantic::DiscreteSet {
+            span: op.span,
+            values: Box::new([Box::new(semantic::Expr {
+                span: op.span,
+                kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
+                    index.into(),
+                ))),
+                ty: Type::UInt(None, true),
+            })]),
+        });
+
         match op.kind {
             semantic::GateOperandKind::Expr(expr) => {
                 assert!(matches!(expr.ty, Type::QubitArray(..)));
@@ -1669,16 +1741,7 @@ impl Lowerer {
                         kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                             span: op.span,
                             collection: *expr,
-                            index: semantic::IndexElement::DiscreteSet(semantic::DiscreteSet {
-                                span: op.span,
-                                values: Box::new([Box::new(semantic::Expr {
-                                    span: op.span,
-                                    kind: Box::new(semantic::ExprKind::Lit(
-                                        semantic::LiteralKind::Int(index.into()),
-                                    )),
-                                    ty: Type::UInt(None, true),
-                                })]),
-                            }),
+                            index,
                         })),
                         ty: Type::Qubit,
                     })),
@@ -1822,7 +1885,7 @@ impl Lowerer {
     /// `measure q -> c;` is syntax sugar for `c = measure q;`
     fn lower_measure_arrow_stmt(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
         if let Some(target) = &stmt.target {
-            self.lower_assign(&syntax::AssignStmt {
+            self.lower_assign_stmt(&syntax::AssignStmt {
                 span: stmt.span,
                 lhs: *target.clone(),
                 rhs: syntax::ValueExpr::Measurement(stmt.measurement.clone()),
@@ -3322,7 +3385,7 @@ impl Lowerer {
     ///
     /// This changes the type of expression we return to simplify downstream compilation
     fn lower_indexed_ident_expr(&mut self, indexed_ident: &syntax::IndexedIdent) -> semantic::Expr {
-        let ident = indexed_ident.name.clone();
+        let ident = indexed_ident.ident.clone();
 
         // if we have no indices, we can just lower the identifier
         if indexed_ident.indices.is_empty() {
@@ -3362,10 +3425,15 @@ impl Lowerer {
     #[allow(clippy::unused_self)]
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
         let kind = match &operand.kind {
-            syntax::GateOperandKind::IndexedIdent(indexed_ident) => {
-                semantic::GateOperandKind::Expr(Box::new(
-                    self.lower_indexed_ident_expr(indexed_ident),
-                ))
+            syntax::GateOperandKind::IdentOrIndexedIdent(ident_or_indexed_ident) => {
+                let expr = match &**ident_or_indexed_ident {
+                    syntax::IdentOrIndexedIdent::Ident(ident) => self.lower_ident_expr(ident),
+                    syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                        self.lower_indexed_ident_expr(indexed_ident)
+                    }
+                };
+
+                semantic::GateOperandKind::Expr(Box::new(expr))
             }
             syntax::GateOperandKind::HardwareQubit(hw) => {
                 semantic::GateOperandKind::HardwareQubit(Self::lower_hardware_qubit(hw))
@@ -3498,10 +3566,10 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
     None
 }
 
-fn get_identifier_name(identifier: &syntax::Identifier) -> std::rc::Rc<str> {
+fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> std::rc::Rc<str> {
     match identifier {
-        syntax::Identifier::Ident(ident) => ident.name.clone(),
-        syntax::Identifier::IndexedIdent(ident) => ident.name.name.clone(),
+        syntax::IdentOrIndexedIdent::Ident(ident) => ident.name.clone(),
+        syntax::IdentOrIndexedIdent::IndexedIdent(ident) => ident.ident.name.clone(),
     }
 }
 
