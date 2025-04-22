@@ -35,7 +35,7 @@ fn reset_indexed_ident() {
                             ident: Ident [6-7] "a"
                             index_span: [7-10]
                             indices:
-                                IndexSet [8-9]:
+                                IndexList [8-9]:
                                     values:
                                         Expr [8-9]: Lit: Int(1)"#]],
     );

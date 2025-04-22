@@ -1095,10 +1095,10 @@ fn measure_register_decl() {
                                 ident: Ident [18-24] "qubits"
                                 index_span: [24-30]
                                 indices:
-                                    IndexSet [25-26]:
+                                    IndexList [25-26]:
                                         values:
                                             Expr [25-26]: Lit: Int(2)
-                                    IndexSet [28-29]:
+                                    IndexList [28-29]:
                                         values:
                                             Expr [28-29]: Lit: Int(3)"#]],
     );

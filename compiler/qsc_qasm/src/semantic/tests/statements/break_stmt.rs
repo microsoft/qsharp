@@ -11,7 +11,7 @@ fn for_loop() {
         &expect![[r#"
             ForStmt [0-29]:
                 loop_variable: 8
-                iterable: DiscreteSet [13-22]:
+                iterable: Set [13-22]:
                     values:
                         Expr [14-15]:
                             ty: Int(None, true)

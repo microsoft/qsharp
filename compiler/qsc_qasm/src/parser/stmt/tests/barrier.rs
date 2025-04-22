@@ -22,7 +22,7 @@ fn barrier() {
                                 ident: Ident [11-12] "q"
                                 index_span: [12-15]
                                 indices:
-                                    IndexSet [13-14]:
+                                    IndexList [13-14]:
                                         values:
                                             Expr [13-14]: Lit: Int(0)
                         GateOperand [17-19]:

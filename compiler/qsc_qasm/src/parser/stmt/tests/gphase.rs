@@ -66,7 +66,7 @@ fn gphase_qubit_register() {
                                 ident: Ident [10-11] "q"
                                 index_span: [11-14]
                                 indices:
-                                    IndexSet [12-13]:
+                                    IndexList [12-13]:
                                         values:
                                             Expr [12-13]: Lit: Int(2)"#]],
     );
@@ -94,7 +94,7 @@ fn gphase_multiple_qubits() {
                                 ident: Ident [14-15] "q"
                                 index_span: [15-18]
                                 indices:
-                                    IndexSet [16-17]:
+                                    IndexList [16-17]:
                                         values:
                                             Expr [16-17]: Lit: Int(4)"#]],
     );

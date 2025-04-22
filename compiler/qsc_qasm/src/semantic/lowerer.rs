@@ -519,6 +519,8 @@ impl Lowerer {
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
+        assert!(!indexed_ident.indices.is_empty());
+
         let ident = indexed_ident.ident.clone();
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
@@ -529,12 +531,15 @@ impl Lowerer {
             indexed_ident.indices.len(),
         );
 
-        let indices = list_from_iter(
-            indexed_ident
-                .indices
-                .iter()
-                .map(|index| self.lower_index_element(index)),
-        );
+        // We flatten the multiple square brackets, converting
+        // a[1, 2][5, 7]
+        //   to
+        // a[1, 2, 5, 7]
+        let mut indices = Vec::new();
+        for qasm_index in &indexed_ident.indices {
+            indices.append(&mut self.lower_index(qasm_index));
+        }
+        let indices = list_from_iter(indices);
 
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
@@ -619,6 +624,8 @@ impl Lowerer {
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
+        assert!(!indexed_ident.indices.is_empty());
+
         let ident = indexed_ident.ident.clone();
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
@@ -635,12 +642,15 @@ impl Lowerer {
             indexed_ident.indices.len(),
         );
 
-        let indices = list_from_iter(
-            indexed_ident
-                .indices
-                .iter()
-                .map(|index| self.lower_index_element(index)),
-        );
+        // We flatten the multiple square brackets, converting
+        // a[1, 2][5, 7]
+        //   to
+        // a[1, 2, 5, 7]
+        let mut indices = Vec::new();
+        for qasm_index in &indexed_ident.indices {
+            indices.append(&mut self.lower_index(qasm_index));
+        }
+        let indices = list_from_iter(indices);
 
         let lhs = self.lower_indexed_ident_expr(indexed_ident);
         let rhs = match rhs {
@@ -1661,8 +1671,8 @@ impl Lowerer {
             if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
                 if matches!(expr.ty, Type::QubitArray(..)) {
                     register_type = Some(&expr.ty);
+                    break;
                 }
-                break;
             }
         }
 
@@ -1703,7 +1713,7 @@ impl Lowerer {
             for index in 0..(*indexed_dim_size) {
                 let qubits = qubits
                     .iter()
-                    .map(|qubit| Self::index_qubit_register((**qubit).clone(), index));
+                    .map(|qubit| Self::index_into_qubit_register((**qubit).clone(), index));
                 let qubits = list_from_iter(qubits);
 
                 stmts.push(semantic::StmtKind::GateCall(semantic::GateCall {
@@ -1746,16 +1756,13 @@ impl Lowerer {
         // by all the QASM semantic analysis.
     }
 
-    fn index_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
-        let index = semantic::IndexElement::DiscreteSet(semantic::DiscreteSet {
+    fn index_into_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
+        let index = semantic::Index::Expr(semantic::Expr {
             span: op.span,
-            values: Box::new([Box::new(semantic::Expr {
-                span: op.span,
-                kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
-                    index.into(),
-                ))),
-                ty: Type::UInt(None, true),
-            })]),
+            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
+                index.into(),
+            ))),
+            ty: Type::UInt(None, true),
         });
 
         match op.kind {
@@ -1768,7 +1775,7 @@ impl Lowerer {
                         kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                             span: op.span,
                             collection: *expr,
-                            index,
+                            indices: list_from_iter([index]),
                         })),
                         ty: Type::Qubit,
                     })),
@@ -3280,38 +3287,28 @@ impl Lowerer {
         )
     }
 
-    fn lower_index_element(&mut self, index: &syntax::IndexElement) -> semantic::IndexElement {
+    fn lower_index(&mut self, index: &syntax::Index) -> Vec<semantic::Index> {
         match index {
-            syntax::IndexElement::DiscreteSet(set) => {
-                semantic::IndexElement::DiscreteSet(self.lower_discrete_set(set))
+            syntax::Index::IndexSet(set) => {
+                // According to the grammar: <https://openqasm.com/grammar/index.html>
+                //   "`setExpression` is only valid when being used as a single index.
+                //    Registers can support it for creating aliases, but arrays cannot."
+                self.push_semantic_error(SemanticErrorKind::IndexSetOnlyAllowedInAliasStmt(
+                    set.span,
+                ));
+                vec![semantic::Index::Expr(err_expr!(Type::Err, set.span))]
             }
-            syntax::IndexElement::IndexSet(set) => {
-                semantic::IndexElement::IndexSet(self.lower_index_set(set))
+            syntax::Index::IndexList(multidimensional_index) => {
+                self.lower_index_list(multidimensional_index)
             }
-        }
-    }
-
-    fn lower_index_set_item(&mut self, item: &syntax::IndexSetItem) -> semantic::IndexSetItem {
-        match item {
-            syntax::IndexSetItem::RangeDefinition(range_definition) => {
-                semantic::IndexSetItem::RangeDefinition(
-                    self.lower_range_definition(range_definition),
-                )
-            }
-            syntax::IndexSetItem::Expr(expr) => semantic::IndexSetItem::Expr(self.lower_expr(expr)),
-            syntax::IndexSetItem::Err => semantic::IndexSetItem::Err,
         }
     }
 
     fn lower_enumerable_set(&mut self, set: &syntax::EnumerableSet) -> semantic::EnumerableSet {
         match set {
-            syntax::EnumerableSet::DiscreteSet(set) => {
-                semantic::EnumerableSet::DiscreteSet(self.lower_discrete_set(set))
-            }
-            syntax::EnumerableSet::RangeDefinition(range_definition) => {
-                semantic::EnumerableSet::RangeDefinition(
-                    self.lower_range_definition(range_definition),
-                )
+            syntax::EnumerableSet::Set(set) => semantic::EnumerableSet::Set(self.lower_set(set)),
+            syntax::EnumerableSet::Range(range_definition) => {
+                semantic::EnumerableSet::Range(self.lower_range_definition(range_definition))
             }
             syntax::EnumerableSet::Expr(expr) => {
                 semantic::EnumerableSet::Expr(self.lower_expr(expr))
@@ -3319,41 +3316,38 @@ impl Lowerer {
         }
     }
 
-    fn lower_index_set(&mut self, set: &syntax::IndexSet) -> semantic::IndexSet {
-        let items = set
-            .values
-            .iter()
-            .map(|expr| self.lower_index_set_item(expr))
-            .collect::<Vec<_>>();
-
-        semantic::IndexSet {
-            span: set.span,
-            values: syntax::list_from_iter(items),
-        }
-    }
-
-    fn lower_discrete_set(&mut self, set: &syntax::DiscreteSet) -> semantic::DiscreteSet {
+    fn lower_set(&mut self, set: &syntax::Set) -> semantic::Set {
         let items = set
             .values
             .iter()
             .map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();
 
-        semantic::DiscreteSet {
+        semantic::Set {
             span: set.span,
-            values: list_from_iter(items),
+            values: syntax::list_from_iter(items),
         }
     }
 
-    fn lower_range_definition(
-        &mut self,
-        range_definition: &syntax::RangeDefinition,
-    ) -> semantic::RangeDefinition {
+    fn lower_index_list(&mut self, list: &syntax::IndexList) -> Vec<semantic::Index> {
+        list.values
+            .iter()
+            .map(|index| match &**index {
+                syntax::IndexListItem::RangeDefinition(range) => {
+                    semantic::Index::Range(self.lower_range_definition(range))
+                }
+                syntax::IndexListItem::Expr(expr) => semantic::Index::Expr(self.lower_expr(expr)),
+                syntax::IndexListItem::Err => semantic::Index::Expr(err_expr!(Type::Err)),
+            })
+            .collect()
+    }
+
+    fn lower_range_definition(&mut self, range_definition: &syntax::Range) -> semantic::Range {
         let start = range_definition.start.as_ref().map(|e| self.lower_expr(e));
         let step = range_definition.step.as_ref().map(|e| self.lower_expr(e));
         let end = range_definition.end.as_ref().map(|e| self.lower_expr(e));
 
-        semantic::RangeDefinition {
+        semantic::Range {
             span: range_definition.span,
             start,
             step,
@@ -3363,7 +3357,7 @@ impl Lowerer {
 
     fn lower_index_expr(&mut self, expr: &syntax::IndexExpr) -> semantic::Expr {
         let collection = self.lower_expr(&expr.collection);
-        let index = self.lower_index_element(&expr.index);
+        let indices = self.lower_index(&expr.index);
         let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, 1);
 
         semantic::Expr {
@@ -3371,7 +3365,7 @@ impl Lowerer {
             kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                 span: expr.span,
                 collection,
-                index,
+                indices: list_from_iter(indices),
             })),
             ty: indexed_ty,
         }
@@ -3409,27 +3403,22 @@ impl Lowerer {
         indexed_ty
     }
 
-    /// Lower an indexed identifier expression
-    /// This is an identifier with *zero* or more indices
-    /// we tranform this into two different cases:
-    ///   1. An identifier with zero indices
-    ///   2. An identifier with one or more index
-    ///
+    /// A `syntax::IndexedIdent` is guaranteed to have at least one index.
     /// This changes the type of expression we return to simplify downstream compilation
     fn lower_indexed_ident_expr(&mut self, indexed_ident: &syntax::IndexedIdent) -> semantic::Expr {
-        let ident = indexed_ident.ident.clone();
+        assert!(!indexed_ident.indices.is_empty());
 
-        // if we have no indices, we can just lower the identifier
-        if indexed_ident.indices.is_empty() {
-            return self.lower_ident_expr(&ident);
+        // We flatten the multiple square brackets, converting
+        // a[1, 2][5, 7]
+        //   to
+        // a[1, 2, 5, 7]
+        let mut indices = Vec::new();
+        for qasm_index in &indexed_ident.indices {
+            indices.append(&mut self.lower_index(qasm_index));
         }
-
-        let indices = indexed_ident
-            .indices
-            .iter()
-            .map(|index| self.lower_index_element(index));
         let indices = list_from_iter(indices);
 
+        let ident = indexed_ident.ident.clone();
         let Some((symbol_id, lhs_symbol)) = self.symbols.get_symbol_by_name(&ident.name) else {
             self.push_missing_symbol_error(ident.name, ident.span);
             return err_expr!(Type::Err, indexed_ident.span);
@@ -3441,15 +3430,13 @@ impl Lowerer {
 
         semantic::Expr {
             span: indexed_ident.span,
-            kind: Box::new(semantic::ExprKind::IndexedIdentifier(
-                semantic::IndexedIdent {
-                    span: indexed_ident.span,
-                    name_span: ident.span,
-                    index_span: indexed_ident.index_span,
-                    symbol_id,
-                    indices,
-                },
-            )),
+            kind: Box::new(semantic::ExprKind::IndexedIdent(semantic::IndexedIdent {
+                span: indexed_ident.span,
+                name_span: ident.span,
+                index_span: indexed_ident.index_span,
+                symbol_id,
+                indices,
+            })),
             ty,
         }
     }

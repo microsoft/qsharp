@@ -21,7 +21,7 @@ fn delay() {
                                 ident: Ident [9-10] "q"
                                 index_span: [10-13]
                                 indices:
-                                    IndexSet [11-12]:
+                                    IndexList [11-12]:
                                         values:
                                             Expr [11-12]: Lit: Int(0)
                         GateOperand [15-19]:
@@ -29,7 +29,7 @@ fn delay() {
                                 ident: Ident [15-16] "q"
                                 index_span: [16-19]
                                 indices:
-                                    IndexSet [17-18]:
+                                    IndexList [17-18]:
                                         values:
                                             Expr [17-18]: Lit: Int(1)"#]],
     );

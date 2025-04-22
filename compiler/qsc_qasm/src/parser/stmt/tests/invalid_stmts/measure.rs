@@ -46,9 +46,9 @@ fn assign_measure_multiple_qubits() {
                         ident: Ident [0-1] "a"
                         index_span: [1-6]
                         indices:
-                            IndexSet [2-5]:
+                            IndexList [2-5]:
                                 values:
-                                    RangeDefinition [2-5]:
+                                    Range [2-5]:
                                         start: Expr [2-3]: Lit: Int(0)
                                         step: <none>
                                         end: Expr [4-5]: Lit: Int(1)

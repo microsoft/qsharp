@@ -47,7 +47,7 @@ impl Expr {
 
         match &*self.kind {
             ExprKind::Ident(symbol_id) => symbol_id.const_eval(ctx),
-            ExprKind::IndexedIdentifier(indexed_ident) => indexed_ident.const_eval(ctx),
+            ExprKind::IndexedIdent(indexed_ident) => indexed_ident.const_eval(ctx),
             ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(ctx),
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),

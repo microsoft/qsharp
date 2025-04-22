@@ -61,7 +61,7 @@ fn index_assignment() {
                         ident: Ident [0-1] "a"
                         index_span: [1-4]
                         indices:
-                            IndexSet [2-3]:
+                            IndexList [2-3]:
                                 values:
                                     Expr [2-3]: Lit: Int(0)
                     rhs: Expr [7-8]: Lit: Int(1)"#]],
@@ -81,10 +81,10 @@ fn multi_index_assignment() {
                         ident: Ident [0-1] "a"
                         index_span: [1-7]
                         indices:
-                            IndexSet [2-3]:
+                            IndexList [2-3]:
                                 values:
                                     Expr [2-3]: Lit: Int(0)
-                            IndexSet [5-6]:
+                            IndexList [5-6]:
                                 values:
                                     Expr [5-6]: Lit: Int(1)
                     rhs: Expr [10-11]: Lit: Int(1)"#]],
@@ -120,7 +120,7 @@ fn index_assignment_op() {
                         ident: Ident [0-1] "a"
                         index_span: [1-4]
                         indices:
-                            IndexSet [2-3]:
+                            IndexList [2-3]:
                                 values:
                                     Expr [2-3]: Lit: Int(0)
                     rhs: Expr [8-9]: Lit: Int(1)"#]],
@@ -141,10 +141,10 @@ fn multi_index_assignment_op() {
                         ident: Ident [0-1] "a"
                         index_span: [1-7]
                         indices:
-                            IndexSet [2-3]:
+                            IndexList [2-3]:
                                 values:
                                     Expr [2-3]: Lit: Int(0)
-                            IndexSet [5-6]:
+                            IndexList [5-6]:
                                 values:
                                     Expr [5-6]: Lit: Int(1)
                     rhs: Expr [11-12]: Lit: Int(1)"#]],
@@ -243,7 +243,7 @@ fn indexed_function_call() {
                             args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexSet [11-12]:
+                        index: IndexList [11-12]:
                             values:
                                 Expr [11-12]: Lit: Int(1)"#]],
     );
@@ -264,7 +264,7 @@ fn multi_indexed_function_call() {
                             args:
                                 Expr [5-6]: Lit: Int(2)
                                 Expr [8-9]: Lit: Int(3)
-                        index: IndexSet [11-15]:
+                        index: IndexList [11-15]:
                             values:
                                 Expr [11-12]: Lit: Int(1)
                                 Expr [14-15]: Lit: Int(0)"#]],
@@ -295,7 +295,7 @@ fn index_expr() {
                 kind: ExprStmt [0-8]:
                     expr: Expr [0-7]: IndexExpr [0-7]:
                         collection: Expr [0-4]: Ident [0-4] "Name"
-                        index: IndexSet [5-6]:
+                        index: IndexList [5-6]:
                             values:
                                 Expr [5-6]: Lit: Int(1)"#]],
     );
@@ -312,7 +312,7 @@ fn index_expr_with_multiple_index_operators_errors() {
                 kind: ExprStmt [0-11]:
                     expr: Expr [0-10]: IndexExpr [0-10]:
                         collection: Expr [0-4]: Ident [0-4] "Name"
-                        index: IndexSet [5-6]:
+                        index: IndexList [5-6]:
                             values:
                                 Expr [5-6]: Lit: Int(1)
 

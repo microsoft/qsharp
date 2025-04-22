@@ -7,15 +7,14 @@ use super::ast::{
     AccessControl, AliasDeclStmt, Annotation, ArrayBaseTypeKind, ArrayReferenceType, ArrayType,
     ArrayTypedParameter, AssignOpStmt, AssignStmt, BarrierStmt, BinOp, BinaryOpExpr, Block,
     BoxStmt, BreakStmt, CalibrationGrammarStmt, CalibrationStmt, Cast, ClassicalDeclarationStmt,
-    ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, DiscreteSet, EndStmt,
-    EnumerableSet, Expr, ExprStmt, ExternDecl, ExternParameter, ForStmt, FunctionCall, GPhase,
-    GateCall, GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IODeclaration, Ident,
-    IdentOrIndexedIdent, IfStmt, IncludeStmt, IndexElement, IndexExpr, IndexSet, IndexSetItem,
+    ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt, DelayStmt, EndStmt, EnumerableSet, Expr,
+    ExprStmt, ExternDecl, ExternParameter, ForStmt, FunctionCall, GPhase, GateCall,
+    GateModifierKind, GateOperand, GateOperandKind, HardwareQubit, IODeclaration, Ident,
+    IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr, IndexList, IndexListItem,
     IndexedIdent, Lit, LiteralKind, MeasureArrowStmt, MeasureExpr, Pragma, Program,
-    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
-    RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypedParameter, Stmt, StmtKind,
-    SwitchCase, SwitchStmt, TypeDef, TypedParameter, UnaryOp, UnaryOpExpr, ValueExpr, Version,
-    WhileLoop,
+    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, Range,
+    ResetStmt, ReturnStmt, ScalarType, ScalarTypedParameter, Set, Stmt, StmtKind, SwitchCase,
+    SwitchStmt, TypeDef, TypedParameter, UnaryOp, UnaryOpExpr, ValueExpr, Version, WhileLoop,
 };
 
 pub trait MutVisitor: Sized {
@@ -211,24 +210,24 @@ pub trait MutVisitor: Sized {
         walk_ident(self, ident);
     }
 
-    fn visit_index_element(&mut self, elem: &mut IndexElement) {
-        walk_index_element(self, elem);
+    fn visit_index(&mut self, elem: &mut Index) {
+        walk_index(self, elem);
     }
 
-    fn visit_discrete_set(&mut self, set: &mut DiscreteSet) {
-        walk_discrete_set(self, set);
+    fn visit_set(&mut self, set: &mut Set) {
+        walk_set(self, set);
     }
 
-    fn visit_index_set(&mut self, set: &mut IndexSet) {
-        walk_index_set(self, set);
+    fn visit_index_list(&mut self, set: &mut IndexList) {
+        walk_index_list(self, set);
     }
 
-    fn visit_index_set_item(&mut self, item: &mut IndexSetItem) {
-        walk_index_set_item(self, item);
+    fn visit_index_list_item(&mut self, item: &mut IndexListItem) {
+        walk_index_list_item(self, item);
     }
 
-    fn visit_range_definition(&mut self, range: &mut RangeDefinition) {
-        walk_range_definition(self, range);
+    fn visit_range(&mut self, range: &mut Range) {
+        walk_range(self, range);
     }
 
     fn visit_gate_operand(&mut self, operand: &mut GateOperand) {
@@ -651,7 +650,7 @@ pub fn walk_cast_expr(vis: &mut impl MutVisitor, expr: &mut Cast) {
 pub fn walk_index_expr(vis: &mut impl MutVisitor, expr: &mut IndexExpr) {
     vis.visit_span(&mut expr.span);
     vis.visit_expr(&mut expr.collection);
-    vis.visit_index_element(&mut expr.index);
+    vis.visit_index(&mut expr.index);
 }
 
 pub fn walk_value_expr(vis: &mut impl MutVisitor, expr: &mut ValueExpr) {
@@ -680,39 +679,39 @@ pub fn walk_indexed_ident(vis: &mut impl MutVisitor, ident: &mut IndexedIdent) {
     ident
         .indices
         .iter_mut()
-        .for_each(|elem| vis.visit_index_element(elem));
+        .for_each(|elem| vis.visit_index(elem));
 }
 
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
 
-pub fn walk_index_element(vis: &mut impl MutVisitor, elem: &mut IndexElement) {
+pub fn walk_index(vis: &mut impl MutVisitor, elem: &mut Index) {
     match elem {
-        IndexElement::DiscreteSet(discrete_set) => vis.visit_discrete_set(discrete_set),
-        IndexElement::IndexSet(index_set) => vis.visit_index_set(index_set),
+        Index::IndexSet(discrete_set) => vis.visit_set(discrete_set),
+        Index::IndexList(index_set) => vis.visit_index_list(index_set),
     }
 }
 
-pub fn walk_discrete_set(vis: &mut impl MutVisitor, set: &mut DiscreteSet) {
+pub fn walk_set(vis: &mut impl MutVisitor, set: &mut Set) {
     vis.visit_span(&mut set.span);
     set.values.iter_mut().for_each(|e| vis.visit_expr(e));
 }
 
-pub fn walk_index_set(vis: &mut impl MutVisitor, set: &mut IndexSet) {
+pub fn walk_index_list(vis: &mut impl MutVisitor, set: &mut IndexList) {
     vis.visit_span(&mut set.span);
     set.values
         .iter_mut()
-        .for_each(|item| vis.visit_index_set_item(item));
+        .for_each(|item| vis.visit_index_list_item(item));
 }
 
-pub fn walk_index_set_item(vis: &mut impl MutVisitor, item: &mut IndexSetItem) {
+pub fn walk_index_list_item(vis: &mut impl MutVisitor, item: &mut IndexListItem) {
     match item {
-        IndexSetItem::RangeDefinition(range_definition) => {
-            vis.visit_range_definition(range_definition);
+        IndexListItem::RangeDefinition(range_definition) => {
+            vis.visit_range(range_definition);
         }
-        IndexSetItem::Expr(expr) => vis.visit_expr(expr),
-        IndexSetItem::Err => {}
+        IndexListItem::Expr(expr) => vis.visit_expr(expr),
+        IndexListItem::Err => {}
     }
 }
 
@@ -817,9 +816,9 @@ pub fn walk_extern_parameter(vis: &mut impl MutVisitor, param: &mut ExternParame
 
 pub fn walk_enumerable_set(vis: &mut impl MutVisitor, set: &mut EnumerableSet) {
     match set {
-        EnumerableSet::DiscreteSet(set) => vis.visit_discrete_set(set),
-        EnumerableSet::RangeDefinition(range_definition) => {
-            vis.visit_range_definition(range_definition);
+        EnumerableSet::Set(set) => vis.visit_set(set),
+        EnumerableSet::Range(range_definition) => {
+            vis.visit_range(range_definition);
         }
         EnumerableSet::Expr(expr) => vis.visit_expr(expr),
     }
@@ -840,7 +839,7 @@ pub fn walk_hardware_qubit(vis: &mut impl MutVisitor, operand: &mut HardwareQubi
     vis.visit_span(&mut operand.span);
 }
 
-pub fn walk_range_definition(vis: &mut impl MutVisitor, range: &mut RangeDefinition) {
+pub fn walk_range(vis: &mut impl MutVisitor, range: &mut Range) {
     vis.visit_span(&mut range.span);
     range.start.iter_mut().for_each(|s| vis.visit_expr(s));
     range.step.iter_mut().for_each(|s| vis.visit_expr(s));

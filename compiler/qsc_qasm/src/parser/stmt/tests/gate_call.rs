@@ -43,7 +43,7 @@ fn gate_call_qubit_register() {
                                 ident: Ident [2-3] "q"
                                 index_span: [3-6]
                                 indices:
-                                    IndexSet [4-5]:
+                                    IndexList [4-5]:
                                         values:
                                             Expr [4-5]: Lit: Int(2)"#]],
     );
@@ -70,7 +70,7 @@ fn gate_multiple_qubits() {
                                 ident: Ident [9-10] "q"
                                 index_span: [10-13]
                                 indices:
-                                    IndexSet [11-12]:
+                                    IndexList [11-12]:
                                         values:
                                             Expr [11-12]: Lit: Int(4)"#]],
     );

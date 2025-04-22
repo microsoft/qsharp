@@ -14,7 +14,7 @@ fn shadowing_loop_variable_in_single_stmt_body() {
         &expect![[r#"
             ForStmt [5-39]:
                 loop_variable: 8
-                iterable: DiscreteSet [18-20]:
+                iterable: Set [18-20]:
                     values: <empty>
                 body: Stmt [29-39]:
                     annotations: <empty>
@@ -42,7 +42,7 @@ fn shadowing_loop_variable_in_block_body_succeeds() {
         &expect![[r#"
             ForStmt [5-47]:
                 loop_variable: 8
-                iterable: DiscreteSet [18-20]:
+                iterable: Set [18-20]:
                     values: <empty>
                 body: Stmt [21-47]:
                     annotations: <empty>
@@ -79,7 +79,7 @@ fn loop_creates_its_own_scope() {
                     kind: Lit: Int(0)
             ForStmt [20-177]:
                 loop_variable: 9
-                iterable: DiscreteSet [33-35]:
+                iterable: Set [33-35]:
                     values: <empty>
                 body: Stmt [167-177]:
                     annotations: <empty>

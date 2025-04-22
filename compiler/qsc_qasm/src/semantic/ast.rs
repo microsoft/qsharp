@@ -298,7 +298,6 @@ pub enum StmtKind {
     Alias(AliasDeclStmt),
     Assign(AssignStmt),
     IndexedAssign(IndexedAssignStmt),
-    AssignOp(AssignOpStmt),
     Barrier(BarrierStmt),
     Box(BoxStmt),
     Block(Box<Block>),
@@ -337,7 +336,6 @@ impl Display for StmtKind {
         match self {
             StmtKind::Alias(alias) => write!(f, "{alias}"),
             StmtKind::Assign(stmt) => write!(f, "{stmt}"),
-            StmtKind::AssignOp(stmt) => write!(f, "{stmt}"),
             StmtKind::Barrier(barrier) => write!(f, "{barrier}"),
             StmtKind::Box(box_stmt) => write!(f, "{box_stmt}"),
             StmtKind::Block(block) => write!(f, "{block}"),
@@ -506,7 +504,7 @@ pub struct IndexedIdent {
     pub name_span: Span,
     pub index_span: Span,
     pub symbol_id: SymbolId,
-    pub indices: List<IndexElement>,
+    pub indices: List<Index>,
 }
 
 impl Display for IndexedIdent {
@@ -548,42 +546,29 @@ impl Display for Expr {
 }
 
 #[derive(Clone, Debug)]
-pub struct DiscreteSet {
+pub struct Set {
     pub span: Span,
     pub values: List<Expr>,
 }
 
-impl Display for DiscreteSet {
+impl Display for Set {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DiscreteSet", self.span)?;
+        writeln_header(f, "Set", self.span)?;
         write_list_field(f, "values", &self.values)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct IndexSet {
-    pub span: Span,
-    pub values: List<IndexSetItem>,
-}
-
-impl Display for IndexSet {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IndexSet", self.span)?;
-        write_list_field(f, "values", &self.values)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct RangeDefinition {
+pub struct Range {
     pub span: Span,
     pub start: Option<Expr>,
     pub end: Option<Expr>,
     pub step: Option<Expr>,
 }
 
-impl Display for RangeDefinition {
+impl Display for Range {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "RangeDefinition", self.span)?;
+        writeln_header(f, "Range", self.span)?;
         writeln_opt_field(f, "start", self.start.as_ref())?;
         writeln_opt_field(f, "step", self.step.as_ref())?;
         write_opt_field(f, "end", self.end.as_ref())
@@ -1000,16 +985,16 @@ impl Display for ForStmt {
 
 #[derive(Clone, Debug)]
 pub enum EnumerableSet {
-    DiscreteSet(DiscreteSet),
-    RangeDefinition(RangeDefinition),
+    Set(Set),
+    Range(Range),
     Expr(Expr),
 }
 
 impl Display for EnumerableSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            EnumerableSet::DiscreteSet(set) => write!(f, "{set}"),
-            EnumerableSet::RangeDefinition(range) => write!(f, "{range}"),
+            EnumerableSet::Set(set) => write!(f, "{set}"),
+            EnumerableSet::Range(range) => write!(f, "{range}"),
             EnumerableSet::Expr(expr) => write!(f, "{expr}"),
         }
     }
@@ -1056,7 +1041,7 @@ pub enum ExprKind {
     #[default]
     Err,
     Ident(SymbolId),
-    IndexedIdentifier(IndexedIdent),
+    IndexedIdent(IndexedIdent),
     UnaryOp(UnaryOpExpr),
     BinaryOp(BinaryOpExpr),
     Lit(LiteralKind),
@@ -1072,7 +1057,7 @@ impl Display for ExprKind {
         match self {
             ExprKind::Err => write!(f, "Err"),
             ExprKind::Ident(id) => write!(f, "SymbolId({id})"),
-            ExprKind::IndexedIdentifier(id) => write!(f, "{id}"),
+            ExprKind::IndexedIdent(id) => write!(f, "{id}"),
             ExprKind::UnaryOp(expr) => write!(f, "{expr}"),
             ExprKind::BinaryOp(expr) => write!(f, "{expr}"),
             ExprKind::Lit(lit) => write!(f, "Lit: {lit}"),
@@ -1107,7 +1092,7 @@ pub struct IndexedAssignStmt {
     pub span: Span,
     pub symbol_id: SymbolId,
     pub name_span: Span,
-    pub indices: List<IndexElement>,
+    pub indices: List<Index>,
     pub rhs: Expr,
 }
 
@@ -1117,27 +1102,6 @@ impl Display for IndexedAssignStmt {
         writeln_field(f, "symbol_id", &self.symbol_id)?;
         writeln_field(f, "name_span", &self.name_span)?;
         writeln_list_field(f, "indices", &self.indices)?;
-        write_field(f, "rhs", &self.rhs)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AssignOpStmt {
-    pub span: Span,
-    pub symbol_id: SymbolId,
-    pub indices: List<IndexElement>,
-    pub op: BinOp,
-    pub lhs: Expr,
-    pub rhs: Expr,
-}
-
-impl Display for AssignOpStmt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "AssignOpStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_list_field(f, "indices", &self.indices)?;
-        writeln_field(f, "op", &self.op)?;
-        writeln_field(f, "lhs", &self.rhs)?;
         write_field(f, "rhs", &self.rhs)
     }
 }
@@ -1218,14 +1182,14 @@ impl Display for Cast {
 pub struct IndexExpr {
     pub span: Span,
     pub collection: Expr,
-    pub index: IndexElement,
+    pub indices: List<Index>,
 }
 
 impl Display for IndexExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexExpr", self.span)?;
         writeln_field(f, "collection", &self.collection)?;
-        write_field(f, "index", &self.index)
+        write_list_field(f, "indices", &self.indices)
     }
 }
 
@@ -1314,42 +1278,25 @@ impl fmt::Display for Version {
 }
 
 #[derive(Clone, Debug)]
-pub enum IndexElement {
-    DiscreteSet(DiscreteSet),
-    IndexSet(IndexSet),
+pub enum Index {
+    Expr(Expr),
+    Range(Range),
 }
 
-impl IndexElement {
+impl Index {
     pub fn span(&self) -> Span {
         match self {
-            IndexElement::DiscreteSet(discrete_set) => discrete_set.span,
-            IndexElement::IndexSet(index_set) => index_set.span,
+            Index::Expr(expr) => expr.span,
+            Index::Range(range) => range.span,
         }
     }
 }
 
-impl Display for IndexElement {
+impl Display for Index {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            IndexElement::DiscreteSet(set) => write!(f, "{set}"),
-            IndexElement::IndexSet(set) => write!(f, "{set}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum IndexSetItem {
-    RangeDefinition(RangeDefinition),
-    Expr(Expr),
-    Err,
-}
-
-impl Display for IndexSetItem {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
-            IndexSetItem::Expr(expr) => write!(f, "{expr}"),
-            IndexSetItem::Err => write!(f, "Err"),
+            Index::Expr(expr) => write!(f, "{expr}"),
+            Index::Range(range) => write!(f, "{range}"),
         }
     }
 }

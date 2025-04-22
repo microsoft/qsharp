@@ -28,7 +28,7 @@ pub enum SemanticErrorKind {
     #[error("array size must be a non-negative integer const expression")]
     #[diagnostic(code("Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
     ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
-    #[error("first quantum arg is of type {0} but found an arg of type {1}")]
+    #[error("first quantum register is of type {0} but found an argument of type {1}")]
     #[diagnostic(code("Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize"))]
     BroadcastCallQuantumArgsDisagreeInSize(String, String, #[label] Span),
     #[error("calibration statements are not supported: {0}")]
@@ -116,6 +116,9 @@ pub enum SemanticErrorKind {
     #[error("indexed must be a single expression")]
     #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
+    #[error("index sets are only allowed in alias statements")]
+    #[diagnostic(code("Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt"))]
+    IndexSetOnlyAllowedInAliasStmt(#[label] Span),
     #[error("assigning {0} values to {1} must be in a range that be converted to {1}")]
     #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),

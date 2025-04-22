@@ -705,8 +705,8 @@ fn broadcast_one_qubit_gate() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let qs = QIR.Runtime.AllocateQubitArray(2);
-        h(qs[[0]]);
-        h(qs[[1]]);
+        h(qs[0]);
+        h(qs[1]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -728,9 +728,9 @@ fn broadcast_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
-        cx(ctrls[[0]], targets[[0]]);
-        cx(ctrls[[1]], targets[[1]]);
-        cx(ctrls[[2]], targets[[2]]);
+        cx(ctrls[0], targets[0]);
+        cx(ctrls[1], targets[1]);
+        cx(ctrls[2], targets[2]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -752,10 +752,90 @@ fn broadcast_controlled_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
-        Adjoint cx(ctrls[[0]], targets[[0]]);
-        Adjoint cx(ctrls[[1]], targets[[1]]);
-        Adjoint cx(ctrls[[2]], targets[[2]]);
+        Adjoint cx(ctrls[0], targets[0]);
+        Adjoint cx(ctrls[1], targets[1]);
+        Adjoint cx(ctrls[2], targets[2]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
+}
+
+#[test]
+fn broadcast_explicitly_controlled_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] ctrls;
+        qubit[3] targets;
+        ctrl @ x ctrls, targets;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let ctrls = QIR.Runtime.AllocateQubitArray(3);
+        let targets = QIR.Runtime.AllocateQubitArray(3);
+        Controlled x([ctrls[0]], targets[0]);
+        Controlled x([ctrls[1]], targets[1]);
+        Controlled x([ctrls[2]], targets[2]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn broadcast_with_different_register_sizes_fails() {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] ctrls;
+        qubit[2] targets;
+        ctrl @ x ctrls, targets;
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
+
+          x first quantum register is of type QubitArray(3) but found an argument of
+          | type QubitArray(2)
+           ,-[Test.qasm:5:25]
+         4 |         qubit[2] targets;
+         5 |         ctrl @ x ctrls, targets;
+           :                         ^^^^^^^
+         6 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn broadcast_with_qubit_and_register_fails() {
+    let source = r#"
+        include "stdgates.inc";
+        qubit ctrls;
+        qubit[2] targets;
+        ctrl @ x ctrls, targets;
+    "#;
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
+
+          x first quantum register is of type QubitArray(2) but found an argument of
+          | type Qubit
+           ,-[Test.qasm:5:18]
+         4 |         qubit[2] targets;
+         5 |         ctrl @ x ctrls, targets;
+           :                  ^^^^^
+         6 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
 }

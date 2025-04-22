@@ -29,11 +29,11 @@ use super::ast::{
     ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
     DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
     FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
-    IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent, IfStmt, IncludeStmt, IndexElement,
-    IndexExpr, IndexSetItem, IntType, List, LiteralKind, MeasureArrowStmt, Pragma,
-    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
-    RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt,
-    StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+    IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr,
+    IndexListItem, IntType, List, LiteralKind, MeasureArrowStmt, Pragma, QuantumGateDefinition,
+    QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, Range, ResetStmt, ReturnStmt,
+    ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt,
+    TypeDef, TypedParameter, UIntType, WhileLoop,
 };
 use super::{prim::token, ParserContext};
 
@@ -1203,7 +1203,7 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
 /// Ranges in for loops are a bit different. They must have explicit start and end.
 /// Grammar `LBRACKET start=expression COLON (step=expression COLON)? stop=expression]`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
-fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
+fn for_loop_range_expr(s: &mut ParserContext) -> Result<Range> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Bracket))?;
     let start = Some(expr::expr(s)?);
@@ -1223,7 +1223,7 @@ fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
 
     recovering_token(s, TokenKind::Close(Delim::Bracket));
 
-    Ok(RangeDefinition {
+    Ok(Range {
         span: s.span(lo),
         start,
         end,
@@ -1236,9 +1236,9 @@ fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
 fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
     if let Some(range) = opt(s, for_loop_range_expr)? {
-        Ok(EnumerableSet::RangeDefinition(range))
+        Ok(EnumerableSet::Range(range))
     } else if let Some(set) = opt(s, expr::set_expr)? {
-        Ok(EnumerableSet::DiscreteSet(set))
+        Ok(EnumerableSet::Set(set))
     } else {
         Ok(EnumerableSet::Expr(expr::expr(s)?))
     }
@@ -1525,10 +1525,10 @@ fn reinterpret_index_expr(
         collection, index, ..
     } = index_expr;
 
-    if let IndexElement::IndexSet(set) = index {
+    if let Index::IndexList(set) = index {
         if set.values.len() == 1 {
-            let first_elt: IndexSetItem = (*set.values[0]).clone();
-            if let IndexSetItem::Expr(expr) = first_elt {
+            let first_elt: IndexListItem = (*set.values[0]).clone();
+            if let IndexListItem::Expr(expr) = first_elt {
                 if duration.is_none() {
                     match *collection.kind {
                         ExprKind::Ident(name) => {

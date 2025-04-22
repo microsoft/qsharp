@@ -39,8 +39,8 @@ use crate::{
     parser::ast::{list_from_iter, List},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, DiscreteSet, Expr, GateOperand, GateOperandKind, IndexElement,
-            IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
+            BinaryOpExpr, Cast, Expr, GateOperand, GateOperandKind, Index, IndexExpr, IndexedIdent,
+            LiteralKind, MeasureExpr, Set, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, Type},
@@ -425,7 +425,6 @@ impl QasmCompiler {
             semast::StmtKind::Alias(stmt) => self.compile_alias_decl_stmt(stmt),
             semast::StmtKind::Assign(stmt) => self.compile_assign_stmt(stmt),
             semast::StmtKind::IndexedAssign(stmt) => self.compile_indexed_assign_stmt(stmt),
-            semast::StmtKind::AssignOp(stmt) => self.compile_assign_op_stmt(stmt),
             semast::StmtKind::Barrier(stmt) => Self::compile_barrier_stmt(stmt),
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
@@ -493,7 +492,7 @@ impl QasmCompiler {
         let indices: Vec<_> = stmt
             .indices
             .iter()
-            .map(|elem| self.compile_index_element(elem))
+            .map(|elem| self.compile_index(elem))
             .collect();
 
         let rhs = self.compile_expr(&stmt.rhs);
@@ -517,78 +516,6 @@ impl QasmCompiler {
         );
 
         Some(stmt)
-    }
-
-    fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
-        // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
-        // This will call compile_binary_expr which handles angle & complex correctly.
-        if matches!(&stmt.lhs.ty, Type::Angle(..) | Type::Complex(..)) {
-            if stmt.indices.is_empty() {
-                let rhs = semast::Expr {
-                    span: stmt.span,
-                    ty: stmt.lhs.ty.clone(),
-                    kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
-                        op: stmt.op,
-                        lhs: stmt.lhs.clone(),
-                        rhs: stmt.rhs.clone(),
-                    })),
-                };
-
-                let stmt = semast::AssignStmt {
-                    span: stmt.span,
-                    symbol_id: stmt.symbol_id,
-                    lhs_span: stmt.lhs.span,
-                    rhs,
-                };
-
-                return self.compile_assign_stmt(&stmt);
-            }
-
-            if stmt.indices.len() != 1 {
-                self.push_unimplemented_error_message(
-                    "multi-dimensional array index expressions",
-                    stmt.span,
-                );
-                return None;
-            }
-
-            let lhs = semast::Expr {
-                span: stmt.span,
-                ty: stmt.lhs.ty.clone(),
-                kind: Box::new(semast::ExprKind::IndexExpr(semast::IndexExpr {
-                    span: stmt.lhs.span,
-                    collection: stmt.lhs.clone(),
-                    index: *stmt.indices[0].clone(),
-                })),
-            };
-
-            let rhs = semast::Expr {
-                span: stmt.span,
-                ty: stmt.lhs.ty.clone(),
-                kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
-                    op: stmt.op,
-                    lhs,
-                    rhs: stmt.rhs.clone(),
-                })),
-            };
-
-            let stmt = semast::IndexedAssignStmt {
-                span: stmt.span,
-                symbol_id: stmt.symbol_id,
-                name_span: stmt.lhs.span,
-                indices: stmt.indices.clone(),
-                rhs,
-            };
-
-            return self.compile_indexed_assign_stmt(&stmt);
-        }
-
-        let lhs = self.compile_expr(&stmt.lhs);
-        let rhs = self.compile_expr(&stmt.rhs);
-        let qsop = Self::map_bin_op(stmt.op);
-
-        let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
-        Some(build_stmt_semi_from_expr(expr))
     }
 
     fn compile_barrier_stmt(stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
@@ -1159,7 +1086,7 @@ impl QasmCompiler {
                 ..Default::default()
             },
             semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, expr.span),
-            semast::ExprKind::IndexedIdentifier(indexed_ident) => {
+            semast::ExprKind::IndexedIdent(indexed_ident) => {
                 self.compile_indexed_ident_expr(indexed_ident)
             }
             semast::ExprKind::UnaryOp(unary_op_expr) => self.compile_unary_op_expr(unary_op_expr),
@@ -1207,7 +1134,7 @@ impl QasmCompiler {
         let index: Vec<_> = indexed_ident
             .indices
             .iter()
-            .map(|elem| self.compile_index_element(elem))
+            .map(|elem| self.compile_index(elem))
             .collect();
 
         if index.len() != 1 {
@@ -1426,14 +1353,22 @@ impl QasmCompiler {
     }
 
     fn compile_index_expr(&mut self, index_expr: &IndexExpr) -> qsast::Expr {
-        let expr = self.compile_expr(&index_expr.collection);
-        let index = self.compile_index_element(&index_expr.index);
+        let mut expr = self.compile_expr(&index_expr.collection);
 
-        qsast::Expr {
-            id: qsast::NodeId::default(),
-            span: index_expr.span,
-            kind: Box::new(qsast::ExprKind::Index(Box::new(expr), Box::new(index))),
+        for index in &index_expr.indices {
+            let index = self.compile_index(index);
+            let span = Span {
+                lo: index_expr.span.lo,
+                hi: index.span.hi,
+            };
+            expr = qsast::Expr {
+                id: qsast::NodeId::default(),
+                span,
+                kind: Box::new(qsast::ExprKind::Index(Box::new(expr), Box::new(index))),
+            }
         }
+
+        expr
     }
 
     fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> qsast::Expr {
@@ -1465,14 +1400,14 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_index_element(&mut self, elem: &IndexElement) -> qsast::Expr {
+    fn compile_index(&mut self, elem: &Index) -> qsast::Expr {
         match elem {
-            IndexElement::DiscreteSet(discrete_set) => self.compile_discrete_set(discrete_set),
-            IndexElement::IndexSet(index_set) => self.compile_index_set(index_set),
+            Index::Expr(expr) => self.compile_expr(expr),
+            Index::Range(range) => self.compile_range_expr(range),
         }
     }
 
-    fn compile_discrete_set(&mut self, set: &DiscreteSet) -> qsast::Expr {
+    fn compile_set(&mut self, set: &Set) -> qsast::Expr {
         let expr_list: Vec<_> = set
             .values
             .iter()
@@ -1482,28 +1417,15 @@ impl QasmCompiler {
         build_expr_array_expr(expr_list, set.span)
     }
 
-    fn compile_index_set(&mut self, set: &IndexSet) -> qsast::Expr {
-        // This is a temporary limitation. We can only handle
-        // single index expressions for now.
-        if set.values.len() == 1 {
-            if let semast::IndexSetItem::Expr(expr) = &*set.values[0] {
-                return self.compile_expr(expr);
-            }
-        }
-
-        self.push_unsupported_error_message("index set expressions with multiple values", set.span);
-        err_expr(set.span)
-    }
-
     fn compile_enumerable_set(&mut self, set: &semast::EnumerableSet) -> qsast::Expr {
         match set {
-            semast::EnumerableSet::DiscreteSet(set) => self.compile_discrete_set(set),
+            semast::EnumerableSet::Set(set) => self.compile_set(set),
             semast::EnumerableSet::Expr(expr) => self.compile_expr(expr),
-            semast::EnumerableSet::RangeDefinition(range) => self.compile_range_expr(range),
+            semast::EnumerableSet::Range(range) => self.compile_range_expr(range),
         }
     }
 
-    fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> qsast::Expr {
+    fn compile_range_expr(&mut self, range: &semast::Range) -> qsast::Expr {
         let Some(start) = &range.start else {
             self.push_unimplemented_error_message("omitted range start", range.span);
             return err_expr(range.span);

@@ -36,7 +36,7 @@ fn measure_indented_ident() {
                                 ident: Ident [8-9] "q"
                                 index_span: [9-12]
                                 indices:
-                                    IndexSet [10-11]:
+                                    IndexList [10-11]:
                                         values:
                                             Expr [10-11]: Lit: Int(2)
                     target: <none>"#]],
@@ -91,7 +91,7 @@ fn measure_arrow_into_indented_ident() {
                         ident: Ident [13-14] "a"
                         index_span: [14-17]
                         indices:
-                            IndexSet [15-16]:
+                            IndexList [15-16]:
                                 values:
                                     Expr [15-16]: Lit: Int(1)"#]],
     );

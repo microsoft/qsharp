@@ -19,7 +19,7 @@ fn simple_for_stmt() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: DiscreteSet [18-27]:
+                    iterable: Set [18-27]:
                         values:
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
@@ -47,7 +47,7 @@ fn empty_for_stmt_body() {
                     variable_type: ScalarType [4-7]: IntType [4-7]:
                         size: <none>
                     variable_name: Ident [8-9] "x"
-                    iterable: DiscreteSet [13-15]:
+                    iterable: Set [13-15]:
                         values: <empty>
                     body: Stmt [16-18]:
                         annotations: <empty>
@@ -70,7 +70,7 @@ fn simple_for_stmt_stmt_body() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: DiscreteSet [18-27]:
+                    iterable: Set [18-27]:
                         values:
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
@@ -98,7 +98,7 @@ fn for_stmt_iterating_over_range() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: RangeDefinition [18-25]:
+                    iterable: Range [18-25]:
                         start: Expr [19-20]: Lit: Int(0)
                         step: Expr [21-22]: Lit: Int(2)
                         end: Expr [23-24]: Lit: Int(7)
@@ -128,7 +128,7 @@ fn for_stmt_iterating_over_range_no_step() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: RangeDefinition [18-23]:
+                    iterable: Range [18-23]:
                         start: Expr [19-20]: Lit: Int(0)
                         step: <none>
                         end: Expr [21-22]: Lit: Int(7)
@@ -186,7 +186,7 @@ fn for_stmt_with_continue_stmt() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: DiscreteSet [18-27]:
+                    iterable: Set [18-27]:
                         values:
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
@@ -221,7 +221,7 @@ fn for_loop_with_break_stmt() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: DiscreteSet [18-27]:
+                    iterable: Set [18-27]:
                         values:
                             Expr [19-20]: Lit: Int(1)
                             Expr [22-23]: Lit: Int(2)
@@ -252,7 +252,7 @@ fn single_stmt_for_stmt() {
                     variable_type: ScalarType [4-7]: IntType [4-7]:
                         size: <none>
                     variable_name: Ident [8-9] "x"
-                    iterable: DiscreteSet [13-15]:
+                    iterable: Set [13-15]:
                         values: <empty>
                     body: Stmt [16-20]:
                         annotations: <empty>
@@ -283,7 +283,7 @@ fn annotations_in_single_stmt_for_stmt() {
                     variable_type: ScalarType [9-12]: IntType [9-12]:
                         size: <none>
                     variable_name: Ident [13-14] "x"
-                    iterable: DiscreteSet [18-20]:
+                    iterable: Set [18-20]:
                         values: <empty>
                     body: Stmt [29-61]:
                         annotations:
@@ -311,7 +311,7 @@ fn nested_single_stmt_for_stmt() {
                     variable_type: ScalarType [4-7]: IntType [4-7]:
                         size: <none>
                     variable_name: Ident [8-9] "x"
-                    iterable: DiscreteSet [13-15]:
+                    iterable: Set [13-15]:
                         values: <empty>
                     body: Stmt [16-36]:
                         annotations: <empty>
@@ -319,7 +319,7 @@ fn nested_single_stmt_for_stmt() {
                             variable_type: ScalarType [20-23]: IntType [20-23]:
                                 size: <none>
                             variable_name: Ident [24-25] "y"
-                            iterable: DiscreteSet [29-31]:
+                            iterable: Set [29-31]:
                                 values: <empty>
                             body: Stmt [32-36]:
                                 annotations: <empty>
