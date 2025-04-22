@@ -233,9 +233,6 @@ function _style_gate_text(gate: SVGTextElement) {
 
   // In general, use the regular math font
   gate.classList.add("qs-maintext");
-  // gate.style.fontFamily = "KaTeX_Main";
-  // gate.style.fontStyle = "normal";
-  // gate.style.fontSize = "14px";
 
   // Wrap any latin or greek letters in tspan with KaTeX_Math font
   // Style the entire Greek + Coptic block (https://unicodeplus.com/block/0370)
