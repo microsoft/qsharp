@@ -585,20 +585,17 @@ operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl
 }
 
 /// # Summary
-/// Applies operation `u` `power` times.
-/// If `power` is negative, the adjoint of `u` is used.
-/// If `power` is 0, operation `u` is not applied.
-///
-/// # Description
-/// Applies $U^n$ where $n$ = `power`.
-operation ApplyOperationPower(power : Int, u : Unit => Unit is Adj) : Unit is Adj {
-    let op = if power >= 0 {
-        u
-    } else {
-        Adjoint u
-    };
+/// Applies operation `op` to the `target` `power` times.
+/// If `power` is negative, the adjoint of `op` is used.
+/// If `power` is 0, the operation `op` is not applied.
+operation ApplyOperationPowerA<'T>(
+    power : Int,
+    op : 'T => Unit is Adj,
+    target : 'T
+) : Unit is Adj {
+    let u = if power >= 0 { op } else { Adjoint op };
     for _ in 1..AbsI(power) {
-        op();
+        u(target);
     }
 }
 
@@ -666,5 +663,5 @@ export
     SwapReverseRegister,
     ApplyXorInPlace,
     ApplyXorInPlaceL,
-    ApplyOperationPower,
+    ApplyOperationPowerA,
     Relabel;

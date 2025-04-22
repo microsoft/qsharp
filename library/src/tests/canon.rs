@@ -558,13 +558,13 @@ fn check_apply_xor_in_place_l() {
 }
 
 #[test]
-fn check_apply_operation_power() {
+fn check_apply_operation_power_a() {
     test_expression(
         {
             "{
             use q = Qubit();
-            ApplyOperationPower(12, () => Rx(Std.Math.PI()/16.0, q));
-            ApplyOperationPower(-3, () => Rx(Std.Math.PI()/4.0, q));
+            ApplyOperationPowerA(12, Rx(Std.Math.PI()/16.0, _), q);
+            ApplyOperationPowerA(-3, Rx(Std.Math.PI()/4.0, _), q);
             M(q)
         }"
         },
