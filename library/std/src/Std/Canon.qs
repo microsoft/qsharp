@@ -591,7 +591,7 @@ operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl
 ///
 /// # Description
 /// Applies $U^n$ where $n$ = `power`.
-operation ApplyOperationPower(power: Int, u: Unit => Unit is Adj) : Unit is Adj {
+operation ApplyOperationPower(power : Int, u : Unit => Unit is Adj) : Unit is Adj {
     let op = if power >= 0 {
         u
     } else {
