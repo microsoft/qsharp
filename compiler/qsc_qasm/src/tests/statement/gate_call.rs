@@ -785,6 +785,29 @@ fn broadcast_explicitly_controlled_gate() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn broadcast_with_qubit_and_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit ctl;
+        qubit[2] targets;
+        ctrl @ x ctl, targets;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
+        let targets = QIR.Runtime.AllocateQubitArray(2);
+        Controlled x([ctl], targets[0]);
+        Controlled x([ctl], targets[1]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn broadcast_with_different_register_sizes_fails() {
     let source = r#"
         include "stdgates.inc";
@@ -806,34 +829,6 @@ fn broadcast_with_different_register_sizes_fails() {
          4 |         qubit[2] targets;
          5 |         ctrl @ x ctrls, targets;
            :                         ^^^^^^^
-         6 |     
-           `----
-        ]"#]]
-    .assert_eq(&format!("{errors:?}"));
-}
-
-#[test]
-fn broadcast_with_qubit_and_register_fails() {
-    let source = r#"
-        include "stdgates.inc";
-        qubit ctrls;
-        qubit[2] targets;
-        ctrl @ x ctrls, targets;
-    "#;
-
-    let Err(errors) = compile_qasm_to_qsharp(source) else {
-        panic!("Expected error");
-    };
-
-    expect![[r#"
-        [Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
-
-          x first quantum register is of type QubitArray(2) but found an argument of
-          | type Qubit
-           ,-[Test.qasm:5:18]
-         4 |         qubit[2] targets;
-         5 |         ctrl @ x ctrls, targets;
-           :                  ^^^^^
          6 |     
            `----
         ]"#]]

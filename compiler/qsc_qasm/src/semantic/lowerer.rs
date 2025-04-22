@@ -1681,7 +1681,9 @@ impl Lowerer {
             let mut resgisters_sizes_disagree = false;
             for qubit in &qubits {
                 if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
-                    if !base_types_equal(register_type, &expr.ty) {
+                    if !matches!(&expr.ty, Type::Qubit)
+                        && !base_types_equal(register_type, &expr.ty)
+                    {
                         resgisters_sizes_disagree = true;
                         self.push_semantic_error(
                             SemanticErrorKind::BroadcastCallQuantumArgsDisagreeInSize(
@@ -1712,6 +1714,7 @@ impl Lowerer {
                 let qubits = qubits
                     .iter()
                     .map(|qubit| Self::index_into_qubit_register((**qubit).clone(), index));
+
                 let qubits = list_from_iter(qubits);
 
                 stmts.push(semantic::StmtKind::GateCall(semantic::GateCall {
@@ -1765,6 +1768,14 @@ impl Lowerer {
 
         match op.kind {
             semantic::GateOperandKind::Expr(expr) => {
+                // Single qubits are allowed in a broadcast call.
+                if matches!(&expr.ty, Type::Qubit) {
+                    return semantic::GateOperand {
+                        span: op.span,
+                        kind: semantic::GateOperandKind::Expr(expr),
+                    };
+                }
+
                 assert!(matches!(expr.ty, Type::QubitArray(..)));
                 semantic::GateOperand {
                     span: op.span,
