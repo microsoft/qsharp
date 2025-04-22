@@ -558,7 +558,7 @@ fn check_apply_xor_in_place_l() {
 }
 
 #[test]
-fn check_apply_operation_power_i() {
+fn check_apply_operation_power() {
     test_expression(
         {
             "{
