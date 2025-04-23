@@ -163,6 +163,34 @@ function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[] {
 }
 
 /// # Summary
+/// Converts a BigInt number into Int. Raises an error if the number is too large to fit.
+///
+/// # Input
+/// ## number
+/// A BigInt number to be converted.
+///
+/// # Output
+/// Int representation of a number.
+function BigIntAsInt(number : BigInt) : Int {
+    let max = 9_223_372_036_854_775_807L;
+    let min = -9_223_372_036_854_775_808L;
+    Fact(number >= min and number <= max, $"`number`=number is too big to fit into Int.");
+
+    mutable result = 0;
+    mutable powL = 1L;
+    mutable pow = 1;
+    for _ in 0..63 {
+        if number &&& powL != 0L {
+            result |||= pow;
+        }
+        powL <<<= 1;
+        pow <<<= 1;
+    }
+
+    result
+}
+
+/// # Summary
 /// Produces a non-negative integer from a string of Results in little-endian format.
 ///
 /// # Input
@@ -289,6 +317,7 @@ export
     IntAsBoolArray,
     BoolArrayAsBigInt,
     BigIntAsBoolArray,
+    BigIntAsInt,
     ResultArrayAsInt,
     ResultArrayAsBoolArray,
     BoolArrayAsResultArray,

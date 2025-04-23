@@ -232,7 +232,7 @@ function __MultiplyAngleByBigInt__(angle : __Angle__, factor : BigInt) : __Angle
     let (value, size) = angle!;
     let value : BigInt = Std.Convert.IntAsBigInt(value);
     let value = (value * factor) % Std.Convert.IntAsBigInt(1 <<< size);
-    let value = Std.Convert.BoolArrayAsInt(Std.Convert.BigIntAsBoolArray(value, size));
+    let value = Std.Convert.BigIntAsInt(value);
     new __Angle__ { Value = value, Size = size }
 }
 
