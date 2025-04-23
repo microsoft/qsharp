@@ -691,12 +691,12 @@ fn get_row_indexes(
 /// # Arguments
 ///
 /// * `operations` - A vector of operations to be converted.
-/// * `max_q_id` - The maximum qubit ID.
+/// * `num_qubits` - The number of qubits in the circuit.
 ///
 /// # Returns
 ///
 /// A component grid representing the operations.
-pub fn operation_list_to_grid(mut operations: Vec<Operation>, max_q_id: usize) -> ComponentGrid {
+pub fn operation_list_to_grid(mut operations: Vec<Operation>, num_qubits: usize) -> ComponentGrid {
     for op in &mut operations {
         // The children data structure is a grid, so checking if it is
         // length 1 is actually checking if it has a single column,
@@ -707,13 +707,16 @@ pub fn operation_list_to_grid(mut operations: Vec<Operation>, max_q_id: usize) -
         if op.children().len() == 1 {
             match op {
                 Operation::Measurement(m) => {
-                    m.children = operation_list_to_grid(m.children.remove(0).components, max_q_id);
+                    m.children =
+                        operation_list_to_grid(m.children.remove(0).components, num_qubits);
                 }
                 Operation::Unitary(u) => {
-                    u.children = operation_list_to_grid(u.children.remove(0).components, max_q_id);
+                    u.children =
+                        operation_list_to_grid(u.children.remove(0).components, num_qubits);
                 }
                 Operation::Ket(k) => {
-                    k.children = operation_list_to_grid(k.children.remove(0).components, max_q_id);
+                    k.children =
+                        operation_list_to_grid(k.children.remove(0).components, num_qubits);
                 }
             }
         }
@@ -721,7 +724,7 @@ pub fn operation_list_to_grid(mut operations: Vec<Operation>, max_q_id: usize) -
 
     // Convert the operations into a component grid
     let mut component_grid = vec![];
-    for col in remove_padding(operation_list_to_padded_array(operations, max_q_id)) {
+    for col in remove_padding(operation_list_to_padded_array(operations, num_qubits)) {
         let column = ComponentColumn { components: col };
         component_grid.push(column);
     }
@@ -733,20 +736,20 @@ pub fn operation_list_to_grid(mut operations: Vec<Operation>, max_q_id: usize) -
 /// # Arguments
 ///
 /// * `operations` - A vector of operations to be converted.
-/// * `max_q_id` - The maximum qubit ID.
+/// * `num_qubits` - The number of qubits in the circuit.
 ///
 /// # Returns
 ///
 /// A 2D vector of optional operations padded with `None`.
 fn operation_list_to_padded_array(
     operations: Vec<Operation>,
-    max_q_id: usize,
+    num_qubits: usize,
 ) -> Vec<Vec<Option<Operation>>> {
     if operations.is_empty() {
         return vec![];
     }
 
-    let grouped_ops = group_operations(&operations, max_q_id);
+    let grouped_ops = group_operations(&operations, num_qubits);
     let aligned_ops = transform_to_col_row(align_ops(grouped_ops));
 
     // Need to convert to optional operations so we can
@@ -815,14 +818,14 @@ fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<
 /// # Arguments
 ///
 /// * `operations` - A slice of operations to be grouped.
-/// * `max_q_id` - The maximum qubit ID.
+/// * `num_qubits` - The number of qubits in the circuit.
 ///
 /// # Returns
 ///
 /// A 2D vector of indices where `groupedOps[i][j]` is the index of the operations
 /// at register `i` and column `j` (not yet aligned/padded).
-fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>> {
-    let mut grouped_ops = vec![vec![]; max_q_id + 1]; // Add one so that it is an "end" index
+fn group_operations(operations: &[Operation], num_qubits: usize) -> Vec<Vec<usize>> {
+    let mut grouped_ops = vec![vec![]; num_qubits];
 
     for (instr_idx, op) in operations.iter().enumerate() {
         let ctrls = match op {
@@ -855,6 +858,10 @@ fn group_operations(operations: &[Operation], max_q_id: usize) -> Vec<Vec<usize>
                 Some(min_reg_idx) => *min_reg_idx,
                 None => 0,
             }
+        };
+        let max_q_id = match num_qubits {
+            0 => 0,
+            _ => num_qubits - 1,
         };
         let max_reg_idx = if is_classically_controlled {
             max_q_id
