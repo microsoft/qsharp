@@ -270,7 +270,13 @@ export function CircuitPanel(props: CircuitProps) {
       )}
       <p>
         Learn more at{" "}
-        <a href="https://aka.ms/qdk.circuits">https://aka.ms/qdk.circuits</a>
+        {props.isEditable ? (
+          <a href="https://aka.ms/qdk.circuit-editor">
+            https://aka.ms/qdk.circuit-editor
+          </a>
+        ) : (
+          <a href="https://aka.ms/qdk.circuits">https://aka.ms/qdk.circuits</a>
+        )}
       </p>
       {props.calculating ? (
         <div>
