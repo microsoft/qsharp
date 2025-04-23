@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Metadata, GateType } from "./metadata";
+import { GateRenderData, GateType } from "./gateRenderData";
 import {
   minGateWidth,
   labelPadding,
@@ -58,9 +58,9 @@ const createUUID = (): string =>
   });
 
 /**
- * Calculate the width of a gate, given its metadata.
+ * Calculate the width of a gate, given its render data.
  *
- * @param metadata Metadata of a given gate.
+ * @param renderData - The rendering data of the gate, including its type, label, display arguments, and width.
  *
  * @returns Width of given gate (in pixels).
  */
@@ -69,7 +69,7 @@ const getGateWidth = ({
   label,
   displayArgs,
   width,
-}: Metadata): number => {
+}: GateRenderData): number => {
   if (width > 0) return width;
 
   switch (type) {

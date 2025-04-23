@@ -13,7 +13,7 @@ import {
   Operation,
   Column,
 } from "./circuit";
-import { Metadata, GateType } from "./metadata";
+import { GateRenderData, GateType } from "./gateRenderData";
 import { createUUID } from "./utils";
 import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
 import { createDragzones } from "./draggable";
@@ -21,7 +21,7 @@ import { enableEvents } from "./events";
 import { createPanel } from "./panel";
 
 /**
- * Contains metadata for visualization.
+ * Contains render data for visualization.
  */
 interface ComposedSqore {
   /** Width of visualization. */
@@ -171,10 +171,13 @@ export class Sqore {
    *
    * @param circuit Circuit to be visualized.
    *
-   * @returns `ComposedSqore` object containing metadata for visualization.
+   * @returns `ComposedSqore` object containing render data for visualization.
    */
   private compose(circuit: Circuit): ComposedSqore {
-    const add = (acc: Metadata[], gate: Metadata | Metadata[]): void => {
+    const add = (
+      acc: GateRenderData[],
+      gate: GateRenderData | GateRenderData[],
+    ): void => {
       if (Array.isArray(gate)) {
         gate.forEach((g) => add(acc, g));
       } else {
@@ -183,20 +186,20 @@ export class Sqore {
       }
     };
 
-    const flatten = (metadata: Metadata[][]): Metadata[] => {
-      const result: Metadata[] = [];
-      metadata.forEach((col) => col.forEach((g) => add(result, g)));
+    const flatten = (renderData: GateRenderData[][]): GateRenderData[] => {
+      const result: GateRenderData[] = [];
+      renderData.forEach((col) => col.forEach((g) => add(result, g)));
       return result;
     };
 
     const { qubits, componentGrid } = circuit;
     const { qubitWires, registers, svgHeight } = formatInputs(qubits);
-    const { metadataArray, svgWidth } = processOperations(
+    const { renderDataArray, svgWidth } = processOperations(
       componentGrid,
       registers,
     );
-    const formattedGates: SVGElement = formatGates(metadataArray);
-    const measureGates: Metadata[] = flatten(metadataArray).filter(
+    const formattedGates: SVGElement = formatGates(renderDataArray);
+    const measureGates: GateRenderData[] = flatten(renderDataArray).filter(
       ({ type }) => type === GateType.Measure,
     );
     const formattedRegs: SVGElement = formatRegisters(
