@@ -88,35 +88,35 @@ impl Backend for Builder {
 
     fn rx(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("rx", theta, [q]));
+        self.push_gate(rotation_gate("Rx", theta, [q]));
     }
 
     fn rxx(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("rxx", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Rxx", theta, [q0, q1]));
     }
 
     fn ry(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("ry", theta, [q]));
+        self.push_gate(rotation_gate("Ry", theta, [q]));
     }
 
     fn ryy(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("ryy", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Ryy", theta, [q0, q1]));
     }
 
     fn rz(&mut self, theta: f64, q: usize) {
         let q = self.map(q);
-        self.push_gate(rotation_gate("rz", theta, [q]));
+        self.push_gate(rotation_gate("Rz", theta, [q]));
     }
 
     fn rzz(&mut self, theta: f64, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);
-        self.push_gate(rotation_gate("rzz", theta, [q0, q1]));
+        self.push_gate(rotation_gate("Rzz", theta, [q0, q1]));
     }
 
     fn sadj(&mut self, q: usize) {
