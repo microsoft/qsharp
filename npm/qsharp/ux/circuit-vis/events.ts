@@ -789,6 +789,7 @@ const _createConfirmPrompt = (
   okButton.addEventListener("click", () => {
     callback(true); // User confirmed
     document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
   });
 
   // Create the Cancel button
@@ -798,7 +799,20 @@ const _createConfirmPrompt = (
   cancelButton.addEventListener("click", () => {
     callback(false); // User canceled
     document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
   });
+
+  // Handle Enter and Escape keys globally while prompt is open
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      okButton.click();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancelButton.click();
+    }
+  };
+  document.addEventListener("keydown", handleGlobalKeyDown, true);
 
   buttonsContainer.appendChild(okButton);
   buttonsContainer.appendChild(cancelButton);
