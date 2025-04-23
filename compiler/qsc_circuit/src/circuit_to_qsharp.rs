@@ -80,12 +80,19 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
     let mut measure_results = vec![];
     let indent = "    ".repeat(indentation_level);
 
-    // Add an assert for the number of qubits
-    qsharp_str.push_str(&generate_qubit_validation(
-        circuit_name,
-        &qubits,
-        indentation_level,
-    ));
+    // If there are operation, add an assert for the number of qubits
+    if !circuit.component_grid.is_empty()
+        && circuit
+            .component_grid
+            .iter()
+            .any(|col| !col.components.is_empty())
+    {
+        qsharp_str.push_str(&generate_qubit_validation(
+            circuit_name,
+            &qubits,
+            indentation_level,
+        ));
+    }
 
     let mut body_str = String::new();
     let mut should_add_pi = false;
@@ -230,24 +237,15 @@ fn generate_unitary_call(
 }
 
 fn generate_ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
-    if ket.gate == "1" {
-        // Note "|1〉" will generate two operations: Reset and X
-        let ket_str = ket_call(ket, qubits);
-        let mut call_str = format!("{indent}{ket_str};\n");
-        let op_x = Unitary {
-            gate: "X".to_string(),
-            is_adjoint: false,
-            controls: vec![],
-            targets: ket.targets.clone(),
-            args: vec![],
-            children: vec![],
-        };
-        let operation_str = operation_call(&op_x, qubits);
-        writeln!(call_str, "{indent}{operation_str};").expect("could not write to call_str");
-        call_str
-    } else {
+    // Note: The only supported ket operation is "0"
+    if ket.gate == "0" {
         let ket_str = ket_call(ket, qubits);
         format!("{indent}{ket_str};\n")
+    } else {
+        format!(
+            "{indent}fail \"Unsupported ket operation: |{}〉\";\n",
+            ket.gate
+        )
     }
 }
 
@@ -300,6 +298,7 @@ fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>
 }
 
 fn ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>) -> String {
+    // Note: The only supported ket operation is "0" which is a reset operation
     let targets = ket
         .targets
         .iter()
