@@ -471,6 +471,7 @@ export class Sqore {
 
   // Minimize the circuits in a circuit group to remove dataAttributes
   minimizeCircuits(circuitGroup: CircuitGroup): CircuitGroup {
+    // Create a deep copy of the circuit group
     const minimizedCircuits: CircuitGroup = JSON.parse(
       JSON.stringify(circuitGroup),
     );

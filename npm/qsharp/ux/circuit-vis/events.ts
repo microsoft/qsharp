@@ -419,6 +419,7 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", async (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
+        // Create a deep copy of the component grid
         const originalGrid = JSON.parse(
           JSON.stringify(this.componentGrid),
         ) as ComponentGrid;

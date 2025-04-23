@@ -827,6 +827,11 @@ fn transform_to_col_row(aligned_ops: Vec<Vec<Option<usize>>>) -> Vec<Vec<Option<
 fn group_operations(operations: &[Operation], num_qubits: usize) -> Vec<Vec<usize>> {
     let mut grouped_ops = vec![vec![]; num_qubits];
 
+    let max_q_id = match num_qubits {
+        0 => 0,
+        _ => num_qubits - 1,
+    };
+
     for (instr_idx, op) in operations.iter().enumerate() {
         let ctrls = match op {
             Operation::Measurement(m) => &m.qubits,
@@ -851,25 +856,16 @@ fn group_operations(operations: &[Operation], num_qubits: usize) -> Vec<Vec<usiz
             continue;
         }
 
-        let min_reg_idx = if is_classically_controlled {
-            0
+        let (min_reg_idx, max_reg_idx) = if is_classically_controlled {
+            (0, max_q_id)
         } else {
-            match q_reg_idx_list.iter().min() {
-                Some(min_reg_idx) => *min_reg_idx,
-                None => 0,
-            }
-        };
-        let max_q_id = match num_qubits {
-            0 => 0,
-            _ => num_qubits - 1,
-        };
-        let max_reg_idx = if is_classically_controlled {
-            max_q_id
-        } else {
-            match q_reg_idx_list.iter().max() {
-                Some(max_reg_idx) => *max_reg_idx,
-                None => max_q_id,
-            }
+            q_reg_idx_list
+                .into_iter()
+                .fold(None, |acc, x| match acc {
+                    None => Some((x, x)),
+                    Some((min, max)) => Some((min.min(x), max.max(x))),
+                })
+                .unwrap_or((0, max_q_id))
         };
 
         for reg_ops in grouped_ops
