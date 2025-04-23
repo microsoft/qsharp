@@ -286,83 +286,6 @@
     color: var(--vscode-menu-selectionForeground, #000000);
   }
 
-  .prompt-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-
-  .prompt-container {
-    background: var(--vscode-editor-background, #ffffff);
-    color: var(--vscode-editor-foreground, #000000);
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 400px;
-    max-width: 90%;
-  }
-
-  .prompt-message {
-    margin-bottom: 10px;
-    color: var(--vscode-editor-foreground, #000000);
-    font-size: 1rem;
-  }
-
-  .prompt-input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-    background: var(--vscode-input-background, #ffffff);
-    color: var(--vscode-input-foreground, #000000);
-    border: 1px solid var(--vscode-input-border, #cccccc);
-    font-size: 1rem;
-    border-radius: 4px;
-    box-sizing: border-box;
-  }
-
-  .prompt-buttons {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .prompt-button {
-    padding: 8px 16px;
-    margin: 0 5px;
-    background: var(--vscode-button-background, #007acc);
-    color: var(--vscode-button-foreground, #ffffff);
-    border: 1px solid var(--vscode-button-border, #005a9e);
-    cursor: pointer;
-    border-radius: 4px;
-  }
-
-  .prompt-button:hover {
-    background: var(--vscode-button-hoverBackground, #005a9e);
-  }
-
-  .prompt-button:disabled {
-    background: var(--vscode-button-secondaryBackground, #d4d4d4);
-    color: var(--vscode-disabledForeground, #a1a1a1);
-    border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
-    cursor: not-allowed;
-  }
-
-  .pi-button {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    text-align: center;
-    line-height: 40px;
-    font-size: 16px;
-  }
-
   .container {
     display: flex;
   }
@@ -449,4 +372,81 @@
     border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
     cursor: not-allowed;
   }
+}
+
+.prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.prompt-container {
+  background: var(--vscode-editor-background, #ffffff);
+  color: var(--vscode-editor-foreground, #000000);
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 400px;
+  max-width: 90%;
+}
+
+.prompt-message {
+  margin-bottom: 10px;
+  color: var(--vscode-editor-foreground, #000000);
+  font-size: 1rem;
+}
+
+.prompt-input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  background: var(--vscode-input-background, #ffffff);
+  color: var(--vscode-input-foreground, #000000);
+  border: 1px solid var(--vscode-input-border, #cccccc);
+  font-size: 1rem;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.prompt-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.prompt-button {
+  padding: 8px 16px;
+  margin: 0 5px;
+  background: var(--vscode-button-background, #007acc);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, #005a9e);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.prompt-button:hover {
+  background: var(--vscode-button-hoverBackground, #005a9e);
+}
+
+.prompt-button:disabled {
+  background: var(--vscode-button-secondaryBackground, #d4d4d4);
+  color: var(--vscode-disabledForeground, #a1a1a1);
+  border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
+  cursor: not-allowed;
+}
+
+.pi-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  text-align: center;
+  line-height: 40px;
+  font-size: 16px;
 }
