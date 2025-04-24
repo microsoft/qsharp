@@ -20,20 +20,20 @@ export interface Register {
 }
 
 /**
- * Metadata for qubit register.
+ * Rendering data for qubit register.
  */
-export interface RegisterMetadata {
+export interface RegisterRenderData {
   /** Type of register. */
   type: RegisterType;
   /** y coord of register */
   y: number;
   /** Nested classical registers attached to quantum register. */
-  children?: RegisterMetadata[];
+  children?: RegisterRenderData[];
 }
 
 /**
- * Mapping from qubit IDs to their register metadata.
+ * Mapping from qubit IDs to their register render data.
  */
 export interface RegisterMap {
-  [id: number]: RegisterMetadata;
+  [id: number]: RegisterRenderData;
 }

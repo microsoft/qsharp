@@ -5,5 +5,5 @@ export {
   RegisterType,
   type Register,
   type RegisterMap,
-  type RegisterMetadata,
+  type RegisterRenderData,
 } from "../../src/shared/register";
