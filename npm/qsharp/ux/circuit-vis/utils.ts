@@ -365,6 +365,20 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
     : [];
 };
 
+/**
+ * Get list of qubit label elements for drag-and-drop.
+ *
+ * @param container The HTML container element containing the circuit visualization.
+ * @returns An array of SVGTextElement representing the qubit labels.
+ */
+const getQubitLabelElems = (container: HTMLElement): SVGTextElement[] => {
+  const circuitSvg = container.querySelector("svg[id]");
+  if (!circuitSvg) return [];
+  const labelGroup = circuitSvg.querySelector("g.qubit-input-states");
+  if (!labelGroup) return [];
+  return Array.from(labelGroup.querySelectorAll<SVGTextElement>("text"));
+};
+
 export {
   createUUID,
   getGateWidth,
@@ -380,4 +394,5 @@ export {
   getToolboxElems,
   getHostElems,
   getGateElems,
+  getQubitLabelElems,
 };

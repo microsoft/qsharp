@@ -14,6 +14,7 @@ import {
   locationStringToIndexes,
   findParentArray,
   deepEqual,
+  getQubitLabelElems,
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
@@ -32,6 +33,7 @@ import {
   removeAllWireDropzones,
 } from "./draggable";
 import { getMinMaxRegIdx } from "../../src/utils";
+import { Register } from "./register";
 
 let events: CircuitEvents | null = null;
 
@@ -92,6 +94,7 @@ class CircuitEvents {
     this._addGateElementsEvents();
     this._addToolboxElementsEvents();
     this._addDropzoneElementsEvents();
+    this._addQubitLineEvents();
     this._addQubitLineControlEvents();
     this._addDocumentEvents();
   }
@@ -138,8 +141,8 @@ class CircuitEvents {
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
       for (const dropzone of this.temporaryDropzones) {
-        if (this.dropzoneLayer.contains(dropzone)) {
-          this.dropzoneLayer.removeChild(dropzone);
+        if (dropzone.parentNode) {
+          dropzone.parentNode.removeChild(dropzone);
         }
       }
       if (ghostElem) {
@@ -550,6 +553,148 @@ class CircuitEvents {
       this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", this.dropzoneMouseupHandler);
+    });
+  }
+
+  /**
+   * Handler for mouseup on qubit line dropzones.
+   * @param sourceWire The index of the source wire (being dragged).
+   * @param targetWire The index of the target wire (drop location).
+   * @param isBetween If true, creates a dropzone between wires.
+   */
+  qubitDropzoneMouseupHandler = (
+    sourceWire: number,
+    targetWire: number,
+    isBetween: boolean,
+  ) => {
+    if (sourceWire === targetWire || sourceWire == null || targetWire == null)
+      return;
+    console.log(
+      `Qubit line drop: sourceIndex=${sourceWire}, targetWire=${targetWire}`,
+    );
+
+    // Helper to move an array element
+    function moveArrayElement<T>(arr: T[], from: number, to: number) {
+      const el = arr.splice(from, 1)[0];
+      arr.splice(to, 0, el);
+    }
+
+    // Update qubits array
+    if (isBetween) {
+      // Moving sourceWire to just before targetWire
+      let insertAt = targetWire;
+      // If moving down and passing over itself, adjust index
+      if (sourceWire < insertAt) insertAt--;
+      moveArrayElement(this.qubits, sourceWire, insertAt);
+    } else {
+      // Swap sourceWire and targetWire
+      [this.qubits[sourceWire], this.qubits[targetWire]] = [
+        this.qubits[targetWire],
+        this.qubits[sourceWire],
+      ];
+    }
+
+    // Update qubit ids to match their new positions
+    this.qubits.forEach((q, idx) => {
+      q.id = idx;
+    });
+
+    // Update all operations in componentGrid to reflect new qubit order
+    for (const column of this.componentGrid) {
+      for (const op of column.components) {
+        let regs: Register[];
+        switch (op.kind) {
+          case "unitary":
+            regs = [...op.targets, ...(op.controls || [])];
+            break;
+          case "ket":
+            regs = op.targets;
+            break;
+          case "measurement":
+            regs = [...op.qubits, ...(op.results || [])];
+            break;
+        }
+
+        regs.forEach((reg) => {
+          if (isBetween) {
+            // Move: update qubit indices
+            if (reg.qubit === sourceWire) {
+              reg.qubit = sourceWire < targetWire ? targetWire - 1 : targetWire;
+            } else if (
+              sourceWire < targetWire &&
+              reg.qubit > sourceWire &&
+              reg.qubit < targetWire
+            ) {
+              reg.qubit -= 1;
+            } else if (
+              sourceWire > targetWire &&
+              reg.qubit >= targetWire &&
+              reg.qubit < sourceWire
+            ) {
+              reg.qubit += 1;
+            }
+          } else {
+            // Swap: swap indices
+            if (reg.qubit === sourceWire) reg.qubit = targetWire;
+            else if (reg.qubit === targetWire) reg.qubit = sourceWire;
+          }
+        });
+      }
+    }
+
+    this.renderFn();
+  };
+
+  /**
+   * Add events for qubit line labels
+   */
+  _addQubitLineEvents() {
+    const elems = getQubitLabelElems(this.container);
+    elems.forEach((elem) => {
+      elem.addEventListener("mousedown", (ev: MouseEvent) => {
+        ev.stopPropagation();
+        const sourceIndexStr = elem.getAttribute("data-wire");
+        const sourceWire =
+          sourceIndexStr != null ? parseInt(sourceIndexStr) : null;
+        if (sourceWire == null) return;
+
+        // Dropzones ON each wire (skip self)
+        for (
+          let targetWire = 0;
+          targetWire < this.wireData.length;
+          targetWire++
+        ) {
+          if (targetWire === sourceWire) continue;
+          const dropzone = createWireDropzone(
+            this.circuitSvg,
+            this.wireData,
+            targetWire,
+          );
+          dropzone.addEventListener("mouseup", () =>
+            this.qubitDropzoneMouseupHandler(sourceWire, targetWire, false),
+          );
+          this.temporaryDropzones.push(dropzone);
+          this.circuitSvg.appendChild(dropzone);
+        }
+
+        // Dropzones BETWEEN wires (including before first and after last)
+        for (let i = 0; i <= this.wireData.length; i++) {
+          // Optionally, skip if dropping "between" at the source wire's own position
+          if (i === sourceWire || i === sourceWire + 1) continue;
+          const dropzone = createWireDropzone(
+            this.circuitSvg,
+            this.wireData,
+            i,
+            true,
+          );
+          dropzone.addEventListener("mouseup", () =>
+            this.qubitDropzoneMouseupHandler(sourceWire, i, true),
+          );
+          this.temporaryDropzones.push(dropzone);
+          this.circuitSvg.appendChild(dropzone);
+        }
+      });
+      elem.style.pointerEvents = "all";
     });
   }
 

@@ -3,7 +3,7 @@
 
 import { getMinMaxRegIdx } from "../../src/utils";
 import { ComponentGrid, Operation } from "./circuit";
-import { gatePadding, minGateWidth, startX } from "./constants";
+import { gatePadding, minGateWidth, registerHeight, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
 import { toRenderData } from "./panel";
@@ -101,17 +101,31 @@ const createGhostElement = (
  *
  * @param circuitSvg The SVG element representing the circuit.
  * @param wireData An array of y values corresponding to the circuit wires.
- * @param wireIndex The index of the wire for which the dropzone is created.
+ * @param wireIndex The index of the wire or the "between" position.
+ * @param isBetween If true, creates a dropzone between wires.
  * @returns The created dropzone SVG element.
  */
 const createWireDropzone = (
   circuitSvg: SVGElement,
   wireData: number[],
   wireIndex: number,
+  isBetween: boolean = false,
 ): SVGElement => {
-  const wireY = wireData[wireIndex];
   const svgWidth = Number(circuitSvg.getAttribute("width"));
   const paddingY = 20;
+  let wireY: number;
+
+  if (isBetween) {
+    // Dropzone BETWEEN wires (including before first and after last)
+    if (wireIndex === wireData.length) {
+      wireY = wireData[wireData.length - 1] + registerHeight / 2;
+    } else {
+      wireY = wireData[wireIndex] - registerHeight / 2;
+    }
+  } else {
+    // Dropzone ON the wire
+    wireY = wireData[wireIndex];
+  }
 
   const dropzone = box(
     0,
