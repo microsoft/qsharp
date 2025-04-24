@@ -458,11 +458,34 @@ fn empty_circuit() {
 }
 
 #[test]
-fn circuit_with_qubit_missing_num_results() {
+fn empty_circuit_with_qubits() {
     check(
         r#"
 {
   "componentGrid": [],
+  "qubits": [{ "id": 0 }, { "id": 1 }]
+}"#,
+        &expect![[r#"
+            /// Expects a qubit register of size 2.
+            operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
+            }
+
+        "#]],
+    );
+}
+
+#[test]
+fn circuit_with_qubit_missing_num_results() {
+    check(
+        r#"
+{
+  "componentGrid": [
+    {
+      "components": [
+        { "kind": "unitary", "gate": "H", "targets": [{ "qubit": 0 }] }
+      ]
+    }
+  ],
   "qubits": [
     { "id": 0 }
   ]
@@ -473,6 +496,7 @@ fn circuit_with_qubit_missing_num_results() {
                 if Length(qs) != 1 {
                     fail "Invalid number of qubits. Operation Test expects a qubit register of size 1.";
                 }
+                H(qs[0]);
             }
 
         "#]],
@@ -505,8 +529,7 @@ fn circuit_with_ket_gates() {
                     fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
                 }
                 Reset(qs[0]);
-                Reset(qs[1]);
-                X(qs[1]);
+                fail "Unsupported ket operation: |1〉";
             }
 
         "#]],

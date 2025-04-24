@@ -3,7 +3,7 @@
 
 use crate::{
     lints::ast::{AstLint, CombinedAstLints},
-    Lint, LintConfig, LintLevel,
+    Lint, LintLevel,
 };
 use qsc_ast::{
     ast::{
@@ -24,9 +24,9 @@ pub fn run_ast_lints(
     let config: Vec<(AstLint, LintLevel)> = config
         .unwrap_or(&[])
         .iter()
-        .filter_map(|lint_config| {
-            if let LintKind::Ast(kind) = lint_config.kind {
-                Some((kind, lint_config.level))
+        .filter_map(|lint| {
+            if let LintKind::Ast(kind) = lint.kind {
+                Some((kind, lint.level))
             } else {
                 None
             }
@@ -342,4 +342,4 @@ macro_rules! declare_ast_lints {
 
 pub(crate) use declare_ast_lints;
 
-use super::{Compilation, LintKind};
+use super::{Compilation, LintConfig, LintKind};

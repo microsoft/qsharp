@@ -583,6 +583,22 @@ operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl
     }
     adjoint self;
 }
+
+/// # Summary
+/// Applies operation `op` to the `target` `power` times.
+/// If `power` is negative, the adjoint of `op` is used.
+/// If `power` is 0, the operation `op` is not applied.
+operation ApplyOperationPowerA<'T>(
+    power : Int,
+    op : 'T => Unit is Adj,
+    target : 'T
+) : Unit is Adj {
+    let u = if power >= 0 { op } else { Adjoint op };
+    for _ in 1..AbsI(power) {
+        u(target);
+    }
+}
+
 /// # Summary
 /// Relabels the qubits in the `current` array with the qubits in the `updated` array. The `updated` array
 /// must be a valid permutation of the `current` array.
@@ -647,4 +663,5 @@ export
     SwapReverseRegister,
     ApplyXorInPlace,
     ApplyXorInPlaceL,
+    ApplyOperationPowerA,
     Relabel;

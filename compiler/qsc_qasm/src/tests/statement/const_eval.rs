@@ -76,7 +76,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:5:13]
@@ -96,7 +96,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          6 |         bit[c] r2;
            `----
 
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:6:13]
@@ -507,7 +507,7 @@ fn binary_op_shl_creg_fails() {
          5 |     
            `----
 
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:4:13]
@@ -680,7 +680,7 @@ fn binary_op_shr_creg_fails() {
          5 |     
            `----
 
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:4:13]
@@ -2025,7 +2025,7 @@ fn binary_op_err_type_fails() {
          3 |     
            `----
 
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:13]
@@ -2108,7 +2108,7 @@ fn fuzzer_issue_2294() {
          3 |     
            `----
 
-        Qasm.Compiler.ExprMustBeConst
+        Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:16]
@@ -2126,6 +2126,62 @@ fn fuzzer_issue_2294() {
          2 |         ctrl(5/_)@l
            :              ^^^
          3 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn binary_op_with_non_supported_types_fails() {
+    let source = r#"
+        const int a = 2 / 0s;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type Duration(true) to type Float(None, true)
+           ,-[Test.qasm:2:27]
+         1 | 
+         2 |         const int a = 2 / 0s;
+           :                           ^^
+         3 |         def f() { a; }
+           `----
+
+        Qasm.Lowerer.UnsupportedBinaryOp
+
+          x Div is not supported between types Float(None, true) and Duration(true)
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int a = 2 / 0s;
+           :                       ^^^^^^
+         3 |         def f() { a; }
+           `----
+
+        Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:3:19]
+         2 |         const int a = 2 / 0s;
+         3 |         def f() { a; }
+           :                   ^
+         4 |     
+           `----
+
+        Qasm.Compiler.NotSupported
+
+          x timing literals are not supported
+           ,-[Test.qasm:2:27]
+         1 | 
+         2 |         const int a = 2 / 0s;
+           :                           ^^
+         3 |         def f() { a; }
            `----
     "#]]
     .assert_eq(&errs_string);

@@ -8,7 +8,7 @@ use std::fmt::{Display, Formatter};
 
 use crate::{parser::ast as syntax, semantic::ast::Expr};
 
-use super::ast::{ExprKind, Index, LiteralKind, Range};
+use super::ast::{BinOp, ExprKind, Index, LiteralKind, Range};
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Type {
@@ -959,4 +959,63 @@ pub(crate) fn is_complex_binop_supported(op: syntax::BinOp) -> bool {
             | syntax::BinOp::Div
             | syntax::BinOp::Exp
     )
+}
+
+/// Returns true if the binary op is supported for the `lhs` and `rhs` types.
+/// Any conversions have been made explicit by inserting casts during lowering.
+pub(crate) fn binary_op_is_supported_for_types(op: BinOp, lhs_ty: &Type, rhs_ty: &Type) -> bool {
+    use Type::*;
+
+    match op {
+        // Bit Shifts: `rhs_ty` must always be `uint`.
+        BinOp::Shl | BinOp::Shr => {
+            matches!(lhs_ty, UInt(..) | Angle(..) | Bit(..) | BitArray(..))
+                && matches!(rhs_ty, UInt(..))
+        }
+
+        // Bitwise.
+        BinOp::AndB | BinOp::OrB | BinOp::XorB => {
+            base_types_equal(lhs_ty, rhs_ty)
+                && matches!(lhs_ty, UInt(..) | Angle(..) | Bit(..) | BitArray(..))
+        }
+
+        // Logical.
+        BinOp::AndL | BinOp::OrL => matches!(lhs_ty, Bool(..)) && matches!(rhs_ty, Bool(..)),
+
+        // Comparison.
+        BinOp::Eq | BinOp::Neq | BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => {
+            base_types_equal(lhs_ty, rhs_ty)
+                && matches!(
+                    lhs_ty,
+                    Int(..) | UInt(..) | Angle(..) | Bit(..) | BitArray(..)
+                )
+        }
+
+        // Arithmetic
+        BinOp::Add | BinOp::Sub => {
+            base_types_equal(lhs_ty, rhs_ty)
+                && matches!(lhs_ty, Int(..) | UInt(..) | Float(..) | Angle(..))
+        }
+        BinOp::Mul => {
+            let uint_angle_exception = (matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..)))
+                || (matches!(lhs_ty, UInt(..)) && matches!(rhs_ty, Angle(..)));
+
+            let base_case = base_types_equal(lhs_ty, rhs_ty)
+                && matches!(lhs_ty, Int(..) | UInt(..) | Float(..));
+
+            uint_angle_exception || base_case
+        }
+        BinOp::Div => {
+            let uint_angle_exception = matches!(lhs_ty, Angle(..)) && matches!(rhs_ty, UInt(..));
+
+            let base_case = base_types_equal(lhs_ty, rhs_ty)
+                && matches!(lhs_ty, Int(..) | UInt(..) | Float(..) | Angle(..));
+
+            uint_angle_exception || base_case
+        }
+        BinOp::Mod => base_types_equal(lhs_ty, rhs_ty) && matches!(lhs_ty, Int(..) | UInt(..)),
+        BinOp::Exp => {
+            base_types_equal(lhs_ty, rhs_ty) && matches!(lhs_ty, Int(..) | UInt(..) | Float(..))
+        }
+    }
 }

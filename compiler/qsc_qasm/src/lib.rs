@@ -231,10 +231,10 @@ pub struct QasmCompileUnit {
     /// Semantic errors encountered during compilation.
     /// These are always fatal errors that prevent compilation.
     errors: Vec<WithSource<crate::Error>>,
-    /// The compiled AST package, if compilation was successful.
+    /// The compiled AST package
     /// There is no guarantee that this package is valid unless
     /// there are no errors.
-    package: Option<Package>,
+    package: Package,
     /// The signature of the operation created from the QASM source code.
     /// None if the program type is `ProgramType::Fragments`.
     signature: Option<OperationSignature>,
@@ -249,7 +249,7 @@ impl QasmCompileUnit {
     pub fn new(
         source_map: SourceMap,
         errors: Vec<WithSource<crate::Error>>,
-        package: Option<Package>,
+        package: Package,
         signature: Option<OperationSignature>,
     ) -> Self {
         Self {
@@ -279,7 +279,7 @@ impl QasmCompileUnit {
     ) -> (
         SourceMap,
         Vec<WithSource<crate::Error>>,
-        Option<Package>,
+        Package,
         Option<OperationSignature>,
     ) {
         (self.source_map, self.errors, self.package, self.signature)

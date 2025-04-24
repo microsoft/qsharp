@@ -37,7 +37,7 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     );
     let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
-    let qsharp = gen_qsharp(&unit.package.expect("no package found"));
+    let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
             import QasmStd.Angle.*;
@@ -88,7 +88,7 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     );
     let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
-    let qsharp = gen_qsharp(&unit.package.expect("no package found"));
+    let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
             import QasmStd.Angle.*;
@@ -139,7 +139,7 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     );
     let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
-    let qsharp = gen_qsharp(&unit.package.expect("no package found"));
+    let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
             import QasmStd.Angle.*;
@@ -197,7 +197,7 @@ c2[2] = measure q[4];
     );
     let unit = compile_with_config(source, config).expect("parse failed");
     fail_on_compilation_errors(&unit);
-    let package = unit.package.expect("no package found");
+    let package = unit.package;
     let qsharp = gen_qsharp(&package.clone());
     expect![[r#"
         namespace qasm_import {

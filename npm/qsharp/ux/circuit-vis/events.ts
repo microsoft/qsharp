@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import cloneDeep from "lodash/cloneDeep";
-import isEqual from "lodash/isEqual";
 import { ComponentGrid, Operation, Qubit, Unitary } from "./circuit";
 import { Sqore } from "./sqore";
 import { toolboxGateDictionary } from "./panel";
@@ -15,6 +13,7 @@ import {
   getWireData,
   locationStringToIndexes,
   findParentArray,
+  deepEqual,
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
@@ -420,7 +419,10 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", async (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
-        const originalGrid = cloneDeep(this.componentGrid);
+        // Create a deep copy of the component grid
+        const originalGrid = JSON.parse(
+          JSON.stringify(this.componentGrid),
+        ) as ComponentGrid;
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
         const insertNewColumn =
           dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
@@ -483,7 +485,7 @@ class CircuitEvents {
                 targetLoc,
                 this.selectedWire,
                 targetWire,
-                false,
+                this.movingControl,
                 insertNewColumn,
               );
             } else {
@@ -512,8 +514,7 @@ class CircuitEvents {
         this.selectedOperation = null;
         this.movingControl = false;
 
-        if (isEqual(originalGrid, this.componentGrid) === false)
-          this.renderFn();
+        if (!deepEqual(originalGrid, this.componentGrid)) this.renderFn();
       });
     });
   }

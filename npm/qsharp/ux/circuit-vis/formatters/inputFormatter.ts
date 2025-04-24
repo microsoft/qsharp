@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { Qubit } from "../circuit";
-import { RegisterType, RegisterMap, RegisterMetadata } from "../register";
+import { RegisterType, RegisterMap, RegisterRenderData } from "../register";
 import {
   leftPadding,
   startY,
@@ -13,7 +13,7 @@ import { group, text } from "./formatUtils";
 
 /**
  * `formatInputs` takes in an array of Qubits and outputs the SVG string of formatted
- * qubit wires and a mapping from register IDs to register metadata (for rendering).
+ * qubit wires and a mapping from register IDs to register rendering data.
  *
  * @param qubits List of declared qubits.
  *
@@ -45,7 +45,7 @@ const formatInputs = (
 
     // Add classical wires
     registers[id].children = Array.from(Array(numResults), () => {
-      const clsReg: RegisterMetadata = {
+      const clsReg: RegisterRenderData = {
         type: RegisterType.Classical,
         y: currY,
       };
