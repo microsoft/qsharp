@@ -10,6 +10,7 @@ import {
   classicalRegHeight,
 } from "../constants";
 import { group, text } from "./formatUtils";
+import { mathChars } from "../utils";
 
 /**
  * `formatInputs` takes in an array of Qubits and outputs the SVG string of formatted
@@ -75,7 +76,7 @@ const _qubitInput = (y: number, subscript?: string): SVGElement => {
     ? `<tspan baseline-shift="sub" font-size="65%">${subscript}</tspan>`
     : "";
 
-  el.innerHTML = `|<tspan class="qs-mathtext">ψ</tspan>${subtext}⟩</tspan>`;
+  el.innerHTML = `|<tspan class="qs-mathtext">${mathChars.psi}</tspan>${subtext}${mathChars.rangle}</tspan>`;
 
   el.setAttribute("text-anchor", "start");
   el.setAttribute("dominant-baseline", "middle");

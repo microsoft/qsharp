@@ -26,6 +26,8 @@ import {
   dashedBox,
 } from "./formatUtils";
 
+import { mathChars } from "../utils";
+
 /**
  * Given an array of operations render data, return the SVG representation.
  *
@@ -253,7 +255,7 @@ function _style_gate_text(gate: SVGTextElement) {
   // Replace a trailing ' with the proper unicode dagger symbol
   label = label.replace(
     /'$/,
-    `<tspan dx="2" dy="-3" style="font-size: 0.8em;">†</tspan>`,
+    `<tspan dx="2" dy="-3" style="font-size: 0.8em;">${mathChars.dagger}</tspan>`,
   );
 
   gate.innerHTML = label;
@@ -387,7 +389,7 @@ const _x = (renderData: GateRenderData): SVGElement => {
 };
 
 /**
- * Creates the SVG for a ket notation (e.g "∣0⟩" or "∣1⟩") gate.
+ * Creates the SVG for a ket notation (e.g "|0⟩" or "|1⟩") gate.
  *
  * @param label    The label for the ket notation (e.g., "0" or "1").
  * @param renderData The render data containing information about the gate's position and appearance.
@@ -397,7 +399,7 @@ const _x = (renderData: GateRenderData): SVGElement => {
 const _ket = (label: string, renderData: GateRenderData): SVGElement => {
   const { x, targetsY, width } = renderData;
   const gate = _unitary(
-    `|${label}⟩`,
+    `|${label}${mathChars.rangle}`,
     x,
     targetsY as number[][],
     width,
