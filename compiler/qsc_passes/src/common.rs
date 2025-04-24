@@ -98,7 +98,7 @@ pub(crate) fn create_gen_core_ref(
     Expr {
         id: NodeId::default(),
         span,
-        ty: Ty::Arrow(Box::new(ty)),
+        ty: Ty::Arrow(Rc::new(ty)),
         kind: ExprKind::Var(Res::Item(term.id), generics),
     }
 }

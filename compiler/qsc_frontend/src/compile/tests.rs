@@ -3,7 +3,7 @@
 
 mod multiple_packages;
 
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
@@ -356,7 +356,7 @@ fn insert_core_call() {
             let callee = Expr {
                 id: NodeId::default(),
                 span: Span::default(),
-                ty: Ty::Arrow(Box::new(allocate_ty)),
+                ty: Ty::Arrow(Rc::new(allocate_ty)),
                 kind: ExprKind::Var(Res::Item(allocate.id), Vec::new()),
             };
 

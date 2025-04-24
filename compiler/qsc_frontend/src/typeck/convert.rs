@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 //! Ascribe types to the AST and output HIR items. Put another way, converts the AST to the HIR.
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::resolve::{self, Names};
 
@@ -61,11 +61,11 @@ pub(crate) fn ty_from_ast(
             let functors = functors
                 .as_ref()
                 .map_or(FunctorSetValue::Empty, |f| eval_functor_expr(f.as_ref()));
-            let ty = Ty::Arrow(Box::new(Arrow {
+            let ty = Ty::Arrow(Rc::new(Arrow {
                 kind: callable_kind_from_ast(*kind),
-                input: Box::new(input),
-                output: Box::new(output),
-                functors: FunctorSet::Value(functors),
+                input: RefCell::new(input),
+                output: RefCell::new(output),
+                functors: RefCell::new(FunctorSet::Value(functors)),
             }));
             (ty, errors)
         }
@@ -157,9 +157,9 @@ pub(super) fn ast_ty_def_cons(
     let (input, errors) = ast_ty_def_base(names, def);
     let ty = Arrow {
         kind: hir::CallableKind::Function,
-        input: Box::new(input),
-        output: Box::new(Ty::Udt(ty_name.clone(), hir::Res::Item(id))),
-        functors: FunctorSet::Value(FunctorSetValue::Empty),
+        input: RefCell::new(input),
+        output: RefCell::new(Ty::Udt(ty_name.clone(), hir::Res::Item(id))),
+        functors: RefCell::new(FunctorSet::Value(FunctorSetValue::Empty)),
     };
     let scheme = Scheme::new(Vec::new(), Box::new(ty));
     (scheme, errors)
@@ -274,9 +274,9 @@ pub(super) fn scheme_for_ast_callable(
 
     let ty = Arrow {
         kind,
-        input: Box::new(input),
-        output: Box::new(output),
-        functors: FunctorSet::Value(ast_callable_functors(callable)),
+        input: RefCell::new(input),
+        output: RefCell::new(output),
+        functors: RefCell::new(FunctorSet::Value(ast_callable_functors(callable))),
     };
 
     (Scheme::new(type_parameters, Box::new(ty)), errors)
@@ -290,15 +290,24 @@ pub(crate) fn synthesize_functor_params(
 ) -> Vec<HirTypeParameter> {
     match ty {
         Ty::Array(item) => synthesize_functor_params(next_param, item),
-        Ty::Arrow(arrow) => match arrow.functors {
-            FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
-                let param = HirTypeParameter::Functor(functors);
-                arrow.functors = FunctorSet::Param(*next_param, functors);
-                *next_param = next_param.successor();
-                vec![param]
+        Ty::Arrow(arrow) => {
+            let functors = *arrow.functors.borrow();
+            match functors {
+                FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
+                    let param = HirTypeParameter::Functor(functors);
+                    // This uses `RefCell::replace` to update the functor set within the refernce counted arrow.
+                    // This should be safe as no other references to the functors should be held, but if they are
+                    // this will panic at runtime.
+                    // Note the `next_param` local binding is needed to ensure that the `functors` are not borrowed
+                    // while we are trying to replace them.
+                    let new_functors = FunctorSet::Param(*next_param, functors);
+                    arrow.functors.replace(new_functors);
+                    *next_param = next_param.successor();
+                    vec![param]
+                }
+                _ => Vec::new(),
             }
-            _ => Vec::new(),
-        },
+        }
         Ty::Tuple(items) => items
             .iter_mut()
             .flat_map(|item| synthesize_functor_params(next_param, item))
