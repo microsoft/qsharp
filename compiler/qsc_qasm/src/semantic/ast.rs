@@ -5,14 +5,13 @@ use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
 use std::{
     fmt::{self, Display, Formatter},
-    hash::Hash,
     rc::Rc,
 };
 
 use crate::{
     display_utils::{
         write_field, write_header, write_indented_list, write_list_field, write_opt_field,
-        write_opt_list_field, writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
+        writeln_field, writeln_header, writeln_list_field, writeln_opt_field,
     },
     parser::ast::List,
     semantic::symbols::SymbolId,
@@ -64,41 +63,6 @@ impl Display for Annotation {
         writeln_header(f, "Annotation", self.span)?;
         writeln_field(f, "identifier", &identifier)?;
         write_opt_field(f, "value", value.as_ref())
-    }
-}
-
-/// A path that was successfully parsed up to a certain `.`,
-/// but is missing its final identifier.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct IncompletePath {
-    /// The whole span of the incomplete path,
-    /// including the final `.` and any whitespace or keyword
-    /// that follows it.
-    pub span: Span,
-    /// Any segments that were successfully parsed before the final `.`.
-    pub segments: Box<[Ident]>,
-    /// Whether a keyword exists after the final `.`.
-    /// This keyword can be presumed to be a partially typed identifier.
-    pub keyword: bool,
-}
-
-/// A path to a declaration or a field access expression,
-/// to be disambiguated during name resolution.
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Path {
-    /// The span.
-    pub span: Span,
-    /// The segments that make up the front of the path before the final `.`.
-    pub segments: Option<Box<[Ident]>>,
-    /// The declaration or field name.
-    pub name: Box<Ident>,
-}
-
-impl Display for Path {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln_header(f, "Path", self.span)?;
-        writeln_field(f, "name", &self.name)?;
-        write_opt_list_field(f, "segments", self.segments.as_ref())
     }
 }
 
@@ -474,27 +438,6 @@ pub struct ContinueStmt {
 impl Display for ContinueStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_header(f, "ContinueStmt", self.span)
-    }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Ident {
-    pub span: Span,
-    pub name: Rc<str>,
-}
-
-impl Default for Ident {
-    fn default() -> Self {
-        Ident {
-            span: Span::default(),
-            name: "".into(),
-        }
-    }
-}
-
-impl Display for Ident {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Ident {} \"{}\"", self.span, self.name)
     }
 }
 
@@ -1090,18 +1033,14 @@ impl Display for AssignStmt {
 #[derive(Clone, Debug)]
 pub struct IndexedAssignStmt {
     pub span: Span,
-    pub symbol_id: SymbolId,
-    pub name_span: Span,
-    pub indices: List<Index>,
+    pub indexed_ident: IndexedIdent,
     pub rhs: Expr,
 }
 
 impl Display for IndexedAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "AssignStmt", self.span)?;
-        writeln_field(f, "symbol_id", &self.symbol_id)?;
-        writeln_field(f, "name_span", &self.name_span)?;
-        writeln_list_field(f, "indices", &self.indices)?;
+        writeln_field(f, "indexed_ident", &self.indexed_ident)?;
         write_field(f, "rhs", &self.rhs)
     }
 }

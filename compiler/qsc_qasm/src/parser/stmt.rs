@@ -282,6 +282,8 @@ fn disambiguate_ident(
                         span: indexed_ident.ident.span,
                         kind: Box::new(ExprKind::Ident(indexed_ident.ident)),
                     },
+                    // Index expressions are not allowed to have multi-bracket indices.
+                    // i.e.: a[1][2] is disallowed in IndexExpr, instead you must do a[1, 2].
                     index: *indexed_ident.indices[0].clone(),
                 })
             }

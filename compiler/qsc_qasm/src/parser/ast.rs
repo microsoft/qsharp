@@ -633,6 +633,15 @@ impl Index {
             Index::IndexList(set) => set.span,
         }
     }
+
+    #[must_use]
+    pub fn num_indices(&self) -> usize {
+        match self {
+            // According to the spec Index sets count as a single index.
+            Index::IndexSet(_) => 1,
+            Index::IndexList(index_list) => index_list.values.len(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

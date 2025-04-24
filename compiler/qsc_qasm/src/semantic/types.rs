@@ -6,9 +6,9 @@ use std::{cmp::max, rc::Rc};
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
-use crate::parser::ast as syntax;
+use crate::{parser::ast as syntax, semantic::ast::Expr};
 
-use super::ast::LiteralKind;
+use super::ast::{ExprKind, Index, LiteralKind, Range};
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Type {
@@ -170,7 +170,7 @@ impl Type {
         }
     }
 
-    /// Get the indexed type of a given type.
+    /// Get the indexed type of a type given a list of indices.
     /// For example, if the type is `Int[2][3]`, the indexed type is `Int[2]`.
     /// If the type is `Int[2]`, the indexed type is `Int`.
     /// If the type is `Int`, the indexed type is `None`.
@@ -178,40 +178,65 @@ impl Type {
     /// This is useful for determining the type of an array element.
     #[allow(clippy::too_many_lines)]
     #[must_use]
-    pub fn get_indexed_type(&self) -> Option<Self> {
+    pub fn get_indexed_type(&self, indices: &[super::ast::Index]) -> Option<Self> {
         let ty = match self {
-            Type::BitArray(_, constness) => Type::Bit(*constness),
-            Type::QubitArray(_) => Type::Qubit,
+            Type::BitArray(size, constness) => indexed_type_builder(
+                || Type::Bit(*constness),
+                |d| {
+                    let ArrayDimensions::One(size) = d else {
+                        unreachable!("dims was hardcoded to have one dimension")
+                    };
+                    Type::BitArray(size, *constness)
+                },
+                &ArrayDimensions::One(*size),
+                indices,
+            ),
+            Type::QubitArray(size) => indexed_type_builder(
+                || Type::Qubit,
+                |d| {
+                    let ArrayDimensions::One(size) = d else {
+                        unreachable!("dims was hardcoded to have one dimension")
+                    };
+                    Type::QubitArray(size)
+                },
+                &ArrayDimensions::One(*size),
+                indices,
+            ),
             Type::BoolArray(dims) => {
-                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims)
+                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, indices)
             }
             Type::AngleArray(size, dims) => indexed_type_builder(
                 || Type::Angle(*size, false),
                 |d| Type::AngleArray(*size, d),
                 dims,
+                indices,
             ),
             Type::ComplexArray(size, dims) => indexed_type_builder(
                 || Type::Complex(*size, false),
                 |d| Type::ComplexArray(*size, d),
                 dims,
+                indices,
             ),
             Type::DurationArray(dims) => {
-                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims)
+                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, indices)
             }
             Type::FloatArray(size, dims) => indexed_type_builder(
                 || Type::Float(*size, false),
                 |d| Type::FloatArray(*size, d),
                 dims,
+                indices,
             ),
             Type::IntArray(size, dims) => indexed_type_builder(
                 || Type::Int(*size, false),
                 |d| Type::IntArray(*size, d),
                 dims,
+                indices,
             ),
             Type::UIntArray(size, dims) => indexed_type_builder(
                 || Type::UInt(*size, false),
                 |d| Type::UIntArray(*size, d),
                 dims,
+                indices,
             ),
             _ => return None,
         };
@@ -259,24 +284,138 @@ impl Type {
 }
 
 fn indexed_type_builder(
-    ty: impl Fn() -> Type,
-    ty_array: impl Fn(ArrayDimensions) -> Type,
+    base_ty_builder: impl Fn() -> Type,
+    array_ty_builder: impl Fn(ArrayDimensions) -> Type,
     dims: &ArrayDimensions,
+    indices: &[super::ast::Index],
 ) -> Type {
-    match dims.clone() {
-        ArrayDimensions::One(_) => ty(),
-        ArrayDimensions::Two(d1, _) => ty_array(ArrayDimensions::One(d1)),
-        ArrayDimensions::Three(d1, d2, _) => ty_array(ArrayDimensions::Two(d1, d2)),
-        ArrayDimensions::Four(d1, d2, d3, _) => ty_array(ArrayDimensions::Three(d1, d2, d3)),
-        ArrayDimensions::Five(d1, d2, d3, d4, _) => ty_array(ArrayDimensions::Four(d1, d2, d3, d4)),
-        ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-            ty_array(ArrayDimensions::Five(d1, d2, d3, d4, d5))
-        }
-        ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-            ty_array(ArrayDimensions::Six(d1, d2, d3, d4, d5, d6))
-        }
-        ArrayDimensions::Err => Type::Err,
+    if matches!(dims, ArrayDimensions::Err) {
+        return Type::Err;
     }
+
+    // By this point it's guaranteed that the number of indices is
+    // less or equal to the number of dims.
+    assert!(dims.num_dims() >= indices.len());
+
+    let mut indexed_dims = Vec::new();
+
+    // Indices index from the last dimension backwards, so we need
+    // to reverse the dims iterator.
+    for (dim, index) in dims.clone().into_iter().clone().zip(indices) {
+        match index {
+            Index::Expr(..) => (),
+
+            // If we have a range we need to compute the size of the slice
+            Index::Range(range) => {
+                if let Some(slice_size) = compute_slice_size(range, dim) {
+                    indexed_dims.push(slice_size);
+                } else {
+                    return Type::Err;
+                }
+            }
+        }
+    }
+
+    // These are the remaining dimensions after applying all indices.
+    let not_indexed_dims = dims
+        .clone()
+        .into_iter()
+        .take(dims.num_dims() - indices.len());
+
+    let dims_vec = not_indexed_dims
+        .into_iter()
+        .chain(indexed_dims.into_iter().rev())
+        .collect::<Vec<_>>();
+
+    if dims_vec.is_empty() {
+        base_ty_builder()
+    } else {
+        array_ty_builder(dims_vec.into())
+    }
+}
+
+/// This function returns `None` if the range step is zero.
+fn compute_slice_size(range: &Range, dimension_size: u32) -> Option<u32> {
+    // If the dimension is zero, the slice will also have size zero.
+    if dimension_size == 0 {
+        return Some(0);
+    }
+
+    // Helper function to extract the literal value from the start,
+    // step, and end components of the range. These expressions are
+    // guaranteed to be of literals of type `int` by this point.
+    let unwrap_lit_or_default = |expr: Option<&Expr>, default: i64| {
+        if let Some(expr) = expr {
+            if let ExprKind::Lit(LiteralKind::Int(val)) = &*expr.kind {
+                *val
+            } else {
+                unreachable!("range components are guaranteed to be int literals")
+            }
+        } else {
+            default
+        }
+    };
+    let start = unwrap_lit_or_default(range.start.as_ref(), 0);
+    let step = unwrap_lit_or_default(range.step.as_ref(), 1);
+    let end = unwrap_lit_or_default(range.end.as_ref(), i64::from(dimension_size) - 1);
+
+    // The spec says: "Indexing of arrays is n-based i.e., negative indices are allowed."
+    // <https://openqasm.com/language/types.html#arrays>
+    // Does that means indexes always wrap around and there is no index out of bounds error?
+    //
+    // Rust's % operator performs a remainder operator, not a modulo operation.
+    // We need to use i64::rem_euclid instead.
+    let start = start.rem_euclid(i64::from(dimension_size));
+    let end = end.rem_euclid(i64::from(dimension_size));
+
+    // <https://openqasm.com/language/types.html#register-concatenation-and-slicing>
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    // The range corresponds to the set
+    // {start, start + 1 * step, start + 2 * step, ..., start + m * step}
+    //   (Note that the range has m + 1 elements)
+    // where m is the largest integer such that:
+    //
+    // if step > 0,
+    //   start + m * step <= end
+    //
+    // solving for m we have,
+    //   m * step <= (end - start)
+    //   m <= (end - start) / step
+    //
+    // the largest integer m satisfying this inequality is,
+    //   m = floor((end - start) / step)
+    //
+    // when start <= end. Since rust's integer division matches
+    // this behavior we don't need to take the floor.
+    // When start > end, the slice is empty and m = 0.
+    //
+    // --
+    //
+    // If the step < 0,
+    //   start + m * step >= end
+    //
+    // solving for m we have,
+    //   m * step >= end - start
+
+    // since step is negative, when we divide both sides
+    // of the inequality by it, the inequality sign changes.
+    //   m <= (end - start) / step
+    //
+    // Note that we get the same expression that in the case
+    // when step > 0, however here is expected that end <= start.
+    let slice_size = if step > 0 {
+        if start <= end {
+            ((end - start) / step) as u32 + 1
+        } else {
+            0
+        }
+    } else if end <= start {
+        ((end - start) / step) as u32 + 1
+    } else {
+        0
+    };
+
+    Some(slice_size)
 }
 
 #[derive(Debug, Clone, Default, Eq, Hash, PartialEq)]
@@ -339,6 +478,45 @@ impl ArrayDimensions {
             | ArrayDimensions::Six(_, _, _, _, _, d)
             | ArrayDimensions::Seven(_, _, _, _, _, _, d) => Some(*d),
             ArrayDimensions::Err => None,
+        }
+    }
+}
+
+impl IntoIterator for ArrayDimensions {
+    type Item = u32;
+    type IntoIter = std::vec::IntoIter<u32>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            ArrayDimensions::One(d1) => vec![d1].into_iter(),
+            ArrayDimensions::Two(d1, d2) => vec![d1, d2].into_iter(),
+            ArrayDimensions::Three(d1, d2, d3) => vec![d1, d2, d3].into_iter(),
+            ArrayDimensions::Four(d1, d2, d3, d4) => vec![d1, d2, d3, d4].into_iter(),
+            ArrayDimensions::Five(d1, d2, d3, d4, d5) => vec![d1, d2, d3, d4, d5].into_iter(),
+            ArrayDimensions::Six(d1, d2, d3, d4, d5, d6) => {
+                vec![d1, d2, d3, d4, d5, d6].into_iter()
+            }
+            ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, d7) => {
+                vec![d1, d2, d3, d4, d5, d6, d7].into_iter()
+            }
+            ArrayDimensions::Err => vec![].into_iter(),
+        }
+    }
+}
+
+impl From<Vec<u32>> for ArrayDimensions {
+    fn from(dims: Vec<u32>) -> Self {
+        match dims.len() {
+            1 => ArrayDimensions::One(dims[0]),
+            2 => ArrayDimensions::Two(dims[0], dims[1]),
+            3 => ArrayDimensions::Three(dims[0], dims[1], dims[2]),
+            4 => ArrayDimensions::Four(dims[0], dims[1], dims[2], dims[3]),
+            5 => ArrayDimensions::Five(dims[0], dims[1], dims[2], dims[3], dims[4]),
+            6 => ArrayDimensions::Six(dims[0], dims[1], dims[2], dims[3], dims[4], dims[5]),
+            7 => ArrayDimensions::Seven(
+                dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], dims[6],
+            ),
+            _ => ArrayDimensions::Err,
         }
     }
 }

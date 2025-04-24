@@ -487,9 +487,10 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::IndexedAssignStmt,
     ) -> Option<qsast::Stmt> {
-        let symbol = self.symbols[stmt.symbol_id].clone();
+        let symbol = self.symbols[stmt.indexed_ident.symbol_id].clone();
 
         let indices: Vec<_> = stmt
+            .indexed_ident
             .indices
             .iter()
             .map(|elem| self.compile_index(elem))
@@ -497,7 +498,7 @@ impl QasmCompiler {
 
         let rhs = self.compile_expr(&stmt.rhs);
 
-        if stmt.indices.len() != 1 {
+        if stmt.indexed_ident.indices.len() != 1 {
             self.push_unimplemented_error_message(
                 "multi-dimensional array index expressions",
                 stmt.span,
@@ -508,7 +509,7 @@ impl QasmCompiler {
         let index_expr = indices[0].clone();
 
         let stmt = build_indexed_assignment_statement(
-            stmt.name_span,
+            stmt.indexed_ident.name_span,
             symbol.name.clone(),
             index_expr,
             rhs,
