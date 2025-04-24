@@ -281,28 +281,6 @@
     flex-direction: row;
   }
 
-  .context-menu {
-    position: absolute;
-    background-color: var(--vscode-menu-background, #ffffff);
-    border: 1px solid var(--vscode-menu-border, #cccccc);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    padding: 5px 0;
-    border-radius: 4px;
-  }
-
-  .context-menu-option {
-    padding: 8px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    color: var(--vscode-menu-foreground, #000000);
-  }
-
-  .context-menu-option:hover {
-    background-color: var(--vscode-menu-selectionBackground, #f0f0f0);
-    color: var(--vscode-menu-selectionForeground, #000000);
-  }
-
   .container {
     display: flex;
   }
@@ -389,6 +367,28 @@
     border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
     cursor: not-allowed;
   }
+}
+
+.context-menu {
+  position: absolute;
+  background-color: var(--vscode-menu-background, #ffffff);
+  border: 1px solid var(--vscode-menu-border, #cccccc);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  padding: 5px 0;
+  border-radius: 4px;
+}
+
+.context-menu-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--vscode-menu-foreground, #000000);
+}
+
+.context-menu-option:hover {
+  background-color: var(--vscode-menu-selectionBackground, #f0f0f0);
+  color: var(--vscode-menu-selectionForeground, #000000);
 }
 
 .prompt-overlay {
