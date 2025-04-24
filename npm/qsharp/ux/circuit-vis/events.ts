@@ -373,10 +373,7 @@ class CircuitEvents {
             wire,
             false,
           );
-          // Prevent dropzone from interfering with drag
-          dropzone.addEventListener("mousedown", (e: MouseEvent) =>
-            e.stopPropagation(),
-          );
+          dropzone.addEventListener("mouseup", this.dropzoneMouseupHandler);
           this.temporaryDropzones.push(dropzone);
           this.dropzoneLayer.appendChild(dropzone);
         }
@@ -450,61 +447,73 @@ class CircuitEvents {
     });
   }
 
-  /**
-   * Add events for dropzone elements
-   */
-  _addDropzoneElementsEvents() {
-    const dropzoneElems =
-      this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
-    dropzoneElems.forEach((dropzoneElem) => {
-      dropzoneElem.addEventListener("mouseup", async (ev: MouseEvent) => {
-        const copying = ev.ctrlKey;
-        // Create a deep copy of the component grid
-        const originalGrid = JSON.parse(
-          JSON.stringify(this.componentGrid),
-        ) as ComponentGrid;
-        const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
-        const insertNewColumn =
-          dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
-          false;
-        const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
-        const targetWire =
-          targetWireStr != null ? parseInt(targetWireStr) : null;
+  dropzoneMouseupHandler = async (ev: MouseEvent) => {
+    const dropzoneElem = ev.currentTarget as SVGRectElement;
+    const copying = ev.ctrlKey;
+    // Create a deep copy of the component grid
+    const originalGrid = JSON.parse(
+      JSON.stringify(this.componentGrid),
+    ) as ComponentGrid;
+    const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
+    const insertNewColumn =
+      dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
+      false;
+    const targetWireStr = dropzoneElem.getAttribute("data-dropzone-wire");
+    const targetWire = targetWireStr != null ? parseInt(targetWireStr) : null;
 
-        if (
-          targetLoc == null ||
-          targetWire == null ||
-          this.selectedOperation == null
-        )
+    if (
+      targetLoc == null ||
+      targetWire == null ||
+      this.selectedOperation == null
+    )
+      return;
+    const sourceLocation = getGateLocationString(this.selectedOperation);
+
+    if (sourceLocation == null) {
+      if (
+        this.selectedOperation.params != undefined &&
+        (this.selectedOperation.args === undefined ||
+          this.selectedOperation.args.length === 0)
+      ) {
+        // Prompt for arguments and wait for user input
+        const args = await promptForArguments(this.selectedOperation.params);
+        if (!args || args.length === 0) {
+          // User canceled the prompt, exit early
           return;
-        const sourceLocation = getGateLocationString(this.selectedOperation);
+        }
 
-        if (sourceLocation == null) {
-          if (
-            this.selectedOperation.params != undefined &&
-            (this.selectedOperation.args === undefined ||
-              this.selectedOperation.args.length === 0)
-          ) {
-            // Prompt for arguments and wait for user input
-            const args = await promptForArguments(
-              this.selectedOperation.params,
-            );
-            if (!args || args.length === 0) {
-              // User canceled the prompt, exit early
-              return;
-            }
+        // Create a deep copy of the source operation
+        this.selectedOperation = JSON.parse(
+          JSON.stringify(this.selectedOperation),
+        );
+        if (this.selectedOperation == null) return;
 
-            // Create a deep copy of the source operation
-            this.selectedOperation = JSON.parse(
-              JSON.stringify(this.selectedOperation),
-            );
-            if (this.selectedOperation == null) return;
+        // Assign the arguments to the selected operation
+        this.selectedOperation.args = args;
+      }
 
-            // Assign the arguments to the selected operation
-            this.selectedOperation.args = args;
-          }
-
-          // Add a new operation from the toolbox
+      // Add a new operation from the toolbox
+      addOperation(
+        this,
+        this.selectedOperation,
+        targetLoc,
+        targetWire,
+        insertNewColumn,
+      );
+    } else if (sourceLocation && this.selectedWire != null) {
+      if (copying) {
+        if (this.movingControl && this.selectedOperation.kind === "unitary") {
+          addControl(this.selectedOperation, targetWire);
+          moveOperation(
+            this,
+            sourceLocation,
+            targetLoc,
+            this.selectedWire,
+            targetWire,
+            this.movingControl,
+            insertNewColumn,
+          );
+        } else {
           addOperation(
             this,
             this.selectedOperation,
@@ -512,50 +521,35 @@ class CircuitEvents {
             targetWire,
             insertNewColumn,
           );
-        } else if (sourceLocation && this.selectedWire != null) {
-          if (copying) {
-            if (
-              this.movingControl &&
-              this.selectedOperation.kind === "unitary"
-            ) {
-              addControl(this.selectedOperation, targetWire);
-              moveOperation(
-                this,
-                sourceLocation,
-                targetLoc,
-                this.selectedWire,
-                targetWire,
-                this.movingControl,
-                insertNewColumn,
-              );
-            } else {
-              addOperation(
-                this,
-                this.selectedOperation,
-                targetLoc,
-                targetWire,
-                insertNewColumn,
-              );
-            }
-          } else {
-            moveOperation(
-              this,
-              sourceLocation,
-              targetLoc,
-              this.selectedWire,
-              targetWire,
-              this.movingControl,
-              insertNewColumn,
-            );
-          }
         }
+      } else {
+        moveOperation(
+          this,
+          sourceLocation,
+          targetLoc,
+          this.selectedWire,
+          targetWire,
+          this.movingControl,
+          insertNewColumn,
+        );
+      }
+    }
 
-        this.selectedWire = null;
-        this.selectedOperation = null;
-        this.movingControl = false;
+    this.selectedWire = null;
+    this.selectedOperation = null;
+    this.movingControl = false;
 
-        if (!deepEqual(originalGrid, this.componentGrid)) this.renderFn();
-      });
+    if (!deepEqual(originalGrid, this.componentGrid)) this.renderFn();
+  };
+
+  /**
+   * Add events for dropzone elements
+   */
+  _addDropzoneElementsEvents() {
+    const dropzoneElems =
+      this.dropzoneLayer.querySelectorAll<SVGRectElement>(".dropzone");
+    dropzoneElems.forEach((dropzoneElem) => {
+      dropzoneElem.addEventListener("mouseup", this.dropzoneMouseupHandler);
     });
   }
 
