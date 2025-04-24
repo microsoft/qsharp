@@ -264,10 +264,8 @@ impl Builder {
             });
         }
 
-        let max_q_id = qubits.len() - 1;
-
         Circuit {
-            component_grid: operation_list_to_grid(operations, max_q_id),
+            component_grid: operation_list_to_grid(operations, qubits.len()),
             qubits,
         }
     }

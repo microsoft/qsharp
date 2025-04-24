@@ -6,7 +6,7 @@ import { ComponentGrid, Operation } from "./circuit";
 import { gatePadding, minGateWidth, startX } from "./constants";
 import { box, controlDot } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
-import { toMetadata } from "./panel";
+import { toRenderData } from "./panel";
 import { Sqore } from "./sqore";
 import {
   findLocation,
@@ -58,8 +58,8 @@ const createGhostElement = (
   const ghost = isControl
     ? controlDot(20, 20)
     : (() => {
-        const ghostMetadata = toMetadata(selectedOperation, 0, 0);
-        return formatGate(ghostMetadata).cloneNode(true) as SVGElement;
+        const ghostRenderData = toRenderData(selectedOperation, 0, 0);
+        return formatGate(ghostRenderData).cloneNode(true) as SVGElement;
       })();
 
   // Generate svg element to wrap around ghost element
