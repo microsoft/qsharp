@@ -2186,3 +2186,135 @@ fn binary_op_with_non_supported_types_fails() {
     "#]]
     .assert_eq(&errs_string);
 }
+
+#[test]
+fn division_of_int_by_zero_int_errors() {
+    let source = r#"
+        const int a = 2 / 0;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int a = 2 / 0;
+           :                       ^^^^^
+         3 |         def f() { a; }
+           `----
+
+        Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:3:19]
+         2 |         const int a = 2 / 0;
+         3 |         def f() { a; }
+           :                   ^
+         4 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_of_angle_by_zero_int_errors() {
+    let source = r#"
+        const angle a = 2.0;
+        const angle b = a / 0;
+        def f() { b; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:3:25]
+         2 |         const angle a = 2.0;
+         3 |         const angle b = a / 0;
+           :                         ^^^^^
+         4 |         def f() { b; }
+           `----
+
+        Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:4:19]
+         3 |         const angle b = a / 0;
+         4 |         def f() { b; }
+           :                   ^
+         5 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_by_zero_float() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        const float a = 2.0 / 0.0;
+        def f() { a; }
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Angle.*;
+        import QasmStd.Convert.*;
+        import QasmStd.Intrinsic.*;
+        let a = 2. / 0.;
+        function f() : Unit {
+            inf;
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn division_by_zero_angle_errors() {
+    let source = r#"
+        const angle a = 2.0;
+        const angle b = 0.0;
+        const uint c = a / b;
+        def f() { c; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:4:24]
+         3 |         const angle b = 0.0;
+         4 |         const uint c = a / b;
+           :                        ^^^^^
+         5 |         def f() { c; }
+           `----
+
+        Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:5:19]
+         4 |         const uint c = a / b;
+         5 |         def f() { c; }
+           :                   ^
+         6 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}

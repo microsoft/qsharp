@@ -25,6 +25,9 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
+    #[error("division by error during const evaluation")]
+    #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
+    DivisionByZero(#[label] Span),
     #[error("expression must be const")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
@@ -457,25 +460,39 @@ impl BinaryOpExpr {
             },
             BinOp::Div => match lhs_ty {
                 Type::Int(..) | Type::UInt(..) => {
-                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs / rhs))
+                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                        if rhs == 0 {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Int(lhs / rhs)
+                    })
                 }
                 Type::Float(..) => {
                     rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
                 }
                 Type::Angle(..) => match &self.rhs.ty {
                     Type::UInt(..) => {
-                        rewrap_lit!(
-                            (lhs, rhs),
-                            (Angle(lhs), Int(rhs)),
+                        rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
+                            if rhs == 0 {
+                                ctx.push_const_eval_error(ConstEvalError::DivisionByZero(
+                                    self.span(),
+                                ));
+                                return None;
+                            }
                             Angle(lhs / u64::try_from(rhs).ok()?)
-                        )
+                        })
                     }
                     Type::Angle(..) => {
-                        rewrap_lit!(
-                            (lhs, rhs),
-                            (Angle(lhs), Angle(rhs)),
+                        rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), {
+                            if rhs.value == 0 {
+                                ctx.push_const_eval_error(ConstEvalError::DivisionByZero(
+                                    self.span(),
+                                ));
+                                return None;
+                            }
                             Int((lhs / rhs).try_into().ok()?)
-                        )
+                        })
                     }
                     _ => None,
                 },
