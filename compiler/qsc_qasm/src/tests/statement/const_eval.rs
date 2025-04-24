@@ -2261,24 +2261,39 @@ fn division_of_angle_by_zero_int_errors() {
 }
 
 #[test]
-fn division_by_zero_float() -> miette::Result<(), Vec<Report>> {
+fn division_by_zero_float_errors() {
     let source = r#"
         const float a = 2.0 / 0.0;
         def f() { a; }
     "#;
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
-        import QasmStd.Intrinsic.*;
-        let a = 2. / 0.;
-        function f() : Unit {
-            inf;
-        }
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:25]
+         1 | 
+         2 |         const float a = 2.0 / 0.0;
+           :                         ^^^^^^^^^
+         3 |         def f() { a; }
+           `----
+
+        Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:3:19]
+         2 |         const float a = 2.0 / 0.0;
+         3 |         def f() { a; }
+           :                   ^
+         4 |     
+           `----
     "#]]
-    .assert_eq(&qsharp);
-    Ok(())
+    .assert_eq(&errs_string);
 }
 
 #[test]

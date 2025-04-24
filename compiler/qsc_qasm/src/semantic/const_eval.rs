@@ -469,7 +469,13 @@ impl BinaryOpExpr {
                     })
                 }
                 Type::Float(..) => {
-                    rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
+                    rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
+                        if rhs == 0. {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Float(lhs / rhs)
+                    })
                 }
                 Type::Angle(..) => match &self.rhs.ty {
                     Type::UInt(..) => {
