@@ -120,12 +120,10 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
                 }
             }
 
-            // Look for a "π" or "pi" in the args
+            // Look for a "π" in the args
             let args = op.args();
             if !should_add_pi && !args.is_empty() {
-                should_add_pi = args
-                    .iter()
-                    .any(|arg| arg.contains("π") || arg.to_lowercase().contains("pi"));
+                should_add_pi = args.iter().any(|arg| arg.contains("π"));
             }
         }
     }
@@ -327,8 +325,6 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
 
     // Create the regex for matching numbers (both integers and doubles)
     let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").expect("Regex should compile");
-    // Create the regex for matching "pi" (case-insensitive)
-    let pi_regex = Regex::new(r"(?i)pi").expect("Regex should compile");
 
     // Convert ints to doubles by appending a `.` to the end of the integer
     for arg in &unitary.args {
@@ -343,9 +339,6 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
                 }
             })
             .to_string();
-
-        // Replace "pi" (case-insensitive) with "π"
-        let updated_arg = pi_regex.replace_all(&updated_arg, "π").to_string();
 
         args.push(updated_arg);
     }
