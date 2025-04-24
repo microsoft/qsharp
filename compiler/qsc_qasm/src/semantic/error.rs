@@ -233,6 +233,9 @@ pub enum SemanticErrorKind {
     #[error("while statement missing {0} expression")]
     #[diagnostic(code("Qasm.Lowerer.WhileStmtMissingExpression"))]
     WhileStmtMissingExpression(String, #[label] Span),
+    #[error("range step cannot be zero")]
+    #[diagnostic(code("Qasm.Lowerer.ZeroStepInRange"))]
+    ZeroStepInRange(#[label] Span),
 }
 
 impl From<Error> for crate::Error {

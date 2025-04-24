@@ -3374,6 +3374,17 @@ impl Lowerer {
         let step = range.step.as_ref().map(&mut lower_and_const_eval);
         let end = range.end.as_ref().map(&mut lower_and_const_eval);
 
+        // The spec says that the step cannot be zero, so we push an error in that case.
+        // <https://openqasm.com/language/types.html#register-concatenation-and-slicing>
+        if let Some(Some(step)) = &step {
+            if let semantic::ExprKind::Lit(semantic::LiteralKind::Int(val)) = &*step.kind {
+                if *val == 0 {
+                    self.push_semantic_error(SemanticErrorKind::ZeroStepInRange(range.span));
+                    return None;
+                }
+            }
+        }
+
         macro_rules! shortcircuit_inner {
             ($nested_option:expr) => {
                 match $nested_option {

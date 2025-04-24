@@ -231,36 +231,39 @@ fn array_slice_with_negative_step_has_correct_size() {
 fn array_slice_with_zero_step_errors() {
     let input = "
         bit[8] a = 16;
-        a[0:0:b];
+        a[:0:];
     ";
 
     check_stmt_kinds(
         input,
         &expect![[r#"
-            ClassicalDeclarationStmt [9-23]:
-                symbol_id: 8
-                ty_span: [9-15]
-                init_expr: Expr [20-22]:
-                    ty: BitArray(8, true)
-                    kind: Lit: Bitstring("00010000")
-            ExprStmt [32-41]:
-                expr: Expr [32-40]:
-                    ty: BitArray(0, false)
-                    kind: IndexExpr [32-40]:
-                        collection: Expr [32-33]:
-                            ty: BitArray(8, false)
-                            kind: SymbolId(8)
-                        indices:
-                            Range [34-39]:
-                                start: Expr [34-35]:
-                                    ty: Int(None, true)
-                                    kind: Lit: Int(0)
-                                step: Expr [36-37]:
-                                    ty: Int(None, true)
-                                    kind: Lit: Int(0)
-                                end: Expr [38-39]:
-                                    ty: Int(None, true)
-                                    kind: Lit: Int(6)
-        "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-23]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-23]:
+                            symbol_id: 8
+                            ty_span: [9-15]
+                            init_expr: Expr [20-22]:
+                                ty: BitArray(8, true)
+                                kind: Lit: Bitstring("00010000")
+                    Stmt [32-39]:
+                        annotations: <empty>
+                        kind: ExprStmt [32-39]:
+                            expr: Expr [32-38]:
+                                ty: Err
+                                kind: Err
+
+            [Qasm.Lowerer.ZeroStepInRange
+
+              x range step cannot be zero
+               ,-[test:3:11]
+             2 |         bit[8] a = 16;
+             3 |         a[:0:];
+               :           ^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
