@@ -30,10 +30,10 @@ export enum GateType {
 }
 
 /**
- * Metadata used to store information pertaining to a given
+ * Rendering data used to store information pertaining to a given
  * operation for rendering its corresponding SVG.
  */
-export interface Metadata {
+export interface GateRenderData {
   /** Gate type. */
   type: GateType;
   /** Centre x coord for gate position. */
@@ -52,7 +52,7 @@ export interface Metadata {
   /** Gate width. */
   width: number;
   /** Children operations as part of group. */
-  children?: Metadata[][] | Metadata[][][];
+  children?: GateRenderData[][] | GateRenderData[][][];
   /** Custom data attributes to attach to gate element. */
   dataAttributes?: DataAttributes;
 }

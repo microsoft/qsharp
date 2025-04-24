@@ -3,22 +3,22 @@
 
 import { RegisterMap } from "../register";
 import { regLineStart } from "../constants";
-import { Metadata, GateType } from "../metadata";
+import { GateRenderData, GateType } from "../gateRenderData";
 import { group, line } from "./formatUtils";
 
 /**
  * Generate the SVG representation of the qubit register wires in `registers` and the classical wires
  * stemming from each measurement gate.
  *
- * @param registers    Map from register IDs to register metadata.
- * @param measureGates Array of measurement gates metadata.
+ * @param registers    Map from register IDs to register render data.
+ * @param measureGates Array of measurement gate render data.
  * @param endX         End x coord.
  *
  * @returns SVG representation of register wires.
  */
 const formatRegisters = (
   registers: RegisterMap,
-  measureGates: Metadata[],
+  measureGates: GateRenderData[],
   endX: number,
 ): SVGElement => {
   const formattedRegs: SVGElement[] = [];
