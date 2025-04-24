@@ -40,7 +40,23 @@
     fill: var(--main-color);
     dominant-baseline: middle;
     text-anchor: middle;
-    font-family: Arial;
+  }
+
+  /* When run in VS Code, the "KaTeX_Main" and "KaTeX_Math" fonts are already present */
+  /* When run in Jupyter in the browser, the MJX* (MathJax) fonts are used and present */
+  .qs-maintext {
+    font-family: "KaTeX_Main", "MJXZERO", "MJXTEX", sans-serif;
+    font-style: normal;
+  }
+
+  .qs-mathtext {
+    font-family: "KaTeX_Math", "MJXZERO", "MJXTEX-I", serif;
+  }
+
+  /* The math font used in KaTex (thus in VS Code) needs italic applied also, whereas
+   the font used in MathJax (thus Jupyter web) doesn't. So apply if in VS Code  */
+  [data-vscode-theme-kind] .qs-mathtext {
+    font-style: italic;
   }
 
   /* Background for gates */
@@ -59,6 +75,7 @@
     text-decoration: none;
     cursor: default;
     pointer-events: none;
+    word-spacing: -0.2em;
   }
 
   /* Edit mode style for arg-button (hyperlink appearance) */
