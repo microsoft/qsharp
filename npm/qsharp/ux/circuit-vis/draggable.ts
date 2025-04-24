@@ -20,7 +20,6 @@ interface Context {
   container: HTMLElement;
   operationGrid: ComponentGrid;
   wireData: number[];
-  paddingY: number;
 }
 
 /**
@@ -36,7 +35,6 @@ const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
     container,
     operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),
-    paddingY: 20,
   };
   _addStyles(container, getWireData(container));
   _addDataWires(container);
@@ -206,20 +204,91 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.classList.add("dropzone-layer");
   dropzoneLayer.style.display = "none";
 
-  const { container, operationGrid, wireData, paddingY } = context;
+  const { container, operationGrid, wireData } = context;
   if (wireData.length === 0) return dropzoneLayer; // Return early if there are no wires
+
+  const colArray = getColumnOffsetsAndWidths(container);
+
+  // Create dropzones for each intersection of columns and wires
+  for (let colIndex = 0; colIndex < colArray.length; colIndex++) {
+    const columnOps = operationGrid[colIndex];
+    let wireIndex = 0;
+
+    const makeBox = (opIndex: number, interColumn: boolean) =>
+      makeDropzoneBox(
+        colIndex,
+        opIndex,
+        colArray,
+        wireData,
+        wireIndex,
+        interColumn,
+      );
+
+    columnOps.components.forEach((op, opIndex) => {
+      const [minTarget, maxTarget] = getMinMaxRegIdx(op, wireData.length);
+      // Add dropzones before the first target
+      while (wireIndex <= maxTarget) {
+        dropzoneLayer.appendChild(makeBox(opIndex, true));
+        // We don't want to make a central zone if the spot is occupied by a gate or its connecting lines
+        if (wireIndex < minTarget) {
+          dropzoneLayer.appendChild(makeBox(opIndex, false));
+        }
+
+        wireIndex++;
+      }
+    });
+
+    // Add dropzones after the last target
+    while (wireIndex < wireData.length) {
+      dropzoneLayer.appendChild(makeBox(columnOps.components.length, true));
+      dropzoneLayer.appendChild(makeBox(columnOps.components.length, false));
+
+      wireIndex++;
+    }
+  }
+
+  // This assumes column indexes are continuous
+  const endColIndex = colArray.length;
+
+  // Add remaining dropzones to allow users to add gates to the end of the circuit
+  for (let wireIndex = 0; wireIndex < wireData.length; wireIndex++) {
+    const dropzone = makeDropzoneBox(
+      endColIndex,
+      0,
+      colArray,
+      wireData,
+      wireIndex,
+      true,
+    );
+    // Note: the last column should have the shape of an inter-column dropzone, but
+    // we don't want to attach the inter-column logic to it.
+    dropzone.setAttribute("data-dropzone-inter-column", "false");
+    dropzoneLayer.appendChild(dropzone);
+  }
+
+  return dropzoneLayer;
+};
+
+/**
+ * Computes a sorted array of { xOffset, colWidth } for each column index.
+ * The array index corresponds to the column index.
+ *
+ * @param container The circuit container element.
+ * @returns Array where arr[colIndex] = { xOffset, colWidth }
+ */
+const getColumnOffsetsAndWidths = (
+  container: HTMLElement,
+): { xOffset: number; colWidth: number }[] => {
   const elems = getHostElems(container);
 
-  // Get the widths of each column based on the elements in the column
+  // Compute column widths
   const colWidths = elems.reduce(
     (acc, elem) => {
       const location = findLocation(elem);
       if (!location) return acc;
       const indexes = locationStringToIndexes(location);
-      // NOTE: for now, we are just going to consider the widths of top-level gates
       if (indexes.length != 1) return acc;
       const [colIndex] = indexes[0];
-
       if (!acc[colIndex]) {
         acc[colIndex] = Math.max(minGateWidth, elem.getBBox().width);
       } else {
@@ -230,118 +299,79 @@ const _dropzoneLayer = (context: Context) => {
     {} as Record<number, number>,
   );
 
-  // Sort colWidths by colIndex
-  const sortedColWidths = Object.entries(colWidths)
-    .sort(([colIndexA], [colIndexB]) => Number(colIndexA) - Number(colIndexB))
-    .map(([colIndex, colWidth]) => [Number(colIndex), colWidth]);
+  // Find the max colIndex to size the array
+  const maxColIndex = Math.max(...Object.keys(colWidths).map(Number), 0);
 
-  // let xOffset = regLineStart;
   let xOffset = startX - gatePadding;
-
-  /**
-   * Create a dropzone box element.
-   *
-   * @param wireIndex The index of the wire for which the dropzone is created.
-   * @param colIndex The index of the column where the dropzone is located.
-   * @param colWidth The width of the column.
-   * @param opIndex The index of the operation within the column.
-   * @param interColumn Whether the dropzone is between columns.
-   * @returns The created dropzone SVG element.
-   */
-  const _makeDropzoneBox = (
-    wireIndex: number,
-    colIndex: number,
-    colWidth: number,
-    opIndex: number,
-    interColumn: boolean,
-  ): SVGElement => {
-    const wireY = wireData[wireIndex];
-    let dropzone = null;
-    if (interColumn) {
-      dropzone = box(
-        xOffset - gatePadding * 2,
-        wireY - paddingY,
-        gatePadding * 4,
-        paddingY * 2,
-        "dropzone",
-      );
-    } else {
-      dropzone = box(
-        xOffset + gatePadding,
-        wireY - paddingY,
-        colWidth,
-        paddingY * 2,
-        "dropzone",
-      );
-    }
-    dropzone.setAttribute("data-dropzone-location", `${colIndex},${opIndex}`);
-    dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
-    dropzone.setAttribute("data-dropzone-inter-column", `${interColumn}`);
-    return dropzone;
-  };
-
-  // Create dropzones for each intersection of columns and wires
-  sortedColWidths.forEach(([colIndex, colWidth]) => {
-    const columnOps = operationGrid[colIndex];
-    let wireIndex = 0;
-
-    columnOps.components.forEach((op, opIndex) => {
-      const [minTarget, maxTarget] = getMinMaxRegIdx(op, wireData.length);
-      // Add dropzones before the first target
-      while (wireIndex <= maxTarget) {
-        dropzoneLayer.appendChild(
-          _makeDropzoneBox(wireIndex, colIndex, colWidth, opIndex, true),
-        );
-        // We don't want to make a central zone if the spot is occupied by a gate or its connecting lines
-        if (wireIndex < minTarget) {
-          dropzoneLayer.appendChild(
-            _makeDropzoneBox(wireIndex, colIndex, colWidth, opIndex, false),
-          );
-        }
-
-        wireIndex++;
-      }
-    });
-
-    // Add dropzones after the last target
-    while (wireIndex < wireData.length) {
-      dropzoneLayer.appendChild(
-        _makeDropzoneBox(
-          wireIndex,
-          colIndex,
-          colWidth,
-          columnOps.components.length,
-          true,
-        ),
-      );
-      dropzoneLayer.appendChild(
-        _makeDropzoneBox(
-          wireIndex,
-          colIndex,
-          colWidth,
-          columnOps.components.length,
-          false,
-        ),
-      );
-
-      wireIndex++;
-    }
+  const result: { xOffset: number; colWidth: number }[] = [];
+  for (let colIndex = 0; colIndex <= maxColIndex; colIndex++) {
+    const colWidth = colWidths[colIndex] ?? minGateWidth;
+    result[colIndex] = { xOffset, colWidth };
     xOffset += colWidth + gatePadding * 2;
-  });
+  }
+  return result;
+};
 
-  // This assumes column indexes are continuous
-  const endColIndex = sortedColWidths.length;
+/**
+ * Create a dropzone box element.
+ *
+ * @param colIndex The index of the column where the dropzone is located.
+ * @param opIndex The index of the operation within the column.
+ * @param colArray   An array of objects containing xOffset and colWidth for each column.
+ * @param wireData The array of wire Y positions.
+ * @param wireIndex The index of the wire for which the dropzone is created.
+ * @param interColumn Whether the dropzone is between columns.
+ *
+ * @returns The created dropzone SVG element.
+ */
+const makeDropzoneBox = (
+  colIndex: number,
+  opIndex: number,
+  colArray: { xOffset: number; colWidth: number }[],
+  wireData: number[],
+  wireIndex: number,
+  interColumn: boolean,
+): SVGElement => {
+  const wireY = wireData[wireIndex];
+  let xOffset: number, colWidth: number;
 
-  // Add remaining dropzones to allow users to add gates to the end of the circuit
-  for (let wireIndex = 0; wireIndex < wireData.length; wireIndex++) {
-    const dropzone = _makeDropzoneBox(wireIndex, endColIndex, 0, 0, true);
-    // Note: the last column should have the shape of an inter-column dropzone, but
-    // we don't want to attach the inter-column logic to it.
-    dropzone.setAttribute("data-dropzone-inter-column", "false");
-    dropzoneLayer.appendChild(dropzone);
+  if (colArray[colIndex]) {
+    ({ xOffset, colWidth } = colArray[colIndex]);
+  } else {
+    // Compute offset for a hypothetical new last column
+    const last = colArray[colArray.length - 1];
+    if (last) {
+      xOffset = last.xOffset + last.colWidth + gatePadding * 2;
+    } else {
+      // If there are no columns at all, start at initial offset
+      xOffset = startX - gatePadding;
+    }
+    colWidth = minGateWidth;
   }
 
-  return dropzoneLayer;
+  const paddingY = 20;
+  let dropzone = null;
+  if (interColumn) {
+    dropzone = box(
+      xOffset - gatePadding * 2,
+      wireY - paddingY,
+      gatePadding * 4,
+      paddingY * 2,
+      "dropzone",
+    );
+  } else {
+    dropzone = box(
+      xOffset + gatePadding,
+      wireY - paddingY,
+      colWidth,
+      paddingY * 2,
+      "dropzone",
+    );
+  }
+  dropzone.setAttribute("data-dropzone-location", `${colIndex},${opIndex}`);
+  dropzone.setAttribute("data-dropzone-wire", `${wireIndex}`);
+  dropzone.setAttribute("data-dropzone-inter-column", `${interColumn}`);
+  return dropzone;
 };
 
 export {
@@ -349,4 +379,6 @@ export {
   createGhostElement,
   createWireDropzone,
   removeAllWireDropzones,
+  getColumnOffsetsAndWidths,
+  makeDropzoneBox,
 };

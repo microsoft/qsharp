@@ -28,6 +28,8 @@ import {
 import {
   createGhostElement,
   createWireDropzone,
+  getColumnOffsetsAndWidths,
+  makeDropzoneBox,
   removeAllWireDropzones,
 } from "./draggable";
 import { getMinMaxRegIdx } from "../../src/utils";
@@ -57,7 +59,9 @@ class CircuitEvents {
   qubits: Qubit[];
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
+  private temporaryDropzones: SVGElement[] = [];
   private wireData: number[];
+  private columnXData: { xOffset: number; colWidth: number }[];
   private selectedOperation: Operation | null = null;
   private selectedWire: number | null = null;
   private movingControl: boolean = false;
@@ -81,6 +85,7 @@ class CircuitEvents {
     this.qubits = sqore.circuit.qubits;
 
     this.wireData = getWireData(this.container);
+    this.columnXData = getColumnOffsetsAndWidths(this.container);
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -133,6 +138,11 @@ class CircuitEvents {
     this.container.classList.remove("moving", "copying");
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
+      for (const dropzone of this.temporaryDropzones) {
+        if (this.dropzoneLayer.contains(dropzone)) {
+          this.dropzoneLayer.removeChild(dropzone);
+        }
+      }
       if (ghostElem) {
         this.container.removeChild(ghostElem);
       }
@@ -340,7 +350,37 @@ class CircuitEvents {
         if (ev.button !== 0) return;
         ev.stopPropagation();
         removeAllWireDropzones(this.circuitSvg);
-        if (this.selectedOperation == null || !selectedLocation) return;
+        if (
+          this.selectedOperation === null ||
+          this.selectedWire === null ||
+          !selectedLocation
+        )
+          return;
+
+        // Add temporary dropzones specific to this operation
+        const [minTarget, maxTarget] = getMinMaxRegIdx(
+          this.selectedOperation,
+          this.wireData.length,
+        );
+        for (let wire = minTarget; wire <= maxTarget; wire++) {
+          if (wire === this.selectedWire) continue;
+          const indexes = locationStringToIndexes(selectedLocation);
+          const [colIndex, opIndex] = indexes[indexes.length - 1];
+          const dropzone = makeDropzoneBox(
+            colIndex,
+            opIndex,
+            this.columnXData,
+            this.wireData,
+            wire,
+            false,
+          );
+          // Prevent dropzone from interfering with drag
+          dropzone.addEventListener("mousedown", (e: MouseEvent) =>
+            e.stopPropagation(),
+          );
+          this.temporaryDropzones.push(dropzone);
+          this.dropzoneLayer.appendChild(dropzone);
+        }
 
         this._createGhostElement(ev);
 

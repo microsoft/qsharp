@@ -231,24 +231,20 @@ export function getMinMaxRegIdx(
       break;
   }
 
-  const ctrls: Register[] = controls || [];
-  const qRegs: Register[] = [...ctrls, ...targets].filter(
-    ({ result }) => result === undefined,
-  );
-  const qRegIdxList: number[] = qRegs.map(({ qubit }) => qubit);
-  const clsControls: Register[] = ctrls.filter(
+  const qRegs = [...controls, ...targets]
+    .filter(({ result }) => result === undefined)
+    .map(({ qubit }) => qubit);
+  const clsControls: Register[] = controls.filter(
     ({ result }) => result !== undefined,
   );
   const isClassicallyControlled: boolean = clsControls.length > 0;
   if (!isClassicallyControlled && qRegs.length === 0) return [-1, -1];
   // If operation is classically-controlled, pad all qubit registers. Otherwise, only pad
   // the contiguous range of registers that it covers.
-  const minRegIdx: number = isClassicallyControlled
-    ? 0
-    : Math.min(...qRegIdxList);
+  const minRegIdx: number = isClassicallyControlled ? 0 : Math.min(...qRegs);
   const maxRegIdx: number = isClassicallyControlled
     ? numQubits - 1
-    : Math.max(...qRegIdxList);
+    : Math.max(...qRegs);
 
   return [minRegIdx, maxRegIdx];
 }
