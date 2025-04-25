@@ -909,7 +909,7 @@ fn substitute_ty(solution: &Solution, ty: &mut Ty) -> bool {
                     &mut arrow
                         .functors
                         .try_borrow_mut()
-                        .expect("should unique access to arrow.functors"),
+                        .expect("should have unique access to arrow.functors"),
                 );
                 a && b
             }
