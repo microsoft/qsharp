@@ -129,6 +129,11 @@ impl Backend for Builder {
         self.push_gate(gate("S", [q]));
     }
 
+    fn sx(&mut self, q: usize) {
+        let q = self.map(q);
+        self.push_gate(gate("SX", [q]));
+    }
+
     fn swap(&mut self, q0: usize, q1: usize) {
         let q0 = self.map(q0);
         let q1 = self.map(q1);

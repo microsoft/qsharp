@@ -611,9 +611,7 @@ fn circuit_with_sqrt_x_gate() {
                 }
                 H(qs[0]);
                 Z(qs[0]);
-                H(qs[1]);
-                S(qs[1]);
-                H(qs[1]);
+                SX(qs[1]);
                 Z(qs[1]);
             }
 
@@ -660,9 +658,7 @@ fn circuit_with_ctrl_adj_sqrt_x_gate() {
                 }
                 H(qs[0]);
                 Z(qs[0]);
-                Controlled H([qs[1]], qs[0]);
-                Controlled Adjoint S([qs[1]], qs[0]);
-                Controlled H([qs[1]], qs[0]);
+                Controlled Adjoint SX([qs[1]], qs[0]);
                 Z(qs[1]);
             }
 
