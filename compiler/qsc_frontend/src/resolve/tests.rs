@@ -141,7 +141,7 @@ impl Visitor<'_> for Renamer<'_> {
                     self.aliases.insert(vec![alias.name.clone()], ns_id);
                 } else {
                     return;
-                };
+                }
             }
             ItemKind::ImportOrExport(export) => {
                 for item in export.items() {

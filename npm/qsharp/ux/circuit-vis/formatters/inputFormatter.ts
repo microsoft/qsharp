@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { Qubit } from "../circuit";
-import { RegisterType, RegisterMap, RegisterMetadata } from "../register";
+import { RegisterType, RegisterMap, RegisterRenderData } from "../register";
 import {
   leftPadding,
   startY,
@@ -10,10 +10,11 @@ import {
   classicalRegHeight,
 } from "../constants";
 import { group, text } from "./formatUtils";
+import { mathChars } from "../utils";
 
 /**
  * `formatInputs` takes in an array of Qubits and outputs the SVG string of formatted
- * qubit wires and a mapping from register IDs to register metadata (for rendering).
+ * qubit wires and a mapping from register IDs to register rendering data.
  *
  * @param qubits List of declared qubits.
  *
@@ -27,15 +28,15 @@ const formatInputs = (
   const registers: RegisterMap = {};
 
   let currY: number = startY;
-  qubits.forEach(({ id, numChildren }) => {
+  qubits.forEach(({ id, numResults }) => {
     // Add qubit wire to list of qubit wires
-    qubitWires.push(_qubitInput(currY));
+    qubitWires.push(_qubitInput(currY, id.toString()));
 
     // Create qubit register
     registers[id] = { type: RegisterType.Qubit, y: currY };
 
     // If there are no attached classical registers, increment y by fixed register height
-    if (numChildren == null || numChildren === 0) {
+    if (numResults == null || numResults === 0) {
       currY += registerHeight;
       return;
     }
@@ -44,8 +45,8 @@ const formatInputs = (
     currY += classicalRegHeight;
 
     // Add classical wires
-    registers[id].children = Array.from(Array(numChildren), () => {
-      const clsReg: RegisterMetadata = {
+    registers[id].children = Array.from(Array(numResults), () => {
+      const clsReg: RegisterRenderData = {
         type: RegisterType.Classical,
         y: currY,
       };
@@ -55,7 +56,7 @@ const formatInputs = (
   });
 
   return {
-    qubitWires: group(qubitWires),
+    qubitWires: group(qubitWires, { class: "qubit-input-states" }),
     registers,
     svgHeight: currY,
   };
@@ -68,10 +69,18 @@ const formatInputs = (
  *
  * @returns SVG text component for the input register.
  */
-const _qubitInput = (y: number): SVGElement => {
-  const el: SVGElement = text("|0⟩", leftPadding, y, 16);
+const _qubitInput = (y: number, subscript?: string): SVGElement => {
+  const el: SVGElement = text("", leftPadding, y, 16);
+
+  const subtext = subscript
+    ? `<tspan baseline-shift="sub" font-size="65%">${subscript}</tspan>`
+    : "";
+
+  el.innerHTML = `|<tspan class="qs-mathtext">${mathChars.psi}</tspan>${subtext}${mathChars.rangle}</tspan>`;
+
   el.setAttribute("text-anchor", "start");
   el.setAttribute("dominant-baseline", "middle");
+  el.classList.add("qs-maintext");
   return el;
 };
 

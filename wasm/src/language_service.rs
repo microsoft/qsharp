@@ -9,7 +9,8 @@ use crate::{
     test_discovery::TestDescriptor,
 };
 use qsc::{
-    self, line_column::Encoding, linter::LintConfig, target::Profile, LanguageFeatures, PackageType,
+    self, line_column::Encoding, linter::LintOrGroupConfig, target::Profile, LanguageFeatures,
+    PackageType,
 };
 use qsc_project::Manifest;
 use qsls::protocol::{DiagnosticUpdate, TestCallable, TestCallables};
@@ -378,13 +379,13 @@ serializable_type! {
         pub targetProfile: Option<String>,
         pub packageType: Option<String>,
         pub languageFeatures: Option<Vec<String>>,
-        pub lints: Option<Vec<LintConfig>>
+        pub lints: Option<Vec<LintOrGroupConfig>>
     },
     r#"export interface IWorkspaceConfiguration {
         targetProfile?: TargetProfile;
         packageType?: "exe" | "lib";
         languageFeatures?: LanguageFeatures[];
-        lints?: { lint: string; level: string }[];
+        lints?: ({ lint: string; level: string } | { group: string; level: string })[];
     }"#,
     IWorkspaceConfiguration
 }

@@ -19,7 +19,7 @@ from ..jobs import ReJob
 from ..execution import DetaultExecutor
 from ...._fs import read_file, list_directory, resolve
 from ...._http import fetch_github
-from ...._native import resource_estimate_qasm3
+from ...._native import resource_estimate_qasm
 from .... import TargetProfile
 from ....estimator import (
     EstimatorResult,
@@ -56,7 +56,7 @@ class ResourceEstimatorBackend(BackendBase):
                 - params (EstimatorParams): Configuration values for resource estimation.
                 - name (str): The name of the circuit. This is used as the entry point for the program.
                         The circuit name will be used if not specified.
-                - search_path (str): Path to search in for qasm3 imports. Defaults to '.'.
+                - search_path (str): Path to search in for qasm imports. Defaults to '.'.
                 - executor(ThreadPoolExecutor or other Executor):
                         The executor to be used to submit the job. Defaults to SynchronousExecutor.
         """
@@ -104,7 +104,7 @@ class ResourceEstimatorBackend(BackendBase):
             **options: Additional options for the execution.
                 - name (str): The name of the circuit. This is used as the entry point for the program.
                         The circuit name will be used if not specified.
-                - search_path (str): Path to search in for qasm3 imports. Defaults to '.'.
+                - search_path (str): Path to search in for qasm imports. Defaults to '.'.
                 - target_profile (TargetProfile): The target profile to use for the backend.
                 - executor(ThreadPoolExecutor or other Executor):
                         The executor to be used to submit the job.
@@ -124,13 +124,13 @@ class ResourceEstimatorBackend(BackendBase):
             options["params"] = params
         return self._run(run_input, **options)
 
-    def _estimate_qasm3(
+    def _estimate_qasm(
         self,
         source: str,
         **input_params,
     ) -> Dict[str, Any]:
         """
-        Estimates the resource usage of a QASM3 source code.
+        Estimates the resource usage of a QASM source code.
         """
         params = input_params.pop("params", None)
         if params is None:
@@ -148,7 +148,7 @@ class ResourceEstimatorBackend(BackendBase):
             "search_path": input_params.pop("search_path", "."),
         }
         kwargs.update(input_params)
-        res_str = resource_estimate_qasm3(
+        res_str = resource_estimate_qasm(
             source,
             param_str,
             read_file,
@@ -162,7 +162,7 @@ class ResourceEstimatorBackend(BackendBase):
 
     def _execute(self, programs: List[Compilation], **input_params) -> Dict:
         exec_results = [
-            (program, self._estimate_qasm3(program.qasm, **input_params))
+            (program, self._estimate_qasm(program.qasm, **input_params))
             for program in programs
         ]
         success = (

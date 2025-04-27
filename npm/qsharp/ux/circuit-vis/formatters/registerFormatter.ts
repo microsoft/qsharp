@@ -3,28 +3,36 @@
 
 import { RegisterMap } from "../register";
 import { regLineStart } from "../constants";
-import { Metadata, GateType } from "../metadata";
-import { group, line, text } from "./formatUtils";
+import { GateRenderData, GateType } from "../gateRenderData";
+import { group, line } from "./formatUtils";
 
 /**
  * Generate the SVG representation of the qubit register wires in `registers` and the classical wires
  * stemming from each measurement gate.
  *
- * @param registers    Map from register IDs to register metadata.
- * @param measureGates Array of measurement gates metadata.
+ * @param registers    Map from register IDs to register render data.
+ * @param measureGates Array of measurement gate render data.
  * @param endX         End x coord.
  *
  * @returns SVG representation of register wires.
  */
 const formatRegisters = (
   registers: RegisterMap,
-  measureGates: Metadata[],
+  measureGates: GateRenderData[],
   endX: number,
 ): SVGElement => {
   const formattedRegs: SVGElement[] = [];
   // Render qubit wires
   for (const qId in registers) {
-    formattedRegs.push(_qubitRegister(Number(qId), endX, registers[qId].y));
+    formattedRegs.push(
+      line(
+        regLineStart,
+        registers[qId].y,
+        endX,
+        registers[qId].y,
+        "qubit-wire",
+      ),
+    );
   }
   // Render classical wires
   measureGates.forEach(({ type, x, targetsY, controlsY }) => {
@@ -34,7 +42,7 @@ const formatRegisters = (
       formattedRegs.push(_classicalRegister(x, gateY, endX, y));
     });
   });
-  return group(formattedRegs);
+  return group(formattedRegs, { class: "wires" });
 };
 
 /**
@@ -89,30 +97,4 @@ const _classicalRegister = (
   return group([vLine1, vLine2, hLine1, hLine2]);
 };
 
-/**
- * Generates the SVG representation of a qubit register.
- *
- * @param qId         Qubit register index.
- * @param endX        End x coord.
- * @param y           y coord of wire.
- * @param labelOffset y offset for wire label.
- *
- * @returns SVG representation of the given qubit register.
- */
-const _qubitRegister = (
-  qId: number,
-  endX: number,
-  y: number,
-  labelOffset = 16,
-): SVGElement => {
-  const wire: SVGElement = line(regLineStart, y, endX, y);
-
-  const label: SVGElement = text(`q${qId}`, regLineStart, y - labelOffset);
-  label.setAttribute("dominant-baseline", "hanging");
-  label.setAttribute("text-anchor", "start");
-  label.setAttribute("font-size", "75%");
-
-  return group([wire, label]);
-};
-
-export { formatRegisters, _classicalRegister, _qubitRegister };
+export { formatRegisters };

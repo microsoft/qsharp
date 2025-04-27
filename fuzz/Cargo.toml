@@ -26,7 +26,13 @@ do_fuzz = [ "dep:libfuzzer-sys" ]
 workspace = true
 
 [[bin]]
-name = "compile"
-path = "fuzz_targets/compile.rs"
+name = "qsharp"
+path = "fuzz_targets/qsharp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "qasm"
+path = "fuzz_targets/qasm.rs"
 test = false
 doc = false

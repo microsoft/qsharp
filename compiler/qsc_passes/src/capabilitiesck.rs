@@ -148,7 +148,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
                     self.check_spec_decl(FunctorSetValue::CtlAdj, Some(spec_decl));
                 });
             }
-        };
+        }
     }
 
     fn visit_expr(&mut self, expr_id: ExprId) {
@@ -172,7 +172,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
                 self.check_expr_while(expr_id, *condition_expr_id, *body_block_id);
             }
             _ => self.check_expr(expr_id),
-        };
+        }
     }
 
     fn visit_item(&mut self, item: &'a Item) {

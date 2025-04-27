@@ -250,6 +250,7 @@ export function Editor(props: {
     const newEditor = monaco.editor.create(editorDiv.current, {
       minimap: { enabled: false },
       lineNumbersMinChars: 3,
+      automaticLayout: true,
     });
 
     editor.current = newEditor;
@@ -298,6 +299,7 @@ export function Editor(props: {
     return () => {
       log.info("Disposing a monaco editor");
       window.removeEventListener("resize", onResize);
+      props.languageService.closeDocument(srcModel.uri.toString());
       newEditor.dispose();
     };
   }, []);

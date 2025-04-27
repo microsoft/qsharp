@@ -265,7 +265,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             StmtKind::Local(mutability, pat_id, expr_id) => {
                 self.walk_local_stmt(*mutability, *pat_id, *expr_id);
             }
-        };
+        }
     }
 }
 

@@ -5,6 +5,7 @@ import * as qviz from "./circuit-vis";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { CircuitProps } from "./data.js";
 import { Spinner } from "./spinner.js";
+import { toCircuitGroup } from "./circuit-vis/circuit";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -13,29 +14,49 @@ import { Spinner } from "./spinner.js";
 const MAX_OPERATIONS = 10000;
 const MAX_QUBITS = 1000;
 
+// For now we only support one circuit at a time.
+const MAX_CIRCUITS = 1;
+
 // This component is shared by the Python widget and the VS Code panel
-export function Circuit(props: { circuit: qviz.Circuit }) {
-  const circuit = props.circuit;
+export function Circuit(props: {
+  circuit?: qviz.CircuitGroup | qviz.Circuit;
+  isEditable: boolean;
+  editCallback?: (fileData: qviz.CircuitGroup) => void;
+}) {
+  const circuitGroup = toCircuitGroup(props.circuit);
+  const circuit = circuitGroup.circuits[0];
+
+  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
+  if (circuit.qubits === undefined) circuit.qubits = [];
+
+  if (circuit.componentGrid === undefined) circuit.componentGrid = [];
+  if (circuit.qubits === undefined) circuit.qubits = [];
+
   const unrenderable =
-    circuit.qubits.length === 0 ||
-    circuit.operations.length > MAX_OPERATIONS ||
+    circuitGroup.circuits.length > MAX_CIRCUITS ||
+    (!props.isEditable && circuit.qubits.length === 0) ||
+    circuit.componentGrid.length > MAX_OPERATIONS ||
     circuit.qubits.length > MAX_QUBITS;
 
   return (
     <div>
       {unrenderable ? (
         <Unrenderable
-          qubits={props.circuit.qubits.length}
-          operations={props.circuit.operations.length}
+          qubits={circuit.qubits.length}
+          operations={circuit.componentGrid.length}
         />
       ) : (
-        <ZoomableCircuit circuit={props.circuit} />
+        <ZoomableCircuit {...props} circuitGroup={circuitGroup} />
       )}
     </div>
   );
 }
 
-function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
+function ZoomableCircuit(props: {
+  circuitGroup: qviz.CircuitGroup;
+  isEditable: boolean;
+  editCallback?: (fileData: qviz.CircuitGroup) => void;
+}) {
   const circuitDiv = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rendering, setRendering] = useState(true);
@@ -46,22 +67,31 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
     setRendering(true);
     const container = circuitDiv.current!;
     container.innerHTML = "";
-  }, [props.circuit]);
+  }, [props.circuitGroup]);
 
   useEffect(() => {
     if (rendering) {
       const container = circuitDiv.current!;
-      // Draw the circuit - may take a while for large circuits
-      const svg = renderCircuit(props.circuit, container);
+      // Draw the circuits - may take a while for large circuits
+      const svg = renderCircuits(
+        props.circuitGroup,
+        container,
+        props.isEditable,
+        props.editCallback,
+      );
+
+      if (!props.isEditable) {
+        const initialZoom = calculateZoomToFit(container, svg as SVGElement);
+        // Set the initial zoom level
+        setZoomLevel(initialZoom);
+        // Resize the SVG to fit
+        updateWidth();
+      }
+
       // Calculate the initial zoom level based on the container width
-      const initialZoom = calculateZoomToFit(container, svg as SVGElement);
-      // Set the initial zoom level
-      setZoomLevel(initialZoom);
-      // Resize the SVG to fit
-      updateWidth();
       // Disable "rendering" text
       setRendering(false);
-    } else {
+    } else if (!props.isEditable) {
       // Initial drawing done, attach window resize handler
       window.addEventListener("resize", onResize);
       return () => {
@@ -77,13 +107,13 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
   return (
     <div>
       <div>
-        {rendering ? null : (
+        {props.isEditable || rendering ? null : (
           <ZoomControl zoom={zoomLevel} onInput={userSetZoomLevel} />
         )}
       </div>
       <div>
         {rendering
-          ? `Rendering diagram with ${props.circuit.operations.length} gates...`
+          ? `Rendering diagram with ${props.circuitGroup.circuits[0].componentGrid.length} gates...`
           : ""}
       </div>
       <div class="qs-circuit" ref={circuitDiv}></div>
@@ -128,14 +158,13 @@ function ZoomableCircuit(props: { circuit: qviz.Circuit }) {
     }
   }
 
-  function renderCircuit(circuit: qviz.Circuit, container: HTMLDivElement) {
-    qviz.draw(circuit, container);
-
-    // circuit-vis hardcodes the styles in the SVG.
-    // Remove the style elements -- we'll define the styles in our own CSS.
-    const styleElements = container.querySelectorAll("style");
-    styleElements?.forEach((tag) => tag.remove());
-
+  function renderCircuits(
+    circuitGroup: qviz.CircuitGroup,
+    container: HTMLDivElement,
+    isEditable: boolean,
+    editCallback?: (fileData: qviz.CircuitGroup) => void,
+  ) {
+    qviz.draw(circuitGroup, container, 0, isEditable, editCallback);
     return container.getElementsByClassName("qviz")[0]!;
   }
 
@@ -231,25 +260,36 @@ export function CircuitPanel(props: CircuitProps) {
           {props.title} {props.simulated ? "(Trace)" : ""}
         </h1>
       </div>
-      <div class="qs-circuit-error">{error}</div>
-      <p>{props.targetProfile}</p>
-      <p>
-        {
-          props.simulated
-            ? "WARNING: This diagram shows the result of tracing a dynamic circuit, and may change from run to run."
-            : "\xa0" // nbsp to keep line height consistent
-        }
-      </p>
+      {error && <div class="qs-circuit-error">{error}</div>}
+      {props.targetProfile && <p>{props.targetProfile}</p>}
+      {props.simulated && (
+        <p>
+          WARNING: This diagram shows the result of tracing a dynamic circuit,
+          and may change from run to run.
+        </p>
+      )}
       <p>
         Learn more at{" "}
-        <a href="https://aka.ms/qdk.circuits">https://aka.ms/qdk.circuits</a>
+        {props.isEditable ? (
+          <a href="https://aka.ms/qdk.circuit-editor">
+            https://aka.ms/qdk.circuit-editor
+          </a>
+        ) : (
+          <a href="https://aka.ms/qdk.circuits">https://aka.ms/qdk.circuits</a>
+        )}
       </p>
       {props.calculating ? (
         <div>
           <Spinner />
         </div>
       ) : null}
-      {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
+      {props.circuit ? (
+        <Circuit
+          circuit={props.circuit}
+          isEditable={props.isEditable}
+          editCallback={props.editCallback}
+        ></Circuit>
+      ) : null}
     </div>
   );
 }

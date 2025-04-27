@@ -489,7 +489,8 @@ pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> Compile
     unit
 }
 
-fn parse_all(
+#[must_use]
+pub fn parse_all(
     sources: &SourceMap,
     features: LanguageFeatures,
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
@@ -557,7 +558,7 @@ fn resolve_all(
         if let Err(errs) = globals.add_external_package(*id, &unit.package, store, alias.as_deref())
         {
             errors.extend(errs);
-        };
+        }
         dropped_names.extend(unit.dropped_names.iter().cloned());
     }
 

@@ -497,7 +497,7 @@ fn generate_index_file(files: &mut FilesWithMetadata, ns: &Rc<str>, items: &mut 
         ns.as_ref()
     } else {
         ns.split('.')
-            .last()
+            .next_back()
             .expect("Namespaces should have at least one part.")
     };
 

@@ -5,14 +5,23 @@ import { formatInputs } from "./formatters/inputFormatter";
 import { formatGates } from "./formatters/gateFormatter";
 import { formatRegisters } from "./formatters/registerFormatter";
 import { processOperations } from "./process";
-import { ConditionalRender, Circuit, Operation } from "./circuit";
-import { Metadata, GateType } from "./metadata";
-import { StyleConfig, style, STYLES } from "./styles";
+import {
+  ConditionalRender,
+  Circuit,
+  CircuitGroup,
+  ComponentGrid,
+  Operation,
+  Column,
+} from "./circuit";
+import { GateRenderData, GateType } from "./gateRenderData";
 import { createUUID } from "./utils";
-import { svgNS } from "./constants";
+import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
+import { createDragzones } from "./draggable";
+import { enableEvents } from "./events";
+import { createPanel } from "./panel";
 
 /**
- * Contains metadata for visualization.
+ * Contains render data for visualization.
  */
 interface ComposedSqore {
   /** Width of visualization. */
@@ -24,11 +33,11 @@ interface ComposedSqore {
 }
 
 /**
- * Defines the mapping of unique ID to each operation. Used for enabling
+ * Defines the mapping of unique location to each operation. Used for enabling
  * interactivity.
  */
 type GateRegistry = {
-  [id: string]: Operation;
+  [location: string]: Operation;
 };
 
 /**
@@ -36,18 +45,32 @@ type GateRegistry = {
  */
 export class Sqore {
   circuit: Circuit;
-  style: StyleConfig = {};
   gateRegistry: GateRegistry = {};
+  renderDepth = 0;
 
   /**
-   * Initializes Sqore object with custom styles.
+   * Initializes Sqore object.
    *
-   * @param circuit Circuit to be visualized.
-   * @param style Custom visualization style.
+   * @param circuitGroup Group of circuits to be visualized.
+   * @param isEditable Whether the circuit is editable.
+   * @param editCallback Callback function to be called when the circuit is edited.
    */
-  constructor(circuit: Circuit, style: StyleConfig | string = {}) {
-    this.circuit = circuit;
-    this.style = this.getStyle(style);
+  constructor(
+    public circuitGroup: CircuitGroup,
+    readonly isEditable = false,
+    private editCallback?: (circuitGroup: CircuitGroup) => void,
+  ) {
+    if (
+      this.circuitGroup == null ||
+      this.circuitGroup.circuits == null ||
+      this.circuitGroup.circuits.length === 0
+    ) {
+      throw new Error(
+        `No circuit found in file. Please provide a valid circuit.`,
+      );
+    }
+    // For now we only visualize the first circuit in the group
+    this.circuit = this.circuitGroup.circuits[0];
   }
 
   /**
@@ -60,49 +83,8 @@ export class Sqore {
     // Inject into container
     if (container == null) throw new Error(`Container not provided.`);
 
-    // Create copy of circuit to prevent mutation
-    const circuit: Circuit = JSON.parse(JSON.stringify(this.circuit));
-
-    // Assign unique IDs to each operation
-    circuit.operations.forEach((op, i) =>
-      this.fillGateRegistry(op, i.toString()),
-    );
-
-    // Render operations at starting at given depth
-    circuit.operations = this.selectOpsAtDepth(circuit.operations, renderDepth);
-
-    // If only one top-level operation, expand automatically:
-    if (
-      circuit.operations.length == 1 &&
-      circuit.operations[0].dataAttributes != null &&
-      // eslint-disable-next-line no-prototype-builtins
-      circuit.operations[0].dataAttributes.hasOwnProperty("id")
-    ) {
-      const id: string = circuit.operations[0].dataAttributes["id"];
-      this.expandOperation(circuit.operations, id);
-    }
-
-    this.renderCircuit(container, circuit);
-  }
-
-  /**
-   * Retrieve style for visualization.
-   *
-   * @param style Custom style or style name.
-   *
-   * @returns Custom style.
-   */
-  private getStyle(style: StyleConfig | string = {}): StyleConfig {
-    if (typeof style === "string" || style instanceof String) {
-      const styleName: string = style as string;
-      // eslint-disable-next-line no-prototype-builtins
-      if (!STYLES.hasOwnProperty(styleName)) {
-        console.error(`No style ${styleName} found in STYLES.`);
-        return {};
-      }
-      style = STYLES[styleName];
-    }
-    return style;
+    this.renderDepth = renderDepth;
+    this.renderCircuit(container);
   }
 
   /**
@@ -111,13 +93,77 @@ export class Sqore {
    * @param container HTML element for rendering visualization into.
    * @param circuit Circuit object to be rendered.
    */
-  private renderCircuit(container: HTMLElement, circuit: Circuit): void {
+  private renderCircuit(container: HTMLElement, circuit?: Circuit): void {
+    // Create copy of circuit to prevent mutation
+    const _circuit: Circuit =
+      circuit ?? JSON.parse(JSON.stringify(this.circuit));
+    const renderDepth = this.renderDepth;
+
+    // Assign unique locations to each operation
+    _circuit.componentGrid.forEach((col, colIndex) =>
+      col.components.forEach((op, i) =>
+        this.fillGateRegistry(op, `${colIndex},${i}`),
+      ),
+    );
+
+    // Render operations starting at given depth
+    _circuit.componentGrid = this.selectOpsAtDepth(
+      _circuit.componentGrid,
+      renderDepth,
+    );
+
+    // If only one top-level operation, expand automatically:
+    if (
+      _circuit.componentGrid.length == 1 &&
+      _circuit.componentGrid[0].components.length == 1 &&
+      _circuit.componentGrid[0].components[0].dataAttributes != null &&
+      Object.prototype.hasOwnProperty.call(
+        _circuit.componentGrid[0].components[0].dataAttributes,
+        "location",
+      )
+    ) {
+      const location: string =
+        _circuit.componentGrid[0].components[0].dataAttributes["location"];
+      this.expandOperation(_circuit.componentGrid, location);
+    }
+
     // Create visualization components
-    const composedSqore: ComposedSqore = this.compose(circuit);
+    const composedSqore: ComposedSqore = this.compose(_circuit);
     const svg: SVGElement = this.generateSvg(composedSqore);
-    container.innerHTML = "";
-    container.appendChild(svg);
-    this.addGateClickHandlers(container, circuit);
+    this.setViewBox(svg);
+    const previousSvg = container.querySelector("svg[id]");
+    if (previousSvg == null) {
+      container.appendChild(svg);
+    } else {
+      const wrapper = previousSvg.parentElement;
+      if (wrapper) {
+        wrapper.replaceChild(svg, previousSvg);
+      } else {
+        container.replaceChild(svg, previousSvg);
+      }
+    }
+    this.addGateClickHandlers(container, _circuit);
+
+    if (this.isEditable) {
+      createDragzones(container, this);
+      createPanel(container);
+      enableEvents(container, this, () => this.renderCircuit(container));
+      if (this.editCallback != undefined) {
+        this.editCallback(this.minimizeCircuits(this.circuitGroup));
+      }
+    }
+  }
+
+  /**
+   * Sets the viewBox attribute of the SVG element to enable zooming and panning.
+   *
+   * @param svg The SVG element to set the viewBox for.
+   */
+  private setViewBox(svg: SVGElement) {
+    // width and height are the true dimensions generated by qviz
+    const width = parseInt(svg.getAttribute("width")!);
+    const height = parseInt(svg.getAttribute("height")!);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   }
 
   /**
@@ -125,29 +171,35 @@ export class Sqore {
    *
    * @param circuit Circuit to be visualized.
    *
-   * @returns `ComposedSqore` object containing metadata for visualization.
+   * @returns `ComposedSqore` object containing render data for visualization.
    */
   private compose(circuit: Circuit): ComposedSqore {
-    const add = (acc: Metadata[], gate: Metadata | Metadata[]): void => {
+    const add = (
+      acc: GateRenderData[],
+      gate: GateRenderData | GateRenderData[],
+    ): void => {
       if (Array.isArray(gate)) {
         gate.forEach((g) => add(acc, g));
       } else {
         acc.push(gate);
-        gate.children?.forEach((g) => add(acc, g));
+        gate.children?.forEach((col) => col.forEach((g) => add(acc, g)));
       }
     };
 
-    const flatten = (gates: Metadata[]): Metadata[] => {
-      const result: Metadata[] = [];
-      add(result, gates);
+    const flatten = (renderData: GateRenderData[][]): GateRenderData[] => {
+      const result: GateRenderData[] = [];
+      renderData.forEach((col) => col.forEach((g) => add(result, g)));
       return result;
     };
 
-    const { qubits, operations } = circuit;
+    const { qubits, componentGrid } = circuit;
     const { qubitWires, registers, svgHeight } = formatInputs(qubits);
-    const { metadataList, svgWidth } = processOperations(operations, registers);
-    const formattedGates: SVGElement = formatGates(metadataList);
-    const measureGates: Metadata[] = flatten(metadataList).filter(
+    const { renderDataArray, svgWidth } = processOperations(
+      componentGrid,
+      registers,
+    );
+    const formattedGates: SVGElement = formatGates(renderDataArray);
+    const measureGates: GateRenderData[] = flatten(renderDataArray).filter(
       ({ type }) => type === GateType.Measure,
     );
     const formattedRegs: SVGElement = formatRegisters(
@@ -183,9 +235,18 @@ export class Sqore {
     svg.style.setProperty("max-width", "fit-content");
 
     // Add styles
-    const css = document.createElement("style");
-    css.innerHTML = style(this.style);
-    svg.appendChild(css);
+    document.documentElement.style.setProperty(
+      "--minToolboxHeight",
+      `${minToolboxHeight}px`,
+    );
+    document.documentElement.style.setProperty(
+      "--minGateWidth",
+      `${minGateWidth}px`,
+    );
+    document.documentElement.style.setProperty(
+      "--gateHeight",
+      `${gateHeight}px`,
+    );
 
     // Add body elements
     elements.forEach((element: SVGElement) => svg.appendChild(element));
@@ -194,26 +255,29 @@ export class Sqore {
   }
 
   /**
-   * Depth-first traversal to assign unique ID to `operation`.
-   * The operation is assigned the id `id` and its `i`th child is recursively given
-   * the id `${id}-${i}`.
+   * Depth-first traversal to assign unique location string to `operation`.
+   * The operation is assigned the location `location` and its `i`th child
+   * in its `colIndex` column is recursively given the location
+   * `${location}-${colIndex},${i}`.
    *
    * @param operation Operation to be assigned.
-   * @param id: ID to assign to `operation`.
+   * @param location: Location to assign to `operation`.
    *
    */
-  private fillGateRegistry(operation: Operation, id: string): void {
+  private fillGateRegistry(operation: Operation, location: string): void {
     if (operation.dataAttributes == null) operation.dataAttributes = {};
-    operation.dataAttributes["id"] = id;
+    operation.dataAttributes["location"] = location;
     // By default, operations cannot be zoomed-out
     operation.dataAttributes["zoom-out"] = "false";
-    this.gateRegistry[id] = operation;
-    operation.children?.forEach((childOp, i) => {
-      this.fillGateRegistry(childOp, `${id}-${i}`);
-      if (childOp.dataAttributes == null) childOp.dataAttributes = {};
-      // Children operations can be zoomed out
-      childOp.dataAttributes["zoom-out"] = "true";
-    });
+    this.gateRegistry[location] = operation;
+    operation.children?.forEach((col, colIndex) =>
+      col.components.forEach((childOp, i) => {
+        this.fillGateRegistry(childOp, `${location}-${colIndex},${i}`);
+        if (childOp.dataAttributes == null) childOp.dataAttributes = {};
+        // Children operations can be zoomed out
+        childOp.dataAttributes["zoom-out"] = "true";
+      }),
+    );
     // Composite operations can be zoomed in
     operation.dataAttributes["zoom-in"] = (
       operation.children != null
@@ -223,27 +287,48 @@ export class Sqore {
   /**
    * Pick out operations that are at or below `renderDepth`.
    *
-   * @param operations List of circuit operations.
+   * @param componentGrid Circuit components.
    * @param renderDepth Initial layer depth at which to render gates.
    *
-   * @returns List of operations at or below specifed depth.
+   * @returns Grid of components at or below specified depth.
    */
   private selectOpsAtDepth(
-    operations: Operation[],
+    componentGrid: ComponentGrid,
     renderDepth: number,
-  ): Operation[] {
+  ): ComponentGrid {
     if (renderDepth < 0)
       throw new Error(
         `Invalid renderDepth of ${renderDepth}. Needs to be >= 0.`,
       );
-    if (renderDepth === 0) return operations;
-    return operations
-      .map((op) =>
-        op.children != null
-          ? this.selectOpsAtDepth(op.children, renderDepth - 1)
-          : op,
-      )
-      .flat();
+    if (renderDepth === 0) return componentGrid;
+    const selectedOps: ComponentGrid = [];
+    componentGrid.forEach((col) => {
+      const selectedCol: Operation[] = [];
+      const extraCols: Column[] = [];
+      col.components.forEach((op) => {
+        if (op.children != null) {
+          const selectedChildren = this.selectOpsAtDepth(
+            op.children,
+            renderDepth - 1,
+          );
+          if (selectedChildren.length > 0) {
+            selectedCol.push(...selectedChildren[0].components);
+            selectedChildren.slice(1).forEach((col, colIndex) => {
+              if (extraCols[colIndex] == null) extraCols[colIndex] = col;
+              // NOTE: I'm unsure if this is a safe way to combine column arrays
+              else extraCols[colIndex].components.push(...col.components);
+            });
+          }
+        } else {
+          selectedCol.push(op);
+        }
+        selectedOps.push({ components: selectedCol });
+        if (extraCols.length > 0) {
+          selectedOps.push(...extraCols);
+        }
+      });
+    });
+    return selectedOps;
   }
 
   /**
@@ -318,12 +403,12 @@ export class Sqore {
       // Zoom in on clicked gate
       ctrl.addEventListener("click", (ev: Event) => {
         const gateId: string | null | undefined =
-          ctrl.parentElement?.getAttribute("data-id");
+          ctrl.parentElement?.getAttribute("data-location");
         if (typeof gateId == "string") {
           if (ctrl.classList.contains("gate-collapse")) {
-            this.collapseOperation(circuit.operations, gateId);
+            this.collapseOperation(circuit.componentGrid, gateId);
           } else if (ctrl.classList.contains("gate-expand")) {
-            this.expandOperation(circuit.operations, gateId);
+            this.expandOperation(circuit.componentGrid, gateId);
           }
           this.renderCircuit(container, circuit);
 
@@ -336,41 +421,75 @@ export class Sqore {
   /**
    * Expand selected operation for zoom-in interaction.
    *
-   * @param operations List of circuit operations.
-   * @param id ID of operation to expand.
+   * @param componentGrid Grid of circuit components.
+   * @param location Location of operation to expand.
    *
    */
-  private expandOperation(operations: Operation[], id: string): void {
-    operations.forEach((op) => {
-      if (op.conditionalRender === ConditionalRender.AsGroup)
-        this.expandOperation(op.children || [], id);
-      if (op.dataAttributes == null) return op;
-      const opId: string = op.dataAttributes["id"];
-      if (opId === id && op.children != null) {
-        op.conditionalRender = ConditionalRender.AsGroup;
-        op.dataAttributes["expanded"] = "true";
-      }
-    });
+  private expandOperation(
+    componentGrid: ComponentGrid,
+    location: string,
+  ): void {
+    componentGrid.forEach((col) =>
+      col.components.forEach((op) => {
+        if (op.conditionalRender === ConditionalRender.AsGroup)
+          this.expandOperation(op.children || [], location);
+        if (op.dataAttributes == null) return op;
+        const opId: string = op.dataAttributes["location"];
+        if (opId === location && op.children != null) {
+          op.conditionalRender = ConditionalRender.AsGroup;
+          op.dataAttributes["expanded"] = "true";
+        }
+      }),
+    );
   }
 
   /**
    * Collapse selected operation for zoom-out interaction.
    *
-   * @param operations List of circuit operations.
-   * @param id ID of operation to collapse.
+   * @param componentGrid Grid of circuit components.
+   * @param parentLoc Location of operation to collapse.
    *
    */
-  private collapseOperation(operations: Operation[], parentId: string): void {
-    operations.forEach((op) => {
-      if (op.conditionalRender === ConditionalRender.AsGroup)
-        this.collapseOperation(op.children || [], parentId);
-      if (op.dataAttributes == null) return op;
-      const opId: string = op.dataAttributes["id"];
-      // Collapse parent gate and its children
-      if (opId.startsWith(parentId)) {
-        op.conditionalRender = ConditionalRender.Always;
-        delete op.dataAttributes["expanded"];
-      }
-    });
+  private collapseOperation(
+    componentGrid: ComponentGrid,
+    parentLoc: string,
+  ): void {
+    componentGrid.forEach((col) =>
+      col.components.forEach((op) => {
+        if (op.conditionalRender === ConditionalRender.AsGroup)
+          this.collapseOperation(op.children || [], parentLoc);
+        if (op.dataAttributes == null) return op;
+        const opId: string = op.dataAttributes["location"];
+        // Collapse parent gate and its children
+        if (opId.startsWith(parentLoc)) {
+          op.conditionalRender = ConditionalRender.Always;
+          delete op.dataAttributes["expanded"];
+        }
+      }),
+    );
   }
+
+  // Minimize the circuits in a circuit group to remove dataAttributes
+  minimizeCircuits(circuitGroup: CircuitGroup): CircuitGroup {
+    // Create a deep copy of the circuit group
+    const minimizedCircuits: CircuitGroup = JSON.parse(
+      JSON.stringify(circuitGroup),
+    );
+    minimizedCircuits.circuits.forEach((circuit) => {
+      circuit.componentGrid.forEach((col) => {
+        col.components.forEach(this.minimizeOperation);
+      });
+    });
+    return minimizedCircuits;
+  }
+
+  // Minimize the operation to remove dataAttributes
+  minimizeOperation = (operation: Operation): void => {
+    if (operation.children !== undefined) {
+      operation.children.forEach((col) =>
+        col.components.forEach(this.minimizeOperation),
+      );
+    }
+    operation.dataAttributes = undefined;
+  };
 }

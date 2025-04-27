@@ -5,8 +5,8 @@ use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     interop::{
-        compile_qasm3_to_qir, compile_qasm3_to_qsharp, compile_qasm_enriching_errors,
-        map_entry_compilation_errors, resource_estimate_qasm3, run_ast, run_qasm3, ImportResolver,
+        compile_qasm_enriching_errors, compile_qasm_to_qir, compile_qasm_to_qsharp,
+        map_entry_compilation_errors, resource_estimate_qasm, run_ast, run_qasm, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -79,12 +79,12 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
-    // QASM3 interop
+    // QASM interop
     m.add("QasmError", py.get_type::<QasmError>())?;
-    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm3_to_qsharp, m)?)?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_to_qsharp, m)?)?;
     Ok(())
 }
 
@@ -240,12 +240,12 @@ impl OutputSemantics {
     }
 }
 
-impl From<OutputSemantics> for qsc::qasm3::OutputSemantics {
+impl From<OutputSemantics> for qsc::qasm::OutputSemantics {
     fn from(output_semantics: OutputSemantics) -> Self {
         match output_semantics {
-            OutputSemantics::Qiskit => qsc::qasm3::OutputSemantics::Qiskit,
-            OutputSemantics::OpenQasm => qsc::qasm3::OutputSemantics::OpenQasm,
-            OutputSemantics::ResourceEstimation => qsc::qasm3::OutputSemantics::ResourceEstimation,
+            OutputSemantics::Qiskit => qsc::qasm::OutputSemantics::Qiskit,
+            OutputSemantics::OpenQasm => qsc::qasm::OutputSemantics::OpenQasm,
+            OutputSemantics::ResourceEstimation => qsc::qasm::OutputSemantics::ResourceEstimation,
         }
     }
 }
@@ -300,12 +300,12 @@ impl ProgramType {
     }
 }
 
-impl From<ProgramType> for qsc::qasm3::ProgramType {
+impl From<ProgramType> for qsc::qasm::ProgramType {
     fn from(output_semantics: ProgramType) -> Self {
         match output_semantics {
-            ProgramType::File => qsc::qasm3::ProgramType::File,
-            ProgramType::Operation => qsc::qasm3::ProgramType::Operation,
-            ProgramType::Fragments => qsc::qasm3::ProgramType::Fragments,
+            ProgramType::File => qsc::qasm::ProgramType::File,
+            ProgramType::Operation => qsc::qasm::ProgramType::Operation,
+            ProgramType::Fragments => qsc::qasm::ProgramType::Fragments,
         }
     }
 }
@@ -648,7 +648,7 @@ impl Interpreter {
     #[pyo3(
         signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
     )]
-    pub fn _run_qasm3(
+    pub fn _run_qasm(
         &mut self,
         py: Python,
         source: &str,
@@ -677,12 +677,12 @@ impl Interpreter {
             resolve_path,
             fetch_github,
         );
-        let resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
         let (package, _source_map, signature) = compile_qasm_enriching_errors(
             source,
             &operation_name,
-            &resolver,
+            &mut resolver,
             program_type,
             output_semantics,
             false,

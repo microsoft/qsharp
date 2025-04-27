@@ -375,7 +375,7 @@ def physical_estimates(logical_resources: str, params: str) -> str:
     """
     ...
 
-def resource_estimate_qasm3(
+def resource_estimate_qasm(
     source: str,
     job_params: str,
     read_file: Callable[[str], Tuple[str, str]],
@@ -385,7 +385,7 @@ def resource_estimate_qasm3(
     **kwargs
 ) -> str:
     """
-    Estimates the resource requirements for executing QASM3 source code.
+    Estimates the resource requirements for executing QASM source code.
 
     Note:
         This call while exported is not intended to be used directly by the user.
@@ -393,7 +393,7 @@ def resource_estimate_qasm3(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM3 source code to estimate the resource requirements for.
+        source (str): The QASM source code to estimate the resource requirements for.
         job_params (str): The parameters for the job.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
@@ -403,11 +403,11 @@ def resource_estimate_qasm3(
           - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
           - search_path (str): The optional search path for resolving imports.
     Returns:
-        str: The estimated resource requirements for executing the QASM3 source code.
+        str: The estimated resource requirements for executing the QASM source code.
     """
     ...
 
-def run_qasm3(
+def run_qasm(
     source: str,
     output_fn: Callable[[Output], None],
     read_file: Callable[[str], Tuple[str, str]],
@@ -417,7 +417,7 @@ def run_qasm3(
     **kwargs
 ) -> Any:
     """
-    Executes QASM3 source code using the specified target profile.
+    Executes QASM source code using the specified target profile.
 
     Note:
         This call while exported is not intended to be used directly by the user.
@@ -425,7 +425,7 @@ def run_qasm3(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM3 source code to execute.
+        source (str): The QASM source code to execute.
         output_fn (Callable[[Output], None]): The function to handle the output of the execution.
         read_file (Callable[[str], Tuple[str, str]]): The function to read a file and return its contents.
         list_directory (Callable[[str], List[Dict[str, str]]]): The function to list the contents of a directory.
@@ -443,7 +443,7 @@ def run_qasm3(
     """
     ...
 
-def compile_qasm3_to_qir(
+def compile_qasm_to_qir(
     source: str,
     read_file: Callable[[str], Tuple[str, str]],
     list_directory: Callable[[str], List[Dict[str, str]]],
@@ -460,7 +460,7 @@ def compile_qasm3_to_qir(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM3 source code to estimate the resource requirements for.
+        source (str): The QASM source code to estimate the resource requirements for.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
         resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
@@ -476,7 +476,7 @@ def compile_qasm3_to_qir(
     """
     ...
 
-def compile_qasm3_to_qsharp(
+def compile_qasm_to_qsharp(
     source: str,
     read_file: Callable[[str], Tuple[str, str]],
     list_directory: Callable[[str], List[Dict[str, str]]],
@@ -493,7 +493,7 @@ def compile_qasm3_to_qsharp(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM3 source code to estimate the resource requirements for.
+        source (str): The QASM source code to estimate the resource requirements for.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
         resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.

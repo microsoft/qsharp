@@ -146,12 +146,12 @@ export const text = (
   x: number,
   y: number,
   fs: number = labelFontSize,
-): SVGElement => {
-  const el: SVGElement = createSvgElement("text", {
+): SVGTextElement => {
+  const el = createSvgElement("text", {
     "font-size": fs.toString(),
     x: x.toString(),
     y: y.toString(),
-  });
+  }) as SVGTextElement;
   el.textContent = text;
   return el;
 };

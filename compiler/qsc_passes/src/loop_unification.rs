@@ -343,7 +343,7 @@ impl MutVisitor for LoopUni<'_> {
                 }
             }
             kind => expr.kind = kind,
-        };
+        }
     }
 }
 

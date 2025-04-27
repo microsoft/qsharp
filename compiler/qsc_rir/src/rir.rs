@@ -222,7 +222,7 @@ impl Display for CallableType {
             Self::OutputRecording => write!(f, "OutputRecording")?,
             Self::Regular => write!(f, "Regular")?,
             Self::Reset => write!(f, "Reset")?,
-        };
+        }
         Ok(())
     }
 }
@@ -246,7 +246,7 @@ impl Display for ConditionCode {
             Self::Sle => write!(f, "Sle")?,
             Self::Sgt => write!(f, "Sgt")?,
             Self::Sge => write!(f, "Sge")?,
-        };
+        }
         Ok(())
     }
 }
@@ -290,7 +290,7 @@ impl Display for FcmpConditionCode {
             Self::UnorderedOrNotEqual => write!(f, "Une")?,
             Self::Unordered => write!(f, "Uno")?,
             Self::True => write!(f, "True")?,
-        };
+        }
         Ok(())
     }
 }
@@ -491,7 +491,7 @@ impl Display for Instruction {
                 write_phi_instruction(f, args, *variable)?;
             }
             Self::Return => write!(f, "Return")?,
-        };
+        }
         Ok(())
     }
 }
@@ -577,7 +577,7 @@ impl Display for Ty {
             Self::Integer => write!(f, "Integer")?,
             Self::Double => write!(f, "Double")?,
             Self::Pointer => write!(f, "Pointer")?,
-        };
+        }
         Ok(())
     }
 }
@@ -633,7 +633,7 @@ impl Display for Literal {
             Self::Integer(i) => write!(f, "Integer({i})")?,
             Self::Double(d) => write!(f, "Double({d})")?,
             Self::Pointer => write!(f, "Pointer")?,
-        };
+        }
         Ok(())
     }
 }

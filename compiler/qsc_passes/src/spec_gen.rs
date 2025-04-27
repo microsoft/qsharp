@@ -262,7 +262,7 @@ impl MutVisitor for SpecImplPass<'_> {
                 SpecBody::Impl(..) => {}
                 SpecBody::Gen(_) => self.errors.push(Error::InvalidCtlGen(ctl.span)),
             }
-        };
+        }
 
         if let Some(adj) = adj.as_mut() {
             match adj.body {
@@ -300,6 +300,6 @@ impl MutVisitor for SpecImplPass<'_> {
                 SpecBody::Impl(..) => {}
                 SpecBody::Gen(_) => self.errors.push(Error::InvalidCtlAdjGen(ctl_adj.span)),
             }
-        };
+        }
     }
 }

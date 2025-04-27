@@ -90,7 +90,7 @@ impl GlobalTable {
                 // and recursively resolve it (it could be another export, i.e. a chain of exports.
                 self.handle_item(resolved_export, package_id, store);
             }
-        };
+        }
     }
 }
 

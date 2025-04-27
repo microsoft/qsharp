@@ -2,8 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
+    lint_groups::LintGroup,
     linter::{remove_duplicates, run_lints_without_deduplication},
-    Lint, LintLevel,
+    Lint, LintLevel, LintOrGroupConfig,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -95,6 +96,35 @@ fn set_keyword_lint() {
                             },
                         ),
                     ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn lint_group() {
+    check_with_config(
+        &wrap_in_callable("newtype Foo = ()", CallableKind::Operation),
+        Some(&[LintOrGroupConfig::Group(crate::GroupConfig {
+            lint_group: LintGroup::Deprecations,
+            level: LintLevel::Error,
+        })]),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "newtype Foo = ()",
+                    level: Error,
+                    message: "deprecated `newtype` declarations",
+                    help: "`newtype` declarations are deprecated, use `struct` instead",
+                    code_action_edits: [],
+                },
+                SrcLint {
+                    source: "RunProgram",
+                    level: Allow,
+                    message: "operation does not contain any quantum operations",
+                    help: "this callable can be declared as a function instead",
+                    code_action_edits: [],
                 },
             ]
         "#]],
@@ -759,7 +789,7 @@ fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializat
     );
 }
 
-fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
+fn compile_and_collect_lints(source: &str, config: Option<&[LintOrGroupConfig]>) -> Vec<Lint> {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.into())], None);
@@ -774,13 +804,21 @@ fn compile_and_collect_lints(source: &str) -> Vec<Lint> {
 
     let id = store.insert(unit);
     let unit = store.get(id).expect("user package should exist");
-
-    run_lints_without_deduplication(&store, unit, None)
+    run_lints_without_deduplication(&store, unit, config)
 }
 
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
-    let actual: Vec<_> = compile_and_collect_lints(&source)
+    let actual: Vec<_> = compile_and_collect_lints(&source, None)
+        .into_iter()
+        .map(|lint| SrcLint::from(&lint, &source))
+        .collect();
+    expected.assert_debug_eq(&actual);
+}
+
+fn check_with_config(source: &str, config: Option<&[LintOrGroupConfig]>, expected: &Expect) {
+    let source = wrap_in_namespace(source);
+    let actual: Vec<_> = compile_and_collect_lints(&source, config)
         .into_iter()
         .map(|lint| SrcLint::from(&lint, &source))
         .collect();
@@ -789,7 +827,7 @@ fn check(source: &str, expected: &Expect) {
 
 fn check_with_deduplication(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
-    let mut lints = compile_and_collect_lints(&source);
+    let mut lints = compile_and_collect_lints(&source, None);
     remove_duplicates(&mut lints);
     let actual: Vec<_> = lints
         .into_iter()

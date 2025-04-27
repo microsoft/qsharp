@@ -5,6 +5,7 @@
 mod tests;
 
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::fmt::Write;
 use std::{cell::RefCell, collections::BTreeMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
 pub const PRELUDE: [[&str; 2]; 5] = [
@@ -449,14 +450,17 @@ impl NamespaceTreeNode {
         if self.children.is_empty() {
             result.push_str("empty node");
         } else {
-            result.push_str(&format!("\n{indentation}  children: ["));
+            write!(result, "\n{indentation}  children: [")
+                .expect("writing to string should succeed");
             for (name, node) in &self.children {
-                result.push_str(&format!(
+                write!(
+                    result,
                     "\n{}    {}(id {}) {{",
                     indentation,
                     name,
                     Into::<usize>::into(node.borrow().id)
-                ));
+                )
+                .expect("writing to string should succeed");
                 result.push_str(
                     node.borrow()
                         .debug_print(indentation_level + 2, visited_nodes)
@@ -464,8 +468,8 @@ impl NamespaceTreeNode {
                 );
                 result.push(',');
             }
-            result.push_str(&format!("\n{indentation}  ]"));
-            result.push_str(&format!("\n{indentation}"));
+            write!(result, "\n{indentation}  ]").expect("writing to string should succeed");
+            write!(result, "\n{indentation}").expect("writing to string should succeed");
         }
         result.push('}');
         result

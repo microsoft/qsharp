@@ -37,3 +37,10 @@ export const labelFontSize = 14;
 export const argsFontSize = 12;
 /** Starting x coord for each register wire. */
 export const regLineStart = 40;
+
+// Toolbox
+/** Toolbox minimum height */
+export const minToolboxHeight = 150;
+/** Gap between gates in Toolbox Panel */
+export const horizontalGap = 10;
+export const verticalGap = 10;
