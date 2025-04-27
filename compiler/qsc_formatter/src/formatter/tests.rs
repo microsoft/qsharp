@@ -1193,9 +1193,9 @@ fn sample_has_no_formatting_changes() {
             @EntryPoint()
             operation Main() : (Result, Result[]) {
                 // Prepare an entangled state.
-                use qs = Qubit[2];  // |00⟩
-                H(qs[0]);           // 1/sqrt(2)(|00⟩ + |10⟩)
-                CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00⟩ + |11⟩)
+                use qs = Qubit[2];  // |00〉
+                H(qs[0]);           // 1/sqrt(2)(|00〉 + |10〉)
+                CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00〉 + |11〉)
 
                 // Show the quantum state before performing the joint measurement.
                 DumpMachine();
