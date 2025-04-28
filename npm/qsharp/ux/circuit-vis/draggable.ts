@@ -286,9 +286,6 @@ const _dropzoneLayer = (context: Context) => {
 
   const colArray = getColumnOffsetsAndWidths(container);
 
-  console.log("colArray", colArray);
-  console.log("operationGrid", operationGrid);
-
   // Create dropzones for each intersection of columns and wires
   for (let colIndex = 0; colIndex < colArray.length; colIndex++) {
     const columnOps = operationGrid[colIndex];
