@@ -1,5 +1,5 @@
 namespace Kata {
-    operation ThreeStates_TwoQubits (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation ThreeStates_TwoQubits (qs : Qubit[]) : Unit {
         // Implement your solution here...
 
     }  
