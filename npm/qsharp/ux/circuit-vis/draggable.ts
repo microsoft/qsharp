@@ -90,7 +90,16 @@ const createGhostElement = (
 
     updateDivLeftTop(ev);
 
+    const cleanup = () => {
+      container.removeEventListener("mousemove", updateDivLeftTop);
+      document.removeEventListener("mouseup", cleanup);
+      if (divElem.parentNode) {
+        divElem.parentNode.removeChild(divElem);
+      }
+    };
+
     container.addEventListener("mousemove", updateDivLeftTop);
+    document.addEventListener("mouseup", cleanup);
   } else {
     console.error("container not found");
   }
@@ -153,7 +162,16 @@ const createQubitLabelGhost = (
 
     updateDivLeftTop(ev);
 
+    const cleanup = () => {
+      container.removeEventListener("mousemove", updateDivLeftTop);
+      document.removeEventListener("mouseup", cleanup);
+      if (divElem.parentNode) {
+        divElem.parentNode.removeChild(divElem);
+      }
+    };
+
     container.addEventListener("mousemove", updateDivLeftTop);
+    document.addEventListener("mouseup", cleanup);
   } else {
     console.error("container not found");
   }

@@ -139,11 +139,6 @@ class CircuitEvents {
     const copying = ev.ctrlKey;
     this.container.classList.remove("moving", "copying");
     if (this.container) {
-      const ghostElem = this.container.querySelector(".ghost");
-      if (ghostElem) {
-        this.container.removeChild(ghostElem);
-      }
-
       for (const dropzone of this.temporaryDropzones) {
         if (dropzone.parentNode) {
           dropzone.parentNode.removeChild(dropzone);

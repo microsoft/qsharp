@@ -17,7 +17,7 @@ import { Register } from "./register";
  * @param obj2 - The second object or array to compare.
  * @returns True if the objects are deeply equal, false otherwise.
  */
-export const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
+const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
   if (obj1 === obj2) return true;
 
   if (
@@ -393,6 +393,7 @@ const mathChars = {
 };
 
 export {
+  deepEqual,
   createUUID,
   getGateWidth,
   getChildTargets,
