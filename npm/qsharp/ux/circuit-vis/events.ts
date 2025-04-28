@@ -719,50 +719,6 @@ class CircuitEvents {
     ) {
       removeQubitLineButton.addEventListener("click", () => {
         this.removeQubitLineWithConfirmation(this.qubits.length - 1);
-        // // Determines if the operation is associated with the last qubit line
-        // const check = (op: Operation) => {
-        //   const targets = op.kind === "measurement" ? op.results : op.targets;
-        //   if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
-        //     return true;
-        //   }
-        //   const controls =
-        //     op.kind === "measurement"
-        //       ? op.qubits
-        //       : op.kind === "ket"
-        //         ? []
-        //         : op.controls;
-        //   if (
-        //     controls &&
-        //     controls.some((reg) => reg.qubit == this.qubits.length - 1)
-        //   ) {
-        //     return true;
-        //   }
-        //   return false;
-        // };
-
-        // // Count number of operations associated with the last qubit line
-        // const numOperations = this.componentGrid.reduce(
-        //   (acc, column) =>
-        //     acc + column.components.filter((op) => check(op)).length,
-        //   0,
-        // );
-        // if (numOperations === 0) {
-        //   this.qubits.pop();
-        //   this.renderFn();
-        // } else {
-        //   const message =
-        //     numOperations === 1
-        //       ? `There is ${numOperations} operation associated with the last qubit line. Do you want to remove it?`
-        //       : `There are ${numOperations} operations associated with the last qubit line. Do you want to remove them?`;
-        //   _createConfirmPrompt(message, (confirmed) => {
-        //     if (confirmed) {
-        //       // Remove all operations associated with the last qubit line
-        //       findAndRemoveOperations(this.componentGrid, check);
-        //       this.qubits.pop();
-        //       this.renderFn();
-        //     }
-        //   });
-        // }
       });
       removeQubitLineButton.setAttribute("data-event-added", "true");
     }
