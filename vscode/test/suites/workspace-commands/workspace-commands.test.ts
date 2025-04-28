@@ -79,17 +79,10 @@ suite("Q# Copilot Instructions Tests", function suite() {
         "# Q# coding instructions",
         "File should contain the correct header",
       );
-      assert.include(
-        content,
-        "# Q# coding instructions",
-        "File should contain placeholder text",
-      );
     });
   });
 
   test("Command appends to existing file", async function () {
-    this.timeout(10000); // Increase timeout for this test
-
     // Create a test file first with different content
     const testContent =
       "# Existing instructions\n\nDo not remove this content.\n";
@@ -116,6 +109,7 @@ suite("Q# Copilot Instructions Tests", function suite() {
       );
 
       // Add a small delay to ensure file operations complete
+      // TODO: replace this with a condition check
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Verify the file was updated (not replaced)
@@ -134,17 +128,10 @@ suite("Q# Copilot Instructions Tests", function suite() {
         "Do not remove this content",
         "File should keep existing content",
       );
-      assert.include(
-        content,
-        "# Q# coding instructions",
-        "File should append Q# instructions header",
-      );
     });
   });
 
   test("Command does nothing when user selects 'No'", async function () {
-    this.timeout(10000); // Increase timeout for this test
-
     // Create a test file first with known content
     const testContent = "# Test content that should not change\n";
     const encoder = new TextEncoder();
@@ -170,6 +157,7 @@ suite("Q# Copilot Instructions Tests", function suite() {
       );
 
       // Add a small delay to ensure file operations complete
+      // TODO: replace this with a condition check
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Verify the file was not changed

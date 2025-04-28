@@ -11,10 +11,10 @@ import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
 import { CircuitEditorProvider } from "./circuitEditor.js";
 import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
-import { registerGhCopilotInstructionsCommand } from "./copilotInstructions.js";
 import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
+import { registerGhCopilotInstructionsCommand } from "./ghCopilot.js";
 import { activateLanguageService } from "./language-service/activate.js";
 import {
   Logging,

@@ -4,8 +4,42 @@
 import * as vscode from "vscode";
 import { log } from "../../npm/qsharp/dist/log";
 
+const qsharpCodingInstructionsTitle =
+  "# Q# coding instructions (updated April 2025)";
+
 /**
- * Command to update or create the copilot instructions file for Q#.
+ * Checks if the copilot-instructions.md file exists and contains Q# instructions.
+ *
+ * @param workspaceFolder The workspace folder URI.
+ * @returns A promise that resolves to true if the file exists and contains Q# instructions.
+ */
+async function hasQSharpCopilotInstructions(
+  workspaceFolder: vscode.Uri,
+): Promise<boolean> {
+  try {
+    const githubDir = vscode.Uri.joinPath(workspaceFolder, ".github");
+    const instructionsFile = vscode.Uri.joinPath(
+      githubDir,
+      "copilot-instructions.md",
+    );
+
+    // Check if file exists
+    await vscode.workspace.fs.stat(instructionsFile);
+
+    // Check if file contains Q# instructions
+    const existingContent =
+      await vscode.workspace.fs.readFile(instructionsFile);
+    const existingText = new TextDecoder("utf-8").decode(existingContent);
+
+    return existingText.includes(qsharpCodingInstructionsTitle);
+  } catch {
+    // If any error occurs (file not found, etc.), return false
+    return false;
+  }
+}
+
+/**
+ * Command to update or create the Copilot instructions file for Q#.
  * Shows a prompt to the user and updates the file if confirmed.
  */
 export async function updateGhCopilotInstructionsCommand() {
@@ -23,11 +57,21 @@ export async function updateGhCopilotInstructionsCommand() {
     return; // User canceled or dismissed the dialog
   }
 
-  // Ensure the .github directory exists in the workspace
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showErrorMessage("No workspace folder is open");
     return;
+  }
+
+  for (const folder of workspaceFolders) {
+    // Check if the file already exists with Q# instructions
+    const hasInstructions = await hasQSharpCopilotInstructions(folder.uri);
+    if (hasInstructions) {
+      vscode.window.showInformationMessage(
+        "copilot-instructions.md already contains Q# instructions",
+      );
+      return;
+    }
   }
 
   const workspaceFolder = workspaceFolders[0].uri;
@@ -39,7 +83,7 @@ export async function updateGhCopilotInstructionsCommand() {
       "copilot-instructions.md",
     );
 
-    const fileContent = `# Q# coding instructions
+    const fileContent = `${qsharpCodingInstructionsTitle}
 
 Follow these instructions when generating Q# code in .qs files,
 and Q# project folders tha include a \`qsharp.json\` file.
@@ -128,13 +172,8 @@ Circuit(qsharp.circuit("GHZSample(3)"))
 Note that the latest Q# and QDK releases don't require or use the old IQ# kernel. It just needs to the \`qsharp\` PyPI package,
 and maybe \`qsharp_widgets\` for visuals.`;
 
-    // Check if .github directory exists, create if it doesn't
-    try {
-      await vscode.workspace.fs.stat(githubDir);
-    } catch {
-      // Directory doesn't exist, create it
-      await vscode.workspace.fs.createDirectory(githubDir);
-    }
+    // Create .github directory if doesn't exist
+    await vscode.workspace.fs.createDirectory(githubDir);
 
     // Check if the file already exists
     try {
@@ -142,28 +181,22 @@ and maybe \`qsharp_widgets\` for visuals.`;
         await vscode.workspace.fs.readFile(instructionsFile);
       const existingText = new TextDecoder("utf-8").decode(existingContent);
 
-      if (!existingText.includes(fileContent.trim())) {
-        // Only append if the content isn't already there
-        const encoder = new TextEncoder();
-        const updatedContent = existingText + "\n\n" + fileContent;
-        await vscode.workspace.fs.writeFile(
-          instructionsFile,
-          encoder.encode(updatedContent),
-        );
-        vscode.window.showInformationMessage(
-          "Successfully updated copilot-instructions.md",
-        );
-      } else {
-        vscode.window.showInformationMessage(
-          "copilot-instructions.md already contains Q# instructions",
-        );
-      }
-    } catch {
-      // File doesn't exist, create it
-      const encoder = new TextEncoder();
+      // We've confirmed above that the file doesn't already contain Q# instructions,
+      // so append them.
+      const updatedContent = existingText + "\n\n" + fileContent;
       await vscode.workspace.fs.writeFile(
         instructionsFile,
-        encoder.encode(fileContent),
+        new TextEncoder().encode(updatedContent),
+      );
+
+      vscode.window.showInformationMessage(
+        "Successfully updated copilot-instructions.md",
+      );
+    } catch {
+      // File doesn't exist, create it
+      await vscode.workspace.fs.writeFile(
+        instructionsFile,
+        new TextEncoder().encode(fileContent),
       );
       vscode.window.showInformationMessage(
         "Successfully created copilot-instructions.md",
