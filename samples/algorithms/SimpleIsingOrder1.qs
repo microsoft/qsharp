@@ -1,9 +1,9 @@
 /// # Sample
-/// Simulation of a simple Ising model evolution on a 2D grid
+/// Simulation of a simple Ising model first-order evolution on a 2D grid
 ///
 /// # Description
 /// This sample demonstrates simulation of an Ising model Hamiltonian
-/// on N1xN2 2D grid using a second-order Trotter-Suzuki approximation.
+/// on N1xN2 2D grid using a first-order Trotter-Suzuki approximation.
 /// This sample can be easily simulated classically with 3x3 grid and
 /// about 1000 shots. This sample is suitable for Base Profile.
 /// For the purpose of simplicity this sample intentionally doesn't
@@ -67,7 +67,7 @@ operation IsingModel2DEvolution(
 
         // Single-qubit interaction with external field
         for q in qubits {
-            Rx(theta_x, q);
+            Rx(2.0 * theta_x, q);
         }
 
         // All Rzz gates applied in the following two loops commute so they can be
@@ -106,12 +106,8 @@ operation IsingModel2DEvolution(
 
         }
 
-        // Single-qubit interaction with external field
-        for q in qubits {
-            Rx(theta_x, q);
-        }
-
     }
 
     MResetEachZ(qubits)
 }
+ 
