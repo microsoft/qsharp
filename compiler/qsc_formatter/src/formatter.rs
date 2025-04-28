@@ -18,6 +18,7 @@ mod tests;
 
 /// Applies formatting rules to the give code str and returns
 /// the formatted string.
+#[must_use]
 pub fn format_str(code: &str) -> String {
     let mut edits = calculate_format_edits(code);
     edits.sort_by_key(|edit| edit.span.hi); // sort edits by their span's hi value from lowest to highest
@@ -34,6 +35,7 @@ pub fn format_str(code: &str) -> String {
 
 /// Applies formatting rules to the given code str, generating edits where
 /// the source code needs to be changed to comply with the format rules.
+#[must_use]
 pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
@@ -171,7 +173,7 @@ enum SpecDeclState {
 
 /// Enum for a token's status as a delimiter.
 /// `<` and `>` are delimiters only with type-parameter lists,
-/// which is determined using the TypeParameterListState enum.
+/// which is determined using the `TypeParameterListState` enum.
 #[derive(Clone, Copy)]
 enum Delimiter {
     // The token is an open delimiter. i.e. `{`, `[`, `(`, and sometimes `<`.
@@ -227,6 +229,7 @@ struct Formatter<'a> {
     import_export_state: ImportExportState,
 }
 
+#[allow(clippy::too_many_lines)]
 impl Formatter<'_> {
     fn apply_rules(
         &mut self,
@@ -243,7 +246,7 @@ impl Formatter<'_> {
         // when we get here, neither left nor right should be whitespace
 
         let are_newlines_in_spaces = whitespace.contains('\n');
-        let does_right_required_newline = matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
+        let does_right_required_newline = matches!(right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
 
         // Save the left token's status as a delimiter before updating the delimiter state
         let left_delim_state = Delimiter::from_concrete_token_kind(
@@ -271,7 +274,8 @@ impl Formatter<'_> {
             matches!(right.kind, Comment),
         );
 
-        match (&left.kind, &right.kind) {
+        #[allow(clippy::match_same_arms)]
+        match (left.kind, right.kind) {
             (Comment | Syntax(DocComment), _) => {
                 // remove whitespace at the ends of comments
                 effect_trim_comment(left, &mut edits, self.code);
@@ -407,19 +411,29 @@ impl Formatter<'_> {
                         self.indent_level,
                     );
                 }
-                (_, Keyword(Keyword::Until))
-                | (_, Keyword(Keyword::In))
-                | (_, Keyword(Keyword::As))
-                | (_, Keyword(Keyword::Elif))
-                | (_, Keyword(Keyword::Else))
-                | (_, Keyword(Keyword::Apply)) => {
+                (
+                    _,
+                    Keyword(
+                        Keyword::Until
+                        | Keyword::In
+                        | Keyword::As
+                        | Keyword::Elif
+                        | Keyword::Else
+                        | Keyword::Apply,
+                    ),
+                ) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
-                (_, Keyword(Keyword::Auto))
-                | (_, Keyword(Keyword::Distribute))
-                | (_, Keyword(Keyword::Intrinsic))
-                | (_, Keyword(Keyword::Invert))
-                | (_, Keyword(Keyword::Slf)) => {
+                (
+                    _,
+                    Keyword(
+                        Keyword::Auto
+                        | Keyword::Distribute
+                        | Keyword::Intrinsic
+                        | Keyword::Invert
+                        | Keyword::Slf,
+                    ),
+                ) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
                 (Close(Delim::Brace), _)
@@ -555,7 +569,7 @@ impl Formatter<'_> {
         }
     }
 
-    /// Updates the type_param_state of the FormatterState based
+    /// Updates the `type_param_state` of the `FormatterState` based
     /// on the left and right token kinds.
     fn update_type_param_state(
         &mut self,
@@ -615,7 +629,7 @@ impl Formatter<'_> {
     }
 
     /// Updates the indent level and manages the `delim_newlines_stack`
-    /// of the FormatterState.
+    /// of the `FormatterState`.
     /// Returns the current newline context.
     fn update_indent_level(
         &mut self,
@@ -678,7 +692,7 @@ fn get_token_contents<'a>(code: &'a str, token: &ConcreteToken) -> &'a str {
 
 // Rule Conditions
 
-fn is_bin_op(cooked: &TokenKind) -> bool {
+fn is_bin_op(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::Bar
@@ -698,16 +712,15 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
             | TokenKind::RArrow
             | TokenKind::WSlash
             | TokenKind::WSlashEq
-            | TokenKind::Keyword(Keyword::And)
-            | TokenKind::Keyword(Keyword::Or)
+            | TokenKind::Keyword(Keyword::And | Keyword::Or)
     )
 }
 
-fn is_prefix_with_space(cooked: &TokenKind) -> bool {
+fn is_prefix_with_space(cooked: TokenKind) -> bool {
     matches!(cooked, TokenKind::TildeTildeTilde)
 }
 
-fn is_prefix_without_space(cooked: &TokenKind) -> bool {
+fn is_prefix_without_space(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::ColonColon
@@ -717,22 +730,22 @@ fn is_prefix_without_space(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_prefix(cooked: &TokenKind) -> bool {
+fn is_prefix(cooked: TokenKind) -> bool {
     is_prefix_with_space(cooked)
         || is_prefix_without_space(cooked)
         || matches!(cooked, TokenKind::DotDotDot)
 }
 
-fn is_suffix(cooked: &TokenKind) -> bool {
+fn is_suffix(cooked: TokenKind) -> bool {
     matches!(cooked, TokenKind::Bang | TokenKind::Comma)
 }
 
-fn is_prefix_keyword(keyword: &Keyword) -> bool {
+fn is_prefix_keyword(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(keyword, Not | AdjointUpper | ControlledUpper)
 }
 
-fn is_keyword_value(keyword: &Keyword) -> bool {
+fn is_keyword_value(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(
         keyword,
@@ -742,7 +755,7 @@ fn is_keyword_value(keyword: &Keyword) -> bool {
     )
 }
 
-fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
+fn is_newline_keyword_or_ampersat(cooked: TokenKind) -> bool {
     use Keyword::*;
     matches!(
         cooked,
@@ -770,7 +783,7 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_starter_keyword(keyword: &Keyword) -> bool {
+fn is_starter_keyword(keyword: Keyword) -> bool {
     use Keyword::*;
     matches!(
         keyword,
@@ -778,14 +791,14 @@ fn is_starter_keyword(keyword: &Keyword) -> bool {
     )
 }
 
-fn is_newline_after_brace(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_newline_after_brace(cooked: TokenKind, delim_state: Delimiter) -> bool {
     is_value_token_right(cooked, delim_state)
         || matches!(cooked, TokenKind::Keyword(keyword) if is_starter_keyword(keyword))
         || matches!(cooked, TokenKind::Keyword(keyword) if is_prefix_keyword(keyword))
 }
 
 /// Note that this does not include interpolated string literals
-fn is_value_lit(cooked: &TokenKind) -> bool {
+fn is_value_lit(cooked: TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::BigInt(_)
@@ -795,7 +808,7 @@ fn is_value_lit(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_value_token_left(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_value_token_left(cooked: TokenKind, delim_state: Delimiter) -> bool {
     // a closed delim represents a value on the left
     if matches!(delim_state, Delimiter::Close) {
         return true;
@@ -811,7 +824,7 @@ fn is_value_token_left(cooked: &TokenKind, delim_state: Delimiter) -> bool {
     }
 }
 
-fn is_value_token_right(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+fn is_value_token_right(cooked: TokenKind, delim_state: Delimiter) -> bool {
     // an open delim represents a value on the right
     if matches!(delim_state, Delimiter::Open) {
         return true;

@@ -379,6 +379,19 @@ const getQubitLabelElems = (container: HTMLElement): SVGTextElement[] => {
   return Array.from(labelGroup.querySelectorAll<SVGTextElement>("text"));
 };
 
+// Non-ASCII chars are fraught with danger. Copy/paste these when possible.
+// Use the following regex in VS Code to find invalid unicode chars
+// [^\x20-\x7e\u{03b8}-\u{03c8}\u{2020}\u{27e8}\u{27e9}]
+
+const mathChars = {
+  theta: "θ", // \u{03b8}
+  pi: "π", // \u{03c0}
+  psi: "ψ", // \u{03c8}
+  dagger: "†", // \u{2020}
+  langle: "⟨", // \u{27e8}
+  rangle: "⟩", // \u{27e9}
+};
+
 export {
   createUUID,
   getGateWidth,
@@ -395,4 +408,5 @@ export {
   getHostElems,
   getGateElems,
   getQubitLabelElems,
+  mathChars,
 };
