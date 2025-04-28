@@ -159,9 +159,9 @@ pub const SIMPLEISINGORDER1_EXPECT: Expect =
 pub const SIMPLEISINGORDER1_EXPECT_DEBUG: Expect =
     expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
 pub const SIMPLEISINGORDER2_EXPECT: Expect =
-    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, Zero, One]"];
 pub const SIMPLEISINGORDER2_EXPECT_DEBUG: Expect =
-    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
+    expect!["[Zero, Zero, Zero, One, One, Zero, One, Zero, One]"];
 pub const SIMPLEVQE_EXPECT: Expect = expect![[r#"
    Beginning descent from value 0.43300000000000005.
    Value improved to 0.35300000000000004.
