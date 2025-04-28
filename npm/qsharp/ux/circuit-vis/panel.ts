@@ -280,7 +280,7 @@ const _makeUnitary = (gate: string): Unitary => {
   return {
     kind: "unitary",
     gate: gate,
-    targets: [{ qubit: 0 }],
+    targets: [],
   };
 };
 
@@ -294,8 +294,8 @@ const _makeMeasurement = (gate: string): Measurement => {
   return {
     kind: "measurement",
     gate: gate,
-    qubits: [{ qubit: 0 }],
-    results: [{ qubit: 0, result: 0 }],
+    qubits: [],
+    results: [],
   };
 };
 
@@ -303,7 +303,7 @@ const _makeKet = (gate: string): Ket => {
   return {
     kind: "ket",
     gate: gate,
-    targets: [{ qubit: 0 }],
+    targets: [],
   };
 };
 

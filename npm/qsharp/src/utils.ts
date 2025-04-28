@@ -204,6 +204,23 @@ export function getRanges(data: SeriesOfPoints, rangeCoefficient: number) {
 }
 
 /**
+ * Returns all registers (targets and controls) involved in an operation.
+ *
+ * @param operation The operation for which to get the registers.
+ * @returns An array of Register objects involved in the operation.
+ */
+export function getOperationRegisters(operation: Operation): Register[] {
+  switch (operation.kind) {
+    case "unitary":
+      return [...operation.targets, ...(operation.controls || [])];
+    case "ket":
+      return operation.targets;
+    case "measurement":
+      return [...operation.qubits, ...(operation.results || [])];
+  }
+}
+
+/**
  * Get the minimum and maximum register indices for a given operation.
  *
  * @param operation The operation for which to get the register indices.

@@ -27,13 +27,13 @@ import {
 } from "./circuitManipulation";
 import {
   createGhostElement,
+  createQubitLabelGhost,
   createWireDropzone,
   getColumnOffsetsAndWidths,
   makeDropzoneBox,
   removeAllWireDropzones,
 } from "./draggable";
-import { getMinMaxRegIdx } from "../../src/utils";
-import { Register } from "./register";
+import { getMinMaxRegIdx, getOperationRegisters } from "../../src/utils";
 
 let events: CircuitEvents | null = null;
 
@@ -140,13 +140,14 @@ class CircuitEvents {
     this.container.classList.remove("moving", "copying");
     if (this.container) {
       const ghostElem = this.container.querySelector(".ghost");
+      if (ghostElem) {
+        this.container.removeChild(ghostElem);
+      }
+
       for (const dropzone of this.temporaryDropzones) {
         if (dropzone.parentNode) {
           dropzone.parentNode.removeChild(dropzone);
         }
-      }
-      if (ghostElem) {
-        this.container.removeChild(ghostElem);
       }
 
       // Handle deleting operations that have been dragged outside the circuit
@@ -173,9 +174,14 @@ class CircuitEvents {
             removeOperation(this, selectedLocation);
           }
           this.renderFn();
+        } else if (this.selectedWire != null) {
+          // If we are dragging a qubit line, remove it
+          this.removeQubitLineWithConfirmation(this.selectedWire);
         }
       }
     }
+    this.selectedOperation = null;
+    this.selectedWire = null;
     this.dragging = false;
     this.disableLeftAutoScroll = false;
     this.movingControl = false;
@@ -569,9 +575,6 @@ class CircuitEvents {
   ) => {
     if (sourceWire === targetWire || sourceWire == null || targetWire == null)
       return;
-    console.log(
-      `Qubit line drop: sourceIndex=${sourceWire}, targetWire=${targetWire}`,
-    );
 
     // Helper to move an array element
     function moveArrayElement<T>(arr: T[], from: number, to: number) {
@@ -602,20 +605,7 @@ class CircuitEvents {
     // Update all operations in componentGrid to reflect new qubit order
     for (const column of this.componentGrid) {
       for (const op of column.components) {
-        let regs: Register[];
-        switch (op.kind) {
-          case "unitary":
-            regs = [...op.targets, ...(op.controls || [])];
-            break;
-          case "ket":
-            regs = op.targets;
-            break;
-          case "measurement":
-            regs = [...op.qubits, ...(op.results || [])];
-            break;
-        }
-
-        regs.forEach((reg) => {
+        getOperationRegisters(op).forEach((reg) => {
           if (isBetween) {
             // Move: update qubit indices
             if (reg.qubit === sourceWire) {
@@ -653,10 +643,13 @@ class CircuitEvents {
     elems.forEach((elem) => {
       elem.addEventListener("mousedown", (ev: MouseEvent) => {
         ev.stopPropagation();
+        this._createQubitLabelGhost(ev, elem);
+
         const sourceIndexStr = elem.getAttribute("data-wire");
         const sourceWire =
           sourceIndexStr != null ? parseInt(sourceIndexStr) : null;
         if (sourceWire == null) return;
+        this.selectedWire = sourceWire;
 
         // Dropzones ON each wire (skip self)
         for (
@@ -725,52 +718,106 @@ class CircuitEvents {
       !removeQubitLineButton.hasAttribute("data-event-added")
     ) {
       removeQubitLineButton.addEventListener("click", () => {
-        // Determines if the operation is associated with the last qubit line
-        const check = (op: Operation) => {
-          const targets = op.kind === "measurement" ? op.results : op.targets;
-          if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
-            return true;
-          }
-          const controls =
-            op.kind === "measurement"
-              ? op.qubits
-              : op.kind === "ket"
-                ? []
-                : op.controls;
-          if (
-            controls &&
-            controls.some((reg) => reg.qubit == this.qubits.length - 1)
-          ) {
-            return true;
-          }
-          return false;
-        };
+        this.removeQubitLineWithConfirmation(this.qubits.length - 1);
+        // // Determines if the operation is associated with the last qubit line
+        // const check = (op: Operation) => {
+        //   const targets = op.kind === "measurement" ? op.results : op.targets;
+        //   if (targets.some((reg) => reg.qubit == this.qubits.length - 1)) {
+        //     return true;
+        //   }
+        //   const controls =
+        //     op.kind === "measurement"
+        //       ? op.qubits
+        //       : op.kind === "ket"
+        //         ? []
+        //         : op.controls;
+        //   if (
+        //     controls &&
+        //     controls.some((reg) => reg.qubit == this.qubits.length - 1)
+        //   ) {
+        //     return true;
+        //   }
+        //   return false;
+        // };
 
-        // Count number of operations associated with the last qubit line
-        const numOperations = this.componentGrid.reduce(
-          (acc, column) =>
-            acc + column.components.filter((op) => check(op)).length,
-          0,
-        );
-        if (numOperations === 0) {
-          this.qubits.pop();
-          this.renderFn();
-        } else {
-          const message =
-            numOperations === 1
-              ? `There is ${numOperations} operation associated with the last qubit line. Do you want to remove it?`
-              : `There are ${numOperations} operations associated with the last qubit line. Do you want to remove them?`;
-          _createConfirmPrompt(message, (confirmed) => {
-            if (confirmed) {
-              // Remove all operations associated with the last qubit line
-              findAndRemoveOperations(this.componentGrid, check);
-              this.qubits.pop();
-              this.renderFn();
-            }
-          });
-        }
+        // // Count number of operations associated with the last qubit line
+        // const numOperations = this.componentGrid.reduce(
+        //   (acc, column) =>
+        //     acc + column.components.filter((op) => check(op)).length,
+        //   0,
+        // );
+        // if (numOperations === 0) {
+        //   this.qubits.pop();
+        //   this.renderFn();
+        // } else {
+        //   const message =
+        //     numOperations === 1
+        //       ? `There is ${numOperations} operation associated with the last qubit line. Do you want to remove it?`
+        //       : `There are ${numOperations} operations associated with the last qubit line. Do you want to remove them?`;
+        //   _createConfirmPrompt(message, (confirmed) => {
+        //     if (confirmed) {
+        //       // Remove all operations associated with the last qubit line
+        //       findAndRemoveOperations(this.componentGrid, check);
+        //       this.qubits.pop();
+        //       this.renderFn();
+        //     }
+        //   });
+        // }
       });
       removeQubitLineButton.setAttribute("data-event-added", "true");
+    }
+  }
+
+  /**
+   * Removes a qubit line by index, with confirmation if it has associated operations.
+   * @param qubitIdx The index of the qubit to remove.
+   */
+  removeQubitLineWithConfirmation(qubitIdx: number) {
+    // Determines if the operation is associated with the qubit line
+    const check = (op: Operation) => {
+      return getOperationRegisters(op).some((reg) => reg.qubit == qubitIdx);
+    };
+
+    // Count number of operations associated with the qubit line
+    const numOperations = this.componentGrid.reduce(
+      (acc, column) => acc + column.components.filter((op) => check(op)).length,
+      0,
+    );
+
+    const doRemove = () => {
+      // Remove the qubit
+      this.qubits.splice(qubitIdx, 1);
+
+      // Update all remaining operation references
+      for (const column of this.componentGrid) {
+        for (const op of column.components) {
+          getOperationRegisters(op).forEach((reg) => {
+            if (reg.qubit > qubitIdx) reg.qubit -= 1;
+          });
+        }
+      }
+
+      // Update qubit ids to match their new positions
+      this.qubits.forEach((q, idx) => {
+        q.id = idx;
+      });
+
+      this.renderFn();
+    };
+
+    if (numOperations === 0) {
+      doRemove();
+    } else {
+      const message =
+        numOperations === 1
+          ? `There is ${numOperations} operation associated with this qubit line. Do you want to remove it?`
+          : `There are ${numOperations} operations associated with this qubit line. Do you want to remove them?`;
+      _createConfirmPrompt(message, (confirmed) => {
+        if (confirmed) {
+          findAndRemoveOperations(this.componentGrid, check);
+          doRemove();
+        }
+      });
     }
   }
 
@@ -795,6 +842,12 @@ class CircuitEvents {
       this.selectedOperation,
       this.movingControl,
     );
+  }
+
+  _createQubitLabelGhost(ev: MouseEvent, elem: SVGTextElement) {
+    this.dragging = true;
+    this._enableAutoScroll();
+    createQubitLabelGhost(ev, this.container, elem);
   }
 
   /**

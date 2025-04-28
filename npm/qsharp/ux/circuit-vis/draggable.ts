@@ -97,6 +97,69 @@ const createGhostElement = (
 };
 
 /**
+ * Creates a ghost element for dragging a qubit line label.
+ *
+ * @param ev The mouse event that triggered the drag.
+ * @param container The HTML container element where the ghost will be appended.
+ * @param labelElem The SVGTextElement representing the qubit label to be cloned (including any tspans or formatting).
+ */
+const createQubitLabelGhost = (
+  ev: MouseEvent,
+  container: HTMLElement,
+  labelElem: SVGTextElement,
+) => {
+  const ghostGate: Operation = {
+    kind: "unitary",
+    gate: "?", // This will be replaced by the label elem
+    targets: [],
+  };
+  const ghostRenderData = toRenderData(ghostGate, 0, 0);
+  const ghost = formatGate(ghostRenderData) as SVGElement;
+
+  // Replace the placeholder text with the label element
+  const placeholderText = ghost.querySelector(".qs-maintext");
+  if (placeholderText) {
+    // Remove all children from placeholderText
+    while (placeholderText.firstChild) {
+      placeholderText.removeChild(placeholderText.firstChild);
+    }
+    // Clone and append each child from labelElem
+    for (const child of Array.from(labelElem.childNodes)) {
+      placeholderText.appendChild(child.cloneNode(true));
+    }
+    placeholderText.setAttribute(
+      "font-size",
+      labelElem.getAttribute("font-size") || "16",
+    );
+  }
+
+  // Generate svg element to wrap around ghost element
+  const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgElem.append(ghost);
+
+  // Generate div element to wrap around svg element
+  const divElem = document.createElement("div");
+  divElem.classList.add("ghost");
+  divElem.appendChild(svgElem);
+  divElem.style.position = "fixed";
+
+  if (container) {
+    container.appendChild(divElem);
+    const ghostRect = ghost.getBoundingClientRect();
+    const updateDivLeftTop = (ev: MouseEvent) => {
+      divElem.style.left = `${ev.clientX - ghostRect.width / 2}px`;
+      divElem.style.top = `${ev.clientY - ghostRect.height / 2}px`;
+    };
+
+    updateDivLeftTop(ev);
+
+    container.addEventListener("mousemove", updateDivLeftTop);
+  } else {
+    console.error("container not found");
+  }
+};
+
+/**
  * Create a dropzone element that spans the length of the wire.
  *
  * @param circuitSvg The SVG element representing the circuit.
@@ -391,6 +454,7 @@ const makeDropzoneBox = (
 export {
   createDragzones,
   createGhostElement,
+  createQubitLabelGhost,
   createWireDropzone,
   removeAllWireDropzones,
   getColumnOffsetsAndWidths,
