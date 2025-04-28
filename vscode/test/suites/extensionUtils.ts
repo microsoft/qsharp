@@ -112,3 +112,31 @@ export async function delay(timeoutMs: number) {
     // expected
   }
 }
+
+/**
+ * Temporarily overrides the `showInformationMessage` function.
+ *
+ * @param responseToReturn The response to return from the mocked function (e.g., "Yes" or "No")
+ * @param callback The function to execute while the mock is active
+ * @returns The result of the callback function
+ */
+export async function withMockedInfoMessage<T>(
+  responseToReturn: string | undefined,
+  callback: () => Promise<T>,
+): Promise<T> {
+  // Save the original function
+  const originalShowInformationMessage = vscode.window.showInformationMessage;
+
+  // Override with mock that returns the specified response
+  vscode.window.showInformationMessage = async () => {
+    return Promise.resolve(responseToReturn);
+  };
+
+  try {
+    // Execute the callback with the mock active
+    return await callback();
+  } finally {
+    // Restore the original function
+    vscode.window.showInformationMessage = originalShowInformationMessage;
+  }
+}
