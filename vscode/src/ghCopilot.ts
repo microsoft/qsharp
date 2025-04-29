@@ -158,12 +158,16 @@ async function updateGhCopilotInstructionsCommand() {
   }
 
   // TODO: choose a workspace folder more intelligently
-  const workspaceFolder = workspaceFolders[0].uri;
 
-  return await updateCopilotInstructions(workspaceFolder);
+  return await updateCopilotInstructions(workspaceFolders[0].uri);
 }
 
 export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
+  if (!(await hasQSharpCopilotInstructions(workspaceFolder))) {
+    // If the file already exists and contains Q# instructions, do nothing
+    return;
+  }
+
   sendTelemetryEvent(EventType.UpdateCopilotInstructionsStart, {}, {});
 
   // Show a yes/no prompt to the user
