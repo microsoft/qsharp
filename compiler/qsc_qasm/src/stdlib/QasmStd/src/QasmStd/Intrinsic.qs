@@ -1,6 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// This file defines the standard gates for OpenQASM and Qiskit.
+/// It is an internal implementation detail for OpenQASM compilation
+/// and is not intended for use outside of this context.
+
+
 // stdgates.inc, gates with implied modifiers are omitted as they are mapped
 // to the base gate with modifiers in the lowerer.
 export gphase, U, p, x, y, z, h, s, sdg, t, tdg, sx, rx, ry, rz, cx, cp, swap, ccx, cu, phase, id, u1, u2, u3;
@@ -15,56 +20,58 @@ export rxx, ryy, rzz;
 // that Qiskit wont emit correctly.
 export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
 
+export __quantum__qis__barrier__body;
+
 import Angle.*;
 
 import Std.Intrinsic.*;
 
-function ZERO_ANGLE() : __Angle__ {
-    return __DoubleAsAngle__(0., 1);
+function ZERO_ANGLE() : Angle {
+    return DoubleAsAngle(0., 1);
 }
 
-function PI_OVER_2() : __Angle__ {
-    return __DoubleAsAngle__(Std.Math.PI() / 2., 53);
+function PI_OVER_2() : Angle {
+    return DoubleAsAngle(Std.Math.PI() / 2., 53);
 }
 
-function PI_OVER_4() : __Angle__ {
-    return __DoubleAsAngle__(Std.Math.PI() / 4., 53);
+function PI_OVER_4() : Angle {
+    return DoubleAsAngle(Std.Math.PI() / 4., 53);
 }
 
-function PI_OVER_8() : __Angle__ {
-    return __DoubleAsAngle__(Std.Math.PI() / 8., 53);
+function PI_OVER_8() : Angle {
+    return DoubleAsAngle(Std.Math.PI() / 8., 53);
 }
 
-function PI_ANGLE() : __Angle__ {
-    return __DoubleAsAngle__(Std.Math.PI(), 53);
+function PI_ANGLE() : Angle {
+    return DoubleAsAngle(Std.Math.PI(), 53);
 }
 
-function NEG_PI_OVER_2() : __Angle__ {
-    return __DoubleAsAngle__(-Std.Math.PI() / 2., 53);
+function NEG_PI_OVER_2() : Angle {
+    return DoubleAsAngle(-Std.Math.PI() / 2., 53);
 }
 
-function NEG_PI_OVER_4() : __Angle__ {
-    return __DoubleAsAngle__(-Std.Math.PI() / 4., 53);
+function NEG_PI_OVER_4() : Angle {
+    return DoubleAsAngle(-Std.Math.PI() / 4., 53);
 }
 
-function NEG_PI_OVER_8() : __Angle__ {
-    return __DoubleAsAngle__(-Std.Math.PI() / 8., 53);
+function NEG_PI_OVER_8() : Angle {
+    return DoubleAsAngle(-Std.Math.PI() / 8., 53);
 }
 
-operation gphase(theta : __Angle__) : Unit is Adj + Ctl {
+operation gphase(theta : Angle) : Unit is Adj + Ctl {
     body ... {
-        Exp([], __AngleAsDouble__(theta), [])
+        Exp([], AngleAsDouble(theta), [])
     }
     adjoint auto;
     controlled auto;
     controlled adjoint auto;
 }
 
-operation U(theta : __Angle__, phi : __Angle__, lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
+operation U(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     body ... {
-        let theta = __AngleAsDouble__(theta);
-        let phi = __AngleAsDouble__(phi);
-        let lambda = __AngleAsDouble__(lambda);
+        let theta = AngleAsDouble(theta);
+        let phi = AngleAsDouble(phi);
+        let lambda = AngleAsDouble(lambda);
 
         Rz(lambda, qubit);
         Ry(theta, qubit);
@@ -76,7 +83,7 @@ operation U(theta : __Angle__, phi : __Angle__, lambda : __Angle__, qubit : Qubi
     controlled adjoint auto;
 }
 
-operation p(lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
+operation p(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     Controlled gphase([qubit], lambda);
 }
 
@@ -117,18 +124,18 @@ operation sx(qubit : Qubit) : Unit is Adj + Ctl {
     Adjoint R(PauliI, Std.Math.PI() / 2., qubit);
 }
 
-operation rx(theta : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    let theta = __AngleAsDouble__(theta);
+operation rx(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
     Rx(theta, qubit);
 }
 
-operation ry(theta : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    let theta = __AngleAsDouble__(theta);
+operation ry(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
     Ry(theta, qubit);
 }
 
-operation rz(theta : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    let theta = __AngleAsDouble__(theta);
+operation rz(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    let theta = AngleAsDouble(theta);
     Rz(theta, qubit);
 }
 
@@ -136,7 +143,7 @@ operation cx(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
     CNOT(ctrl, qubit);
 }
 
-operation cp(lambda : __Angle__, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
+operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
     Controlled p([ctrl], (lambda, qubit));
 }
 
@@ -148,13 +155,13 @@ operation ccx(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     CCNOT(ctrl1, ctrl2, target);
 }
 
-operation cu(theta : __Angle__, phi : __Angle__, lambda : __Angle__, gamma : __Angle__, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
-    p(__SubtractAngles__(gamma, __DivideAngleByInt__(theta, 2)), qubit1);
+operation cu(theta : Angle, phi : Angle, lambda : Angle, gamma : Angle, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
+    p(SubtractAngles(gamma, DivideAngleByInt(theta, 2)), qubit1);
     Controlled U([qubit2], (theta, phi, lambda, qubit1));
 }
 
 // Gates for OpenQASM 2 backwards compatibility
-operation phase(lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
+operation phase(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     U(ZERO_ANGLE(), ZERO_ANGLE(), lambda, qubit);
 }
 
@@ -162,14 +169,14 @@ operation id(qubit : Qubit) : Unit is Adj + Ctl {
     I(qubit)
 }
 
-operation u1(lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
+operation u1(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     U(ZERO_ANGLE(), ZERO_ANGLE(), lambda, qubit);
 }
 
-operation u2(phi : __Angle__, lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    gphase(__NegAngle__(__DivideAngleByInt__(__AddAngles__(
+operation u2(phi : Angle, lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    gphase(NegAngle(DivideAngleByInt(AddAngles(
         phi,
-        __AddAngles__(
+        AddAngles(
             lambda,
             PI_OVER_2()
         )
@@ -178,10 +185,10 @@ operation u2(phi : __Angle__, lambda : __Angle__, qubit : Qubit) : Unit is Adj +
     U(PI_OVER_2(), phi, lambda, qubit);
 }
 
-operation u3(theta : __Angle__, phi : __Angle__, lambda : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    gphase(__NegAngle__(__DivideAngleByInt__(__AddAngles__(
+operation u3(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    gphase(NegAngle(DivideAngleByInt(AddAngles(
         phi,
-        __AddAngles__(
+        AddAngles(
             lambda,
             theta
         )
@@ -192,18 +199,18 @@ operation u3(theta : __Angle__, phi : __Angle__, lambda : __Angle__, qubit : Qub
 
 
 /// rxx: gate rxx(theta) a, b { h a; h b; cx a, b; rz(theta) b; cx a, b; h b; h a; }
-operation rxx(theta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Rxx(__AngleAsDouble__(theta), qubit0, qubit1);
+operation rxx(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+    Rxx(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// ryy: gate ryy(theta) a, b { rx(pi/2) a; rx(pi/2) b; cx a, b; rz(theta) b; cx a, b; rx(-pi/2) a; rx(-pi/2) b; }
-operation ryy(theta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Ryy(__AngleAsDouble__(theta), qubit0, qubit1);
+operation ryy(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+    Ryy(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// rzz: gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-operation rzz(theta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Rzz(__AngleAsDouble__(theta), qubit0, qubit1);
+operation rzz(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+    Rzz(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// Double-CNOT gate.
@@ -228,8 +235,8 @@ operation ecr(qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
 
 /// Rotation θ around the cos(φ)x + sin(φ)y axis.
 /// `gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}`
-operation r(theta : __Angle__, phi : __Angle__, qubit : Qubit) : Unit is Adj + Ctl {
-    u3(theta, PI_OVER_4(), __SubtractAngles__(
+operation r(theta : Angle, phi : Angle, qubit : Qubit) : Unit is Adj + Ctl {
+    u3(theta, PI_OVER_4(), SubtractAngles(
         phi,
         NEG_PI_OVER_2()
     ), qubit);
@@ -237,7 +244,7 @@ operation r(theta : __Angle__, phi : __Angle__, qubit : Qubit) : Unit is Adj + C
 
 /// A parametric 2-qubit `Z ⊗ X` interaction (rotation about ZX).
 /// `gate rzx(theta) a, b { h b; cx a, b; u1(theta) b; cx a, b; h b; }`
-operation rzx(theta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+operation rzx(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
     h(qubit1);
     cx(qubit0, qubit1);
     u1(theta, qubit1);
@@ -281,7 +288,7 @@ operation csx(qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
 ///     u1(lambda/2) b;
 /// }
 /// ```
-operation cu1(lambda : __Angle__, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
+operation cu1(lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
     Controlled u1([ctrl], (lambda, target));
 }
 
@@ -297,7 +304,7 @@ operation cu1(lambda : __Angle__, ctrl : Qubit, target : Qubit) : Unit is Adj + 
 ///     u3(theta/2,phi,0) t;
 /// }
 /// ```
-operation cu3(theta : __Angle__, phi : __Angle__, lambda : __Angle__, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
+operation cu3(theta : Angle, phi : Angle, lambda : Angle, ctrl : Qubit, target : Qubit) : Unit is Adj + Ctl {
     Controlled u3([ctrl], (theta, phi, lambda, target));
 }
 
@@ -508,15 +515,15 @@ operation rc3x(a : Qubit, b : Qubit, c : Qubit, d : Qubit) : Unit is Adj + Ctl {
 ///     rz(beta) b;
 /// }
 /// ```
-operation xx_minus_yy(theta : __Angle__, beta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    rz(__NegAngle__(beta), qubit1);
+operation xx_minus_yy(theta : Angle, beta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+    rz(NegAngle(beta), qubit1);
     rz(NEG_PI_OVER_2(), qubit0);
     sx(qubit0);
     rz(PI_OVER_2(), qubit0);
     s(qubit1);
     cx(qubit0, qubit1);
-    ry(__DivideAngleByInt__(theta, 2), qubit0);
-    ry(__NegAngle__(__DivideAngleByInt__(theta, 2)), qubit1);
+    ry(DivideAngleByInt(theta, 2), qubit0);
+    ry(NegAngle(DivideAngleByInt(theta, 2)), qubit1);
     cx(qubit0, qubit1);
     sdg(qubit1);
     rz(NEG_PI_OVER_2(), qubit0);
@@ -544,21 +551,21 @@ operation xx_minus_yy(theta : __Angle__, beta : __Angle__, qubit0 : Qubit, qubit
 ///     rz(-beta) b;
 /// }
 /// ```
-operation xx_plus_yy(theta : __Angle__, beta : __Angle__, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
+operation xx_plus_yy(theta : Angle, beta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
     rz(beta, qubit1);
     rz(NEG_PI_OVER_2(), qubit0);
     sx(qubit0);
     rz(PI_OVER_2(), qubit0);
     s(qubit1);
     cx(qubit0, qubit1);
-    ry(__DivideAngleByInt__(theta, 2), qubit0);
-    ry(__DivideAngleByInt__(theta, 2), qubit1);
+    ry(DivideAngleByInt(theta, 2), qubit0);
+    ry(DivideAngleByInt(theta, 2), qubit1);
     cx(qubit0, qubit1);
     sdg(qubit1);
     rz(NEG_PI_OVER_2(), qubit0);
     sxdg(qubit0);
     rz(PI_OVER_2(), qubit0);
-    rz(__NegAngle__(beta), qubit1);
+    rz(NegAngle(beta), qubit1);
 }
 
 /// CCZ gate.
@@ -568,3 +575,11 @@ operation ccz(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl 
     ccx(ctrl1, ctrl2, target);
     h(target);
 }
+
+/// The ``BARRIER`` function is used to implement the `barrier` statement in QASM.
+/// The `@SimulatableIntrinsic` attribute is used to mark the operation for QIR
+/// generation.
+/// Q# doesn't support barriers, so this is a no-op. We need to figure out what
+/// barriers mean in the context of QIR in the future for better support.
+@SimulatableIntrinsic()
+operation __quantum__qis__barrier__body() : Unit {}

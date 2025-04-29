@@ -16,8 +16,6 @@ fn cy_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
@@ -38,8 +36,6 @@ fn cz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
@@ -60,8 +56,6 @@ fn ch_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
@@ -81,8 +75,6 @@ fn sdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         Adjoint s(q);
@@ -101,8 +93,6 @@ fn tdg_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         Adjoint t(q);
@@ -122,12 +112,10 @@ fn crx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rx([ctl], (__DoubleAsAngle__(0.5, 53), target));
+        Controlled rx([ctl], (QasmStd.Angle.DoubleAsAngle(0.5, 53), target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -144,12 +132,10 @@ fn cry_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled ry([ctl], (__DoubleAsAngle__(0.5, 53), target));
+        Controlled ry([ctl], (QasmStd.Angle.DoubleAsAngle(0.5, 53), target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -166,12 +152,10 @@ fn crz_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled rz([ctl], (__DoubleAsAngle__(0.5, 53), target));
+        Controlled rz([ctl], (QasmStd.Angle.DoubleAsAngle(0.5, 53), target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -188,8 +172,6 @@ fn cswap_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let q = QIR.Runtime.AllocateQubitArray(2);
@@ -210,8 +192,6 @@ fn legacy_cx_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
@@ -232,12 +212,10 @@ fn legacy_cphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let target = QIR.Runtime.__quantum__rt__qubit_allocate();
-        Controlled phase([ctl], (__DoubleAsAngle__(1., 53), target));
+        Controlled phase([ctl], (QasmStd.Angle.DoubleAsAngle(1., 53), target));
     "#]]
     .assert_eq(&qsharp);
     Ok(())

@@ -25,8 +25,6 @@ fn int_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
@@ -61,8 +59,6 @@ fn uint_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
@@ -97,8 +93,6 @@ fn bit_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result, Result, Bool, Bool, Bool, Bool, Bool, Bool) {
@@ -133,19 +127,17 @@ fn bitarray_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result[], Result[], Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = [One];
                 mutable y = [Zero];
-                mutable f = (__ResultArrayAsIntBE__(x) > __ResultArrayAsIntBE__(y));
-                mutable e = (__ResultArrayAsIntBE__(x) >= __ResultArrayAsIntBE__(y));
-                mutable a = (__ResultArrayAsIntBE__(x) < __ResultArrayAsIntBE__(y));
-                mutable c = (__ResultArrayAsIntBE__(x) <= __ResultArrayAsIntBE__(y));
-                mutable b = (__ResultArrayAsIntBE__(x) == __ResultArrayAsIntBE__(y));
-                mutable d = (__ResultArrayAsIntBE__(x) != __ResultArrayAsIntBE__(y));
+                mutable f = (QasmStd.Convert.ResultArrayAsIntBE(x) > QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable e = (QasmStd.Convert.ResultArrayAsIntBE(x) >= QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable a = (QasmStd.Convert.ResultArrayAsIntBE(x) < QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable c = (QasmStd.Convert.ResultArrayAsIntBE(x) <= QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable b = (QasmStd.Convert.ResultArrayAsIntBE(x) == QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable d = (QasmStd.Convert.ResultArrayAsIntBE(x) != QasmStd.Convert.ResultArrayAsIntBE(y));
                 (x, y, f, e, a, c, b, d)
             }
         }"#]]
@@ -175,23 +167,21 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             operation Test(y : Int) : (Result[], Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = [One];
-                mutable a = (__ResultArrayAsIntBE__(x) > y);
-                mutable b = (__ResultArrayAsIntBE__(x) >= y);
-                mutable c = (__ResultArrayAsIntBE__(x) < y);
-                mutable d = (__ResultArrayAsIntBE__(x) <= y);
-                mutable e = (__ResultArrayAsIntBE__(x) == y);
-                mutable f = (__ResultArrayAsIntBE__(x) != y);
-                mutable g = (y > __ResultArrayAsIntBE__(x));
-                mutable h = (y >= __ResultArrayAsIntBE__(x));
-                mutable i = (y < __ResultArrayAsIntBE__(x));
-                mutable j = (y <= __ResultArrayAsIntBE__(x));
-                mutable k = (y == __ResultArrayAsIntBE__(x));
-                mutable l = (y != __ResultArrayAsIntBE__(x));
+                mutable a = (QasmStd.Convert.ResultArrayAsIntBE(x) > y);
+                mutable b = (QasmStd.Convert.ResultArrayAsIntBE(x) >= y);
+                mutable c = (QasmStd.Convert.ResultArrayAsIntBE(x) < y);
+                mutable d = (QasmStd.Convert.ResultArrayAsIntBE(x) <= y);
+                mutable e = (QasmStd.Convert.ResultArrayAsIntBE(x) == y);
+                mutable f = (QasmStd.Convert.ResultArrayAsIntBE(x) != y);
+                mutable g = (y > QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable h = (y >= QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable i = (y < QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable j = (y <= QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable k = (y == QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable l = (y != QasmStd.Convert.ResultArrayAsIntBE(x));
                 (x, a, b, c, d, e, f, g, h, i, j, k, l)
             }
         }"#]]
@@ -215,8 +205,6 @@ fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Double, Double, Bool, Bool, Bool, Bool, Bool, Bool) {
@@ -253,8 +241,6 @@ fn bool_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {

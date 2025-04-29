@@ -16,8 +16,6 @@ fn int_idents_without_width_can_be_multiplied() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -37,8 +35,6 @@ fn int_idents_with_same_width_can_be_multiplied() -> miette::Result<(), Vec<Repo
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -58,8 +54,6 @@ fn int_idents_with_different_width_can_be_multiplied() -> miette::Result<(), Vec
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -80,8 +74,6 @@ fn multiplying_int_idents_with_different_width_result_in_higher_width_result(
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -102,8 +94,6 @@ fn multiplying_int_idents_with_different_width_result_in_no_width_result(
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -124,12 +114,10 @@ fn multiplying_int_idents_with_width_greater_than_64_result_in_bigint_result(
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
-        mutable z = Microsoft.Quantum.Convert.IntAsBigInt(x * y);
+        mutable z = Std.Convert.IntAsBigInt(x * y);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

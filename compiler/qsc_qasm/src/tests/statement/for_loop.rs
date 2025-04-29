@@ -16,8 +16,6 @@ fn for_loops_can_iterate_over_discrete_set() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
@@ -38,8 +36,6 @@ fn for_loops_can_have_stmt_bodies() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
@@ -61,8 +57,6 @@ fn for_loops_can_iterate_over_range() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in 0..2..20 {
@@ -84,8 +78,6 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0.;
         for f : Double in [1.2, -3.4, 0.5, 9.8] {
@@ -136,13 +128,11 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         let reg = [One, Zero, One, Zero, One];
         for b : Result in reg {
-            set sum += __ResultAsInt__(b);
+            set sum += QasmStd.Convert.ResultAsInt(b);
         }
     "#]]
     .assert_eq(&qsharp);

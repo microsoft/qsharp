@@ -120,6 +120,20 @@ fn test_angle_unary_negation() {
 }
 
 #[test]
+fn test_angle_unary_negation_of_zero_float() {
+    let angle = Angle::from_f64_sized(0., 16);
+    let result = -angle;
+    assert_eq!(angle, result);
+}
+
+#[test]
+fn test_angle_unary_negation_of_zero_angle() {
+    let angle = Angle::new(0, 16);
+    let result = -angle;
+    assert_eq!(angle, result);
+}
+
+#[test]
 fn test_angle_compound_addition() {
     let mut angle1 = Angle::from_f64_sized(PI / 2.0, 4);
     let angle2 = Angle::from_f64_sized(PI / 2.0, 4);

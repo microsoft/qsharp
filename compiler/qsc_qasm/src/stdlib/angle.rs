@@ -275,7 +275,7 @@ impl Neg for Angle {
 
     fn neg(self) -> Self {
         Angle {
-            value: (1u64 << self.size) - self.value,
+            value: ((1u64 << self.size) - self.value) % (1u64 << self.size),
             size: self.size,
         }
     }

@@ -45,11 +45,9 @@ fn to_bool_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = if Microsoft.Quantum.Math.Truncate(x) == 0 {
+        mutable y = if Std.Math.Truncate(x) == 0 {
             false
         } else {
             true
@@ -68,11 +66,9 @@ fn to_implicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Truncate(x);
+        mutable y = Std.Math.Truncate(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -87,11 +83,9 @@ fn to_explicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Truncate(x);
+        mutable y = Std.Math.Truncate(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -106,11 +100,9 @@ fn to_implicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Truncate(x);
+        mutable y = Std.Math.Truncate(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -125,11 +117,9 @@ fn to_explicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Truncate(x);
+        mutable y = Std.Math.Truncate(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -144,11 +134,9 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Convert.IntAsBigInt(Microsoft.Quantum.Math.Truncate(x));
+        mutable y = Std.Convert.IntAsBigInt(Std.Math.Truncate(x));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -163,8 +151,6 @@ fn to_implicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
         mutable y = x;
@@ -182,8 +168,6 @@ fn to_explicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
         mutable y = x;
@@ -201,11 +185,9 @@ fn to_implicit_complex_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Complex(x, 0.);
+        mutable y = Std.Math.Complex(x, 0.);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -220,11 +202,9 @@ fn to_explicit_complex_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
-        mutable y = Microsoft.Quantum.Math.Complex(x, 0.);
+        mutable y = Std.Math.Complex(x, 0.);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
