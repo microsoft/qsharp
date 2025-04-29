@@ -33,7 +33,6 @@ def compile(
           - target_profile (TargetProfile): The target profile to use for code generation.
           - search_path (Optional[str]): The optional search path for resolving file references.
           - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
-          - program_ty (ProgramType, optional): The type of program compilation to perform.
 
     Returns:
         QirInputData: The compiled program.

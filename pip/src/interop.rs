@@ -115,7 +115,7 @@ where
 #[pyo3(
     signature = (source, callback=None, noise=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
 )]
-pub fn run_qasm_program(
+pub(crate) fn run_qasm_program(
     py: Python,
     source: &str,
     callback: Option<PyObject>,
@@ -296,7 +296,6 @@ pub(crate) fn resource_estimate_qasm_program(
 ///       - target_profile (TargetProfile): The target profile to use for code generation.
 ///       - search_path (Optional[str]): The optional search path for resolving file references.
 ///       - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
-///       - program_ty (ProgramType, optional): The type of program compilation to perform.
 ///
 /// Returns:
 ///     str: The converted QIR code as a string.
@@ -327,7 +326,7 @@ pub(crate) fn compile_qasm_program_to_qir(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+    let program_ty = ProgramType::File;
     let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
@@ -748,7 +747,7 @@ where
     D: FnOnce() -> ProgramType,
 {
     let target = kwargs
-        .get_item("program_ty")?
+        .get_item("program_type")?
         .map_or_else(|| Ok(default()), |x| x.extract::<ProgramType>())?;
     Ok(target)
 }

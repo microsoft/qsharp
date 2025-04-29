@@ -27,7 +27,7 @@ def import_qasm(
           - name (str): The name of the program. This is used as the entry point for the program.
           - search_path (Optional[str]): The optional search path for resolving file references.
           - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
-          - program_ty (ProgramType, optional): The type of program compilation to perform. Defaults to `ProgramType.Operation`.
+          - program_type (ProgramType, optional): The type of program compilation to perform. Defaults to `ProgramType.Operation`.
 
     Returns:
         value: The value returned by the last statement in the source code.

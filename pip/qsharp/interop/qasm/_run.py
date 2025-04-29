@@ -126,10 +126,7 @@ def run(
 
             if on_result:
                 on_result(results[-1])
-            # For every shot after the first, treat the entry expression as None to trigger
-            # a rerun of the last executed expression without paying the cost for any additional
-            # compilation.
-            source = None
+
         if not save_events:
             # If we are not saving events, we can just return the results
             # as a list of results.

@@ -88,7 +88,7 @@ def test_import_python_callable_name_can_be_set() -> None:
 
 def test_import_can_process_fragments_to_modify_intereter_state() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("int x = 42;", program_ty=ProgramType.Fragments)
+    import_qasm("int x = 42;", program_type=ProgramType.Fragments)
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("x") == 42
@@ -96,7 +96,7 @@ def test_import_can_process_fragments_to_modify_intereter_state() -> None:
 
 def test_import_can_declare_callables_from_fragments() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("def Foo() -> int { return 42; }", program_ty=ProgramType.Fragments)
+    import_qasm("def Foo() -> int { return 42; }", program_type=ProgramType.Fragments)
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("Foo()") == 42
@@ -104,7 +104,7 @@ def test_import_can_declare_callables_from_fragments() -> None:
 
 def test_import_can_declare_files_with_namespaces() -> None:
     init(target_profile=TargetProfile.Adaptive_RI)
-    import_qasm("output int x; x = 42;", program_ty=ProgramType.File)
+    import_qasm("output int x; x = 42;", program_type=ProgramType.File)
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("qasm_import.program()") == 42
@@ -352,11 +352,11 @@ def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple
 
 def test_callables_exposed_into_env() -> None:
     init()
-    import_qasm("def Four() -> int { return 4; }", program_ty=ProgramType.Fragments)
+    import_qasm("def Four() -> int { return 4; }", program_type=ProgramType.Fragments)
     assert code.Four() == 4, "callable should be available"
     import_qasm(
         "def Add(int a, int b) -> int { return a + b; }",
-        program_ty=ProgramType.Fragments,
+        program_type=ProgramType.Fragments,
     )
     assert code.Four() == 4, "first callable should still be available"
     assert code.Add(2, 3) == 5, "second callable should be available"
@@ -369,7 +369,7 @@ def test_callables_exposed_into_env() -> None:
 def test_callable_with_int_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_qasm(
-        "def Identity(int a) -> int { return a; }", program_ty=ProgramType.Fragments
+        "def Identity(int a) -> int { return a; }", program_type=ProgramType.Fragments
     )
     assert code.Identity(4) == 4
     with pytest.raises(TypeError):
@@ -385,7 +385,8 @@ def test_callable_with_int_exposed_into_env_fails_incorrect_types() -> None:
 def test_callable_with_double_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_qasm(
-        "def Identity(float a) -> float { return a; }", program_ty=ProgramType.Fragments
+        "def Identity(float a) -> float { return a; }",
+        program_type=ProgramType.Fragments,
     )
     assert code.Identity(4.0) == 4.0
     assert code.Identity(4) == 4.0
@@ -399,7 +400,7 @@ def test_callable_with_bigint_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_qasm(
         "def Identity(int[128] a) -> int[128] { return a; }",
-        program_ty=ProgramType.Fragments,
+        program_type=ProgramType.Fragments,
     )
     assert code.Identity(4000000000000000000000) == 4000000000000000000000
     with pytest.raises(TypeError):
@@ -411,7 +412,7 @@ def test_callable_with_bigint_exposed_into_env_fails_incorrect_types() -> None:
 def test_callable_with_bool_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_qasm(
-        "def Identity(bool a) -> bool { return a; }", program_ty=ProgramType.Fragments
+        "def Identity(bool a) -> bool { return a; }", program_type=ProgramType.Fragments
     )
     assert code.Identity(True) == True
     with pytest.raises(TypeError):
@@ -430,7 +431,7 @@ def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
     init()
     import_qasm(
         "def fst(readonly array[int, #dim = 1] arr_arg) -> int { return arr_arg[0]; }",
-        program_ty=ProgramType.Fragments,
+        program_type=ProgramType.Fragments,
     )
     assert code.fst([4, 5, 6]) == 4
     with pytest.raises(TypeError):
@@ -452,14 +453,14 @@ def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
 )
 def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
     init()
-    import_qasm("def Unsupported(angle a) { }", program_ty=ProgramType.Fragments)
+    import_qasm("def Unsupported(angle a) { }", program_type=ProgramType.Fragments)
     with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Angle":'):
         code.Unsupported()
 
 
 def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
     init()
-    import_qasm("def Unsupported(complex a)  { }", program_ty=ProgramType.Fragments)
+    import_qasm("def Unsupported(complex a)  { }", program_type=ProgramType.Fragments)
     with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Complex":'):
         code.Unsupported()
 
@@ -467,7 +468,7 @@ def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
 def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
     init()
     import_qasm(
-        "def Unsupported() -> complex { end; }", program_ty=ProgramType.Fragments
+        "def Unsupported() -> complex { end; }", program_type=ProgramType.Fragments
     )
     with pytest.raises(QSharpError, match='unsupported output type: `UDT<"Complex":'):
         code.Unsupported()
@@ -501,7 +502,7 @@ def test_circuit_from_callable() -> None:
         qubit q2;
         x q1;
         """,
-        program_ty=ProgramType.Operation,
+        program_type=ProgramType.Operation,
         name="Foo",
     )
     c = circuit(code.Foo)
