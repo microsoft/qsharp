@@ -1,3 +1,4 @@
+from pathlib import Path
 import qsharp
 
 # set the root folder for the Q# project
@@ -5,6 +6,7 @@ import qsharp
 # make adjustments to the path depending on the location of the qsharp.json file
 
 # this example assumes your Python program is in the same folder as the qsharp.json file
-qsharp.init(project_root=".")
+this_dir = Path(__file__).parent
+qsharp.init(project_root=this_dir)
 
 print(qsharp.eval("RunTeleport.Main()"))
