@@ -17,8 +17,6 @@ fn simulatable_intrinsic_can_be_applied_to_gate() -> miette::Result<(), Vec<Repo
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         @SimulatableIntrinsic()
         operation my_h(q : Qubit) : Unit {
@@ -41,8 +39,6 @@ fn simulatable_intrinsic_can_be_applied_to_def() -> miette::Result<(), Vec<Repor
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         @SimulatableIntrinsic()
         operation my_h(q : Qubit) : Unit {
@@ -65,8 +61,6 @@ fn config_can_be_applied_to_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         @Config(Base)
         operation my_h(q : Qubit) : Unit is Adj + Ctl {
@@ -89,8 +83,6 @@ fn config_can_be_applied_to_def() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         @Config(Base)
         operation my_h(q : Qubit) : Unit {

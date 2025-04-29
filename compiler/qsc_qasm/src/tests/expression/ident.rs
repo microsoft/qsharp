@@ -65,15 +65,11 @@ fn resolved_idenfiers_are_compiled_as_refs() -> miette::Result<(), Vec<Report>> 
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![
-        r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
+    expect![[r#"
         import QasmStd.Intrinsic.*;
-        mutable p = Microsoft.Quantum.Math.PI();
+        mutable p = Std.Math.PI();
         mutable x = p;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -85,11 +81,9 @@ fn euler_latin_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.E();
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.E();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -101,11 +95,9 @@ fn euler_unicode_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.E();
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.E();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -117,11 +109,9 @@ fn pi_latin_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.PI();
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.PI();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -133,11 +123,9 @@ fn pi_unicode_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.PI();
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.PI();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -149,11 +137,9 @@ fn tau_latin_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = 2. * Microsoft.Quantum.Math.PI();
-    "#
-    ]
+    expect![[r#"
+        mutable x = 2. * Std.Math.PI();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -165,11 +151,9 @@ fn tau_unicode_is_resolved() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = 2. * Microsoft.Quantum.Math.PI();
-    "#
-    ]
+    expect![[r#"
+        mutable x = 2. * Std.Math.PI();
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

@@ -15,8 +15,6 @@ input bit[2] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Result[]) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -34,8 +32,6 @@ input bit c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Result) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -52,8 +48,6 @@ input bool c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Bool) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -69,9 +63,7 @@ input complex[float] c;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
-        operation Test(c : Microsoft.Quantum.Math.Complex) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
+        operation Test(c : Std.Math.Complex) : Unit {
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -88,8 +80,6 @@ input float f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(f : Double) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -106,8 +96,6 @@ input float[60] f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(f : Double) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -124,8 +112,6 @@ input int i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -142,8 +128,6 @@ input int[60] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -160,8 +144,6 @@ input uint i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -178,8 +160,6 @@ input uint[60] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -196,8 +176,6 @@ input int[65] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : BigInt) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
         }
     "#]]
@@ -252,9 +230,7 @@ input bit[2] b2;
 
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
-        operation Test(bi : BigInt, i : Int, ui : Int, u : Int, f : Double, b : Bool, c : Result, cf : Microsoft.Quantum.Math.Complex, b2 : Result[]) : Unit {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
+        operation Test(bi : BigInt, i : Int, ui : Int, u : Int, f : Double, b : Bool, c : Result, cf : Std.Math.Complex, b2 : Result[]) : Unit {
             import QasmStd.Intrinsic.*;
         }
     "#]]

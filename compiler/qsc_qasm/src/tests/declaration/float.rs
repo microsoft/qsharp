@@ -13,11 +13,9 @@ fn implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 0.;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -29,11 +27,9 @@ fn lit_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -45,11 +41,9 @@ fn const_lit_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -61,11 +55,9 @@ fn lit_explicit_width_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -77,11 +69,9 @@ fn const_explicit_width_lit_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -93,11 +83,9 @@ fn lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 0.421;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -109,11 +97,9 @@ fn const_lit_decl_leading_dot() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 0.421;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -125,11 +111,9 @@ fn const_lit_decl_leading_dot_scientific() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -141,11 +125,9 @@ fn lit_decl_trailing_dot() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 421.;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -157,11 +139,9 @@ fn const_lit_decl_trailing_dot() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 421.;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -173,11 +153,9 @@ fn lit_decl_scientific() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -189,11 +167,9 @@ fn const_lit_decl_scientific() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -205,11 +181,9 @@ fn lit_decl_scientific_signed_pos() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -221,11 +195,9 @@ fn const_lit_decl_scientific_signed_pos() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -237,11 +209,9 @@ fn lit_decl_scientific_cap_e() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -253,11 +223,9 @@ fn const_lit_decl_scientific_cap_e() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -269,11 +237,9 @@ fn lit_decl_scientific_signed_neg() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -285,11 +251,9 @@ fn const_lit_decl_scientific_signed_neg() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42.1;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -301,11 +265,9 @@ fn const_lit_decl_signed_float_lit_cast_neg() -> miette::Result<(), Vec<Report>>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = -7.;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -317,11 +279,9 @@ fn const_lit_decl_signed_int_lit_cast_neg() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Convert.IntAsDouble(-7);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Convert.IntAsDouble(-7);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -333,11 +293,9 @@ fn init_float_with_int_value_less_than_safely_representable_values_is_runtime_co
     let next = min_exact_int - 1;
     let source = &format!("float a = {next};");
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable a = Microsoft.Quantum.Convert.IntAsDouble(-9007199254740993);
-    "#
-    ]
+    expect![[r#"
+        mutable a = Std.Convert.IntAsDouble(-9007199254740993);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

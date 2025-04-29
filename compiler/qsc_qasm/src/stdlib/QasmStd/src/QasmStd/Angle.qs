@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// This file defines the Angle type and its associated functions.
+/// It is an internal implementation detail for OpenQASM compilation
+/// and is not intended for use outside of this context.
+
 import Std.Arrays.Reversed;
 import Std.Convert.BigIntAsBoolArray;
 import Std.Convert.BoolArrayAsInt;
@@ -9,58 +13,72 @@ import Std.Convert.IntAsBoolArray;
 import Std.Convert.IntAsDouble;
 import Std.Diagnostics.Fact;
 import Std.Math.RoundHalfAwayFromZero;
-import Convert.__IntAsResultArrayBE__;
-import Convert.__ResultAsInt__;
 
-export __Angle__, __AngleAsBoolArrayBE__, __AngleAsResultArray__, __AngleAsDouble__, __AngleAsBool__, __AngleAsResult__, __IntAsAngle__, __DoubleAsAngle__, __ConvertAngleToWidth__, __ConvertAngleToWidthNoTrunc__, __AngleShl__, __AngleShr__, __AngleNotB__, __AngleAndB__, __AngleOrB__, __AngleXorB__, __AngleEq__, __AngleNeq__, __AngleGt__, __AngleGte__, __AngleLt__, __AngleLte__, __AddAngles__, __SubtractAngles__, __MultiplyAngleByInt__, __MultiplyAngleByBigInt__, __DivideAngleByInt__, __DivideAngleByAngle__, __NegAngle__, __ResultAsAngle__;
+// Export the Angle type and its associated functions.
+export Angle;
+// Export the array conversion functions for Angle.
+export AngleAsBoolArrayBE, AngleAsResultArray;
+// Export cast from Angle to other types.
+export AngleAsDouble, AngleAsBool, AngleAsResult;
+// Export cast from other types to Angle.
+export IntAsAngle, DoubleAsAngle, ResultAsAngle;
+// Export width conversion functions for Angle.
+export AdjustAngleSizeNoTruncation;
+// Export bitwise operations on Angle.
+export AngleShl, AngleShr, AngleNotB, AngleAndB, AngleOrB, AngleXorB;
+// Export comparison functions for Angle.
+export AngleEq, AngleNeq, AngleGt, AngleGte, AngleLt, AngleLte;
+// Export symmetric functions.
+export AddAngles, SubtractAngles, DivideAngleByAngle, NegAngle;
+// Export asymmetric functions.
+export MultiplyAngleByInt, MultiplyAngleByBigInt, DivideAngleByInt;
 
 
-struct __Angle__ {
+struct Angle {
     Value : Int,
     Size : Int
 }
 
-function __AngleAsBoolArrayBE__(angle : __Angle__) : Bool[] {
+function AngleAsBoolArrayBE(angle : Angle) : Bool[] {
     Reversed(IntAsBoolArray(angle.Value, angle.Size))
 }
 
-function __AngleAsResultArray__(angle : __Angle__) : Result[] {
-    let (number, bits) = angle!;
-    __IntAsResultArrayBE__(number, bits)
+function AngleAsResultArray(angle : Angle) : Result[] {
+    Convert.IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
-function __AngleAsDouble__(angle : __Angle__) : Double {
+function AngleAsDouble(angle : Angle) : Double {
     let F64_MANTISSA_DIGITS = 53;
-    let (value, size) = if angle.Size > F64_MANTISSA_DIGITS {
-        __ConvertAngleToWidth__(angle, F64_MANTISSA_DIGITS, false)!
+    let angle = if angle.Size > F64_MANTISSA_DIGITS {
+        AdjustAngleSize(angle, F64_MANTISSA_DIGITS, false)
     } else {
-        angle!
+        angle
     };
-    let denom = IntAsDouble(1 <<< size);
-    let value = IntAsDouble(value);
+    let denom = IntAsDouble(1 <<< angle.Size);
+    let value = IntAsDouble(angle.Value);
     let factor = (2.0 * Std.Math.PI()) / denom;
     value * factor
 }
 
-function __AngleAsBool__(angle : __Angle__) : Bool {
+function AngleAsBool(angle : Angle) : Bool {
     return angle.Value != 0;
 }
 
-function __ResultAsAngle__(result: Result) : __Angle__ {
-    new __Angle__ { Value = __ResultAsInt__(result), Size = 1 }
+function ResultAsAngle(result : Result) : Angle {
+    new Angle { Value = Convert.ResultAsInt(result), Size = 1 }
 }
 
-function __AngleAsResult__(angle : __Angle__) : Result {
-    Microsoft.Quantum.Convert.BoolAsResult(angle.Value != 0)
+function AngleAsResult(angle : Angle) : Result {
+    Std.Convert.BoolAsResult(angle.Value != 0)
 }
 
-function __IntAsAngle__(value : Int, size : Int) : __Angle__ {
+function IntAsAngle(value : Int, size : Int) : Angle {
     Fact(value >= 0, "Value must be >= 0");
     Fact(size > 0, "Size must be > 0");
-    new __Angle__ { Value = value, Size = size }
+    new Angle { Value = value, Size = size }
 }
 
-function __DoubleAsAngle__(value : Double, size : Int) : __Angle__ {
+function DoubleAsAngle(value : Double, size : Int) : Angle {
     let tau : Double = 2. * Std.Math.PI();
 
     mutable value = value % tau;
@@ -75,15 +93,16 @@ function __DoubleAsAngle__(value : Double, size : Int) : __Angle__ {
 
     let factor = tau / Std.Convert.IntAsDouble(1 <<< size);
     let value = RoundHalfAwayFromZero(value / factor);
-    new __Angle__ { Value = value, Size = size }
+    new Angle { Value = value, Size = size }
 }
 
-function __ConvertAngleToWidthNoTrunc__(angle : __Angle__, new_size : Int) : __Angle__ {
-    __ConvertAngleToWidth__(angle, new_size, false)
+function AdjustAngleSizeNoTruncation(angle : Angle, new_size : Int) : Angle {
+    AdjustAngleSize(angle, new_size, false)
 }
 
-function __ConvertAngleToWidth__(angle : __Angle__, new_size : Int, truncate : Bool) : __Angle__ {
-    let (value, size) = angle!;
+function AdjustAngleSize(angle : Angle, new_size : Int, truncate : Bool) : Angle {
+    Fact(new_size > 0, "New size must be > 0");
+    let (value, size) = (angle.Value, angle.Size);
     if new_size < size {
         let value = if truncate {
             let shift_amount = size - new_size;
@@ -101,157 +120,132 @@ function __ConvertAngleToWidth__(angle : __Angle__, new_size : Int, truncate : B
                 upper_bits
             }
         };
-        new __Angle__ { Value = value, Size = size }
+        new Angle { Value = value, Size = size }
     } elif new_size == size {
         // Same size, no change
         angle
     } else {
         // Padding with zeros
         let value = value <<< (new_size - size);
-        new __Angle__ { Value = value, Size = size }
+        new Angle { Value = value, Size = size }
     }
 }
 
 // Bit shift
 
-function __AngleShl__(lhs : __Angle__, rhs : Int) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let mask = (1 <<< lhs_size) - 1;
-    let value = (lhs_value <<< rhs) &&& mask;
-    new __Angle__ { Value = value, Size = lhs_size }
+function AngleShl(angle : Angle, operand : Int) : Angle {
+    Fact(operand >= 0, "Shift amount must be >= 0");
+    let mask = (1 <<< angle.Size) - 1;
+    let value = (angle.Value <<< operand) &&& mask;
+    new Angle { Value = value, Size = angle.Size }
 }
 
-function __AngleShr__(lhs : __Angle__, rhs : Int) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let value = (lhs_value >>> rhs);
-    new __Angle__ { Value = value, Size = lhs_size }
+function AngleShr(angle : Angle, operand : Int) : Angle {
+    Fact(operand >= 0, "Shift amount must be >= 0");
+    let value = (angle.Value >>> operand);
+    new Angle { Value = value, Size = angle.Size }
 }
 
 // Bitwise
 
-function __AngleNotB__(angle : __Angle__) : __Angle__ {
-    let (value, size) = angle!;
-    let mask = (1 <<< size) - 1;
-    let value = (~~~value) &&& mask;
-    new __Angle__ { Value = value, Size = size }
+function AngleNotB(angle : Angle) : Angle {
+    let mask = (1 <<< angle.Size) - 1;
+    let value = (~~~angle.Value) &&& mask;
+    new Angle { Value = value, Size = angle.Size }
 }
 
-function __AngleAndB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = lhs_value &&& rhs_value;
-    new __Angle__ { Value = value, Size = lhs_size }
+function AngleAndB(lhs : Angle, rhs : Angle) : Angle {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = lhs.Value &&& rhs.Value;
+    new Angle { Value = value, Size = lhs.Size }
 }
 
-function __AngleOrB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = lhs_value ||| rhs_value;
-    new __Angle__ { Value = value, Size = lhs_size }
+function AngleOrB(lhs : Angle, rhs : Angle) : Angle {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = lhs.Value ||| rhs.Value;
+    new Angle { Value = value, Size = lhs.Size }
 }
 
-function __AngleXorB__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = lhs_value ^^^ rhs_value;
-    new __Angle__ { Value = value, Size = lhs_size }
+function AngleXorB(lhs : Angle, rhs : Angle) : Angle {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = lhs.Value ^^^ rhs.Value;
+    new Angle { Value = value, Size = lhs.Size }
 }
 
 // Comparison
 
-function __AngleEq__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value == rhs_value
+function AngleEq(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value == rhs.Value
 }
 
-function __AngleNeq__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value != rhs_value
+function AngleNeq(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value != rhs.Value
 }
 
-function __AngleGt__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value > rhs_value
+function AngleGt(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value > rhs.Value
 }
 
-function __AngleGte__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value >= rhs_value
+function AngleGte(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value >= rhs.Value
 }
 
-function __AngleLt__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value < rhs_value
+function AngleLt(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value < rhs.Value
 }
 
-function __AngleLte__(lhs: __Angle__, rhs: __Angle__) : Bool {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    lhs_value <= rhs_value
+function AngleLte(lhs : Angle, rhs : Angle) : Bool {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    lhs.Value <= rhs.Value
 }
 
 // Arithmetic
 
-function __AddAngles__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = (lhs_value + rhs_value) % (1 <<< lhs_size);
-    new __Angle__ { Value = value, Size = lhs_size }
+function AddAngles(lhs : Angle, rhs : Angle) : Angle {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = (lhs.Value + rhs.Value) % (1 <<< lhs.Size);
+    new Angle { Value = value, Size = lhs.Size }
 }
 
-function __SubtractAngles__(lhs : __Angle__, rhs : __Angle__) : __Angle__ {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = (lhs_value + ((1 <<< lhs_size) - rhs_value)) % (1 <<< lhs_size);
-    new __Angle__ { Value = value, Size = lhs_size }
+function SubtractAngles(lhs : Angle, rhs : Angle) : Angle {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = (lhs.Value + ((1 <<< lhs.Size) -  rhs.Value)) % (1 <<< lhs.Size);
+    new Angle { Value = value, Size = lhs.Size }
 }
 
-function __MultiplyAngleByInt__(angle : __Angle__, factor : Int) : __Angle__ {
-    let (value, size) = angle!;
-    let value = (value * factor) % (1 <<< size);
-    new __Angle__ { Value = value, Size = size }
+function MultiplyAngleByInt(angle : Angle, factor : Int) : Angle {
+    Fact(factor >= 0, "Factor amount must be >= 0");
+    let value = (angle.Value * factor) % (1 <<< angle.Size);
+    new Angle { Value = value, Size = angle.Size }
 }
 
-function __MultiplyAngleByBigInt__(angle : __Angle__, factor : BigInt) : __Angle__ {
-    let (value, size) = angle!;
-    let value : BigInt = Std.Convert.IntAsBigInt(value);
-    let value = (value * factor) % Std.Convert.IntAsBigInt(1 <<< size);
+function MultiplyAngleByBigInt(angle : Angle, factor : BigInt) : Angle {
+    Fact(factor >= 0L, "Factor amount must be >= 0");
+    let value : BigInt = Std.Convert.IntAsBigInt(angle.Value);
+    let value = (value * factor) % Std.Convert.IntAsBigInt(1 <<< angle.Size);
     let value = Std.Convert.BigIntAsInt(value);
-    new __Angle__ { Value = value, Size = size }
+    new Angle { Value = value, Size = angle.Size }
 }
 
-function __DivideAngleByAngle__(lhs : __Angle__, rhs : __Angle__) : Int {
-    let (lhs_value, lhs_size) = lhs!;
-    let (rhs_value, rhs_size) = rhs!;
-    Fact(lhs_size == rhs_size, "Angle sizes must be the same");
-    let value = lhs_value / rhs_value;
+function DivideAngleByAngle(lhs : Angle, rhs : Angle) : Int {
+    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    let value = lhs.Value / rhs.Value;
     value
 }
 
-function __DivideAngleByInt__(angle : __Angle__, divisor : Int) : __Angle__ {
-    let (value, size) = angle!;
-    let value = value / divisor;
-    new __Angle__ { Value = value, Size = size }
+function DivideAngleByInt(angle : Angle, divisor : Int) : Angle {
+    Fact(divisor > 0, "Divisor amount must be > 0");
+    let value = angle.Value / divisor;
+    new Angle { Value = value, Size = angle.Size }
 }
 
-function __NegAngle__(angle : __Angle__) : __Angle__ {
-    let (value, size) = angle!;
-    let value = (1 <<< size) - value;
-    new __Angle__ { Value = value, Size = size }
+function NegAngle(angle : Angle) : Angle {
+    let (value, size) = (angle.Value, angle.Size);
+    let value = ((1 <<< size) - value) % (1 <<< size);
+    new Angle { Value = value, Size = size }
 }

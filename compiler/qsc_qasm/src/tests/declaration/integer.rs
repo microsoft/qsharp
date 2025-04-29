@@ -13,11 +13,9 @@ fn implicit_bitness_int_negative_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = -42;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -29,11 +27,9 @@ fn implicit_bitness_int_const_negative_decl() -> miette::Result<(), Vec<Report>>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = -42;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -45,11 +41,9 @@ fn implicit_bitness_int_default_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 0;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -61,11 +55,9 @@ fn const_implicit_bitness_int_lit_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -77,11 +69,9 @@ fn implicit_bitness_int_hex_cap_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 64031;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -93,11 +83,9 @@ fn const_implicit_bitness_int_hex_low_decl() -> miette::Result<(), Vec<Report>> 
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 64031;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -109,11 +97,9 @@ fn const_implicit_bitness_int_hex_cap_decl() -> miette::Result<(), Vec<Report>> 
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 64031;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -125,11 +111,9 @@ fn implicit_bitness_int_octal_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 34;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -141,11 +125,9 @@ fn const_implicit_bitness_int_octal_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 34;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -157,11 +139,9 @@ fn implicit_bitness_int_binary_low_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 153;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -173,11 +153,9 @@ fn implicit_bitness_int_binary_cap_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 10;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -189,11 +167,9 @@ fn const_implicit_bitness_int_binary_low_decl() -> miette::Result<(), Vec<Report
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 153;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -205,11 +181,9 @@ fn const_implicit_bitness_int_binary_cap_decl() -> miette::Result<(), Vec<Report
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 10;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -221,11 +195,9 @@ fn implicit_bitness_int_formatted_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 2000;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -237,11 +209,9 @@ fn const_implicit_bitness_int_formatted_decl() -> miette::Result<(), Vec<Report>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 2000;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -253,11 +223,9 @@ fn explicit_bitness_int_default_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 0;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -269,11 +237,9 @@ fn explicit_bitness_int_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         mutable x = 42;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -285,11 +251,9 @@ fn const_explicit_bitness_int_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
+    expect![[r#"
         let x = 42;
-    "#
-    ]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -302,11 +266,9 @@ fn implicit_bitness_int_negative_float_decl_creates_truncation_call(
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Truncate(-42.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Truncate(-42.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }

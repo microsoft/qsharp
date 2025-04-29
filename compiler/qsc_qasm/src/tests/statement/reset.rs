@@ -35,8 +35,6 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
@@ -45,7 +43,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
                 Reset(q[0]);
                 h(q[0]);
                 set meas w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                Microsoft.Quantum.Arrays.Reversed(meas)
+                Std.Arrays.Reversed(meas)
             }
         }"#]]
     .assert_eq(&qsharp);
