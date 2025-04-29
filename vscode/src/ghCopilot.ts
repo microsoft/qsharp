@@ -7,7 +7,7 @@ import { EventType, sendTelemetryEvent, UserFlowStatus } from "./telemetry";
 
 const codingInstructionsTitle = "# Q# coding instructions (updated April 2025)";
 
-const codingInstructionsFooter = `---End: Q# coding instructions---\n\n`;
+const codingInstructionsFooter = `<!-- End: Q# coding instructions -->\n\n`;
 
 const codingInstructionsContent = `${codingInstructionsTitle}
 
