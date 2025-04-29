@@ -59,7 +59,7 @@ export async function activateExtension() {
  * @param timeoutErrorMsg The custom error message to throw if the condition is not met
  */
 export async function waitForCondition(
-  condition: (...args: any[]) => boolean,
+  condition: (...args: any[]) => boolean | Promise<boolean>,
   wakeUpOn: vscode.Event<any>,
   timeoutMs: number,
   timeoutErrorMsg: string,
@@ -73,18 +73,30 @@ export async function waitForCondition(
       }
     }, timeoutMs);
 
-    disposable = wakeUpOn(() => {
-      if (!done && condition()) {
-        done = true;
-        resolve();
+    function checkOnceThenResolveIfMet() {
+      const conditionResult = condition();
+      if (typeof conditionResult === "boolean") {
+        if (!done && conditionResult) {
+          done = true;
+          resolve();
+        }
+      } else if (conditionResult instanceof Promise) {
+        conditionResult.then((conditionMet) => {
+          if (!done && conditionMet) {
+            done = true;
+            resolve();
+          }
+        });
       }
+    }
+
+    disposable = wakeUpOn(() => {
+      // Check the condition whenever the wake-up event is fired
+      checkOnceThenResolveIfMet();
     });
 
     // Resolve immediately if condition is already met
-    if (condition()) {
-      done = true;
-      resolve();
-    }
+    checkOnceThenResolveIfMet();
   });
   disposable?.dispose();
 }
@@ -103,7 +115,7 @@ export async function waitForCondition(
 export async function delay(timeoutMs: number) {
   try {
     await waitForCondition(
-      () => false,
+      async () => false,
       () => ({ dispose() {} }),
       timeoutMs,
       "hit the expected timeout",

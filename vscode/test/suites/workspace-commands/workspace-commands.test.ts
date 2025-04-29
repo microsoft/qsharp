@@ -3,7 +3,11 @@
 
 import { assert } from "chai";
 import * as vscode from "vscode";
-import { activateExtension, withMockedInfoMessage } from "../extensionUtils";
+import {
+  activateExtension,
+  waitForCondition,
+  withMockedInfoMessage,
+} from "../extensionUtils";
 
 suite("Q# Copilot Instructions Tests", function suite() {
   const workspaceFolder =
@@ -16,6 +20,8 @@ suite("Q# Copilot Instructions Tests", function suite() {
     githubDirUri,
     "copilot-instructions.md",
   );
+  let copilotInstructionsWatcher: vscode.FileSystemWatcher | undefined =
+    undefined;
 
   // Cleanup function to delete test files
   async function cleanupTestFiles() {
@@ -32,6 +38,20 @@ suite("Q# Copilot Instructions Tests", function suite() {
 
   this.beforeAll(async () => {
     await activateExtension();
+    // Set up a file watcher to detect changes to the file
+    copilotInstructionsWatcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(
+        workspaceFolderUri,
+        ".github/copilot-instructions.md",
+      ),
+    );
+  });
+
+  this.afterAll(async () => {
+    // Clean up the watcher
+    if (copilotInstructionsWatcher) {
+      copilotInstructionsWatcher.dispose();
+    }
   });
 
   this.beforeEach(async () => {
@@ -39,9 +59,6 @@ suite("Q# Copilot Instructions Tests", function suite() {
   });
 
   test("Command creates new copilot instructions file", async function () {
-    // Make sure test files don't exist before starting
-    await cleanupTestFiles();
-
     // Use the helper function to mock the information message with "Yes" response
     await withMockedInfoMessage("Yes", async () => {
       // Execute the command
@@ -108,26 +125,25 @@ suite("Q# Copilot Instructions Tests", function suite() {
         "qsharp-vscode.updateCopilotInstructions",
       );
 
-      // Add a small delay to ensure file operations complete
-      // TODO: replace this with a condition check
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await waitForConditionOnCopilotInstructionsFile(async () => {
+        // Verify the file was updated (not replaced)
+        const fileContent = await vscode.workspace.fs.readFile(
+          copilotInstructionsUri,
+        );
+        const content = new TextDecoder().decode(fileContent);
 
-      // Verify the file was updated (not replaced)
-      const fileContent = await vscode.workspace.fs.readFile(
-        copilotInstructionsUri,
-      );
-      const content = new TextDecoder().decode(fileContent);
+        assert.include(
+          content,
+          "# Existing instructions",
+          "File should keep existing content",
+        );
 
-      assert.include(
-        content,
-        "# Existing instructions",
-        "File should keep existing content",
-      );
-      assert.include(
-        content,
-        "Do not remove this content",
-        "File should keep existing content",
-      );
+        assert.include(
+          content,
+          "# Q# coding instructions",
+          "File should contain the correct header",
+        );
+      });
     });
   });
 
@@ -156,26 +172,24 @@ suite("Q# Copilot Instructions Tests", function suite() {
         "qsharp-vscode.updateCopilotInstructions",
       );
 
-      // Add a small delay to ensure file operations complete
-      // TODO: replace this with a condition check
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await waitForConditionOnCopilotInstructionsFile(async () => {
+        // Verify the file was not changed
+        const fileContent = await vscode.workspace.fs.readFile(
+          copilotInstructionsUri,
+        );
+        const content = new TextDecoder().decode(fileContent);
 
-      // Verify the file was not changed
-      const fileContent = await vscode.workspace.fs.readFile(
-        copilotInstructionsUri,
-      );
-      const content = new TextDecoder().decode(fileContent);
-
-      assert.equal(
-        content,
-        testContent,
-        "File content should not change when user selects 'No'",
-      );
-      assert.notInclude(
-        content,
-        "# Q# coding instructions",
-        "File should not contain new instructions",
-      );
+        assert.equal(
+          content,
+          testContent,
+          "File content should not change when user selects 'No'",
+        );
+        assert.notInclude(
+          content,
+          "# Q# coding instructions",
+          "File should not contain new instructions",
+        );
+      });
     });
   });
 
@@ -235,4 +249,30 @@ suite("Q# Copilot Instructions Tests", function suite() {
       );
     });
   });
+
+  // This will use file watchers to check for changes to
+  // the .copilot-instructions.md file as it gets updated.
+  // Will return when the condition is satisfied, or throw
+  // if the timeout is reached.
+  async function waitForConditionOnCopilotInstructionsFile(
+    checkCondition: () => Promise<void>,
+  ) {
+    await waitForCondition(
+      async () => {
+        try {
+          await checkCondition();
+        } catch {
+          // Keep waiting if the checks fail
+          console.log(
+            `qsharp-tests: File content check failed once, will keep checking`,
+          );
+          return false;
+        }
+        return true;
+      },
+      copilotInstructionsWatcher!.onDidChange,
+      2000,
+      "timed out waiting for the file to be updated",
+    );
+  }
 });
