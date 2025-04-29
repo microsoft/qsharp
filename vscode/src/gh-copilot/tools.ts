@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import * as vscode from "vscode";
 import * as azqTools from "../copilot/azqTools";
 import { ToolState } from "../copilot/tools";
@@ -23,9 +26,6 @@ const toolDefinitions: {
   { name: "azure-quantum-set-active-workspace", tool: setActiveWorkspace },
   { name: "azure-quantum-get-providers", tool: getProviders },
   { name: "azure-quantum-get-target", tool: getTarget },
-  { name: "qsharp-proofread-code", tool: proofreadCode },
-  { name: "qsharp-find-sample", tool: findSample },
-  { name: "qsharp-coding", tool: qsharpCoding },
   { name: "render-latex", tool: renderLatex },
 ];
 
@@ -88,22 +88,6 @@ async function getProviders(): Promise<any> {
 
 async function getTarget(input: { target_id: string }): Promise<any> {
   return (await azqTools.getTarget(workspaceState, input)).result;
-}
-
-async function proofreadCode(input: { code: string }) {
-  return `\`\`\`qsharp
-${input.code.replace(/q/g, "ℚ")}
-\`\`\``;
-}
-
-async function findSample(input: { description: string }) {
-  return `\`\`\`qsharp
-use q = Qubit(); // ${input.description}
-\`\`\``;
-}
-
-async function qsharpCoding() {
-  return "The `namespace` keyword is deprecated in recent versions of Q#. Don't wrap code in a namespace.";
 }
 
 async function renderLatex(input: { code: string }) {

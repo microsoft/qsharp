@@ -14,7 +14,7 @@ import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
-import { registerLanguageModelTools } from "./gh-copilot/ghCopilot";
+import { registerLanguageModelTools } from "./gh-copilot/tools.js";
 import { activateLanguageService } from "./language-service/activate.js";
 import {
   Logging,
