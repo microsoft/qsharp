@@ -1,15 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { log } from "../../npm/qsharp/dist/log";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "./telemetry";
 
 const codingInstructionsTitle = "# Q# coding instructions (updated April 2025)";
+
+const codingInstructionsFooter = `---End: Q# coding instructions---\n\n`;
 
 const codingInstructionsContent = `${codingInstructionsTitle}
 
   Follow these instructions when generating Q# code in .qs files,
-  and Q# project folders tha include a \`qsharp.json\` file.
+  and Q# project folders that include a \`qsharp.json\` file.
 
   ## Testing
 
@@ -45,7 +48,7 @@ const codingInstructionsContent = `${codingInstructionsTitle}
 
   ## Libraries
 
-  A Q# project can reference a library from GitHub but updating the \`dependencies\` entry of
+  A Q# project can reference a library from GitHub by updating the \`dependencies\` entry of
   the \`qsharp.json\` file. For example, to reference the \`chemistry\` library, the \`qsharp.json\`
   file might appear as:
 
@@ -93,7 +96,13 @@ const codingInstructionsContent = `${codingInstructionsTitle}
   \`\`\`
 
   Note that the latest Q# and QDK releases don't require or use the old IQ# kernel. It just needs to the \`qsharp\` PyPI package,
-  and maybe \`qsharp_widgets\` for visuals.`;
+  and maybe \`qsharp_widgets\` for visuals.
+
+  ## Response formatting
+
+  Avoid using LaTeX in your responses to the user.
+
+  ${codingInstructionsFooter}`;
 
 /**
  * Checks if the copilot-instructions.md file exists and contains Q# instructions.
@@ -111,7 +120,7 @@ async function hasQSharpCopilotInstructions(
       "copilot-instructions.md",
     );
 
-    // Check if file exists
+    // Check if file exists. This will throw if the file doesn't exist.
     await vscode.workspace.fs.stat(instructionsFile);
 
     // Check if file contains Q# instructions
@@ -148,12 +157,15 @@ async function updateGhCopilotInstructionsCommand() {
     }
   }
 
+  // TODO: choose a workspace folder more intelligently
   const workspaceFolder = workspaceFolders[0].uri;
 
   return await updateCopilotInstructions(workspaceFolder);
 }
 
 export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
+  sendTelemetryEvent(EventType.UpdateCopilotInstructionsStart, {}, {});
+
   // Show a yes/no prompt to the user
   const response = await vscode.window.showInformationMessage(
     "We're about to update your `copilot-instructions.md` file.\n\n" +
@@ -165,6 +177,10 @@ export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
   );
 
   if (response !== "Yes") {
+    sendTelemetryEvent(EventType.UpdateCopilotInstructionsEnd, {
+      reason: "User canceled",
+      flowStatus: UserFlowStatus.Aborted,
+    });
     return; // User canceled or dismissed the dialog
   }
 
@@ -210,7 +226,21 @@ export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
     vscode.window.showErrorMessage(
       `Error updating copilot-instructions.md: ${error}`,
     );
+
+    sendTelemetryEvent(
+      EventType.UpdateCopilotInstructionsEnd,
+      { flowStatus: UserFlowStatus.Failed, reason: "Error" },
+      {},
+    );
+    return;
   }
+
+  // Send telemetry event for successful completion
+  sendTelemetryEvent(
+    EventType.UpdateCopilotInstructionsEnd,
+    { flowStatus: UserFlowStatus.Succeeded },
+    {},
+  );
 }
 
 export function registerGhCopilotInstructionsCommand(

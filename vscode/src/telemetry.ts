@@ -50,6 +50,8 @@ export enum EventType {
   CircuitEnd = "Qsharp.CircuitEnd",
   ChatTurnStart = "Qsharp.ChatTurnStart",
   ChatTurnEnd = "Qsharp.ChatTurnEnd",
+  UpdateCopilotInstructionsStart = "Qsharp.UpdateCopilotInstructionsStart",
+  UpdateCopilotInstructionsEnd = "Qsharp.UpdateCopilotInstructionsEnd",
 }
 
 type Empty = { [K in any]: never };
@@ -278,6 +280,17 @@ type EventTypes = {
     measurements: {
       timeToCompleteMs: number; // includes tool call executions
     };
+  };
+  [EventType.UpdateCopilotInstructionsStart]: {
+    properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.UpdateCopilotInstructionsEnd]: {
+    properties: {
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: Empty;
   };
 };
 
