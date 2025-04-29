@@ -529,7 +529,13 @@ export class QSharpWebViewPanel {
   }
 
   reveal(column: ViewColumn) {
-    this.panel.reveal(column, true);
+    // If it's already visible, don't do anything else it messes up the existing layout
+    // This isn't perfect, as if the tab is just in the background it will still call
+    // reveal to bring to the foreground and change the layout, but this is the best we
+    // can do with the current API.
+    if (!this.panel.visible) {
+      this.panel.reveal(column, true);
+    }
   }
 
   private _getWebviewContent(webview: Webview) {
