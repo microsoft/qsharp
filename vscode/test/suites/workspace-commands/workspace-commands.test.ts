@@ -178,4 +178,61 @@ suite("Q# Copilot Instructions Tests", function suite() {
       );
     });
   });
+
+  test("Create Q# project in a subfolder and validate copilot instructions", async function () {
+    const subfolderUri = vscode.Uri.joinPath(workspaceFolderUri, "Subfolder");
+    const copilotInstructionsUri = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      ".github",
+      "copilot-instructions.md",
+    );
+
+    // Ensure the subfolder exists
+    await vscode.workspace.fs.createDirectory(subfolderUri);
+
+    // Use the helper function to mock the information message with "Yes" response
+    await withMockedInfoMessage("Yes", async () => {
+      // Execute the create project command in the subfolder
+      await vscode.commands.executeCommand(
+        "qsharp-vscode.createProject",
+        subfolderUri,
+      );
+
+      // Add a small delay to ensure file operations complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify the copilot-instructions.md file was created
+      const fileStats = await vscode.workspace.fs.stat(copilotInstructionsUri);
+      assert.equal(
+        fileStats.type,
+        vscode.FileType.File,
+        "copilot-instructions.md file should be created",
+      );
+    });
+  });
+
+  test("Create Q# project at workspace root and validate copilot instructions", async function () {
+    const copilotInstructionsUri = vscode.Uri.joinPath(
+      workspaceFolderUri,
+      ".github",
+      "copilot-instructions.md",
+    );
+
+    // Use the helper function to mock the information message with "Yes" response
+    await withMockedInfoMessage("Yes", async () => {
+      // Execute the create project command at the workspace root
+      await vscode.commands.executeCommand("qsharp-vscode.createProject");
+
+      // Add a small delay to ensure file operations complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify the copilot-instructions.md file was created
+      const fileStats = await vscode.workspace.fs.stat(copilotInstructionsUri);
+      assert.equal(
+        fileStats.type,
+        vscode.FileType.File,
+        "copilot-instructions.md file should be created",
+      );
+    });
+  });
 });

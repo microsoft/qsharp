@@ -153,7 +153,7 @@ async function updateGhCopilotInstructionsCommand() {
   return await updateCopilotInstructions(workspaceFolder);
 }
 
-async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
+export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
   // Show a yes/no prompt to the user
   const response = await vscode.window.showInformationMessage(
     "We're about to update your `copilot-instructions.md` file.\n\n" +
