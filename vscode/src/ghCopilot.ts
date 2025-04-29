@@ -147,14 +147,17 @@ async function updateGhCopilotInstructionsCommand() {
     return;
   }
 
-  const currentDoc = getActiveQSharpDocumentUri();
-
-  if (!currentDoc) {
-    vscode.window.showErrorMessage("Could not determine active Q# document");
-    return;
+  let resourceUri;
+  if (workspaceFolders.length === 1) {
+    // Single workspace folder, just use that
+    resourceUri = workspaceFolders[0].uri;
+  } else {
+    // Prefer the workspace of the active Q# document if available
+    const currentDoc = getActiveQSharpDocumentUri();
+    resourceUri = currentDoc ?? workspaceFolders[0].uri;
   }
 
-  return await updateCopilotInstructions(currentDoc);
+  return await updateCopilotInstructions(resourceUri);
 }
 
 export async function updateCopilotInstructions(resource: vscode.Uri) {

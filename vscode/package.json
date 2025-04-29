@@ -230,8 +230,7 @@
           "when": "resourceFilename == qsharp.json"
         },
         {
-          "command": "qsharp-vscode.updateCopilotInstructions",
-          "when": "resourceLangId == qsharp"
+          "command": "qsharp-vscode.updateCopilotInstructions"
         }
       ],
       "view/title": [
