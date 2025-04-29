@@ -6,7 +6,7 @@ from ._compile import compile
 from ._estimate import estimate
 from ._import import import_qasm
 from ._run import run
-from ..._native import ProgramType, OutputSemantics, QasmError  # type: ignore
+from .._native import ProgramType, OutputSemantics, QasmError  # type: ignore
 
 __all__ = [
     "circuit",

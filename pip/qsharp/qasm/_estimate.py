@@ -5,18 +5,18 @@ import warnings
 import json
 from time import monotonic
 from typing import Any, Callable, Dict, List, Optional, Union
-from ..._fs import read_file, list_directory, resolve
-from ..._http import fetch_github
-from ..._native import (  # type: ignore
+from .._fs import read_file, list_directory, resolve
+from .._http import fetch_github
+from .._native import (  # type: ignore
     resource_estimate_qasm_program,
 )
-from ...estimator import EstimatorParams, EstimatorResult
+from ..estimator import EstimatorParams, EstimatorResult
 
-from ..._qsharp import (
+from .._qsharp import (
     get_interpreter,
     ipython_helper,
 )
-from ... import telemetry_events
+from .. import telemetry_events
 
 
 def estimate(

@@ -6,12 +6,13 @@ from time import monotonic
 from typing import Any, Dict, Optional
 
 from ._ipython import display_or_print
-
-from ..._qsharp import (
+from .._fs import read_file, list_directory, resolve
+from .._http import fetch_github
+from .._qsharp import (
     get_interpreter,
     ipython_helper,
 )
-from ... import telemetry_events
+from .. import telemetry_events
 
 
 def import_qasm(
@@ -43,9 +44,6 @@ def import_qasm(
     )
 
     ipython_helper()
-
-    from ..._fs import read_file, list_directory, resolve
-    from ..._http import fetch_github
 
     telemetry_events.on_import_qasm()
     start_time = monotonic()

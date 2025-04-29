@@ -4,14 +4,14 @@
 import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, Optional, Union
-from ..._fs import read_file, list_directory, resolve
-from ..._http import fetch_github
+from .._fs import read_file, list_directory, resolve
+from .._http import fetch_github
 
-from ..._native import (  # type: ignore
+from .._native import (  # type: ignore
     compile_qasm_program_to_qir,
 )
-from ..._qsharp import QirInputData, get_interpreter, ipython_helper, TargetProfile
-from ... import telemetry_events
+from .._qsharp import QirInputData, get_interpreter, ipython_helper, TargetProfile
+from .. import telemetry_events
 
 
 def compile(
@@ -46,7 +46,7 @@ def compile(
     Example:
 
     .. code-block:: python
-        from qsharp.interop.qasm import compile
+        from qsharp.qasm import compile
         source = ...
         program = compile(source)
         with open('myfile.ll', 'w') as file:

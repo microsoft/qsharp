@@ -4,11 +4,11 @@
 import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, Optional, Union
-from ..._fs import read_file, list_directory, resolve
-from ..._http import fetch_github
-from ..._native import circuit_qasm_program  # type: ignore
-from ..._qsharp import get_interpreter, ipython_helper, Circuit
-from ... import telemetry_events
+from .._fs import read_file, list_directory, resolve
+from .._http import fetch_github
+from .._native import circuit_qasm_program  # type: ignore
+from .._qsharp import get_interpreter, ipython_helper, Circuit
+from .. import telemetry_events
 
 
 def circuit(

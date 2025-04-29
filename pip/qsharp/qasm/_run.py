@@ -4,11 +4,10 @@
 import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from ..._fs import read_file, list_directory, resolve
-from ..._http import fetch_github
-from ..._native import QasmError, Output, run_qasm_program  # type: ignore
-
-from ..._qsharp import (
+from .._fs import read_file, list_directory, resolve
+from .._http import fetch_github
+from .._native import QasmError, Output, run_qasm_program  # type: ignore
+from .._qsharp import (
     BitFlipNoise,
     DepolarizingNoise,
     PauliNoise,
@@ -18,7 +17,7 @@ from ..._qsharp import (
     get_interpreter,
     ipython_helper,
 )
-from ... import telemetry_events
+from .. import telemetry_events
 from ._ipython import display_or_print
 
 

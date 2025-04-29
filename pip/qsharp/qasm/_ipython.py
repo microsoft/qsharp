@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ..._native import Output  # type: ignore
+from .._native import Output  # type: ignore
 
 _in_jupyter = False
 try:

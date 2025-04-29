@@ -13,7 +13,7 @@ from qsharp import (
     Result,
 )
 from qsharp.estimator import EstimatorParams, QubitParams, QECScheme, LogicalCounts
-from qsharp.interop.qasm import (
+from qsharp.qasm import (
     import_qasm,
     run,
     compile,
