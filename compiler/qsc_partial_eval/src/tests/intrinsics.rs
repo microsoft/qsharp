@@ -1153,7 +1153,6 @@ fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
     );
 }
 
-
 #[test]
 fn call_to_intrinsic_operation_that_returns_bool_value_should_produce_variable_usage() {
     let program = get_rir_program(indoc! {"
@@ -1266,7 +1265,9 @@ fn call_to_intrinsic_operation_that_returns_double_value_should_produce_variable
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Result\", PackageSpan { package: PackageId(2), span: Span { lo: 137, hi: 140 } })")]
+#[should_panic(
+    expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Result\", PackageSpan { package: PackageId(2), span: Span { lo: 137, hi: 140 } })"
+)]
 fn call_to_intrinsic_operation_that_returns_result_value_should_fail() {
     let _ = get_rir_program(indoc! {"
         namespace Test {
@@ -1282,7 +1283,9 @@ fn call_to_intrinsic_operation_that_returns_result_value_should_fail() {
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Qubit\", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 145 } })")]
+#[should_panic(
+    expected = "partial evaluation failed: UnexpectedDynamicIntrinsicReturnType(\"Qubit\", PackageSpan { package: PackageId(2), span: Span { lo: 142, hi: 145 } })"
+)]
 fn call_to_intrinsic_operation_that_returns_qubit_value_should_fail() {
     let _ = get_rir_program(indoc! {"
         namespace Test {
