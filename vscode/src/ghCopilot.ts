@@ -15,6 +15,46 @@ const codingInstructionsContent = `${codingInstructionsTitle}
 Follow these instructions when generating Q# code in .qs files,
 and Q# project folders that include a \`qsharp.json\` file.
 
+## Syntax
+
+When writing Q#, the \`for (i in 1..100)\` syntax is invalid, use \`for i in 1..100\` or
+\`for element in array[2...]\`.
+
+While many Q# operators are C-like, it uses \`or\` instead of \`||\` and \`and\` instead of \`&&\`.
+
+## Project structure
+
+### Single-file projects
+
+Q# files don't always need to exist in a project. A single \`.qs\` file can be compiled and
+run without a \`qsharp.json\` file. Prefer a single \`.qs\` file for simple programs.
+
+### Multi-file projects
+
+When Q# source files need to to reference each other, a \`qsharp.json\` file must be
+created. Source files must exist under the \`src\` folder.
+
+Example layout:
+
+\`\`\`
+project_root
+|--qsharp.json
+|--src
+|--|--Main.qs
+|--|--Tests.qs
+\`\`\`
+
+A typical \`qsharp.json\` will be an empty JSON file.
+
+\`\`\`json
+{}
+\`\`\`
+
+Modern Q# does not use \`namespace\` blocks to enclose code.
+Each function or operation is in a namespace which is the name of the containing file.
+For example, if \`Main.qs\` has an operation \`Foo\`, then \`Tests.qs\` could reference the
+operation as \`Main.Foo\`, or bring \`Foo\` into scope by adding \`import Main.Foo;\` in the file.
+
 ## Testing
 
 The Q# language supports unit testing in VS Code. To write a test, use the \`@Test()\`
@@ -31,21 +71,6 @@ operation MyTestCase() : Unit {
 \`\`\`
 
 Note: Prefer using a conditional \`fail\` statement to \`Fact\` calls, as \`fail\` gives a better error location.
-
-## Syntax
-
-When writing Q#, the \`for (i in 1..100)\` syntax is invalid, use \`for i in 1..100\` or
-\`for element in array[2...]\`.
-
-While many Q# operators are C-like, it uses \`or\` instead of \`||\` and \`and\` instead of \`&&\`.
-
-## Multi-file projects
-
-Modern Q# does not use \`namespace\` blocks to enclose code.
-When Q# code is in different files in a project, each function or operation is in a namespace
-which is the name of the containing file. For example, if \`Main.qs\` has an operation \`Foo\`,
-then \`Tests.qs\` could reference the operation as \`Main.Foo\`, or bring \`Foo\` into scope by
-adding \`import Main.Foo;\` in the file.
 
 ## Libraries
 
