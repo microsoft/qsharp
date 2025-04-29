@@ -26,7 +26,6 @@ const toolDefinitions: {
   { name: "azure-quantum-set-active-workspace", tool: setActiveWorkspace },
   { name: "azure-quantum-get-providers", tool: getProviders },
   { name: "azure-quantum-get-target", tool: getTarget },
-  { name: "render-latex", tool: renderLatex },
 ];
 
 const workspaceState: ToolState = {};
@@ -88,16 +87,6 @@ async function getProviders(): Promise<any> {
 
 async function getTarget(input: { target_id: string }): Promise<any> {
   return (await azqTools.getTarget(workspaceState, input)).result;
-}
-
-async function renderLatex(input: { code: string }) {
-  log.info("Rendering LaTeX", input.code);
-  let content = input.code;
-  content = content.replace(/\\\(([^]*?)\\\)/g, (_, expr) => `$${expr}$`);
-  content = content.replace(/\\\[([^]*?)\\\]/g, (_, expr) => `$$${expr}$$`);
-
-  vscode.commands.executeCommand("qsharp-vscode.renderLatex", { content });
-  return "Response was rendered in a new editor tab.";
 }
 
 export function registerLanguageModelTools(context: vscode.ExtensionContext) {
