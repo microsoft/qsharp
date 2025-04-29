@@ -228,6 +228,9 @@
         {
           "command": "qsharp-vscode.addProjectReference",
           "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.updateCopilotInstructions"
         }
       ],
       "view/title": [
@@ -450,6 +453,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "Q#",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.updateCopilotInstructions",
+        "category": "Q#",
+        "title": "Update Copilot instructions file for Q#"
       }
     ],
     "breakpoints": [
