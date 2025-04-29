@@ -405,15 +405,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
       },
     ),
   );
-
-  context.subscriptions.push(
-    commands.registerCommand(
-      `${qsharpExtensionId}.renderLatex`,
-      async (msg: any) => {
-        sendMessageToPanel({ panelType: "latex" }, true, msg);
-      },
-    ),
-  );
 }
 
 type PanelDesc = {
@@ -426,7 +417,6 @@ type PanelType =
   | "histogram"
   | "estimates"
   | "help"
-  | "latex"
   | "circuit"
   | "documentation";
 
@@ -435,7 +425,6 @@ const panels: Record<PanelType, { [id: string]: PanelDesc }> = {
   estimates: {},
   circuit: {},
   help: {},
-  latex: {},
   documentation: {},
 };
 
@@ -444,7 +433,6 @@ const panelTypeToTitle: Record<PanelType, string> = {
   estimates: "Q# Estimates",
   circuit: "Q# Circuit",
   help: "Q# Help",
-  latex: "LaTeX",
   documentation: "Q# Documentation",
 };
 
@@ -629,7 +617,6 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "circuit" &&
       panelType !== "help" &&
-      panelType !== "latex" &&
       panelType != "documentation"
     ) {
       // If it was loading when closed, that's fine

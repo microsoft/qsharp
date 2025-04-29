@@ -11,7 +11,6 @@ import {
   CircuitProps,
   EstimatesPanel,
   Histogram,
-  Markdown,
   setRenderer,
   type ReData,
 } from "qsharp-lang/ux";
@@ -64,7 +63,6 @@ type DocumentationState = {
 type State =
   | { viewType: "loading"; panelId: string }
   | { viewType: "help" }
-  | { viewType: "latex"; content?: string }
   | HistogramState
   | EstimatesState
   | CircuitState
@@ -128,13 +126,6 @@ function onMessage(event: any) {
       break;
     case "help":
       state = helpState;
-      break;
-    case "latex":
-      console.log("Latex message: ", message);
-      state = {
-        viewType: "latex",
-        content: message.content,
-      };
       break;
     case "circuit":
       {
@@ -219,8 +210,6 @@ function App({ state }: { state: State }) {
       return <CircuitPanel {...state.props}></CircuitPanel>;
     case "help":
       return <HelpPage />;
-    case "latex":
-      return <Markdown markdown={state.content || "Loading..."} />;
     case "documentation":
       // Ideally we'd have this on all web views, but it makes the font a little
       // too large in the others right now. Something to unify later.
