@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Metadata, GateType } from "./metadata";
+import { GateRenderData, GateType } from "./gateRenderData";
 import {
   minGateWidth,
   labelPadding,
@@ -10,6 +10,44 @@ import {
 } from "./constants";
 import { ComponentGrid, Operation } from "./circuit";
 import { Register } from "./register";
+
+/**
+ * Performs a deep equality check between two objects or arrays.
+ * @param obj1 - The first object or array to compare.
+ * @param obj2 - The second object or array to compare.
+ * @returns True if the objects are deeply equal, false otherwise.
+ */
+export const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
+  if (obj1 === obj2) return true;
+
+  if (
+    obj1 === null ||
+    obj2 === null ||
+    typeof obj1 !== "object" ||
+    typeof obj2 !== "object"
+  ) {
+    return false;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (
+      !keys2.includes(key) ||
+      !deepEqual(
+        (obj1 as Record<string, unknown>)[key],
+        (obj2 as Record<string, unknown>)[key],
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 /**
  * Generate a UUID using `Math.random`.
@@ -26,9 +64,9 @@ const createUUID = (): string =>
   });
 
 /**
- * Calculate the width of a gate, given its metadata.
+ * Calculate the width of a gate, given its render data.
  *
- * @param metadata Metadata of a given gate.
+ * @param renderData - The rendering data of the gate, including its type, label, display arguments, and width.
  *
  * @returns Width of given gate (in pixels).
  */
@@ -37,7 +75,7 @@ const getGateWidth = ({
   label,
   displayArgs,
   width,
-}: Metadata): number => {
+}: GateRenderData): number => {
   if (width > 0) return width;
 
   switch (type) {
@@ -327,6 +365,19 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
     : [];
 };
 
+// Non-ASCII chars are fraught with danger. Copy/paste these when possible.
+// Use the following regex in VS Code to find invalid unicode chars
+// [^\x20-\x7e\u{03b8}-\u{03c8}\u{2020}\u{27e8}\u{27e9}]
+
+const mathChars = {
+  theta: "θ", // \u{03b8}
+  pi: "π", // \u{03c0}
+  psi: "ψ", // \u{03c8}
+  dagger: "†", // \u{2020}
+  langle: "⟨", // \u{27e8}
+  rangle: "⟩", // \u{27e9}
+};
+
 export {
   createUUID,
   getGateWidth,
@@ -342,4 +393,5 @@ export {
   getToolboxElems,
   getHostElems,
   getGateElems,
+  mathChars,
 };

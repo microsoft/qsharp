@@ -9,7 +9,7 @@ import {
   verticalGap,
 } from "./constants";
 import { formatGate } from "./formatters/gateFormatter";
-import { GateType, Metadata } from "./metadata";
+import { GateType, GateRenderData } from "./gateRenderData";
 import { getGateWidth } from "./utils";
 
 /**
@@ -83,7 +83,7 @@ const _createToolbox = (): HTMLElement => {
   let prefixX = 0;
   let prefixY = 0;
   const gateElems = Object.keys(toolboxGateDictionary).map((key, index) => {
-    const { width: gateWidth } = toMetadata(toolboxGateDictionary[key], 0, 0);
+    const { width: gateWidth } = toRenderData(toolboxGateDictionary[key], 0, 0);
 
     // Increment prefixX for every gate, and reset after 2 gates (2 columns)
     if (index % 2 === 0 && index !== 0) {
@@ -169,19 +169,19 @@ const _title = (text: string): HTMLElement => {
 };
 
 /**
- * Wrapper to generate metadata based on _opToMetadata with mock registers and limited support
+ * Wrapper to generate render data based on _opToRenderData with mock registers and limited support
  * @param operation     Operation object
  * @param x             x coordinate at starting point from the left
  * @param y             y coordinate at starting point from the top
- * @returns             Metadata object
+ * @returns             GateRenderData object
  */
-const toMetadata = (
+const toRenderData = (
   operation: Operation | undefined,
   x: number,
   y: number,
-): Metadata => {
+): GateRenderData => {
   const target = y + 1 + gateHeight / 2; // offset by 1 for top padding
-  const metadata: Metadata = {
+  const renderData: GateRenderData = {
     type: GateType.Invalid,
     x: x + 1 + minGateWidth / 2, // offset by 1 for left padding
     controlsY: [],
@@ -190,54 +190,54 @@ const toMetadata = (
     width: -1,
   };
 
-  if (operation === undefined) return metadata;
+  if (operation === undefined) return renderData;
 
   switch (operation.kind) {
     case "unitary": {
       const { gate, controls } = operation;
 
       if (gate === "SWAP") {
-        metadata.type = GateType.Swap;
+        renderData.type = GateType.Swap;
       } else if (controls && controls.length > 0) {
-        metadata.type =
+        renderData.type =
           gate === "X" ? GateType.Cnot : GateType.ControlledUnitary;
-        metadata.label = gate;
+        renderData.label = gate;
         if (gate !== "X") {
-          metadata.targetsY = [[target]];
+          renderData.targetsY = [[target]];
         }
       } else if (gate === "X") {
-        metadata.type = GateType.X;
-        metadata.label = gate;
+        renderData.type = GateType.X;
+        renderData.label = gate;
       } else {
-        metadata.type = GateType.Unitary;
-        metadata.label = gate;
-        metadata.targetsY = [[target]];
+        renderData.type = GateType.Unitary;
+        renderData.label = gate;
+        renderData.targetsY = [[target]];
       }
       break;
     }
     case "measurement":
-      metadata.type = GateType.Measure;
-      metadata.controlsY = [target];
+      renderData.type = GateType.Measure;
+      renderData.controlsY = [target];
       break;
     case "ket":
-      metadata.type = GateType.Ket;
-      metadata.label = operation.gate;
-      metadata.targetsY = [[target]];
+      renderData.type = GateType.Ket;
+      renderData.label = operation.gate;
+      renderData.targetsY = [[target]];
       break;
   }
 
   if (operation.args !== undefined && operation.args.length > 0)
-    metadata.displayArgs = operation.args[0];
+    renderData.displayArgs = operation.args[0];
 
-  metadata.width = getGateWidth(metadata);
-  metadata.x = x + 1 + metadata.width / 2; // offset by 1 for left padding
+  renderData.width = getGateWidth(renderData);
+  renderData.x = x + 1 + renderData.width / 2; // offset by 1 for left padding
 
-  return metadata;
+  return renderData;
 };
 
 /**
  * Generate an SVG gate element for the Toolbox panel based on the type of gate.
- * This function retrieves the operation metadata from the gate dictionary,
+ * This function retrieves the operation render data from the gate dictionary,
  * formats the gate, and returns the corresponding SVG element.
  *
  * @param gateDictionary - The dictionary containing gate operations.
@@ -255,9 +255,9 @@ const _gate = (
 ): SVGElement => {
   const gate = gateDictionary[type];
   if (gate == null) throw new Error(`Gate ${type} not available`);
-  const metadata = toMetadata(gate, x, y);
-  metadata.dataAttributes = { type: type };
-  const gateElem = formatGate(metadata).cloneNode(true) as SVGElement;
+  const renderData = toRenderData(gate, x, y);
+  renderData.dataAttributes = { type: type };
+  const gateElem = formatGate(renderData).cloneNode(true) as SVGElement;
   gateElem.setAttribute("toolbox-item", "true");
 
   return gateElem;
@@ -322,7 +322,6 @@ const toolboxGateDictionary: GateDictionary = {
   H: _makeUnitary("H"),
   SX: _makeUnitary("SX"),
   Reset: _makeKet("0"),
-  ResetOne: _makeKet("1"),
   Measure: _makeMeasurement("Measure"),
 };
 
@@ -330,4 +329,4 @@ toolboxGateDictionary["RX"].params = [{ name: "theta", type: "Double" }];
 toolboxGateDictionary["RY"].params = [{ name: "theta", type: "Double" }];
 toolboxGateDictionary["RZ"].params = [{ name: "theta", type: "Double" }];
 
-export { createPanel, toolboxGateDictionary, toMetadata };
+export { createPanel, toolboxGateDictionary, toRenderData };

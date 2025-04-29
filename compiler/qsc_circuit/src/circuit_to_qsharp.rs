@@ -80,12 +80,19 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
     let mut measure_results = vec![];
     let indent = "    ".repeat(indentation_level);
 
-    // Add an assert for the number of qubits
-    qsharp_str.push_str(&generate_qubit_validation(
-        circuit_name,
-        &qubits,
-        indentation_level,
-    ));
+    // If there are operation, add an assert for the number of qubits
+    if !circuit.component_grid.is_empty()
+        && circuit
+            .component_grid
+            .iter()
+            .any(|col| !col.components.is_empty())
+    {
+        qsharp_str.push_str(&generate_qubit_validation(
+            circuit_name,
+            &qubits,
+            indentation_level,
+        ));
+    }
 
     let mut body_str = String::new();
     let mut should_add_pi = false;
@@ -113,12 +120,10 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
                 }
             }
 
-            // Look for a "π" or "pi" in the args
+            // Look for a "π" in the args
             let args = op.args();
             if !should_add_pi && !args.is_empty() {
-                should_add_pi = args
-                    .iter()
-                    .any(|arg| arg.contains("π") || arg.to_lowercase().contains("pi"));
+                should_add_pi = args.iter().any(|arg| arg.contains("π"));
             }
         }
     }
@@ -230,24 +235,15 @@ fn generate_unitary_call(
 }
 
 fn generate_ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {
-    if ket.gate == "1" {
-        // Note "|1〉" will generate two operations: Reset and X
-        let ket_str = ket_call(ket, qubits);
-        let mut call_str = format!("{indent}{ket_str};\n");
-        let op_x = Unitary {
-            gate: "X".to_string(),
-            is_adjoint: false,
-            controls: vec![],
-            targets: ket.targets.clone(),
-            args: vec![],
-            children: vec![],
-        };
-        let operation_str = operation_call(&op_x, qubits);
-        writeln!(call_str, "{indent}{operation_str};").expect("could not write to call_str");
-        call_str
-    } else {
+    // Note: The only supported ket operation is "0"
+    if ket.gate == "0" {
         let ket_str = ket_call(ket, qubits);
         format!("{indent}{ket_str};\n")
+    } else {
+        format!(
+            "{indent}fail \"Unsupported ket operation: |{}〉\";\n",
+            ket.gate
+        )
     }
 }
 
@@ -300,6 +296,7 @@ fn measurement_call(measurement: &Measurement, qubits: &FxHashMap<usize, String>
 }
 
 fn ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>) -> String {
+    // Note: The only supported ket operation is "0" which is a reset operation
     let targets = ket
         .targets
         .iter()
@@ -328,8 +325,6 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
 
     // Create the regex for matching numbers (both integers and doubles)
     let number_regex = Regex::new(r"((\d+(\.\d*)?)|(\.\d+))").expect("Regex should compile");
-    // Create the regex for matching "pi" (case-insensitive)
-    let pi_regex = Regex::new(r"(?i)pi").expect("Regex should compile");
 
     // Convert ints to doubles by appending a `.` to the end of the integer
     for arg in &unitary.args {
@@ -344,9 +339,6 @@ fn operation_call(unitary: &Unitary, qubits: &FxHashMap<usize, String>) -> Strin
                 }
             })
             .to_string();
-
-        // Replace "pi" (case-insensitive) with "π"
-        let updated_arg = pi_regex.replace_all(&updated_arg, "π").to_string();
 
         args.push(updated_arg);
     }

@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import { Qubit } from "../circuit";
-import { RegisterType, RegisterMap, RegisterMetadata } from "../register";
+import { RegisterType, RegisterMap, RegisterRenderData } from "../register";
 import {
   leftPadding,
   startY,
@@ -10,10 +10,11 @@ import {
   classicalRegHeight,
 } from "../constants";
 import { group, text } from "./formatUtils";
+import { mathChars } from "../utils";
 
 /**
  * `formatInputs` takes in an array of Qubits and outputs the SVG string of formatted
- * qubit wires and a mapping from register IDs to register metadata (for rendering).
+ * qubit wires and a mapping from register IDs to register rendering data.
  *
  * @param qubits List of declared qubits.
  *
@@ -45,7 +46,7 @@ const formatInputs = (
 
     // Add classical wires
     registers[id].children = Array.from(Array(numResults), () => {
-      const clsReg: RegisterMetadata = {
+      const clsReg: RegisterRenderData = {
         type: RegisterType.Classical,
         y: currY,
       };
@@ -71,38 +72,15 @@ const formatInputs = (
 const _qubitInput = (y: number, subscript?: string): SVGElement => {
   const el: SVGElement = text("", leftPadding, y, 16);
 
-  // Create the main text node
-  const mainText = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "tspan",
-  );
-  mainText.textContent = "|𝜓";
+  const subtext = subscript
+    ? `<tspan baseline-shift="sub" font-size="65%">${subscript}</tspan>`
+    : "";
 
-  // Create the subscript node if provided
-  if (subscript) {
-    const subscriptText = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "tspan",
-    );
-    subscriptText.textContent = subscript;
-    subscriptText.setAttribute("baseline-shift", "sub");
-    subscriptText.setAttribute("font-size", "65%");
-    mainText.appendChild(subscriptText);
-  }
-
-  // Add the closing part of the text
-  const closingText = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "tspan",
-  );
-  closingText.textContent = "⟩";
-
-  // Append all parts to the main SVG text element
-  el.appendChild(mainText);
-  el.appendChild(closingText);
+  el.innerHTML = `|<tspan class="qs-mathtext">${mathChars.psi}</tspan>${subtext}${mathChars.rangle}</tspan>`;
 
   el.setAttribute("text-anchor", "start");
   el.setAttribute("dominant-baseline", "middle");
+  el.classList.add("qs-maintext");
   return el;
 };
 

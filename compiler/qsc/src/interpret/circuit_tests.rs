@@ -148,9 +148,9 @@ fn rotation_gate() {
         .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ─ rx(1.5708) ──
-    "]]
+    expect![[r#"
+        q_0    ─ Rx(1.5708) ──
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
@@ -883,10 +883,10 @@ fn operation_with_long_gates_properly_aligned() {
     expect![[r#"
         q_0    ── H ────────────────────────────────────── ● ──────── M ────────────────────────────────── ● ─────────
                                                            │          ╘════════════════════════════════════╪══════════
-        q_1    ── H ──────── X ─────── ry(1.0000) ──────── X ───────────────────────────── rxx(1.0000) ────┼───── M ──
+        q_1    ── H ──────── X ─────── Ry(1.0000) ──────── X ───────────────────────────── Rxx(1.0000) ────┼───── M ──
                                                                                                 ┆          │      ╘═══
-        q_2    ── H ─── rx(1.0000) ──────── H ─────── rx(1.0000) ──── H ─── rx(1.0000) ─────────┆──────────┼──────────
-        q_3    ─────────────────────────────────────────────────────────────────────────── rxx(1.0000) ─── X ──── M ──
+        q_2    ── H ─── Rx(1.0000) ──────── H ─────── Rx(1.0000) ──── H ─── Rx(1.0000) ─────────┆──────────┼──────────
+        q_3    ─────────────────────────────────────────────────────────────────────────── Rxx(1.0000) ─── X ──── M ──
                                                                                                                   ╘═══
     "#]]
     .assert_eq(&circ.to_string());
@@ -919,12 +919,12 @@ fn operation_with_subsequent_qubits_gets_horizontal_lines() {
         .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ rxx(1.0000) ─
+        q_0    ─ Rxx(1.0000) ─
                       ┆
-        q_1    ─ rxx(1.0000) ─
-        q_2    ─ rxx(1.0000) ─
+        q_1    ─ Rxx(1.0000) ─
+        q_2    ─ Rxx(1.0000) ─
                       ┆
-        q_3    ─ rxx(1.0000) ─
+        q_3    ─ Rxx(1.0000) ─
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -953,9 +953,9 @@ fn operation_with_subsequent_qubits_no_double_rows() {
         .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ rxx(1.0000) ── rxx(1.0000) ─
+        q_0    ─ Rxx(1.0000) ── Rxx(1.0000) ─
                       ┆              ┆
-        q_1    ─ rxx(1.0000) ── rxx(1.0000) ─
+        q_1    ─ Rxx(1.0000) ── Rxx(1.0000) ─
     "#]]
     .assert_eq(&circ.to_string());
 }
@@ -989,12 +989,12 @@ fn operation_with_subsequent_qubits_no_added_rows() {
         .expect("circuit generation should succeed");
 
     expect![[r#"
-        q_0    ─ rxx(1.0000) ─── M ──
+        q_0    ─ Rxx(1.0000) ─── M ──
                       ┆          ╘═══
-        q_1    ─ rxx(1.0000) ────────
-        q_2    ─ rxx(1.0000) ─── M ──
+        q_1    ─ Rxx(1.0000) ────────
+        q_2    ─ Rxx(1.0000) ─── M ──
                       ┆          ╘═══
-        q_3    ─ rxx(1.0000) ────────
+        q_3    ─ Rxx(1.0000) ────────
     "#]]
     .assert_eq(&circ.to_string());
 }

@@ -11,13 +11,14 @@ use super::{cooked, raw};
 /// Whitespace and comment tokens were removed during the creation of cooked tokens
 /// because they are generally not useful for compilation, but they are reintroduced
 /// here because they are needed for formatting.
+#[derive(Clone, Copy)]
 pub struct ConcreteToken {
     pub kind: ConcreteTokenKind,
     pub span: Span,
 }
 
 /// This enum extends the cooked token kind to include whitespace and comment token kinds.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConcreteTokenKind {
     Syntax(cooked::TokenKind),
     Error(cooked::Error),

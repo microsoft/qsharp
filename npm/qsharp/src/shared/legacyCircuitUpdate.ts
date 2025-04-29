@@ -189,6 +189,7 @@ function isCircuit(circuit: any): circuit is Circuit {
  */
 function getKetLabel(ket: string): string {
   // Check that the ket conforms to the format |{label}> or |{label}⟩
+  // Be overly permissive with the ket format, allowing for various closing characters
   const ketRegex = /^\|([^\s〉⟩〉>]+)(?:[〉⟩〉>])$/;
 
   // Match the ket string against the regex

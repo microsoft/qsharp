@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import cloneDeep from "lodash/cloneDeep";
-import isEqual from "lodash/isEqual";
 import { ComponentGrid, Operation, Qubit, Unitary } from "./circuit";
 import { Sqore } from "./sqore";
 import { toolboxGateDictionary } from "./panel";
@@ -15,6 +13,7 @@ import {
   getWireData,
   locationStringToIndexes,
   findParentArray,
+  deepEqual,
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
@@ -420,7 +419,10 @@ class CircuitEvents {
     dropzoneElems.forEach((dropzoneElem) => {
       dropzoneElem.addEventListener("mouseup", async (ev: MouseEvent) => {
         const copying = ev.ctrlKey;
-        const originalGrid = cloneDeep(this.componentGrid);
+        // Create a deep copy of the component grid
+        const originalGrid = JSON.parse(
+          JSON.stringify(this.componentGrid),
+        ) as ComponentGrid;
         const targetLoc = dropzoneElem.getAttribute("data-dropzone-location");
         const insertNewColumn =
           dropzoneElem.getAttribute("data-dropzone-inter-column") == "true" ||
@@ -512,8 +514,7 @@ class CircuitEvents {
         this.selectedOperation = null;
         this.movingControl = false;
 
-        if (isEqual(originalGrid, this.componentGrid) === false)
-          this.renderFn();
+        if (!deepEqual(originalGrid, this.componentGrid)) this.renderFn();
       });
     });
   }
@@ -789,6 +790,7 @@ const _createConfirmPrompt = (
   okButton.addEventListener("click", () => {
     callback(true); // User confirmed
     document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
   });
 
   // Create the Cancel button
@@ -798,7 +800,20 @@ const _createConfirmPrompt = (
   cancelButton.addEventListener("click", () => {
     callback(false); // User canceled
     document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
   });
+
+  // Handle Enter and Escape keys globally while prompt is open
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      okButton.click();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancelButton.click();
+    }
+  };
+  document.addEventListener("keydown", handleGlobalKeyDown, true);
 
   buttonsContainer.appendChild(okButton);
   buttonsContainer.appendChild(cancelButton);
