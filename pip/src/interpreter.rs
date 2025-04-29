@@ -5,8 +5,9 @@ use crate::{
     displayable_output::{DisplayableMatrix, DisplayableOutput, DisplayableState},
     fs::file_system,
     interop::{
-        compile_qasm_enriching_errors, compile_qasm_to_qir, compile_qasm_to_qsharp,
-        map_entry_compilation_errors, resource_estimate_qasm, run_ast, run_qasm, ImportResolver,
+        circuit_qasm_program, compile_qasm_program_to_qir, compile_qasm_to_qsharp,
+        create_filesystem_from_py, get_operation_name, get_output_semantics, get_program_type,
+        get_search_path, resource_estimate_qasm_program, run_qasm_program, ImportResolver,
     },
     noisy_simulator::register_noisy_simulator_submodule,
 };
@@ -21,6 +22,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qsc::{
+    error::WithSource,
     fir::{self},
     hir::ty::{Prim, Ty},
     interpret::{
@@ -30,6 +32,7 @@ use qsc::{
     },
     packages::BuildableProgram,
     project::{FileSystem, PackageCache, PackageGraphSources},
+    qasm::{compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
 };
@@ -81,9 +84,10 @@ fn _native<'a>(py: Python<'a>, m: &Bound<'a, PyModule>) -> PyResult<()> {
     register_noisy_simulator_submodule(py, m)?;
     // QASM interop
     m.add("QasmError", py.get_type::<QasmError>())?;
-    m.add_function(wrap_pyfunction!(resource_estimate_qasm, m)?)?;
-    m.add_function(wrap_pyfunction!(run_qasm, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_qasm_to_qir, m)?)?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(circuit_qasm_program, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm_program_to_qir, m)?)?;
     m.add_function(wrap_pyfunction!(compile_qasm_to_qsharp, m)?)?;
     Ok(())
 }
@@ -430,6 +434,104 @@ impl Interpreter {
         }
     }
 
+    /// Imports OpenQASM source code into the active Q# interpreter.
+    ///
+    /// Args:
+    ///     source (str): An OpenQASM program or fragment.
+    ///     output_fn: The function to handle the output of the execution.
+    ///     read_file: A callable that reads a file and returns its content and path.
+    ///     list_directory: A callable that lists the contents of a directory.
+    ///     resolve_path: A callable that resolves a file path given a base path and a relative path.
+    ///     fetch_github: A callable that fetches a file from GitHub.
+    ///     **kwargs: Additional keyword arguments to pass to the execution.
+    ///         - name (str): The name of the program. This is used as the entry point for the program.
+    ///         - search_path (Optional[str]): The optional search path for resolving file references.
+    ///         - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+    ///         - program_ty (ProgramType, optional): The type of program compilation to perform.
+    ///
+    /// Returns:
+    ///     value: The value returned by the last statement in the source code.
+    ///
+    /// Raises:
+    ///     QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+    ///     QSharpError: If there is an error compiling the program.
+    ///     QSharpError: If there is an error evaluating the source code.
+    #[pyo3(signature=(input, output_fn, read_file, list_directory, resolve_path, fetch_github, **kwargs))]
+    #[allow(clippy::needless_pass_by_value)]
+    #[allow(clippy::too_many_arguments)]
+    fn import_qasm(
+        &mut self,
+        py: Python,
+        input: &str,
+        output_fn: Option<PyObject>,
+        read_file: Option<PyObject>,
+        list_directory: Option<PyObject>,
+        resolve_path: Option<PyObject>,
+        fetch_github: Option<PyObject>,
+        kwargs: Option<Bound<'_, PyDict>>,
+    ) -> PyResult<PyObject> {
+        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+
+        let operation_name = get_operation_name(&kwargs)?;
+        let search_path = get_search_path(&kwargs)?;
+        let program_ty = get_program_type(&kwargs, || ProgramType::Operation)?;
+        let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::OpenQasm)?;
+
+        let fs =
+            create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+
+        let config = CompilerConfig::new(
+            QubitSemantics::Qiskit,
+            output_semantics.into(),
+            program_ty.into(),
+            Some(operation_name.into()),
+            None,
+        );
+
+        let unit = compile_to_qsharp_ast_with_config(input, "<none>", Some(&mut resolver), config);
+        let (sources, errors, package, _) = unit.into_tuple();
+
+        if !errors.is_empty() {
+            let errors = errors
+                .iter()
+                .map(|e| {
+                    use qsc::compile::ErrorKind;
+                    use qsc::interpret::Error;
+                    let error = e.error().clone();
+                    let kind = ErrorKind::OpenQasm(error);
+                    let v = WithSource::from_map(&sources, kind);
+                    Error::Compile(v)
+                })
+                .collect();
+            return Err(QSharpError::new_err(format_errors(errors)));
+        }
+        let mut receiver = OptionalCallbackReceiver {
+            callback: output_fn,
+            py,
+        };
+
+        match self
+            .interpreter
+            .eval_ast_fragments(&mut receiver, input, package)
+        {
+            Ok(value) => {
+                if let Some(make_callable) = &self.make_callable {
+                    // Get any global callables from the evaluated input and add them to the environment. This will grab
+                    // every callable that was defined in the input and by previous calls that added to the open package.
+                    // This is safe because either the callable will be replaced with itself or a new callable with the
+                    // same name will shadow the previous one, which is the expected behavior.
+                    let new_items = self.interpreter.source_globals();
+                    for (namespace, name, val) in new_items {
+                        create_py_callable(py, make_callable, &namespace, &name, val)?;
+                    }
+                }
+                Ok(ValueWrapper(value).into_pyobject(py)?.unbind())
+            }
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
     /// Sets the quantum seed for the interpreter.
     #[pyo3(signature=(seed=None))]
     fn set_quantum_seed(&mut self, seed: Option<u64>) {
@@ -641,73 +743,6 @@ impl Interpreter {
                     .collect::<Vec<_>>()
                     .join("\n"),
             )),
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    #[pyo3(
-        signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
-    )]
-    pub fn _run_qasm(
-        &mut self,
-        py: Python,
-        source: &str,
-        callback: Option<PyObject>,
-        read_file: Option<PyObject>,
-        list_directory: Option<PyObject>,
-        resolve_path: Option<PyObject>,
-        fetch_github: Option<PyObject>,
-        kwargs: Option<Bound<'_, PyDict>>,
-    ) -> PyResult<PyObject> {
-        let mut receiver = OptionalCallbackReceiver { callback, py };
-
-        let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
-
-        let operation_name = crate::interop::get_operation_name(&kwargs)?;
-        let seed = crate::interop::get_seed(&kwargs);
-        let shots = crate::interop::get_shots(&kwargs)?;
-        let search_path = crate::interop::get_search_path(&kwargs)?;
-        let program_type = crate::interop::get_program_type(&kwargs)?;
-        let output_semantics = crate::interop::get_output_semantics(&kwargs)?;
-
-        let fs = crate::interop::create_filesystem_from_py(
-            py,
-            read_file,
-            list_directory,
-            resolve_path,
-            fetch_github,
-        );
-        let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
-
-        let (package, _source_map, signature) = compile_qasm_enriching_errors(
-            source,
-            &operation_name,
-            &mut resolver,
-            program_type,
-            output_semantics,
-            false,
-        )?;
-
-        let value = self
-            .interpreter
-            .eval_ast_fragments(&mut receiver, source, package)
-            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
-
-        match program_type {
-            ProgramType::File => {
-                let entry_expr = signature.create_entry_expr_from_params(String::new());
-                self.interpreter
-                    .set_entry_expr(&entry_expr)
-                    .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
-
-                match run_ast(&mut self.interpreter, &mut receiver, shots, seed) {
-                    Ok(result) => {
-                        Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into())
-                    }
-                    Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-                }
-            }
-            _ => Ok(ValueWrapper(value).into_pyobject(py)?.unbind()),
         }
     }
 }
@@ -1128,7 +1163,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
 }
 
 #[pyclass]
-struct Circuit(pub qsc::circuit::Circuit);
+pub(crate) struct Circuit(pub qsc::circuit::Circuit);
 
 #[pymethods]
 impl Circuit {

@@ -3,21 +3,22 @@
 
 use std::path::{Path, PathBuf};
 
-use std::fmt::Write;
-
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
+use pyo3::IntoPyObjectExt;
 use qsc::hir::PackageId;
 use qsc::interpret::output::Receiver;
-use qsc::interpret::{into_errors, Interpreter};
+use qsc::interpret::{into_errors, CircuitEntryPoint, Interpreter};
 use qsc::qasm::io::{SourceResolver, SourceResolverContext};
 use qsc::qasm::{OperationSignature, QubitSemantics};
 use qsc::target::Profile;
 use qsc::{
     ast::Package, error::WithSource, interpret, project::FileSystem, LanguageFeatures, SourceMap,
 };
-use qsc::{Backend, PackageType, SparseSim};
+use qsc::{Backend, PackageType, PauliNoise, SparseSim};
+
+use std::fmt::Write;
 
 use crate::fs::file_system;
 use crate::interpreter::{
@@ -79,18 +80,46 @@ where
     }
 }
 
-/// This call while exported is not intended to be used directly by the user.
-/// It is intended to be used by the Python wrapper which will handle the
-/// callbacks and other Python specific details.
+/// Runs the given OpenQASM program for the given number of shots.
+/// Each shot uses an independent instance of the simulator.
+///
+/// Note:
+///     This call while exported is not intended to be used directly by the user.
+///     It is intended to be used by the Python wrapper which will handle the
+///     callbacks and other Python specific details.
+///
+/// Args:
+///     source (str): The OpenQASM source code to execute.
+///     output_fn (Callable[[Output], None]): The function to handle the output of the execution.
+///     noise: The noise to use in simulation.
+///     read_file (Callable[[str], Tuple[str, str]]): The function to read a file and return its contents.
+///     list_directory (Callable[[str], List[Dict[str, str]]]): The function to list the contents of a directory.
+///     resolve_path (Callable[[str, str], str]): The function to resolve a path given a base path and a relative path.
+///     fetch_github (Callable[[str, str, str, str], str]): The function to fetch a file from GitHub.
+///     **kwargs: Additional keyword arguments to pass to the execution.
+///       - target_profile (TargetProfile): The target profile to use for execution.
+///       - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
+///       - search_path (str): The optional search path for resolving imports.
+///       - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+///       - shots (int): The number of shots to run the program for. Defaults to 1.
+///       - seed (int): The seed to use for the random number generator.
+///
+/// Returns:
+///     Any: The result of the execution.
+///
+/// Raises:
+///     QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+///     QSharpError: If there is an error interpreting the input.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
 #[pyo3(
-    signature = (source, callback=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
+    signature = (source, callback=None, noise=None, read_file=None, list_directory=None, resolve_path=None, fetch_github=None, **kwargs)
 )]
-pub fn run_qasm(
+pub fn run_qasm_program(
     py: Python,
     source: &str,
     callback: Option<PyObject>,
+    noise: Option<(f64, f64, f64)>,
     read_file: Option<PyObject>,
     list_directory: Option<PyObject>,
     resolve_path: Option<PyObject>,
@@ -103,6 +132,7 @@ pub fn run_qasm(
 
     let target = get_target_profile(&kwargs)?;
     let operation_name = get_operation_name(&kwargs)?;
+    let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::OpenQasm)?;
     let seed = get_seed(&kwargs);
     let shots = get_shots(&kwargs)?;
     let search_path = get_search_path(&kwargs)?;
@@ -115,7 +145,7 @@ pub fn run_qasm(
         &operation_name,
         &mut resolver,
         ProgramType::File,
-        OutputSemantics::Qiskit,
+        output_semantics,
         false,
     )?;
 
@@ -130,7 +160,15 @@ pub fn run_qasm(
         .set_entry_expr(&entry_expr)
         .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
 
-    match run_ast(&mut interpreter, &mut receiver, shots, seed) {
+    let noise = match noise {
+        None => None,
+        Some((px, py, pz)) => match PauliNoise::from_probabilities(px, py, pz) {
+            Ok(noise_struct) => Some(noise_struct),
+            Err(error_message) => return Err(PyException::new_err(error_message)),
+        },
+    };
+    let result = run_ast(&mut interpreter, &mut receiver, shots, seed, noise);
+    match result {
         Ok(result) => Ok(PyList::new(py, result.iter().map(|v| ValueWrapper(v.clone())))?.into()),
         Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
     }
@@ -141,10 +179,15 @@ pub(crate) fn run_ast(
     receiver: &mut impl Receiver,
     shots: usize,
     seed: Option<u64>,
+    noise: Option<PauliNoise>,
 ) -> Result<Vec<qsc::interpret::Value>, Vec<interpret::Error>> {
     let mut results = Vec::with_capacity(shots);
     for i in 0..shots {
-        let mut sim = SparseSim::new();
+        let mut sim = if let Some(noise) = noise {
+            SparseSim::new_with_noise(&noise)
+        } else {
+            SparseSim::new()
+        };
         // If seed is provided, we want to use a different seed for each shot
         // so that the results are different for each shot, but still deterministic
         sim.set_seed(seed.map(|s| s + i as u64));
@@ -155,15 +198,31 @@ pub(crate) fn run_ast(
     Ok(results)
 }
 
-/// This call while exported is not intended to be used directly by the user.
-/// It is intended to be used by the Python wrapper which will handle the
-/// callbacks and other Python specific details.
+/// Estimates the resource requirements for executing OpenQASM source code.
+///
+/// Note:
+///     This call while exported is not intended to be used directly by the user.
+///     It is intended to be used by the Python wrapper which will handle the
+///     callbacks and other Python specific details.
+///
+/// Args:
+///     source (str): The OpenQASM source code to estimate the resource requirements for.
+///     job_params (str): The parameters for the job.
+///     read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
+///     list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
+///     resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
+///     fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
+///     **kwargs: Additional keyword arguments to pass to the execution.
+///       - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
+///       - search_path (str): The optional search path for resolving imports.
+/// Returns:
+///     str: The estimated resource requirements for executing the OpenQASM source code.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
 #[pyo3(
     signature = (source, job_params, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn resource_estimate_qasm(
+pub(crate) fn resource_estimate_qasm_program(
     py: Python,
     source: &str,
     job_params: &str,
@@ -218,15 +277,39 @@ pub(crate) fn resource_estimate_qasm(
     }
 }
 
-/// This call while exported is not intended to be used directly by the user.
-/// It is intended to be used by the Python wrapper which will handle the
-/// callbacks and other Python specific details.
+/// Compiles the OpenQASM source code into a program that can be submitted to a
+/// target as QIR (Quantum Intermediate Representation).
+///
+/// Note:
+///     This call while exported is not intended to be used directly by the user.
+///     It is intended to be used by the Python wrapper which will handle the
+///     callbacks and other Python specific details.
+///
+/// Args:
+///     source (str): The OpenQASM source code to estimate the resource requirements for.
+///     read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
+///     list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
+///     resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
+///     fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
+///     **kwargs: Additional keyword arguments to pass to the compilation when source program is provided.
+///       - name (str): The name of the circuit. This is used as the entry point for the program.
+///       - target_profile (TargetProfile): The target profile to use for code generation.
+///       - search_path (Optional[str]): The optional search path for resolving file references.
+///       - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+///       - program_ty (ProgramType, optional): The type of program compilation to perform.
+///
+/// Returns:
+///     str: The converted QIR code as a string.
+///
+/// Raises:
+///     QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+///     QSharpError: If there is an error compiling the program.
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
 #[pyo3(
     signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
 )]
-pub(crate) fn compile_qasm_to_qir(
+pub(crate) fn compile_qasm_program_to_qir(
     py: Python,
     source: &str,
     read_file: Option<PyObject>,
@@ -244,8 +327,8 @@ pub(crate) fn compile_qasm_to_qir(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_ty = get_program_type(&kwargs)?;
-    let output_semantics = get_output_semantics(&kwargs)?;
+    let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+    let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
         source,
         &operation_name,
@@ -341,8 +424,8 @@ pub(crate) fn compile_qasm_to_qsharp(
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
     let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
 
-    let program_ty = get_program_type(&kwargs)?;
-    let output_semantics = get_output_semantics(&kwargs)?;
+    let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
+    let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, _, _) = compile_qasm_enriching_errors(
         source,
         &operation_name,
@@ -454,6 +537,83 @@ fn estimate_qasm(
     .map_err(into_estimation_errors)?;
 
     resource_estimator::estimate_entry(&mut interpreter, params)
+}
+
+/// Synthesizes a circuit for an OpenQASM program.
+///
+/// Note:
+///     This call while exported is not intended to be used directly by the user.
+///     It is intended to be used by the Python wrapper which will handle the
+///     callbacks and other Python specific details.
+///
+/// Args:
+///     source (str): An OpenQASM program. Alternatively, a callable can be provided,
+///         which must be an already imported global callable.
+///     read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
+///     list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
+///     resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
+///     fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
+///     **kwargs: Additional keyword arguments to pass to the execution.
+///       - name (str): The name of the program. This is used as the entry point for the program.
+///       - search_path (Optional[str]): The optional search path for resolving file references.
+/// Returns:
+///     Circuit: The synthesized circuit.
+///
+/// Raises:
+///     QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+///     QSharpError: If there is an error evaluating the program.
+///     QSharpError: If there is an error synthesizing the circuit.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+#[pyo3(
+    signature = (source, read_file, list_directory, resolve_path, fetch_github, **kwargs)
+)]
+pub(crate) fn circuit_qasm_program(
+    py: Python,
+    source: &str,
+    read_file: Option<PyObject>,
+    list_directory: Option<PyObject>,
+    resolve_path: Option<PyObject>,
+    fetch_github: Option<PyObject>,
+    kwargs: Option<Bound<'_, PyDict>>,
+) -> PyResult<PyObject> {
+    let kwargs = kwargs.unwrap_or_else(|| PyDict::new(py));
+
+    let operation_name = get_operation_name(&kwargs)?;
+    let search_path = get_search_path(&kwargs)?;
+
+    let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
+    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+
+    let (package, source_map, signature) = compile_qasm_enriching_errors(
+        source,
+        &operation_name,
+        &mut resolver,
+        ProgramType::File,
+        OutputSemantics::ResourceEstimation,
+        false,
+    )?;
+
+    let package_type = PackageType::Exe;
+    let language_features = LanguageFeatures::default();
+    let mut interpreter = create_interpreter_from_ast(
+        package,
+        source_map,
+        TargetProfile::Unrestricted.into(),
+        language_features,
+        package_type,
+    )
+    .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
+
+    let entry_expr = signature.create_entry_expr_from_params(String::new());
+    interpreter
+        .set_entry_expr(&entry_expr)
+        .map_err(|errors| map_entry_compilation_errors(errors, &signature))?;
+
+    match interpreter.circuit(CircuitEntryPoint::EntryExpr(entry_expr), false) {
+        Ok(circuit) => crate::interpreter::Circuit(circuit).into_py_any(py),
+        Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+    }
 }
 
 /// Converts a list of Q# errors into a list of resource estimator errors.
@@ -583,19 +743,27 @@ pub(crate) fn get_search_path(kwargs: &Bound<'_, PyDict>) -> PyResult<String> {
 }
 
 /// Extracts the program type from the kwargs dictionary.
-pub(crate) fn get_program_type(kwargs: &Bound<'_, PyDict>) -> PyResult<ProgramType> {
+pub(crate) fn get_program_type<D>(kwargs: &Bound<'_, PyDict>, default: D) -> PyResult<ProgramType>
+where
+    D: FnOnce() -> ProgramType,
+{
     let target = kwargs
         .get_item("program_ty")?
-        .map_or_else(|| Ok(ProgramType::File), |x| x.extract::<ProgramType>())?;
+        .map_or_else(|| Ok(default()), |x| x.extract::<ProgramType>())?;
     Ok(target)
 }
 
 /// Extracts the output semantics from the kwargs dictionary.
-pub(crate) fn get_output_semantics(kwargs: &Bound<'_, PyDict>) -> PyResult<OutputSemantics> {
-    let target = kwargs.get_item("output_semantics")?.map_or_else(
-        || Ok(OutputSemantics::Qiskit),
-        |x| x.extract::<OutputSemantics>(),
-    )?;
+pub(crate) fn get_output_semantics<D>(
+    kwargs: &Bound<'_, PyDict>,
+    default: D,
+) -> PyResult<OutputSemantics>
+where
+    D: FnOnce() -> OutputSemantics,
+{
+    let target = kwargs
+        .get_item("output_semantics")?
+        .map_or_else(|| Ok(default()), |x| x.extract::<OutputSemantics>())?;
     Ok(target)
 }
 

@@ -232,7 +232,7 @@ def _run_qasm(
     :raises QasmError: If there is an error generating, parsing, or compiling QASM.
     """
 
-    from ...._native import Output, run_qasm
+    from ...._native import run_qasm_program, Output  # type: ignore
     from ...._fs import read_file, list_directory, resolve
     from ...._http import fetch_github
 
@@ -262,9 +262,10 @@ def _run_qasm(
     if seed := value_or_default("seed"):
         args["seed"] = seed
 
-    return run_qasm(
+    return run_qasm_program(
         qasm,
         output_fn,
+        None,
         read_file,
         list_directory,
         resolve,

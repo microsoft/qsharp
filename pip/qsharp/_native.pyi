@@ -293,6 +293,42 @@ class Interpreter:
         """
         ...
 
+    def import_qasm(
+        self,
+        source: str,
+        output_fn: Callable[[Output], None],
+        read_file: Callable[[str], Tuple[str, str]],
+        list_directory: Callable[[str], List[Dict[str, str]]],
+        resolve_path: Callable[[str, str], str],
+        fetch_github: Callable[[str, str, str, str], str],
+        **kwargs
+    ) -> Any:
+        """
+        Imports OpenQASM source code into the active Q# interpreter.
+
+        Args:
+            source (str): An OpenQASM program or fragment.
+            output_fn: The function to handle the output of the execution.
+            read_file: A callable that reads a file and returns its content and path.
+            list_directory: A callable that lists the contents of a directory.
+            resolve_path: A callable that resolves a file path given a base path and a relative path.
+            fetch_github: A callable that fetches a file from GitHub.
+            **kwargs: Additional keyword arguments to pass to the execution.
+              - name (str): The name of the program. This is used as the entry point for the program.
+              - search_path (Optional[str]): The optional search path for resolving file references.
+              - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+              - program_ty (ProgramType, optional): The type of program compilation to perform.
+
+        Returns:
+            value: The value returned by the last statement in the source code.
+
+        Raises:
+            QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+            QSharpError: If there is an error compiling the program.
+            QSharpError: If there is an error evaluating the source code.
+        """
+        ...
+
 class Result(Enum):
     """
     A Q# measurement result.
@@ -375,17 +411,16 @@ def physical_estimates(logical_resources: str, params: str) -> str:
     """
     ...
 
-def resource_estimate_qasm(
+def circuit_qasm_program(
     source: str,
-    job_params: str,
     read_file: Callable[[str], Tuple[str, str]],
     list_directory: Callable[[str], List[Dict[str, str]]],
     resolve_path: Callable[[str, str], str],
     fetch_github: Callable[[str, str, str, str], str],
     **kwargs
-) -> str:
+) -> Circuit:
     """
-    Estimates the resource requirements for executing QASM source code.
+    Synthesizes a circuit for an OpenQASM program.
 
     Note:
         This call while exported is not intended to be used directly by the user.
@@ -393,57 +428,26 @@ def resource_estimate_qasm(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM source code to estimate the resource requirements for.
-        job_params (str): The parameters for the job.
+        source (str): An OpenQASM program. Alternatively, a callable can be provided,
+            which must be an already imported global callable.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
         resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
         fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
         **kwargs: Additional keyword arguments to pass to the execution.
-          - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
-          - search_path (str): The optional search path for resolving imports.
+          - name (str): The name of the program. This is used as the entry point for the program.
+          - search_path (Optional[str]): The optional search path for resolving file references.
     Returns:
-        str: The estimated resource requirements for executing the QASM source code.
+        Circuit: The synthesized circuit.
+
+    Raises:
+        QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+        QSharpError: If there is an error evaluating the program.
+        QSharpError: If there is an error synthesizing the circuit.
     """
     ...
 
-def run_qasm(
-    source: str,
-    output_fn: Callable[[Output], None],
-    read_file: Callable[[str], Tuple[str, str]],
-    list_directory: Callable[[str], List[Dict[str, str]]],
-    resolve_path: Callable[[str, str], str],
-    fetch_github: Callable[[str, str, str, str], str],
-    **kwargs
-) -> Any:
-    """
-    Executes QASM source code using the specified target profile.
-
-    Note:
-        This call while exported is not intended to be used directly by the user.
-        It is intended to be used by the Python wrapper which will handle the
-        callbacks and other Python specific details.
-
-    Args:
-        source (str): The QASM source code to execute.
-        output_fn (Callable[[Output], None]): The function to handle the output of the execution.
-        read_file (Callable[[str], Tuple[str, str]]): The function to read a file and return its contents.
-        list_directory (Callable[[str], List[Dict[str, str]]]): The function to list the contents of a directory.
-        resolve_path (Callable[[str, str], str]): The function to resolve a path given a base path and a relative path.
-        fetch_github (Callable[[str, str, str, str], str]): The function to fetch a file from GitHub.
-        **kwargs: Additional keyword arguments to pass to the execution.
-          - target_profile (TargetProfile): The target profile to use for execution.
-          - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
-          - search_path (str): The optional search path for resolving imports.
-          - shots (int): The number of shots to run the program for. Defaults to 1.
-          - seed (int): The seed to use for the random number generator.
-
-    Returns:
-        Any: The result of the execution.
-    """
-    ...
-
-def compile_qasm_to_qir(
+def compile_qasm_program_to_qir(
     source: str,
     read_file: Callable[[str], Tuple[str, str]],
     list_directory: Callable[[str], List[Dict[str, str]]],
@@ -452,7 +456,8 @@ def compile_qasm_to_qir(
     **kwargs
 ) -> str:
     """
-    Converts a Qiskit QuantumCircuit to QIR (Quantum Intermediate Representation).
+    Compiles the OpenQASM source code into a program that can be submitted to a
+    target as QIR (Quantum Intermediate Representation).
 
     Note:
         This call while exported is not intended to be used directly by the user.
@@ -460,19 +465,24 @@ def compile_qasm_to_qir(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM source code to estimate the resource requirements for.
+        source (str): The OpenQASM source code to estimate the resource requirements for.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
         resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
         fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
-        **kwargs: Additional keyword arguments to pass to the execution.
+        **kwargs: Additional keyword arguments to pass to the compilation when source program is provided.
           - name (str): The name of the circuit. This is used as the entry point for the program.
-          - entry_expr (str, optional): The entry expression for the QIR conversion. Defaults to None.
           - target_profile (TargetProfile): The target profile to use for code generation.
           - search_path (Optional[str]): The optional search path for resolving file references.
+          - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+          - program_ty (ProgramType, optional): The type of program compilation to perform.
 
     Returns:
         str: The converted QIR code as a string.
+
+    Raises:
+        QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+        QSharpError: If there is an error compiling the program.
     """
     ...
 
@@ -485,7 +495,7 @@ def compile_qasm_to_qsharp(
     **kwargs
 ) -> str:
     """
-    Converts a Qiskit QuantumCircuit to Q#.
+    Converts a OpenQASM program to Q#.
 
     Note:
         This call while exported is not intended to be used directly by the user.
@@ -493,7 +503,7 @@ def compile_qasm_to_qsharp(
         callbacks and other Python specific details.
 
     Args:
-        source (str): The QASM source code to estimate the resource requirements for.
+        source (str): The OpenQASM source code to estimate the resource requirements for.
         read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
         list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
         resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
@@ -504,5 +514,81 @@ def compile_qasm_to_qsharp(
 
     Returns:
         str: The converted Q# code as a string.
+    """
+    ...
+
+def resource_estimate_qasm_program(
+    source: str,
+    job_params: str,
+    read_file: Callable[[str], Tuple[str, str]],
+    list_directory: Callable[[str], List[Dict[str, str]]],
+    resolve_path: Callable[[str, str], str],
+    fetch_github: Callable[[str, str, str, str], str],
+    **kwargs
+) -> str:
+    """
+    Estimates the resource requirements for executing OpenQASM source code.
+
+    Note:
+        This call while exported is not intended to be used directly by the user.
+        It is intended to be used by the Python wrapper which will handle the
+        callbacks and other Python specific details.
+
+    Args:
+        source (str): The OpenQASM source code to estimate the resource requirements for.
+        job_params (str): The parameters for the job.
+        read_file (Callable[[str], Tuple[str, str]]): A callable that reads a file and returns its content and path.
+        list_directory (Callable[[str], List[Dict[str, str]]]): A callable that lists the contents of a directory.
+        resolve_path (Callable[[str, str], str]): A callable that resolves a file path given a base path and a relative path.
+        fetch_github (Callable[[str, str, str, str], str]): A callable that fetches a file from GitHub.
+        **kwargs: Additional keyword arguments to pass to the execution.
+          - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
+          - search_path (str): The optional search path for resolving imports.
+    Returns:
+        str: The estimated resource requirements for executing the OpenQASM source code.
+    """
+    ...
+
+def run_qasm_program(
+    source: str,
+    output_fn: Callable[[Output], None],
+    noise: Optional[Tuple[float, float, float]],
+    read_file: Callable[[str], Tuple[str, str]],
+    list_directory: Callable[[str], List[Dict[str, str]]],
+    resolve_path: Callable[[str, str], str],
+    fetch_github: Callable[[str, str, str, str], str],
+    **kwargs
+) -> Any:
+    """
+    Runs the given OpenQASM program for the given number of shots.
+    Each shot uses an independent instance of the simulator.
+
+    Note:
+        This call while exported is not intended to be used directly by the user.
+        It is intended to be used by the Python wrapper which will handle the
+        callbacks and other Python specific details.
+
+    Args:
+        source (str): The OpenQASM source code to execute.
+        output_fn (Callable[[Output], None]): The function to handle the output of the execution.
+        noise: The noise to use in simulation.
+        read_file (Callable[[str], Tuple[str, str]]): The function to read a file and return its contents.
+        list_directory (Callable[[str], List[Dict[str, str]]]): The function to list the contents of a directory.
+        resolve_path (Callable[[str, str], str]): The function to resolve a path given a base path and a relative path.
+        fetch_github (Callable[[str, str, str, str], str]): The function to fetch a file from GitHub.
+        **kwargs: Additional keyword arguments to pass to the execution.
+          - target_profile (TargetProfile): The target profile to use for execution.
+          - name (str): The name of the circuit. This is used as the entry point for the program. Defaults to 'program'.
+          - search_path (str): The optional search path for resolving imports.
+          - output_semantics (OutputSemantics, optional): The output semantics for the compilation.
+          - shots (int): The number of shots to run the program for. Defaults to 1.
+          - seed (int): The seed to use for the random number generator.
+
+    Returns:
+        Any: The result of the execution.
+
+    Raises:
+        QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
+        QSharpError: If there is an error interpreting the input.
     """
     ...
