@@ -499,14 +499,14 @@ def test_run_with_invalid_shots_produces_error() -> None:
     qsharp.eval('operation Foo() : Result { Message("Hello, world!"); Zero }')
     try:
         qsharp.run("Foo()", -1)
-    except qsharp.QSharpError as e:
+    except ValueError as e:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
 
     try:
         qsharp.run("Foo()", 0)
-    except qsharp.QSharpError as e:
+    except ValueError as e:
         assert str(e) == "The number of shots must be greater than 0."
     else:
         assert False
