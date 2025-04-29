@@ -11,98 +11,98 @@ const codingInstructionsFooter = `---End: Q# coding instructions---\n\n`;
 
 const codingInstructionsContent = `${codingInstructionsTitle}
 
-  Follow these instructions when generating Q# code in .qs files,
-  and Q# project folders that include a \`qsharp.json\` file.
+Follow these instructions when generating Q# code in .qs files,
+and Q# project folders that include a \`qsharp.json\` file.
 
-  ## Testing
+## Testing
 
-  The Q# language supports unit testing in VS Code. To write a test, use the \`@Test()\`
-  attribute on an operation, and \`fail\` with a message on test failure, e.g.,
+The Q# language supports unit testing in VS Code. To write a test, use the \`@Test()\`
+attribute on an operation, and \`fail\` with a message on test failure, e.g.,
 
-  \`\`\`qsharp
-  @Test()
-  operation MyTestCase() : Unit {
-      let result = DoOp();
-      if (result != Expected) {
-          fail $"DoOp returned {result}"
-      }
-  }
-  \`\`\`
+\`\`\`qsharp
+@Test()
+operation MyTestCase() : Unit {
+    let result = DoOp();
+    if (result != Expected) {
+        fail $"DoOp returned {result}"
+    }
+}
+\`\`\`
 
-  Note: Prefer using a conditional \`fail\` statement to \`Fact\` calls, as \`fail\` gives a better error location.
+Note: Prefer using a conditional \`fail\` statement to \`Fact\` calls, as \`fail\` gives a better error location.
 
-  ## Syntax
+## Syntax
 
-  When writing Q#, the \`for (i in 1..100)\` syntax is invalid, use \`for i in 1..100\` or
-  \`for element in array[2...]\`.
+When writing Q#, the \`for (i in 1..100)\` syntax is invalid, use \`for i in 1..100\` or
+\`for element in array[2...]\`.
 
-  While many Q# operators are C-like, it uses \`or\` instead of \`||\` and \`and\` instead of \`&&\`.
+While many Q# operators are C-like, it uses \`or\` instead of \`||\` and \`and\` instead of \`&&\`.
 
-  ## Multi-file projects
+## Multi-file projects
 
-  Modern Q# does not use \`namespace\` blocks to enclose code.
-  When Q# code is in different files in a project, each function or operation is in a namespace
-  which is the name of the containing file. For example, if \`Main.qs\` has an operation \`Foo\`,
-  then \`Tests.qs\` could reference the operation as \`Main.Foo\`, or bring \`Foo\` into scope by
-  adding \`import Main.Foo;\` in the file.
+Modern Q# does not use \`namespace\` blocks to enclose code.
+When Q# code is in different files in a project, each function or operation is in a namespace
+which is the name of the containing file. For example, if \`Main.qs\` has an operation \`Foo\`,
+then \`Tests.qs\` could reference the operation as \`Main.Foo\`, or bring \`Foo\` into scope by
+adding \`import Main.Foo;\` in the file.
 
-  ## Libraries
+## Libraries
 
-  A Q# project can reference a library from GitHub by updating the \`dependencies\` entry of
-  the \`qsharp.json\` file. For example, to reference the \`chemistry\` library, the \`qsharp.json\`
-  file might appear as:
+A Q# project can reference a library from GitHub by updating the \`dependencies\` entry of
+the \`qsharp.json\` file. For example, to reference the \`chemistry\` library, the \`qsharp.json\`
+file might appear as:
 
-  \`\`\`json
-  {
-      "dependencies": {
-          "Chemistry": {
-              "github": {
-                  "ref": "v1.15.0",
-                  "owner": "microsoft",
-                  "repo": "qsharp",
-                  "path": "library/chemistry"
-              }
-          }
-      }
-  }
-  \`\`\`
+\`\`\`json
+{
+    "dependencies": {
+        "Chemistry": {
+            "github": {
+                "ref": "v1.15.0",
+                "owner": "microsoft",
+                "repo": "qsharp",
+                "path": "library/chemistry"
+            }
+        }
+    }
+}
+\`\`\`
 
-  ## Jupyter Notebooks
+## Jupyter Notebooks
 
-  Q# has first-class support for Jupyter notebooks. Typically the first cell will contain \`import qsharp\`.
+Q# has first-class support for Jupyter notebooks. Typically the first cell will contain \`import qsharp\`.
 
-  Jupyter cells can contain Q# code directly by using the \`%%qsharp\` magic command at the beginning of the cell. For example:
+Jupyter cells can contain Q# code directly by using the \`%%qsharp\` magic command at the beginning of the cell. For example:
 
-  \`\`\`python
-  %%qsharp
+\`\`\`python
+%%qsharp
 
-  operation GHZSample(n: Int) : Result[] {
-      use qs = Qubit[n];
+operation GHZSample(n: Int) : Result[] {
+    use qs = Qubit[n];
 
-      H(qs[0]);
-      ApplyToEach(CNOT(qs[0], _), qs[1...]);
+    H(qs[0]);
+    ApplyToEach(CNOT(qs[0], _), qs[1...]);
 
-      let results = MeasureEachZ(qs);
-      ResetAll(qs);
-      return results;
-  }
-  \`\`\`
+    let results = MeasureEachZ(qs);
+    ResetAll(qs);
+    return results;
+}
+\`\`\`
 
-  The \`qsharp_widgets\` package provides viewers for circuits and histograms, e.g.
+The \`qsharp_widgets\` package provides viewers for circuits and histograms, e.g.
 
-  \`\`\`python
-  from qsharp_widgets import Circuit, Histogram
-  Circuit(qsharp.circuit("GHZSample(3)"))
-  \`\`\`
+\`\`\`python
+from qsharp_widgets import Circuit, Histogram
+Circuit(qsharp.circuit("GHZSample(3)"))
+\`\`\`
 
-  Note that the latest Q# and QDK releases don't require or use the old IQ# kernel. It just needs to the \`qsharp\` PyPI package,
-  and maybe \`qsharp_widgets\` for visuals.
+Note that the latest Q# and QDK releases don't require or use the old IQ# kernel. It just needs to the \`qsharp\` PyPI package,
+and maybe \`qsharp_widgets\` for visuals.
 
-  ## Response formatting
+## Response formatting
 
-  Avoid using LaTeX in your responses to the user.
+Avoid using LaTeX in your responses to the user.
 
-  ${codingInstructionsFooter}`;
+${codingInstructionsFooter}`;
 
 /**
  * Checks if the copilot-instructions.md file exists and contains Q# instructions.
@@ -172,11 +172,11 @@ export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
       "This file helps GitHub Copilot understand and work better with Q# files and features provided by the Quantum Development Kit extension.\n\n" +
       "Would you like to proceed with updating `copilot-instructions.md`?",
     { modal: true },
-    "Yes",
-    "No",
+    { title: "Yes" },
+    { title: "No", isCloseAffordance: true },
   );
 
-  if (response !== "Yes") {
+  if (response?.title !== "Yes") {
     sendTelemetryEvent(EventType.UpdateCopilotInstructionsEnd, {
       reason: "User canceled",
       flowStatus: UserFlowStatus.Aborted,
