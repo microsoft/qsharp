@@ -1,11 +1,12 @@
 /// # Sample
-/// Simulation of a simple Ising model first-order evolution on a 1D grid
+/// Simulation of a simple Ising model evolution
+/// on a 1D grid with first-order Trotterization.
 ///
 /// # Description
 /// This sample demonstrates simulation of an Ising model Hamiltonian
 /// on 1D grid of size N using a first-order Trotter-Suzuki approximation.
-/// This sample can be easily simulated classically with grid of size 9 and
-/// about 1000 shots. This sample is suitable for Base Profile.
+/// This sample can be easily simulated classically with the grid of size 9
+/// and 1000 shots. This sample is suitable for Base Profile.
 /// For the purpose of simplicity this sample intentionally doesn't
 /// post-process results or perform eigenvalue estimation.
 operation Main() : Result[] {
@@ -33,7 +34,7 @@ operation Main() : Result[] {
 /// |𝜓(0)⟩ is taken to be |0...0⟩.
 /// U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
 /// Here Σ' is taken over all pairs of neighboring qubits <i,j>.
-/// Simulation is done by performing K steps assuming U(t)≈U(t/K)ᴷ.
+/// Simulation is done by performing K steps assuming U(t)≈(U(t/K))ᴷ.
 operation IsingModel1DEvolution(
     N : Int,
     J : Double,
@@ -59,12 +60,8 @@ operation IsingModel1DEvolution(
             Rx(2.0 * theta_x, q);
         }
 
-        // All Rzz gates applied in the following two loops commute so they can be
-        // applied in any order. To reduce the depth of the algorithm, Rzz gates
-        // between "even" pairs of qubits are applied first - pairs
-        // that start at even indices. Then Rzz gates between "odd" pairs are
-        // applied. That way all Rzz between "even" pairs can potentially
-        // be done in parallel.
+        // All of the following Rzz gates commute. So we apply them between "even"
+        // pairs first and then between "odd" pairs to reduce the algorithm depth.
 
         // Interactions between "even" pairs
         for col in 0..2..N-2 {

@@ -1,9 +1,10 @@
 /// # Sample
-/// Simulation of a simple Ising model first-order evolution on a 2D grid
+/// Simulation of a simple Ising model evolution
+/// on a 2D grid with second-order Trotterization.
 ///
 /// # Description
 /// This sample demonstrates simulation of an Ising model Hamiltonian
-/// on N1xN2 2D grid using a first-order Trotter-Suzuki approximation.
+/// on N1xN2 2D grid using a second-order Trotter-Suzuki approximation.
 /// This sample can be easily simulated classically with 3x3 grid and
 /// about 1000 shots. This sample is suitable for Base Profile.
 /// For the purpose of simplicity this sample intentionally doesn't
@@ -41,7 +42,7 @@ operation Main() : Result[] {
 /// |𝜓(0)⟩ is taken to be |0...0⟩.
 /// U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
 /// Here Σ' is taken over all pairs of neighboring qubits <i,j>.
-/// Simulation is done by performing K steps assuming U(t)≈U(t/K)ᴷ.
+/// Simulation is done by performing K steps assuming U(t)≈(U(t/K))ᴷ.
 operation IsingModel2DEvolution(
     N1 : Int,
     N2 : Int,
@@ -65,9 +66,9 @@ operation IsingModel2DEvolution(
     // Perform K steps
     for i in 1..numberOfSteps {
 
-        // Single-qubit interaction with external field
+        // Single-qubit interaction with external field. Half-step.
         for q in qubits {
-            Rx(2.0 * theta_x, q);
+            Rx(theta_x, q);
         }
 
         // All Rzz gates applied in the following two loops commute so they can be
@@ -78,7 +79,7 @@ operation IsingModel2DEvolution(
         // be done in parallel. Same is true about horizontal "odd"  pairs,
         // vertical "even" pairs and vertical "odd" pairs.
 
-        // Horizontal two-qubit interactions
+        // Horizontal two-qubit interactions.
         for row in 0..N1-1 {
             // Horizontal interactions between "even" pairs
             for col in 0..2..N2-2 {
@@ -106,8 +107,12 @@ operation IsingModel2DEvolution(
 
         }
 
+        // Single-qubit interaction with external field. Half-step.
+        for q in qubits {
+            Rx(theta_x, q);
+        }
+
     }
 
     MResetEachZ(qubits)
 }
- 

@@ -28,6 +28,7 @@ export default [
     { title: "Grover's Search", file: "./algorithms/Grover.qs", shots: 100 },
     { title: "Hidden Shift", file: "./algorithms/HiddenShiftNISQ.qs", shots: 1 },
     { title: "Hidden Shift (Advanced)", file: "./algorithms/HiddenShift.qs", shots: 1 },
+    { title: "Ising Model (Simple 1D)", file: "./algorithms/Ising/Simple1dIsingOrder1.qs", shots: 1000, omitFromTests: true },
     { title: "Shor", file: "./algorithms/Shor.qs", shots: 1 },
     { title: "Three Qubit Repetition Code", file: "./algorithms/ThreeQubitRepetitionCode.qs", shots: 1 },
     { title: "Dynamics (Resource Estimation)", file: "./estimation/Dynamics.qs", shots: 1, omitFromTests: true },
