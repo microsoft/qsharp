@@ -15,6 +15,7 @@ import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
 import { registerLanguageModelTools } from "./gh-copilot/tools.js";
+import { registerGhCopilotInstructionsCommand } from "./ghCopilot.js";
 import { activateLanguageService } from "./language-service/activate.js";
 import {
   Logging,
@@ -87,6 +88,7 @@ export async function activate(
   initProjectCreator(context);
   registerCopilotPanel(context);
   registerLanguageModelTools(context);
+  registerGhCopilotInstructionsCommand(context);
 
   log.info("Q# extension activated.");
 
