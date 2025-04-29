@@ -59,7 +59,7 @@ export async function activateExtension() {
  * @param timeoutErrorMsg The custom error message to throw if the condition is not met
  */
 export async function waitForCondition(
-  condition: (...args: any[]) => boolean | Promise<boolean>,
+  condition: (...args: any[]) => boolean,
   wakeUpOn: vscode.Event<any>,
   timeoutMs: number,
   timeoutErrorMsg: string,
@@ -73,30 +73,18 @@ export async function waitForCondition(
       }
     }, timeoutMs);
 
-    function checkOnceThenResolveIfMet() {
-      const conditionResult = condition();
-      if (typeof conditionResult === "boolean") {
-        if (!done && conditionResult) {
-          done = true;
-          resolve();
-        }
-      } else if (conditionResult instanceof Promise) {
-        conditionResult.then((conditionMet) => {
-          if (!done && conditionMet) {
-            done = true;
-            resolve();
-          }
-        });
-      }
-    }
-
     disposable = wakeUpOn(() => {
-      // Check the condition whenever the wake-up event is fired
-      checkOnceThenResolveIfMet();
+      if (!done && condition()) {
+        done = true;
+        resolve();
+      }
     });
 
     // Resolve immediately if condition is already met
-    checkOnceThenResolveIfMet();
+    if (condition()) {
+      done = true;
+      resolve();
+    }
   });
   disposable?.dispose();
 }
@@ -115,40 +103,12 @@ export async function waitForCondition(
 export async function delay(timeoutMs: number) {
   try {
     await waitForCondition(
-      async () => false,
+      () => false,
       () => ({ dispose() {} }),
       timeoutMs,
       "hit the expected timeout",
     );
   } catch {
     // expected
-  }
-}
-
-/**
- * Temporarily overrides the `showInformationMessage` function.
- *
- * @param responseToReturn The response to return from the mocked function (e.g., "Yes" or "No")
- * @param callback The function to execute while the mock is active
- * @returns The result of the callback function
- */
-export async function withMockedInfoMessage<T>(
-  responseToReturn: string | undefined,
-  callback: () => Promise<T>,
-): Promise<T> {
-  // Save the original function
-  const originalShowInformationMessage = vscode.window.showInformationMessage;
-
-  // Override with mock that returns the specified response
-  vscode.window.showInformationMessage = async () => {
-    return Promise.resolve(responseToReturn);
-  };
-
-  try {
-    // Execute the callback with the mock active
-    return await callback();
-  } finally {
-    // Restore the original function
-    vscode.window.showInformationMessage = originalShowInformationMessage;
   }
 }

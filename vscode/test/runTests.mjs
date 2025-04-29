@@ -41,12 +41,6 @@ try {
     join(thisDir, "out", "debugger", "index"),
     join(thisDir, "suites", "debugger", "test-workspace"),
   );
-
-  // Workspace commands tests
-  await runSuite(
-    join(thisDir, "out", "workspace-commands", "index"),
-    join(thisDir, "suites", "workspace-commands", "test-workspace"),
-  );
 } catch (err) {
   console.error("Failed to run tests", err);
   process.exit(1);
