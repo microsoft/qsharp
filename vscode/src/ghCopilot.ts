@@ -163,7 +163,7 @@ async function updateGhCopilotInstructionsCommand() {
 }
 
 export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
-  if (!(await hasQSharpCopilotInstructions(workspaceFolder))) {
+  if (await hasQSharpCopilotInstructions(workspaceFolder)) {
     // If the file already exists and contains Q# instructions, do nothing
     return;
   }
