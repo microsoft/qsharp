@@ -231,8 +231,7 @@
         },
         {
           "command": "qsharp-vscode.updateCopilotInstructions",
-          "category": "Q#",
-          "when": "resourceLangId == qsharp || resourceFilename == qsharp.json"
+          "when": "resourceLangId == qsharp"
         }
       ],
       "view/title": [

@@ -64,14 +64,8 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           );
         }
 
-        // Add copilot instructions in the workspace root
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(folderUri);
-        if (!workspaceFolder) {
-          return;
-        }
-
         // Call updateCopilotInstructions to update the Copilot instructions file
-        await updateCopilotInstructions(workspaceFolder.uri);
+        await updateCopilotInstructions(folderUri);
       },
     ),
   );

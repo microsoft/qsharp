@@ -4,6 +4,7 @@
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "./telemetry";
+import { getActiveQSharpDocumentUri } from "./programConfig";
 
 const codingInstructionsTitle = "# Q# coding instructions (updated April 2025)";
 
@@ -146,23 +147,23 @@ async function updateGhCopilotInstructionsCommand() {
     return;
   }
 
-  for (const folder of workspaceFolders) {
-    // Check if the file already exists with Q# instructions
-    const hasInstructions = await hasQSharpCopilotInstructions(folder.uri);
-    if (hasInstructions) {
-      vscode.window.showInformationMessage(
-        "copilot-instructions.md already contains Q# instructions",
-      );
-      return;
-    }
+  const currentDoc = getActiveQSharpDocumentUri();
+
+  if (!currentDoc) {
+    vscode.window.showErrorMessage("Could not determine active Q# document");
+    return;
   }
 
-  // TODO: choose a workspace folder more intelligently
-
-  return await updateCopilotInstructions(workspaceFolders[0].uri);
+  return await updateCopilotInstructions(currentDoc);
 }
 
-export async function updateCopilotInstructions(workspaceFolder: vscode.Uri) {
+export async function updateCopilotInstructions(resource: vscode.Uri) {
+  // Always add copilot instructions in the workspace root
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(resource)?.uri;
+  if (!workspaceFolder) {
+    return;
+  }
+
   if (await hasQSharpCopilotInstructions(workspaceFolder)) {
     // If the file already exists and contains Q# instructions, do nothing
     return;
