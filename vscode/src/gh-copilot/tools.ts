@@ -55,7 +55,7 @@ async function submitToTarget(input: {
   target_id: string;
   number_of_shots: number;
 }): Promise<any> {
-  return (await azqTools.submitToTarget(workspaceState, input)).result;
+  return (await azqTools.submitToTarget(workspaceState, input, false)).result;
 }
 
 function submitToTargetConfirm(input: {

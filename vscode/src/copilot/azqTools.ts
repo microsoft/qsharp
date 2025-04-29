@@ -18,7 +18,7 @@ import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
 import { HistogramData } from "./shared.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
-// import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -37,9 +37,9 @@ export const azqToolDefinitions: {
   GetJobs: getJobs,
   GetJob: getJob,
   ConnectToWorkspace: connectToWorkspace,
-  DownloadJobResults: downloadJobResults,
+  DownloadJobResults: renderHistogramForJobResults,
   GetWorkspaces: getWorkspaces,
-  SubmitToTarget: submitToTarget,
+  SubmitToTarget: submitToTargetWithConfirmation,
   GetActiveWorkspace: getActiveWorkspace,
   SetActiveWorkspace: setActiveWorkspace,
   GetProviders: getProviders,
@@ -316,7 +316,6 @@ export async function downloadJobResults(
         shotCount,
       };
       return {
-        // result: "Results were successfully rendered.",
         result: JSON.stringify({ histogram }),
         widgetData: histogram,
       };
@@ -324,6 +323,22 @@ export async function downloadJobResults(
   } catch {
     throw new CopilotToolError("Failed to download the results for the job.");
   }
+}
+
+/**
+ * This is the same as `downloadJobResults`, except it hides the histogram
+ * values from the tool output, and instead returns a simple user-facing message.
+ * The client UI is expected to be able to render the actual histogram in `widgetData`.
+ */
+async function renderHistogramForJobResults(
+  toolState: ToolState,
+  args: { job_id: string },
+): Promise<DownloadJobResult> {
+  const result = await downloadJobResults(toolState, args);
+  return {
+    result: "Results were successfully rendered.",
+    widgetData: result.widgetData,
+  };
 }
 
 /**
@@ -392,6 +407,7 @@ export async function submitToTarget(
     target_id: target_id,
     number_of_shots: numberOfShots,
   }: { job_name: string; target_id: string; number_of_shots: number },
+  confirmation: boolean,
 ): Promise<{ result: string }> {
   const target = (await getTarget(toolState, { target_id })).result;
   if (!target) {
@@ -424,12 +440,14 @@ export async function submitToTarget(
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
-  // const confirmed = await CopilotView.getConfirmation(
-  //   `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
-  // );
-  // if (!confirmed) {
-  //   return { result: "Job submission was cancelled by the user" };
-  // }
+  if (confirmation) {
+    const confirmed = await CopilotView.getConfirmation(
+      `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+    );
+    if (!confirmed) {
+      return { result: "Job submission was cancelled by the user" };
+    }
+  }
 
   try {
     const token = await getTokenForWorkspace(workspace);
@@ -455,6 +473,16 @@ export async function submitToTarget(
 
     throw new CopilotToolError("Failed to submit the job. " + error);
   }
+}
+
+/**
+ * `submitToTarget` with confirmation via the Copilot webview UI.
+ */
+async function submitToTargetWithConfirmation(
+  toolState: ToolState,
+  args: { job_name: string; target_id: string; number_of_shots: number },
+): Promise<{ result: string }> {
+  return submitToTarget(toolState, args, true);
 }
 
 /**
