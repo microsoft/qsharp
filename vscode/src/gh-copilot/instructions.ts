@@ -3,8 +3,8 @@
 
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { EventType, sendTelemetryEvent, UserFlowStatus } from "./telemetry";
-import { getActiveQSharpDocumentUri } from "./programConfig";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import { getActiveQSharpDocumentUri } from "../programConfig";
 
 const codingInstructionsTitle = "# Q# coding instructions (updated April 2025)";
 

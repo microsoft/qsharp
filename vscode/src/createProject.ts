@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
 import { log, samples } from "qsharp-lang";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import * as vscode from "vscode";
 import { qsharpExtensionId } from "./common";
+import { updateCopilotInstructions } from "./gh-copilot/instructions";
 import registryJson from "./registry.json";
-import { updateCopilotInstructions } from "./ghCopilot";
+import { EventType, sendTelemetryEvent } from "./telemetry";
 
 export async function initProjectCreator(context: vscode.ExtensionContext) {
   context.subscriptions.push(
