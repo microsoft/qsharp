@@ -24,6 +24,7 @@ import {
   moveOperation,
   removeControl,
   removeOperation,
+  resolveOverlappingOperations,
 } from "./circuitManipulation";
 import {
   createGhostElement,
@@ -175,7 +176,7 @@ class CircuitEvents {
         }
       }
     }
-    this.selectedOperation = null;
+
     this.selectedWire = null;
     this.dragging = false;
     this.disableLeftAutoScroll = false;
@@ -625,8 +626,18 @@ class CircuitEvents {
           }
         });
       }
+      // Sort operations in this column by their lowest-numbered register
+      column.components.sort((a, b) => {
+        const aRegs = getOperationRegisters(a);
+        const bRegs = getOperationRegisters(b);
+        const aMin = Math.min(...aRegs.map((r) => r.qubit));
+        const bMin = Math.min(...bRegs.map((r) => r.qubit));
+        return aMin - bMin;
+      });
     }
 
+    // Resolve overlapping operations into their own columns
+    resolveOverlappingOperations(this.componentGrid);
     this.renderFn();
   };
 

@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { ComponentGrid, Operation, Unitary } from "./circuit";
+import { getOperationRegisters } from "../../src/utils";
+import { Column, ComponentGrid, Operation, Unitary } from "./circuit";
 import { CircuitEvents } from "./events";
 import { Register } from "./register";
 import {
@@ -376,6 +377,71 @@ const removeControl = (op: Unitary, wireIndex: number): boolean => {
 };
 
 /**
+ * Resolves overlapping operations in each column of the component grid.
+ * For each column, splits overlapping operations into separate columns so that
+ * no two operations in the same column overlap on their register ranges.
+ * Modifies the component grid in-place.
+ *
+ * @param components The component grid (array of columns) to process.
+ */
+const resolveOverlappingOperations = (components: ComponentGrid): void => {
+  // Helper to resolve a single column into non-overlapping columns
+  const resolveColumn = (col: Column): Column[] => {
+    const newColumn: Column = { components: [] };
+    let [lastMin, lastMax] = [-1, -1];
+    let i = 0;
+    while (i < col.components.length) {
+      const op = col.components[i];
+      const [currMin, currMax] = _getMinMaxRegIdx(op);
+      // Sets up the first operation for comparison or if the current operation doesn't overlap
+      if (i === 0 || !_doesOverlap([lastMin, lastMax], [currMin, currMax])) {
+        [lastMin, lastMax] = [currMin, currMax];
+        i++;
+      } else {
+        // If they overlap, add the current operation to the new column
+        newColumn.components.push(op);
+        col.components.splice(i, 1);
+      }
+    }
+    if (newColumn.components.length > 0) {
+      const newColumns = resolveColumn(newColumn);
+      newColumns.push(col);
+      return newColumns;
+    } else {
+      return [col];
+    }
+  };
+
+  // In-place update of parentArray
+  let i = 0;
+  while (i < components.length) {
+    const col = components[i];
+    const newColumns = resolveColumn(col);
+    if (newColumns.length > 1) {
+      components.splice(i, 1, ...newColumns);
+      i += newColumns.length;
+    }
+    i++;
+  }
+};
+
+/**
+ * Determines whether two register index ranges overlap.
+ *
+ * @param op1 The [min, max] register indices of the first operation.
+ * @param op2 The [min, max] register indices of the second operation.
+ * @returns True if the ranges overlap, false otherwise.
+ */
+const _doesOverlap = (
+  op1: [number, number],
+  op2: [number, number],
+): boolean => {
+  const [min1, max1] = op1;
+  const [min2, max2] = op2;
+  return max1 >= min2 && max2 >= min1;
+};
+
+/**
  * Add an operation to the circuit at the specified location.
  *
  * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
@@ -409,12 +475,7 @@ const _addOp = (
       if (op === originalOperation) continue;
 
       const [opMinTarget, opMaxTarget] = _getMinMaxRegIdx(op);
-      if (
-        (opMinTarget >= minTarget && opMinTarget <= maxTarget) ||
-        (opMaxTarget >= minTarget && opMaxTarget <= maxTarget) ||
-        (minTarget >= opMinTarget && minTarget <= opMaxTarget) ||
-        (maxTarget >= opMinTarget && maxTarget <= opMaxTarget)
-      ) {
+      if (_doesOverlap([minTarget, maxTarget], [opMinTarget, opMaxTarget])) {
         insertNewColumn = true;
         break;
       }
@@ -448,25 +509,7 @@ const _addOp = (
  * @returns A tuple containing the minimum and maximum register indices.
  */
 const _getMinMaxRegIdx = (operation: Operation): [number, number] => {
-  let targets: Register[];
-  let controls: Register[];
-  switch (operation.kind) {
-    case "measurement":
-      targets = operation.results;
-      controls = operation.qubits;
-      break;
-    case "unitary":
-      targets = operation.targets;
-      controls = operation.controls || [];
-      break;
-    case "ket":
-      targets = operation.targets;
-      controls = [];
-      break;
-  }
-
-  const ctrls: Register[] = controls || [];
-  const qRegs: Register[] = [...ctrls, ...targets].filter(
+  const qRegs: Register[] = getOperationRegisters(operation).filter(
     ({ result }) => result === undefined,
   );
   if (qRegs.length === 0) return [-1, -1];
@@ -568,4 +611,5 @@ export {
   findAndRemoveOperations,
   addControl,
   removeControl,
+  resolveOverlappingOperations,
 };
