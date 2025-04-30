@@ -97,8 +97,6 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
   }
 }
 
-///// MISC
-
 function tool(
   toolFn: (input: any) => Promise<any>,
   confirmFn?: (input: any) => vscode.PreparedToolInvocation,
