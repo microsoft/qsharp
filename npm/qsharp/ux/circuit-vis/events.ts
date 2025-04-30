@@ -139,50 +139,59 @@ class CircuitEvents {
   documentMouseupHandler = (ev: MouseEvent) => {
     const copying = ev.ctrlKey;
     this.container.classList.remove("moving", "copying");
-    if (this.container) {
-      for (const dropzone of this.temporaryDropzones) {
-        if (dropzone.parentNode) {
-          dropzone.parentNode.removeChild(dropzone);
+    // Handle deleting operations that have been dragged outside the circuit
+    if (!this.mouseUpOnCircuit && this.dragging && !copying) {
+      const selectedLocation = this.selectedOperation
+        ? getGateLocationString(this.selectedOperation)
+        : null;
+      if (this.selectedOperation != null && selectedLocation != null) {
+        // We are dragging a gate with a location (not from toolbox) outside the circuit
+        // If we are moving a control, remove it from the selectedOperation
+        if (
+          this.movingControl &&
+          this.selectedOperation.kind === "unitary" &&
+          this.selectedOperation.controls != null &&
+          this.selectedWire != null
+        ) {
+          const controlIndex = this.selectedOperation.controls.findIndex(
+            (control) => control.qubit === this.selectedWire,
+          );
+          if (controlIndex !== -1)
+            this.selectedOperation.controls.splice(controlIndex, 1);
+        } else {
+          // Otherwise, remove the selectedOperation
+          removeOperation(this, selectedLocation);
         }
-      }
-
-      // Handle deleting operations that have been dragged outside the circuit
-      if (!this.mouseUpOnCircuit && this.dragging && !copying) {
-        const selectedLocation = this.selectedOperation
-          ? getGateLocationString(this.selectedOperation)
-          : null;
-        if (this.selectedOperation != null && selectedLocation != null) {
-          // We are dragging a gate with a location (not from toolbox) outside the circuit
-          // If we are moving a control, remove it from the selectedOperation
-          if (
-            this.movingControl &&
-            this.selectedOperation.kind === "unitary" &&
-            this.selectedOperation.controls != null &&
-            this.selectedWire != null
-          ) {
-            const controlIndex = this.selectedOperation.controls.findIndex(
-              (control) => control.qubit === this.selectedWire,
-            );
-            if (controlIndex !== -1)
-              this.selectedOperation.controls.splice(controlIndex, 1);
-          } else {
-            // Otherwise, remove the selectedOperation
-            removeOperation(this, selectedLocation);
-          }
-          this.renderFn();
-        } else if (this.selectedWire != null) {
-          // If we are dragging a qubit line, remove it
-          this.removeQubitLineWithConfirmation(this.selectedWire);
-        }
+        this.renderFn();
+      } else if (this.selectedWire != null) {
+        // If we are dragging a qubit line, remove it
+        this.removeQubitLineWithConfirmation(this.selectedWire);
       }
     }
 
+    this._resetState();
+  };
+
+  /**
+   * Resets the internal state of the CircuitEvents instance after a drag or interaction.
+   * Clears selection, flags, and removes any temporary dropzones from the DOM.
+   * Note that this does not clear the selectedOperation as that is needed to be persistent
+   * for context-menu selections.
+   */
+  _resetState() {
     this.selectedWire = null;
-    this.dragging = false;
-    this.disableLeftAutoScroll = false;
     this.movingControl = false;
     this.mouseUpOnCircuit = false;
-  };
+    this.dragging = false;
+    this.disableLeftAutoScroll = false;
+
+    for (const dropzone of this.temporaryDropzones) {
+      if (dropzone.parentNode) {
+        dropzone.parentNode.removeChild(dropzone);
+      }
+    }
+    this.temporaryDropzones = [];
+  }
 
   /**
    * Enable auto-scrolling when dragging near the edges of the container
@@ -540,9 +549,8 @@ class CircuitEvents {
       }
     }
 
-    this.selectedWire = null;
     this.selectedOperation = null;
-    this.movingControl = false;
+    this._resetState();
 
     if (!deepEqual(originalGrid, this.componentGrid)) this.renderFn();
   };
