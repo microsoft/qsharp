@@ -1053,11 +1053,12 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
 
     let qubit_array = Ty::Array(Box::new(Ty::Prim(Prim::Qubit)));
     let ctl_input = RefCell::new(Ty::Tuple(vec![qubit_array, arrow.input.borrow().clone()]));
-    let ret = (
+    let actual = *arrow.functors.borrow();
+    (
         vec![
             Constraint::Superset {
                 expected: FunctorSetValue::Ctl,
-                actual: *arrow.functors.borrow(),
+                actual,
                 span,
             },
             Constraint::Eq {
@@ -1072,12 +1073,7 @@ fn check_ctl(op: Ty, with_ctls: Ty, span: Span) -> (Vec<Constraint>, Vec<Error>)
             },
         ],
         Vec::new(),
-    );
-    #[allow(
-        clippy::let_and_return,
-        reason = "rust requires the explicit let-biding to satisfy lifetime guarantees"
-    )]
-    ret
+    )
 }
 
 /// Checks that the class `Eq` is implemented for the given type.

@@ -80,3 +80,7 @@ harness = false
 [[bench]]
 name = "rca"
 harness = false
+
+[[bench]]
+name = "typeck"
+harness = false
