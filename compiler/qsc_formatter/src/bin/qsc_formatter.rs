@@ -101,7 +101,7 @@ impl FileWalker {
             let formatted = format_str(&file_as_string);
             if file_as_string != formatted {
                 match std::fs::write(path, formatted) {
-                    Ok(_) => {
+                    Ok(()) => {
                         self.changed_files.push(path.display().to_string());
                     }
                     Err(e) => {
@@ -139,6 +139,7 @@ impl Display for OutputFormatting {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), String> {
     use OutputFormatting::*;
 
@@ -169,7 +170,7 @@ fn main() -> Result<(), String> {
                 "{Passing}Updated {} files:",
                 file_walker.changed_files.len()
             );
-            for f in file_walker.changed_files.iter() {
+            for f in &file_walker.changed_files {
                 println!("\t{Passing}{f}");
             }
             print!("{Reset}");
@@ -181,7 +182,7 @@ fn main() -> Result<(), String> {
             "{Error}{} files are in need of formatting:",
             file_walker.changed_files.len()
         );
-        for f in file_walker.changed_files.iter() {
+        for f in &file_walker.changed_files {
             println!("\t{Error}{f}");
         }
         println!("{Error}Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
@@ -193,7 +194,7 @@ fn main() -> Result<(), String> {
     }
     if are_skipped_files {
         println!("{Skip}Skipped {} files:", file_walker.skipped_files.len());
-        for f in file_walker.skipped_files.iter() {
+        for f in &file_walker.skipped_files {
             println!("\t{Skip}{f}");
         }
         print!("{Reset}");

@@ -13,13 +13,13 @@ use qsc_frontend::{compile::SourceMap, error::WithSource};
 
 use crate::{
     ast_builder::{
-        build_adj_plus_ctl_functor, build_arg_pat, build_array_reverse_expr,
+        build_adj_plus_ctl_functor, build_angle_cast_call_by_name,
+        build_angle_convert_call_with_two_params, build_arg_pat, build_array_reverse_expr,
         build_assignment_statement, build_attr, build_barrier_call, build_binary_expr,
-        build_call_no_params, build_call_with_param, build_call_with_params,
-        build_cast_call_by_name, build_classical_decl, build_complex_from_expr,
-        build_convert_call_expr, build_end_stmt, build_expr_array_expr, build_for_stmt,
-        build_function_or_operation, build_gate_call_param_expr,
-        build_gate_call_with_params_and_callee, build_global_call_with_two_params,
+        build_call_no_params, build_call_with_param, build_call_with_params, build_classical_decl,
+        build_complex_from_expr, build_convert_call_expr, build_convert_cast_call_by_name,
+        build_end_stmt, build_expr_array_expr, build_for_stmt, build_function_or_operation,
+        build_gate_call_param_expr, build_gate_call_with_params_and_callee,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
         build_implicit_return_stmt, build_index_expr, build_indexed_assignment_statement,
@@ -28,12 +28,12 @@ use crate::{
         build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
         build_math_call_no_params, build_measure_call, build_operation_with_stmts,
         build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
-        build_qasm_import_items, build_range_expr, build_reset_call, build_return_expr,
-        build_return_unit, build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span,
-        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
-        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
-        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
-        wrap_expr_in_parens,
+        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
+        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
+        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
+        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{list_from_iter, List},
@@ -331,11 +331,9 @@ impl QasmCompiler {
                             build_path_ident_expr(symbol.name.as_str(), symbol.span, symbol.span);
                         if matches!(symbol.ty, Type::Angle(..)) {
                             // we can't output a struct, so we need to convert it to a double
-                            build_call_with_param(
-                                "__AngleAsDouble__",
-                                &[],
+                            build_angle_cast_call_by_name(
+                                "AngleAsDouble",
                                 ident,
-                                symbol.span,
                                 symbol.span,
                                 symbol.span,
                             )
@@ -757,7 +755,8 @@ impl QasmCompiler {
                 semast::GateModifierKind::Pow(expr) => {
                     let exponent_expr = self.compile_expr(expr);
                     args = build_tuple_expr(vec![exponent_expr, callee, args]);
-                    callee = build_path_ident_expr("__Pow__", modifier.span, stmt.span);
+                    callee =
+                        build_path_ident_expr("ApplyOperationPowerA", modifier.span, stmt.span);
                 }
                 semast::GateModifierKind::Ctrl(num_ctrls) => {
                     // remove the last n qubits from the qubit list
@@ -1164,7 +1163,7 @@ impl QasmCompiler {
         let compiled_expr = self.compile_expr(expr);
 
         if matches!(expr.ty, Type::Angle(..)) {
-            build_call_with_param("__NegAngle__", &[], compiled_expr, span, expr.span, span)
+            build_angle_cast_call_by_name("NegAngle", compiled_expr, span, expr.span)
         } else {
             build_unary_op_expr(qsast::UnOp::Neg, compiled_expr, span)
         }
@@ -1174,7 +1173,14 @@ impl QasmCompiler {
         let compiled_expr = self.compile_expr(expr);
 
         if matches!(expr.ty, Type::Angle(..)) {
-            build_call_with_param("__AngleNotB__", &[], compiled_expr, span, expr.span, span)
+            build_call_with_param(
+                "AngleNotB",
+                &["QasmStd", "Angle"],
+                compiled_expr,
+                span,
+                expr.span,
+                span,
+            )
         } else {
             build_unary_op_expr(qsast::UnOp::NotB, compiled_expr, span)
         }
@@ -1222,39 +1228,39 @@ impl QasmCompiler {
         let fn_name: &str = match op {
             // Bit shift
             qsast::BinOp::Shl => "__AngleShl__",
-            qsast::BinOp::Shr => "__AngleShr__",
+            qsast::BinOp::Shr => "AngleShr",
 
             // Bitwise
-            qsast::BinOp::AndB => "__AngleAndB__",
-            qsast::BinOp::OrB => "__AngleOrB__",
-            qsast::BinOp::XorB => "__AngleXorB__",
+            qsast::BinOp::AndB => "AngleAndB",
+            qsast::BinOp::OrB => "AngleOrB",
+            qsast::BinOp::XorB => "AngleXorB",
 
             // Comparison
-            qsast::BinOp::Eq => "__AngleEq__",
-            qsast::BinOp::Neq => "__AngleNeq__",
-            qsast::BinOp::Gt => "__AngleGt__",
-            qsast::BinOp::Gte => "__AngleGte__",
-            qsast::BinOp::Lt => "__AngleLt__",
-            qsast::BinOp::Lte => "__AngleLte__",
+            qsast::BinOp::Eq => "AngleEq",
+            qsast::BinOp::Neq => "AngleNeq",
+            qsast::BinOp::Gt => "AngleGt",
+            qsast::BinOp::Gte => "AngleGte",
+            qsast::BinOp::Lt => "AngleLt",
+            qsast::BinOp::Lte => "AngleLte",
 
             // Arithmetic
-            qsast::BinOp::Add => "__AddAngles__",
-            qsast::BinOp::Sub => "__SubtractAngles__",
+            qsast::BinOp::Add => "AddAngles",
+            qsast::BinOp::Sub => "SubtractAngles",
             qsast::BinOp::Mul => {
                 // if we are doing `int * angle` we need to
-                // reverse the order of the args to __MultiplyAngleByInt__
+                // reverse the order of the args to MultiplyAngleByInt
                 if matches!(lhs_ty, Type::Int(..) | Type::UInt(..)) {
                     operands.reverse();
                 }
-                "__MultiplyAngleByInt__"
+                "MultiplyAngleByInt"
             }
             qsast::BinOp::Div => {
                 if matches!(lhs_ty, Type::Angle(..))
                     && matches!(rhs_ty, Type::Int(..) | Type::UInt(..))
                 {
-                    "__DivideAngleByInt__"
+                    "DivideAngleByInt"
                 } else {
-                    "__DivideAngleByAngle__"
+                    "DivideAngleByAngle"
                 }
             }
 
@@ -1264,7 +1270,7 @@ impl QasmCompiler {
             }
         };
 
-        build_call_with_params(fn_name, &[], operands, span, span)
+        build_call_with_params(fn_name, &["QasmStd", "Angle"], operands, span, span)
     }
 
     fn compile_complex_binary_op(
@@ -1543,8 +1549,8 @@ impl QasmCompiler {
                 if promoted_ty.width().is_some() && promoted_ty.width() != expr_ty.width() {
                     // we need to convert the angle to a different width
                     let width = promoted_ty.width().expect("width should be set");
-                    build_global_call_with_two_params(
-                        "__ConvertAngleToWidthNoTrunc__",
+                    build_angle_convert_call_with_two_params(
+                        "AdjustAngleSizeNoTruncation",
                         expr,
                         build_lit_int_expr(width.into(), span),
                         span,
@@ -1554,13 +1560,11 @@ impl QasmCompiler {
                     expr
                 }
             }
-            Type::Bit(..) => {
-                build_call_with_param("__AngleAsResult__", &[], expr, span, span, span)
-            }
+            Type::Bit(..) => build_angle_cast_call_by_name("AngleAsResult", expr, span, span),
             Type::BitArray(..) => {
-                build_call_with_param("__AngleAsResultArray__", &[], expr, span, span, span)
+                build_angle_cast_call_by_name("AngleAsResultArray", expr, span, span)
             }
-            Type::Bool(..) => build_call_with_param("__AngleAsBool__", &[], expr, span, span, span),
+            Type::Bool(..) => build_angle_cast_call_by_name("AngleAsBool", expr, span, span),
             _ => err_expr(span),
         }
     }
@@ -1585,10 +1589,10 @@ impl QasmCompiler {
         let name_span = span;
         match ty {
             &Type::Angle(..) => {
-                build_cast_call_by_name("__ResultAsAngle__", expr, name_span, operand_span)
+                build_angle_cast_call_by_name("ResultAsAngle", expr, name_span, operand_span)
             }
             &Type::Bool(..) => {
-                build_cast_call_by_name("__ResultAsBool__", expr, name_span, operand_span)
+                build_convert_cast_call_by_name("ResultAsBool", expr, name_span, operand_span)
             }
             &Type::Float(..) => {
                 // The spec says that this cast isn't supported, but it
@@ -1599,15 +1603,15 @@ impl QasmCompiler {
             &Type::Int(w, _) | &Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
                     if width > 64 {
-                        "__ResultAsBigInt__"
+                        "ResultAsBigInt"
                     } else {
-                        "__ResultAsInt__"
+                        "ResultAsInt"
                     }
                 } else {
-                    "__ResultAsInt__"
+                    "ResultAsInt"
                 };
 
-                build_cast_call_by_name(function, expr, name_span, operand_span)
+                build_convert_cast_call_by_name(function, expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }
@@ -1633,7 +1637,7 @@ impl QasmCompiler {
         let int_width = ty.width();
 
         if int_width.is_none() || (int_width == Some(size)) {
-            build_cast_call_by_name("__ResultArrayAsIntBE__", expr, name_span, operand_span)
+            build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
         } else {
             err_expr(span)
         }
@@ -1657,22 +1661,22 @@ impl QasmCompiler {
         let operand_span = span;
         match ty {
             Type::Bit(..) => {
-                build_cast_call_by_name("__BoolAsResult__", expr, name_span, operand_span)
+                build_convert_cast_call_by_name("BoolAsResult", expr, name_span, operand_span)
             }
             Type::Float(..) => {
-                build_cast_call_by_name("__BoolAsDouble__", expr, name_span, operand_span)
+                build_convert_cast_call_by_name("BoolAsDouble", expr, name_span, operand_span)
             }
             Type::Int(w, _) | Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
                     if *width > 64 {
-                        "__BoolAsBigInt__"
+                        "BoolAsBigInt"
                     } else {
-                        "__BoolAsInt__"
+                        "BoolAsInt"
                     }
                 } else {
-                    "__BoolAsInt__"
+                    "BoolAsInt"
                 };
-                build_cast_call_by_name(function, expr, name_span, operand_span)
+                build_convert_cast_call_by_name(function, expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }
@@ -1724,8 +1728,8 @@ impl QasmCompiler {
                 let width =
                     build_lit_int_expr(width.unwrap_or(f64::MANTISSA_DIGITS).into(), expr_span);
                 build_call_with_params(
-                    "__DoubleAsAngle__",
-                    &[],
+                    "DoubleAsAngle",
+                    &["QasmStd", "Angle"],
                     vec![expr, width],
                     expr_span,
                     expr_span,
@@ -1791,8 +1795,8 @@ impl QasmCompiler {
                 let size = i64::from(*size);
 
                 let size_expr = build_lit_int_expr(size, Span::default());
-                build_global_call_with_two_params(
-                    "__IntAsResultArrayBE__",
+                build_qasmstd_convert_call_with_two_params(
+                    "IntAsResultArrayBE",
                     expr,
                     size_expr,
                     name_span,

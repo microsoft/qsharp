@@ -531,11 +531,11 @@ class BackendBase(BackendV2, ABC):
         source: str,
         **kwargs,
     ) -> str:
-        from ...._native import compile_qasm_to_qir
+        from ...._native import compile_qasm_program_to_qir
         from ...._fs import read_file, list_directory, resolve
         from ...._http import fetch_github
 
-        return compile_qasm_to_qir(
+        return compile_qasm_program_to_qir(
             source,
             read_file,
             list_directory,

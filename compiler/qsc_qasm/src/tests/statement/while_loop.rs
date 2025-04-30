@@ -24,8 +24,6 @@ fn can_iterate_over_mutable_var_cmp_expr() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         mutable result = Zero;

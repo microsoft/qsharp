@@ -342,7 +342,6 @@ impl Lowerer {
         // Remaining gates that are not in the qasm std library, but are standard gates in Qiskit
         // that Qiskit wont emit correctly.
         // dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x, xx_minus_yy, xx_plus_yy, ccz;
-        //iter)
         let gates = FxHashMap::from_iter([
             ("rxx", gate_symbol("rxx", 1, 2)),
             ("ryy", gate_symbol("ryy", 1, 2)),

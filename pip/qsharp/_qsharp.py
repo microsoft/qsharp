@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from . import telemetry_events, code
-from ._native import (
+from ._native import (  # type: ignore
     Interpreter,
     TargetProfile,
     StateDumpData,
@@ -29,8 +29,8 @@ import sys
 import types
 from time import monotonic
 
-_interpreter = None
-_config = None
+_interpreter: Union["Interpreter", None] = None
+_config: Union["Config", None] = None
 
 # Check if we are running in a Jupyter notebook to use the IPython display function
 _in_jupyter = False
@@ -481,11 +481,12 @@ def run(
     a List of ShotResults is returned.
 
     :raises QSharpError: If there is an error interpreting the input.
+    :raises ValueError: If the number of shots is less than 1.
     """
     ipython_helper()
 
     if shots < 1:
-        raise QSharpError("The number of shots must be greater than 0.")
+        raise ValueError("The number of shots must be greater than 0.")
 
     telemetry_events.on_run(shots)
     start_time = monotonic()
@@ -635,16 +636,23 @@ def circuit(
     :raises QSharpError: If there is an error synthesizing the circuit.
     """
     ipython_helper()
+    start = monotonic()
+    telemetry_events.on_circuit()
     if isinstance(entry_expr, Callable) and hasattr(entry_expr, "__global_callable"):
         if len(args) == 1:
             args = args[0]
         elif len(args) == 0:
             args = None
-        return get_interpreter().circuit(
+        res = get_interpreter().circuit(
             callable=entry_expr.__global_callable, args=args
         )
     else:
-        return get_interpreter().circuit(entry_expr, operation)
+        res = get_interpreter().circuit(entry_expr, operation)
+
+    durationMs = (monotonic() - start) * 1000
+    telemetry_events.on_circuit_end(durationMs)
+
+    return res
 
 
 def estimate(
@@ -666,7 +674,7 @@ def estimate(
     ipython_helper()
 
     def _coerce_estimator_params(
-        params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+        params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
     ) -> List[Dict[str, Any]]:
         if params is None:
             params = [{}]

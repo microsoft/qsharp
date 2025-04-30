@@ -40,8 +40,6 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
@@ -53,7 +51,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 my_gate(q[0]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                Microsoft.Quantum.Arrays.Reversed(c)
+                Std.Arrays.Reversed(c)
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -85,8 +83,6 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             @EntryPoint()
             operation Test() : Unit {

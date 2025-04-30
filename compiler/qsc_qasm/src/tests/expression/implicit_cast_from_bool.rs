@@ -22,16 +22,14 @@ fn to_bit_and_back_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable _bit0 = Zero;
         mutable _bit1 = Zero;
         set _bit0 = One;
-        set _bit1 = __BoolAsResult__(a);
+        set _bit1 = QasmStd.Convert.BoolAsResult(a);
         set _bit0 = _bit1;
         set _bit0 = _bit1;
-        set a = __ResultAsBool__(_bit1);
+        set a = QasmStd.Convert.ResultAsBool(_bit1);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -46,11 +44,9 @@ fn to_bit_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsResult__(x);
+        mutable y = QasmStd.Convert.BoolAsResult(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -65,11 +61,9 @@ fn to_implicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsInt__(x);
+        mutable y = QasmStd.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -84,11 +78,9 @@ fn to_explicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsInt__(x);
+        mutable y = QasmStd.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -103,11 +95,9 @@ fn to_implicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsInt__(x);
+        mutable y = QasmStd.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -122,11 +112,9 @@ fn to_explicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsInt__(x);
+        mutable y = QasmStd.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -141,11 +129,9 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsBigInt__(x);
+        mutable y = QasmStd.Convert.BoolAsBigInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -160,11 +146,9 @@ fn to_implicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsDouble__(x);
+        mutable y = QasmStd.Convert.BoolAsDouble(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -179,11 +163,9 @@ fn to_explicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = true;
-        mutable y = __BoolAsDouble__(x);
+        mutable y = QasmStd.Convert.BoolAsDouble(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

@@ -238,7 +238,7 @@ const validateExpression = (input: string): boolean => {
     // Validate the remaining expression (without parentheses)
     const sign = "[+-]?";
     const number = "((\\d+(\\.\\d*)?))"; // Matches integers and decimals
-    const pi = "(?i:π|pi)"; // Matches π or pi
+    const pi = "(?i:π)"; // Matches π
     const value = `${sign}(${number}|${pi})`; // Matches a signed number or π
     const operator = "[+\\-*/]"; // Matches arithmetic operators
     const expressionRegex = new RegExp(
@@ -311,6 +311,39 @@ const _createInputPrompt = (
   const buttonsContainer = document.createElement("div");
   buttonsContainer.classList.add("prompt-buttons");
 
+  // Create the OK button
+  const okButton = document.createElement("button");
+  okButton.classList.add("prompt-button");
+  okButton.textContent = "OK";
+
+  // Function to replace "pi" with "π" (case-insensitive)
+  const replacePiWithSymbol = (input: string) => input.replace(/pi/gi, "π");
+
+  // Function to validate input and toggle the OK button
+  const validateAndToggleOkButton = () => {
+    const processedInput = replacePiWithSymbol(inputElem.value.trim());
+    const isValid = validateInput(processedInput);
+    okButton.disabled = !isValid;
+  };
+
+  // Add input event listener for validation
+  inputElem.addEventListener("input", validateAndToggleOkButton);
+
+  // Handle Enter key when input is focused
+  inputElem.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !okButton.disabled) {
+      event.preventDefault();
+      okButton.click();
+    }
+  });
+
+  okButton.disabled = !validateInput(replacePiWithSymbol(defaultValue.trim()));
+  okButton.addEventListener("click", () => {
+    callback(replacePiWithSymbol(inputElem.value.trim()));
+    document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
+  });
+
   // Create the π button
   const piButton = document.createElement("button");
   piButton.textContent = "π";
@@ -325,16 +358,6 @@ const _createInputPrompt = (
     validateAndToggleOkButton();
   });
 
-  // Create the OK button
-  const okButton = document.createElement("button");
-  okButton.classList.add("prompt-button");
-  okButton.textContent = "OK";
-  okButton.disabled = !validateInput(defaultValue);
-  okButton.addEventListener("click", () => {
-    callback(inputElem.value.trim());
-    document.body.removeChild(overlay);
-  });
-
   // Create the Cancel button
   const cancelButton = document.createElement("button");
   cancelButton.classList.add("prompt-button");
@@ -342,16 +365,17 @@ const _createInputPrompt = (
   cancelButton.addEventListener("click", () => {
     callback(null);
     document.body.removeChild(overlay);
+    document.removeEventListener("keydown", handleGlobalKeyDown, true);
   });
 
-  // Function to validate input and toggle the OK button
-  const validateAndToggleOkButton = () => {
-    const isValid = validateInput(inputElem.value.trim());
-    okButton.disabled = !isValid;
+  // Handle Escape key globally while prompt is open
+  const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelButton.click();
+    }
   };
-
-  // Add input event listener for validation
-  inputElem.addEventListener("input", validateAndToggleOkButton);
+  document.addEventListener("keydown", handleGlobalKeyDown, true);
 
   // Append buttons to the container
   buttonsContainer.appendChild(piButton);

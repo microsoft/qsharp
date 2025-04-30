@@ -1,6 +1,8 @@
+from pathlib import Path
 import qsharp
 
-qsharp.init(project_root=".")
+this_dir = Path(__file__).parent
+qsharp.init(project_root=this_dir)
 
 from qsharp.code.GenerateRandomNumbers import GenerateRandomNumbers
 

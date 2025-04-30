@@ -34,11 +34,9 @@ fn indexed_bit_can_implicitly_convert_to_int() -> miette::Result<(), Vec<Report>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
-        if __ResultAsInt__(x[0]) == 1 {
+        if QasmStd.Convert.ResultAsInt(x[0]) == 1 {
             set x w/= 1 <- One;
         };
     "#]]
@@ -57,11 +55,9 @@ fn indexed_bit_can_implicitly_convert_to_bool() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
-        if __ResultAsBool__(x[0]) {
+        if QasmStd.Convert.ResultAsBool(x[0]) {
             set x w/= 1 <- One;
         };
     "#]]
@@ -78,8 +74,6 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         mutable y = x[0];

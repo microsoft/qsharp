@@ -13,11 +13,9 @@ fn implicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(0., 0.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(0., 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -29,11 +27,9 @@ fn explicit_bitness_default_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(0., 0.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(0., 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -45,11 +41,9 @@ fn const_implicit_bitness_double_img_only_decl() -> miette::Result<(), Vec<Repor
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 1.01);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(0., 1.01);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -61,11 +55,9 @@ fn const_implicit_bitness_int_img_only_decl() -> miette::Result<(), Vec<Report>>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 1.);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(0., 1.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -77,11 +69,9 @@ fn const_explicit_bitness_double_img_only_decl() -> miette::Result<(), Vec<Repor
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 1.01);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(0., 1.01);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -93,11 +83,9 @@ fn const_explicit_bitness_int_img_only_decl() -> miette::Result<(), Vec<Report>>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(0., 1.);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(0., 1.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -109,11 +97,9 @@ fn implicit_bitness_double_img_only_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(0., 1.01);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(0., 1.01);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -125,11 +111,9 @@ fn implicit_bitness_int_img_only_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(0., 1.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(0., 1.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -142,11 +126,9 @@ fn implicit_bitness_int_img_only_tab_between_suffix_decl() -> miette::Result<(),
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(0., 1.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(0., 1.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -158,11 +140,9 @@ fn const_implicit_bitness_double_real_only_decl() -> miette::Result<(), Vec<Repo
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(1.01, 0.);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(1.01, 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -174,11 +154,9 @@ fn const_implicit_bitness_int_real_only_decl() -> miette::Result<(), Vec<Report>
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.Complex(1., 0.);
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.Complex(1., 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -190,11 +168,9 @@ fn implicit_bitness_double_real_only_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(1.01, 0.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(1.01, 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -206,11 +182,9 @@ fn implicit_bitness_int_real_only_decl() -> miette::Result<(), Vec<Report>> {
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.Complex(1., 0.);
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.Complex(1., 0.);
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -222,11 +196,9 @@ fn implicit_bitness_simple_double_pos_im_decl() -> miette::Result<(), Vec<Report
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.PlusC(Microsoft.Quantum.Math.Complex(1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.PlusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -238,11 +210,9 @@ fn const_implicit_bitness_simple_double_pos_im_decl() -> miette::Result<(), Vec<
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.PlusC(Microsoft.Quantum.Math.Complex(1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.PlusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -254,11 +224,9 @@ fn implicit_bitness_simple_double_neg_im_decl() -> miette::Result<(), Vec<Report
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.MinusC(Microsoft.Quantum.Math.Complex(1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.MinusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -270,11 +238,9 @@ fn const_implicit_bitness_simple_double_neg_im_decl() -> miette::Result<(), Vec<
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.MinusC(Microsoft.Quantum.Math.Complex(1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.MinusC(Std.Math.Complex(1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -286,11 +252,9 @@ fn implicit_bitness_simple_double_neg_real_decl() -> miette::Result<(), Vec<Repo
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        mutable x = Microsoft.Quantum.Math.PlusC(Microsoft.Quantum.Math.Complex(-1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        mutable x = Std.Math.PlusC(Std.Math.Complex(-1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -302,11 +266,9 @@ fn const_implicit_bitness_simple_double_neg_real_decl() -> miette::Result<(), Ve
     ";
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
-    expect![
-        r#"
-        let x = Microsoft.Quantum.Math.PlusC(Microsoft.Quantum.Math.Complex(-1.1, 0.), Microsoft.Quantum.Math.Complex(0., 2.2));
-    "#
-    ]
+    expect![[r#"
+        let x = Std.Math.PlusC(Std.Math.Complex(-1.1, 0.), Std.Math.Complex(0., 2.2));
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
