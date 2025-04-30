@@ -197,7 +197,7 @@ pub enum SemanticErrorKind {
     #[error("too many controls specified")]
     #[diagnostic(code("Qasm.Lowerer.TooManyControls"))]
     TooManyControls(#[label] Span),
-    #[error("too many indicies specified")]
+    #[error("too many indices specified")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
     #[error("bitwise not `~` is not allowed for instances of {0}")]

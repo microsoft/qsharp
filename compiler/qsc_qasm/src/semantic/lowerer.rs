@@ -644,9 +644,44 @@ impl Lowerer {
             syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
             syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
             syntax::ExprKind::IndexExpr(expr) => self.lower_index_expr(expr),
-            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit),
+            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, None),
             syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
             syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+        }
+    }
+
+    fn lower_decl_expr(
+        &mut self,
+        expr: &syntax::Expr,
+        ty: &Type,
+        lowering_array: bool,
+    ) -> semantic::Expr {
+        let expr = match &*expr.kind {
+            syntax::ExprKind::BinaryOp(bin_op_expr) => {
+                let lhs = self.lower_expr(&bin_op_expr.lhs);
+                let rhs = self.lower_expr(&bin_op_expr.rhs);
+                self.lower_binary_op_expr(bin_op_expr.op, lhs, rhs, expr.span)
+            }
+            syntax::ExprKind::Cast(_) => {
+                self.push_unimplemented_error_message("cast expr", expr.span);
+                err_expr!(Type::Err, expr.span)
+            }
+            syntax::ExprKind::Err => err_expr!(Type::Err, expr.span),
+            syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
+            syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
+            syntax::ExprKind::IndexExpr(expr) => self.lower_index_expr(expr),
+            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, Some(ty)),
+            syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
+            syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+        };
+
+        // If are not lowering an array OR are lowering one but haven't reached a leaf node
+        // we return expr without casting.
+        if !lowering_array || ty.is_array() {
+            expr
+        } else {
+            // We take this branch if we are trying to lower an array but reached a leaf node.
+            self.cast_expr_to_type(ty, &expr)
         }
     }
 
@@ -701,7 +736,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_lit_expr(&mut self, expr: &syntax::Lit) -> semantic::Expr {
+    fn lower_lit_expr(&mut self, expr: &syntax::Lit, ty: Option<&Type>) -> semantic::Expr {
         let (kind, ty) = match &expr.kind {
             syntax::LiteralKind::BigInt(value) => {
                 // this case is only valid when there is an integer literal
@@ -745,25 +780,42 @@ impl Lowerer {
                 Type::Duration(true),
             ),
             syntax::LiteralKind::Array(exprs) => {
-                // array literals are only valid in classical decals (const and mut)
-                // and we have to know the expected type of the array in order to lower it
-                // So we can't lower array literals in general.
-                self.push_semantic_error(SemanticErrorKind::ArrayLiteralInNonClassicalDecl(
-                    expr.span,
-                ));
-                // place holder for now, this code will need to move to the correct place when we
-                // add support for classical decls
-                let texprs = exprs
-                    .iter()
-                    .map(|expr| self.lower_expr(expr))
-                    .collect::<Vec<_>>();
+                if let Some(ty) = ty {
+                    // place holder for now, this code will need to move to the correct place when we
+                    // add support for classical decls
+                    let dummy_index = semantic::Expr {
+                        span: Span::default(),
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(0))),
+                        ty: Type::Int(None, true),
+                    };
 
-                (
-                    semantic::ExprKind::Lit(semantic::LiteralKind::Array(syntax::list_from_iter(
-                        texprs,
-                    ))),
-                    Type::Err,
-                )
+                    let indexed_ty = self.get_indexed_type(
+                        ty,
+                        Span::default(),
+                        &[semantic::Index::Expr(dummy_index)],
+                    );
+
+                    let texprs = exprs
+                        .iter()
+                        .map(|expr| self.lower_decl_expr(expr, &indexed_ty, true))
+                        .collect::<Vec<_>>();
+
+                    let Some(dims) = ty.array_dims() else {
+                        return err_expr!(Type::Err, expr.span);
+                    };
+                    let array = semantic::Array { data: texprs, dims };
+                    let kind = semantic::ExprKind::Lit(semantic::LiteralKind::Array(array));
+
+                    (kind, ty.clone())
+                } else {
+                    // array literals are only valid in classical decals (const and mut)
+                    // and we have to know the expected type of the array in order to lower it
+                    // So we can't lower array literals in general.
+                    self.push_semantic_error(SemanticErrorKind::ArrayLiteralInNonClassicalDecl(
+                        expr.span,
+                    ));
+                    (semantic::ExprKind::Err, Type::Err)
+                }
             }
         };
         semantic::Expr {
@@ -917,7 +969,7 @@ impl Lowerer {
             Type::QubitArray(size) => {
                 crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(*size as usize))
             }
-            Type::IntArray(size, dims) | Type::UIntArray(size, dims) => {
+            Type::IntArray(size, dims, _) | Type::UIntArray(size, dims, _) => {
                 if let Some(size) = size {
                     if *size > 64 {
                         crate::types::Type::BigIntArray(dims.into(), is_const)
@@ -928,8 +980,12 @@ impl Lowerer {
                     crate::types::Type::IntArray(dims.into(), is_const)
                 }
             }
-            Type::FloatArray(_, dims) => crate::types::Type::DoubleArray(dims.into()),
-            Type::BoolArray(dims) => crate::types::Type::BoolArray(dims.into(), is_const),
+            Type::FloatArray(_, dims, _) => crate::types::Type::DoubleArray(dims.into()),
+            Type::BoolArray(dims, _) => crate::types::Type::BoolArray(dims.into(), is_const),
+            Type::ComplexArray(_, dims, _) => {
+                crate::types::Type::ComplexArray(dims.into(), is_const)
+            }
+            Type::AngleArray(_, dims, _) => crate::types::Type::AngleArray(dims.into(), is_const),
             Type::Gate(cargs, qargs) => {
                 crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
             }
@@ -1057,7 +1113,7 @@ impl Lowerer {
         let init_expr = match init_expr {
             Some(expr) => match expr {
                 syntax::ValueExpr::Expr(expr) => {
-                    let expr = self.lower_expr(expr);
+                    let expr = self.lower_decl_expr(expr, &ty, false);
                     self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
                 }
                 syntax::ValueExpr::Measurement(measure_expr) => {
@@ -1086,7 +1142,7 @@ impl Lowerer {
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
         let init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
+                let expr = self.lower_decl_expr(expr, &ty, false);
                 self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
@@ -2415,10 +2471,52 @@ impl Lowerer {
     fn get_semantic_type_from_array_ty(
         &mut self,
         array_ty: &syntax::ArrayType,
-        _is_const: bool,
+        is_const: bool,
     ) -> crate::semantic::types::Type {
-        self.push_unimplemented_error_message("semantic type from array type", array_ty.span);
-        crate::semantic::types::Type::Err
+        let base_tydef = match &array_ty.base_type {
+            syntax::ArrayBaseTypeKind::Int(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Int(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::UInt(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::UInt(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Float(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Float(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Complex(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Complex(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Angle(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Angle(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::BoolType => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::BoolType,
+            }),
+            syntax::ArrayBaseTypeKind::Duration => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Duration,
+            }),
+        };
+
+        let base_ty = self.get_semantic_type_from_tydef(&base_tydef, is_const);
+
+        let dims = array_ty
+            .dimensions
+            .iter()
+            .filter_map(|expr| self.const_eval_array_size_designator_from_expr(expr))
+            .collect::<Vec<_>>();
+
+        if dims.len() != array_ty.dimensions.len() {
+            return Type::Err;
+        }
+
+        Type::make_array_ty(&dims, &base_ty)
     }
 
     fn get_semantic_type_from_array_reference_ty(
@@ -2500,6 +2598,7 @@ impl Lowerer {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn get_default_value(&mut self, ty: &Type, span: Span) -> semantic::Expr {
         use semantic::Expr;
         use semantic::ExprKind;
@@ -2546,33 +2645,54 @@ impl Lowerer {
                 0.0,
                 semantic::TimeUnit::Ns,
             ))),
-            Type::BoolArray(_) => {
-                self.push_unimplemented_error_message("bool array default value", span);
-                None
+            Type::BoolArray(dims, is_const) => {
+                let base_ty = Type::Bool(*is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::DurationArray(_) => {
-                self.push_unimplemented_error_message("duration array default value", span);
-                None
+            Type::DurationArray(dims, is_const) => {
+                let base_ty = Type::Duration(*is_const);
+                let default = || self.get_default_value(&Type::Duration(true), span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::AngleArray(_, _) => {
-                self.push_unimplemented_error_message("angle array default value", span);
-                None
+            Type::AngleArray(width, dims, is_const) => {
+                let base_ty = Type::Angle(*width, *is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::ComplexArray(_, _) => {
-                self.push_unimplemented_error_message("complex array default value", span);
-                None
+            Type::ComplexArray(width, dims, is_const) => {
+                let base_ty = Type::Complex(*width, *is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::FloatArray(_, _) => {
-                self.push_unimplemented_error_message("float array default value", span);
-                None
+            Type::FloatArray(width, dims, is_const) => {
+                let base_ty = Type::Float(*width, *is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::IntArray(_, _) => {
-                self.push_unimplemented_error_message("int array default value", span);
-                None
+            Type::IntArray(width, dims, is_const) => {
+                let base_ty = Type::Int(*width, *is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::UIntArray(_, _) => {
-                self.push_unimplemented_error_message("uint array default value", span);
-                None
+            Type::UIntArray(width, dims, is_const) => {
+                let base_ty = Type::UInt(*width, *is_const);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
             Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
                 let message = format!("default values for {ty:?}");
@@ -3499,7 +3619,7 @@ impl Lowerer {
         };
 
         let ty = lhs_symbol.ty.clone();
-        // use the supplied number of indicies rathar than the number of indicies we lowered
+        // use the supplied number of indices rather than the number of indices we lowered
         let ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
 
         semantic::Expr {

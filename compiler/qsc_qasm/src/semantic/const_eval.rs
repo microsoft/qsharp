@@ -7,10 +7,11 @@
 //! paths that are implemented.
 
 use super::ast::{
-    BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
-    UnaryOp, UnaryOpExpr,
+    Array, BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, Index, IndexExpr, IndexedIdent,
+    LiteralKind, UnaryOp, UnaryOpExpr,
 };
 use super::symbols::SymbolId;
+use super::types::compute_slice_components;
 use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
@@ -25,6 +26,12 @@ pub enum ConstEvalError {
     #[error("expression must be const")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
+    #[error("expression must be indexable")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeIndexable"))]
+    ExprMustBeIndexable(#[label] Span),
+    #[error("index must be an int")]
+    #[diagnostic(code("Qasm.Lowerer.IndexMustBeInt"))]
+    IndexMustBeInt(#[label] Span),
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
@@ -72,10 +79,123 @@ impl SymbolId {
     }
 }
 
+impl LiteralKind {
+    /// The result of indexing an array is either:
+    ///   1. An array, this happens when we use slices
+    ///      or don't index all the dimensions. This
+    ///      can be expressed as an `LiteralKind::Array`.
+    ///   2. A non-array, this happens when we index
+    ///      all dimensions. This can be expressed
+    ///      as a `LiteralKind`.
+    ///
+    /// So, in general we can return `Expr` from this function.
+    fn index_array(self, ctx: &mut Lowerer, indices: &[Index], span: Span) -> Option<Self> {
+        let LiteralKind::Array(array) = self else {
+            ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(span));
+            return None;
+        };
+        let dims = array.dims.clone().into_iter().collect::<Vec<_>>();
+        Self::index_array_recursive(ctx, &array.data, &dims, indices)
+    }
+
+    fn index_array_recursive(
+        ctx: &mut Lowerer,
+        data: &[Expr],
+        dims: &[u32],
+        indices: &[Index],
+    ) -> Option<Self> {
+        // 1. We shouldn't reach this case.
+        if indices.is_empty() {
+            return None;
+        }
+
+        let index = indices.first().expect("there is one index");
+
+        match index {
+            Index::Expr(idx) => {
+                let Some(LiteralKind::Int(idx)) = idx.const_eval(ctx) else {
+                    ctx.push_const_eval_error(super::const_eval::ConstEvalError::IndexMustBeInt(
+                        index.span(),
+                    ));
+                    return None;
+                };
+
+                #[allow(clippy::cast_possible_wrap)]
+                #[allow(clippy::cast_possible_truncation)]
+                let expr = &data[idx.rem_euclid(data.len() as i64) as usize];
+                let value = expr.const_eval(ctx)?;
+
+                if indices.len() == 1 {
+                    // Base case.
+                    Some(value)
+                } else {
+                    // Recursive case.
+                    value.index_array(ctx, &indices[1..], expr.span)
+                }
+            }
+            Index::Range(range) => {
+                let (start, step, end) = compute_slice_components(range, dims[0]);
+                #[allow(clippy::cast_sign_loss)]
+                #[allow(clippy::cast_possible_truncation)]
+                let (start, end) = (start as usize, end as usize);
+
+                #[allow(clippy::cast_possible_truncation)]
+                let slice_data: Vec<&Expr> = if start <= end && step > 0 {
+                    let step = step.unsigned_abs() as usize;
+                    data[start..=end].iter().step_by(step).collect()
+                } else if start >= end && step < 0 {
+                    let step = step.unsigned_abs() as usize;
+                    data[end..=start].iter().rev().step_by(step).collect()
+                } else {
+                    vec![]
+                };
+
+                let slice_const_evaluated_data = slice_data
+                    .iter()
+                    .filter_map(|expr| {
+                        let value = expr.const_eval(ctx)?;
+
+                        let value = if indices.len() == 1 {
+                            // Base case.
+                            value
+                        } else {
+                            // Recursive case.
+                            value.index_array(ctx, &indices[1..], expr.span)?
+                        };
+
+                        Some(Expr {
+                            span: expr.span,
+                            kind: Box::new(ExprKind::Lit(value)),
+                            ty: expr.ty.clone(),
+                        })
+                    })
+                    .collect::<Vec<_>>();
+
+                if slice_const_evaluated_data.len() != slice_data.len() {
+                    return None;
+                }
+
+                #[allow(clippy::cast_possible_truncation)]
+                let slice_dims: Vec<_> = [slice_data.len() as u32]
+                    .into_iter()
+                    .chain(dims.iter().copied())
+                    .collect();
+
+                Some(LiteralKind::Array(Array {
+                    data: slice_const_evaluated_data,
+                    dims: (&slice_dims[..]).into(),
+                }))
+            }
+        }
+    }
+}
+
 impl IndexedIdent {
-    #[allow(clippy::unused_self)]
-    fn const_eval(&self, _ctx: &mut Lowerer) -> Option<LiteralKind> {
-        None
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        let expr = ctx.symbols[self.symbol_id].get_const_expr();
+        let value = expr.const_eval(ctx)?;
+        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
+        value.index_array(ctx, &indices, self.name_span)
     }
 }
 

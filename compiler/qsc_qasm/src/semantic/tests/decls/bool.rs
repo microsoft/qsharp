@@ -25,32 +25,33 @@ fn with_no_init_expr_has_generated_lit_expr() {
 }
 
 #[test]
-#[ignore = "Unimplemented"]
 fn array_with_no_init_expr_has_generated_lit_expr() {
     check_classical_decl(
         "array[bool, 4] a;",
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [0-17]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [0-17]:
-                            symbol_id: 8
-                            ty_span: [0-14]
-                            init_expr: Expr [0-0]:
-                                ty: Err
-                                kind: Err
-
-            [Qasm.Compile.Unimplemented
-
-              x this statement is not yet handled during OpenQASM 3 import: semantic type
-              | from array type
-               ,-[test:1:1]
-             1 | array[bool, 4] a;
-               : ^^^^^^^^^^^^^^
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [0-17]:
+                symbol_id: 8
+                ty_span: [0-14]
+                init_expr: Expr [0-0]:
+                    ty: BoolArray(One(4), true)
+                    kind: Lit:     array:
+                            Expr [0-0]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(false)
+                            Expr [0-0]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(false)
+                            Expr [0-0]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(false)
+                            Expr [0-0]:
+                                ty: Bool(true)
+                                kind: Lit: Bool(false)
+            [8] Symbol [15-16]:
+                name: a
+                type: BoolArray(One(4), false)
+                qsharp_type: bool[]
+                io_kind: Default"#]],
     );
 }
 

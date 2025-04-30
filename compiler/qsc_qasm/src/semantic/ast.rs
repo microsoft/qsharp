@@ -20,6 +20,8 @@ use crate::{
 
 use crate::parser::ast as syntax;
 
+use super::types::ArrayDimensions;
+
 #[derive(Clone, Debug)]
 pub struct Program {
     pub statements: List<Stmt>,
@@ -1135,7 +1137,7 @@ impl Display for IndexExpr {
 #[derive(Clone, Debug)]
 pub enum LiteralKind {
     Angle(Angle),
-    Array(List<Expr>),
+    Array(Array),
     Bitstring(BigInt, u32),
     Bool(bool),
     Duration(f64, TimeUnit),
@@ -1150,7 +1152,7 @@ pub enum LiteralKind {
 impl Display for LiteralKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            LiteralKind::Array(exprs) => write_list_field(f, "Array", exprs),
+            LiteralKind::Array(array) => write!(f, "{array}"),
             LiteralKind::Bitstring(value, width) => {
                 let width = *width as usize;
                 write!(f, "Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
@@ -1166,6 +1168,61 @@ impl Display for LiteralKind {
             LiteralKind::Int(i) => write!(f, "Int({i:?})"),
             LiteralKind::BigInt(i) => write!(f, "BigInt({i:?})"),
             LiteralKind::String(s) => write!(f, "String({s:?})"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Array {
+    pub data: Vec<Expr>,
+    pub dims: ArrayDimensions,
+}
+
+impl Display for Array {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_list_field(f, "array", &self.data)
+    }
+}
+
+impl Array {
+    pub fn from_default(
+        dims: ArrayDimensions,
+        default: impl FnOnce() -> Expr,
+        base_ty: &super::types::Type,
+    ) -> Self {
+        let dims_vec: Vec<_> = dims.clone().into_iter().collect();
+        let data = Self::from_default_recursive(&dims_vec, default, base_ty);
+        Self { data, dims }
+    }
+
+    fn from_default_recursive(
+        dims: &[u32],
+        default: impl FnOnce() -> Expr,
+        base_ty: &super::types::Type,
+    ) -> Vec<Expr> {
+        if dims.is_empty() {
+            vec![]
+        } else if dims.len() == 1 {
+            let size = dims[0] as usize;
+            if size > 1 {
+                let default_value = default();
+                vec![default_value; size]
+            } else {
+                vec![]
+            }
+        } else {
+            let data = Self::from_default_recursive(&dims[1..], default, base_ty);
+            let array = Self {
+                data,
+                dims: (&dims[1..]).into(),
+            };
+            let expr = Expr {
+                span: Default::default(),
+                kind: Box::new(ExprKind::Lit(LiteralKind::Array(array))),
+                ty: super::types::Type::make_array_ty(&dims[1..], base_ty),
+            };
+            let dim_size = dims[0] as usize;
+            vec![expr; dim_size]
         }
     }
 }

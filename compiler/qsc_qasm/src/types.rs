@@ -31,6 +31,8 @@ pub enum Type {
     BigIntArray(ArrayDimensions, bool),
     IntArray(ArrayDimensions, bool),
     DoubleArray(ArrayDimensions),
+    ComplexArray(ArrayDimensions, bool),
+    AngleArray(ArrayDimensions, bool),
     QubitArray(ArrayDimensions),
     ResultArray(ArrayDimensions, bool),
     TupleArray(ArrayDimensions, Vec<Type>),
@@ -108,6 +110,8 @@ impl Display for Type {
             Type::BigIntArray(dim, _) => write!(f, "BigInt{dim}"),
             Type::IntArray(dim, _) => write!(f, "Int{dim}"),
             Type::DoubleArray(dim) => write!(f, "Double{dim}"),
+            Type::ComplexArray(dim, _) => write!(f, "Complex{dim}"),
+            Type::AngleArray(dim, _) => write!(f, "Angle{dim}"),
             Type::QubitArray(dim) => write!(f, "Qubit{dim}"),
             Type::ResultArray(dim, _) => write!(f, "Result{dim}"),
             Type::TupleArray(dim, types) => {

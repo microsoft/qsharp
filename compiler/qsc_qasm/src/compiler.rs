@@ -39,8 +39,8 @@ use crate::{
     parser::ast::{list_from_iter, List},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, Expr, GateOperand, GateOperandKind, Index, IndexExpr, IndexedIdent,
-            LiteralKind, MeasureExpr, Set, TimeUnit, UnaryOpExpr,
+            Array, BinaryOpExpr, Cast, Expr, GateOperand, GateOperandKind, Index, IndexExpr,
+            IndexedIdent, LiteralKind, MeasureExpr, Set, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
         types::{promote_types, Type},
@@ -1442,9 +1442,14 @@ impl QasmCompiler {
         build_range_expr(start, end, step, range.span)
     }
 
-    fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> qsast::Expr {
-        self.push_unimplemented_error_message("array literals", span);
-        err_expr(span)
+    fn compile_array_literal(&mut self, array: &Array, span: Span) -> qsast::Expr {
+        let exprs = array
+            .data
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect();
+
+        build_expr_array_expr(exprs, span)
     }
 
     fn compile_bit_literal(value: bool, span: Span) -> qsast::Expr {
