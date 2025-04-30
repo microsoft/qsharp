@@ -665,8 +665,6 @@ fn broadcast_one_qubit_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let qs = QIR.Runtime.AllocateQubitArray(2);
         h(qs[0]);
@@ -687,8 +685,6 @@ fn broadcast_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
@@ -711,8 +707,6 @@ fn broadcast_controlled_two_qubit_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
@@ -735,8 +729,6 @@ fn broadcast_explicitly_controlled_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctrls = QIR.Runtime.AllocateQubitArray(3);
         let targets = QIR.Runtime.AllocateQubitArray(3);
@@ -759,8 +751,6 @@ fn broadcast_with_qubit_and_register() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let ctl = QIR.Runtime.__quantum__rt__qubit_allocate();
         let targets = QIR.Runtime.AllocateQubitArray(2);

@@ -132,7 +132,7 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
         mutable sum = 0;
         let reg = [One, Zero, One, Zero, One];
         for b : Result in reg {
-            set sum = sum + __ResultAsInt__(b);
+            set sum = sum + QasmStd.Convert.ResultAsInt(b);
         }
     "#]]
     .assert_eq(&qsharp);

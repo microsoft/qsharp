@@ -44,24 +44,22 @@ fn default_simple_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable a = [false, false, false];
         mutable b = [0, 0, 0];
         mutable c = [0, 0, 0];
-        mutable d = [new __Angle__ {
+        mutable d = [new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
         }];
         mutable e = [0., 0., 0.];
-        mutable f = [Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.)];
+        mutable f = [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)];
     "#]].assert_eq(&qsharp);
     Ok(())
 }
@@ -79,33 +77,31 @@ fn default_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable a = [[false, false, false], [false, false, false]];
         mutable b = [[0, 0, 0], [0, 0, 0]];
         mutable c = [[0, 0, 0], [0, 0, 0]];
-        mutable d = [[new __Angle__ {
+        mutable d = [[new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }], [new __Angle__ {
+        }], [new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new __Angle__ {
+        }, new QasmStd.Angle.Angle {
             Value = 0,
             Size = 53
         }]];
         mutable e = [[0., 0., 0.], [0., 0., 0.]];
-        mutable f = [[Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.)], [Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.), Microsoft.Quantum.Math.Complex(0., 0.)]];
+        mutable f = [[Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)], [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)]];
     "#]].assert_eq(&qsharp);
     Ok(())
 }
@@ -123,15 +119,13 @@ fn initialized_simple_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable a = [false, true, true];
         mutable b = [-2, 0, 3];
         mutable c = [1, 2, 3];
-        mutable d = [__DoubleAsAngle__(-1., 53), __DoubleAsAngle__(2., 53), __DoubleAsAngle__(4., 53)];
-        mutable e = [Microsoft.Quantum.Convert.IntAsDouble(-2), Microsoft.Quantum.Convert.IntAsDouble(0), 3.];
-        mutable f = [Microsoft.Quantum.Math.Complex(Microsoft.Quantum.Convert.IntAsDouble(2), 0.), Microsoft.Quantum.Math.Complex(3., 0.), Microsoft.Quantum.Math.Complex(0., 5.)];
+        mutable d = [QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(2., 53), QasmStd.Angle.DoubleAsAngle(4., 53)];
+        mutable e = [Std.Convert.IntAsDouble(-2), Std.Convert.IntAsDouble(0), 3.];
+        mutable f = [Std.Math.Complex(Std.Convert.IntAsDouble(2), 0.), Std.Math.Complex(3., 0.), Std.Math.Complex(0., 5.)];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -150,8 +144,6 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable a = [[if 0 == 0 {
             false
@@ -163,10 +155,10 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
             true
         }], [false, true]];
         mutable b = [[-2, 0], [1, 2]];
-        mutable c = [[0, 1], [__BoolAsInt__(false), __BoolAsInt__(true)]];
-        mutable d = [[__DoubleAsAngle__(-1., 53), __DoubleAsAngle__(0., 53)], [__DoubleAsAngle__(1., 53), __DoubleAsAngle__(5., 53)]];
-        mutable e = [[Microsoft.Quantum.Convert.IntAsDouble(-1), 0.], [1., 5.]];
-        mutable f = [[Microsoft.Quantum.Math.Complex(Microsoft.Quantum.Convert.IntAsDouble(-2), 0.), Microsoft.Quantum.Math.Complex(Microsoft.Quantum.Convert.IntAsDouble(0), 0.)], [Microsoft.Quantum.Math.Complex(0., 3.), Microsoft.Quantum.Math.MinusC(Microsoft.Quantum.Math.Complex(1., 0.), Microsoft.Quantum.Math.Complex(0., 2.))]];
+        mutable c = [[0, 1], [QasmStd.Convert.BoolAsInt(false), QasmStd.Convert.BoolAsInt(true)]];
+        mutable d = [[QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(0., 53)], [QasmStd.Angle.DoubleAsAngle(1., 53), QasmStd.Angle.DoubleAsAngle(5., 53)]];
+        mutable e = [[Std.Convert.IntAsDouble(-1), 0.], [1., 5.]];
+        mutable f = [[Std.Math.Complex(Std.Convert.IntAsDouble(-2), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.)], [Std.Math.Complex(0., 3.), Std.Math.MinusC(Std.Math.Complex(1., 0.), Std.Math.Complex(0., 2.))]];
     "#]]
     .assert_eq(&qsharp);
     Ok(())

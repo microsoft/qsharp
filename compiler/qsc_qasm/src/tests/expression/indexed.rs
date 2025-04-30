@@ -110,12 +110,10 @@ fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable ans = [One, Zero, One, Zero, One];
         let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
-        if __ResultArrayAsIntBE__(ans[0..3]) == 4 {
+        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3]) == 4 {
             x(qq);
         };
     "#]]
@@ -134,12 +132,10 @@ fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable ans = [One, Zero, One, Zero, One];
         let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
-        if __ResultArrayAsIntBE__(ans[0..3..2]) == 4 {
+        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3..2]) == 4 {
             x(qq);
         };
     "#]]
