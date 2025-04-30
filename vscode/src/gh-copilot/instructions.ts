@@ -22,6 +22,8 @@ When writing Q#, the \`for (i in 1..100)\` syntax is invalid, use \`for i in 1..
 
 While many Q# operators are C-like, it uses \`or\` instead of \`||\` and \`and\` instead of \`&&\`.
 
+To extract values from a tuple, use destructuring via the \`let (item0, item1) = tupleValue;\` syntax.
+
 ## Project structure
 
 ### Single-file projects
@@ -123,6 +125,13 @@ Circuit(qsharp.circuit("GHZSample(3)"))
 
 Note that the latest Q# and QDK releases don't require or use the old IQ# kernel. It just needs to the \`qsharp\` PyPI package,
 and maybe \`qsharp_widgets\` for visuals.
+
+## Setup and tools
+
+The Quantum Development Kit (QDK) was re-written at the start of 2024 and no longer uses
+the IQ# Jupyter kernel, or the \`dotnet\` command line tools. Job management is best handled
+now via tool calls integration into GitHub Copilot, or via Python code using the \`qsharp\`
+and \`azure-quantum\` packages.
 
 ## Response formatting
 
