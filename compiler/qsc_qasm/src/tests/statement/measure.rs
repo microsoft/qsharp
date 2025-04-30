@@ -58,7 +58,7 @@ fn indexed_single_qubit_can_be_measured_into_indexed_bit_register(
         import QasmStd.Intrinsic.*;
         mutable c = [Zero];
         let q = QIR.Runtime.AllocateQubitArray(1);
-        set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+        set c = c w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

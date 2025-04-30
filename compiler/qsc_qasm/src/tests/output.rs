@@ -49,8 +49,8 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
                 rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                set c = c w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c = c w/ 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -98,8 +98,8 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
                 rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                set c = c w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c = c w/ 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
                 (c, gamma, delta)
             }
         }"#]]
@@ -147,8 +147,8 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
                 rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
-                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                set c = c w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c = c w/ 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
                 Std.Arrays.Reversed(c)
             }
         }"#]]
@@ -208,11 +208,11 @@ c2[2] = measure q[4];
                 x(q[2]);
                 id(q[3]);
                 x(q[4]);
-                set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
-                set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
-                set c2 w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[2]);
-                set c2 w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[3]);
-                set c2 w/= 2 <- QIR.Intrinsic.__quantum__qis__m__body(q[4]);
+                set c = c w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set c = c w/ 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
+                set c2 = c2 w/ 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[2]);
+                set c2 = c2 w/ 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[3]);
+                set c2 = c2 w/ 2 <- QIR.Intrinsic.__quantum__qis__m__body(q[4]);
                 (Std.Arrays.Reversed(c2), Std.Arrays.Reversed(c))
             }
         }"#]]

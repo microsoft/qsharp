@@ -22,18 +22,19 @@ use crate::{
         build_gate_call_param_expr, build_gate_call_with_params_and_callee,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_index_expr, build_indexed_assignment_statement,
-        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
-        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
-        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
-        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-        build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
-        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_implicit_return_stmt, build_index_expr, build_lit_angle_expr, build_lit_bigint_expr,
+        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
+        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
+        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
+        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
+        build_qasm_import_decl, build_qasm_import_items,
+        build_qasmstd_convert_call_with_two_params, build_range_expr, build_reset_call,
+        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
+        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{list_from_iter, List},
@@ -471,13 +472,10 @@ impl QasmCompiler {
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = &symbol.name;
-
         let stmt_span = stmt.span;
         let name_span = stmt.lhs_span;
-
         let rhs = self.compile_expr(&stmt.rhs);
         let stmt = build_assignment_statement(name_span, name, rhs, stmt_span);
-
         Some(stmt)
     }
 
@@ -486,35 +484,60 @@ impl QasmCompiler {
         stmt: &semast::IndexedAssignStmt,
     ) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.indexed_ident.symbol_id].clone();
+        let name = &symbol.name;
 
+        // We collect the indices in the reverse order, so that we can use `Vec::pop`.
         let indices: Vec<_> = stmt
             .indexed_ident
             .indices
             .iter()
+            .rev()
             .map(|elem| self.compile_index(elem))
             .collect();
 
+        let lhs = build_path_ident_expr(
+            name,
+            stmt.indexed_ident.name_span,
+            stmt.indexed_ident.name_span,
+        );
         let rhs = self.compile_expr(&stmt.rhs);
 
-        if stmt.indexed_ident.indices.len() != 1 {
-            self.push_unimplemented_error_message(
-                "multi-dimensional array index expressions",
-                stmt.span,
-            );
-            return None;
-        }
-
-        let index_expr = indices[0].clone();
-
-        let stmt = build_indexed_assignment_statement(
-            stmt.indexed_ident.name_span,
-            symbol.name.clone(),
-            index_expr,
-            rhs,
-            stmt.span,
-        );
+        let rhs = Self::compile_ternary_update_expr(lhs, indices, rhs);
+        let stmt = build_assignment_statement(stmt.indexed_ident.name_span, name, rhs, stmt.span);
 
         Some(stmt)
+    }
+
+    fn compile_ternary_update_expr(
+        lhs: qsast::Expr,
+        mut indices: Vec<qsast::Expr>,
+        rhs: qsast::Expr,
+    ) -> qsast::Expr {
+        // Base case: no indices. We shouldn't reach this case.
+        if indices.is_empty() {
+            err_expr(lhs.span)
+        }
+        // Base case: single index.
+        else if indices.len() == 1 {
+            let index = indices.pop().expect("there is exactly one index");
+            build_ternary_update_expr(lhs, index, rhs)
+        }
+        // Recursive case.
+        else {
+            // build_ternary_update_expr(lhs, index, rhs)
+            let index = indices.pop().expect("there is exactly one index");
+            let rhs = {
+                let span = Span {
+                    lo: lhs.span.lo,
+                    hi: index.span.hi,
+                };
+                let lhs = build_index_expr(lhs.clone(), index.clone(), span);
+                let ternary_expr = Self::compile_ternary_update_expr(lhs, indices, rhs);
+                let paren_span = ternary_expr.span;
+                wrap_expr_in_parens(ternary_expr, paren_span)
+            };
+            build_ternary_update_expr(lhs, index, rhs)
+        }
     }
 
     fn compile_barrier_stmt(stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
