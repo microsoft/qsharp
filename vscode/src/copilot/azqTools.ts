@@ -19,6 +19,7 @@ import { HistogramData } from "./shared.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
 import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+import { sendMessageToPanel } from "../webviewPanel.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -315,6 +316,11 @@ export async function downloadJobResults(
         buckets,
         shotCount,
       };
+      sendMessageToPanel(
+        { panelType: "histogram", id: args.job_id },
+        false,
+        histogram,
+      );
       return {
         result: JSON.stringify({ histogram }),
         widgetData: histogram,
