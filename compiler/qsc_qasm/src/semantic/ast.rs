@@ -1204,7 +1204,7 @@ impl Array {
             vec![]
         } else if dims.len() == 1 {
             let size = dims[0] as usize;
-            if size > 1 {
+            if size >= 1 {
                 let default_value = default();
                 vec![default_value; size]
             } else {

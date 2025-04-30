@@ -432,3 +432,33 @@ fn bitarray_const_evaluation() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn array_with_size_zero() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 0] a;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn array_with_size_one() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 1] a;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [0];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
