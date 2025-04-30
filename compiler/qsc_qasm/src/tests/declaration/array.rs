@@ -314,3 +314,51 @@ fn array_const_evaluation() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn array_indexing_const_evaluation() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        const array[int, 2] a = {5, 6};
+        const int b = a[1];
+
+        def f() {
+            int c = b;
+        }
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        let a = [5, 6];
+        let b = a[1];
+        function f() : Unit {
+            mutable c = 6;
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn array_slice_const_evaluation() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        const array[int, 3] a = {3, 4, 5, 6};
+        const array[int, 2] b = a[1:2];
+
+        def f() {
+            int c = b[1];
+        }
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        let a = [3, 4, 5, 6];
+        let b = a[1..2];
+        function f() : Unit {
+            mutable c = [4, 5][1];
+        }
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

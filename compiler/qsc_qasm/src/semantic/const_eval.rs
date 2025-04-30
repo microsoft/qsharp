@@ -91,9 +91,14 @@ impl LiteralKind {
     ///      as a `LiteralKind`.
     ///
     /// So, in general we can return `Expr` from this function.
-    fn index_array(self, ctx: &mut Lowerer, indices: &[Index], span: Span) -> Option<Self> {
+    fn index_array(
+        self,
+        ctx: &mut Lowerer,
+        indices: &[Index],
+        collection_span: Span,
+    ) -> Option<Self> {
         let LiteralKind::Array(array) = self else {
-            ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(span));
+            ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(collection_span));
             return None;
         };
         let dims = array.dims.clone().into_iter().collect::<Vec<_>>();
@@ -198,6 +203,15 @@ impl IndexedIdent {
         let value = expr.const_eval(ctx)?;
         let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
         value.index_array(ctx, &indices, self.name_span)
+    }
+}
+
+impl IndexExpr {
+    #[allow(clippy::unused_self)]
+    fn const_eval(&self, ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
+        let value = self.collection.const_eval(ctx)?;
+        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
+        value.index_array(ctx, &indices, self.collection.span)
     }
 }
 
@@ -624,13 +638,6 @@ impl BinaryOpExpr {
 }
 
 impl FunctionCall {
-    #[allow(clippy::unused_self)]
-    fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
-        None
-    }
-}
-
-impl IndexExpr {
     #[allow(clippy::unused_self)]
     fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
