@@ -56,12 +56,11 @@ operation IsingModel2DEvolution(
     use qubits = Qubit[N1 * N2];
     let qubitsAs2D = Std.Arrays.Chunks(N2, qubits);
 
-    // Compute the step time
-    import Std.Convert.IntAsDouble;
-    let stepTime : Double = evolutionTime / IntAsDouble(numberOfSteps);
+    // Compute the time step
+    let dt : Double = evolutionTime / Std.Convert.IntAsDouble(numberOfSteps);
 
-    let theta_x = - g * stepTime;
-    let theta_zz = J * stepTime;
+    let theta_x = - g * dt;
+    let theta_zz = J * dt;
 
     // Perform K steps
     for i in 1..numberOfSteps {

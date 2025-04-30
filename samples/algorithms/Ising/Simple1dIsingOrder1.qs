@@ -46,11 +46,11 @@ operation IsingModel1DEvolution(
     // Allocate qubit grid
     use qubits = Qubit[N];
 
-    // Compute the step time
-    let stepTime : Double = evolutionTime / Std.Convert.IntAsDouble(numberOfSteps);
+    // Compute the time step
+    let dt : Double = evolutionTime / Std.Convert.IntAsDouble(numberOfSteps);
 
-    let theta_x = - g * stepTime;
-    let theta_zz = J * stepTime;
+    let theta_x = - g * dt;
+    let theta_zz = J * dt;
 
     // Perform K steps
     for i in 1..numberOfSteps {
@@ -64,13 +64,13 @@ operation IsingModel1DEvolution(
         // pairs first and then between "odd" pairs to reduce the algorithm depth.
 
         // Interactions between "even" pairs
-        for col in 0..2..N-2 {
-            Rzz(2.0 * theta_zz, qubits[col], qubits[col + 1]);
+        for j in 0..2..N-2 {
+            Rzz(2.0 * theta_zz, qubits[j], qubits[j + 1]);
         }
 
         // Interactions between "odd" pairs
-        for col in 1..2..N-2 {
-            Rzz(2.0 * theta_zz, qubits[col], qubits[col + 1]);
+        for j in 1..2..N-2 {
+            Rzz(2.0 * theta_zz, qubits[j], qubits[j + 1]);
         }
 
     }
