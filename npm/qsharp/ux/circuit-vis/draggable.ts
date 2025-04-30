@@ -49,7 +49,7 @@ const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
  * @param selectedOperation The operation that is being dragged.
  * @param isControl A boolean indicating if the ghost element is for a control operation.
  */
-const createGhostElement = (
+const createGateGhost = (
   ev: MouseEvent,
   container: HTMLElement,
   selectedOperation: Operation,
@@ -62,47 +62,7 @@ const createGhostElement = (
         return formatGate(ghostRenderData).cloneNode(true) as SVGElement;
       })();
 
-  // Generate svg element to wrap around ghost element
-  const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svgElem.append(ghost);
-
-  // Generate div element to wrap around svg element
-  const divElem = document.createElement("div");
-  divElem.classList.add("ghost");
-  divElem.appendChild(svgElem);
-  divElem.style.position = "fixed";
-
-  if (container) {
-    container.appendChild(divElem);
-
-    // Now that the element is appended to the DOM, get its dimensions
-    const [ghostWidth, ghostHeight] = isControl
-      ? [40, 40]
-      : (() => {
-          const ghostRect = ghost.getBoundingClientRect();
-          return [ghostRect.width, ghostRect.height];
-        })();
-
-    const updateDivLeftTop = (ev: MouseEvent) => {
-      divElem.style.left = `${ev.clientX - ghostWidth / 2}px`;
-      divElem.style.top = `${ev.clientY - ghostHeight / 2}px`;
-    };
-
-    updateDivLeftTop(ev);
-
-    const cleanup = () => {
-      container.removeEventListener("mousemove", updateDivLeftTop);
-      document.removeEventListener("mouseup", cleanup);
-      if (divElem.parentNode) {
-        divElem.parentNode.removeChild(divElem);
-      }
-    };
-
-    container.addEventListener("mousemove", updateDivLeftTop);
-    document.addEventListener("mouseup", cleanup);
-  } else {
-    console.error("container not found");
-  }
+  _createGhostElement(container, ev, ghost, isControl);
 };
 
 /**
@@ -142,6 +102,23 @@ const createQubitLabelGhost = (
     );
   }
 
+  _createGhostElement(container, ev, ghost, false);
+};
+
+/**
+ * Creates and appends a draggable "ghost" element to the DOM for visual feedback during drag operations.
+ *
+ * @param container The HTML container element to which the ghost element will be appended.
+ * @param ev The MouseEvent that triggered the drag, used to position the ghost.
+ * @param ghost The SVGElement representing the visual ghost to be dragged.
+ * @param isControl Boolean indicating if the ghost is for a control operation (affects sizing).
+ */
+const _createGhostElement = (
+  container: HTMLElement,
+  ev: MouseEvent,
+  ghost: SVGElement,
+  isControl: boolean,
+) => {
   // Generate svg element to wrap around ghost element
   const svgElem = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svgElem.append(ghost);
@@ -154,10 +131,18 @@ const createQubitLabelGhost = (
 
   if (container) {
     container.appendChild(divElem);
-    const ghostRect = ghost.getBoundingClientRect();
+
+    // Now that the element is appended to the DOM, get its dimensions
+    const [ghostWidth, ghostHeight] = isControl
+      ? [40, 40]
+      : (() => {
+          const ghostRect = ghost.getBoundingClientRect();
+          return [ghostRect.width, ghostRect.height];
+        })();
+
     const updateDivLeftTop = (ev: MouseEvent) => {
-      divElem.style.left = `${ev.clientX - ghostRect.width / 2}px`;
-      divElem.style.top = `${ev.clientY - ghostRect.height / 2}px`;
+      divElem.style.left = `${ev.clientX - ghostWidth / 2}px`;
+      divElem.style.top = `${ev.clientY - ghostHeight / 2}px`;
     };
 
     updateDivLeftTop(ev);
@@ -475,7 +460,7 @@ const makeDropzoneBox = (
 
 export {
   createDragzones,
-  createGhostElement,
+  createGateGhost,
   createQubitLabelGhost,
   createWireDropzone,
   removeAllWireDropzones,

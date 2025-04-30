@@ -27,7 +27,7 @@ import {
   resolveOverlappingOperations,
 } from "./circuitManipulation";
 import {
-  createGhostElement,
+  createGateGhost,
   createQubitLabelGhost,
   createWireDropzone,
   getColumnOffsetsAndWidths,
@@ -806,7 +806,7 @@ class CircuitEvents {
     if (this.selectedOperation == null) return;
     this.dragging = true;
     this._enableAutoScroll();
-    createGhostElement(
+    createGateGhost(
       ev,
       this.container,
       this.selectedOperation,
