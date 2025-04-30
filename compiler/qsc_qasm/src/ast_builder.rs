@@ -419,6 +419,46 @@ pub(crate) fn build_path_ident_expr<S: AsRef<str>>(
     }
 }
 
+pub(crate) fn build_indexed_assignment_statement<S: AsRef<str>>(
+    name_span: Span,
+    string_name: S,
+    index_expr: ast::Expr,
+    rhs: Expr,
+    stmt_span: Span,
+) -> ast::Stmt {
+    let ident = ast::Ident {
+        id: NodeId::default(),
+        span: name_span,
+        name: Rc::from(string_name.as_ref()),
+    };
+
+    let lhs = ast::Expr {
+        id: NodeId::default(),
+        span: name_span,
+        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
+            id: NodeId::default(),
+            span: name_span,
+            segments: None,
+            name: Box::new(ident.clone()),
+        })))),
+    };
+
+    let assign_up = ast::StmtKind::Semi(Box::new(ast::Expr {
+        id: NodeId::default(),
+        span: Span::default(),
+        kind: Box::new(ast::ExprKind::AssignUpdate(
+            Box::new(lhs),
+            Box::new(index_expr),
+            Box::new(rhs),
+        )),
+    }));
+    ast::Stmt {
+        id: NodeId::default(),
+        span: stmt_span,
+        kind: Box::new(assign_up),
+    }
+}
+
 pub(crate) fn build_ternary_update_expr(
     lhs: ast::Expr,
     index: ast::Expr,

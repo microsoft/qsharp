@@ -115,7 +115,7 @@ fn logical_not_indexed_bit_array_in_if_cond() -> miette::Result<(), Vec<Report>>
         import QasmStd.Intrinsic.*;
         mutable Classical = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
         if not QasmStd.Convert.ResultAsBool(Classical[1]) {
-            set Classical = Classical w/ 0 <- One;
+            set Classical w/= 0 <- One;
         };
     "#]]
     .assert_eq(&qsharp);

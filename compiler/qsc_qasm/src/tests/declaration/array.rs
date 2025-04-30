@@ -201,15 +201,15 @@ fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
         }];
         mutable e = [0., 0., 0.];
         mutable f = [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)];
-        set a = a w/ 1 <- true;
-        set b = b w/ 1 <- 4;
-        set c = c w/ 1 <- 4;
-        set d = d w/ 1 <- new QasmStd.Angle.Angle {
+        set a w/= 1 <- true;
+        set b w/= 1 <- 4;
+        set c w/= 1 <- 4;
+        set d w/= 1 <- new QasmStd.Angle.Angle {
             Value = 5734161139222659,
             Size = 53
         };
-        set e = e w/ 1 <- 4.;
-        set f = f w/ 1 <- Std.Math.Complex(4., 0.);
+        set e w/= 1 <- 4.;
+        set f w/= 1 <- Std.Math.Complex(4., 0.);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -218,26 +218,57 @@ fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn assign_to_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
     let source = "
-        // array[bool, 3, 2] a;
+        array[bool, 3, 2] a;
         array[int, 3, 2] b;
-        // array[uint, 3, 2] c;
-        // array[angle, 3, 2] d;
-        // array[float, 3, 2] e;
-        // array[complex, 3, 2] f;
+        array[uint, 3, 2] c;
+        array[angle, 3, 2] d;
+        array[float, 3, 2] e;
+        array[complex, 3, 2] f;
 
-        // a[2, 1] = true;
+        a[2, 1] = true;
         b[2, 1] = 4;
-        // c[2, 1] = 4;
-        // d[2, 1] = 4.0;
-        // e[2, 1] = 4;
-        // f[2, 1] = 4;
+        c[2, 1] = 4;
+        d[2, 1] = 4.0;
+        e[2, 1] = 4;
+        f[2, 1] = 4;
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import QasmStd.Intrinsic.*;
+        mutable a = [[false, false], [false, false], [false, false]];
         mutable b = [[0, 0], [0, 0], [0, 0]];
-        set b = b w/ 2 <- (b[2] w/ 1 <- 4);
+        mutable c = [[0, 0], [0, 0], [0, 0]];
+        mutable d = [[new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }], [new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }], [new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }]];
+        mutable e = [[0., 0.], [0., 0.], [0., 0.]];
+        mutable f = [[Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)], [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)], [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)]];
+        set a w/= 2 <- (a[2] w/ 1 <- true);
+        set b w/= 2 <- (b[2] w/ 1 <- 4);
+        set c w/= 2 <- (c[2] w/ 1 <- 4);
+        set d w/= 2 <- (d[2] w/ 1 <- new QasmStd.Angle.Angle {
+            Value = 5734161139222659,
+            Size = 53
+        });
+        set e w/= 2 <- (e[2] w/ 1 <- 4.);
+        set f w/= 2 <- (f[2] w/ 1 <- Std.Math.Complex(4., 0.));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -256,7 +287,29 @@ fn assign_slice() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable a = [0, 0, 0];
         mutable b = [5, 6];
-        set a = a w/ 1..2 <- b;
+        set a w/= 1..2 <- b;
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn array_const_evaluation() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        const array[int, 2] a = {5, 6};
+
+        def f() {
+            int b = a[1];
+        }
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        let a = [5, 6];
+        function f() : Unit {
+            mutable b = [5, 6][1];
+        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())

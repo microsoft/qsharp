@@ -37,7 +37,7 @@ fn indexed_bit_can_implicitly_convert_to_int() -> miette::Result<(), Vec<Report>
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if QasmStd.Convert.ResultAsInt(x[0]) == 1 {
-            set x = x w/ 1 <- One;
+            set x w/= 1 <- One;
         };
     "#]]
     .assert_eq(&qsharp);
@@ -58,7 +58,7 @@ fn indexed_bit_can_implicitly_convert_to_bool() -> miette::Result<(), Vec<Report
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if QasmStd.Convert.ResultAsBool(x[0]) {
-            set x = x w/ 1 <- One;
+            set x w/= 1 <- One;
         };
     "#]]
     .assert_eq(&qsharp);

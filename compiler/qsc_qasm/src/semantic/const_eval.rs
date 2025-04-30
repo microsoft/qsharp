@@ -80,6 +80,8 @@ impl SymbolId {
 }
 
 impl LiteralKind {
+    /// Indexes an array given a list of indices.
+    ///
     /// The result of indexing an array is either:
     ///   1. An array, this happens when we use slices
     ///      or don't index all the dimensions. This
@@ -109,7 +111,7 @@ impl LiteralKind {
             return None;
         }
 
-        let index = indices.first().expect("there is one index");
+        let index = indices.first().expect("there is at least one index");
 
         match index {
             Index::Expr(idx) => {

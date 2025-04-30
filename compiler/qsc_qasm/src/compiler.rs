@@ -22,14 +22,14 @@ use crate::{
         build_gate_call_param_expr, build_gate_call_with_params_and_callee,
         build_if_expr_then_block, build_if_expr_then_block_else_block,
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
-        build_implicit_return_stmt, build_index_expr, build_lit_angle_expr, build_lit_bigint_expr,
-        build_lit_bool_expr, build_lit_complex_expr, build_lit_double_expr, build_lit_int_expr,
-        build_lit_result_array_expr_from_bitstring, build_lit_result_expr,
-        build_managed_qubit_alloc, build_math_call_from_exprs, build_math_call_no_params,
-        build_measure_call, build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
-        build_qasm_import_decl, build_qasm_import_items,
-        build_qasmstd_convert_call_with_two_params, build_range_expr, build_reset_call,
-        build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_implicit_return_stmt, build_index_expr, build_indexed_assignment_statement,
+        build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
+        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
+        build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
+        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
+        build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
+        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
         build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
         build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
@@ -487,7 +487,7 @@ impl QasmCompiler {
         let name = &symbol.name;
 
         // We collect the indices in the reverse order, so that we can use `Vec::pop`.
-        let indices: Vec<_> = stmt
+        let mut indices: Vec<_> = stmt
             .indexed_ident
             .indices
             .iter()
@@ -495,15 +495,48 @@ impl QasmCompiler {
             .map(|elem| self.compile_index(elem))
             .collect();
 
-        let lhs = build_path_ident_expr(
-            name,
-            stmt.indexed_ident.name_span,
-            stmt.indexed_ident.name_span,
-        );
         let rhs = self.compile_expr(&stmt.rhs);
 
-        let rhs = Self::compile_ternary_update_expr(lhs, indices, rhs);
-        let stmt = build_assignment_statement(stmt.indexed_ident.name_span, name, rhs, stmt.span);
+        if indices.is_empty() {
+            return None;
+        }
+
+        let first_index = indices.pop().expect("there is at least one index");
+
+        // If we have a single index, we build a `w/=` expr.
+        let stmt = if indices.is_empty() {
+            build_indexed_assignment_statement(
+                stmt.indexed_ident.name_span,
+                symbol.name.clone(),
+                first_index,
+                rhs,
+                stmt.span,
+            )
+        }
+        // If there is more than one index. We still use a `w/=` for the
+        // first index, since that is more efficient. But we use `w/`
+        // expressions for the rest of the indices.
+        else {
+            let lhs = build_path_ident_expr(
+                name,
+                stmt.indexed_ident.name_span,
+                stmt.indexed_ident.name_span,
+            );
+            let indexed_lhs_span = Span {
+                lo: lhs.span.lo,
+                hi: first_index.span.hi,
+            };
+            let indexed_lhs = build_index_expr(lhs, first_index.clone(), indexed_lhs_span);
+            let rhs = Self::compile_ternary_update_expr(indexed_lhs, indices, rhs);
+
+            build_indexed_assignment_statement(
+                stmt.indexed_ident.name_span,
+                symbol.name.clone(),
+                first_index,
+                rhs,
+                stmt.span,
+            )
+        };
 
         Some(stmt)
     }
@@ -514,7 +547,7 @@ impl QasmCompiler {
         rhs: qsast::Expr,
     ) -> qsast::Expr {
         // Base case: no indices. We shouldn't reach this case.
-        if indices.is_empty() {
+        let ternary_expr = if indices.is_empty() {
             err_expr(lhs.span)
         }
         // Base case: single index.
@@ -532,12 +565,13 @@ impl QasmCompiler {
                     hi: index.span.hi,
                 };
                 let lhs = build_index_expr(lhs.clone(), index.clone(), span);
-                let ternary_expr = Self::compile_ternary_update_expr(lhs, indices, rhs);
-                let paren_span = ternary_expr.span;
-                wrap_expr_in_parens(ternary_expr, paren_span)
+                Self::compile_ternary_update_expr(lhs, indices, rhs)
             };
             build_ternary_update_expr(lhs, index, rhs)
-        }
+        };
+
+        let paren_span = ternary_expr.span;
+        wrap_expr_in_parens(ternary_expr, paren_span)
     }
 
     fn compile_barrier_stmt(stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
