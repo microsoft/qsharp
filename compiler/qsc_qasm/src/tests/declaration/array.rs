@@ -17,13 +17,13 @@ fn arrays() -> miette::Result<(), Vec<Report>> {
         array[int[8], 4] b;
         array[float[64], 4, 2] c;
         array[angle[32], 4, 3, 2] d;
-        array[complex[float[32]], 4] g;
-        array[bool, 3] h;
-        array[int[8], 4] i = {1, 2, 3, 4};
-        array[int[8], 2] k = {y, y+y};
-        array[uint[32], 2, 2] l = {{3, 4}, {2-3, y*5}};
-        array[uint[32], 2, 2] m = {z, {2-3, y*5}};
-        array[uint[32], 2, 2] n = {z*2, {1, 2}};
+        array[complex[float[32]], 4] e;
+        array[bool, 3] f;
+        array[int[8], 4] g = {1, 2, 3, 4};
+        array[int[8], 2] h = {y, y+y};
+        array[uint[32], 2, 2] i = {{3, 4}, {2-3, y*5}};
+        array[uint[32], 2, 2] j = {z, {2-3, y*5}};
+        array[uint[32], 2, 2] k = {z*2, {1, 2}};
     ";
 
     let unit = compile_fragments(source)?;
@@ -60,7 +60,8 @@ fn default_simple_arrays() -> miette::Result<(), Vec<Report>> {
         }];
         mutable e = [0., 0., 0.];
         mutable f = [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)];
-    "#]].assert_eq(&qsharp);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
@@ -159,6 +160,100 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
         mutable d = [[QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(0., 53)], [QasmStd.Angle.DoubleAsAngle(1., 53), QasmStd.Angle.DoubleAsAngle(5., 53)]];
         mutable e = [[Std.Convert.IntAsDouble(-1), 0.], [1., 5.]];
         mutable f = [[Std.Math.Complex(Std.Convert.IntAsDouble(-2), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.)], [Std.Math.Complex(0., 3.), Std.Math.MinusC(Std.Math.Complex(1., 0.), Std.Math.Complex(0., 2.))]];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[bool, 3] a;
+        array[int, 3] b;
+        array[uint, 3] c;
+        array[angle, 3] d;
+        array[float, 3] e;
+        array[complex, 3] f;
+
+        a[1] = true;
+        b[1] = 4;
+        c[1] = 4;
+        d[1] = 4.0;
+        e[1] = 4;
+        f[1] = 4;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [false, false, false];
+        mutable b = [0, 0, 0];
+        mutable c = [0, 0, 0];
+        mutable d = [new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, new QasmStd.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }];
+        mutable e = [0., 0., 0.];
+        mutable f = [Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.), Std.Math.Complex(0., 0.)];
+        set a w/= 1 <- true;
+        set b w/= 1 <- 4;
+        set c w/= 1 <- 4;
+        set d w/= 1 <- new QasmStd.Angle.Angle {
+            Value = 5734161139222659,
+            Size = 53
+        };
+        set e w/= 1 <- 4.;
+        set f w/= 1 <- Std.Math.Complex(4., 0.);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn assign_to_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[bool, 3, 2] a;
+        array[int, 3, 2] b;
+        array[uint, 3, 2] c;
+        array[angle, 3, 2] d;
+        array[float, 3, 2] e;
+        array[complex, 3, 2] f;
+
+        a[2, 1] = true;
+        b[2, 1] = 4;
+        c[2, 1] = 4;
+        d[2, 1] = 4.0;
+        e[2, 1] = 4;
+        f[2, 1] = 4;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn assign_slice() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 3] a;
+        array[int, 2] b = {5, 6};
+        a[1:2] = b;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [0, 0, 0];
+        mutable b = [5, 6];
+        set a w/= 1..2 <- b;
     "#]]
     .assert_eq(&qsharp);
     Ok(())

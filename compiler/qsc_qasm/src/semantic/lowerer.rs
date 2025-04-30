@@ -2569,12 +2569,7 @@ impl Lowerer {
             }
             // if we can't cast the literal, we can't proceed
             // create a semantic error and return
-            let kind = SemanticErrorKind::CannotCastLiteral(
-                format!("{:?}", rhs.ty),
-                format!("{ty:?}"),
-                span,
-            );
-            self.push_semantic_error(kind);
+            self.push_invalid_literal_cast_error(ty, &rhs.ty, span);
             return rhs;
         }
         // the lhs has a type, but the rhs may be of a different type with
