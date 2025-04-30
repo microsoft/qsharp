@@ -46,7 +46,7 @@ project_root
 |--|--Tests.qs
 \`\`\`
 
-A typical \`qsharp.json\` will be an empty JSON file.
+A typical \`qsharp.json\` will be a JSON file with an empty JSON object in it.
 
 \`\`\`json
 {}
