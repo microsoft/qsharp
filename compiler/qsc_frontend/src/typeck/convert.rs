@@ -295,7 +295,7 @@ pub(crate) fn synthesize_functor_params(
             match functors {
                 FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
                     let param = HirTypeParameter::Functor(functors);
-                    // This uses `RefCell::replace` to update the functor set within the refernce counted arrow.
+                    // This uses `RefCell::replace` to update the functor set within the reference counted arrow.
                     // This should be safe as no other references to the functors should be held, but if they are
                     // this will panic at runtime.
                     // Note the `next_param` local binding is needed to ensure that the `functors` are not borrowed
