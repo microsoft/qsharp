@@ -35,6 +35,9 @@ pub enum ConstEvalError {
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
+    #[error("too many indices provided")]
+    #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
+    TooManyIndices(#[label] Span),
     #[error("{0} doesn't fit in {1}")]
     #[diagnostic(code("Qasm.Lowerer.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
@@ -97,12 +100,27 @@ impl LiteralKind {
         indices: &[Index],
         collection_span: Span,
     ) -> Option<Self> {
-        let LiteralKind::Array(array) = self else {
-            ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(collection_span));
-            return None;
-        };
-        let dims = array.dims.clone().into_iter().collect::<Vec<_>>();
-        Self::index_array_recursive(ctx, &array.data, &dims, indices)
+        match self {
+            LiteralKind::Array(array) => {
+                let dims = array.dims.clone().into_iter().collect::<Vec<_>>();
+                Self::index_array_recursive(ctx, &array.data, &dims, indices)
+            }
+            LiteralKind::Bitstring(value, size) => {
+                // A bit array accepts a single index.
+                if indices.len() != 1 {
+                    ctx.push_const_eval_error(ConstEvalError::TooManyIndices(collection_span));
+                    return None;
+                }
+
+                let index = indices.first().expect("there is exactly one index");
+
+                Self::index_bitarray(ctx, value, size, index)
+            }
+            _ => {
+                ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(collection_span));
+                None
+            }
+        }
     }
 
     fn index_array_recursive(
@@ -192,6 +210,55 @@ impl LiteralKind {
                     data: slice_const_evaluated_data,
                     dims: (&slice_dims[..]).into(),
                 }))
+            }
+        }
+    }
+
+    fn index_bitarray(ctx: &mut Lowerer, value: BigInt, size: u32, index: &Index) -> Option<Self> {
+        match index {
+            Index::Expr(idx) => {
+                let Some(LiteralKind::Int(idx)) = idx.const_eval(ctx) else {
+                    ctx.push_const_eval_error(super::const_eval::ConstEvalError::IndexMustBeInt(
+                        index.span(),
+                    ));
+                    return None;
+                };
+
+                let idx = idx.rem_euclid(i64::from(size)) as u64;
+                let mask = BigInt::from(1) << idx;
+                Some(Self::Bit((value & mask) != BigInt::ZERO))
+            }
+            Index::Range(range) => {
+                let (start, step, end) = compute_slice_components(range, size);
+                #[allow(clippy::cast_sign_loss)]
+                #[allow(clippy::cast_possible_truncation)]
+                let (start, end) = (start as usize, end as usize);
+
+                let mut new_bitarray_value = BigInt::ZERO;
+                let mut new_bitarray_size: u32 = 0;
+
+                #[allow(clippy::cast_possible_truncation)]
+                if start <= end && step > 0 {
+                    let step = step.unsigned_abs() as usize;
+                    for idx in (start..=end).step_by(step) {
+                        let mask = BigInt::from(1) << idx;
+                        if (value.clone() & mask) != BigInt::ZERO {
+                            new_bitarray_value |= BigInt::from(1) << new_bitarray_size;
+                        }
+                        new_bitarray_size += 1;
+                    }
+                } else if start >= end && step < 0 {
+                    let step = step.unsigned_abs() as usize;
+                    for idx in (end..=start).rev().step_by(step) {
+                        let mask = BigInt::from(1) << idx;
+                        if (value.clone() & mask) != BigInt::ZERO {
+                            new_bitarray_value |= BigInt::from(1) << new_bitarray_size;
+                        }
+                        new_bitarray_size += 1;
+                    }
+                }
+
+                Some(Self::Bitstring(new_bitarray_value, new_bitarray_size))
             }
         }
     }
