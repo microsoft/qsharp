@@ -55,7 +55,7 @@ export function isQsharpNotebookCell(document: TextDocument): boolean {
 // Returns true for all OpenQASM documents, including unsaved files, notebook cells, etc.
 export function isOpenQasmDocument(document: TextDocument): boolean {
   return (
-    //document.languageId === openqasmLanguageId &&
+    document.languageId === openqasmLanguageId &&
     (Utils.extname(document.uri) === ".qasm" ||
       Utils.extname(document.uri) === ".inc" ||
       document.isUntitled) &&

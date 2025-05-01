@@ -79,7 +79,6 @@ pub(crate) fn get_completions(
             source_name_relative,
             &source.contents,
             source_offset,
-            position_encoding,
         ),
     }
 }
@@ -468,7 +467,6 @@ fn get_qasm_completions(
     _source_name_relative: &str,
     source_contents: &str,
     cursor_offset: u32,
-    position_encoding: Encoding,
 ) -> CompletionList {
     let expected_words_at_cursor =
         qsc::qasm::completion::possible_words_at_offset_in_source(source_contents, cursor_offset);
@@ -479,13 +477,8 @@ fn get_qasm_completions(
     // Keywords and other hardcoded words
     let hardcoded_completions = collect_hardcoded_words_qasm(expected_words_at_cursor);
 
-    // The tricky bit: globals, locals, names we need to gather from the compilation.
-    let name_completions = collect_names_qasm(
-        expected_words_at_cursor,
-        cursor_offset,
-        compilation,
-        position_encoding,
-    );
+    // The tricky bit: locals, names we need to gather from the compilation.
+    let name_completions = collect_names_qasm(expected_words_at_cursor, cursor_offset, compilation);
 
     // We have all the data, put everything into a completion list.
     into_completion_list(once(hardcoded_completions).chain(name_completions))
@@ -521,21 +514,14 @@ fn collect_hardcoded_words_qasm(
 #[allow(clippy::items_after_statements)]
 fn collect_paths_qasm(
     expected: qsc::qasm::completion::word_kinds::PathKind,
-    globals: &Globals,
     locals_at_cursor: &Locals,
-    text_edit_range: &TextEditRange,
 ) -> Vec<Vec<Completion>> {
-    let mut global_names = Vec::new();
     let mut locals_and_builtins = Vec::new();
     match expected {
         qsc::qasm::completion::word_kinds::PathKind::Expr => {
             locals_and_builtins.push(locals_at_cursor.expr_names());
-            global_names.extend(globals.expr_names(text_edit_range));
         }
     }
-    // This order ensures that locals and builtins come before globals
-    // in the eventual completion list
-    locals_and_builtins.extend(global_names);
     locals_and_builtins
 }
 
@@ -544,23 +530,14 @@ fn collect_names_qasm(
     expected: qsc::qasm::completion::word_kinds::WordKinds,
     cursor_offset: u32,
     compilation: &Compilation,
-    position_encoding: Encoding,
 ) -> Vec<Vec<Completion>> {
     let mut groups = Vec::new();
     use qsc::qasm::completion::word_kinds::NameKind;
     for name_kind in expected.iter_name_kinds() {
         match name_kind {
             NameKind::Path(path_kind) => {
-                let globals = Globals::init(cursor_offset, compilation);
-                let edit_range = TextEditRange::init(cursor_offset, compilation, position_encoding);
                 let locals = Locals::new(cursor_offset, compilation);
-
-                groups.extend(collect_paths_qasm(
-                    path_kind,
-                    &globals,
-                    &locals,
-                    &edit_range,
-                ));
+                groups.extend(collect_paths_qasm(path_kind, &locals));
             }
             NameKind::PathSegment => {
                 let globals = Globals::init(cursor_offset, compilation);

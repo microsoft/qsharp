@@ -18,8 +18,10 @@ use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintOrGroupConfig;
 use qsc_project::{
     FileSystemAsync, JSProjectHost, PackageCache, PackageGraphSources, PackageInfo, Project,
+    ProjectType,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::path::Path;
 use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
@@ -184,16 +186,14 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
+        if is_openqasm_file(doc_uri) {
+            if let Ok(project) = load_openqasm_project(&*self.project_host, doc_uri).await {
+                return project;
+            }
+        }
         match self.load_manifest(doc_uri).await {
             Ok(Some(p)) => p,
-            Ok(None) => {
-                if is_openqasm_file(doc_uri) {
-                    if let Ok(Some(project)) = self.load_openqasm_project(doc_uri).await {
-                        return project;
-                    }
-                }
-                Project::from_single_file(doc_uri.clone(), text.clone())
-            }
+            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
             Err(errors) => Project {
                 errors,
                 ..Project::from_single_file(doc_uri.clone(), text.clone())
@@ -270,9 +270,8 @@ impl<'a> CompilationStateUpdater<'a> {
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
-            // todo, this doesn't differentiate between compilation types
             let package_graph_sources = loaded_project.package_graph_sources;
-            let compilation = if is_openqasm_project(&package_graph_sources) {
+            let compilation = if matches!(loaded_project.project_type, ProjectType::OpenQASM) {
                 Compilation::new_qasm(
                     configuration.package_type,
                     configuration.target_profile,
@@ -605,83 +604,6 @@ impl<'a> CompilationStateUpdater<'a> {
             (self.test_callable_receiver)(TestCallables { callables });
         });
     }
-
-    async fn load_openqasm_project(
-        &self,
-        doc_uri: &Arc<str>,
-    ) -> Result<Option<Project>, Vec<project::Error>> {
-        let mut loaded_files = FxHashMap::default();
-        let mut pending_includes = vec![];
-        let mut errors = vec![];
-
-        pending_includes.push(doc_uri.clone());
-
-        while let Some(current) = pending_includes.pop() {
-            if loaded_files.contains_key(&current) {
-                // We've already loaded this include, so skip it.
-                // We'll let the source resolver handle any duplicates.
-                // and cyclic dependency errors.
-                continue;
-            }
-
-            match self.project_host.read_file(&current).await {
-                Ok((file, source)) => {
-                    loaded_files.insert(file, source.clone());
-
-                    let (program, _errors) = qsc::qasm::parser::parse(source.as_ref());
-
-                    let includes: Vec<Arc<str>> = program
-                        .statements
-                        .iter()
-                        .filter_map(|stmt| {
-                            if let StmtKind::Include(include) = &*stmt.kind {
-                                Some(include.filename.clone())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>();
-
-                    for include in includes {
-                        if include == "stdgates.inc".into() {
-                            // Don't include stdgates.inc, as it is a special case.
-                            continue;
-                        }
-                        if loaded_files.contains_key(&include) {
-                            // We've already loaded this include, so skip it.
-                            continue;
-                        }
-
-                        pending_includes.push(include);
-                    }
-                }
-                Err(e) => {
-                    errors.push(project::Error::FileSystem {
-                        about_path: doc_uri.to_string(),
-                        error: e.to_string(),
-                    });
-                }
-            }
-        }
-
-        let sources = loaded_files.into_iter().collect::<Vec<_>>();
-
-        Ok(Some(Project {
-            package_graph_sources: PackageGraphSources {
-                root: PackageInfo {
-                    sources,
-                    language_features: LanguageFeatures::default(),
-                    dependencies: FxHashMap::default(),
-                    package_type: None,
-                },
-                packages: FxHashMap::default(),
-            },
-            path: doc_uri.clone(),
-            name: doc_uri.clone(),
-            lints: Vec::default(),
-            errors,
-        }))
-    }
 }
 
 fn is_openqasm_project(package_graph_sources: &PackageGraphSources) -> bool {
@@ -796,4 +718,90 @@ fn merge_configurations(
             .unwrap_or(workspace_scope.language_features),
         lints_config: merged_lints,
     }
+}
+
+pub async fn load_openqasm_project<T>(
+    project_host: &T,
+    doc_uri: &Arc<str>,
+) -> Result<Project, Vec<project::Error>>
+where
+    T: FileSystemAsync + ?Sized,
+{
+    let mut loaded_files = FxHashMap::default();
+    let mut pending_includes = vec![];
+    let mut errors = vec![];
+
+    // this is the root of the project
+    // it is the only file that has a full path.
+    // all other files are relative to this one.
+    // and the directory above is the directory of the file
+    // we need to combine the two to get the full path
+    pending_includes.push(doc_uri.clone());
+
+    while let Some(current) = pending_includes.pop() {
+        if loaded_files.contains_key(&current) {
+            // We've already loaded this include, so skip it.
+            // We'll let the source resolver handle any duplicates.
+            // and cyclic dependency errors.
+            continue;
+        }
+
+        match project_host.read_file(Path::new(current.as_ref())).await {
+            Ok((file, source)) => {
+                loaded_files.insert(file, source.clone());
+
+                let (program, _errors) = qsc::qasm::parser::parse(source.as_ref());
+
+                let includes: Vec<Arc<str>> = program
+                    .statements
+                    .iter()
+                    .filter_map(|stmt| {
+                        if let StmtKind::Include(include) = &*stmt.kind {
+                            Some(include.filename.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                for include in includes {
+                    if include == "stdgates.inc".into() {
+                        // Don't include stdgates.inc, as it is a special case.
+                        continue;
+                    }
+                    if loaded_files.contains_key(&include) {
+                        // We've already loaded this include, so skip it.
+                        continue;
+                    }
+
+                    pending_includes.push(include);
+                }
+            }
+            Err(e) => {
+                errors.push(project::Error::FileSystem {
+                    about_path: doc_uri.to_string(),
+                    error: e.to_string(),
+                });
+            }
+        }
+    }
+
+    let sources = loaded_files.into_iter().collect::<Vec<_>>();
+
+    Ok(Project {
+        package_graph_sources: PackageGraphSources {
+            root: PackageInfo {
+                sources,
+                language_features: LanguageFeatures::default(),
+                dependencies: FxHashMap::default(),
+                package_type: None,
+            },
+            packages: FxHashMap::default(),
+        },
+        path: doc_uri.clone(),
+        name: doc_uri.clone(),
+        lints: Vec::default(),
+        errors,
+        project_type: qsc_project::ProjectType::OpenQASM,
+    })
 }

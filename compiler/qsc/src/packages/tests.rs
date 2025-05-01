@@ -41,6 +41,7 @@ fn mock_program() -> Project {
         errors: vec![],
         path: "project/qsharp.json".into(),
         name: "project".into(),
+        project_type: qsc_project::ProjectType::QSharp,
     }
 }
 

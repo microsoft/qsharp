@@ -197,6 +197,38 @@ export async function loadProject(
   return project;
 }
 
+/**
+ * Given a Q# Document URI, returns the configuration and list of complete source files
+ * associated with that document.
+ *
+ * If there is a qsharp.json manifest for this document, the settings from that are used.
+ *
+ * If a manifest is not found, the returned project contains the single input file and the default settings.
+ *
+ * @param documentUri A Q# document.
+ * @returns The project configuration for that document.
+ * @throws Error if the qsharp.json cannot be parsed.
+ */
+export async function loadOpenQasmProject(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig> {
+  if (!projectLoader) {
+    projectLoader = await getProjectLoader({
+      findManifestDirectory,
+      readFile,
+      listDirectory,
+      fetchGithub: fetchGithubRaw,
+      resolvePath: async (a, b) => resolvePath(a, b),
+    });
+  }
+  const project = invokeAndReportCommandDiagnostics(
+    async () =>
+      await projectLoader!.load_openqasm_project(documentUri.toString()),
+  );
+
+  return project;
+}
+
 async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
@@ -218,6 +250,7 @@ async function singleFileProject(
     },
     lints: [],
     errors: [],
+    projectType: "qsharp",
   };
 }
 
