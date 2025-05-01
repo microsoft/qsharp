@@ -9,7 +9,7 @@ use katas::check_solution;
 use language_service::IOperationInfo;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::{into_qsc_args, ProgramConfig};
+use project_system::{into_openqasm_args, into_qsc_args, is_openqasm_program, ProgramConfig};
 use qsc::{
     compile::{self, Dependencies},
     format_state_id, get_matrix_latex, get_state_latex,
@@ -19,6 +19,7 @@ use qsc::{
         output::{self, Receiver},
         CircuitEntryPoint,
     },
+    qasm::{io::InMemorySourceResolver, CompileRawQasmResult},
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
     SparseSim, TargetCapabilityFlags,
@@ -26,7 +27,7 @@ use qsc::{
 use resource_estimator::{self as re, estimate_entry};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{fmt::Write, str::FromStr};
+use std::{fmt::Write, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -58,19 +59,24 @@ pub fn git_hash() -> String {
 
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+    if is_openqasm_program(&program) {
+        let (sources, capabilities) = into_openqasm_args(program);
+        get_qir_from_openqasm(&sources, capabilities)
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
-    get_qir_(
-        source_map,
-        language_features,
-        capabilities,
-        store,
-        &deps[..],
-    )
+        get_qir_from_qsharp(
+            source_map,
+            language_features,
+            capabilities,
+            store,
+            &deps[..],
+        )
+    }
 }
 
-pub(crate) fn get_qir_(
+pub(crate) fn get_qir_from_qsharp(
     sources: SourceMap,
     language_features: LanguageFeatures,
     capabilities: TargetCapabilityFlags,
@@ -81,27 +87,58 @@ pub(crate) fn get_qir_(
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 
+pub(crate) fn get_qir_from_openqasm(
+    sources: &[(Arc<str>, Arc<str>)],
+    capabilities: TargetCapabilityFlags,
+) -> Result<String, String> {
+    let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(sources, capabilities)?;
+    interpreter
+        .qirgen(&entry_expr)
+        .map_err(interpret_errors_into_qsharp_errors_json)
+}
+
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
-            // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
-            qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
-        })?;
+    if is_openqasm_program(&program) {
+        let (sources, capabilities) = into_openqasm_args(program);
+        get_estimates_from_openqasm(&sources, capabilities, params)
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+                // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
+                qsc::interpret::Error::from(e.pop().expect("expected at least one error"))
+                    .to_string()
+            })?;
 
-    let mut interpreter = interpret::Interpreter::new(
-        source_map,
-        PackageType::Exe,
-        capabilities,
-        language_features,
-        store,
-        &deps[..],
-    )
-    .map_err(|e| e[0].to_string())?;
+        let mut interpreter = interpret::Interpreter::new(
+            source_map,
+            PackageType::Exe,
+            capabilities,
+            language_features,
+            store,
+            &deps[..],
+        )
+        .map_err(|e| e[0].to_string())?;
 
+        estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
+            re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
+            re::Error::Interpreter(_) => unreachable!("interpreter errors should be eval errors"),
+            re::Error::Estimation(e) => e.to_string(),
+        })
+    }
+}
+
+pub(crate) fn get_estimates_from_openqasm(
+    sources: &[(Arc<str>, Arc<str>)],
+    capabilities: TargetCapabilityFlags,
+    params: &str,
+) -> Result<String, String> {
+    let (_, mut interpreter) = get_interpreter_from_openqasm(sources, capabilities)?;
     estimate_entry(&mut interpreter, params).map_err(|e| match &e[0] {
         re::Error::Interpreter(interpret::Error::Eval(e)) => e.to_string(),
-        re::Error::Interpreter(_) => unreachable!("interpreter errors should be eval errors"),
+        re::Error::Interpreter(_) => {
+            unreachable!("interpreter errors should be eval errors")
+        }
         re::Error::Estimation(e) => e.to_string(),
     })
 }
@@ -112,36 +149,45 @@ pub fn get_circuit(
     simulate: bool,
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+    if is_openqasm_program(&program) {
+        let (sources, capabilities) = into_openqasm_args(program);
+        let (_, mut interpreter) = get_interpreter_from_openqasm(&sources, capabilities)?;
+        let circuit = interpreter
+            .circuit(CircuitEntryPoint::EntryPoint, simulate)
+            .map_err(interpret_errors_into_qsharp_errors_json)?;
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
 
-    let (package_type, entry_point) = match operation {
-        Some(p) => {
-            let o: language_service::OperationInfo = p.into();
-            // lib package - no need to enforce an entry point since the operation is provided.
-            (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
-        }
-        None => {
-            // exe package - the @EntryPoint attribute will be used.
-            (PackageType::Exe, CircuitEntryPoint::EntryPoint)
-        }
-    };
+        let (package_type, entry_point) = match operation {
+            Some(p) => {
+                let o: language_service::OperationInfo = p.into();
+                // lib package - no need to enforce an entry point since the operation is provided.
+                (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
+            }
+            None => {
+                // exe package - the @EntryPoint attribute will be used.
+                (PackageType::Exe, CircuitEntryPoint::EntryPoint)
+            }
+        };
 
-    let mut interpreter = interpret::Interpreter::new(
-        source_map,
-        package_type,
-        capabilities,
-        LanguageFeatures::from_iter(language_features),
-        store,
-        &deps[..],
-    )
-    .map_err(interpret_errors_into_qsharp_errors_json)?;
-
-    let circuit = interpreter
-        .circuit(entry_point, simulate)
+        let mut interpreter = interpret::Interpreter::new(
+            source_map,
+            package_type,
+            capabilities,
+            LanguageFeatures::from_iter(language_features),
+            store,
+            &deps[..],
+        )
         .map_err(interpret_errors_into_qsharp_errors_json)?;
 
-    serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+        let circuit = interpreter
+            .circuit(entry_point, simulate)
+            .map_err(interpret_errors_into_qsharp_errors_json)?;
+
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+    }
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -414,15 +460,6 @@ pub fn runWithPauliNoise(
     shots: u32,
     pauliNoise: &JsValue,
 ) -> Result<bool, JsValue> {
-    let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
-            // Wrap in `interpret::Error` and `JsError` to match the error type
-            // `run_internal_with_features` below
-            JsError::from(qsc::interpret::Error::from(
-                e.pop().expect("expected at least one error"),
-            ))
-        })?;
-
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
@@ -457,18 +494,62 @@ pub fn runWithPauliNoise(
         PauliNoise::default()
     };
 
-    match run_internal_with_features(
-        source_map,
-        event_cb,
-        shots,
-        language_features,
-        capabilities,
-        store,
-        &deps[..],
-        &noise,
-    ) {
-        Ok(()) => Ok(true),
-        Err(e) => Err(JsError::from(e).into()),
+    if is_openqasm_program(&program) {
+        let (sources, capabilities) = into_openqasm_args(program);
+        let source_name = sources
+            .iter()
+            .map(|x| x.0.clone())
+            .next()
+            .expect("There must be a source to process")
+            .to_string();
+        let (entry_expr, mut interpreter) = get_interpreter_from_openqasm(&sources, capabilities)?;
+        if let Err(err) = interpreter.set_entry_expr(&entry_expr) {
+            return Err(interpret_errors_into_qsharp_errors_json(err).into());
+        }
+
+        let mut out = CallbackReceiver { event_cb };
+        for _ in 0..shots {
+            let result =
+                interpreter.eval_entry_with_sim(&mut SparseSim::new_with_noise(&noise), &mut out);
+            let mut success = true;
+            let msg: serde_json::Value = match result {
+                Ok(value) => serde_json::Value::String(value.to_string()),
+                Err(errors) => {
+                    // TODO: handle multiple errors
+                    // https://github.com/microsoft/qsharp/issues/149
+                    success = false;
+                    VSDiagnostic::from_interpret_error(&source_name, &errors[0]).json()
+                }
+            };
+
+            let msg_string =
+                json!({"type": "Result", "success": success, "result": msg}).to_string();
+            (out.event_cb)(&msg_string);
+        }
+        Ok(true)
+    } else {
+        let (source_map, capabilities, language_features, store, deps) =
+            into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+                // Wrap in `interpret::Error` and `JsError` to match the error type
+                // `run_internal_with_features` below
+                JsError::from(qsc::interpret::Error::from(
+                    e.pop().expect("expected at least one error"),
+                ))
+            })?;
+
+        match run_internal_with_features(
+            source_map,
+            event_cb,
+            shots,
+            language_features,
+            capabilities,
+            store,
+            &deps[..],
+            &noise,
+        ) {
+            Ok(()) => Ok(true),
+            Err(e) => Err(JsError::from(e).into()),
+        }
     }
 }
 
@@ -570,6 +651,50 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
     }
 
     result
+}
+
+fn get_interpreter_from_openqasm(
+    sources: &[(Arc<str>, Arc<str>)],
+    capabilities: TargetCapabilityFlags,
+) -> Result<(String, interpret::Interpreter), String> {
+    let (file, source) = sources
+        .iter()
+        .next()
+        .expect("There should be at least one source");
+    let mut resolver = sources.iter().cloned().collect::<InMemorySourceResolver>();
+
+    let CompileRawQasmResult(store, source_package_id, dependencies, sig, errors) =
+        qsc::qasm::compile_raw_qasm(
+            source.clone(),
+            file.clone(),
+            Some(&mut resolver),
+            PackageType::Exe,
+            capabilities,
+        );
+
+    if !errors.is_empty() {
+        return Err(interpret_errors_into_qsharp_errors_json(
+            errors
+                .iter()
+                .map(|e| qsc::interpret::Error::Compile(e.clone()))
+                .collect(),
+        ));
+    }
+
+    let sig = sig.expect("msg: there should be a signature");
+    let language_features = LanguageFeatures::default();
+    let entry_expr = sig.create_entry_expr_from_params(String::new());
+    let interpreter = interpret::Interpreter::from(
+        true,
+        store,
+        source_package_id,
+        capabilities,
+        language_features,
+        &dependencies,
+    )
+    .map_err(interpret_errors_into_qsharp_errors_json)?;
+
+    Ok((entry_expr, interpreter))
 }
 
 #[wasm_bindgen(typescript_custom_section)]

@@ -20,6 +20,13 @@ use thiserror::Error;
 
 pub const GITHUB_SCHEME: &str = "qsharp-github-source";
 
+#[derive(Debug, Clone, Default)]
+pub enum ProjectType {
+    #[default]
+    QSharp,
+    OpenQASM,
+}
+
 /// Describes a Q# project with all its sources and dependencies resolved.
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -36,6 +43,7 @@ pub struct Project {
     pub lints: Vec<LintOrGroupConfig>,
     /// Any errors encountered while loading the project.
     pub errors: Vec<Error>,
+    pub project_type: ProjectType,
 }
 
 impl Project {
@@ -61,6 +69,7 @@ impl Project {
             name: display_name,
             lints: Vec::default(),
             errors: Vec::default(),
+            project_type: ProjectType::default(),
         }
     }
 }
@@ -376,6 +385,7 @@ pub trait FileSystemAsync {
             errors,
             name,
             path: manifest_path,
+            project_type: ProjectType::QSharp,
         })
     }
 

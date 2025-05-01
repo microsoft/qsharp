@@ -154,6 +154,16 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.runEditorContents",
+          "when": "resourceLangId == openqasm",
+          "group": "navigation@1"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.debugEditorContents",
+          "when": "resourceLangId == openqasm",
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [
@@ -231,6 +241,38 @@
         },
         {
           "command": "qsharp-vscode.updateCopilotInstructions"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.debugEditorContents",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.runEditorContents",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.runEditorContentsWithCircuit",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.getQir",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.setTargetProfile",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.showHistogram",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.showRe",
+          "when": "resourceLangId == openqasm"
+        },
+        {
+          "command": "qsharp-vscode.openqasm.showCircuit",
+          "when": "resourceLangId == openqasm"
         }
       ],
       "view/title": [
@@ -458,11 +500,58 @@
         "command": "qsharp-vscode.updateCopilotInstructions",
         "category": "Q#",
         "title": "Update Copilot instructions file for Q#"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.debugEditorContents",
+        "title": "Debug OpenQASM file",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.runEditorContents",
+        "title": "Run OpenQASM File",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.runEditorContentsWithCircuit",
+        "title": "Run file and show circuit diagram",
+        "category": "OpenQASM"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.getQir",
+        "title": "Get QIR for current OpenQASM program",
+        "category": "OpenQASM"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.setTargetProfile",
+        "title": "Set the Azure Quantum QIR target profile",
+        "category": "OpenQASM"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.showHistogram",
+        "title": "Run file and show histogram",
+        "category": "OpenQASM"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.showRe",
+        "title": "Calculate Resource Estimates",
+        "category": "OpenQASM"
+      },
+      {
+        "command": "qsharp-vscode.openqasm.showCircuit",
+        "title": "Show circuit",
+        "category": "OpenQASM"
       }
     ],
     "breakpoints": [
       {
         "language": "qsharp"
+      },
+      {
+        "language": "openqasm"
       }
     ],
     "languages": [
@@ -498,6 +587,7 @@
       {
         "id": "openqasm",
         "aliases": [
+          "openqasm",
           "OpenQASM",
           "QASM"
         ],
@@ -554,6 +644,44 @@
                 "type": "string",
                 "description": "Entry expression.",
                 "default": ""
+              },
+              "shots": {
+                "type": "number",
+                "description": "Number of shots to execute.",
+                "default": 1
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              },
+              "showCircuit": {
+                "type": "boolean",
+                "description": "Display the quantum circuit diagram while running.",
+                "default": false
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "openqasm",
+        "languages": [
+          "openqasm"
+        ],
+        "label": "OpenQASM Debug",
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Absolute path to a text file.",
+                "default": "${file}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": false
               },
               "shots": {
                 "type": "number",

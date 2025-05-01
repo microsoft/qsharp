@@ -10,7 +10,8 @@ import { getActiveQSharpDocumentUri } from "./programConfig";
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
 
-  disposables.push(registerTargetProfileCommand());
+  disposables.push(registerQSharpTargetProfileCommand());
+  disposables.push(registerOpenQasmTargetProfileCommand());
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -73,21 +74,30 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   return disposables;
 }
 
-function registerTargetProfileCommand() {
+async function setTargetProfile() {
+  const target = await vscode.window.showQuickPick(
+    targetProfiles.map((profile) => ({
+      label: profile.uiText,
+    })),
+    { placeHolder: "Select the QIR target profile" },
+  );
+
+  if (target) {
+    setTarget(getTargetProfileSetting(target.label));
+  }
+}
+
+function registerQSharpTargetProfileCommand() {
   return vscode.commands.registerCommand(
     `${qsharpExtensionId}.setTargetProfile`,
-    async () => {
-      const target = await vscode.window.showQuickPick(
-        targetProfiles.map((profile) => ({
-          label: profile.uiText,
-        })),
-        { placeHolder: "Select the QIR target profile" },
-      );
+    setTargetProfile,
+  );
+}
 
-      if (target) {
-        setTarget(getTargetProfileSetting(target.label));
-      }
-    },
+function registerOpenQasmTargetProfileCommand() {
+  return vscode.commands.registerCommand(
+    `${qsharpExtensionId}.openqasm.setTargetProfile`,
+    setTargetProfile,
   );
 }
 

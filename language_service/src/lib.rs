@@ -15,6 +15,7 @@ pub mod references;
 pub mod rename;
 pub mod signature_help;
 mod state;
+pub use state::load_openqasm_project;
 #[cfg(test)]
 mod test_utils;
 #[cfg(test)]

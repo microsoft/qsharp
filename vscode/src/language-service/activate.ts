@@ -30,7 +30,10 @@ import {
   sendTelemetryEvent,
 } from "../telemetry.js";
 import { createCodeActionsProvider } from "./codeActions.js";
-import { createCodeLensProvider } from "./codeLens.js";
+import {
+  createOpenQasmCodeLensProvider,
+  createQsCodeLensProvider,
+} from "./codeLens.js";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startLanguageServiceDiagnostics } from "./diagnostics.js";
@@ -152,7 +155,7 @@ export async function activateLanguageService(
   subscriptions.push(
     vscode.languages.registerCodeLensProvider(
       qsharpLanguageId,
-      createCodeLensProvider(languageService),
+      createQsCodeLensProvider(languageService),
     ),
   );
 
@@ -160,6 +163,14 @@ export async function activateLanguageService(
     vscode.languages.registerCodeActionsProvider(
       qsharpLanguageId,
       createCodeActionsProvider(languageService),
+    ),
+  );
+
+  // code lens for openqasm
+  subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      openqasmLanguageId,
+      createOpenQasmCodeLensProvider(languageService),
     ),
   );
 

@@ -106,6 +106,7 @@ export type ProgramConfig = (
 ) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
+  projectType: "qsharp" | "openqasm";
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -292,7 +293,11 @@ export function toWasmProgramConfig(
     packageGraphSources = program.packageGraphSources;
   }
 
-  return { packageGraphSources, profile: program.profile || defaultProfile };
+  return {
+    packageGraphSources,
+    profile: program.profile || defaultProfile,
+    projectType: program.projectType,
+  };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
