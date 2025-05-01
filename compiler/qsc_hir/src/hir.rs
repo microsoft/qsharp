@@ -9,7 +9,6 @@ use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
 use std::{
-    cell::RefCell,
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
@@ -456,9 +455,9 @@ impl CallableDecl {
             self.generics.clone(),
             Box::new(Arrow {
                 kind: self.kind,
-                input: RefCell::new(self.input.ty.clone()),
-                output: RefCell::new(self.output.clone()),
-                functors: RefCell::new(FunctorSet::Value(self.functors)),
+                input: Box::new(self.input.ty.clone()),
+                output: Box::new(self.output.clone()),
+                functors: FunctorSet::Value(self.functors),
             }),
         )
     }

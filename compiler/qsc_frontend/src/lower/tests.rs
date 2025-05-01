@@ -1356,7 +1356,7 @@ fn lambda_operation_empty_closure() {
                                     Pat 7 [69-70] [Type Qubit]: Bind: Ident 8 [69-70] "q"
                                     QubitInit 9 [73-80] [Type Qubit]: Single
                                 Stmt 10 [90-95]: Expr: Expr 11 [90-95] [Type Unit]: Call:
-                                    Expr 12 [90-92] [Type (Qubit => Unit is Param<0>)]: Var: Local 3
+                                    Expr 12 [90-92] [Type (Qubit => Unit)]: Var: Local 3
                                     Expr 13 [93-94] [Type Qubit]: Var: Local 8
                         adj: <none>
                         ctl: <none>
@@ -1436,7 +1436,7 @@ fn lambda_operation_closure() {
                         body: SpecDecl 9 [80-130]: Impl:
                             Block 10 [122-130] [Type Result]:
                                 Stmt 11 [124-128]: Expr: Expr 12 [124-128] [Type Result]: Call:
-                                    Expr 13 [124-126] [Type (Unit => Result is Param<0>)]: Var: Local 8
+                                    Expr 13 [124-126] [Type (Unit => Result)]: Var: Local 8
                                     Expr 14 [126-128] [Type Unit]: Unit
                         adj: <none>
                         ctl: <none>

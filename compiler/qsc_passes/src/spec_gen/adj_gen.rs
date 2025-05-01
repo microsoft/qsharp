@@ -7,7 +7,7 @@ use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{CallableKind, Expr, ExprKind, Functor, NodeId, UnOp},
     mut_visit::{walk_expr, MutVisitor},
-    ty::{FunctorSet, Ty},
+    ty::Ty,
 };
 use thiserror::Error;
 
@@ -33,12 +33,9 @@ impl MutVisitor for AdjDistrib {
             ExprKind::Call(op, _) => {
                 match &op.ty {
                     Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
-                        let functors = match *arrow.functors.borrow() {
-                            FunctorSet::Value(functors) | FunctorSet::Param(_, functors) => {
-                                functors
-                            }
-                            FunctorSet::Infer(_) => panic!("arrow type should have known functors"),
-                        };
+                        let functors = arrow
+                            .functors
+                            .expect_value("arrow type should have concrete functors");
 
                         if functors.contains(&Functor::Adj) {
                             *op = Box::new(Expr {
