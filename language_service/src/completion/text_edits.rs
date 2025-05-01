@@ -31,6 +31,9 @@ impl TextEditRange {
             CompilationKind::OpenProject { .. } | CompilationKind::OpenQASM { .. } => {
                 finder.start_of_namespace
             }
+            // Since notebooks don't typically contain namespace declarations,
+            // open statements should just get before the first non-whitespace
+            // character (i.e. at the top of the cell)
             CompilationKind::Notebook { .. } => Some(Self::get_first_non_whitespace_in_source(
                 compilation,
                 offset,
