@@ -606,14 +606,6 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 }
 
-fn is_openqasm_project(package_graph_sources: &PackageGraphSources) -> bool {
-    package_graph_sources
-        .root
-        .sources
-        .iter()
-        .any(|(file_path, _)| is_openqasm_file(file_path))
-}
-
 fn is_openqasm_file(doc_uri: &Arc<str>) -> bool {
     doc_uri.ends_with("qasm") || doc_uri.ends_with("inc")
 }
