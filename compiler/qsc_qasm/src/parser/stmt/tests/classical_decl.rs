@@ -1127,3 +1127,25 @@ fn const_decl_with_measurement_init_fails() {
         "#]],
     );
 }
+
+#[test]
+fn const_array_decl_fails() {
+    check(
+        parse,
+        "const array[int, 2] a = {1, 2};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "scalar type",
+                    Type(
+                        Array,
+                    ),
+                    Span {
+                        lo: 6,
+                        hi: 11,
+                    },
+                ),
+            )
+        "#]],
+    );
+}

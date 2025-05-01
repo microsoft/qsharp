@@ -437,7 +437,7 @@ fn binary_op_shl_creg_fails() {
     expect![[r#"
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
          1 | 
          2 |         const creg a[3] = "101";
@@ -447,7 +447,7 @@ fn binary_op_shl_creg_fails() {
 
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:3:15]
          2 |         const creg a[3] = "101";
          3 |         const creg b[3] = a << 2;
@@ -602,7 +602,7 @@ fn binary_op_shr_creg_fails() {
     expect![[r#"
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
          1 | 
          2 |         const creg a[4] = "1011";
@@ -612,7 +612,7 @@ fn binary_op_shr_creg_fails() {
 
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:3:15]
          2 |         const creg a[4] = "1011";
          3 |         const creg b[4] = a >> 2;

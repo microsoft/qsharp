@@ -755,7 +755,7 @@ fn parse_non_constant_classical_decl(
 fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Const))?;
-    let ty = scalar_or_array_type(s)?;
+    let ty = TypeDef::Scalar(scalar_type(s)?);
     let identifier = Box::new(prim::ident(s)?);
     token(s, TokenKind::Eq)?;
     let init_expr = expr::const_declaration_expr(s)?;
