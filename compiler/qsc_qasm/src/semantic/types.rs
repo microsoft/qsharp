@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{cmp::max, rc::Rc};
-
-use core::fmt;
-use std::fmt::{Display, Formatter};
-
-use crate::{parser::ast as syntax, semantic::ast::Expr};
+#[cfg(test)]
+mod tests;
 
 use super::ast::{BinOp, ExprKind, Index, LiteralKind, Range};
+use crate::{parser::ast as syntax, semantic::ast::Expr};
+use core::fmt;
+use std::fmt::{Display, Formatter};
+use std::{cmp::max, rc::Rc};
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Type {
@@ -111,6 +111,19 @@ impl Type {
                 | Type::FloatArray(..)
                 | Type::IntArray(..)
                 | Type::QubitArray(..)
+                | Type::UIntArray(..)
+        )
+    }
+
+    pub(crate) fn is_proper_array(&self) -> bool {
+        matches!(
+            self,
+            Type::AngleArray(..)
+                | Type::BoolArray(..)
+                | Type::ComplexArray(..)
+                | Type::DurationArray(..)
+                | Type::FloatArray(..)
+                | Type::IntArray(..)
                 | Type::UIntArray(..)
         )
     }
@@ -384,11 +397,13 @@ fn indexed_type_builder(
     let not_indexed_dims = dims
         .clone()
         .into_iter()
-        .take(dims.num_dims() - indices.len());
+        .rev()
+        .take(dims.num_dims() - indices.len())
+        .rev();
 
-    let dims_vec = not_indexed_dims
+    let dims_vec = indexed_dims
         .into_iter()
-        .chain(indexed_dims.into_iter().rev())
+        .chain(not_indexed_dims)
         .collect::<Vec<_>>();
 
     if dims_vec.is_empty() {

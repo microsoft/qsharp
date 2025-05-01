@@ -19,6 +19,9 @@ pub struct Error(pub SemanticErrorKind);
 ///   - it is missing many language features
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum SemanticErrorKind {
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.ArrayDeclarationTypeError"))]
+    ArrayDeclarationTypeError(String, #[label] Span),
     #[error("annotation missing target statement")]
     #[diagnostic(code("Qasm.Lowerer.AnnotationWithoutStatement"))]
     AnnotationWithoutStatement(#[label] Span),

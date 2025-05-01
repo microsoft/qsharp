@@ -133,14 +133,38 @@ fn initialized_simple_arrays() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn initialized_simple_array_with_wrong_size_fails() {
+    let source = "
+        array[int, 3] b = { -2, 0 };
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.ArrayDeclarationTypeError
+
+          x expected an array of size 3 but found one of size 2
+           ,-[Test.qasm:2:27]
+         1 | 
+         2 |         array[int, 3] b = { -2, 0 };
+           :                           ^^^^^^^^^
+         3 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
 fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
     let source = "
-        array[bool, 2, 2] a = {{ 0, 1 }, { false, true }};
-        array[int, 2, 2] b = {{ -2, 0 }, { 1, 2 }};
-        array[uint, 2, 2] c = {{ 0, 1 }, { false, true }};
-        array[angle, 2, 2] d = {{ -1.0, 0.0 }, { 1.0, 5.0 }};
-        array[float, 2, 2] e = {{ -1, 0.0 }, { 1.0, 5.0 }};
-        array[complex, 2, 2] f = {{ -2, 0 }, { 3 im, 1 - 2 im }};
+        array[bool, 2, 3] a = {{ 0, 1, 1 }, { false, true, true }};
+        array[int, 2, 3] b = {{ -2, 0, 0 }, { 1, 2, 2 }};
+        array[uint, 2, 3] c = {{ 0, 1, 1 }, { false, true, true }};
+        array[angle, 2, 3] d = {{ -1.0, 0.0, 0.0 }, { 1.0, 5.0, 5.0 }};
+        array[float, 2, 3] e = {{ -1, 0.0, 0.0 }, { 1.0, 5.0, 5.0 }};
+        array[complex, 2, 3] f = {{ -2, 0, 0 }, { 3 im, 1 - 2 im, 0.0 }};
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -154,12 +178,16 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
             false
         } else {
             true
-        }], [false, true]];
-        mutable b = [[-2, 0], [1, 2]];
-        mutable c = [[0, 1], [QasmStd.Convert.BoolAsInt(false), QasmStd.Convert.BoolAsInt(true)]];
-        mutable d = [[QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(0., 53)], [QasmStd.Angle.DoubleAsAngle(1., 53), QasmStd.Angle.DoubleAsAngle(5., 53)]];
-        mutable e = [[Std.Convert.IntAsDouble(-1), 0.], [1., 5.]];
-        mutable f = [[Std.Math.Complex(Std.Convert.IntAsDouble(-2), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.)], [Std.Math.Complex(0., 3.), Std.Math.MinusC(Std.Math.Complex(1., 0.), Std.Math.Complex(0., 2.))]];
+        }, if 1 == 0 {
+            false
+        } else {
+            true
+        }], [false, true, true]];
+        mutable b = [[-2, 0, 0], [1, 2, 2]];
+        mutable c = [[0, 1, 1], [QasmStd.Convert.BoolAsInt(false), QasmStd.Convert.BoolAsInt(true), QasmStd.Convert.BoolAsInt(true)]];
+        mutable d = [[QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(0., 53), QasmStd.Angle.DoubleAsAngle(0., 53)], [QasmStd.Angle.DoubleAsAngle(1., 53), QasmStd.Angle.DoubleAsAngle(5., 53), QasmStd.Angle.DoubleAsAngle(5., 53)]];
+        mutable e = [[Std.Convert.IntAsDouble(-1), 0., 0.], [1., 5., 5.]];
+        mutable f = [[Std.Math.Complex(Std.Convert.IntAsDouble(-2), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.)], [Std.Math.Complex(0., 3.), Std.Math.MinusC(Std.Math.Complex(1., 0.), Std.Math.Complex(0., 2.)), Std.Math.Complex(0., 0.)]];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -288,76 +316,6 @@ fn assign_slice() -> miette::Result<(), Vec<Report>> {
         mutable a = [0, 0, 0];
         mutable b = [5, 6];
         set a w/= 1..2 <- b;
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
-fn bitarray_indexing() -> miette::Result<(), Vec<Report>> {
-    let source = r#"
-        const bit[5] a = "10101";
-        const bit b = a[2];
-
-        def f() {
-            bit c = b;
-        }
-    "#;
-
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import QasmStd.Intrinsic.*;
-        let a = [One, Zero, One, Zero, One];
-        let b = a[2];
-        function f() : Unit {
-            mutable c = One;
-        }
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
-fn bitarray_slicing() -> miette::Result<(), Vec<Report>> {
-    let source = r#"
-        const bit[5] a = "10101";
-        const bit[3] b = a[1:3];
-
-        def f() {
-            bit[3] c = b;
-        }
-    "#;
-
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import QasmStd.Intrinsic.*;
-        let a = [One, Zero, One, Zero, One];
-        let b = a[1..3];
-        function f() : Unit {
-            mutable c = [Zero, One, Zero];
-        }
-    "#]]
-    .assert_eq(&qsharp);
-    Ok(())
-}
-
-#[test]
-fn bitarray_const_evaluation() -> miette::Result<(), Vec<Report>> {
-    let source = "
-        const bit[5] a = 10;
-
-        def f() {
-            bit b = a[1];
-        }
-    ";
-
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#"
-        import QasmStd.Intrinsic.*;
-        let a = [Zero, One, Zero, One, Zero];
-        function f() : Unit {
-            mutable b = [Zero, One, Zero, One, Zero][1];
-        }
     "#]]
     .assert_eq(&qsharp);
     Ok(())

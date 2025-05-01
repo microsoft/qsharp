@@ -674,7 +674,7 @@ impl Lowerer {
             syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
         };
 
-        // If are not lowering an array OR are lowering one but haven't reached a leaf node
+        // If we are not lowering an array OR are lowering one but haven't reached a leaf node
         // we return expr without casting.
         if !lowering_array || ty.is_array() {
             expr
@@ -735,7 +735,49 @@ impl Lowerer {
         }
     }
 
+    fn check_lit_array_type(&mut self, expr: &syntax::Lit, ty: &Type) {
+        if ty.is_proper_array() {
+            let expected_size = ty
+                .array_dims()
+                .expect("proper arrays should have dims")
+                .into_iter()
+                .next();
+
+            let Some(expected_size) = expected_size else {
+                // If we don't have at least one dimension_size, it means the dimension was Err.
+                // In that case we already issued an error before.
+                return;
+            };
+
+            let syntax::LiteralKind::Array(array) = &expr.kind else {
+                let kind = SemanticErrorKind::ArrayDeclarationTypeError(
+                    format!(
+                        "expected an array of size {} but found {}",
+                        expected_size, &expr.kind
+                    ),
+                    expr.span,
+                );
+                self.push_semantic_error(kind);
+                return;
+            };
+
+            let actual_size = array.len();
+
+            if actual_size != expected_size as usize {
+                let kind = SemanticErrorKind::ArrayDeclarationTypeError(
+                    format!("expected an array of size {expected_size} but found one of size {actual_size}"),
+                    expr.span
+                );
+                self.push_semantic_error(kind);
+            }
+        }
+    }
+
     fn lower_lit_expr(&mut self, expr: &syntax::Lit, ty: Option<&Type>) -> semantic::Expr {
+        if let Some(ty) = ty {
+            self.check_lit_array_type(expr, ty);
+        }
+
         let (kind, ty) = match &expr.kind {
             syntax::LiteralKind::BigInt(value) => {
                 // this case is only valid when there is an integer literal
@@ -780,8 +822,6 @@ impl Lowerer {
             ),
             syntax::LiteralKind::Array(exprs) => {
                 if let Some(ty) = ty {
-                    // place holder for now, this code will need to move to the correct place when we
-                    // add support for classical decls
                     let dummy_index = semantic::Expr {
                         span: Span::default(),
                         kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(0))),
