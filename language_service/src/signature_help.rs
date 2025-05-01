@@ -109,11 +109,11 @@ impl SignatureHelpFinder<'_> {
                 let sig_info = SignatureInformation {
                     label: ty.display(),
                     documentation: None,
-                    parameters: get_type_params(&arrow.input.borrow()),
+                    parameters: get_type_params(&arrow.input),
                 };
 
                 // Capture arrow.input structure in a fake HIR Pat.
-                let params = make_fake_pat(&arrow.input.borrow());
+                let params = make_fake_pat(&arrow.input);
 
                 self.signature_help = Some(SignatureHelp {
                     signatures: vec![sig_info],
