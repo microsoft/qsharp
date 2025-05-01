@@ -33,13 +33,13 @@ pub enum Type {
     QubitArray(u32),
 
     // proper arrays
-    BoolArray(ArrayDimensions, bool),
-    DurationArray(ArrayDimensions, bool),
-    AngleArray(Option<u32>, ArrayDimensions, bool),
-    ComplexArray(Option<u32>, ArrayDimensions, bool),
-    FloatArray(Option<u32>, ArrayDimensions, bool),
-    IntArray(Option<u32>, ArrayDimensions, bool),
-    UIntArray(Option<u32>, ArrayDimensions, bool),
+    BoolArray(ArrayDimensions),
+    DurationArray(ArrayDimensions),
+    AngleArray(Option<u32>, ArrayDimensions),
+    ComplexArray(Option<u32>, ArrayDimensions),
+    FloatArray(Option<u32>, ArrayDimensions),
+    IntArray(Option<u32>, ArrayDimensions),
+    UIntArray(Option<u32>, ArrayDimensions),
 
     // realistically the sizes could be u3
     Gate(u32, u32),
@@ -67,24 +67,24 @@ impl Display for Type {
             Type::HardwareQubit => write!(f, "HardwareQubit"),
             Type::BitArray(dims, is_const) => write!(f, "BitArray({dims:?}, {is_const})"),
             Type::QubitArray(dims) => write!(f, "QubitArray({dims:?})"),
-            Type::BoolArray(dims, is_const) => write!(f, "BoolArray({dims:?}, {is_const:?})"),
-            Type::DurationArray(dims, is_const) => {
-                write!(f, "DurationArray({dims:?}, {is_const:?})")
+            Type::BoolArray(dims) => write!(f, "BoolArray({dims:?})"),
+            Type::DurationArray(dims) => {
+                write!(f, "DurationArray({dims:?})")
             }
-            Type::AngleArray(width, dims, is_const) => {
-                write!(f, "AngleArray({width:?}, {dims:?}, {is_const:?})")
+            Type::AngleArray(width, dims) => {
+                write!(f, "AngleArray({width:?}, {dims:?})")
             }
-            Type::ComplexArray(width, dims, is_const) => {
-                write!(f, "ComplexArray({width:?}, {dims:?}, {is_const:?})")
+            Type::ComplexArray(width, dims) => {
+                write!(f, "ComplexArray({width:?}, {dims:?})")
             }
-            Type::FloatArray(width, dims, is_const) => {
-                write!(f, "FloatArray({width:?}, {dims:?}, {is_const:?})")
+            Type::FloatArray(width, dims) => {
+                write!(f, "FloatArray({width:?}, {dims:?})")
             }
-            Type::IntArray(width, dims, is_const) => {
-                write!(f, "IntArray({width:?}, {dims:?}, {is_const:?})")
+            Type::IntArray(width, dims) => {
+                write!(f, "IntArray({width:?}, {dims:?})")
             }
-            Type::UIntArray(width, dims, is_const) => {
-                write!(f, "UIntArray({width:?}, {dims:?}, {is_const:?})")
+            Type::UIntArray(width, dims) => {
+                write!(f, "UIntArray({width:?}, {dims:?})")
             }
             Type::Gate(cargs, qargs) => write!(f, "Gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
@@ -130,13 +130,13 @@ impl Type {
 
     pub(crate) fn array_dims(&self) -> Option<ArrayDimensions> {
         match self {
-            Self::AngleArray(_, dims, _)
-            | Self::BoolArray(dims, _)
-            | Self::ComplexArray(_, dims, _)
-            | Self::DurationArray(dims, _)
-            | Self::FloatArray(_, dims, _)
-            | Self::IntArray(_, dims, _)
-            | Self::UIntArray(_, dims, _) => Some(dims.clone()),
+            Self::AngleArray(_, dims)
+            | Self::BoolArray(dims)
+            | Self::ComplexArray(_, dims)
+            | Self::DurationArray(dims)
+            | Self::FloatArray(_, dims)
+            | Self::IntArray(_, dims)
+            | Self::UIntArray(_, dims) => Some(dims.clone()),
             _ => None,
         }
     }
@@ -145,13 +145,13 @@ impl Type {
         let dims = dims.into();
 
         match base_ty {
-            Self::Bool(is_const) => Self::BoolArray(dims, *is_const),
-            Self::Duration(is_const) => Self::DurationArray(dims, *is_const),
-            Self::Angle(width, is_const) => Self::AngleArray(*width, dims, *is_const),
-            Self::Complex(width, is_const) => Self::ComplexArray(*width, dims, *is_const),
-            Self::Float(width, is_const) => Self::FloatArray(*width, dims, *is_const),
-            Self::Int(width, is_const) => Self::IntArray(*width, dims, *is_const),
-            Self::UInt(width, is_const) => Self::UIntArray(*width, dims, *is_const),
+            Self::Bool(_) => Self::BoolArray(dims),
+            Self::Duration(_) => Self::DurationArray(dims),
+            Self::Angle(width, _) => Self::AngleArray(*width, dims),
+            Self::Complex(width, _) => Self::ComplexArray(*width, dims),
+            Self::Float(width, _) => Self::FloatArray(*width, dims),
+            Self::Int(width, _) => Self::IntArray(*width, dims),
+            Self::UInt(width, _) => Self::UIntArray(*width, dims),
             _ => Self::Err,
         }
     }
@@ -160,14 +160,7 @@ impl Type {
     pub fn is_const(&self) -> bool {
         match self {
             // Arrays are literals, so they must have const types.
-            Type::AngleArray(.., is_const)
-            | Type::BoolArray(.., is_const)
-            | Type::ComplexArray(.., is_const)
-            | Type::DurationArray(.., is_const)
-            | Type::FloatArray(.., is_const)
-            | Type::IntArray(.., is_const)
-            | Type::UIntArray(.., is_const)
-            | Type::BitArray(_, is_const)
+            Type::BitArray(_, is_const)
             | Type::Bit(is_const)
             | Type::Bool(is_const)
             | Type::Duration(is_const)
@@ -219,13 +212,13 @@ impl Type {
     #[must_use]
     pub fn num_dims(&self) -> usize {
         match self {
-            Type::AngleArray(_, dims, _)
-            | Type::BoolArray(dims, _)
-            | Type::DurationArray(dims, _)
-            | Type::ComplexArray(_, dims, _)
-            | Type::FloatArray(_, dims, _)
-            | Type::IntArray(_, dims, _)
-            | Type::UIntArray(_, dims, _) => dims.num_dims(),
+            Type::AngleArray(_, dims)
+            | Type::BoolArray(dims)
+            | Type::DurationArray(dims)
+            | Type::ComplexArray(_, dims)
+            | Type::FloatArray(_, dims)
+            | Type::IntArray(_, dims)
+            | Type::UIntArray(_, dims) => dims.num_dims(),
             Type::BitArray(..) | Type::QubitArray(..) => 1,
             _ => 0,
         }
@@ -263,45 +256,39 @@ impl Type {
                 &ArrayDimensions::One(*size),
                 indices,
             ),
-            Type::BoolArray(dims, is_const) => indexed_type_builder(
-                || Type::Bool(*is_const),
-                |d| Type::BoolArray(d, *is_const),
+            Type::BoolArray(dims) => {
+                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, indices)
+            }
+            Type::AngleArray(size, dims) => indexed_type_builder(
+                || Type::Angle(*size, false),
+                |d| Type::AngleArray(*size, d),
                 dims,
                 indices,
             ),
-            Type::AngleArray(size, dims, is_const) => indexed_type_builder(
-                || Type::Angle(*size, *is_const),
-                |d| Type::AngleArray(*size, d, *is_const),
+            Type::ComplexArray(size, dims) => indexed_type_builder(
+                || Type::Complex(*size, false),
+                |d| Type::ComplexArray(*size, d),
                 dims,
                 indices,
             ),
-            Type::ComplexArray(size, dims, is_const) => indexed_type_builder(
-                || Type::Complex(*size, *is_const),
-                |d| Type::ComplexArray(*size, d, *is_const),
+            Type::DurationArray(dims) => {
+                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, indices)
+            }
+            Type::FloatArray(size, dims) => indexed_type_builder(
+                || Type::Float(*size, false),
+                |d| Type::FloatArray(*size, d),
                 dims,
                 indices,
             ),
-            Type::DurationArray(dims, is_const) => indexed_type_builder(
-                || Type::Duration(false),
-                |d| Type::DurationArray(d, *is_const),
+            Type::IntArray(size, dims) => indexed_type_builder(
+                || Type::Int(*size, false),
+                |d| Type::IntArray(*size, d),
                 dims,
                 indices,
             ),
-            Type::FloatArray(size, dims, is_const) => indexed_type_builder(
-                || Type::Float(*size, *is_const),
-                |d| Type::FloatArray(*size, d, *is_const),
-                dims,
-                indices,
-            ),
-            Type::IntArray(size, dims, is_const) => indexed_type_builder(
-                || Type::Int(*size, *is_const),
-                |d| Type::IntArray(*size, d, *is_const),
-                dims,
-                indices,
-            ),
-            Type::UIntArray(size, dims, is_const) => indexed_type_builder(
-                || Type::UInt(*size, *is_const),
-                |d| Type::UIntArray(*size, d, *is_const),
+            Type::UIntArray(size, dims) => indexed_type_builder(
+                || Type::UInt(*size, false),
+                |d| Type::UIntArray(*size, d),
                 dims,
                 indices,
             ),
@@ -322,12 +309,6 @@ impl Type {
             Type::Int(w, _) => Self::Int(*w, true),
             Type::UInt(w, _) => Self::UInt(*w, true),
             Type::BitArray(size, _) => Self::BitArray(*size, true),
-            Type::BoolArray(dims, _) => Self::BoolArray(dims.clone(), true),
-            Type::IntArray(size, dims, _) => Self::IntArray(*size, dims.clone(), true),
-            Type::UIntArray(size, dims, _) => Self::UIntArray(*size, dims.clone(), true),
-            Type::FloatArray(size, dims, _) => Self::FloatArray(*size, dims.clone(), true),
-            Type::AngleArray(size, dims, _) => Self::AngleArray(*size, dims.clone(), true),
-            Type::DurationArray(dims, _) => Self::DurationArray(dims.clone(), true),
             _ => self.clone(),
         }
     }
@@ -344,12 +325,6 @@ impl Type {
             Type::Int(w, _) => Self::Int(*w, false),
             Type::UInt(w, _) => Self::UInt(*w, false),
             Type::BitArray(size, _) => Self::BitArray(*size, false),
-            Type::BoolArray(dims, _) => Self::BoolArray(dims.clone(), false),
-            Type::IntArray(size, dims, _) => Self::IntArray(*size, dims.clone(), false),
-            Type::UIntArray(size, dims, _) => Self::UIntArray(*size, dims.clone(), false),
-            Type::FloatArray(size, dims, _) => Self::FloatArray(*size, dims.clone(), false),
-            Type::AngleArray(size, dims, _) => Self::AngleArray(*size, dims.clone(), false),
-            Type::DurationArray(dims, _) => Self::DurationArray(dims.clone(), false),
             _ => self.clone(),
         }
     }
@@ -771,15 +746,14 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Complex(lhs_width, _), Type::Complex(rhs_width, _)) => lhs_width == rhs_width,
         (Type::BitArray(lhs_dim, _), Type::BitArray(rhs_dim, _))
         | (Type::QubitArray(lhs_dim), Type::QubitArray(rhs_dim)) => lhs_dim == rhs_dim,
-        (Type::BoolArray(lhs_dims, _), Type::BoolArray(rhs_dims, _)) => lhs_dims == rhs_dims,
-        (Type::IntArray(lhs_width, lhs_dims, _), Type::IntArray(rhs_width, rhs_dims, _))
-        | (Type::UIntArray(lhs_width, lhs_dims, _), Type::UIntArray(rhs_width, rhs_dims, _))
-        | (Type::FloatArray(lhs_width, lhs_dims, _), Type::FloatArray(rhs_width, rhs_dims, _))
-        | (Type::AngleArray(lhs_width, lhs_dims, _), Type::AngleArray(rhs_width, rhs_dims, _))
-        | (
-            Type::ComplexArray(lhs_width, lhs_dims, _),
-            Type::ComplexArray(rhs_width, rhs_dims, _),
-        ) => lhs_width == rhs_width && lhs_dims == rhs_dims,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
+        (Type::IntArray(lhs_width, lhs_dims), Type::IntArray(rhs_width, rhs_dims))
+        | (Type::UIntArray(lhs_width, lhs_dims), Type::UIntArray(rhs_width, rhs_dims))
+        | (Type::FloatArray(lhs_width, lhs_dims), Type::FloatArray(rhs_width, rhs_dims))
+        | (Type::AngleArray(lhs_width, lhs_dims), Type::AngleArray(rhs_width, rhs_dims))
+        | (Type::ComplexArray(lhs_width, lhs_dims), Type::ComplexArray(rhs_width, rhs_dims)) => {
+            lhs_width == rhs_width && lhs_dims == rhs_dims
+        }
         (Type::Gate(lhs_cargs, lhs_qargs), Type::Gate(rhs_cargs, rhs_qargs)) => {
             lhs_cargs == rhs_cargs && lhs_qargs == rhs_qargs
         }
@@ -809,12 +783,12 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Gate(_, _), Type::Gate(_, _)) => true,
         (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
         | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::BoolArray(lhs_dims, _), Type::BoolArray(rhs_dims, _)) => lhs_dims == rhs_dims,
-        (Type::IntArray(_, lhs_dims, _), Type::IntArray(_, rhs_dims, _))
-        | (Type::UIntArray(_, lhs_dims, _), Type::UIntArray(_, rhs_dims, _))
-        | (Type::FloatArray(_, lhs_dims, _), Type::FloatArray(_, rhs_dims, _))
-        | (Type::AngleArray(_, lhs_dims, _), Type::AngleArray(_, rhs_dims, _))
-        | (Type::ComplexArray(_, lhs_dims, _), Type::ComplexArray(_, rhs_dims, _)) => {
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
+        (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
+        | (Type::UIntArray(_, lhs_dims), Type::UIntArray(_, rhs_dims))
+        | (Type::FloatArray(_, lhs_dims), Type::FloatArray(_, rhs_dims))
+        | (Type::AngleArray(_, lhs_dims), Type::AngleArray(_, rhs_dims))
+        | (Type::ComplexArray(_, lhs_dims), Type::ComplexArray(_, rhs_dims)) => {
             lhs_dims == rhs_dims
         }
         _ => false,

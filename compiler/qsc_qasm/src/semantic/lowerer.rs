@@ -1008,7 +1008,7 @@ impl Lowerer {
             Type::QubitArray(size) => {
                 crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(*size as usize))
             }
-            Type::IntArray(size, dims, _) | Type::UIntArray(size, dims, _) => {
+            Type::IntArray(size, dims) | Type::UIntArray(size, dims) => {
                 if let Some(size) = size {
                     if *size > 64 {
                         crate::types::Type::BigIntArray(dims.into(), is_const)
@@ -1019,12 +1019,10 @@ impl Lowerer {
                     crate::types::Type::IntArray(dims.into(), is_const)
                 }
             }
-            Type::FloatArray(_, dims, _) => crate::types::Type::DoubleArray(dims.into()),
-            Type::BoolArray(dims, _) => crate::types::Type::BoolArray(dims.into(), is_const),
-            Type::ComplexArray(_, dims, _) => {
-                crate::types::Type::ComplexArray(dims.into(), is_const)
-            }
-            Type::AngleArray(_, dims, _) => crate::types::Type::AngleArray(dims.into(), is_const),
+            Type::FloatArray(_, dims) => crate::types::Type::DoubleArray(dims.into()),
+            Type::BoolArray(dims) => crate::types::Type::BoolArray(dims.into(), is_const),
+            Type::ComplexArray(_, dims) => crate::types::Type::ComplexArray(dims.into(), is_const),
+            Type::AngleArray(_, dims) => crate::types::Type::AngleArray(dims.into(), is_const),
             Type::Gate(cargs, qargs) => {
                 crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
             }
@@ -2679,50 +2677,50 @@ impl Lowerer {
                 0.0,
                 semantic::TimeUnit::Ns,
             ))),
-            Type::BoolArray(dims, is_const) => {
-                let base_ty = Type::Bool(*is_const);
+            Type::BoolArray(dims) => {
+                let base_ty = Type::Bool(false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::DurationArray(dims, is_const) => {
-                let base_ty = Type::Duration(*is_const);
+            Type::DurationArray(dims) => {
+                let base_ty = Type::Duration(false);
                 let default = || self.get_default_value(&Type::Duration(true), span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::AngleArray(width, dims, is_const) => {
-                let base_ty = Type::Angle(*width, *is_const);
+            Type::AngleArray(width, dims) => {
+                let base_ty = Type::Angle(*width, false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::ComplexArray(width, dims, is_const) => {
-                let base_ty = Type::Complex(*width, *is_const);
+            Type::ComplexArray(width, dims) => {
+                let base_ty = Type::Complex(*width, false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::FloatArray(width, dims, is_const) => {
-                let base_ty = Type::Float(*width, *is_const);
+            Type::FloatArray(width, dims) => {
+                let base_ty = Type::Float(*width, false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::IntArray(width, dims, is_const) => {
-                let base_ty = Type::Int(*width, *is_const);
+            Type::IntArray(width, dims) => {
+                let base_ty = Type::Int(*width, false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
                 )))
             }
-            Type::UIntArray(width, dims, is_const) => {
-                let base_ty = Type::UInt(*width, *is_const);
+            Type::UIntArray(width, dims) => {
+                let base_ty = Type::UInt(*width, false);
                 let default = || self.get_default_value(&base_ty, span);
                 Some(from_lit_kind(LiteralKind::Array(
                     semantic::Array::from_default(dims.clone(), default, &base_ty),
