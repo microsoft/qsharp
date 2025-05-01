@@ -12,17 +12,21 @@ use crate::semantic::ast::Range;
 use expect_test::expect;
 use qsc_data_structures::span::Span;
 
+fn make_int_expr(val: i64) -> Expr {
+    Expr {
+        span: Span::default(),
+        kind: Box::new(ExprKind::Lit(LiteralKind::Int(val))),
+        ty: Type::Int(None, true),
+    }
+}
+
 #[test]
 fn indexed_type_has_right_dimensions() {
     let base_ty_builder = || Type::Bool(false);
     let array_ty_builder = |dims| Type::BoolArray(dims, false);
     let dims = ArrayDimensions::Three(2, 3, 4);
 
-    let index = Expr {
-        span: Span::default(),
-        kind: Box::new(ExprKind::Lit(LiteralKind::Int(0))),
-        ty: Type::Int(None, true),
-    };
+    let index = make_int_expr(0);
     let indices = Index::Expr(index);
     let indexed_ty = indexed_type_builder(base_ty_builder, array_ty_builder, &dims, &[indices]);
 
@@ -35,15 +39,10 @@ fn sliced_type_has_right_dimensions() {
     let array_ty_builder = |dims| Type::BoolArray(dims, false);
     let dims = ArrayDimensions::Three(5, 1, 2);
 
-    let make_expr = |val| Expr {
-        span: Span::default(),
-        kind: Box::new(ExprKind::Lit(LiteralKind::Int(val))),
-        ty: Type::Int(None, true),
-    };
     let indices = Index::Range(Range {
         span: Span::default(),
-        start: Some(make_expr(1)),
-        end: Some(make_expr(3)),
+        start: Some(make_int_expr(1)),
+        end: Some(make_int_expr(3)),
         step: None,
     });
     let indexed_ty = indexed_type_builder(base_ty_builder, array_ty_builder, &dims, &[indices]);
