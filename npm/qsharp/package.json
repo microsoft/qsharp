@@ -30,7 +30,9 @@
     "docs": "node generate_docs.js",
     "build:tsc": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json",
     "tsc:watch": "node ../../node_modules/typescript/bin/tsc -p ./src/tsconfig.json --watch --preserveWatchOutput",
-    "test": "node --test"
+    "test": "node --test",
+    "test:ui": "playwright test",
+    "test:ui:debug": "playwright test --debug"
   },
   "type": "module",
   "files": [

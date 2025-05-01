@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circuit Component Test</title>
+  <link rel="stylesheet" href="/ux/qsharp-circuit.css">
+  <link rel="stylesheet" href="/ux/qsharp-ux.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    #test-container {
+      width: 1000px;
+      border: 1px solid #ccc;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .test-header {
+      background-color: #f0f0f0;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+  <!-- Preload libraries for faster test execution -->
+  <script type="importmap">
+    {
+      "imports": {
+        "preact": "https://esm.sh/preact@10.20.0",
+        "preact/hooks": "https://esm.sh/preact@10.20.0/hooks",
+        "preact/compat": "https://esm.sh/preact@10.20.0/compat"
+      }
+    }
+  </script>
+  <script async="" src="https://esm.sh/preact@10.20.0"></script>
+</head>
+<body>
+  <div class="test-header">
+    <h1>Circuit Component Test</h1>
+    <p>This page is used for UI testing of the Circuit component.</p>
+  </div>
+  
+  <div id="test-container"></div>
+  
+  <script type="module">
+    // This script will be replaced by the test script during test execution
+    console.log('Test page loaded');
+  </script>
+
+<script type="module">
+        import { render } from 'https://esm.sh/preact@10.20.0/compat';
+        import { Circuit } from '/ux/circuit.js';
+
+        // Render the Circuit component
+        render(
+          Circuit({
+            circuit: {"version":1,"circuits":[{"qubits":[{"id":0},{"id":1}],"componentGrid":[{"components":[{"kind":"unitary","gate":"H","targets":[{"qubit":0}]}]},{"components":[{"kind":"unitary","gate":"X","targets":[{"qubit":1}],"controls":[{"qubit":0}]}]},{"components":[{"kind":"measurement","qubits":[{"qubit":0}],"results":[{"qubit":0,"result":0}]},{"kind":"measurement","qubits":[{"qubit":1}],"results":[{"qubit":1,"result":0}]}]}]}]},
+            isEditable: false
+          }),
+          document.getElementById('test-container')
+        );
+      </script></body></html>
