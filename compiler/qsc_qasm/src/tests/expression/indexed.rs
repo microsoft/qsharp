@@ -83,7 +83,6 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
     let source = "
         array[bool, 5] x;
@@ -92,6 +91,7 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Intrinsic.*;
         mutable x = [false, false, false, false, false];
         mutable y = x[0];
     "#]]

@@ -152,18 +152,17 @@ fn ident_const() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "indexed ident is not yet supported"]
 fn indexed_ident() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const array[uint, 2] a = {1, 2};
+        const bit[2] a = "01";
         bit[a[1]] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = 2;
-        mutable c = a + b;
+        import QasmStd.Intrinsic.*;
+        let a = [Zero, One];
+        mutable r = [];
     "#]]
     .assert_eq(&qsharp);
     Ok(())

@@ -89,11 +89,10 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Array literals not yet supported"]
 fn for_loops_can_iterate_float_array_symbol() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         float sum = 0.;
-        const array[float[64], 4] my_floats = {1.2, -3.4, 0.5, 9.8};
+        array[float[64], 4] my_floats = {1.2, -3.4, 0.5, 9.8};
         for float[64] f in my_floats {
             sum += f;
         }
@@ -101,12 +100,13 @@ fn for_loops_can_iterate_float_array_symbol() -> miette::Result<(), Vec<Report>>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Intrinsic.*;
         mutable sum = 0.;
-        let my_floats = [1.2, -3.4, 0.5, 9.8];
+        mutable my_floats = [1.2, -3.4, 0.5, 9.8];
         for f : Double in my_floats {
-            set sum += f;
+            set sum = sum + f;
         }
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
