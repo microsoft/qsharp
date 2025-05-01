@@ -152,7 +152,6 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        // load qasm project from root file via parse
         let project = self.load_project_from_doc_uri(&doc_uri, &text).await;
 
         let compilation_uri = project.path.clone();
