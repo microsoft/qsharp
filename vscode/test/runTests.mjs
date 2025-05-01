@@ -31,10 +31,13 @@ const verbose = process.argv.includes(verboseArgName);
 
 try {
   // Language service tests
-  await runSuite(
-    join(thisDir, "out", "language-service", "index"),
-    join(thisDir, "suites", "language-service", "test-workspace"),
-  );
+  // Disable this entire suite temporarily (5/2025),
+  // as there are intermittent failures.
+  // https://github.com/microsoft/qsharp/issues/2357
+  // await runSuite(
+  //   join(thisDir, "out", "language-service", "index"),
+  //   join(thisDir, "suites", "language-service", "test-workspace"),
+  // );
 
   // Debugger tests
   await runSuite(
