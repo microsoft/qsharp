@@ -340,11 +340,11 @@ class CircuitEvents {
     elems.forEach((elem) => {
       elem?.addEventListener("mousedown", (ev: MouseEvent) => {
         // Allow dragging even when initiated on the arg-button
-        if ((ev.target as HTMLElement).classList.contains("arg-button")) {
+        const argButtonElem = (ev.target as HTMLElement).closest(".arg-button");
+        if (argButtonElem) {
           // Find the sibling element with the data-wire attribute
-          const siblingWithWire = (
-            ev.target as HTMLElement
-          ).parentElement?.querySelector("[data-wire]");
+          const siblingWithWire =
+            argButtonElem.parentElement?.querySelector("[data-wire]");
           if (siblingWithWire) {
             const selectedWireStr = siblingWithWire.getAttribute("data-wire");
             this.selectedWire =
