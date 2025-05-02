@@ -65,12 +65,15 @@ const moveOperation = (
     insertNewColumn,
   );
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   const sourceOperationParent = findParentArray(
     circuitEvents.componentGrid,
     sourceLocation,
   );
   if (sourceOperationParent == null) return null;
   _removeOp(circuitEvents, originalOperation, sourceOperationParent);
+  _removeTrailingUnusedQubits(circuitEvents);
 
   return newSourceOperation;
 };
@@ -263,6 +266,8 @@ const addOperation = (
     insertNewColumn,
   );
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   return newSourceOperation;
 };
 
@@ -287,8 +292,8 @@ const removeOperation = (
 
   if (sourceOperation == null || sourceOperationParent == null) return null;
 
-  // Delete sourceOperation
   _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
+  _removeTrailingUnusedQubits(circuitEvents);
 };
 
 /**
@@ -602,6 +607,50 @@ const _updateMeasurementLines = (
   }
   circuitEvents.qubits[wireIndex].numResults =
     resultIndex > 0 ? resultIndex : undefined;
+};
+
+/**
+ * Ensure that the qubit count in the circuit is sufficient for the given wire index.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param wireIndex The index of the wire to check.
+ */
+const _ensureQubitCount = (circuitEvents: CircuitEvents, wireIndex: number) => {
+  while (circuitEvents.qubits.length <= wireIndex) {
+    circuitEvents.qubits.push({
+      id: circuitEvents.qubits.length,
+      numResults: undefined,
+    });
+  }
+};
+
+/**
+ * Remove trailing unused qubits from the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _removeTrailingUnusedQubits = (circuitEvents: CircuitEvents) => {
+  // ToDo: for now we are disabling this functionality
+  // // Find the highest wire index used by any operation
+  // let maxUsedWire = -1;
+  // for (const col of circuitEvents.componentGrid) {
+  //   for (const op of col.components) {
+  //     const regs = getOperationRegisters(op);
+  //     for (const reg of regs) {
+  //       if (typeof reg.qubit === "number" && reg.qubit > maxUsedWire) {
+  //         maxUsedWire = reg.qubit;
+  //       }
+  //     }
+  //   }
+  // }
+  // // Remove unused qubits from the end
+  // while (
+  //   circuitEvents.qubits.length > 0 &&
+  //   circuitEvents.qubits.length - 1 > maxUsedWire
+  // ) {
+  //   circuitEvents.qubits.pop();
+  // }
 };
 
 export {

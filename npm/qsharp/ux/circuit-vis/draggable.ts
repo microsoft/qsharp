@@ -3,9 +3,16 @@
 
 import { getMinMaxRegIdx } from "../../src/utils";
 import { ComponentGrid, Operation } from "./circuit";
-import { gatePadding, minGateWidth, registerHeight, startX } from "./constants";
-import { box, controlDot } from "./formatters/formatUtils";
+import {
+  gatePadding,
+  minGateWidth,
+  registerHeight,
+  regLineStart,
+  startX,
+} from "./constants";
+import { box, controlDot, line } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
+import { qubitInput } from "./formatters/inputFormatter";
 import { toRenderData } from "./panel";
 import { Sqore } from "./sqore";
 import {
@@ -18,6 +25,7 @@ import {
 
 interface Context {
   container: HTMLElement;
+  svg: SVGElement;
   operationGrid: ComponentGrid;
   wireData: number[];
 }
@@ -33,6 +41,7 @@ const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
 
   const context: Context = {
     container,
+    svg,
     operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),
   };
@@ -284,10 +293,37 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.classList.add("dropzone-layer");
   dropzoneLayer.style.display = "none";
 
-  const { container, operationGrid, wireData } = context;
-  if (wireData.length === 0) return dropzoneLayer; // Return early if there are no wires
+  const { container, svg, operationGrid } = context;
+
+  let wireData = getWireData(container);
 
   const colArray = getColumnOffsetsAndWidths(container);
+
+  const svgHeight = Number(svg.getAttribute("height") || svg.clientHeight || 0);
+  const svgWidth = Number(svg.getAttribute("width") || svg.clientWidth || 800);
+  const ghostY = svgHeight;
+
+  const ghostWire = line(
+    regLineStart,
+    ghostY,
+    svgWidth,
+    ghostY,
+    "qubit-wire ghost-opacity",
+  );
+
+  const ghostLabel = qubitInput(
+    ghostY,
+    wireData.length,
+    wireData.length.toString(),
+  );
+  ghostLabel.classList.add("ghost-opacity");
+
+  dropzoneLayer.appendChild(ghostWire);
+  dropzoneLayer.appendChild(ghostLabel);
+
+  context.svg.setAttribute("height", (svgHeight + registerHeight).toString());
+
+  wireData = [...wireData, ghostY];
 
   // Create dropzones for each intersection of columns and wires
   for (let colIndex = 0; colIndex < colArray.length; colIndex++) {

@@ -666,9 +666,10 @@ class CircuitEvents {
         this.selectedWire = sourceWire;
 
         // Dropzones ON each wire (skip self)
+        // Exclude ghost qubit line (last wire)
         for (
           let targetWire = 0;
-          targetWire < this.wireData.length;
+          targetWire < this.wireData.length - 1; // Exclude ghost
           targetWire++
         ) {
           if (targetWire === sourceWire) continue;
@@ -685,7 +686,8 @@ class CircuitEvents {
         }
 
         // Dropzones BETWEEN wires (including before first and after last)
-        for (let i = 0; i <= this.wireData.length; i++) {
+        // Exclude after ghost qubit line
+        for (let i = 0; i <= this.wireData.length - 1; i++) {
           // Optionally, skip if dropping "between" at the source wire's own position
           if (i === sourceWire || i === sourceWire + 1) continue;
           const dropzone = createWireDropzone(

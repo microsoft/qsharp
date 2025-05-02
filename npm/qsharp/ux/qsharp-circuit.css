@@ -331,6 +331,10 @@
     opacity: 0.5;
   }
 
+  .ghost-opacity {
+    opacity: 0.5;
+  }
+
   .qubit-line-control {
     display: flex;
     justify-content: flex-start;
