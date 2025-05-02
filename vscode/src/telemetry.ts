@@ -282,7 +282,9 @@ type EventTypes = {
     };
   };
   [EventType.UpdateCopilotInstructionsStart]: {
-    properties: Empty;
+    properties: {
+      trigger: "user" | "startup";
+    };
     measurements: Empty;
   };
   [EventType.UpdateCopilotInstructionsEnd]: {

@@ -174,7 +174,7 @@ async function hasQSharpCopilotInstructions(
  * Command to update or create the Copilot instructions file for Q#.
  * Shows a prompt to the user and updates the file if confirmed.
  */
-async function updateGhCopilotInstructionsCommand() {
+async function updateGhCopilotInstructionsCommand(userInvoked: boolean) {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showErrorMessage("No workspace folder is open");
@@ -191,10 +191,13 @@ async function updateGhCopilotInstructionsCommand() {
     resourceUri = currentDoc ?? workspaceFolders[0].uri;
   }
 
-  return await updateCopilotInstructions(resourceUri);
+  return await updateCopilotInstructions(resourceUri, userInvoked);
 }
 
-export async function updateCopilotInstructions(resource: vscode.Uri) {
+export async function updateCopilotInstructions(
+  resource: vscode.Uri,
+  userInvoked: boolean,
+): Promise<vscode.MessageItem | undefined> {
   // Always add copilot instructions in the workspace root
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(resource)?.uri;
   if (!workspaceFolder) {
@@ -206,16 +209,26 @@ export async function updateCopilotInstructions(resource: vscode.Uri) {
     return;
   }
 
-  sendTelemetryEvent(EventType.UpdateCopilotInstructionsStart, {}, {});
+  sendTelemetryEvent(
+    EventType.UpdateCopilotInstructionsStart,
+    {
+      trigger: userInvoked ? "user" : "startup",
+    },
+    {},
+  );
 
-  // Show a yes/no prompt to the user
+  const buttons = [{ title: "Yes" }, { title: "No", isCloseAffordance: true }];
+  if (!userInvoked) {
+    buttons.push({ title: "Don't show again" });
+  }
+
   const response = await vscode.window.showInformationMessage(
-    "We're about to update your `copilot-instructions.md` file.\n\n" +
-      "This file helps GitHub Copilot understand and work better with Q# files and features provided by the Quantum Development Kit extension.\n\n" +
-      "Would you like to proceed with updating `copilot-instructions.md`?",
-    { modal: true },
-    { title: "Yes" },
-    { title: "No", isCloseAffordance: true },
+    "Add Q# guidance to copilot-instructions.md?\n\n" +
+      "Updating this file will help GitHub Copilot understand and work better with Q# files and other Quantum Development Kit features.",
+    {
+      modal: userInvoked,
+    },
+    ...buttons,
   );
 
   if (response?.title !== "Yes") {
@@ -223,7 +236,13 @@ export async function updateCopilotInstructions(resource: vscode.Uri) {
       reason: "User canceled",
       flowStatus: UserFlowStatus.Aborted,
     });
-    return; // User canceled or dismissed the dialog
+
+    vscode.window.showInformationMessage(
+      "To add Q# guidance to copilot-instructions.md at any time, " +
+        'run the command "Q#: Update Copilot instructions file for Q#".',
+    );
+
+    return response; // User dismissed the dialog
   }
 
   try {
@@ -274,7 +293,8 @@ export async function updateCopilotInstructions(resource: vscode.Uri) {
       { flowStatus: UserFlowStatus.Failed, reason: "Error" },
       {},
     );
-    return;
+
+    return response;
   }
 
   // Send telemetry event for successful completion
@@ -292,7 +312,24 @@ export function registerGhCopilotInstructionsCommand(
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "qsharp-vscode.updateCopilotInstructions",
-      updateGhCopilotInstructionsCommand,
+      () => updateGhCopilotInstructionsCommand(true),
     ),
   );
+
+  // Also do a one-time prompt at startup
+  if (
+    context.globalState.get<boolean>(
+      "showUpdateCopilotInstructionsPromptAtStartup",
+      true,
+    )
+  ) {
+    updateGhCopilotInstructionsCommand(false).then((response) => {
+      if (response?.title === "Don't show again") {
+        context.globalState.update(
+          "showUpdateCopilotInstructionsPromptAtStartup",
+          false,
+        );
+      }
+    });
+  }
 }
