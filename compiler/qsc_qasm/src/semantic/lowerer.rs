@@ -951,6 +951,11 @@ impl Lowerer {
         ty: &super::types::Type,
         span: Span,
     ) -> crate::types::Type {
+        if ty.is_array() && matches!(ty.array_dims(), Some(super::types::ArrayDimensions::Err)) {
+            self.push_unsupported_error_message("arrays with more than 7 dimensions", span);
+            return crate::types::Type::Err;
+        }
+
         let is_const = ty.is_const();
         match ty {
             Type::Bit(_) => crate::types::Type::Result(is_const),

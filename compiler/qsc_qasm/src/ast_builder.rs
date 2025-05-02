@@ -1354,7 +1354,10 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
             let ty = build_complex_ty_ident();
             wrap_array_ty_by_dims(dims, ty)
         }
-        crate::types::Type::AngleArray(dims, _) => build_array_type_name("__Angle__", dims),
+        crate::types::Type::AngleArray(dims, _) => {
+            let ty = build_angle_ty_ident();
+            wrap_array_ty_by_dims(dims, ty)
+        }
         crate::types::Type::Callable(_, _, _) => todo!(),
         crate::types::Type::Range => build_path_ident_ty("Range"),
         crate::types::Type::Tuple(tys) => {
@@ -1387,6 +1390,18 @@ fn wrap_array_ty_by_dims(dims: &ArrayDimensions, ty: Ty) -> Ty {
         ArrayDimensions::One(..) => wrap_ty_in_array(ty),
         ArrayDimensions::Two(..) => wrap_ty_in_array(wrap_ty_in_array(ty)),
         ArrayDimensions::Three(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
+        ArrayDimensions::Four(..) => {
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))))
+        }
+        ArrayDimensions::Five(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(ty)),
+        ))),
+        ArrayDimensions::Six(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
+        ))),
+        ArrayDimensions::Seven(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty)))),
+        ))),
     }
 }
 

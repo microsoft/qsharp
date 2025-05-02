@@ -65,6 +65,10 @@ pub enum ArrayDimensions {
     One(usize),
     Two(usize, usize),
     Three(usize, usize, usize),
+    Four(usize, usize, usize, usize),
+    Five(usize, usize, usize, usize, usize),
+    Six(usize, usize, usize, usize, usize, usize),
+    Seven(usize, usize, usize, usize, usize, usize, usize),
 }
 
 impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
@@ -79,7 +83,53 @@ impl From<&crate::semantic::types::ArrayDimensions> for ArrayDimensions {
             crate::semantic::types::ArrayDimensions::Three(dim1, dim2, dim3) => {
                 ArrayDimensions::Three(*dim1 as usize, *dim2 as usize, *dim3 as usize)
             }
-            _ => unimplemented!("Array dimensions greater than three are not supported."),
+            crate::semantic::types::ArrayDimensions::Four(dim1, dim2, dim3, dim4) => {
+                ArrayDimensions::Four(
+                    *dim1 as usize,
+                    *dim2 as usize,
+                    *dim3 as usize,
+                    *dim4 as usize,
+                )
+            }
+            crate::semantic::types::ArrayDimensions::Five(dim1, dim2, dim3, dim4, dim5) => {
+                ArrayDimensions::Five(
+                    *dim1 as usize,
+                    *dim2 as usize,
+                    *dim3 as usize,
+                    *dim4 as usize,
+                    *dim5 as usize,
+                )
+            }
+            crate::semantic::types::ArrayDimensions::Six(dim1, dim2, dim3, dim4, dim5, dim6) => {
+                ArrayDimensions::Six(
+                    *dim1 as usize,
+                    *dim2 as usize,
+                    *dim3 as usize,
+                    *dim4 as usize,
+                    *dim5 as usize,
+                    *dim6 as usize,
+                )
+            }
+            crate::semantic::types::ArrayDimensions::Seven(
+                dim1,
+                dim2,
+                dim3,
+                dim4,
+                dim5,
+                dim6,
+                dim7,
+            ) => ArrayDimensions::Seven(
+                *dim1 as usize,
+                *dim2 as usize,
+                *dim3 as usize,
+                *dim4 as usize,
+                *dim5 as usize,
+                *dim6 as usize,
+                *dim7 as usize,
+            ),
+            crate::semantic::types::ArrayDimensions::Err => {
+                unimplemented!("Array dimensions greater than seven are not supported.")
+            }
         }
     }
 }
@@ -138,6 +188,10 @@ impl Display for ArrayDimensions {
             ArrayDimensions::One(..) => write!(f, "[]"),
             ArrayDimensions::Two(..) => write!(f, "[][]"),
             ArrayDimensions::Three(..) => write!(f, "[][][]"),
+            ArrayDimensions::Four(..) => write!(f, "[][][][]"),
+            ArrayDimensions::Five(..) => write!(f, "[][][][][]"),
+            ArrayDimensions::Six(..) => write!(f, "[][][][][][]"),
+            ArrayDimensions::Seven(..) => write!(f, "[][][][][][][]"),
         }
     }
 }

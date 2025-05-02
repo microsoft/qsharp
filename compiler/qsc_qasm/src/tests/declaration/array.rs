@@ -471,3 +471,42 @@ fn array_declaration_in_non_global_scope_fails() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn arrays_with_7_dimensions_are_supported() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 1, 1, 1, 1, 1, 1, 1] a;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [[[[[[[0]]]]]]];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn arrays_with_8_dimensions_are_unsupported() {
+    let source = "
+        array[int, 1, 2, 3, 4, 5, 6, 7, 8] a;
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.NotSupported
+
+          x arrays with more than 7 dimensions are not supported
+           ,-[Test.qasm:2:9]
+         1 | 
+         2 |         array[int, 1, 2, 3, 4, 5, 6, 7, 8] a;
+           :         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         3 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
