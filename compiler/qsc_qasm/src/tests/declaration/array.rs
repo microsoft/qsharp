@@ -322,7 +322,7 @@ fn assign_slice() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn array_with_size_zero() -> miette::Result<(), Vec<Report>> {
+fn default_simple_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
     let source = "
         array[int, 0] a;
     ";
@@ -331,6 +331,51 @@ fn array_with_size_zero() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import QasmStd.Intrinsic.*;
         mutable a = [];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn init_simple_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 0] a = {};
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn default_multidimensional_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 2, 0] a;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [[], []];
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn init_multidimensional_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        array[int, 2, 0] a = {{}, {}};
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable a = [[], []];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
