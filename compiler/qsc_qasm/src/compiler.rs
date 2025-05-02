@@ -64,15 +64,16 @@ fn err_expr(span: Span) -> qsast::Expr {
 }
 
 #[must_use]
-pub fn compile_to_qsharp_ast_with_config<R>(
-    source: Arc<str>,
-    path: Arc<str>,
+pub fn compile_to_qsharp_ast_with_config<
+    R: SourceResolver,
+    S: Into<Arc<str>>,
+    P: Into<Arc<str>>,
+>(
+    source: S,
+    path: P,
     resolver: Option<&mut R>,
     config: CompilerConfig,
-) -> QasmCompileUnit
-where
-    R: SourceResolver,
-{
+) -> QasmCompileUnit {
     let res = if let Some(resolver) = resolver {
         crate::semantic::parse_source(source, path, resolver)
     } else {

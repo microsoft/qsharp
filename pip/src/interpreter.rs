@@ -489,12 +489,7 @@ impl Interpreter {
             None,
         );
 
-        let unit = compile_to_qsharp_ast_with_config(
-            input.into(),
-            "<none>".into(),
-            Some(&mut resolver),
-            config,
-        );
+        let unit = compile_to_qsharp_ast_with_config(input, "<none>", Some(&mut resolver), config);
         let (sources, errors, package, _) = unit.into_tuple();
 
         if !errors.is_empty() {

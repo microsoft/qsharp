@@ -75,10 +75,7 @@ pub(crate) fn generate_qir_from_ast(
     )
 }
 
-fn compile<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+fn compile<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::Qiskit,
@@ -89,13 +86,10 @@ where
     compile_with_config(source, config)
 }
 
-fn compile_with_config<S>(
+fn compile_with_config<S: Into<Arc<str>>>(
     source: S,
     config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let res = parse(source)?;
     if res.has_syntax_errors() {
         for e in res.sytax_errors() {
@@ -147,10 +141,7 @@ pub fn compile_all_fragments(
     compile_all_with_config(path, sources, config)
 }
 
-fn compile_fragments<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+fn compile_fragments<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -209,12 +200,8 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
         None,
     );
 
-    let unit = compile_to_qsharp_ast_with_config(
-        source.into(),
-        "source.qasm".into(),
-        Some(&mut resolver),
-        config,
-    );
+    let unit =
+        compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
     let (sources, _, package, _) = unit.into_tuple();
 
     let dependencies = vec![
@@ -245,13 +232,14 @@ pub(crate) fn compare_compilation_to_qsharp(unit: &QasmCompileUnit, expected: &s
     difference::assert_diff!(&qsharp, expected, "\n", 0);
 }
 
-pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    S: AsRef<str>,
-{
-    let mut resolver =
-        InMemorySourceResolver::from_iter([("Test.qasm".into(), source.as_ref().into())]);
-    let res = parse_source(source.as_ref().into(), "Test.qasm".into(), &mut resolver);
+pub(crate) fn parse<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
+    let source = source.into();
+    let name: Arc<str> = "Test.qasm".into();
+    let sources = [(name.clone(), source.clone())];
+    let mut resolver = InMemorySourceResolver::from_iter(sources);
+    let res = parse_source(source, name, &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -446,8 +434,8 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
     );
     let mut resolver = crate::io::InMemorySourceResolver::from_iter([]);
     let unit = crate::compile_to_qsharp_ast_with_config(
-        source.into(),
-        "source.qasm".into(),
+        source,
+        "source.qasm",
         Some(&mut resolver),
         config,
     );

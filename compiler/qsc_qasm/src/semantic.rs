@@ -92,7 +92,12 @@ impl QasmSemanticParseResult {
     }
 }
 
-pub(crate) fn parse(source: Arc<str>, path: Arc<str>) -> QasmSemanticParseResult {
+pub(crate) fn parse<S: Into<Arc<str>>, P: Into<Arc<str>>>(
+    source: S,
+    path: P,
+) -> QasmSemanticParseResult {
+    let source = source.into();
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter([(path.clone(), source.clone())]);
     parse_source(source, path, &mut resolver)
 }
@@ -101,14 +106,11 @@ pub(crate) fn parse(source: Arc<str>, path: Arc<str>) -> QasmSemanticParseResult
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<R>(
-    source: Arc<str>,
-    path: Arc<str>,
+pub fn parse_source<R: SourceResolver, S: Into<Arc<str>>, P: Into<Arc<str>>>(
+    source: S,
+    path: P,
     resolver: &mut R,
-) -> QasmSemanticParseResult
-where
-    R: SourceResolver,
-{
+) -> QasmSemanticParseResult {
     let res = crate::parser::parse_source(source, path, resolver);
     let analyzer = Lowerer::new(res.source, res.source_map);
     let sem_res = analyzer.lower();

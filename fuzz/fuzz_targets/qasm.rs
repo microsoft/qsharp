@@ -37,8 +37,8 @@ fn compile(data: &[u8]) {
             );
 
             let unit = compile_to_qsharp_ast_with_config(
-                fuzzed_code.into(),
-                "fuzz.qasm".into(),
+                fuzzed_code,
+                "fuzz.qasm",
                 Some(&mut resolver),
                 config,
             );
