@@ -23,7 +23,9 @@ pub const GITHUB_SCHEME: &str = "qsharp-github-source";
 #[derive(Debug, Clone, Default)]
 pub enum ProjectType {
     #[default]
+    /// A Q# project. Described by a `qsharp.json` manifest or a single Q# file
     QSharp,
+    /// A QASM project. Described by an OpenQASM source file and its includes
     OpenQASM,
 }
 
