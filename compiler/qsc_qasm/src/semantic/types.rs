@@ -349,7 +349,7 @@ impl Type {
 /// Its second argument is a function that builds the array type given the
 /// new dims of the array after indexing, and the base type of the array.
 ///
-/// Finnaly it takes the dimensions of the array being indexed and the indices
+/// Finally it takes the dimensions of the array being indexed and the indices
 /// used to index it. The function returns the type of the result after indexing.
 fn indexed_type_builder(
     base_ty_builder: impl Fn() -> Type,
