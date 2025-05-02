@@ -402,3 +402,27 @@ fn indexing_a_multidimensional_array_of_zero_size_fails() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn array_declaration_in_non_global_scope_fails() {
+    let source = "
+        def f() {
+            array[int, 2] a;
+        }
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [  x array declarations are only allowed in global scope
+           ,-[Test.qasm:3:13]
+         2 |         def f() {
+         3 |             array[int, 2] a;
+           :             ^^^^^^^^^^^^^^^^
+         4 |         }
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}

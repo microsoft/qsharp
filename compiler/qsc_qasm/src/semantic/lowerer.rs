@@ -1115,6 +1115,16 @@ impl Lowerer {
         let is_const = false; // const decls are handled separately
         let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
 
+        // Arrays are only allowed in the global scope.
+        // If we are not in the global scope, we push an error.
+        if ty.is_array()
+            && !matches!(ty, Type::BitArray(..))
+            && !self.symbols.is_current_scope_global()
+        {
+            let kind = SemanticErrorKind::ArrayDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
         let init_expr = stmt.init_expr.as_deref();
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;

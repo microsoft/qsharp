@@ -19,6 +19,8 @@ pub struct Error(pub SemanticErrorKind);
 ///   - it is missing many language features
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum SemanticErrorKind {
+    #[error("array declarations are only allowed in global scope")]
+    ArrayDeclarationInNonGlobalScope(#[label] Span),
     #[error("{0}")]
     #[diagnostic(code("Qasm.Lowerer.ArrayDeclarationTypeError"))]
     ArrayDeclarationTypeError(String, #[label] Span),
