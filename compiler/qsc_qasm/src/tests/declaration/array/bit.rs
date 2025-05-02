@@ -138,3 +138,29 @@ fn bitarray_const_evaluation() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn indexing_a_bitarray_of_zero_size_fails() {
+    let source = "
+        bit[0] a;
+        a[0];
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.ZeroSizeArrayAccess
+
+          x zero size array access is not allowed
+           ,-[Test.qasm:3:9]
+         2 |         bit[0] a;
+         3 |         a[0];
+           :         ^^^^
+         4 |     
+           `----
+          help: array size must be a positive integer const expression
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}

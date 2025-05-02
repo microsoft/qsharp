@@ -350,3 +350,55 @@ fn array_with_size_one() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn indexing_a_simple_array_of_zero_size_fails() {
+    let source = "
+        array[int, 0] a;
+        a[0];
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.ZeroSizeArrayAccess
+
+          x zero size array access is not allowed
+           ,-[Test.qasm:3:9]
+         2 |         array[int, 0] a;
+         3 |         a[0];
+           :         ^^^^
+         4 |     
+           `----
+          help: array size must be a positive integer const expression
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn indexing_a_multidimensional_array_of_zero_size_fails() {
+    let source = "
+        array[int, 3, 0, 2] a;
+        a[1:2];
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.ZeroSizeArrayAccess
+
+          x zero size array access is not allowed
+           ,-[Test.qasm:3:9]
+         2 |         array[int, 3, 0, 2] a;
+         3 |         a[1:2];
+           :         ^^^^^^
+         4 |     
+           `----
+          help: array size must be a positive integer const expression
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}

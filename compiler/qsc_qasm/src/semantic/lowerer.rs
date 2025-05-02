@@ -656,22 +656,8 @@ impl Lowerer {
         lowering_array: bool,
     ) -> semantic::Expr {
         let expr = match &*expr.kind {
-            syntax::ExprKind::BinaryOp(bin_op_expr) => {
-                let lhs = self.lower_expr(&bin_op_expr.lhs);
-                let rhs = self.lower_expr(&bin_op_expr.rhs);
-                self.lower_binary_op_expr(bin_op_expr.op, lhs, rhs, expr.span)
-            }
-            syntax::ExprKind::Cast(_) => {
-                self.push_unimplemented_error_message("cast expr", expr.span);
-                err_expr!(Type::Err, expr.span)
-            }
-            syntax::ExprKind::Err => err_expr!(Type::Err, expr.span),
-            syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
-            syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
-            syntax::ExprKind::IndexExpr(expr) => self.lower_index_expr(expr),
             syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, Some(ty)),
-            syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
-            syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+            _ => self.lower_expr(expr),
         };
 
         // If we are not lowering an array OR are lowering one but haven't reached a leaf node
@@ -736,12 +722,8 @@ impl Lowerer {
     }
 
     fn check_lit_array_type(&mut self, expr: &syntax::Lit, ty: &Type) {
-        if ty.is_proper_array() {
-            let expected_size = ty
-                .array_dims()
-                .expect("proper arrays should have dims")
-                .into_iter()
-                .next();
+        if let Some(dims) = ty.array_dims() {
+            let expected_size = dims.into_iter().next();
 
             let Some(expected_size) = expected_size else {
                 // If we don't have at least one dimension_size, it means the dimension was Err.
@@ -3575,6 +3557,19 @@ impl Lowerer {
             // Since we can't evaluate the indices, we can't know the indexed type.
             return err_expr!(Type::Err, expr.span);
         };
+
+        // The spec says:
+        // "One or more dimension(s) of an array can be zero,
+        //  in which case the array has size zero. An array of
+        //  size zero cannot be indexed, e.g. given
+        //  `array[float[32], 0] myArray;`
+        //  it is an error to access either myArray[0] or myArray[-1]."
+        if collection.ty.has_zero_size() {
+            let kind = SemanticErrorKind::ZeroSizeArrayAccess(expr.span);
+            self.push_semantic_error(kind);
+            return err_expr!(Type::Err, expr.span);
+        }
+
         let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, &indices);
 
         semantic::Expr {
@@ -3651,8 +3646,21 @@ impl Lowerer {
         };
 
         let ty = lhs_symbol.ty.clone();
+
+        // The spec says:
+        // "One or more dimension(s) of an array can be zero,
+        //  in which case the array has size zero. An array of
+        //  size zero cannot be indexed, e.g. given
+        //  `array[float[32], 0] myArray;`
+        //  it is an error to access either myArray[0] or myArray[-1]."
+        if ty.has_zero_size() {
+            let kind = SemanticErrorKind::ZeroSizeArrayAccess(indexed_ident.span);
+            self.push_semantic_error(kind);
+            return err_expr!(Type::Err, indexed_ident.span);
+        }
+
         // use the supplied number of indices rather than the number of indices we lowered
-        let ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
+        let indexed_ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
 
         semantic::Expr {
             span: indexed_ident.span,
@@ -3663,7 +3671,7 @@ impl Lowerer {
                 symbol_id,
                 indices: list_from_iter(indices),
             })),
-            ty,
+            ty: indexed_ty,
         }
     }
 

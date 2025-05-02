@@ -115,19 +115,6 @@ impl Type {
         )
     }
 
-    pub(crate) fn is_proper_array(&self) -> bool {
-        matches!(
-            self,
-            Type::AngleArray(..)
-                | Type::BoolArray(..)
-                | Type::ComplexArray(..)
-                | Type::DurationArray(..)
-                | Type::FloatArray(..)
-                | Type::IntArray(..)
-                | Type::UIntArray(..)
-        )
-    }
-
     pub(crate) fn array_dims(&self) -> Option<ArrayDimensions> {
         match self {
             Self::AngleArray(_, dims)
@@ -138,6 +125,23 @@ impl Type {
             | Self::IntArray(_, dims)
             | Self::UIntArray(_, dims) => Some(dims.clone()),
             _ => None,
+        }
+    }
+
+    pub(crate) fn has_zero_size(&self) -> bool {
+        match self {
+            Type::BitArray(size, _) | Type::QubitArray(size) => *size == 0,
+            Type::BoolArray(dims)
+            | Type::AngleArray(_, dims)
+            | Type::ComplexArray(_, dims)
+            | Type::DurationArray(dims)
+            | Type::FloatArray(_, dims)
+            | Type::IntArray(_, dims)
+            | Type::UIntArray(_, dims) => {
+                let size = dims.clone().into_iter().reduce(|a, b| a * b).unwrap_or(1);
+                size == 0
+            }
+            _ => false,
         }
     }
 
@@ -387,6 +391,16 @@ fn indexed_type_builder(
     }
 }
 
+/// The spec says: "Indexing of arrays is n-based i.e., negative indices are allowed."
+/// <https://openqasm.com/language/types.html#arrays>
+/// Does that means indexes always wrap around and there is no index out of bounds error?
+///
+/// Rust's % operator performs a remainder operator, not a modulo operation.
+/// We need to use `i64::rem_euclid` instead.
+pub(crate) fn wrap_index_value(val: i64, dimension_size: i64) -> i64 {
+    val.rem_euclid(dimension_size)
+}
+
 /// Computes the slice's start, step, and end.
 pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i64, i64, i64) {
     // Helper function to extract the literal value from the start,
@@ -407,14 +421,8 @@ pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i
     let step = unwrap_lit_or_default(range.step.as_ref(), 1);
     let end = unwrap_lit_or_default(range.end.as_ref(), i64::from(dimension_size) - 1);
 
-    // The spec says: "Indexing of arrays is n-based i.e., negative indices are allowed."
-    // <https://openqasm.com/language/types.html#arrays>
-    // Does that means indexes always wrap around and there is no index out of bounds error?
-    //
-    // Rust's % operator performs a remainder operator, not a modulo operation.
-    // We need to use i64::rem_euclid instead.
-    let start = start.rem_euclid(i64::from(dimension_size));
-    let end = end.rem_euclid(i64::from(dimension_size));
+    let start = wrap_index_value(start, i64::from(dimension_size));
+    let end = wrap_index_value(end, i64::from(dimension_size));
 
     (start, step, end)
 }

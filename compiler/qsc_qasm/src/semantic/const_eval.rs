@@ -126,7 +126,8 @@ impl LiteralKind {
                     return None;
                 };
 
-                let idx = idx.rem_euclid(i64::from(size)) as u64;
+                #[allow(clippy::cast_sign_loss)]
+                let idx = super::types::wrap_index_value(idx, i64::from(size)) as u64;
                 let mask = BigInt::from(1) << idx;
                 Some(Self::Bit((value & mask) != BigInt::ZERO))
             }
