@@ -111,8 +111,7 @@ function registerCommands(context: vscode.ExtensionContext) {
   ) {
     clearCommandDiagnostics();
 
-    const ty = vscode.debug.activeDebugSession?.type;
-    if (ty === "qsharp") {
+    if (vscode.debug.activeDebugSession?.type === "qsharp") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;
     }
@@ -182,8 +181,7 @@ function registerCommands(context: vscode.ExtensionContext) {
   ) {
     clearCommandDiagnostics();
 
-    const ty = vscode.debug.activeDebugSession?.type;
-    if (ty === "openqasm") {
+    if (vscode.debug.activeDebugSession?.type === "openqasm") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;
     }
