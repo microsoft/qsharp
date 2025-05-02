@@ -13,6 +13,7 @@ import {
   log,
   ProgramConfig,
   TargetProfile,
+  ProjectType,
   LanguageServiceDiagnosticEvent,
 } from "qsharp-lang";
 import { Exercise, getExerciseSources } from "qsharp-lang/katas-md";
@@ -139,6 +140,7 @@ export function Editor(props: {
       sources: [["code", code]] as [string, string][],
       languageFeatures: [],
       profile: profile,
+      projectType: "qsharp" as ProjectType,
     };
 
     if (props.activeTab === "ast-tab") {
@@ -206,6 +208,7 @@ export function Editor(props: {
       sources: [["code", code]],
       languageFeatures: [],
       profile: profile,
+      projectType: "qsharp",
     } as ProgramConfig;
 
     try {

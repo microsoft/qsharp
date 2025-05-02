@@ -706,3 +706,8 @@ export type TargetProfile = "base" | "adaptive_ri" | "adaptive_rif" | "unrestric
 const LANGUAGE_FEATURES: &'static str = r#"
 export type LanguageFeatures = "v2-preview-syntax";
 "#;
+
+#[wasm_bindgen(typescript_custom_section)]
+const PROJECT_TYPE: &'static str = r#"
+export type ProjectType = "qsharp" | "openqasm";
+"#;
