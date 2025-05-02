@@ -60,7 +60,10 @@ export function isOpenQasmDocument(document: TextDocument): boolean {
       Utils.extname(document.uri) === ".inc" ||
       document.isUntitled) &&
     document.uri.scheme !== "git" &&
-    document.uri.scheme !== "pr"
+    document.uri.scheme !== "pr" &&
+    // The Copilot Chat window also creates documents with various schemes that start
+    // with "chat", such as "chat-editing-text-model" and others.
+    !document.uri.scheme.startsWith("chat")
   );
 }
 
