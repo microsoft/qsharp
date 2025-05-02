@@ -159,7 +159,6 @@ impl Type {
     #[must_use]
     pub fn is_const(&self) -> bool {
         match self {
-            // Arrays are literals, so they must have const types.
             Type::BitArray(_, is_const)
             | Type::Bit(is_const)
             | Type::Bool(is_const)
