@@ -296,7 +296,7 @@ export function toWasmProgramConfig(
   return {
     packageGraphSources,
     profile: program.profile || defaultProfile,
-    projectType: program.projectType,
+    projectType: program.projectType ?? "qsharp",
   };
 }
 
