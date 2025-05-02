@@ -557,7 +557,6 @@ impl QasmCompiler {
         }
         // Recursive case.
         else {
-            // build_ternary_update_expr(lhs, index, rhs)
             let index = indices.pop().expect("there is exactly one index");
             let rhs = {
                 let span = Span {

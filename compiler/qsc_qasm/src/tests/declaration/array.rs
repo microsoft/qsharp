@@ -378,7 +378,7 @@ fn indexing_a_simple_array_of_zero_size_fails() {
 }
 
 #[test]
-fn indexing_a_multidimensional_array_of_zero_size_fails() {
+fn indexing_a_multidimensional_array_of_size_zero_fails() {
     let source = "
         array[int, 3, 0, 2] a;
         a[1:2];
