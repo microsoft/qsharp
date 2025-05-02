@@ -340,6 +340,17 @@ impl Type {
     }
 }
 
+/// This function builds the indexed type of a given type.
+///
+/// Its first argument is a function that builds the base type of an array,
+/// which is only used if the array is fully indexed, and the result of the
+/// indexing operation is a scalar type.
+///
+/// Its second argument is a function that builds the array type given the
+/// new dims of the array after indexing, and the base type of the array.
+///
+/// Finnaly it takes the dimensions of the array being indexed and the indices
+/// used to index it. The function returns the type of the result after indexing.
 fn indexed_type_builder(
     base_ty_builder: impl Fn() -> Type,
     array_ty_builder: impl Fn(ArrayDimensions) -> Type,
@@ -430,6 +441,8 @@ pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i
 /// This function returns `None` if the range step is zero.
 fn compute_slice_size(range: &Range, dimension_size: u32) -> Option<u32> {
     // If the dimension is zero, the slice will also have size zero.
+    // If the dimension size is zero, the slice will always be empty.
+    // So we return Some(0) as the size of the slice.
     if dimension_size == 0 {
         return Some(0);
     }
@@ -751,8 +764,8 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Float(lhs_width, _), Type::Float(rhs_width, _))
         | (Type::Angle(lhs_width, _), Type::Angle(rhs_width, _))
         | (Type::Complex(lhs_width, _), Type::Complex(rhs_width, _)) => lhs_width == rhs_width,
-        (Type::BitArray(lhs_dim, _), Type::BitArray(rhs_dim, _))
-        | (Type::QubitArray(lhs_dim), Type::QubitArray(rhs_dim)) => lhs_dim == rhs_dim,
+        (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
+        | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
         (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
         (Type::IntArray(lhs_width, lhs_dims), Type::IntArray(rhs_width, rhs_dims))
         | (Type::UIntArray(lhs_width, lhs_dims), Type::UIntArray(rhs_width, rhs_dims))
@@ -788,10 +801,10 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Angle(_, _), Type::Angle(_, _))
         | (Type::Complex(_, _), Type::Complex(_, _))
         | (Type::Gate(_, _), Type::Gate(_, _)) => true,
-        (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
-        | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
+        (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
+        | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
+        | (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
         | (Type::UIntArray(_, lhs_dims), Type::UIntArray(_, rhs_dims))
         | (Type::FloatArray(_, lhs_dims), Type::FloatArray(_, rhs_dims))
         | (Type::AngleArray(_, lhs_dims), Type::AngleArray(_, rhs_dims))
