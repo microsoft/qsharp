@@ -38,16 +38,13 @@ pub struct CompileRawQasmResult(
 );
 
 #[must_use]
-pub fn compile_raw_qasm<R>(
-    source: Arc<str>,
-    path: Arc<str>,
+pub fn compile_raw_qasm<R: SourceResolver, S: Into<Arc<str>>>(
+    source: S,
+    path: S,
     resolver: Option<&mut R>,
     package_type: PackageType,
     capabilities: TargetCapabilityFlags,
-) -> CompileRawQasmResult
-where
-    R: SourceResolver,
-{
+) -> CompileRawQasmResult {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -59,17 +56,14 @@ where
 }
 
 #[must_use]
-pub fn compile_with_config<R>(
-    source: Arc<str>,
-    path: Arc<str>,
+pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
+    source: S,
+    path: S,
     resolver: Option<&mut R>,
     config: CompilerConfig,
     package_type: PackageType,
     capabilities: TargetCapabilityFlags,
-) -> CompileRawQasmResult
-where
-    R: SourceResolver,
-{
+) -> CompileRawQasmResult {
     let unit = compile_to_qsharp_ast_with_config(source, path, resolver, config);
 
     let (source_map, errors, package, sig) = unit.into_tuple();
@@ -105,14 +99,11 @@ where
 }
 
 #[must_use]
-pub fn parse_raw_qasm_as_fragments<R>(
-    source: Arc<str>,
-    path: Arc<str>,
+pub fn parse_raw_qasm_as_fragments<R: SourceResolver, S: Into<Arc<str>>>(
+    source: S,
+    path: S,
     resolver: Option<&mut R>,
-) -> QasmCompileUnit
-where
-    R: SourceResolver,
-{
+) -> QasmCompileUnit {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -124,21 +115,22 @@ where
 }
 
 #[must_use]
-pub fn parse_raw_qasm_as_operation<S, R>(
-    source: Arc<str>,
-    name: S,
-    path: Arc<str>,
-    resolver: Option<&mut R>,
-) -> QasmCompileUnit
-where
-    S: AsRef<str>,
+pub fn parse_raw_qasm_as_operation<
     R: SourceResolver,
-{
+    S: Into<Arc<str>>,
+    N: Into<Arc<str>>,
+    P: Into<Arc<str>>,
+>(
+    source: S,
+    name: N,
+    path: P,
+    resolver: Option<&mut R>,
+) -> QasmCompileUnit {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
         ProgramType::Operation,
-        Some(name.as_ref().into()),
+        Some(name.into()),
         None,
     );
     compile_to_qsharp_ast_with_config(source, path, resolver, config)

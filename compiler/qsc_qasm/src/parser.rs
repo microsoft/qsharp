@@ -109,11 +109,12 @@ fn update_offsets(source_map: &SourceMap, source: &mut QasmSource) {
 /// This function will resolve includes using the provided resolver.
 /// If an include file cannot be resolved, an error will be returned.
 /// If a file is included recursively, a stack overflow occurs.
-pub fn parse_source<R>(source: Arc<str>, path: Arc<str>, resolver: &mut R) -> QasmParseResult
-where
-    R: SourceResolver,
-{
-    let res = parse_qasm_source(source, path, resolver);
+pub fn parse_source<R: SourceResolver, S: Into<Arc<str>>, P: Into<Arc<str>>>(
+    source: S,
+    path: P,
+    resolver: &mut R,
+) -> QasmParseResult {
+    let res = parse_qasm_source(source.into(), path.into(), resolver);
     QasmParseResult::new(res)
 }
 

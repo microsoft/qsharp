@@ -25,7 +25,7 @@ pub enum ProjectType {
     #[default]
     /// A Q# project. Described by a `qsharp.json` manifest or a single Q# file
     QSharp,
-    /// A QASM project. Described by an OpenQASM source file and its includes
+    /// A QASM project. Described by an `OpenQASM` source file and its includes
     OpenQASM,
 }
 
@@ -45,6 +45,7 @@ pub struct Project {
     pub lints: Vec<LintOrGroupConfig>,
     /// Any errors encountered while loading the project.
     pub errors: Vec<Error>,
+    /// The type of project. This is used to determine how to load the project.
     pub project_type: ProjectType,
 }
 
