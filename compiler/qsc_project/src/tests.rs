@@ -44,6 +44,7 @@ fn basic_manifest() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -125,6 +126,7 @@ fn circular_imports() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -163,6 +165,7 @@ fn different_files_same_manifest() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -193,6 +196,7 @@ fn empty_manifest() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -235,6 +239,7 @@ fn folder_structure() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -272,6 +277,7 @@ fn hidden_files() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -313,6 +319,7 @@ fn peer_file() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -343,6 +350,7 @@ fn language_feature() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -389,6 +397,7 @@ fn with_local_dep() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -450,6 +459,7 @@ fn transitive_dep() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -484,6 +494,7 @@ fn explicit_files_list() {
                 },
                 lints: [],
                 errors: [],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -523,6 +534,7 @@ fn explicit_files_list_missing_entry() {
                         relative_path: "REPLACED",
                     },
                 ],
+                project_type: QSharp,
             }"#]],
     );
 }
@@ -560,6 +572,7 @@ fn circular_dep() {
                         "REPLACED",
                     ),
                 ],
+                project_type: QSharp,
             }"#]],
     );
 }
