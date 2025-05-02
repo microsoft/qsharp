@@ -354,7 +354,7 @@ fn init_simple_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn default_multidimensional_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
     let source = "
-        array[int, 2, 0] a;
+        array[int, 2, 0, 3] a;
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -475,13 +475,13 @@ fn array_declaration_in_non_global_scope_fails() {
 #[test]
 fn arrays_with_7_dimensions_are_supported() -> miette::Result<(), Vec<Report>> {
     let source = "
-        array[int, 1, 1, 1, 1, 1, 1, 1] a;
+        array[int, 1, 2, 3, 3, 2, 1, 2] a;
     ";
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import QasmStd.Intrinsic.*;
-        mutable a = [[[[[[[0]]]]]]];
+        mutable a = [[[[[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]], [[[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]]]];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
