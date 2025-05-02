@@ -47,6 +47,7 @@ const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
   };
   _addStyles(container, getWireData(container));
   _addDataWires(container);
+  svg.appendChild(_ghostQuibitLayer(context));
   svg.appendChild(_dropzoneLayer(context));
 };
 
@@ -283,25 +284,30 @@ const _center = (elem: SVGGraphicsElement): { cX: number; cY: number } => {
 };
 
 /**
- * Create dropzone layer with all dropzones populated
+ * Create layer with ghost qubit wire and label
  */
-const _dropzoneLayer = (context: Context) => {
-  const dropzoneLayer = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "g",
-  );
-  dropzoneLayer.classList.add("dropzone-layer");
-  dropzoneLayer.style.display = "none";
+const _ghostQuibitLayer = (context: Context) => {
+  const { container, svg } = context;
 
-  const { container, svg, operationGrid } = context;
-
-  let wireData = getWireData(container);
-
-  const colArray = getColumnOffsetsAndWidths(container);
+  const wireData = getWireData(container);
 
   const svgHeight = Number(svg.getAttribute("height") || svg.clientHeight || 0);
   const svgWidth = Number(svg.getAttribute("width") || svg.clientWidth || 800);
   const ghostY = svgHeight;
+
+  const ghostLayer = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  ghostLayer.classList.add("ghost-qubit-layer");
+  ghostLayer.style.display = "none";
+  // Insert before dropzone-layer if possible, otherwise at end
+  const dzLayer = svg.querySelector("g.dropzone-layer");
+  if (dzLayer) {
+    svg.insertBefore(ghostLayer, dzLayer);
+  } else {
+    svg.appendChild(ghostLayer);
+  }
 
   const ghostWire = line(
     regLineStart,
@@ -318,12 +324,30 @@ const _dropzoneLayer = (context: Context) => {
   );
   ghostLabel.classList.add("ghost-opacity");
 
-  dropzoneLayer.appendChild(ghostWire);
-  dropzoneLayer.appendChild(ghostLabel);
+  // Append to ghost-qubit-layer instead of dropzoneLayer
+  ghostLayer.appendChild(ghostWire);
+  ghostLayer.appendChild(ghostLabel);
 
   context.svg.setAttribute("height", (svgHeight + registerHeight).toString());
 
-  wireData = [...wireData, ghostY];
+  return ghostLayer;
+};
+
+/**
+ * Create dropzone layer with all dropzones populated
+ */
+const _dropzoneLayer = (context: Context) => {
+  const dropzoneLayer = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  dropzoneLayer.classList.add("dropzone-layer");
+  dropzoneLayer.style.display = "none";
+
+  const { container, operationGrid } = context;
+
+  const colArray = getColumnOffsetsAndWidths(container);
+  const wireData = getWireData(container);
 
   // Create dropzones for each intersection of columns and wires
   for (let colIndex = 0; colIndex < colArray.length; colIndex++) {

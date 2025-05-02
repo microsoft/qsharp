@@ -61,6 +61,7 @@ class CircuitEvents {
   qubits: Qubit[];
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
+  private ghostQubitLayer: SVGGElement;
   private temporaryDropzones: SVGElement[] = [];
   private wireData: number[];
   private columnXData: { xOffset: number; colWidth: number }[];
@@ -81,6 +82,9 @@ class CircuitEvents {
     this.circuitSvg = container.querySelector("svg[id]") as SVGElement;
     this.dropzoneLayer = container.querySelector(
       ".dropzone-layer",
+    ) as SVGGElement;
+    this.ghostQubitLayer = container.querySelector(
+      ".ghost-qubit-layer",
     ) as SVGGElement;
 
     this.componentGrid = sqore.circuit.componentGrid;
@@ -293,10 +297,10 @@ class CircuitEvents {
    * Add events specifically for dropzoneLayer
    */
   _addDropzoneLayerEvents() {
-    this.container.addEventListener(
-      "mouseup",
-      () => (this.dropzoneLayer.style.display = "none"),
-    );
+    this.container.addEventListener("mouseup", () => {
+      this.ghostQubitLayer.style.display = "none";
+      this.dropzoneLayer.style.display = "none";
+    });
 
     this.circuitSvg.addEventListener("mouseup", () => {
       this.mouseUpOnCircuit = true;
@@ -404,6 +408,7 @@ class CircuitEvents {
         }
 
         this.container.classList.add("moving");
+        this.ghostQubitLayer.style.display = "block";
         this.dropzoneLayer.style.display = "block";
       });
 
@@ -432,6 +437,7 @@ class CircuitEvents {
   toolboxMousedownHandler = (ev: MouseEvent) => {
     if (ev.button !== 0) return;
     this.container.classList.add("moving");
+    this.ghostQubitLayer.style.display = "block";
     this.dropzoneLayer.style.display = "block";
     const elem = ev.currentTarget as HTMLElement;
     const type = elem.getAttribute("data-type");
@@ -832,6 +838,7 @@ class CircuitEvents {
   _startAddingControl(selectedOperation: Unitary, selectedLocation: string) {
     this.selectedOperation = selectedOperation;
     this.container.classList.add("adding-control");
+    this.ghostQubitLayer.style.display = "block";
 
     // Create dropzones for each wire that isn't already a target or control
     for (let wireIndex = 0; wireIndex < this.wireData.length; wireIndex++) {
@@ -859,6 +866,7 @@ class CircuitEvents {
             const successful = addControl(this.selectedOperation, wireIndex);
             this.selectedOperation = null;
             this.container.classList.remove("adding-control");
+            this.ghostQubitLayer.style.display = "none";
             if (successful) {
               const indexes = locationStringToIndexes(selectedLocation);
               const [columnIndex, position] = indexes[indexes.length - 1];
