@@ -28,7 +28,7 @@ export interface IProjectHost {
 export interface IProgramConfig {
     packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
-    projectType: "qsharp" | "openqasm";
+    projectType: ProjectType;
 }
 "#;
 
@@ -345,7 +345,7 @@ serializable_type! {
         packageGraphSources: IPackageGraphSources;
         lints: ({ lint: string; level: string } | { group: string; level: string })[];
         errors: string[];
-        projectType: "qsharp" | "openqasm";
+        projectType: ProjectType;
     }"#,
     IProjectConfig
 }

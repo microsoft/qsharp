@@ -12,6 +12,7 @@ import {
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
+  ProjectType,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -106,7 +107,7 @@ export type ProgramConfig = (
 ) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
-  projectType: "qsharp" | "openqasm";
+  projectType?: ProjectType;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -296,7 +297,7 @@ export function toWasmProgramConfig(
   return {
     packageGraphSources,
     profile: program.profile || defaultProfile,
-    projectType: program.projectType ?? "qsharp",
+    projectType: program.projectType || "qsharp",
   };
 }
 
