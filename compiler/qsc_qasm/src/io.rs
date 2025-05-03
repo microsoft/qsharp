@@ -180,7 +180,7 @@ impl SourceResolver for InMemorySourceResolver {
     }
 
     fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error> {
-        self.ctx().check_include_errors(&path)?;
+        self.ctx().check_include_errors(path)?;
         match self.sources.get(path) {
             Some(source) => Ok((path.clone(), source.clone())),
             None => Err(Error(ErrorKind::NotFound(format!(

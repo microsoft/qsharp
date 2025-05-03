@@ -345,6 +345,9 @@ serializable_type! {
         packageGraphSources: IPackageGraphSources;
         lints: ({ lint: string; level: string } | { group: string; level: string })[];
         errors: string[];
+        /**
+         * The type of project. This is used to determine how to load the project.
+         */
         projectType: ProjectType;
     }"#,
     IProjectConfig
