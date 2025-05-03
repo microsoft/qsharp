@@ -62,7 +62,7 @@ where
 
     fn resolve(
         &mut self,
-        path: Arc<str>,
+        path: &Arc<str>,
     ) -> miette::Result<(Arc<str>, Arc<str>), qsc::qasm::io::Error> {
         let path = self
             .fs

@@ -20,9 +20,7 @@ pub(crate) fn parse_all(
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmParseResult, Vec<Report>> {
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let (path, source) = resolver
-        .resolve(path.clone())
-        .map_err(|e| vec![Report::new(e)])?;
+    let (path, source) = resolver.resolve(path).map_err(|e| vec![Report::new(e)])?;
     let res = crate::parser::parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -38,7 +36,7 @@ pub(crate) fn parse_all(
 
 pub(crate) fn parse(source: Arc<str>) -> miette::Result<QasmParseResult, Vec<Report>> {
     let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
-    let res = parse_source(source, "test".into(), &mut resolver);
+    let res = parse_source(source, "test", &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
