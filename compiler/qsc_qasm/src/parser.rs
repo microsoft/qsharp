@@ -230,7 +230,7 @@ fn parse_qasm_file<R>(path: &Arc<str>, resolver: &mut R) -> QasmSource
 where
     R: SourceResolver,
 {
-    match resolver.resolve(path.clone()) {
+    match resolver.resolve(path) {
         Ok((path, source)) => {
             let parse_result = parse_qasm_source(source, path.clone(), resolver);
 

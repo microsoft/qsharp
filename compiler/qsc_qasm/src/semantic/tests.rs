@@ -17,12 +17,12 @@ use expect_test::Expect;
 use miette::Report;
 use std::sync::Arc;
 
-pub(super) fn check(input: &str, expect: &Expect) {
-    check_map(input.into(), expect, |p, _| p.to_string());
+pub(super) fn check<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |p, _| p.to_string());
 }
 
-pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
-    check_map(input.into(), expect, |program, symbol_table| {
+pub(super) fn check_classical_decl<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |program, symbol_table| {
         let kind = program
             .statements
             .first()
@@ -40,8 +40,8 @@ pub(super) fn check_classical_decl(input: &str, expect: &Expect) {
     });
 }
 
-pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
-    check_map(input.into(), expect, |program, symbol_table| {
+pub(super) fn check_classical_decls<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |program, symbol_table| {
         let kinds = program
             .statements
             .iter()
@@ -67,8 +67,8 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
     });
 }
 
-pub(super) fn check_stmt_kind(input: &str, expect: &Expect) {
-    check_map(input.into(), expect, |p, _| {
+pub(super) fn check_stmt_kind<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |p, _| {
         p.statements
             .first()
             .expect("reading first statement")
@@ -77,21 +77,22 @@ pub(super) fn check_stmt_kind(input: &str, expect: &Expect) {
     });
 }
 
-pub(super) fn check_stmt_kinds(input: &str, expect: &Expect) {
-    check_map(input.into(), expect, |p, _| {
+pub(super) fn check_stmt_kinds<S: Into<Arc<str>>>(input: S, expect: &Expect) {
+    check_map(input, expect, |p, _| {
         p.statements
             .iter()
             .fold(String::new(), |acc, x| format!("{acc}{}\n", x.kind))
     });
 }
 
-fn check_map(
-    input: Arc<str>,
+fn check_map<S: Into<Arc<str>>>(
+    input: S,
     expect: &Expect,
     selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
 ) {
-    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), input.as_ref().into())]);
-    let res = parse_source(input, "test".into(), &mut resolver);
+    let input = input.into();
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), input.clone())]);
+    let res = parse_source(input, "test", &mut resolver);
 
     let errors = res.all_errors();
 
@@ -115,23 +116,24 @@ fn check_map(
     }
 }
 
-pub(super) fn check_all(
-    path: &str,
+pub(super) fn check_all<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     expect: &Expect,
 ) {
-    check_map_all(path.into(), sources, expect, |p, _| p.to_string());
+    check_map_all(path, sources, expect, |p, _| p.to_string());
 }
 
-fn check_map_all(
-    path: Arc<str>,
+fn check_map_all<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     expect: &Expect,
     selector: impl FnOnce(&super::ast::Program, &super::symbols::SymbolTable) -> String,
 ) {
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver
-        .resolve(path.clone())
+        .resolve(&path)
         .map_err(|e| vec![e])
         .expect("could not load source")
         .1;

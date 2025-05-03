@@ -256,10 +256,7 @@ pub(crate) fn parse_all(
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver
-        .resolve(path.clone())
-        .map_err(|e| vec![Report::new(e)])?
-        .1;
+    let source = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?.1;
     let res = parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res

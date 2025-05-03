@@ -401,7 +401,7 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
 fn init_float_with_int_value_equal_max_safely_representable_values() {
     let max_exact_int = 2i64.pow(f64::MANTISSA_DIGITS);
     check_classical_decl(
-        &format!("float a = {max_exact_int};"),
+        format!("float a = {max_exact_int};"),
         &expect![[r#"
             ClassicalDeclarationStmt [0-27]:
                 symbol_id: 8
@@ -422,7 +422,7 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
     let max_exact_int = 2i64.pow(f64::MANTISSA_DIGITS);
     let next = max_exact_int + 1;
     check_classical_decl(
-        &format!("float a = {next};"),
+        format!("float a = {next};"),
         &expect![[r#"
             Program:
                 version: <none>
@@ -460,7 +460,7 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
 fn init_float_with_int_value_equal_min_safely_representable_values() {
     let min_exact_int = -(2i64.pow(f64::MANTISSA_DIGITS));
     check_classical_decl(
-        &format!("float a = {min_exact_int};"),
+        format!("float a = {min_exact_int};"),
         &expect![[r#"
             ClassicalDeclarationStmt [0-28]:
                 symbol_id: 8

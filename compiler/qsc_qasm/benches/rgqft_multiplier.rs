@@ -17,12 +17,7 @@ fn rgqft_multiplier(source: Arc<str>) -> QasmCompileUnit {
         Some("Test".into()),
         None,
     );
-    compile_to_qsharp_ast_with_config(
-        source,
-        "".into(),
-        None::<&mut InMemorySourceResolver>,
-        config,
-    )
+    compile_to_qsharp_ast_with_config(source, "", None::<&mut InMemorySourceResolver>, config)
 }
 
 pub fn rgqft_multiplier_1q(c: &mut Criterion) {
