@@ -107,6 +107,7 @@ export type ProgramConfig = (
 ) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
+  /** The type of project. This is used to determine how to load the project. */
   projectType?: ProjectType;
 };
 
