@@ -15,12 +15,13 @@ use super::{scan::ParserContext, Parser};
 use expect_test::Expect;
 use std::fmt::Display;
 
-pub(crate) fn parse_all(
-    path: &Arc<str>,
+pub(crate) fn parse_all<S: Into<Arc<str>>>(
+    path: S,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmParseResult, Vec<Report>> {
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let (path, source) = resolver.resolve(path).map_err(|e| vec![Report::new(e)])?;
+    let (path, source) = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?;
     let res = crate::parser::parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -34,8 +35,9 @@ pub(crate) fn parse_all(
     }
 }
 
-pub(crate) fn parse(source: Arc<str>) -> miette::Result<QasmParseResult, Vec<Report>> {
-    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
+pub(crate) fn parse<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmParseResult, Vec<Report>> {
+    let source = source.into();
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.clone())]);
     let res = parse_source(source, "test", &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -96,7 +98,7 @@ fn check_map<T>(
 #[test]
 fn int_version_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let source = r#"OPENQASM 3;"#;
-    let res = parse(source.into())?;
+    let res = parse(source)?;
     assert_eq!(
         Some(format!("{}", res.source.program.version.expect("version"))),
         Some("3".to_string())
@@ -107,7 +109,7 @@ fn int_version_can_be_parsed() -> miette::Result<(), Vec<Report>> {
 #[test]
 fn dotted_version_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let source = r#"OPENQASM 3.0;"#;
-    let res = parse(source.into())?;
+    let res = parse(source)?;
     assert_eq!(
         Some(format!("{}", res.source.program.version.expect("version"))),
         Some("3.0".to_string())
@@ -126,7 +128,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
         ("source1.qasm".into(), source1.into()),
     ];
 
-    let res = parse_all(&"source0.qasm".into(), all_sources)?;
+    let res = parse_all("source0.qasm", all_sources)?;
     assert!(res.source.includes().len() == 1);
     Ok(())
 }
@@ -146,7 +148,7 @@ fn programs_with_includes_with_includes_can_be_parsed() -> miette::Result<(), Ve
         ("source2.qasm".into(), source2.into()),
     ];
 
-    let res = parse_all(&"source0.qasm".into(), all_sources)?;
+    let res = parse_all("source0.qasm", all_sources)?;
     assert!(res.source.includes().len() == 1);
     assert!(res.source.includes()[0].includes().len() == 1);
     Ok(())

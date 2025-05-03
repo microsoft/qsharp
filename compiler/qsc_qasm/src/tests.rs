@@ -112,8 +112,8 @@ fn compile_with_config<S: Into<Arc<str>>>(
 }
 
 #[allow(dead_code)]
-pub fn compile_all(
-    path: Arc<str>,
+pub fn compile_all<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
@@ -127,8 +127,8 @@ pub fn compile_all(
 }
 
 #[allow(dead_code)]
-pub fn compile_all_fragments(
-    path: Arc<str>,
+pub fn compile_all_fragments<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
@@ -152,8 +152,8 @@ fn compile_fragments<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmCompile
     compile_with_config(source, config)
 }
 
-pub fn compile_all_with_config(
-    path: Arc<str>,
+pub fn compile_all_with_config<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     config: CompilerConfig,
 ) -> miette::Result<QasmCompileUnit, Vec<Report>> {
@@ -251,10 +251,11 @@ pub(crate) fn parse<S: Into<Arc<str>>>(
     Ok(res)
 }
 
-pub(crate) fn parse_all(
-    path: Arc<str>,
+pub(crate) fn parse_all<P: Into<Arc<str>>>(
+    path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
 ) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
     let source = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?.1;
     let res = parse_source(source, path, &mut resolver);
@@ -270,7 +271,9 @@ pub(crate) fn parse_all(
     }
 }
 
-pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp_file<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -287,7 +290,9 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
     Ok(qsharp)
 }
 
-pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp_operation<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -304,12 +309,12 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
     Ok(qsharp)
 }
 
-pub fn compile_qasm_to_qsharp(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp<S: Into<Arc<str>>>(source: S) -> miette::Result<String, Vec<Report>> {
     compile_qasm_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
 }
 
-pub fn compile_qasm_to_qsharp_with_semantics(
-    source: &str,
+pub fn compile_qasm_to_qsharp_with_semantics<S: Into<Arc<str>>>(
+    source: S,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
@@ -332,12 +337,14 @@ pub fn qsharp_from_qasm_compilation(unit: QasmCompileUnit) -> miette::Result<Str
     Ok(qsharp)
 }
 
-pub fn compile_qasm_stmt_to_qsharp(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_stmt_to_qsharp<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     compile_qasm_stmt_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
 }
 
-pub fn compile_qasm_stmt_to_qsharp_with_semantics(
-    source: &str,
+pub fn compile_qasm_stmt_to_qsharp_with_semantics<S: Into<Arc<str>>>(
+    source: S,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(

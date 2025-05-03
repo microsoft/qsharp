@@ -9,7 +9,7 @@ use qsc_qasm::{
     ProgramType, QasmCompileUnit, QubitSemantics,
 };
 
-fn rgqft_multiplier(source: Arc<str>) -> QasmCompileUnit {
+fn rgqft_multiplier<S: Into<Arc<str>>>(source: S) -> QasmCompileUnit {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -24,7 +24,7 @@ pub fn rgqft_multiplier_1q(c: &mut Criterion) {
     const SOURCE: &str = include_str!("./rgqft_multiplier_1q.qasm");
 
     c.bench_function("rgqft_multiplier_1q sample compilation", |b| {
-        b.iter(move || black_box(rgqft_multiplier(SOURCE.into())));
+        b.iter(move || black_box(rgqft_multiplier(SOURCE)));
     });
 }
 
@@ -32,7 +32,7 @@ pub fn rgqft_multiplier_4q(c: &mut Criterion) {
     const SOURCE: &str = include_str!("./rgqft_multiplier_4q.qasm");
 
     c.bench_function("rgqft_multiplier_4q sample compilation", |b| {
-        b.iter(move || black_box(rgqft_multiplier(SOURCE.into())));
+        b.iter(move || black_box(rgqft_multiplier(SOURCE)));
     });
 }
 
