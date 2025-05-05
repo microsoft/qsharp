@@ -2283,3 +2283,29 @@ fn division_by_zero_angle_errors() {
     "#]]
     .assert_eq(&errs_string);
 }
+
+#[test]
+fn modulo_of_int_by_zero_int_errors() {
+    let source = r#"
+        const int a = 2 % 0;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int a = 2 % 0;
+           :                       ^^^^^
+         3 |         def f() { a; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
