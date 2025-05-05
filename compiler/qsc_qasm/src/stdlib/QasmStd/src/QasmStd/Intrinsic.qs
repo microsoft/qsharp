@@ -120,8 +120,7 @@ operation tdg(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation sx(qubit : Qubit) : Unit is Adj + Ctl {
-    Rx(Std.Math.PI() / 2., qubit);
-    Adjoint R(PauliI, Std.Math.PI() / 2., qubit);
+    SX(qubit);
 }
 
 operation rx(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
