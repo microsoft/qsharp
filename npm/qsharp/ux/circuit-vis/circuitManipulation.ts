@@ -342,11 +342,16 @@ const findAndRemoveOperations = (
 /**
  * Add a control to the specified operation on the given wire index.
  *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param op The unitary operation to which the control will be added.
  * @param wireIndex The index of the wire where the control will be added.
  * @returns True if the control was added, false if it already existed.
  */
-const addControl = (op: Unitary, wireIndex: number): boolean => {
+const addControl = (
+  circuitEvents: CircuitEvents,
+  op: Unitary,
+  wireIndex: number,
+): boolean => {
   if (!op.controls) {
     op.controls = [];
   }
@@ -356,6 +361,7 @@ const addControl = (op: Unitary, wireIndex: number): boolean => {
   if (!existingControl) {
     op.controls.push({ qubit: wireIndex });
     op.controls.sort((a, b) => a.qubit - b.qubit);
+    _ensureQubitCount(circuitEvents, wireIndex);
     return true;
   }
   return false;

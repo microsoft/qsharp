@@ -523,7 +523,7 @@ class CircuitEvents {
     } else if (sourceLocation && this.selectedWire != null) {
       if (copying) {
         if (this.movingControl && this.selectedOperation.kind === "unitary") {
-          addControl(this.selectedOperation, targetWire);
+          addControl(this, this.selectedOperation, targetWire);
           moveOperation(
             this,
             sourceLocation,
@@ -863,7 +863,11 @@ class CircuitEvents {
             this.selectedOperation != null &&
             this.selectedOperation.kind === "unitary"
           ) {
-            const successful = addControl(this.selectedOperation, wireIndex);
+            const successful = addControl(
+              this,
+              this.selectedOperation,
+              wireIndex,
+            );
             this.selectedOperation = null;
             this.container.classList.remove("adding-control");
             this.ghostQubitLayer.style.display = "none";
