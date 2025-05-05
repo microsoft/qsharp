@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::{cell::RefCell, rc::Rc};
+
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{CallableKind, Expr, ExprKind, Functor, NodeId, Res, UnOp},
     mut_visit::{walk_expr, MutVisitor},
-    ty::{Arrow, Prim, Ty},
+    ty::{Arrow, FunctorSet, Prim, Ty},
 };
 use thiserror::Error;
 
@@ -29,22 +31,26 @@ impl MutVisitor for CtlDistrib {
             ExprKind::Call(op, args) => {
                 match &op.ty {
                     Ty::Arrow(arrow) if arrow.kind == CallableKind::Operation => {
-                        let functors = arrow
-                            .functors
-                            .expect_value("arrow type should have concrete functors");
+                        let functors = match *arrow.functors.borrow() {
+                            FunctorSet::Value(functors) | FunctorSet::Param(_, functors) => {
+                                functors
+                            }
+                            FunctorSet::Infer(_) => panic!("arrow type should have known functors"),
+                        };
 
                         if functors.contains(&Functor::Ctl) {
                             op.kind = ExprKind::UnOp(UnOp::Functor(Functor::Ctl), op.clone());
                             op.id = NodeId::default();
-                            op.ty = Ty::Arrow(Box::new(Arrow {
+                            let input_ty = Ty::Arrow(Rc::new(Arrow {
                                 kind: CallableKind::Operation,
-                                input: Box::new(Ty::Tuple(vec![
+                                input: RefCell::new(Ty::Tuple(vec![
                                     Ty::Array(Box::new(Ty::Prim(Prim::Qubit))),
-                                    Ty::clone(&arrow.input),
+                                    arrow.input.borrow().clone(),
                                 ])),
                                 output: arrow.output.clone(),
-                                functors: arrow.functors,
+                                functors: arrow.functors.clone(),
                             }));
+                            op.ty = input_ty;
 
                             args.kind = ExprKind::Tuple(vec![
                                 Expr {
