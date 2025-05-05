@@ -506,7 +506,13 @@ impl BinaryOpExpr {
             },
             BinOp::Mod => match lhs_ty {
                 Type::Int(..) | Type::UInt(..) => {
-                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs % rhs))
+                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                        if rhs == 0 {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Int(lhs % rhs)
+                    })
                 }
                 _ => None,
             },
