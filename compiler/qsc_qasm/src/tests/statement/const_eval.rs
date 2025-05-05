@@ -2164,16 +2164,6 @@ fn binary_op_with_non_supported_types_fails() {
          3 |         def f() { a; }
            `----
 
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:3:19]
-         2 |         const int a = 2 / 0s;
-         3 |         def f() { a; }
-           :                   ^
-         4 |     
-           `----
-
         Qasm.Compiler.NotSupported
 
           x timing literals are not supported
@@ -2209,16 +2199,6 @@ fn division_of_int_by_zero_int_errors() {
            :                       ^^^^^
          3 |         def f() { a; }
            `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:3:19]
-         2 |         const int a = 2 / 0;
-         3 |         def f() { a; }
-           :                   ^
-         4 |     
-           `----
     "#]]
     .assert_eq(&errs_string);
 }
@@ -2246,16 +2226,6 @@ fn division_of_angle_by_zero_int_errors() {
            :                         ^^^^^
          4 |         def f() { b; }
            `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:4:19]
-         3 |         const angle b = a / 0;
-         4 |         def f() { b; }
-           :                   ^
-         5 |     
-           `----
     "#]]
     .assert_eq(&errs_string);
 }
@@ -2281,16 +2251,6 @@ fn division_by_zero_float_errors() {
          2 |         const float a = 2.0 / 0.0;
            :                         ^^^^^^^^^
          3 |         def f() { a; }
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:3:19]
-         2 |         const float a = 2.0 / 0.0;
-         3 |         def f() { a; }
-           :                   ^
-         4 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -2319,16 +2279,6 @@ fn division_by_zero_angle_errors() {
          4 |         const uint c = a / b;
            :                        ^^^^^
          5 |         def f() { c; }
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:5:19]
-         4 |         const uint c = a / b;
-         5 |         def f() { c; }
-           :                   ^
-         6 |     
            `----
     "#]]
     .assert_eq(&errs_string);
