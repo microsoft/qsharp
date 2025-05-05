@@ -8,6 +8,7 @@ export function run(): Promise<void> {
     // We can't use any wildcards or dynamically discovered
     // paths here since ESBuild needs these modules to be
     // real paths on disk at bundling time.
-    require("./debugger.test"); // eslint-disable-line @typescript-eslint/no-require-imports
+    require("./qsharp.test"); // eslint-disable-line @typescript-eslint/no-require-imports
+    require("./openqasm.test"); // eslint-disable-line @typescript-eslint/no-require-imports
   });
 }
