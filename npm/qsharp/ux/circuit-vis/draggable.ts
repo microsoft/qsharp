@@ -329,6 +329,7 @@ const _ghostQuibitLayer = (context: Context) => {
   ghostLayer.appendChild(ghostLabel);
 
   context.svg.setAttribute("height", (svgHeight + registerHeight).toString());
+  svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight + registerHeight}`);
 
   return ghostLayer;
 };
