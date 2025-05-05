@@ -19,7 +19,7 @@ use qsc::{
         output::{self, Receiver},
         CircuitEntryPoint,
     },
-    qasm::{io::InMemorySourceResolver, CompileRawQasmResult},
+    qasm::{io::InMemorySourceResolver, package_store_with_qasm, CompileRawQasmResult},
     target::Profile,
     LanguageFeatures, PackageStore, PackageType, PauliNoise, SourceContents, SourceMap, SourceName,
     SparseSim, TargetCapabilityFlags,
@@ -43,10 +43,9 @@ mod test_discovery;
 mod tests;
 
 thread_local! {
-    static STORE_CORE_STD: (PackageStore, PackageId) = {
-        let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store, Profile::Unrestricted.into()));
-        (store, std)
+    static STORE_CORE_STD: (PackageStore, PackageId, PackageId) = {
+        let (std_id, qasm_id, store) = package_store_with_qasm(Profile::Unrestricted.into());
+        (store, std_id, qasm_id)
     };
 }
 
@@ -203,8 +202,8 @@ fn compile_errors_into_qsharp_errors_json(errs: Vec<qsc::compile::Error>) -> Str
 #[wasm_bindgen]
 #[must_use]
 pub fn get_library_source_content(name: &str) -> Option<String> {
-    STORE_CORE_STD.with(|(store, std)| {
-        for id in [PackageId::CORE, *std] {
+    STORE_CORE_STD.with(|(store, std, qasm_std)| {
+        for id in [PackageId::CORE, *std, *qasm_std] {
             if let Some(source) = store
                 .get(id)
                 .expect("package should be in store")
@@ -229,10 +228,10 @@ pub fn get_ast(
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let profile =
         Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
-    let package = STORE_CORE_STD.with(|(store, std)| {
+    let package = STORE_CORE_STD.with(|(store, std, qasm_id)| {
         let (unit, _) = compile::compile(
             store,
-            &[(*std, None)],
+            &[(*std, None), (*qasm_id, Some("QasmStd".into()))],
             sources,
             PackageType::Exe,
             profile.into(),
@@ -253,10 +252,10 @@ pub fn get_hir(
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let profile =
         Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
-    let package = STORE_CORE_STD.with(|(store, std)| {
+    let package = STORE_CORE_STD.with(|(store, std, qasm_id)| {
         let (unit, _) = compile::compile(
             store,
-            &[(*std, None)],
+            &[(*std, None), (*qasm_id, Some("QasmStd".into()))],
             sources,
             PackageType::Exe,
             profile.into(),
