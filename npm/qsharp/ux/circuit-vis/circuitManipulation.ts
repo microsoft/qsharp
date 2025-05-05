@@ -393,9 +393,9 @@ const removeControl = (op: Unitary, wireIndex: number): boolean => {
  * no two operations in the same column overlap on their register ranges.
  * Modifies the component grid in-place.
  *
- * @param components The component grid (array of columns) to process.
+ * @param parentArray The component grid (array of columns) to process.
  */
-const resolveOverlappingOperations = (components: ComponentGrid): void => {
+const resolveOverlappingOperations = (parentArray: ComponentGrid): void => {
   // Helper to resolve a single column into non-overlapping columns
   const resolveColumn = (col: Column): Column[] => {
     const newColumn: Column = { components: [] };
@@ -425,11 +425,11 @@ const resolveOverlappingOperations = (components: ComponentGrid): void => {
 
   // In-place update of parentArray
   let i = 0;
-  while (i < components.length) {
-    const col = components[i];
+  while (i < parentArray.length) {
+    const col = parentArray[i];
     const newColumns = resolveColumn(col);
     if (newColumns.length > 1) {
-      components.splice(i, 1, ...newColumns);
+      parentArray.splice(i, 1, ...newColumns);
       i += newColumns.length;
     }
     i++;
