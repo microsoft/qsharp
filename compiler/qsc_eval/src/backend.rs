@@ -65,6 +65,9 @@ pub trait Backend {
     fn s(&mut self, _q: usize) {
         unimplemented!("s gate");
     }
+    fn sx(&mut self, _q: usize) {
+        unimplemented!("sx gate");
+    }
     fn swap(&mut self, _q0: usize, _q1: usize) {
         unimplemented!("swap gate");
     }
@@ -292,6 +295,13 @@ impl Backend for SparseSim {
 
     fn s(&mut self, q: usize) {
         self.sim.s(q);
+        self.apply_noise(q);
+    }
+
+    fn sx(&mut self, q: usize) {
+        self.sim.h(q);
+        self.sim.s(q);
+        self.sim.h(q);
         self.apply_noise(q);
     }
 
@@ -591,6 +601,11 @@ where
     fn s(&mut self, q: usize) {
         self.chained.s(q);
         self.main.s(q);
+    }
+
+    fn sx(&mut self, q: usize) {
+        self.chained.sx(q);
+        self.main.sx(q);
     }
 
     fn swap(&mut self, q0: usize, q1: usize) {

@@ -9,9 +9,13 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { initAzureWorkspaces } from "./azure/commands.js";
+import { CircuitEditorProvider } from "./circuitEditor.js";
+import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
 import { initProjectCreator } from "./createProject.js";
 import { activateDebugger } from "./debugger/activate.js";
 import { startOtherQSharpDiagnostics } from "./diagnostics.js";
+import { registerGhCopilotInstructionsCommand } from "./gh-copilot/instructions.js";
+import { registerLanguageModelTools } from "./gh-copilot/tools.js";
 import { activateLanguageService } from "./language-service/activate.js";
 import {
   Logging,
@@ -28,8 +32,6 @@ import { initCodegen } from "./qirGeneration.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initTelemetry } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { registerCopilotPanel } from "./copilot/webviewViewProvider.js";
-import { CircuitEditorProvider } from "./circuitEditor.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -85,6 +87,8 @@ export async function activate(
   initFileSystem(context);
   initProjectCreator(context);
   registerCopilotPanel(context);
+  registerLanguageModelTools(context);
+  registerGhCopilotInstructionsCommand(context);
 
   log.info("Q# extension activated.");
 

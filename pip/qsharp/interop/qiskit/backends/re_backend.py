@@ -19,7 +19,7 @@ from ..jobs import ReJob
 from ..execution import DetaultExecutor
 from ...._fs import read_file, list_directory, resolve
 from ...._http import fetch_github
-from ...._native import resource_estimate_qasm
+from ...._native import resource_estimate_qasm_program
 from .... import TargetProfile
 from ....estimator import (
     EstimatorResult,
@@ -148,7 +148,7 @@ class ResourceEstimatorBackend(BackendBase):
             "search_path": input_params.pop("search_path", "."),
         }
         kwargs.update(input_params)
-        res_str = resource_estimate_qasm(
+        res_str = resource_estimate_qasm_program(
             source,
             param_str,
             read_file,

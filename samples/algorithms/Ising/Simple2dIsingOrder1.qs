@@ -1,11 +1,12 @@
 /// # Sample
-/// Simulation of a simple Ising model evolution on a 2D grid
+/// Simulation of a simple Ising model evolution
+/// on a 2D grid with first-order Trotterization.
 ///
 /// # Description
-/// This example demonstrates simulation of an Ising model Hamiltonian
-/// on an N1xN2 2D grid. This example can be easily simulated classically
-/// with 3x3 grid and about 500 shots.
-/// This sample is suitable for Base Profile.
+/// This sample demonstrates simulation of an Ising model Hamiltonian
+/// on N1xN2 2D grid using a first-order Trotter-Suzuki approximation.
+/// This sample can be easily simulated classically with 3x3 grid and
+/// about 1000 shots. This sample is suitable for Base Profile.
 /// For the purpose of simplicity this sample intentionally doesn't
 /// post-process results or perform eigenvalue estimation.
 operation Main() : Result[] {
@@ -41,7 +42,7 @@ operation Main() : Result[] {
 /// |𝜓(0)⟩ is taken to be |0...0⟩.
 /// U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
 /// Here Σ' is taken over all pairs of neighboring qubits <i,j>.
-/// Simulation is done by performing K steps assuming U(t)≈U(t/K)ᴷ.
+/// Simulation is done by performing K steps assuming U(t)≈(U(t/K))ᴷ.
 operation IsingModel2DEvolution(
     N1 : Int,
     N2 : Int,
@@ -55,12 +56,11 @@ operation IsingModel2DEvolution(
     use qubits = Qubit[N1 * N2];
     let qubitsAs2D = Std.Arrays.Chunks(N2, qubits);
 
-    // Compute the step time
-    import Std.Convert.IntAsDouble;
-    let stepTime : Double = evolutionTime / IntAsDouble(numberOfSteps);
+    // Compute the time step
+    let dt : Double = evolutionTime / Std.Convert.IntAsDouble(numberOfSteps);
 
-    let theta_x = - g * stepTime;
-    let theta_zz = J * stepTime;
+    let theta_x = - g * dt;
+    let theta_zz = J * dt;
 
     // Perform K steps
     for i in 1..numberOfSteps {
@@ -110,4 +110,3 @@ operation IsingModel2DEvolution(
 
     MResetEachZ(qubits)
 }
- 

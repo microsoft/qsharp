@@ -106,15 +106,10 @@ def test_gate_sdg_transpiles() -> None:
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-def test_gate_sx_transpiles_to_rx_pi_over_2() -> None:
+def test_gate_sx_transpiles_to_sx() -> None:
     run_transpile_test(
-        lambda circuit: circuit.sx(1), "rx(pi/2) q[1];", disable_constants=False
+        lambda circuit: circuit.sx(1), "sx q[1];", disable_constants=False
     )
-
-
-@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
-def test_gate_sx_transpiles_to_rx_pi_over_2_approx() -> None:
-    run_transpile_test(lambda circuit: circuit.sx(1), "rx(1.5707963267948966) q[1];")
 
 
 @pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)

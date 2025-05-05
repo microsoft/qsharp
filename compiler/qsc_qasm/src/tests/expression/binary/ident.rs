@@ -16,8 +16,6 @@ fn mutable_int_idents_without_width_can_be_multiplied() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable x = 5;
         mutable y = 3;
@@ -37,8 +35,6 @@ fn const_int_idents_without_width_can_be_multiplied() -> miette::Result<(), Vec<
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let x = 5;
         let y = 3;
@@ -59,8 +55,6 @@ fn const_int_idents_widthless_lhs_can_be_multiplied_by_explicit_width_int(
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         let x = 5;
         let y = 3;

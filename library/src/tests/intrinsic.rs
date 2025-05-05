@@ -1257,6 +1257,674 @@ fn test_base_mcsadj_4_control() {
 }
 
 #[test]
+fn test_mcsx_1_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(2);
+            let aux = QIR.Runtime.AllocateQubitArray(2);
+            for i in 0..1 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..0], qs[1]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |0000⟩: 0.5000+0.0000𝑖
+        |0101⟩: 0.5000+0.0000𝑖
+        |1010⟩: 0.2500+0.2500𝑖
+        |1011⟩: 0.2500−0.2500𝑖
+        |1110⟩: 0.2500−0.2500𝑖
+        |1111⟩: 0.2500+0.2500𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0], 1);
+    sim.sim.mcsadj(&[0], 1);
+    sim.sim.mch(&[0], 1);
+    for i in 0..2 {
+        sim.sim.mcx(&[i + 2], i);
+        sim.sim.h(i + 2);
+        assert!(sim.sim.qubit_is_zero(i + 2), "qubit {} is not zero", i + 2);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_mcsx_2_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(3);
+            let aux = QIR.Runtime.AllocateQubitArray(3);
+            for i in 0..2 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..1], qs[2]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |000000⟩: 0.3536+0.0000𝑖
+        |001001⟩: 0.3536+0.0000𝑖
+        |010010⟩: 0.3536+0.0000𝑖
+        |011011⟩: 0.3536+0.0000𝑖
+        |100100⟩: 0.3536+0.0000𝑖
+        |101101⟩: 0.3536+0.0000𝑖
+        |110110⟩: 0.1768+0.1768𝑖
+        |110111⟩: 0.1768−0.1768𝑖
+        |111110⟩: 0.1768−0.1768𝑖
+        |111111⟩: 0.1768+0.1768𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1], 2);
+    sim.sim.mcsadj(&[0, 1], 2);
+    sim.sim.mch(&[0, 1], 2);
+    for i in 0..3 {
+        sim.sim.mcx(&[i + 3], i);
+        sim.sim.h(i + 3);
+        assert!(sim.sim.qubit_is_zero(i + 3), "qubit {} is not zero", i + 3);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_unrestricted_mcsx_3_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(4);
+            let aux = QIR.Runtime.AllocateQubitArray(4);
+            for i in 0..3 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..2], qs[3]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |00000000⟩: 0.2500+0.0000𝑖
+        |00010001⟩: 0.2500+0.0000𝑖
+        |00100010⟩: 0.2500+0.0000𝑖
+        |00110011⟩: 0.2500+0.0000𝑖
+        |01000100⟩: 0.2500+0.0000𝑖
+        |01010101⟩: 0.2500+0.0000𝑖
+        |01100110⟩: 0.2500+0.0000𝑖
+        |01110111⟩: 0.2500+0.0000𝑖
+        |10001000⟩: 0.2500+0.0000𝑖
+        |10011001⟩: 0.2500+0.0000𝑖
+        |10101010⟩: 0.2500+0.0000𝑖
+        |10111011⟩: 0.2500+0.0000𝑖
+        |11001100⟩: 0.2500+0.0000𝑖
+        |11011101⟩: 0.2500+0.0000𝑖
+        |11101110⟩: 0.1250+0.1250𝑖
+        |11101111⟩: 0.1250−0.1250𝑖
+        |11111110⟩: 0.1250−0.1250𝑖
+        |11111111⟩: 0.1250+0.1250𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2], 3);
+    sim.sim.mcsadj(&[0, 1, 2], 3);
+    sim.sim.mch(&[0, 1, 2], 3);
+    for i in 0..4 {
+        sim.sim.mcx(&[i + 4], i);
+        sim.sim.h(i + 4);
+        assert!(sim.sim.qubit_is_zero(i + 4), "qubit {} is not zero", i + 4);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_base_mcsx_3_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(4);
+            let aux = QIR.Runtime.AllocateQubitArray(4);
+            for i in 0..3 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..2], qs[3]);
+            Std.Diagnostics.DumpMachine();
+            let result : Result[] = [];
+            result
+        }"},
+        "",
+        Profile::Base,
+        &mut sim,
+        &Value::Array(Vec::new().into()),
+    );
+    expect![[r#"
+        STATE:
+        |00000000⟩: 0.2500+0.0000𝑖
+        |00010001⟩: 0.2500+0.0000𝑖
+        |00100010⟩: 0.2500+0.0000𝑖
+        |00110011⟩: 0.2500+0.0000𝑖
+        |01000100⟩: 0.2500+0.0000𝑖
+        |01010101⟩: 0.2500+0.0000𝑖
+        |01100110⟩: 0.2500+0.0000𝑖
+        |01110111⟩: 0.2500+0.0000𝑖
+        |10001000⟩: 0.2500+0.0000𝑖
+        |10011001⟩: 0.2500+0.0000𝑖
+        |10101010⟩: 0.2500+0.0000𝑖
+        |10111011⟩: 0.2500+0.0000𝑖
+        |11001100⟩: 0.2500+0.0000𝑖
+        |11011101⟩: 0.2500+0.0000𝑖
+        |11101110⟩: 0.1250+0.1250𝑖
+        |11101111⟩: 0.1250−0.1250𝑖
+        |11111110⟩: 0.1250−0.1250𝑖
+        |11111111⟩: 0.1250+0.1250𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2], 3);
+    sim.sim.mcsadj(&[0, 1, 2], 3);
+    sim.sim.mch(&[0, 1, 2], 3);
+    for i in 0..4 {
+        sim.sim.mcx(&[i + 4], i);
+        sim.sim.h(i + 4);
+        assert!(sim.sim.qubit_is_zero(i + 4), "qubit {} is not zero", i + 4);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_unrestricted_mcsx_4_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(5);
+            let aux = QIR.Runtime.AllocateQubitArray(5);
+            for i in 0..4 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..3], qs[4]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |0000000000⟩: 0.1768+0.0000𝑖
+        |0000100001⟩: 0.1768+0.0000𝑖
+        |0001000010⟩: 0.1768+0.0000𝑖
+        |0001100011⟩: 0.1768+0.0000𝑖
+        |0010000100⟩: 0.1768+0.0000𝑖
+        |0010100101⟩: 0.1768+0.0000𝑖
+        |0011000110⟩: 0.1768+0.0000𝑖
+        |0011100111⟩: 0.1768+0.0000𝑖
+        |0100001000⟩: 0.1768+0.0000𝑖
+        |0100101001⟩: 0.1768+0.0000𝑖
+        |0101001010⟩: 0.1768+0.0000𝑖
+        |0101101011⟩: 0.1768+0.0000𝑖
+        |0110001100⟩: 0.1768+0.0000𝑖
+        |0110101101⟩: 0.1768+0.0000𝑖
+        |0111001110⟩: 0.1768+0.0000𝑖
+        |0111101111⟩: 0.1768+0.0000𝑖
+        |1000010000⟩: 0.1768+0.0000𝑖
+        |1000110001⟩: 0.1768+0.0000𝑖
+        |1001010010⟩: 0.1768+0.0000𝑖
+        |1001110011⟩: 0.1768+0.0000𝑖
+        |1010010100⟩: 0.1768+0.0000𝑖
+        |1010110101⟩: 0.1768+0.0000𝑖
+        |1011010110⟩: 0.1768+0.0000𝑖
+        |1011110111⟩: 0.1768+0.0000𝑖
+        |1100011000⟩: 0.1768+0.0000𝑖
+        |1100111001⟩: 0.1768+0.0000𝑖
+        |1101011010⟩: 0.1768+0.0000𝑖
+        |1101111011⟩: 0.1768+0.0000𝑖
+        |1110011100⟩: 0.1768+0.0000𝑖
+        |1110111101⟩: 0.1768+0.0000𝑖
+        |1111011110⟩: 0.0884+0.0884𝑖
+        |1111011111⟩: 0.0884−0.0884𝑖
+        |1111111110⟩: 0.0884−0.0884𝑖
+        |1111111111⟩: 0.0884+0.0884𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    sim.sim.mcsadj(&[0, 1, 2, 3], 4);
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    for i in 0..5 {
+        sim.sim.mcx(&[i + 5], i);
+        sim.sim.h(i + 5);
+        assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_base_mcsx_4_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(5);
+            let aux = QIR.Runtime.AllocateQubitArray(5);
+            for i in 0..4 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled SX(qs[0..3], qs[4]);
+            Std.Diagnostics.DumpMachine();
+            let result : Result[] = [];
+            result
+        }"},
+        "",
+        Profile::Base,
+        &mut sim,
+        &Value::Array(Vec::new().into()),
+    );
+    expect![[r#"
+        STATE:
+        |0000000000⟩: 0.1768+0.0000𝑖
+        |0000100001⟩: 0.1768+0.0000𝑖
+        |0001000010⟩: 0.1768+0.0000𝑖
+        |0001100011⟩: 0.1768+0.0000𝑖
+        |0010000100⟩: 0.1768+0.0000𝑖
+        |0010100101⟩: 0.1768+0.0000𝑖
+        |0011000110⟩: 0.1768+0.0000𝑖
+        |0011100111⟩: 0.1768+0.0000𝑖
+        |0100001000⟩: 0.1768+0.0000𝑖
+        |0100101001⟩: 0.1768+0.0000𝑖
+        |0101001010⟩: 0.1768+0.0000𝑖
+        |0101101011⟩: 0.1768+0.0000𝑖
+        |0110001100⟩: 0.1768+0.0000𝑖
+        |0110101101⟩: 0.1768+0.0000𝑖
+        |0111001110⟩: 0.1768+0.0000𝑖
+        |0111101111⟩: 0.1768+0.0000𝑖
+        |1000010000⟩: 0.1768+0.0000𝑖
+        |1000110001⟩: 0.1768+0.0000𝑖
+        |1001010010⟩: 0.1768+0.0000𝑖
+        |1001110011⟩: 0.1768+0.0000𝑖
+        |1010010100⟩: 0.1768+0.0000𝑖
+        |1010110101⟩: 0.1768+0.0000𝑖
+        |1011010110⟩: 0.1768+0.0000𝑖
+        |1011110111⟩: 0.1768+0.0000𝑖
+        |1100011000⟩: 0.1768+0.0000𝑖
+        |1100111001⟩: 0.1768+0.0000𝑖
+        |1101011010⟩: 0.1768+0.0000𝑖
+        |1101111011⟩: 0.1768+0.0000𝑖
+        |1110011100⟩: 0.1768+0.0000𝑖
+        |1110111101⟩: 0.1768+0.0000𝑖
+        |1111011110⟩: 0.0884+0.0884𝑖
+        |1111011111⟩: 0.0884−0.0884𝑖
+        |1111111110⟩: 0.0884−0.0884𝑖
+        |1111111111⟩: 0.0884+0.0884𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    sim.sim.mcsadj(&[0, 1, 2, 3], 4);
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    for i in 0..5 {
+        sim.sim.mcx(&[i + 5], i);
+        sim.sim.h(i + 5);
+        assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_mcsxadj_1_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(2);
+            let aux = QIR.Runtime.AllocateQubitArray(2);
+            for i in 0..1 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..0], qs[1]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |0000⟩: 0.5000+0.0000𝑖
+        |0101⟩: 0.5000+0.0000𝑖
+        |1010⟩: 0.2500−0.2500𝑖
+        |1011⟩: 0.2500+0.2500𝑖
+        |1110⟩: 0.2500+0.2500𝑖
+        |1111⟩: 0.2500−0.2500𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0], 1);
+    sim.sim.mcs(&[0], 1);
+    sim.sim.mch(&[0], 1);
+    for i in 0..2 {
+        sim.sim.mcx(&[i + 2], i);
+        sim.sim.h(i + 2);
+        assert!(sim.sim.qubit_is_zero(i + 2), "qubit {} is not zero", i + 2);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_mcsxadj_2_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(3);
+            let aux = QIR.Runtime.AllocateQubitArray(3);
+            for i in 0..2 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..1], qs[2]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |000000⟩: 0.3536+0.0000𝑖
+        |001001⟩: 0.3536+0.0000𝑖
+        |010010⟩: 0.3536+0.0000𝑖
+        |011011⟩: 0.3536+0.0000𝑖
+        |100100⟩: 0.3536+0.0000𝑖
+        |101101⟩: 0.3536+0.0000𝑖
+        |110110⟩: 0.1768−0.1768𝑖
+        |110111⟩: 0.1768+0.1768𝑖
+        |111110⟩: 0.1768+0.1768𝑖
+        |111111⟩: 0.1768−0.1768𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1], 2);
+    sim.sim.mcs(&[0, 1], 2);
+    sim.sim.mch(&[0, 1], 2);
+    for i in 0..3 {
+        sim.sim.mcx(&[i + 3], i);
+        sim.sim.h(i + 3);
+        assert!(sim.sim.qubit_is_zero(i + 3), "qubit {} is not zero", i + 3);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_unrestricted_mcsxadj_3_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(4);
+            let aux = QIR.Runtime.AllocateQubitArray(4);
+            for i in 0..3 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..2], qs[3]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |00000000⟩: 0.2500+0.0000𝑖
+        |00010001⟩: 0.2500+0.0000𝑖
+        |00100010⟩: 0.2500+0.0000𝑖
+        |00110011⟩: 0.2500+0.0000𝑖
+        |01000100⟩: 0.2500+0.0000𝑖
+        |01010101⟩: 0.2500+0.0000𝑖
+        |01100110⟩: 0.2500+0.0000𝑖
+        |01110111⟩: 0.2500+0.0000𝑖
+        |10001000⟩: 0.2500+0.0000𝑖
+        |10011001⟩: 0.2500+0.0000𝑖
+        |10101010⟩: 0.2500+0.0000𝑖
+        |10111011⟩: 0.2500+0.0000𝑖
+        |11001100⟩: 0.2500+0.0000𝑖
+        |11011101⟩: 0.2500+0.0000𝑖
+        |11101110⟩: 0.1250−0.1250𝑖
+        |11101111⟩: 0.1250+0.1250𝑖
+        |11111110⟩: 0.1250+0.1250𝑖
+        |11111111⟩: 0.1250−0.1250𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2], 3);
+    sim.sim.mcs(&[0, 1, 2], 3);
+    sim.sim.mch(&[0, 1, 2], 3);
+    for i in 0..4 {
+        sim.sim.mcx(&[i + 4], i);
+        sim.sim.h(i + 4);
+        assert!(sim.sim.qubit_is_zero(i + 4), "qubit {} is not zero", i + 4);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_base_mcsxadj_3_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(4);
+            let aux = QIR.Runtime.AllocateQubitArray(4);
+            for i in 0..3 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..2], qs[3]);
+            Std.Diagnostics.DumpMachine();
+            let result : Result[] = [];
+            result
+        }"},
+        "",
+        Profile::Base,
+        &mut sim,
+        &Value::Array(Vec::new().into()),
+    );
+    expect![[r#"
+        STATE:
+        |00000000⟩: 0.2500+0.0000𝑖
+        |00010001⟩: 0.2500+0.0000𝑖
+        |00100010⟩: 0.2500+0.0000𝑖
+        |00110011⟩: 0.2500+0.0000𝑖
+        |01000100⟩: 0.2500+0.0000𝑖
+        |01010101⟩: 0.2500+0.0000𝑖
+        |01100110⟩: 0.2500+0.0000𝑖
+        |01110111⟩: 0.2500+0.0000𝑖
+        |10001000⟩: 0.2500+0.0000𝑖
+        |10011001⟩: 0.2500+0.0000𝑖
+        |10101010⟩: 0.2500+0.0000𝑖
+        |10111011⟩: 0.2500+0.0000𝑖
+        |11001100⟩: 0.2500+0.0000𝑖
+        |11011101⟩: 0.2500+0.0000𝑖
+        |11101110⟩: 0.1250−0.1250𝑖
+        |11101111⟩: 0.1250+0.1250𝑖
+        |11111110⟩: 0.1250+0.1250𝑖
+        |11111111⟩: 0.1250−0.1250𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2], 3);
+    sim.sim.mcs(&[0, 1, 2], 3);
+    sim.sim.mch(&[0, 1, 2], 3);
+    for i in 0..4 {
+        sim.sim.mcx(&[i + 4], i);
+        sim.sim.h(i + 4);
+        assert!(sim.sim.qubit_is_zero(i + 4), "qubit {} is not zero", i + 4);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_unrestricted_mcsxadj_4_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(5);
+            let aux = QIR.Runtime.AllocateQubitArray(5);
+            for i in 0..4 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..3], qs[4]);
+            Std.Diagnostics.DumpMachine();
+        }"},
+        "",
+        Profile::Unrestricted,
+        &mut sim,
+        &Value::unit(),
+    );
+    expect![[r#"
+        STATE:
+        |0000000000⟩: 0.1768+0.0000𝑖
+        |0000100001⟩: 0.1768+0.0000𝑖
+        |0001000010⟩: 0.1768+0.0000𝑖
+        |0001100011⟩: 0.1768+0.0000𝑖
+        |0010000100⟩: 0.1768+0.0000𝑖
+        |0010100101⟩: 0.1768+0.0000𝑖
+        |0011000110⟩: 0.1768+0.0000𝑖
+        |0011100111⟩: 0.1768+0.0000𝑖
+        |0100001000⟩: 0.1768+0.0000𝑖
+        |0100101001⟩: 0.1768+0.0000𝑖
+        |0101001010⟩: 0.1768+0.0000𝑖
+        |0101101011⟩: 0.1768+0.0000𝑖
+        |0110001100⟩: 0.1768+0.0000𝑖
+        |0110101101⟩: 0.1768+0.0000𝑖
+        |0111001110⟩: 0.1768+0.0000𝑖
+        |0111101111⟩: 0.1768+0.0000𝑖
+        |1000010000⟩: 0.1768+0.0000𝑖
+        |1000110001⟩: 0.1768+0.0000𝑖
+        |1001010010⟩: 0.1768+0.0000𝑖
+        |1001110011⟩: 0.1768+0.0000𝑖
+        |1010010100⟩: 0.1768+0.0000𝑖
+        |1010110101⟩: 0.1768+0.0000𝑖
+        |1011010110⟩: 0.1768+0.0000𝑖
+        |1011110111⟩: 0.1768+0.0000𝑖
+        |1100011000⟩: 0.1768+0.0000𝑖
+        |1100111001⟩: 0.1768+0.0000𝑖
+        |1101011010⟩: 0.1768+0.0000𝑖
+        |1101111011⟩: 0.1768+0.0000𝑖
+        |1110011100⟩: 0.1768+0.0000𝑖
+        |1110111101⟩: 0.1768+0.0000𝑖
+        |1111011110⟩: 0.0884−0.0884𝑖
+        |1111011111⟩: 0.0884+0.0884𝑖
+        |1111111110⟩: 0.0884+0.0884𝑖
+        |1111111111⟩: 0.0884−0.0884𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    sim.sim.mcs(&[0, 1, 2, 3], 4);
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    for i in 0..5 {
+        sim.sim.mcx(&[i + 5], i);
+        sim.sim.h(i + 5);
+        assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
+fn test_base_mcsxadj_4_control() {
+    let mut sim = SparseSim::default();
+    let dump = test_expression_with_lib_and_profile_and_sim(
+        indoc! {"{
+            let qs = QIR.Runtime.AllocateQubitArray(5);
+            let aux = QIR.Runtime.AllocateQubitArray(5);
+            for i in 0..4 {
+                H(aux[i]);
+                CNOT(aux[i], qs[i]);
+            }
+            Controlled Adjoint SX(qs[0..3], qs[4]);
+            Std.Diagnostics.DumpMachine();
+            let result : Result[] = [];
+            result
+        }"},
+        "",
+        Profile::Base,
+        &mut sim,
+        &Value::Array(Vec::new().into()),
+    );
+    expect![[r#"
+        STATE:
+        |0000000000⟩: 0.1768+0.0000𝑖
+        |0000100001⟩: 0.1768+0.0000𝑖
+        |0001000010⟩: 0.1768+0.0000𝑖
+        |0001100011⟩: 0.1768+0.0000𝑖
+        |0010000100⟩: 0.1768+0.0000𝑖
+        |0010100101⟩: 0.1768+0.0000𝑖
+        |0011000110⟩: 0.1768+0.0000𝑖
+        |0011100111⟩: 0.1768+0.0000𝑖
+        |0100001000⟩: 0.1768+0.0000𝑖
+        |0100101001⟩: 0.1768+0.0000𝑖
+        |0101001010⟩: 0.1768+0.0000𝑖
+        |0101101011⟩: 0.1768+0.0000𝑖
+        |0110001100⟩: 0.1768+0.0000𝑖
+        |0110101101⟩: 0.1768+0.0000𝑖
+        |0111001110⟩: 0.1768+0.0000𝑖
+        |0111101111⟩: 0.1768+0.0000𝑖
+        |1000010000⟩: 0.1768+0.0000𝑖
+        |1000110001⟩: 0.1768+0.0000𝑖
+        |1001010010⟩: 0.1768+0.0000𝑖
+        |1001110011⟩: 0.1768+0.0000𝑖
+        |1010010100⟩: 0.1768+0.0000𝑖
+        |1010110101⟩: 0.1768+0.0000𝑖
+        |1011010110⟩: 0.1768+0.0000𝑖
+        |1011110111⟩: 0.1768+0.0000𝑖
+        |1100011000⟩: 0.1768+0.0000𝑖
+        |1100111001⟩: 0.1768+0.0000𝑖
+        |1101011010⟩: 0.1768+0.0000𝑖
+        |1101111011⟩: 0.1768+0.0000𝑖
+        |1110011100⟩: 0.1768+0.0000𝑖
+        |1110111101⟩: 0.1768+0.0000𝑖
+        |1111011110⟩: 0.0884−0.0884𝑖
+        |1111011111⟩: 0.0884+0.0884𝑖
+        |1111111110⟩: 0.0884+0.0884𝑖
+        |1111111111⟩: 0.0884−0.0884𝑖
+    "#]]
+    .assert_eq(&dump);
+
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    sim.sim.mcs(&[0, 1, 2, 3], 4);
+    sim.sim.mch(&[0, 1, 2, 3], 4);
+    for i in 0..5 {
+        sim.sim.mcx(&[i + 5], i);
+        sim.sim.h(i + 5);
+        assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
+        assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
+    }
+}
+
+#[test]
 fn test_mct_1_control() {
     let mut sim = SparseSim::default();
     let dump = test_expression_with_lib_and_profile_and_sim(

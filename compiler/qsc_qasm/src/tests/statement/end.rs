@@ -16,8 +16,6 @@ fn end_can_be_in_nested_scope() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
@@ -36,8 +34,6 @@ fn end_can_be_in_global_scope() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Angle.*;
-        import QasmStd.Convert.*;
         import QasmStd.Intrinsic.*;
         fail "end";
     "#]]

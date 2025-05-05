@@ -293,13 +293,7 @@ fn build_ident(name: &str) -> Ident {
 }
 
 pub(crate) fn build_lit_angle_expr(angle: Angle, span: Span) -> Expr {
-    let alloc_ident = build_ident("__Angle__");
-    let path_kind = PathKind::Ok(Box::new(Path {
-        segments: None,
-        name: Box::new(alloc_ident),
-        id: NodeId::default(),
-        span: Span::default(),
-    }));
+    let path_kind = build_angle_ident_pathkind();
     let value_expr = Box::new(Expr {
         #[allow(clippy::cast_possible_wrap)]
         kind: Box::new(ExprKind::Lit(Box::new(Lit::Int(angle.value as i64)))),
@@ -372,7 +366,7 @@ pub(crate) fn build_math_call_from_exprs(name: &str, exprs: Vec<Expr>, span: Spa
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
-            segments: build_idents(&["Microsoft", "Quantum", "Math"]),
+            segments: build_idents(&["Std", "Math"]),
             name: Box::new(alloc_ident),
             id: NodeId::default(),
             span: Span::default(),
@@ -509,7 +503,7 @@ pub(crate) fn build_convert_call_expr(expr: Expr, name: &str) -> Expr {
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
-            segments: build_idents(&["Microsoft", "Quantum", "Convert"]),
+            segments: build_idents(&["Std", "Convert"]),
             name: Box::new(cast_ident),
             id: NodeId::default(),
             span: Span::default(),
@@ -539,7 +533,7 @@ pub(crate) fn build_array_reverse_expr(expr: Expr) -> Expr {
     };
     let path_expr = Expr {
         kind: Box::new(ExprKind::Path(PathKind::Ok(Box::new(Path {
-            segments: build_idents(&["Microsoft", "Quantum", "Arrays"]),
+            segments: build_idents(&["Std", "Arrays"]),
             name: Box::new(cast_ident),
             id: NodeId::default(),
             span: Span::default(),
@@ -640,13 +634,81 @@ pub(crate) fn build_if_expr_then_block(cond: Expr, then_block: Block, span: Span
     }
 }
 
-pub(crate) fn build_cast_call_by_name(
+pub(crate) fn build_convert_cast_call_by_name(
     name: &str,
     expr: ast::Expr,
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
-    build_global_call_with_one_param(name, expr, name_span, operand_span)
+    build_qasm_convert_call_with_one_param(name, expr, name_span, operand_span)
+}
+
+pub(crate) fn build_qasm_convert_call_with_one_param<S: AsRef<str>>(
+    name: S,
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    let expr_span = expr.span;
+    let path_kind = build_qasmstd_convert_pathkind(name.as_ref(), name_span);
+    let callee_expr = ast::Expr {
+        id: NodeId::default(),
+        span: name_span,
+        kind: Box::new(ast::ExprKind::Path(path_kind)),
+    };
+
+    let param_expr_kind = ast::ExprKind::Paren(Box::new(expr));
+
+    let param_expr = ast::Expr {
+        kind: Box::new(param_expr_kind),
+        span: operand_span,
+        ..Default::default()
+    };
+    let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
+    ast::Expr {
+        kind: Box::new(call_kind),
+        span: expr_span,
+        ..Default::default()
+    }
+}
+
+pub(crate) fn build_angle_cast_call_by_name(
+    name: &str,
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    let call_span = expr.span;
+    build_angle_call_with_one_param(name, expr, name_span, operand_span, call_span)
+}
+
+pub(crate) fn build_angle_call_with_one_param<S: AsRef<str>>(
+    name: S,
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+    call_span: Span,
+) -> ast::Expr {
+    let path_kind = build_angle_pathkind(name.as_ref(), name_span);
+    let callee_expr = ast::Expr {
+        id: NodeId::default(),
+        span: name_span,
+        kind: Box::new(ast::ExprKind::Path(path_kind)),
+    };
+
+    let param_expr_kind = ast::ExprKind::Paren(Box::new(expr));
+
+    let param_expr = ast::Expr {
+        kind: Box::new(param_expr_kind),
+        span: operand_span,
+        ..Default::default()
+    };
+    let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
+    ast::Expr {
+        kind: Box::new(call_kind),
+        span: call_span,
+        ..Default::default()
+    }
 }
 
 pub(crate) fn build_measure_call(
@@ -707,27 +769,47 @@ pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     }
 }
 
-pub(crate) fn build_global_call_with_two_params<S: AsRef<str>>(
+pub(crate) fn build_qasmstd_convert_call_with_two_params<S: AsRef<str>>(
     name: S,
     fst: ast::Expr,
     snd: ast::Expr,
     name_span: Span,
     operand_span: Span,
 ) -> ast::Expr {
-    let ident = ast::Ident {
-        id: NodeId::default(),
-        span: name_span,
-        name: Rc::from(name.as_ref()),
-    };
     let callee_expr = ast::Expr {
         id: NodeId::default(),
         span: name_span,
-        kind: Box::new(ast::ExprKind::Path(PathKind::Ok(Box::new(ast::Path {
-            id: NodeId::default(),
-            span: name_span,
-            segments: None,
-            name: Box::new(ident),
-        })))),
+        kind: Box::new(ast::ExprKind::Path(build_qasmstd_convert_pathkind(
+            name, name_span,
+        ))),
+    };
+
+    let param_expr_kind = ast::ExprKind::Tuple(Box::new([Box::new(fst), Box::new(snd)]));
+
+    let param_expr = ast::Expr {
+        kind: Box::new(param_expr_kind),
+        span: operand_span,
+        ..Default::default()
+    };
+    let call_kind = ast::ExprKind::Call(Box::new(callee_expr), Box::new(param_expr));
+    ast::Expr {
+        kind: Box::new(call_kind),
+        span: name_span,
+        ..Default::default()
+    }
+}
+
+pub(crate) fn build_angle_convert_call_with_two_params<S: AsRef<str>>(
+    name: S,
+    fst: ast::Expr,
+    snd: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    let callee_expr = ast::Expr {
+        id: NodeId::default(),
+        span: name_span,
+        kind: Box::new(ast::ExprKind::Path(build_angle_pathkind(name, name_span))),
     };
 
     let param_expr_kind = ast::ExprKind::Tuple(Box::new([Box::new(fst), Box::new(snd)]));
@@ -775,7 +857,7 @@ pub fn build_gate_call_param_expr(args: Vec<Expr>, remaining: usize) -> Expr {
 }
 
 pub(crate) fn build_math_call_no_params(name: &str, span: Span) -> Expr {
-    build_call_no_params(name, &["Microsoft", "Quantum", "Math"], span, span)
+    build_call_no_params(name, &["Std", "Math"], span, span)
 }
 
 pub(crate) fn build_call_no_params(
@@ -939,57 +1021,7 @@ pub(crate) fn build_qasm_import_decl() -> Vec<Stmt> {
 }
 
 pub(crate) fn build_qasm_import_items() -> Vec<Item> {
-    vec![
-        build_qasm_import_decl_angle(),
-        build_qasm_import_decl_convert(),
-        build_qasm_import_decl_intrinsic(),
-    ]
-}
-
-pub(crate) fn build_qasm_import_decl_angle() -> Item {
-    let path_kind = Path {
-        segments: Some(Box::new([build_ident("QasmStd")])),
-        name: Box::new(build_ident("Angle")),
-        id: NodeId::default(),
-        span: Span::default(),
-    };
-    let items = vec![ImportOrExportItem {
-        span: Span::default(),
-        path: PathKind::Ok(Box::new(path_kind)),
-        alias: None,
-        is_glob: true,
-    }];
-    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
-    Item {
-        id: NodeId::default(),
-        span: Span::default(),
-        kind: Box::new(ItemKind::ImportOrExport(decl)),
-        doc: "".into(),
-        attrs: Box::new([]),
-    }
-}
-
-pub(crate) fn build_qasm_import_decl_convert() -> Item {
-    let path_kind = Path {
-        segments: Some(Box::new([build_ident("QasmStd")])),
-        name: Box::new(build_ident("Convert")),
-        id: NodeId::default(),
-        span: Span::default(),
-    };
-    let items = vec![ImportOrExportItem {
-        span: Span::default(),
-        path: PathKind::Ok(Box::new(path_kind)),
-        alias: None,
-        is_glob: true,
-    }];
-    let decl = ImportOrExportDecl::new(Span::default(), items.into_boxed_slice(), false);
-    Item {
-        id: NodeId::default(),
-        span: Span::default(),
-        kind: Box::new(ItemKind::ImportOrExport(decl)),
-        doc: "".into(),
-        attrs: Box::new([]),
-    }
+    vec![build_qasm_import_decl_intrinsic()]
 }
 
 pub(crate) fn build_qasm_import_decl_intrinsic() -> Item {
@@ -1109,6 +1141,39 @@ pub(crate) fn build_path_ident_ty<S: AsRef<str>>(name: S) -> Ty {
     }
 }
 
+fn build_angle_ident_pathkind() -> PathKind {
+    build_angle_pathkind("Angle", Span::default())
+}
+
+fn build_qasmstd_convert_pathkind<S: AsRef<str>>(name: S, span: Span) -> PathKind {
+    let alloc_ident = build_ident(name.as_ref());
+    PathKind::Ok(Box::new(Path {
+        segments: build_idents(&["QasmStd", "Convert"]),
+        name: Box::new(alloc_ident),
+        id: NodeId::default(),
+        span,
+    }))
+}
+
+fn build_angle_pathkind<S: AsRef<str>>(name: S, span: Span) -> PathKind {
+    let alloc_ident = build_ident(name.as_ref());
+    PathKind::Ok(Box::new(Path {
+        segments: build_idents(&["QasmStd", "Angle"]),
+        name: Box::new(alloc_ident),
+        id: NodeId::default(),
+        span,
+    }))
+}
+
+pub(crate) fn build_angle_ty_ident() -> Ty {
+    let path_kind = build_angle_ident_pathkind();
+    let kind = TyKind::Path(path_kind);
+    Ty {
+        kind: Box::new(kind),
+        ..Default::default()
+    }
+}
+
 pub(crate) fn build_complex_ty_ident() -> Ty {
     let ident = ast::Ident {
         name: Rc::from("Complex"),
@@ -1116,7 +1181,7 @@ pub(crate) fn build_complex_ty_ident() -> Ty {
     };
     let path = ast::PathKind::Ok(Box::new(ast::Path {
         name: Box::new(ident),
-        segments: build_idents(&["Microsoft", "Quantum", "Math"]),
+        segments: build_idents(&["Std", "Math"]),
         id: NodeId::default(),
         span: Span::default(),
     }));
@@ -1249,7 +1314,7 @@ pub(crate) fn build_unary_op_expr(op: ast::UnOp, expr: ast::Expr, prefix_span: S
 
 pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
     match output_ty {
-        crate::types::Type::Angle(_) => build_path_ident_ty("__Angle__"),
+        crate::types::Type::Angle(_) => build_angle_ty_ident(),
         crate::types::Type::Result(_) => build_path_ident_ty("Result"),
         crate::types::Type::Qubit => build_path_ident_ty("Qubit"),
         crate::types::Type::BigInt(_) => build_path_ident_ty("BigInt"),

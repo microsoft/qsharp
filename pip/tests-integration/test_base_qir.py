@@ -70,6 +70,7 @@ def test_compile_qir_all_gates() -> None:
         H(q1);\
         S(q1);\
         Adjoint S(q1);\
+        SX(q1); \
         T(q1);\
         Adjoint T(q1);\
         X(q1);\
@@ -84,11 +85,11 @@ def test_compile_qir_all_gates() -> None:
     qir = operation._repr_qir_()
     assert isinstance(qir, bytes)
     module = Module.from_ir(Context(), qir.decode(), "module")
-    assert len(module.functions) == 23
+    assert len(module.functions) == 24
     assert module.functions[0].name == "ENTRYPOINT__main"
     func = module.functions[0]
     assert len(func.basic_blocks) == 1
-    assert len(func.basic_blocks[0].instructions) == 26
+    assert len(func.basic_blocks[0].instructions) == 27
 
     def check_call(i: int, name: str, num_args: int) -> None:
         call = func.basic_blocks[0].instructions[i]
@@ -109,18 +110,19 @@ def test_compile_qir_all_gates() -> None:
     check_call(10, "__quantum__qis__h__body", 1)
     check_call(11, "__quantum__qis__s__body", 1)
     check_call(12, "__quantum__qis__s__adj", 1)
-    check_call(13, "__quantum__qis__t__body", 1)
-    check_call(14, "__quantum__qis__t__adj", 1)
-    check_call(15, "__quantum__qis__x__body", 1)
-    check_call(16, "__quantum__qis__y__body", 1)
-    check_call(17, "__quantum__qis__z__body", 1)
-    check_call(18, "__quantum__qis__swap__body", 2)
-    check_call(19, "__quantum__qis__cx__body", 2)
-    check_call(20, "__quantum__qis__m__body", 2)
+    check_call(13, "__quantum__qis__sx__body", 1)
+    check_call(14, "__quantum__qis__t__body", 1)
+    check_call(15, "__quantum__qis__t__adj", 1)
+    check_call(16, "__quantum__qis__x__body", 1)
+    check_call(17, "__quantum__qis__y__body", 1)
+    check_call(18, "__quantum__qis__z__body", 1)
+    check_call(19, "__quantum__qis__swap__body", 2)
+    check_call(20, "__quantum__qis__cx__body", 2)
     check_call(21, "__quantum__qis__m__body", 2)
-    check_call(22, "__quantum__rt__tuple_record_output", 2)
-    check_call(23, "__quantum__rt__result_record_output", 2)
+    check_call(22, "__quantum__qis__m__body", 2)
+    check_call(23, "__quantum__rt__tuple_record_output", 2)
     check_call(24, "__quantum__rt__result_record_output", 2)
+    check_call(25, "__quantum__rt__result_record_output", 2)
 
     assert required_num_qubits(module.functions[0]) == 5
     assert required_num_results(module.functions[0]) == 2

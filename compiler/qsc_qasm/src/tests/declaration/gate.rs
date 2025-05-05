@@ -56,7 +56,7 @@ fn single_angle_single_qubit() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        operation my_h(θ : __Angle__, q : Qubit) : Unit is Adj + Ctl {
+        operation my_h(θ : QasmStd.Angle.Angle, q : Qubit) : Unit is Adj + Ctl {
             rx(θ, q);
         }
     "#]]
@@ -76,7 +76,7 @@ fn two_angles_two_qubits() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        operation my_h(θ : __Angle__, φ : __Angle__, q : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
+        operation my_h(θ : QasmStd.Angle.Angle, φ : QasmStd.Angle.Angle, q : Qubit, q2 : Qubit) : Unit is Adj + Ctl {
             rx(θ, q2);
             ry(φ, q);
         }

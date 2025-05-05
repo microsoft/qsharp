@@ -19,6 +19,7 @@ import { HistogramData } from "./shared.js";
 import { getQirForVisibleQs } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
 import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+import { sendMessageToPanel } from "../webviewPanel.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -37,9 +38,9 @@ export const azqToolDefinitions: {
   GetJobs: getJobs,
   GetJob: getJob,
   ConnectToWorkspace: connectToWorkspace,
-  DownloadJobResults: downloadJobResults,
+  DownloadJobResults: renderHistogramForJobResults,
   GetWorkspaces: getWorkspaces,
-  SubmitToTarget: submitToTarget,
+  SubmitToTarget: submitToTargetWithConfirmation,
   GetActiveWorkspace: getActiveWorkspace,
   SetActiveWorkspace: setActiveWorkspace,
   GetProviders: getProviders,
@@ -106,7 +107,7 @@ function startRefreshingWorkspace(
 /**
  * Gets the list of available workspace connections.
  */
-async function getWorkspaces(): Promise<{
+export async function getWorkspaces(): Promise<{
   result: { workspaceIds: string[] };
 }> {
   return {
@@ -118,7 +119,7 @@ async function getWorkspaces(): Promise<{
  * Gets the ID of the active workspace for this conversation,
  * or throws if no workspace connections are available.
  */
-async function getActiveWorkspace(
+export async function getActiveWorkspace(
   toolState: ToolState,
 ): Promise<{ result: { workspaceId: string } }> {
   const workspace = await getConversationWorkspace(toolState);
@@ -128,7 +129,7 @@ async function getActiveWorkspace(
 /**
  * Sets the active workspace for this conversation.
  */
-async function setActiveWorkspace(
+export async function setActiveWorkspace(
   toolState: ToolState,
   { workspace_id: workspaceId }: { workspace_id: string },
 ): Promise<{ result: string }> {
@@ -147,13 +148,16 @@ async function setActiveWorkspace(
 const jobLimit = 10;
 const jobLimitDays = 14;
 
-async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
+async function getRecentJobs(
+  workspace: WorkspaceConnection,
+  lastNDays?: number,
+): Promise<Job[]> {
   if (workspace) {
     const jobs = workspace.jobs;
 
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - jobLimitDays);
+    start.setDate(start.getDate() - (lastNDays ?? jobLimitDays));
 
     const limitedJobs = (
       jobs.length > jobLimit ? jobs.slice(0, jobLimit) : jobs
@@ -164,7 +168,10 @@ async function getRecentJobs(workspace: WorkspaceConnection): Promise<Job[]> {
   }
 }
 
-export async function getJobs(conversationState: ToolState): Promise<{
+export async function getJobs(
+  conversationState: ToolState,
+  args?: { lastNDays: number },
+): Promise<{
   result: {
     recentJobs: JobOverview[];
     lastNJobs: number;
@@ -173,30 +180,36 @@ export async function getJobs(conversationState: ToolState): Promise<{
 }> {
   const workspace = await getConversationWorkspace(conversationState);
 
-  const recentJobs = (await getRecentJobs(workspace)).map((job) => {
-    // Don't return the object directly as it may contain extra properties
-    // that may be too large when the tool output is JSON-ified.
-    // (notably `errorData`).
-    //
-    // Only explicitly include fields that are part of the `JobOverview` type,
-    // drop the rest.
-    return {
-      id: job.id,
-      name: job.name,
-      target: job.target,
-      status: job.status,
-      count: job.count,
-      shots: job.shots,
-      creationTime: job.creationTime,
-      beginExecutionTime: job.beginExecutionTime,
-      endExecutionTime: job.endExecutionTime,
-      cancellationTime: job.cancellationTime,
-      costEstimate: job.costEstimate,
-    };
-  });
+  const recentJobs = (await getRecentJobs(workspace, args?.lastNDays)).map(
+    (job) => {
+      // Don't return the object directly as it may contain extra properties
+      // that may be too large when the tool output is JSON-ified.
+      // (notably `errorData`).
+      //
+      // Only explicitly include fields that are part of the `JobOverview` type,
+      // drop the rest.
+      return {
+        id: job.id,
+        name: job.name,
+        target: job.target,
+        status: job.status,
+        count: job.count,
+        shots: job.shots,
+        creationTime: job.creationTime,
+        beginExecutionTime: job.beginExecutionTime,
+        endExecutionTime: job.endExecutionTime,
+        cancellationTime: job.cancellationTime,
+        costEstimate: job.costEstimate,
+      };
+    },
+  );
 
   return {
-    result: { recentJobs, lastNJobs: jobLimit, lastNDays: jobLimitDays },
+    result: {
+      recentJobs,
+      lastNJobs: jobLimit,
+      lastNDays: args?.lastNDays ?? jobLimitDays,
+    },
   };
 }
 
@@ -229,7 +242,7 @@ type JobOverview = {
  * Gets job details for the job with the given ID from the active workspace,
  * or throws if the job is not found.
  */
-async function getJob(
+export async function getJob(
   toolState: ToolState,
   { job_id }: { job_id: string },
 ): Promise<{
@@ -257,7 +270,7 @@ type DownloadJobResult = {
  * Download the results of the job with the given ID from the active workspace.
  * Throws if the job can't be found or the results can't be downloaded for any reason.
  */
-async function downloadJobResults(
+export async function downloadJobResults(
   toolState: ToolState,
   args: { job_id: string },
 ): Promise<DownloadJobResult> {
@@ -303,14 +316,35 @@ async function downloadJobResults(
         buckets,
         shotCount,
       };
+      sendMessageToPanel(
+        { panelType: "histogram", id: args.job_id },
+        false,
+        histogram,
+      );
       return {
-        result: "Results were successfully rendered.",
+        result: JSON.stringify({ histogram }),
         widgetData: histogram,
       };
     }
   } catch {
     throw new CopilotToolError("Failed to download the results for the job.");
   }
+}
+
+/**
+ * This is the same as `downloadJobResults`, except it hides the histogram
+ * values from the tool output, and instead returns a simple user-facing message.
+ * The client UI is expected to be able to render the actual histogram in `widgetData`.
+ */
+async function renderHistogramForJobResults(
+  toolState: ToolState,
+  args: { job_id: string },
+): Promise<DownloadJobResult> {
+  const result = await downloadJobResults(toolState, args);
+  return {
+    result: "Results were successfully rendered.",
+    widgetData: result.widgetData,
+  };
 }
 
 /**
@@ -345,7 +379,7 @@ function formatHistogramBuckets(
 /**
  * Gets the list of the providers and targets in the current workspace.
  */
-async function getProviders(
+export async function getProviders(
   toolState: ToolState,
 ): Promise<{ result: Provider[] }> {
   const workspace = await getConversationWorkspace(toolState);
@@ -355,7 +389,7 @@ async function getProviders(
 /**
  * Gets details about a specific target by its name.
  */
-async function getTarget(
+export async function getTarget(
   toolState: ToolState,
   { target_id }: { target_id: string },
 ): Promise<{ result: Target | undefined }> {
@@ -372,13 +406,14 @@ async function getTarget(
 /**
  * Submits the Q# program in the currently visible editor window to Azure Quantum.
  */
-async function submitToTarget(
+export async function submitToTarget(
   toolState: ToolState,
   {
     job_name: jobName,
     target_id: target_id,
     number_of_shots: numberOfShots,
   }: { job_name: string; target_id: string; number_of_shots: number },
+  confirmation: boolean,
 ): Promise<{ result: string }> {
   const target = (await getTarget(toolState, { target_id })).result;
   if (!target) {
@@ -411,11 +446,13 @@ async function submitToTarget(
 
   const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
 
-  const confirmed = await CopilotView.getConfirmation(
-    `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
-  );
-  if (!confirmed) {
-    return { result: "Job submission was cancelled by the user" };
+  if (confirmation) {
+    const confirmed = await CopilotView.getConfirmation(
+      `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+    );
+    if (!confirmed) {
+      return { result: "Job submission was cancelled by the user" };
+    }
   }
 
   try {
@@ -445,9 +482,19 @@ async function submitToTarget(
 }
 
 /**
+ * `submitToTarget` with confirmation via the Copilot webview UI.
+ */
+async function submitToTargetWithConfirmation(
+  toolState: ToolState,
+  args: { job_name: string; target_id: string; number_of_shots: number },
+): Promise<{ result: string }> {
+  return submitToTarget(toolState, args, true);
+}
+
+/**
  * Starts the user flow to connect to an Azure Quantum Workspace.
  */
-async function connectToWorkspace(
+export async function connectToWorkspace(
   conversationState: ToolState,
 ): Promise<{ result: string }> {
   const initialWsList = await getWorkspaces();

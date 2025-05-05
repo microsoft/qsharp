@@ -228,6 +228,9 @@
         {
           "command": "qsharp-vscode.addProjectReference",
           "when": "resourceFilename == qsharp.json"
+        },
+        {
+          "command": "qsharp-vscode.updateCopilotInstructions"
         }
       ],
       "view/title": [
@@ -450,6 +453,11 @@
         "command": "qsharp-vscode.addProjectReference",
         "category": "Q#",
         "title": "Add Q# project reference"
+      },
+      {
+        "command": "qsharp-vscode.updateCopilotInstructions",
+        "category": "Q#",
+        "title": "Update Copilot instructions file for Q#"
       }
     ],
     "breakpoints": [
@@ -561,6 +569,243 @@
           }
         ],
         "priority": "default"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "azure-quantum-get-jobs",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetJobs",
+        "displayName": "Get Azure Quantum Jobs",
+        "modelDescription": "Get a list of recent jobs that have been run by the customer, along with their statuses, in the currently active workspace. Call this when you need to know what jobs have been run recently or need a history of jobs run, for example when a customer asks 'What are my recent jobs?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-get-job",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetJob",
+        "displayName": "Get Azure Quantum Job Details",
+        "modelDescription": "Get the job information for a customer's job given its id. Call this whenever you need to know information about a specific job, for example when a customer asks 'What is the status of my job?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "description": "Job's unique identifier."
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-connect-to-workspace",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumConnectToWorkspace",
+        "displayName": "Connect to Azure Quantum Workspace",
+        "modelDescription": "Starts the UI flow to connect to an existing Azure Quantum Workspace. Call this when the customer does not have an active workspace, and agrees to connect to a workspace.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-download-job-results",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumDownloadJobResults",
+        "displayName": "Download Azure Quantum Job Results",
+        "modelDescription": "Download and display the results from a customer's job given its id. Call this when you need to download or display as a histogram the results for a job, for example when a customer asks 'What are the results of my last job?' or 'Can you show me the histogram for this job?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "description": "Job's unique identifier."
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-get-workspaces",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetWorkspaces",
+        "displayName": "Get Azure Quantum Workspaces",
+        "modelDescription": "Get a list of workspaces the customer has access to, in the form of workspace ids. Call this when you need to know what workspaces the customer has access to, for example when a customer asks 'What are my workspaces?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-submit-to-target",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumSubmitToTarget",
+        "displayName": "Submit to Azure Quantum Target",
+        "modelDescription": "Submit the current Q# program to Azure Quantum with the provided information. Call this when you need to submit or run a Q# program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_name": {
+              "type": "string",
+              "description": "The string to name the created job."
+            },
+            "target_id": {
+              "type": "string",
+              "description": "The ID or name of the target to submit the job to."
+            },
+            "number_of_shots": {
+              "type": "number",
+              "description": "The number of shots to use for the job."
+            }
+          },
+          "required": [
+            "job_name",
+            "target_id",
+            "number_of_shots"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-get-active-workspace",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetActiveWorkspace",
+        "displayName": "Get Active Azure Quantum Workspace",
+        "modelDescription": "Get the id of the active workspace for this conversation. Call this when you need to know what workspace is the active workspace being used in the context of the current conversation, for example when a customer asks 'What is the workspace that's being used?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-set-active-workspace",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumSetActiveWorkspace",
+        "displayName": "Set Active Azure Quantum Workspace",
+        "modelDescription": "Set the active workspace for this conversation by id. Call this when you need to set what workspace is the active workspace being used in the context of the current conversation, for example when a customer says 'Please use this workspace for my requests.'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "description": "The id of the workspace to set as active."
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-get-providers",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetProviders",
+        "displayName": "Get Azure Quantum Providers",
+        "modelDescription": "Get a list of hardware providers available to the customer, along with their provided targets. Call this when you need to know what providers or targets are available, for example when a customer asks 'What are the available providers?' or 'What targets do I have available?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "azure-quantum-get-target",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "azureQuantumGetTarget",
+        "displayName": "Get Azure Quantum Target",
+        "modelDescription": "Get the target information for a specified target given its id. Call this whenever you need to know information about a specific target, for example when a customer asks 'What is the status of this target?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "target_id": {
+              "type": "string",
+              "description": "The ID of the target to get."
+            }
+          },
+          "required": [
+            "target_id"
+          ],
+          "additionalProperties": false
+        }
       }
     ]
   },

@@ -192,6 +192,26 @@ fn call_to_intrinsic_adjoint_s_adds_callable_and_generates_instruction() {
 }
 
 #[test]
+fn call_to_intrinsic_sx_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__sx__body",
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__sx__body
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
 fn call_to_intrinsic_t_adds_callable_and_generates_instruction() {
     check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
         "__quantum__qis__t__body",

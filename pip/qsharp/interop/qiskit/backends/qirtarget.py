@@ -36,6 +36,7 @@ from qiskit.circuit.library.standard_gates import (
     HGate,
     SGate,
     SdgGate,
+    SXGate,
     SwapGate,
     TGate,
     TdgGate,
@@ -110,6 +111,8 @@ class QirTarget(Target):
 
         self.add_instruction(SGate, name="s")
         self.add_instruction(SdgGate, name="sdg")
+
+        self.add_instruction(SXGate, name="sx")
 
         self.add_instruction(SwapGate, name="swap")
 

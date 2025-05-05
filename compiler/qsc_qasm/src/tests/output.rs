@@ -40,15 +40,13 @@ fn using_re_semantics_removes_output() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : Unit {
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
                 mutable delta = 0.;
-                rz(__DoubleAsAngle__(theta, 53), q[0]);
+                rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
@@ -91,15 +89,13 @@ fn using_qasm_semantics_captures_all_classical_decls_as_output() -> miette::Resu
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : (Result[], Double, Double) {
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
                 mutable delta = 0.;
-                rz(__DoubleAsAngle__(theta, 53), q[0]);
+                rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
@@ -142,20 +138,18 @@ fn using_qiskit_semantics_only_bit_array_is_captured_and_reversed(
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : Result[] {
                 mutable c = [Zero, Zero];
                 let q = QIR.Runtime.AllocateQubitArray(2);
                 mutable gamma = 0.;
                 mutable delta = 0.;
-                rz(__DoubleAsAngle__(theta, 53), q[0]);
+                rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
                 set c w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
                 set c w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[1]);
-                Microsoft.Quantum.Arrays.Reversed(c)
+                Std.Arrays.Reversed(c)
             }
         }"#]]
     .assert_eq(&qsharp);
@@ -201,8 +195,6 @@ c2[2] = measure q[4];
     let qsharp = gen_qsharp(&package.clone());
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Angle.*;
-            import QasmStd.Convert.*;
             import QasmStd.Intrinsic.*;
             operation Test(theta : Double, beta : Int) : (Result[], Result[]) {
                 mutable c = [Zero, Zero];
@@ -210,7 +202,7 @@ c2[2] = measure q[4];
                 let q = QIR.Runtime.AllocateQubitArray(5);
                 mutable gamma = 0.;
                 mutable delta = 0.;
-                rz(__DoubleAsAngle__(theta, 53), q[0]);
+                rz(QasmStd.Angle.DoubleAsAngle(theta, 53), q[0]);
                 h(q[0]);
                 cx(q[0], q[1]);
                 x(q[2]);
@@ -221,7 +213,7 @@ c2[2] = measure q[4];
                 set c2 w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[2]);
                 set c2 w/= 1 <- QIR.Intrinsic.__quantum__qis__m__body(q[3]);
                 set c2 w/= 2 <- QIR.Intrinsic.__quantum__qis__m__body(q[4]);
-                (Microsoft.Quantum.Arrays.Reversed(c2), Microsoft.Quantum.Arrays.Reversed(c))
+                (Std.Arrays.Reversed(c2), Std.Arrays.Reversed(c))
             }
         }"#]]
     .assert_eq(&qsharp);

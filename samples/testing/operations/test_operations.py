@@ -1,16 +1,20 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+from pathlib import Path
 import pytest
 import qsharp
 from qsharp.utils import dump_operation
+
 
 @pytest.fixture(autouse=True)
 def setup():
     """Fixture to execute before a test is run"""
     # Setting the project root to current folder.
-    qsharp.init(project_root=".")
-    yield # this is where the testing happens
+    this_dir = Path(__file__).parent
+    qsharp.init(project_root=this_dir)
+    yield  # this is where the testing happens
+
 
 def test_empty_operation() -> None:
     res = dump_operation("qs => ()", 1)
@@ -27,12 +31,14 @@ def test_single_qubit_not_gate() -> None:
         [1, 0],
     ]
 
+
 def test_single_qubit_hadamard_gate() -> None:
     res = dump_operation("qs => H(qs[0])", 1)
     assert res == [
         [0.707107, 0.707107],
         [0.707107, -0.707107],
     ]
+
 
 def test_two_qubit_cnot_gate() -> None:
     res = dump_operation("qs => CNOT(qs[0], qs[1])", 2)
@@ -42,6 +48,7 @@ def test_two_qubit_cnot_gate() -> None:
         [0, 0, 0, 1],
         [0, 0, 1, 0],
     ]
+
 
 def test_custom_operation() -> None:
     qsharp.eval(
@@ -56,6 +63,7 @@ def test_custom_operation() -> None:
         [0, 0, 0, 1],
     ]
 
+
 def test_operation_no_args_in_qsharp_file() -> None:
     res = dump_operation("qs => CustomOperation.ApplySWAP(qs[0], qs[1])", 2)
     assert res == [
@@ -64,6 +72,7 @@ def test_operation_no_args_in_qsharp_file() -> None:
         [0, 1, 0, 0],
         [0, 0, 0, 1],
     ]
+
 
 def test_operation_with_args_in_qsharp_file() -> None:
     res0 = dump_operation("BellState.AllBellStates(_, 0)", 2)
@@ -104,6 +113,4 @@ def test_operation_with_args_in_qsharp_file() -> None:
 
 
 def test_operation_equivalence_using_fact() -> None:
-    qsharp.eval(
-        "OperationEquivalence.TestEquivalence()"
-    )
+    qsharp.eval("OperationEquivalence.TestEquivalence()")

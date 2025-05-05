@@ -154,10 +154,6 @@ pub const SHOR_EXPECT_DEBUG: Expect = expect![[r#"
     Found factor=17
     Found factorization 187 = 17 * 11
     (17, 11)"#]];
-pub const SIMPLEISING_EXPECT: Expect =
-    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
-pub const SIMPLEISING_EXPECT_DEBUG: Expect =
-    expect!["[Zero, Zero, Zero, One, One, Zero, One, One, Zero]"];
 pub const SIMPLEVQE_EXPECT: Expect = expect![[r#"
    Beginning descent from value 0.43300000000000005.
    Value improved to 0.35300000000000004.

@@ -15,7 +15,7 @@ fn addition() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = Microsoft.Quantum.Math.PlusC(a, b);
+        mutable x = Std.Math.PlusC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -31,7 +31,7 @@ fn addition_assign_op() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        set x = Microsoft.Quantum.Math.PlusC(x, a);
+        set x = Std.Math.PlusC(x, a);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -47,7 +47,7 @@ fn subtraction() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = Microsoft.Quantum.Math.MinusC(a, b);
+        mutable x = Std.Math.MinusC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -63,7 +63,7 @@ fn subtraction_assign_op() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        set x = Microsoft.Quantum.Math.MinusC(x, a);
+        set x = Std.Math.MinusC(x, a);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -79,7 +79,7 @@ fn multiplication() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = Microsoft.Quantum.Math.TimesC(a, b);
+        mutable x = Std.Math.TimesC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -95,7 +95,7 @@ fn multiplication_assign_op() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        set x = Microsoft.Quantum.Math.TimesC(x, a);
+        set x = Std.Math.TimesC(x, a);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -111,7 +111,7 @@ fn division() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = Microsoft.Quantum.Math.DividedByC(a, b);
+        mutable x = Std.Math.DividedByC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -127,7 +127,7 @@ fn division_assign_op() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        set x = Microsoft.Quantum.Math.DividedByC(x, a);
+        set x = Std.Math.DividedByC(x, a);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -143,7 +143,7 @@ fn power() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = Microsoft.Quantum.Math.PowC(a, b);
+        mutable x = Std.Math.PowC(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -159,7 +159,7 @@ fn power_assign_op() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        set x = Microsoft.Quantum.Math.PowC(x, a);
+        set x = Std.Math.PowC(x, a);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
