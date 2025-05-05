@@ -657,6 +657,7 @@ class CircuitEvents {
     elems.forEach((elem) => {
       elem.addEventListener("mousedown", (ev: MouseEvent) => {
         ev.stopPropagation();
+        this.selectedOperation = null;
         this._createQubitLabelGhost(ev, elem);
 
         const sourceIndexStr = elem.getAttribute("data-wire");
