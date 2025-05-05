@@ -222,11 +222,17 @@ export async function updateCopilotInstructions(
     buttons.push({ title: "Don't show again" });
   }
 
+  const modal = userInvoked;
+
   const response = await vscode.window.showInformationMessage(
     "Add Q# guidance to copilot-instructions.md?\n\n" +
-      "Updating this file will help GitHub Copilot understand and work better with Q# files and other Quantum Development Kit features.",
+      "Updating this file will help GitHub Copilot understand and work better with Q# files and other Quantum Development Kit features.\n\n" +
+      "Learn more at " +
+      (modal
+        ? "https://aka.ms/qdk.copilot" // links don't render in modal dialogs
+        : "[https://aka.ms/qdk.copilot](https://aka.ms/qdk.copilot)"),
     {
-      modal: userInvoked,
+      modal,
     },
     ...buttons,
   );
