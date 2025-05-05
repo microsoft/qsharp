@@ -741,6 +741,29 @@ fn broadcast_explicitly_controlled_gate() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
+fn broadcast_explicitly_controlled_controlled_gate() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        include "stdgates.inc";
+        qubit[3] ctrls1;
+        qubit[3] ctrls2;
+        qubit[3] targets;
+        ctrl @ ctrl @ x ctrls1, ctrls2, targets;
+    "#;
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        let ctrls1 = QIR.Runtime.AllocateQubitArray(3);
+        let ctrls2 = QIR.Runtime.AllocateQubitArray(3);
+        let targets = QIR.Runtime.AllocateQubitArray(3);
+        Controlled Controlled x([ctrls1[0]], ([ctrls2[0]], targets[0]));
+        Controlled Controlled x([ctrls1[1]], ([ctrls2[1]], targets[1]));
+        Controlled Controlled x([ctrls1[2]], ([ctrls2[2]], targets[2]));
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
 fn broadcast_with_qubit_and_register() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
