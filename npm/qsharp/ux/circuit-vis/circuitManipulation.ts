@@ -506,8 +506,8 @@ const _addOp = (
   }
 
   if (sourceOperation.kind === "measurement") {
-    for (const targetWires of sourceOperation.qubits) {
-      _updateMeasurementLines(circuitEvents, targetWires.qubit);
+    for (const targetWire of sourceOperation.qubits) {
+      _updateMeasurementLines(circuitEvents, targetWire.qubit);
     }
   }
 };
@@ -598,6 +598,7 @@ const _updateMeasurementLines = (
   circuitEvents: CircuitEvents,
   wireIndex: number,
 ) => {
+  _ensureQubitCount(circuitEvents, wireIndex);
   let resultIndex = 0;
   for (const col of circuitEvents.componentGrid) {
     for (const comp of col.components) {
