@@ -1523,6 +1523,27 @@ mod given_interpreter {
         }
 
         #[test]
+        fn invalid_partial_application_should_fail_not_panic() {
+            // Found via fuzzing, see #2363
+            let source = "operation e(oracle:(w=>)){oracle=i(_)";
+            let sources = SourceMap::new([("test".into(), source.into())], None);
+            let (std_id, store) =
+                crate::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+            assert!(
+                Interpreter::new(
+                    sources,
+                    PackageType::Exe,
+                    TargetCapabilityFlags::all(),
+                    LanguageFeatures::default(),
+                    store,
+                    &[(std_id, None)],
+                )
+                .is_err(),
+                "interpreter should fail with error"
+            );
+        }
+
+        #[test]
         fn errors_returned_if_sources_do_not_match_profile() {
             let source = indoc! { r#"
             namespace A { operation Test() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }"#};
