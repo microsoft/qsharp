@@ -57,12 +57,12 @@ Most of the core components are implemented in Rust. These components are packag
 - **katas/**: Quantum computing tutorials and exercises
 - **library/**: Q# standard and domain-specific libraries
   - **chemistry/**: Chemistry-specific quantum operations
-  - **core/**: Core quantum operations
+  - **core/**: Q# core library
   - **fixed_point/**: Fixed-point arithmetic support
   - **qtest/**: Testing utilities
   - **rotations/**: Quantum rotation operations
   - **signed/**: Signed arithmetic operations
-  - **std/**: Standard library functions
+  - **std/**: Q# standard library
 - **samples/**: Example Q# programs demonstrating language features
 - **samples_test/**: Tests for sample code
 
