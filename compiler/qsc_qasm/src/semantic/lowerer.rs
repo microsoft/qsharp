@@ -721,7 +721,7 @@ impl Lowerer {
         }
     }
 
-    fn check_lit_array_type(&mut self, expr: &syntax::Lit, ty: &Type) {
+    fn check_lit_array_size(&mut self, expr: &syntax::Lit, ty: &Type) {
         if let Some(dims) = ty.array_dims() {
             let expected_size = dims.into_iter().next();
 
@@ -757,7 +757,7 @@ impl Lowerer {
 
     fn lower_lit_expr(&mut self, expr: &syntax::Lit, ty: Option<&Type>) -> semantic::Expr {
         if let Some(ty) = ty {
-            self.check_lit_array_type(expr, ty);
+            self.check_lit_array_size(expr, ty);
         }
 
         let (kind, ty) = match &expr.kind {
