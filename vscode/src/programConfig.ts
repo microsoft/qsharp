@@ -27,7 +27,7 @@ import { loadOpenQasmProject, loadProject } from "./projectSystem";
 
 export type FullProgramConfig = Required<ProgramConfig & IProjectConfig>;
 
-type FullProgramConfigOrError =
+export type FullProgramConfigOrError =
   | {
       success: true;
       programConfig: FullProgramConfig;
@@ -45,7 +45,7 @@ type FullProgramConfigOrError =
 export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
   const docUri = getActiveQSharpDocumentUri();
   if (docUri) {
-    return await getProgramForDocument(docUri);
+    return await getQSharpProgramForDocument(docUri);
   } else {
     const docUri = getActiveOpenQasmDocumentUri();
     if (!docUri) {
@@ -85,7 +85,7 @@ export function getActiveOpenQasmDocumentUri(): vscode.Uri | undefined {
 export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
   const docUri = getVisibleQSharpDocumentUri();
   if (docUri) {
-    return await getProgramForDocument(docUri);
+    return await getQSharpProgramForDocument(docUri);
   } else {
     const docUri = getVisibleOpenQasmDocumentUri();
     if (!docUri) {
@@ -113,7 +113,7 @@ export async function getVisibleOpenQasmProgram(): Promise<FullProgramConfigOrEr
     };
   }
 
-  return await getProgramForDocument(docUri);
+  return await getOpenQasmProgramForDocument(docUri);
 }
 
 export function getVisibleOpenQasmDocumentUri(): vscode.Uri | undefined {
@@ -128,7 +128,7 @@ export function getVisibleOpenQasmDocumentUri(): vscode.Uri | undefined {
  *   including any settings that come from the qsharp.json as well as the
  *   user/workspace settings.
  */
-export async function getProgramForDocument(
+export async function getQSharpProgramForDocument(
   docUri: vscode.Uri,
 ): Promise<FullProgramConfigOrError> {
   // Target profile comes from settings
@@ -158,7 +158,7 @@ export async function getOpenQasmProgramForDocument(
   // Target profile comes from settings
   const profile = getTarget();
 
-  // Project configs come from the document and/or manifest
+  // Project configs come from the document
   try {
     const program = await loadOpenQasmProject(docUri);
 

@@ -129,7 +129,7 @@ async function getQirForProgram(
       {
         location: vscode.ProgressLocation.Notification,
         cancellable: true,
-        title: "Q#: Generating QIR",
+        title: "Generating QIR",
       },
       async (progress, token) => {
         token.onCancellationRequested(() => {

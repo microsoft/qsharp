@@ -7,10 +7,7 @@ use qsc::{qasm::parser::ast::StmtKind, LanguageFeatures};
 use qsc_project::{FileSystemAsync, PackageGraphSources, PackageInfo, Project};
 use rustc_hash::FxHashMap;
 
-pub async fn load_openqasm_project<T>(
-    project_host: &T,
-    doc_uri: &Arc<str>,
-) -> Result<Project, Vec<qsc::project::Error>>
+pub async fn load_openqasm_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
 where
     T: FileSystemAsync + ?Sized,
 {
@@ -75,7 +72,7 @@ where
 
     let sources = loaded_files.into_iter().collect::<Vec<_>>();
 
-    Ok(Project {
+    Project {
         package_graph_sources: PackageGraphSources {
             root: PackageInfo {
                 sources,
@@ -90,7 +87,7 @@ where
         lints: Vec::default(),
         errors,
         project_type: qsc_project::ProjectType::OpenQASM,
-    })
+    }
 }
 
 fn get_file_name_from_uri(uri: &Arc<str>) -> Arc<str> {

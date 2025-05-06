@@ -11,6 +11,7 @@ import * as vscode from "vscode";
 import {
   isCircuitDocument,
   isOpenQasmDocument,
+  isOpenQasmNotebookCell,
   isQsharpDocument,
   isQsharpNotebookCell,
   openqasmLanguageId,
@@ -212,47 +213,19 @@ function registerDocumentUpdateHandlers(
   languageService: ILanguageService,
 ): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document);
-    updateIfOpenQasmDocument(document);
+    updateIfSupportedDocument(document);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
   // below subscriptions won't fire for documents that are already open when the extension is activated
   vscode.workspace.textDocuments.forEach((document) => {
-    if (isQsharpDocument(document)) {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : isCircuitDocument(document)
-          ? QsharpDocumentType.Circuit
-          : QsharpDocumentType.Qsharp;
-      sendTelemetryEvent(
-        EventType.OpenedDocument,
-        { documentType },
-        { linesOfCode: document.lineCount },
-      );
-    }
-    if (isOpenQasmDocument(document)) {
-      const documentType = QsharpDocumentType.OpenQasm;
-      sendTelemetryEvent(
-        EventType.OpenedDocument,
-        { documentType },
-        { linesOfCode: document.lineCount },
-      );
-    }
+    sendDocumentOpenedEvent(document);
   });
 
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : isCircuitDocument(document)
-          ? QsharpDocumentType.Circuit
-          : isQsharpDocument(document)
-            ? QsharpDocumentType.Qsharp
-            : isOpenQasmDocument(document)
-              ? QsharpDocumentType.OpenQasm
-              : QsharpDocumentType.Other;
+      const documentType = determineDocumentType(document);
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
@@ -260,15 +233,13 @@ function registerDocumentUpdateHandlers(
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document);
-      updateIfOpenQasmDocument(document);
+      updateIfSupportedDocument(document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document);
-      updateIfOpenQasmDocument(evt.document);
+      updateIfSupportedDocument(evt.document);
     }),
   );
 
@@ -276,7 +247,7 @@ function registerDocumentUpdateHandlers(
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (
         (isQsharpDocument(document) && !isQsharpNotebookCell(document)) ||
-        (isOpenQasmDocument(document) && !isQsharpNotebookCell(document))
+        (isOpenQasmDocument(document) && !isOpenQasmNotebookCell(document))
       ) {
         languageService.closeDocument(document.uri.toString());
       }
@@ -333,7 +304,7 @@ function registerDocumentUpdateHandlers(
   }
 
   async function updateIfOpenQasmDocument(document: vscode.TextDocument) {
-    if (isOpenQasmDocument(document) && !isQsharpNotebookCell(document)) {
+    if (isOpenQasmDocument(document) && !isOpenQasmNotebookCell(document)) {
       const content = document.getText();
 
       languageService.updateDocument(
@@ -344,7 +315,43 @@ function registerDocumentUpdateHandlers(
     }
   }
 
+  async function updateIfSupportedDocument(document: vscode.TextDocument) {
+    updateIfQsharpDocument(document);
+    updateIfOpenQasmDocument(document);
+  }
+
   return subscriptions;
+}
+
+function determineDocumentType(document: vscode.TextDocument) {
+  return isQsharpNotebookCell(document) || isOpenQasmNotebookCell(document)
+    ? QsharpDocumentType.JupyterCell
+    : isCircuitDocument(document)
+      ? QsharpDocumentType.Circuit
+      : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isOpenQasmDocument(document)
+          ? QsharpDocumentType.OpenQasm
+          : QsharpDocumentType.Other;
+}
+
+function sendDocumentOpenedEvent(document: vscode.TextDocument) {
+  if (isQsharpDocument(document)) {
+    const documentType = determineDocumentType(document);
+    sendTelemetryEvent(
+      EventType.OpenedDocument,
+      { documentType },
+      { linesOfCode: document.lineCount },
+    );
+  }
+  if (isOpenQasmDocument(document)) {
+    const documentType = QsharpDocumentType.OpenQasm;
+    sendTelemetryEvent(
+      EventType.OpenedDocument,
+      { documentType },
+      { linesOfCode: document.lineCount },
+    );
+  }
 }
 
 function registerConfigurationChangeHandlers(

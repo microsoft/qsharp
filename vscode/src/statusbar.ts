@@ -102,21 +102,21 @@ function registerOpenQasmTargetProfileCommand() {
 }
 
 const targetProfiles = [
-  { configName: "base", uiText: "Q#: QIR base" },
-  { configName: "adaptive_ri", uiText: "Q#: QIR Adaptive RI" },
-  { configName: "adaptive_rif", uiText: "Q#: QIR Adaptive RIF" },
-  { configName: "unrestricted", uiText: "Q#: unrestricted" },
+  { configName: "base", uiText: "QIR: base" },
+  { configName: "adaptive_ri", uiText: "QIR: Adaptive RI" },
+  { configName: "adaptive_rif", uiText: "QIR: Adaptive RIF" },
+  { configName: "unrestricted", uiText: "QIR: unrestricted" },
 ];
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "Q#: QIR base":
+    case "QIR: base":
       return "base";
-    case "Q#: QIR Adaptive RI":
+    case "QIR: Adaptive RI":
       return "adaptive_ri";
-    case "Q#: QIR Adaptive RIF":
+    case "QIR: Adaptive RIF":
       return "adaptive_rif";
-    case "Q#: unrestricted":
+    case "QIR: unrestricted":
       return "unrestricted";
     default:
       log.error("invalid target profile found");

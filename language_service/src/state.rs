@@ -183,9 +183,7 @@ impl<'a> CompilationStateUpdater<'a> {
 
     async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
         if is_openqasm_file(doc_uri) {
-            if let Ok(project) = crate::load_openqasm_project(&*self.project_host, doc_uri).await {
-                return project;
-            }
+            return crate::load_openqasm_project(&*self.project_host, doc_uri).await;
         }
         match self.load_manifest(doc_uri).await {
             Ok(Some(p)) => p,

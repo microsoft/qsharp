@@ -8,10 +8,11 @@ import * as vscode from "vscode";
 import { qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
+  FullProgramConfigOrError,
   getActiveOpenQasmDocumentUri,
   getActiveQSharpDocumentUri,
   getOpenQasmProgramForDocument,
-  getProgramForDocument,
+  getQSharpProgramForDocument,
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
 import { QscDebugSession } from "./session";
@@ -37,7 +38,9 @@ export async function activateDebugger(
     vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
 
-  const factory = new InlineDebugAdapterFactory();
+  const factory = new InlineDebugAdapterFactory((uri) =>
+    getQSharpProgramForDocument(uri),
+  );
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
@@ -47,7 +50,9 @@ export async function activateDebugger(
     vscode.debug.registerDebugConfigurationProvider("openqasm", qasm_provider),
   );
 
-  const qasm_factory = new InlineOpenQasmDebugAdapterFactory();
+  const qasm_factory = new InlineDebugAdapterFactory((uri) =>
+    getOpenQasmProgramForDocument(uri),
+  );
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory(
       "openqasm",
@@ -382,39 +387,19 @@ class OpenQasmDebugConfigProvider implements vscode.DebugConfigurationProvider {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
+  constructor(
+    private programLoader: (
+      uri: vscode.Uri,
+    ) => Promise<FullProgramConfigOrError>,
+  ) {}
+
   async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const uri = vscode.Uri.parse(session.configuration.programUri);
-    const program = await getProgramForDocument(uri);
-    if (!program.success) {
-      throw new Error(program.errorMsg);
-    }
-
-    const qscSession = new QscDebugSession(
-      worker,
-      session.configuration,
-      program.programConfig,
-    );
-
-    await qscSession.init(getRandomGuid());
-
-    return new vscode.DebugAdapterInlineImplementation(qscSession);
-  }
-}
-
-class InlineOpenQasmDebugAdapterFactory
-  implements vscode.DebugAdapterDescriptorFactory
-{
-  async createDebugAdapterDescriptor(
-    session: vscode.DebugSession,
-    _executable: vscode.DebugAdapterExecutable | undefined,
-  ): Promise<vscode.DebugAdapterDescriptor> {
-    const worker = debugServiceWorkerFactory();
-    const uri = vscode.Uri.parse(session.configuration.programUri);
-    const program = await getOpenQasmProgramForDocument(uri);
+    const program = await this.programLoader(uri);
     if (!program.success) {
       throw new Error(program.errorMsg);
     }
