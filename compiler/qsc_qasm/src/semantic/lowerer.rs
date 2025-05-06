@@ -1833,25 +1833,24 @@ impl Lowerer {
         match op.kind {
             semantic::GateOperandKind::Expr(expr) => {
                 // Single qubits are allowed in a broadcast call.
-                if matches!(&expr.ty, Type::Qubit) {
-                    return semantic::GateOperand {
+                match &expr.ty {
+                    Type::Qubit => semantic::GateOperand {
                         span: op.span,
                         kind: semantic::GateOperandKind::Expr(expr),
-                    };
-                }
-
-                assert!(matches!(expr.ty, Type::QubitArray(..)));
-                semantic::GateOperand {
-                    span: op.span,
-                    kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr {
+                    },
+                    Type::QubitArray(..) => semantic::GateOperand {
                         span: op.span,
-                        kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                        kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr {
                             span: op.span,
-                            collection: *expr,
-                            indices: list_from_iter([index]),
+                            kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                                span: op.span,
+                                collection: *expr,
+                                indices: list_from_iter([index]),
+                            })),
+                            ty: Type::Qubit,
                         })),
-                        ty: Type::Qubit,
-                    })),
+                    },
+                    _ => unreachable!("we set register_type iff we find a QubitArray"),
                 }
             }
             _ => unreachable!("by this point `op` is guaranteed to be a quantum register"),
