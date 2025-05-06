@@ -3690,7 +3690,6 @@ impl Lowerer {
         }
     }
 
-    #[allow(clippy::unused_self)]
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
         let kind = match &operand.kind {
             syntax::GateOperandKind::IdentOrIndexedIdent(ident_or_indexed_ident) => {
