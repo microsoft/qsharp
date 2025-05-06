@@ -398,7 +398,7 @@
         "command": "qsharp-vscode.copilotClear",
         "category": "Q#",
         "title": "Clear Quantum Copilot chat",
-        "enablement": "!qdkCopilotIsBusy",
+        "enablement": "config.Q#.chat.enabled && !qdkCopilotIsBusy",
         "icon": "$(clear-all)"
       },
       {
@@ -804,6 +804,30 @@
           "required": [
             "target_id"
           ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-run-program",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpRunProgram",
+        "displayName": "Run Q# Program",
+        "modelDescription": "Run the current Q# program in the editor locally. Call this when the user wants to execute the Q# program currently open in the editor, for example when they ask 'Can you run this program?'",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "shots": {
+              "type": "number",
+              "description": "The number of times to run the program. Defaults to 1 if not specified."
+            }
+          },
+          "required": [],
           "additionalProperties": false
         }
       }
