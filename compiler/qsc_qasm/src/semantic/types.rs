@@ -383,10 +383,7 @@ fn indexed_type_builder(
     }
 
     // These are the remaining dimensions after applying all indices.
-    let not_indexed_dims = dims
-        .clone()
-        .into_iter()
-        .skip(indices.len());
+    let not_indexed_dims = dims.clone().into_iter().skip(indices.len());
 
     let dims_vec = indexed_dims
         .into_iter()
