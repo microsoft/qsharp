@@ -198,14 +198,10 @@ export async function loadProject(
 }
 
 /**
- * Given a Q# Document URI, returns the configuration and list of complete source files
+ * Given an OpenQASM Document URI, returns the configuration and list of complete source files
  * associated with that document.
  *
- * If there is a qsharp.json manifest for this document, the settings from that are used.
- *
- * If a manifest is not found, the returned project contains the single input file and the default settings.
- *
- * @param documentUri A Q# document.
+ * @param documentUri An OpenQASM document.
  * @returns The project configuration for that document.
  * @throws Error if the qsharp.json cannot be parsed.
  */

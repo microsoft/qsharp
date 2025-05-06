@@ -200,21 +200,7 @@ impl ProjectLoader {
     }
 
     pub async fn load_openqasm_project(&self, file_path: String) -> Result<IProjectConfig, String> {
-        let project_config =
-            match qsls::load_openqasm_project(&self.0, &file_path.clone().into()).await {
-                Ok(loaded_project) => loaded_project,
-                Err(errs) => {
-                    // get the parent directory of the file uri
-                    let directory = std::path::Path::new(&file_path)
-                        .parent()
-                        .unwrap_or_else(|| std::path::Path::new("."))
-                        .display()
-                        .to_string();
-
-                    return Err(project_errors_into_qsharp_errors_json(&directory, &errs));
-                }
-            };
-
+        let project_config = qsls::load_openqasm_project(&self.0, &file_path.clone().into()).await;
         // Will return error if project has errors
         project_config.try_into()
     }

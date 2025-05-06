@@ -9,7 +9,7 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import { loadCompilerWorker, toVsCodeLocation, toVsCodeRange } from "../common";
-import { getProgramForDocument } from "../programConfig";
+import { getQSharpProgramForDocument } from "../programConfig";
 import { createDebugConsoleEventTarget } from "../debugger/output";
 
 let worker: ICompilerWorker | null = null;
@@ -127,7 +127,7 @@ export function startTestDiscovery(
       run.appendOutput(`No compilation URI for test ${testCase.id}\r\n`);
       return;
     }
-    const programResult = await getProgramForDocument(uri);
+    const programResult = await getQSharpProgramForDocument(uri);
 
     if (!programResult.success) {
       throw new Error(programResult.errorMsg);
