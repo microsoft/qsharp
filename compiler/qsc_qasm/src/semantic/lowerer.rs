@@ -692,24 +692,28 @@ impl Lowerer {
             self.symbols.is_scope_rooted_in_gate_or_subroutine();
 
         // This is true if the symbol is outside the most inner gate or function scope.
-        let is_symbol_outside_most_inner_gate_or_function_scope = self
+        let is_symbol_declaration_outside_gate_or_function_scope = self
             .symbols
             .is_symbol_outside_most_inner_gate_or_function_scope(symbol_id);
 
-        let is_const_evaluation_necessary = symbol.is_const()
-            && is_symbol_inside_gate_or_function_scope
-            && is_symbol_outside_most_inner_gate_or_function_scope;
+        let need_to_capture_symbol = is_symbol_inside_gate_or_function_scope
+            && is_symbol_declaration_outside_gate_or_function_scope;
 
-        let kind = if is_const_evaluation_necessary {
+        let kind = if need_to_capture_symbol && symbol.is_const() {
             if let Some(val) = symbol.get_const_expr().const_eval(self) {
                 semantic::ExprKind::Lit(val)
             } else {
-                self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                    "a captured variable".into(),
-                    ident.span,
-                ));
-                semantic::ExprKind::Err
+                // If the const evaluation fails, we return Err but don't push
+                // any additional error. The error was already pushed in the
+                // const_eval function.
+                semantic::ExprKind::Ident(symbol_id)
             }
+        } else if need_to_capture_symbol && !symbol.is_const() {
+            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
+                "a captured variable".into(),
+                ident.span,
+            ));
+            semantic::ExprKind::Ident(symbol_id)
         } else {
             semantic::ExprKind::Ident(symbol_id)
         };

@@ -2031,16 +2031,6 @@ fn binary_op_with_non_supported_types_fails() {
          3 |         def f() { a; }
            `----
 
-        Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:3:19]
-         2 |         const int a = 2 / 0s;
-         3 |         def f() { a; }
-           :                   ^
-         4 |     
-           `----
-
         Qasm.Compiler.NotSupported
 
           x timing literals are not supported
@@ -2048,6 +2038,139 @@ fn binary_op_with_non_supported_types_fails() {
          1 | 
          2 |         const int a = 2 / 0s;
            :                           ^^
+         3 |         def f() { a; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_of_int_by_zero_int_errors() {
+    let source = r#"
+        const int a = 2 / 0;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int a = 2 / 0;
+           :                       ^^^^^
+         3 |         def f() { a; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_of_angle_by_zero_int_errors() {
+    let source = r#"
+        const angle a = 2.0;
+        const angle b = a / 0;
+        def f() { b; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:3:25]
+         2 |         const angle a = 2.0;
+         3 |         const angle b = a / 0;
+           :                         ^^^^^
+         4 |         def f() { b; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_by_zero_float_errors() {
+    let source = r#"
+        const float a = 2.0 / 0.0;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:25]
+         1 | 
+         2 |         const float a = 2.0 / 0.0;
+           :                         ^^^^^^^^^
+         3 |         def f() { a; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn division_by_zero_angle_errors() {
+    let source = r#"
+        const angle a = 2.0;
+        const angle b = 0.0;
+        const uint c = a / b;
+        def f() { c; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:4:24]
+         3 |         const angle b = 0.0;
+         4 |         const uint c = a / b;
+           :                        ^^^^^
+         5 |         def f() { c; }
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
+fn modulo_of_int_by_zero_int_errors() {
+    let source = r#"
+        const int a = 2 % 0;
+        def f() { a; }
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.DivisionByZero
+
+          x division by error during const evaluation
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int a = 2 % 0;
+           :                       ^^^^^
          3 |         def f() { a; }
            `----
     "#]]

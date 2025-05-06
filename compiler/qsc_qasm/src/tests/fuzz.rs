@@ -77,3 +77,17 @@ fn fuzz_2313() {
     super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
+
+#[test]
+fn fuzz_2332() {
+    let source = r#"ctrl(0/0)@s"#;
+    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2348() {
+    let source = r#"ctrl(0%0)@s"#;
+    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}

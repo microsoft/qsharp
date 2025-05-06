@@ -207,6 +207,15 @@ fn capturing_non_const_external_variable_fails() {
            :                    ^
          5 |         }
            `----
+        , Qasm.Lowerer.ExprMustBeConst
+
+          x a captured variable must be a const expression
+           ,-[Test.qasm:4:20]
+         3 |         def f() -> int {
+         4 |             return a;
+           :                    ^
+         5 |         }
+           `----
         , Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Int(None, false)
@@ -242,15 +251,6 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
          2 |         const int a = 2 << (-3);
            :                       ^^^^^^^^^
          3 |         def f() -> int {
-           `----
-        , Qasm.Lowerer.ExprMustBeConst
-
-          x a captured variable must be a const expression
-           ,-[Test.qasm:4:20]
-         3 |         def f() -> int {
-         4 |             return a;
-           :                    ^
-         5 |         }
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
