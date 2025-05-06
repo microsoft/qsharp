@@ -62,7 +62,19 @@ Most of the core components are implemented in Rust. These components are packag
   - **qsharp/**: Python package source
   - **src/**: Rust implementation for Python bindings
   - **tests/**: Unit tests
-  - **tests-integration/**: Integration tests with Qiskit (qiskit-core, qiskit-aer, qiskit_qasm3_import), PyQIR, QIR Runner, resource estimator, and simulators
+  - **tests-integration/**: Integration tests with Qiskit, PyQIR, QIR Runner, and simulators
+    - **interop_qiskit/**: Qiskit interoperability tests
+      - **test_circuits/**: Test circuit definitions 
+      - **test_gateset_qasm.py**: QASM gate set tests
+      - **test_gate_correctness.py**: Gate correctness validation
+      - **test_qir.py**: QIR integration with Qiskit
+      - **test_qsharp.py**: Q# and Qiskit interop tests
+      - **test_re.py**: Resource estimator tests
+      - **test_run_sim.py**: Simulation runtime tests
+    - **resources/**: Test resources for adaptive QIR
+    - **test_adaptive_ri_qir.py**: Adaptive Result Interop QIR tests
+    - **test_adaptive_rif_qir.py**: Adaptive Result+Feedback Interop QIR tests
+    - **test_base_qir.py**: Base QIR functionality tests
 - **jupyterlab/**: JupyterLab extension for Q#
 - **widgets/**: Q# Jupyter widgets
 
@@ -85,6 +97,43 @@ Most of the core components are implemented in Rust. These components are packag
 - **npm/**: The `qsharp-lang` npm package
 - **playground/**: Q# Playground website
 - **vscode/**: Visual Studio Code extension for Q#
+  - **src/**: Extension source code
+    - **language-service/**: Language service integration
+      - **activate.ts**: Language service activation
+      - **codeActions.ts**: Code actions implementation
+      - **codeLens.ts**: Code lens provider
+      - **completion.ts**: Autocompletion provider
+      - **definition.ts**: Go to definition
+      - **diagnostics.ts**: Diagnostics handling
+      - **format.ts**: Code formatting
+      - **hover.ts**: Hover information provider
+      - **notebook.ts**: Notebook integration
+      - **references.ts**: Find references
+      - **rename.ts**: Symbol renaming
+      - **signature.ts**: Signature help provider
+      - **testExplorer.ts**: Test explorer integration
+    - **webview/**: UI components
+      - **docview.tsx**: Documentation view
+      - **editor.tsx**: Editor components
+      - **help.tsx**: Help view
+      - **webview.tsx**: Webview base
+      - **theme.ts**: Theme handling
+    - **azure/**: Azure integration
+    - **debugger/**: Debugger implementation
+    - **copilot/**: Copilot integration
+    - **gh-copilot/**: GitHub Copilot integration
+    - **extension.ts**: Main extension entry point
+    - **circuit.ts**: Circuit representation
+    - **circuitEditor.ts**: Circuit editor
+    - **diagnostics.ts**: Diagnostic handling
+    - **projectSystem.ts**: Project management
+    - **qirGeneration.ts**: QIR generation
+    - **notebook.ts**: Notebook integration
+    - **telemetry.ts**: Telemetry collection
+  - **resources/**: Extension resources
+  - **syntaxes/**: Q# syntax definitions
+  - **test/**: Extension tests
+  - **wasm/**: WebAssembly integration
 
 ## Development workflow
 
