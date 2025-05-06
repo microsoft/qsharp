@@ -459,6 +459,28 @@ pub(crate) fn build_indexed_assignment_statement<S: AsRef<str>>(
     }
 }
 
+pub(crate) fn build_ternary_update_expr(
+    lhs: ast::Expr,
+    index: ast::Expr,
+    rhs: ast::Expr,
+) -> ast::Expr {
+    let span = Span {
+        lo: lhs.span.lo,
+        hi: rhs.span.hi,
+    };
+
+    ast::Expr {
+        id: Default::default(),
+        span,
+        kind: Box::new(ast::ExprKind::TernOp(
+            ast::TernOp::Update,
+            Box::new(lhs),
+            Box::new(index),
+            Box::new(rhs),
+        )),
+    }
+}
+
 pub(crate) fn build_assignment_statement<S: AsRef<str>>(
     name_span: Span,
     name: S,
@@ -1328,6 +1350,14 @@ pub(crate) fn map_qsharp_type_to_ast_ty(output_ty: &crate::types::Type) -> Ty {
         crate::types::Type::IntArray(dims, _) => build_array_type_name("Int", dims),
         crate::types::Type::DoubleArray(dims) => build_array_type_name("Double", dims),
         crate::types::Type::BoolArray(dims, _) => build_array_type_name("Bool", dims),
+        crate::types::Type::ComplexArray(dims, _) => {
+            let ty = build_complex_ty_ident();
+            wrap_array_ty_by_dims(dims, ty)
+        }
+        crate::types::Type::AngleArray(dims, _) => {
+            let ty = build_angle_ty_ident();
+            wrap_array_ty_by_dims(dims, ty)
+        }
         crate::types::Type::Callable(_, _, _) => todo!(),
         crate::types::Type::Range => build_path_ident_ty("Range"),
         crate::types::Type::Tuple(tys) => {
@@ -1360,6 +1390,18 @@ fn wrap_array_ty_by_dims(dims: &ArrayDimensions, ty: Ty) -> Ty {
         ArrayDimensions::One(..) => wrap_ty_in_array(ty),
         ArrayDimensions::Two(..) => wrap_ty_in_array(wrap_ty_in_array(ty)),
         ArrayDimensions::Three(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
+        ArrayDimensions::Four(..) => {
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))))
+        }
+        ArrayDimensions::Five(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(ty)),
+        ))),
+        ArrayDimensions::Six(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty))),
+        ))),
+        ArrayDimensions::Seven(..) => wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(
+            wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(wrap_ty_in_array(ty)))),
+        ))),
     }
 }
 

@@ -296,7 +296,14 @@ fn spec_case_5() -> miette::Result<(), Vec<Report>> {
         mutable i = 0;
         if i == 1 or i == 2 or i == 5 or i == 12 {} elif i == 3 {
             if j == 10 or j == 15 or j == 20 {
-                h(q);
+                h(q[0]);
+                h(q[1]);
+                h(q[2]);
+                h(q[3]);
+                h(q[4]);
+                h(q[5]);
+                h(q[6]);
+                h(q[7]);
             };
         };
     "#]]

@@ -54,7 +54,6 @@ pub(super) fn check_classical_decls(input: &str, expect: &Expect) {
                 super::ast::StmtKind::ClassicalDecl(decl) => (decl.symbol_id, decl.to_string()),
                 super::ast::StmtKind::OutputDeclaration(decl) => (decl.symbol_id, decl.to_string()),
                 super::ast::StmtKind::Assign(stmt) => (stmt.symbol_id, stmt.to_string()),
-                super::ast::StmtKind::AssignOp(stmt) => (stmt.symbol_id, stmt.to_string()),
                 _ => panic!("unsupported stmt type {kind}"),
             };
 

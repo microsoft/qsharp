@@ -10,7 +10,7 @@ use std::rc::Rc;
 use super::{
     completion::word_kinds::WordKinds,
     error::{Error, ErrorKind},
-    expr::{self, designator, gate_operand, indexed_identifier},
+    expr::{self, designator, gate_operand, ident_or_indexed_ident},
     prim::{
         self, barrier, many, opt, recovering, recovering_semi, recovering_token, seq, seq_item,
         shorten, SeqItem,
@@ -29,11 +29,11 @@ use super::ast::{
     ClassicalDeclarationStmt, ComplexType, ConstantDeclStmt, ContinueStmt, DefCalStmt, DefStmt,
     DelayStmt, EndStmt, EnumerableSet, Expr, ExprKind, ExprStmt, ExternDecl, ExternParameter,
     FloatType, ForStmt, FunctionCall, GPhase, GateCall, GateModifierKind, GateOperand,
-    IODeclaration, IOKeyword, Ident, Identifier, IfStmt, IncludeStmt, IndexElement, IndexExpr,
-    IndexSetItem, IndexedIdent, IntType, List, LiteralKind, MeasureArrowStmt, Pragma,
-    QuantumGateDefinition, QuantumGateModifier, QuantumTypedParameter, QubitDeclaration,
-    RangeDefinition, ResetStmt, ReturnStmt, ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt,
-    StmtKind, SwitchCase, SwitchStmt, TypeDef, TypedParameter, UIntType, WhileLoop,
+    IODeclaration, IOKeyword, Ident, IdentOrIndexedIdent, IfStmt, IncludeStmt, Index, IndexExpr,
+    IndexListItem, IntType, List, LiteralKind, MeasureArrowStmt, Pragma, QuantumGateDefinition,
+    QuantumGateModifier, QuantumTypedParameter, QubitDeclaration, Range, ResetStmt, ReturnStmt,
+    ScalarType, ScalarTypeKind, ScalarTypedParameter, Stmt, StmtKind, SwitchCase, SwitchStmt,
+    TypeDef, TypedParameter, UIntType, WhileLoop,
 };
 use super::{prim::token, ParserContext};
 
@@ -134,8 +134,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Stmt> {
         StmtKind::Break(stmt)
     } else if let Some(stmt) = opt(s, parse_end_stmt)? {
         StmtKind::End(stmt)
-    } else if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        disambiguate_ident(s, indexed_ident)?
+    } else if let Some(ident_or_indexed_ident) = opt(s, ident_or_indexed_ident)? {
+        disambiguate_ident(s, ident_or_indexed_ident)?
     } else if let Some(stmt_kind) = opt(s, parse_gate_call_stmt)? {
         stmt_kind
     } else if let Some(stmt) = opt(s, |s| parse_expression_stmt(s, None))? {
@@ -208,15 +208,18 @@ fn disambiguate_type(s: &mut ParserContext, ty: TypeDef) -> Result<StmtKind> {
 /// assignments, assignment operations, gate calls, and
 /// `expr_stmts` beginning with an ident or a function call
 /// when reading an `Ident`.
-fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Result<StmtKind> {
-    let lo = indexed_ident.span.lo;
+fn disambiguate_ident(
+    s: &mut ParserContext,
+    ident_or_indexed_ident: IdentOrIndexedIdent,
+) -> Result<StmtKind> {
+    let lo = ident_or_indexed_ident.span().lo;
     if s.peek().kind == TokenKind::Eq {
         s.advance();
         let expr = expr::expr_or_measurement(s)?;
         recovering_semi(s);
         Ok(StmtKind::Assign(AssignStmt {
             span: s.span(lo),
-            lhs: indexed_ident,
+            lhs: Box::new(ident_or_indexed_ident),
             rhs: expr,
         }))
     } else if let TokenKind::BinOpEq(op) = s.peek().kind {
@@ -227,19 +230,21 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
         Ok(StmtKind::AssignOp(AssignOpStmt {
             span: s.span(lo),
             op,
-            lhs: indexed_ident,
+            lhs: Box::new(ident_or_indexed_ident),
             rhs: expr,
         }))
     } else if s.peek().kind == TokenKind::Open(Delim::Paren) {
-        if !indexed_ident.indices.is_empty() {
-            s.push_error(Error::new(ErrorKind::Convert(
-                "Ident",
-                "IndexedIdent",
-                indexed_ident.span,
-            )));
-        }
-
-        let ident = indexed_ident.name;
+        let ident = match ident_or_indexed_ident {
+            IdentOrIndexedIdent::Ident(ident) => ident,
+            IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                s.push_error(Error::new(ErrorKind::Convert(
+                    "Ident",
+                    "IndexedIdent",
+                    indexed_ident.span,
+                )));
+                indexed_ident.ident
+            }
+        };
 
         s.advance();
         let (args, _) = seq(s, expr::expr)?;
@@ -258,27 +263,34 @@ fn disambiguate_ident(s: &mut ParserContext, indexed_ident: IndexedIdent) -> Res
 
         Ok(parse_gate_call_with_expr(s, expr)?)
     } else {
-        let kind = if indexed_ident.indices.is_empty() {
-            ExprKind::Ident(indexed_ident.name)
-        } else {
-            if indexed_ident.indices.len() > 1 {
-                s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
-                    indexed_ident.span,
-                )));
+        let expr_span;
+        let kind = match ident_or_indexed_ident {
+            IdentOrIndexedIdent::Ident(ident) => {
+                expr_span = ident.span;
+                ExprKind::Ident(ident)
             }
-
-            ExprKind::IndexExpr(IndexExpr {
-                span: indexed_ident.span,
-                collection: Expr {
-                    span: indexed_ident.name.span,
-                    kind: Box::new(ExprKind::Ident(indexed_ident.name)),
-                },
-                index: *indexed_ident.indices[0].clone(),
-            })
+            IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                expr_span = indexed_ident.span;
+                if indexed_ident.indices.len() > 1 {
+                    s.push_error(Error::new(ErrorKind::MultipleIndexOperators(
+                        indexed_ident.span,
+                    )));
+                }
+                ExprKind::IndexExpr(IndexExpr {
+                    span: indexed_ident.span,
+                    collection: Expr {
+                        span: indexed_ident.ident.span,
+                        kind: Box::new(ExprKind::Ident(indexed_ident.ident)),
+                    },
+                    // Index expressions are not allowed to have multi-bracket indices.
+                    // i.e.: a[1][2] is disallowed in IndexExpr, instead you must do a[1, 2].
+                    index: *indexed_ident.indices[0].clone(),
+                })
+            }
         };
 
         let expr = Expr {
-            span: indexed_ident.span,
+            span: expr_span,
             kind: Box::new(kind),
         };
 
@@ -743,7 +755,7 @@ fn parse_non_constant_classical_decl(
 fn parse_constant_classical_decl(s: &mut ParserContext) -> Result<StmtKind> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Const))?;
-    let ty = scalar_or_array_type(s)?;
+    let ty = TypeDef::Scalar(scalar_type(s)?);
     let identifier = Box::new(prim::ident(s)?);
     token(s, TokenKind::Eq)?;
     let init_expr = expr::const_declaration_expr(s)?;
@@ -1193,7 +1205,7 @@ pub fn parse_if_stmt(s: &mut ParserContext) -> Result<IfStmt> {
 /// Ranges in for loops are a bit different. They must have explicit start and end.
 /// Grammar `LBRACKET start=expression COLON (step=expression COLON)? stop=expression]`.
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
-fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
+fn for_loop_range_expr(s: &mut ParserContext) -> Result<Range> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Bracket))?;
     let start = Some(expr::expr(s)?);
@@ -1213,7 +1225,7 @@ fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
 
     recovering_token(s, TokenKind::Close(Delim::Bracket));
 
-    Ok(RangeDefinition {
+    Ok(Range {
         span: s.span(lo),
         start,
         end,
@@ -1226,9 +1238,9 @@ fn for_loop_range_expr(s: &mut ParserContext) -> Result<RangeDefinition> {
 /// Reference: <https://openqasm.com/language/classical.html#for-loops>.
 fn for_loop_iterable_expr(s: &mut ParserContext) -> Result<EnumerableSet> {
     if let Some(range) = opt(s, for_loop_range_expr)? {
-        Ok(EnumerableSet::RangeDefinition(range))
+        Ok(EnumerableSet::Range(range))
     } else if let Some(set) = opt(s, expr::set_expr)? {
-        Ok(EnumerableSet::DiscreteSet(set))
+        Ok(EnumerableSet::Set(set))
     } else {
         Ok(EnumerableSet::Expr(expr::expr(s)?))
     }
@@ -1314,7 +1326,7 @@ fn parse_expression_stmt(s: &mut ParserContext, lhs: Option<Expr>) -> Result<Exp
 fn parse_alias_stmt(s: &mut ParserContext) -> Result<AliasDeclStmt> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Let))?;
-    let ident = Identifier::Ident(Box::new(prim::ident(s)?));
+    let ident = Box::new(IdentOrIndexedIdent::Ident(prim::ident(s)?));
     token(s, TokenKind::Eq)?;
     let exprs = expr::alias_expr(s)?;
     recovering_semi(s);
@@ -1515,10 +1527,10 @@ fn reinterpret_index_expr(
         collection, index, ..
     } = index_expr;
 
-    if let IndexElement::IndexSet(set) = index {
+    if let Index::IndexList(set) = index {
         if set.values.len() == 1 {
-            let first_elt: IndexSetItem = (*set.values[0]).clone();
-            if let IndexSetItem::Expr(expr) = first_elt {
+            let first_elt: IndexListItem = (*set.values[0]).clone();
+            if let IndexListItem::Expr(expr) = first_elt {
                 if duration.is_none() {
                     match *collection.kind {
                         ExprKind::Ident(name) => {
@@ -1789,7 +1801,7 @@ fn parse_measure_stmt(s: &mut ParserContext) -> Result<MeasureArrowStmt> {
 
     let target = opt(s, |s| {
         token(s, TokenKind::Arrow)?;
-        Ok(Box::new(indexed_identifier(s)?))
+        Ok(Box::new(ident_or_indexed_ident(s)?))
     })?;
 
     recovering_semi(s);

@@ -33,18 +33,18 @@ fn concatenation_alias() {
                     exprs:
                         Expr [8-14]: IndexExpr [8-14]:
                             collection: Expr [8-9]: Ident [8-9] "a"
-                            index: IndexSet [10-13]:
+                            index: IndexList [10-13]:
                                 values:
-                                    RangeDefinition [10-13]:
+                                    Range [10-13]:
                                         start: Expr [10-11]: Lit: Int(1)
                                         step: <none>
                                         end: Expr [12-13]: Lit: Int(2)
                         Expr [18-19]: Ident [18-19] "b"
                         Expr [23-31]: IndexExpr [23-31]:
                             collection: Expr [23-24]: Ident [23-24] "c"
-                            index: IndexSet [25-30]:
+                            index: IndexList [25-30]:
                                 values:
-                                    RangeDefinition [25-30]:
+                                    Range [25-30]:
                                         start: Expr [25-26]: Lit: Int(1)
                                         step: Expr [27-28]: Lit: Int(2)
                                         end: Expr [29-30]: Lit: Int(3)"#]],

@@ -152,18 +152,17 @@ fn ident_const() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "indexed ident is not yet supported"]
 fn indexed_ident() -> miette::Result<(), Vec<Report>> {
     let source = r#"
-        const array[uint, 2] a = {1, 2};
+        const bit[2] a = "01";
         bit[a[1]] r;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        let a = 1;
-        let b = 2;
-        mutable c = a + b;
+        import QasmStd.Intrinsic.*;
+        let a = [Zero, One];
+        mutable r = [];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -437,7 +436,7 @@ fn binary_op_shl_creg_fails() {
     expect![[r#"
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
          1 | 
          2 |         const creg a[3] = "101";
@@ -447,7 +446,7 @@ fn binary_op_shl_creg_fails() {
 
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:3:15]
          2 |         const creg a[3] = "101";
          3 |         const creg b[3] = a << 2;
@@ -602,7 +601,7 @@ fn binary_op_shr_creg_fails() {
     expect![[r#"
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
          1 | 
          2 |         const creg a[4] = "1011";
@@ -612,7 +611,7 @@ fn binary_op_shr_creg_fails() {
 
         Qasm.Parser.Rule
 
-          x expected scalar or array type, found keyword `creg`
+          x expected scalar type, found keyword `creg`
            ,-[Test.qasm:3:15]
          2 |         const creg a[4] = "1011";
          3 |         const creg b[4] = a >> 2;

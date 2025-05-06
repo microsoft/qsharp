@@ -8,3 +8,4 @@ mod implicit_cast_from_bitarray;
 mod implicit_cast_from_bool;
 mod implicit_cast_from_float;
 mod implicit_cast_from_int;
+mod indexing;

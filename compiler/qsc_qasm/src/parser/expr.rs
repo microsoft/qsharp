@@ -23,9 +23,9 @@ use crate::parser::Result;
 
 use super::{
     ast::{
-        list_from_iter, BinOp, BinaryOpExpr, Cast, DiscreteSet, Expr, ExprKind, FunctionCall,
-        GateOperand, GateOperandKind, HardwareQubit, Ident, IndexElement, IndexExpr, IndexSet,
-        IndexSetItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, RangeDefinition, TimeUnit,
+        list_from_iter, BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, GateOperand,
+        GateOperandKind, HardwareQubit, Ident, IdentOrIndexedIdent, Index, IndexExpr, IndexList,
+        IndexListItem, IndexedIdent, List, Lit, LiteralKind, MeasureExpr, Range, Set, TimeUnit,
         TypeDef, UnaryOp, UnaryOpExpr, ValueExpr, Version,
     },
     completion::word_kinds::WordKinds,
@@ -457,15 +457,15 @@ fn index_expr(s: &mut ParserContext, lhs: Expr) -> Result<ExprKind> {
     }))
 }
 
-fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
+fn index_element(s: &mut ParserContext) -> Result<Index> {
     let index = match opt(s, set_expr) {
-        Ok(Some(v)) => IndexElement::DiscreteSet(v),
+        Ok(Some(v)) => Index::IndexSet(v),
         Err(err) => return Err(err),
         Ok(None) => {
             let lo = s.peek().span.lo;
             let (exprs, _) = seq(s, index_set_item)?;
             let exprs = list_from_iter(exprs);
-            IndexElement::IndexSet(IndexSet {
+            Index::IndexList(IndexList {
                 span: s.span(lo),
                 values: exprs,
             })
@@ -480,7 +480,7 @@ fn index_element(s: &mut ParserContext) -> Result<IndexElement> {
 ///  3. A range with start, step, and end: arr[start : step : end]
 ///  4. Additionally, points 2. and 3. can have missing start, step, or step.
 ///     here are some examples: arr[:], arr[: step :], arr[: step : end]
-fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
+fn index_set_item(s: &mut ParserContext) -> Result<IndexListItem> {
     let lo = s.peek().span.lo;
     let start = opt(s, expr)?;
 
@@ -491,7 +491,7 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
             s.peek().kind,
             s.span(lo),
         )))?;
-        return Ok(IndexSetItem::Expr(expr));
+        return Ok(IndexListItem::Expr(expr));
     }
 
     // We assume the second expr is the `end`.
@@ -499,7 +499,7 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
 
     // If no colon, return a range with start and end: [start : end].
     if token(s, TokenKind::Colon).is_err() {
-        return Ok(IndexSetItem::RangeDefinition(RangeDefinition {
+        return Ok(IndexListItem::RangeDefinition(Range {
             span: s.span(lo),
             start,
             end,
@@ -511,7 +511,7 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     let step = end;
     let end = opt(s, expr)?;
 
-    Ok(IndexSetItem::RangeDefinition(RangeDefinition {
+    Ok(IndexListItem::RangeDefinition(Range {
         span: s.span(lo),
         start,
         end,
@@ -519,12 +519,12 @@ fn index_set_item(s: &mut ParserContext) -> Result<IndexSetItem> {
     }))
 }
 
-pub(crate) fn set_expr(s: &mut ParserContext) -> Result<DiscreteSet> {
+pub(crate) fn set_expr(s: &mut ParserContext) -> Result<Set> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let exprs = expr_list(s)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
-    Ok(DiscreteSet {
+    Ok(Set {
         span: s.span(lo),
         values: list_from_iter(exprs),
     })
@@ -749,8 +749,8 @@ pub(crate) fn measure_expr(s: &mut ParserContext) -> Result<MeasureExpr> {
 
 pub(crate) fn gate_operand(s: &mut ParserContext) -> Result<GateOperand> {
     let lo = s.peek().span.lo;
-    let kind = if let Some(indexed_ident) = opt(s, indexed_identifier)? {
-        GateOperandKind::IndexedIdent(Box::new(indexed_ident))
+    let kind = if let Some(ident_or_indexed_ident) = opt(s, ident_or_indexed_ident)? {
+        GateOperandKind::IdentOrIndexedIdent(Box::new(ident_or_indexed_ident))
     } else {
         GateOperandKind::HardwareQubit(Box::new(hardware_qubit(s)?))
     };
@@ -773,22 +773,23 @@ fn hardware_qubit(s: &mut ParserContext) -> Result<HardwareQubit> {
 }
 
 /// Grammar: `Identifier indexOperator*`.
-pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> {
+pub(crate) fn ident_or_indexed_ident(s: &mut ParserContext) -> Result<IdentOrIndexedIdent> {
     let lo = s.peek().span.lo;
     let name: Ident = ident(s)?;
     let index_lo = s.peek().span.lo;
     let indices = list_from_iter(many(s, index_operand)?);
-    let index_span = if indices.is_empty() {
-        Span::default()
+
+    if indices.is_empty() {
+        Ok(IdentOrIndexedIdent::Ident(name))
     } else {
-        s.span(index_lo)
-    };
-    Ok(IndexedIdent {
-        span: s.span(lo),
-        index_span,
-        name,
-        indices,
-    })
+        let index_span = s.span(index_lo);
+        Ok(IdentOrIndexedIdent::IndexedIdent(IndexedIdent {
+            span: s.span(lo),
+            index_span,
+            ident: name,
+            indices,
+        }))
+    }
 }
 
 /// Grammar:
@@ -800,7 +801,7 @@ pub(crate) fn indexed_identifier(s: &mut ParserContext) -> Result<IndexedIdent> 
 /// )
 /// RBRACKET
 /// ```
-fn index_operand(s: &mut ParserContext) -> Result<IndexElement> {
+fn index_operand(s: &mut ParserContext) -> Result<Index> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let index = index_element(s)?;
     recovering_token(s, TokenKind::Close(Delim::Bracket));

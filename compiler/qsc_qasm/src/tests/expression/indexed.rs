@@ -83,7 +83,6 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
     let source = "
         array[bool, 5] x;
@@ -92,6 +91,7 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Intrinsic.*;
         mutable x = [false, false, false, false, false];
         mutable y = x[0];
     "#]]
@@ -100,7 +100,6 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -110,12 +109,19 @@ fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable ans = [One, Zero, One, Zero, One];
+        let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
+        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3]) == 4 {
+            x(qq);
+        };
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
 fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         include "stdgates.inc";
@@ -125,13 +131,20 @@ fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
+    expect![[r#"
+        import QasmStd.Intrinsic.*;
+        mutable ans = [One, Zero, One, Zero, One];
+        let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
+        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3..2]) == 4 {
+            x(qq);
+        };
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }
 
 #[test]
-#[ignore = "Not yet implemented"]
-fn bitstring_index_set() -> miette::Result<(), Vec<Report>> {
+fn index_set_in_non_alias_stmt_fails() {
     let source = r#"
         include "stdgates.inc";
         bit[5] ans = "10101";
@@ -139,7 +152,29 @@ fn bitstring_index_set() -> miette::Result<(), Vec<Report>> {
         if(ans[{1, 3}] == 4) x qq;
     "#;
 
-    let qsharp = compile_qasm_to_qsharp(source)?;
-    expect![[r#""#]].assert_eq(&qsharp);
-    Ok(())
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt
+
+          x index sets are only allowed in alias statements
+           ,-[Test.qasm:5:16]
+         4 |         qubit qq;
+         5 |         if(ans[{1, 3}] == 4) x qq;
+           :                ^^^^^^
+         6 |     
+           `----
+        , Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type Err to type Float(None, true)
+           ,-[Test.qasm:5:12]
+         4 |         qubit qq;
+         5 |         if(ans[{1, 3}] == 4) x qq;
+           :            ^^^^^^^^^^^
+         6 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
 }

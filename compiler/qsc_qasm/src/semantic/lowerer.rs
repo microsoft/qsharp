@@ -28,10 +28,11 @@ use super::symbols::{IOKind, Symbol, SymbolTable};
 
 use crate::convert::safe_i64_to_f64;
 use crate::parser::ast::list_from_iter;
+use crate::parser::ast::List;
 use crate::parser::QasmSource;
+use crate::semantic::types::base_types_equal;
 use crate::semantic::types::can_cast_literal;
 use crate::semantic::types::can_cast_literal_with_value_knowledge;
-use crate::semantic::types::ArrayDimensions;
 use crate::stdlib::angle::Angle;
 
 use super::ast as semantic;
@@ -175,18 +176,18 @@ impl Lowerer {
                 let include = includes.next().expect("missing include");
                 self.lower_source(include);
             } else {
-                let stmt = self.lower_stmt(stmt);
-                self.stmts.push(stmt);
+                let mut stmts = self.lower_stmt(stmt);
+                self.stmts.append(&mut stmts);
             }
         }
     }
 
-    #[allow(clippy::too_many_lines)]
-    fn lower_stmt(&mut self, stmt: &syntax::Stmt) -> semantic::Stmt {
+    fn lower_stmt(&mut self, stmt: &syntax::Stmt) -> Vec<semantic::Stmt> {
+        let annotations = list_from_iter(Self::lower_annotations(&stmt.annotations));
         let kind = match &*stmt.kind {
             syntax::StmtKind::Alias(stmt) => self.lower_alias(stmt),
-            syntax::StmtKind::Assign(stmt) => self.lower_assign(stmt),
-            syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op(stmt),
+            syntax::StmtKind::Assign(stmt) => self.lower_assign_stmt(stmt),
+            syntax::StmtKind::AssignOp(stmt) => self.lower_assign_op_stmt(stmt),
             syntax::StmtKind::Barrier(stmt) => self.lower_barrier_stmt(stmt),
             syntax::StmtKind::Box(stmt) => self.lower_box(stmt),
             syntax::StmtKind::Break(stmt) => self.lower_break(stmt),
@@ -206,11 +207,15 @@ impl Lowerer {
             syntax::StmtKind::ExternDecl(extern_decl) => self.lower_extern(extern_decl),
             syntax::StmtKind::For(stmt) => self.lower_for_stmt(stmt),
             syntax::StmtKind::If(stmt) => self.lower_if_stmt(stmt),
-            syntax::StmtKind::GateCall(stmt) => self.lower_gate_call_stmt(stmt),
-            syntax::StmtKind::GPhase(stmt) => self.lower_gphase_stmt(stmt),
+            syntax::StmtKind::GateCall(stmt) => {
+                return self.lower_gate_call_stmts(stmt, &annotations);
+            }
+            syntax::StmtKind::GPhase(stmt) => {
+                return self.lower_gphase_stmts(stmt, &annotations);
+            }
             syntax::StmtKind::Include(stmt) => self.lower_include(stmt),
             syntax::StmtKind::IODeclaration(stmt) => self.lower_io_decl(stmt),
-            syntax::StmtKind::Measure(stmt) => self.lower_measure(stmt),
+            syntax::StmtKind::Measure(stmt) => self.lower_measure_arrow_stmt(stmt),
             syntax::StmtKind::Pragma(stmt) => self.lower_pragma(stmt),
             syntax::StmtKind::QuantumGateDefinition(stmt) => self.lower_gate_def(stmt),
             syntax::StmtKind::QuantumDecl(stmt) => self.lower_quantum_decl(stmt),
@@ -220,12 +225,12 @@ impl Lowerer {
             syntax::StmtKind::WhileLoop(stmt) => self.lower_while_stmt(stmt),
             syntax::StmtKind::Err => semantic::StmtKind::Err,
         };
-        let annotations = Self::lower_annotations(&stmt.annotations);
-        semantic::Stmt {
+
+        vec![semantic::Stmt {
             span: stmt.span,
-            annotations: syntax::list_from_iter(annotations),
+            annotations,
             kind: Box::new(kind),
-        }
+        }]
     }
 
     /// Define the standard gates in the symbol table.
@@ -444,15 +449,18 @@ impl Lowerer {
         })
     }
 
-    fn lower_assign(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {
-        if stmt.lhs.indices.is_empty() {
-            self.lower_simple_assign_expr(&stmt.lhs.name, &stmt.rhs, stmt.span)
-        } else {
-            self.lower_indexed_assign_expr(&stmt.lhs, &stmt.rhs, stmt.span)
+    fn lower_assign_stmt(&mut self, stmt: &syntax::AssignStmt) -> semantic::StmtKind {
+        match &*stmt.lhs {
+            syntax::IdentOrIndexedIdent::Ident(ident) => {
+                self.lower_simple_assign_stmt(ident, &stmt.rhs, stmt.span)
+            }
+            syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                self.lower_indexed_assign_stmt(indexed_ident, &stmt.rhs, stmt.span)
+            }
         }
     }
 
-    fn lower_simple_assign_expr(
+    fn lower_simple_assign_stmt(
         &mut self,
         ident: &syntax::Ident,
         rhs: &syntax::ValueExpr,
@@ -487,26 +495,16 @@ impl Lowerer {
         })
     }
 
-    fn lower_indexed_assign_expr(
+    fn lower_indexed_assign_stmt(
         &mut self,
-        index_expr: &syntax::IndexedIdent,
+        indexed_ident: &syntax::IndexedIdent,
         rhs: &syntax::ValueExpr,
         span: Span,
     ) -> semantic::StmtKind {
-        let ident = index_expr.name.clone();
-        let (symbol_id, symbol) =
-            self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
+        assert!(!indexed_ident.indices.is_empty());
 
-        let indexed_ty =
-            &self.get_indexed_type(&symbol.ty, index_expr.name.span, index_expr.indices.len());
-
-        let indices = list_from_iter(
-            index_expr
-                .indices
-                .iter()
-                .map(|index| self.lower_index_element(index)),
-        );
-
+        let lhs = self.lower_indexed_ident_expr(indexed_ident);
+        let indexed_ty = &lhs.ty;
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_expr(expr);
@@ -518,66 +516,115 @@ impl Lowerer {
             }
         };
 
-        if symbol.ty.is_const() {
-            let kind =
-                SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
+        if lhs.ty.is_const() {
+            let kind = SemanticErrorKind::CannotUpdateConstVariable(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
             self.push_semantic_error(kind);
         }
 
+        let semantic::ExprKind::IndexedIdent(indexed_ident) = *lhs.kind else {
+            return semantic::StmtKind::Err;
+        };
+
         semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
             span,
-            symbol_id,
-            name_span: index_expr.name.span,
-            indices,
+            indexed_ident,
             rhs,
         })
     }
 
-    fn lower_assign_op(&mut self, stmt: &syntax::AssignOpStmt) -> semantic::StmtKind {
-        let op = stmt.op.into();
-        let lhs = &stmt.lhs;
-        let rhs = &stmt.rhs;
-        let ident = lhs.name.clone();
+    fn lower_assign_op_stmt(&mut self, stmt: &syntax::AssignOpStmt) -> semantic::StmtKind {
+        match &*stmt.lhs {
+            syntax::IdentOrIndexedIdent::Ident(ident) => {
+                self.lower_simple_assign_op_stmt(ident, stmt.op, &stmt.rhs, stmt.span)
+            }
+            syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                self.lower_indexed_assign_op_stmt(indexed_ident, stmt.op, &stmt.rhs, stmt.span)
+            }
+        }
+    }
 
+    fn lower_simple_assign_op_stmt(
+        &mut self,
+        ident: &syntax::Ident,
+        op: syntax::BinOp,
+        rhs: &syntax::ValueExpr,
+        span: Span,
+    ) -> semantic::StmtKind {
         let (symbol_id, symbol) =
             self.try_get_existing_or_insert_err_symbol(&ident.name, ident.span);
 
-        let ty = if lhs.indices.is_empty() {
-            &symbol.ty
-        } else {
-            &self.get_indexed_type(&symbol.ty, lhs.name.span, lhs.indices.len())
-        };
-        let indices = list_from_iter(
-            lhs.indices
-                .iter()
-                .map(|index| self.lower_index_element(index)),
-        );
-
+        let ty = symbol.ty.clone();
         if ty.is_const() {
             let kind =
                 SemanticErrorKind::CannotUpdateConstVariable(ident.name.to_string(), ident.span);
             self.push_semantic_error(kind);
         }
 
-        let lhs = self.lower_indexed_ident_expr(lhs);
+        let lhs = self.lower_ident_expr(ident);
         let rhs = match rhs {
             syntax::ValueExpr::Expr(expr) => {
                 let expr = self.lower_expr(expr);
-                self.cast_expr_with_target_type_or_default(Some(expr), ty, stmt.span)
+                self.cast_expr_with_target_type_or_default(Some(expr), &ty, span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => {
                 let expr = self.lower_measure_expr(measure_expr);
-                self.cast_expr_to_type(ty, &expr)
+                self.cast_expr_to_type(&ty, &expr)
             }
         };
 
-        semantic::StmtKind::AssignOp(semantic::AssignOpStmt {
-            span: stmt.span,
+        let binary_expr = self.lower_binary_op_expr(op, lhs, rhs, span);
+
+        semantic::StmtKind::Assign(semantic::AssignStmt {
             symbol_id,
-            indices,
-            op,
-            lhs,
-            rhs,
+            lhs_span: ident.span,
+            rhs: binary_expr,
+            span,
+        })
+    }
+
+    fn lower_indexed_assign_op_stmt(
+        &mut self,
+        indexed_ident: &syntax::IndexedIdent,
+        op: syntax::BinOp,
+        rhs: &syntax::ValueExpr,
+        span: Span,
+    ) -> semantic::StmtKind {
+        assert!(!indexed_ident.indices.is_empty());
+
+        let lhs = self.lower_indexed_ident_expr(indexed_ident);
+        let indexed_ty = &lhs.ty;
+        let rhs = match rhs {
+            syntax::ValueExpr::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cast_expr_with_target_type_or_default(Some(expr), indexed_ty, span)
+            }
+            syntax::ValueExpr::Measurement(measure_expr) => {
+                let expr = self.lower_measure_expr(measure_expr);
+                self.cast_expr_to_type(indexed_ty, &expr)
+            }
+        };
+
+        let binary_expr = self.lower_binary_op_expr(op, lhs.clone(), rhs, span);
+
+        if lhs.ty.is_const() {
+            let kind = SemanticErrorKind::CannotUpdateConstVariable(
+                indexed_ident.ident.name.to_string(),
+                indexed_ident.ident.span,
+            );
+            self.push_semantic_error(kind);
+        }
+
+        let semantic::ExprKind::IndexedIdent(indexed_ident) = *lhs.kind else {
+            return semantic::StmtKind::Err;
+        };
+
+        semantic::StmtKind::IndexedAssign(semantic::IndexedAssignStmt {
+            span,
+            indexed_ident,
+            rhs: binary_expr,
         })
     }
 
@@ -596,11 +643,30 @@ impl Lowerer {
             syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
             syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
             syntax::ExprKind::IndexExpr(expr) => self.lower_index_expr(expr),
-
-            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit),
-
+            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, None),
             syntax::ExprKind::Paren(pexpr) => self.lower_paren_expr(pexpr, expr.span),
             syntax::ExprKind::UnaryOp(expr) => self.lower_unary_op_expr(expr),
+        }
+    }
+
+    fn lower_decl_expr(
+        &mut self,
+        expr: &syntax::Expr,
+        ty: &Type,
+        lowering_array: bool,
+    ) -> semantic::Expr {
+        let expr = match &*expr.kind {
+            syntax::ExprKind::Lit(lit) => self.lower_lit_expr(lit, Some(ty)),
+            _ => self.lower_expr(expr),
+        };
+
+        // If we are not lowering an array OR are lowering one but haven't reached a leaf node
+        // we return expr without casting.
+        if !lowering_array || ty.is_array() {
+            expr
+        } else {
+            // We take this branch if we are trying to lower an array but reached a leaf node.
+            self.cast_expr_to_type(ty, &expr)
         }
     }
 
@@ -655,7 +721,45 @@ impl Lowerer {
         }
     }
 
-    fn lower_lit_expr(&mut self, expr: &syntax::Lit) -> semantic::Expr {
+    fn check_lit_array_size(&mut self, expr: &syntax::Lit, ty: &Type) {
+        if let Some(dims) = ty.array_dims() {
+            let expected_size = dims.into_iter().next();
+
+            let Some(expected_size) = expected_size else {
+                // If we don't have at least one dimension_size, it means the dimension was Err.
+                // In that case we already issued an error before.
+                return;
+            };
+
+            let syntax::LiteralKind::Array(array) = &expr.kind else {
+                let kind = SemanticErrorKind::ArrayDeclarationTypeError(
+                    format!(
+                        "expected an array of size {} but found {}",
+                        expected_size, &expr.kind
+                    ),
+                    expr.span,
+                );
+                self.push_semantic_error(kind);
+                return;
+            };
+
+            let actual_size = array.len();
+
+            if actual_size != expected_size as usize {
+                let kind = SemanticErrorKind::ArrayDeclarationTypeError(
+                    format!("expected an array of size {expected_size} but found one of size {actual_size}"),
+                    expr.span
+                );
+                self.push_semantic_error(kind);
+            }
+        }
+    }
+
+    fn lower_lit_expr(&mut self, expr: &syntax::Lit, ty: Option<&Type>) -> semantic::Expr {
+        if let Some(ty) = ty {
+            self.check_lit_array_size(expr, ty);
+        }
+
         let (kind, ty) = match &expr.kind {
             syntax::LiteralKind::BigInt(value) => {
                 // this case is only valid when there is an integer literal
@@ -669,7 +773,7 @@ impl Lowerer {
             }
             syntax::LiteralKind::Bitstring(value, size) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bitstring(value.clone(), *size)),
-                Type::BitArray(super::types::ArrayDimensions::from(*size), true),
+                Type::BitArray(*size, true),
             ),
             syntax::LiteralKind::Bool(value) => (
                 semantic::ExprKind::Lit(semantic::LiteralKind::Bool(*value)),
@@ -699,25 +803,40 @@ impl Lowerer {
                 Type::Duration(true),
             ),
             syntax::LiteralKind::Array(exprs) => {
-                // array literals are only valid in classical decals (const and mut)
-                // and we have to know the expected type of the array in order to lower it
-                // So we can't lower array literals in general.
-                self.push_semantic_error(SemanticErrorKind::ArrayLiteralInNonClassicalDecl(
-                    expr.span,
-                ));
-                // place holder for now, this code will need to move to the correct place when we
-                // add support for classical decls
-                let texprs = exprs
-                    .iter()
-                    .map(|expr| self.lower_expr(expr))
-                    .collect::<Vec<_>>();
+                if let Some(ty) = ty {
+                    let dummy_index = semantic::Expr {
+                        span: Span::default(),
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(0))),
+                        ty: Type::Int(None, true),
+                    };
 
-                (
-                    semantic::ExprKind::Lit(semantic::LiteralKind::Array(syntax::list_from_iter(
-                        texprs,
-                    ))),
-                    Type::Err,
-                )
+                    let indexed_ty = self.get_indexed_type(
+                        ty,
+                        Span::default(),
+                        &[semantic::Index::Expr(dummy_index)],
+                    );
+
+                    let texprs = exprs
+                        .iter()
+                        .map(|expr| self.lower_decl_expr(expr, &indexed_ty, true))
+                        .collect::<Vec<_>>();
+
+                    let Some(dims) = ty.array_dims() else {
+                        return err_expr!(Type::Err, expr.span);
+                    };
+                    let array = semantic::Array { data: texprs, dims };
+                    let kind = semantic::ExprKind::Lit(semantic::LiteralKind::Array(array));
+
+                    (kind, ty.clone())
+                } else {
+                    // array literals are only valid in classical decals (const and mut)
+                    // and we have to know the expected type of the array in order to lower it
+                    // So we can't lower array literals in general.
+                    self.push_semantic_error(SemanticErrorKind::ArrayLiteralInNonClassicalDecl(
+                        expr.span,
+                    ));
+                    (semantic::ExprKind::Err, Type::Err)
+                }
             }
         };
         semantic::Expr {
@@ -832,6 +951,11 @@ impl Lowerer {
         ty: &super::types::Type,
         span: Span,
     ) -> crate::types::Type {
+        if ty.is_array() && matches!(ty.array_dims(), Some(super::types::ArrayDimensions::Err)) {
+            self.push_unsupported_error_message("arrays with more than 7 dimensions", span);
+            return crate::types::Type::Err;
+        }
+
         let is_const = ty.is_const();
         match ty {
             Type::Bit(_) => crate::types::Type::Result(is_const),
@@ -864,8 +988,13 @@ impl Lowerer {
                 self.push_unsupported_error_message("stretch type values", span);
                 crate::types::Type::Err
             }
-            Type::BitArray(dims, _) => crate::types::Type::ResultArray(dims.into(), is_const),
-            Type::QubitArray(dims) => crate::types::Type::QubitArray(dims.into()),
+            Type::BitArray(size, _) => crate::types::Type::ResultArray(
+                crate::types::ArrayDimensions::One(*size as usize),
+                is_const,
+            ),
+            Type::QubitArray(size) => {
+                crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(*size as usize))
+            }
             Type::IntArray(size, dims) | Type::UIntArray(size, dims) => {
                 if let Some(size) = size {
                     if *size > 64 {
@@ -879,6 +1008,8 @@ impl Lowerer {
             }
             Type::FloatArray(_, dims) => crate::types::Type::DoubleArray(dims.into()),
             Type::BoolArray(dims) => crate::types::Type::BoolArray(dims.into(), is_const),
+            Type::ComplexArray(_, dims) => crate::types::Type::ComplexArray(dims.into(), is_const),
+            Type::AngleArray(_, dims) => crate::types::Type::AngleArray(dims.into(), is_const),
             Type::Gate(cargs, qargs) => {
                 crate::types::Type::Callable(crate::types::CallableKind::Operation, *cargs, *qargs)
             }
@@ -954,14 +1085,17 @@ impl Lowerer {
         }
     }
 
-    fn lower_block(&mut self, stmt: &syntax::Block) -> semantic::Block {
+    fn lower_block(&mut self, block: &syntax::Block) -> semantic::Block {
         self.symbols.push_scope(ScopeKind::Block);
-        let stmts = stmt.stmts.iter().map(|stmt| self.lower_stmt(stmt));
+        let mut stmts = Vec::new();
+        for stmt in &block.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
         let stmts = list_from_iter(stmts);
         self.symbols.pop_scope();
 
         semantic::Block {
-            span: stmt.span,
+            span: block.span,
             stmts,
         }
     }
@@ -986,6 +1120,16 @@ impl Lowerer {
         let is_const = false; // const decls are handled separately
         let ty = self.get_semantic_type_from_tydef(&stmt.ty, is_const);
 
+        // Arrays are only allowed in the global scope.
+        // If we are not in the global scope, we push an error.
+        if ty.is_array()
+            && !matches!(ty, Type::BitArray(..))
+            && !self.symbols.is_current_scope_global()
+        {
+            let kind = SemanticErrorKind::ArrayDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
         let init_expr = stmt.init_expr.as_deref();
         let ty_span = stmt.ty.span();
         let stmt_span = stmt.span;
@@ -1003,7 +1147,7 @@ impl Lowerer {
         let init_expr = match init_expr {
             Some(expr) => match expr {
                 syntax::ValueExpr::Expr(expr) => {
-                    let expr = self.lower_expr(expr);
+                    let expr = self.lower_decl_expr(expr, &ty, false);
                     self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt_span)
                 }
                 syntax::ValueExpr::Measurement(measure_expr) => {
@@ -1032,7 +1176,7 @@ impl Lowerer {
         let qsharp_ty = self.convert_semantic_type_to_qsharp_type(&ty.clone(), stmt.ty.span());
         let init_expr = match &stmt.init_expr {
             syntax::ValueExpr::Expr(expr) => {
-                let expr = self.lower_expr(expr);
+                let expr = self.lower_decl_expr(expr, &ty, false);
                 self.cast_expr_with_target_type_or_default(Some(expr), &ty, stmt.span)
             }
             syntax::ValueExpr::Measurement(measure_expr) => self.lower_measure_expr(measure_expr),
@@ -1146,9 +1290,14 @@ impl Lowerer {
             })
             .collect();
 
+        let mut stmts = Vec::new();
+        for stmt in &stmt.body.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
+
         let body = semantic::Block {
             span: stmt.body.span,
-            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+            stmts: list_from_iter(stmts),
         };
 
         // Pop the scope where the def lives.
@@ -1194,7 +1343,7 @@ impl Lowerer {
     fn lower_quantum_parameter(&mut self, typed_param: &syntax::QuantumTypedParameter) -> Symbol {
         let (ty, qsharp_ty) = if let Some(size) = &typed_param.size {
             if let Some(size) = self.const_eval_array_size_designator_from_expr(size) {
-                let ty = crate::semantic::types::Type::QubitArray(ArrayDimensions::One(size));
+                let ty = crate::semantic::types::Type::QubitArray(size);
                 let qsharp_ty = crate::types::Type::QubitArray(crate::types::ArrayDimensions::One(
                     size as usize,
                 ));
@@ -1318,6 +1467,33 @@ impl Lowerer {
         self.get_semantic_type_from_tydef(&tydef, false)
     }
 
+    /// If the body is a block, lowers the block pushing a scope.
+    /// If the body is a single statement, also creates a block and
+    /// pushes a scope, this is needed to handle broadcasting gate calls.
+    fn lower_stmt_or_block_body(&mut self, stmt: &syntax::Stmt) -> semantic::Stmt {
+        if matches!(&*stmt.kind, syntax::StmtKind::Block(..)) {
+            let stmts = self.lower_stmt(stmt);
+            assert_eq!(stmts.len(), 1);
+            stmts
+                .into_iter()
+                .next()
+                .expect("there is exactly one element in the vector")
+        } else {
+            self.symbols.push_scope(ScopeKind::Block);
+            let stmts = self.lower_stmt(stmt);
+            self.symbols.pop_scope();
+
+            semantic::Stmt {
+                span: stmt.span,
+                annotations: Box::default(),
+                kind: Box::new(semantic::StmtKind::Block(Box::new(semantic::Block {
+                    span: stmt.span,
+                    stmts: list_from_iter(stmts),
+                }))),
+            }
+        }
+    }
+
     fn lower_for_stmt(&mut self, stmt: &syntax::ForStmt) -> semantic::StmtKind {
         let set_declaration = self.lower_enumerable_set(&stmt.set_declaration);
 
@@ -1345,7 +1521,7 @@ impl Lowerer {
         // The body of the for loop could be a single statement redefining
         // the loop variable, in which case we need to push a redefined
         // symbol error.
-        let body = self.lower_stmt(&stmt.body);
+        let body = self.lower_stmt_or_block_body(&stmt.body);
 
         // Pop the scope where the loop variable lives.
         self.symbols.pop_scope();
@@ -1360,8 +1536,13 @@ impl Lowerer {
 
     fn lower_if_stmt(&mut self, stmt: &syntax::IfStmt) -> semantic::StmtKind {
         let condition = self.lower_expr(&stmt.condition);
-        let if_body = self.lower_stmt(&stmt.if_body);
-        let else_body = stmt.else_body.as_ref().map(|body| self.lower_stmt(body));
+
+        let if_body = self.lower_stmt_or_block_body(&stmt.if_body);
+
+        let else_body = stmt
+            .else_body
+            .as_ref()
+            .map(|else_body| self.lower_stmt_or_block_body(else_body));
 
         // The semantics of a if statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
@@ -1432,7 +1613,28 @@ impl Lowerer {
         }
     }
 
-    fn lower_gate_call_stmt(&mut self, stmt: &syntax::GateCall) -> semantic::StmtKind {
+    /// A broadcasted gate call unfolds into multiple statements.
+    /// If the original gate call had annotations, we apply them
+    /// to all the generated statements.
+    fn lower_gate_call_stmts(
+        &mut self,
+        stmt: &syntax::GateCall,
+        annotations: &List<semantic::Annotation>,
+    ) -> Vec<semantic::Stmt> {
+        let mut stmts = Vec::new();
+        for kind in self.lower_gate_call_stmt(stmt) {
+            let stmt = semantic::Stmt {
+                span: stmt.span,
+                annotations: annotations.clone(),
+                kind: Box::new(kind),
+            };
+            stmts.push(stmt);
+        }
+        stmts
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn lower_gate_call_stmt(&mut self, stmt: &syntax::GateCall) -> Vec<semantic::StmtKind> {
         // 1. Lower all the fields:
         //   1.1. Lower the modifiers.
         let mut modifiers = stmt
@@ -1443,7 +1645,7 @@ impl Lowerer {
         // If we couldn't compute the modifiers there is no way to compile the gates
         // correctly, since we can't check its arity. In this case we return an Err.
         if modifiers.len() != stmt.modifiers.len() {
-            return semantic::StmtKind::Err;
+            return vec![semantic::StmtKind::Err];
         }
 
         //   1.3. Lower the args.
@@ -1520,14 +1722,87 @@ impl Lowerer {
             ));
         }
 
-        // 6. Return:
-        //   6.1. Gate symbol_id.
-        //   6.2. All controls made explicit.
-        //   6.3. Classical args.
-        //   6.4. Quantum args in the order expected by the compiler.
+        // 5.1 Reverse the modifiers to match the order expected by the compiler.
         modifiers.reverse();
         let modifiers = list_from_iter(modifiers);
-        semantic::StmtKind::GateCall(semantic::GateCall {
+
+        // 6. Check if we need to do broadcasting.
+        let mut register_type = None;
+
+        for qubit in &qubits {
+            if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
+                if matches!(expr.ty, Type::QubitArray(..)) {
+                    register_type = Some(&expr.ty);
+                    break;
+                }
+            }
+        }
+
+        // If at least one of the quantum args was a register
+        // we try to do broadcasting.
+        if let Some(register_type) = register_type {
+            // 6.1 Check that all the quantum registers are of the same type/size.
+            let mut resgisters_sizes_disagree = false;
+            for qubit in &qubits {
+                if let semantic::GateOperandKind::Expr(expr) = &qubit.kind {
+                    if !matches!(&expr.ty, Type::Qubit)
+                        && !base_types_equal(register_type, &expr.ty)
+                    {
+                        resgisters_sizes_disagree = true;
+                        self.push_semantic_error(
+                            SemanticErrorKind::BroadcastCallQuantumArgsDisagreeInSize(
+                                register_type.to_string(),
+                                expr.ty.to_string(),
+                                expr.span,
+                            ),
+                        );
+                    }
+                }
+            }
+
+            // If the register sizes disagree, we don't have sane information
+            // to generate multiple statements based on the sizes. So, we
+            // return ::Err in this case.
+            if resgisters_sizes_disagree {
+                return vec![semantic::StmtKind::Err];
+            }
+
+            // 6.2 Convert the broadcast call in a list of simple stmts.
+            let mut stmts = Vec::new();
+
+            let Type::QubitArray(indexed_dim_size) = register_type else {
+                unreachable!("we set register_type iff we find a QubitArray");
+            };
+
+            for index in 0..(*indexed_dim_size) {
+                let qubits = qubits
+                    .iter()
+                    .map(|qubit| Self::index_into_qubit_register((**qubit).clone(), index));
+
+                let qubits = list_from_iter(qubits);
+
+                stmts.push(semantic::StmtKind::GateCall(semantic::GateCall {
+                    span: stmt.span,
+                    modifiers: modifiers.clone(),
+                    symbol_id,
+                    gate_name_span: stmt.name.span,
+                    args: args.clone(),
+                    qubits,
+                    duration: duration.clone(),
+                    classical_arity,
+                    quantum_arity,
+                }));
+            }
+
+            return stmts;
+        }
+
+        // 7. This is the base case with no broadcasting. We return:
+        //   7.1. Gate symbol_id.
+        //   7.2. All controls made explicit.
+        //   7.3. Classical args.
+        //   7.4. Quantum args in the order expected by the compiler.
+        vec![semantic::StmtKind::GateCall(semantic::GateCall {
             span: stmt.span,
             modifiers,
             symbol_id,
@@ -1537,7 +1812,7 @@ impl Lowerer {
             duration,
             classical_arity,
             quantum_arity,
-        })
+        })]
 
         // The compiler will be left to do all things that need explicit Q# knowledge.
         // But it won't need to check arities, know about implicit modifiers, or do
@@ -1546,8 +1821,64 @@ impl Lowerer {
         // by all the QASM semantic analysis.
     }
 
+    fn index_into_qubit_register(op: semantic::GateOperand, index: u32) -> semantic::GateOperand {
+        let index = semantic::Index::Expr(semantic::Expr {
+            span: op.span,
+            kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Int(
+                index.into(),
+            ))),
+            ty: Type::UInt(None, true),
+        });
+
+        match op.kind {
+            semantic::GateOperandKind::Expr(expr) => {
+                // Single qubits are allowed in a broadcast call.
+                match &expr.ty {
+                    Type::Qubit => semantic::GateOperand {
+                        span: op.span,
+                        kind: semantic::GateOperandKind::Expr(expr),
+                    },
+                    Type::QubitArray(..) => semantic::GateOperand {
+                        span: op.span,
+                        kind: semantic::GateOperandKind::Expr(Box::new(semantic::Expr {
+                            span: op.span,
+                            kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
+                                span: op.span,
+                                collection: *expr,
+                                indices: list_from_iter([index]),
+                            })),
+                            ty: Type::Qubit,
+                        })),
+                    },
+                    _ => unreachable!("we set register_type iff we find a QubitArray"),
+                }
+            }
+            _ => unreachable!("by this point `op` is guaranteed to be a quantum register"),
+        }
+    }
+
+    /// A broadcasted gphase unfolds into multiple statements.
+    /// If the original gphase had annotations, we apply them
+    /// to all the generated statements.
+    fn lower_gphase_stmts(
+        &mut self,
+        stmt: &syntax::GPhase,
+        annotations: &List<semantic::Annotation>,
+    ) -> Vec<semantic::Stmt> {
+        let mut stmts = Vec::new();
+        for kind in self.lower_gphase_stmt(stmt) {
+            let stmt = semantic::Stmt {
+                span: stmt.span,
+                annotations: annotations.clone(),
+                kind: Box::new(kind),
+            };
+            stmts.push(stmt);
+        }
+        stmts
+    }
+
     /// This is just syntax sugar around a gate call.
-    fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> semantic::StmtKind {
+    fn lower_gphase_stmt(&mut self, stmt: &syntax::GPhase) -> Vec<semantic::StmtKind> {
         let name = syntax::Ident {
             span: stmt.gphase_token_span,
             name: "gphase".into(),
@@ -1677,12 +2008,12 @@ impl Lowerer {
         })
     }
 
-    fn lower_measure(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
-        // `measure q -> c;` is syntax sugar for `c = measure q;`
+    /// `measure q -> c;` is syntax sugar for `c = measure q;`
+    fn lower_measure_arrow_stmt(&mut self, stmt: &syntax::MeasureArrowStmt) -> semantic::StmtKind {
         if let Some(target) = &stmt.target {
-            self.lower_assign(&syntax::AssignStmt {
+            self.lower_assign_stmt(&syntax::AssignStmt {
                 span: stmt.span,
-                lhs: *target.clone(),
+                lhs: Box::new(*target.clone()),
                 rhs: syntax::ValueExpr::Measurement(stmt.measurement.clone()),
             })
         } else {
@@ -1765,9 +2096,14 @@ impl Lowerer {
             })
             .collect::<Box<_>>();
 
+        let mut stmts = Vec::new();
+        for stmt in &stmt.body.stmts {
+            stmts.append(&mut self.lower_stmt(stmt));
+        }
+
         let body = semantic::Block {
             span: stmt.body.span,
-            stmts: list_from_iter(stmt.body.stmts.iter().map(|stmt| self.lower_stmt(stmt))),
+            stmts: list_from_iter(stmts),
         };
 
         // Pop the scope where the gate definition lives.
@@ -1794,10 +2130,7 @@ impl Lowerer {
                 size_expr.map(|expr| expr.const_eval(self))
             {
                 if let Ok(size) = u32::try_from(val) {
-                    (
-                        Type::QubitArray(ArrayDimensions::One(size)),
-                        Some((size, span)),
-                    )
+                    (Type::QubitArray(size), Some((size, span)))
                 } else {
                     let message = "quantum register size".into();
                     self.push_semantic_error(SemanticErrorKind::ExprMustFitInU32(message, span));
@@ -1974,7 +2307,7 @@ impl Lowerer {
         self.symbols.push_scope(ScopeKind::Loop);
 
         let condition = self.lower_expr(&stmt.while_condition);
-        let body = self.lower_stmt(&stmt.body);
+        let body = self.lower_stmt_or_block_body(&stmt.body);
 
         // The semantics of a while statement is that the condition must be
         // of type bool, so we try to cast it, inserting a cast if necessary.
@@ -2087,10 +2420,7 @@ impl Lowerer {
                     let Some(size) = self.const_eval_array_size_designator_from_expr(size) else {
                         return crate::semantic::types::Type::Err;
                     };
-                    crate::semantic::types::Type::BitArray(
-                        super::types::ArrayDimensions::from(size),
-                        is_const,
-                    )
+                    crate::semantic::types::Type::BitArray(size, is_const)
                 }
                 None => crate::semantic::types::Type::Bit(is_const),
             },
@@ -2174,10 +2504,52 @@ impl Lowerer {
     fn get_semantic_type_from_array_ty(
         &mut self,
         array_ty: &syntax::ArrayType,
-        _is_const: bool,
+        is_const: bool,
     ) -> crate::semantic::types::Type {
-        self.push_unimplemented_error_message("semantic type from array type", array_ty.span);
-        crate::semantic::types::Type::Err
+        let base_tydef = match &array_ty.base_type {
+            syntax::ArrayBaseTypeKind::Int(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Int(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::UInt(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::UInt(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Float(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Float(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Complex(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Complex(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::Angle(ty) => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Angle(ty.clone()),
+            }),
+            syntax::ArrayBaseTypeKind::BoolType => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::BoolType,
+            }),
+            syntax::ArrayBaseTypeKind::Duration => syntax::TypeDef::Scalar(syntax::ScalarType {
+                span: array_ty.span,
+                kind: syntax::ScalarTypeKind::Duration,
+            }),
+        };
+
+        let base_ty = self.get_semantic_type_from_tydef(&base_tydef, is_const);
+
+        let dims = array_ty
+            .dimensions
+            .iter()
+            .filter_map(|expr| self.const_eval_array_size_designator_from_expr(expr))
+            .collect::<Vec<_>>();
+
+        if dims.len() != array_ty.dimensions.len() {
+            return Type::Err;
+        }
+
+        Type::make_array_ty(&dims, &base_ty)
     }
 
     fn get_semantic_type_from_array_reference_ty(
@@ -2231,12 +2603,7 @@ impl Lowerer {
             }
             // if we can't cast the literal, we can't proceed
             // create a semantic error and return
-            let kind = SemanticErrorKind::CannotCastLiteral(
-                format!("{:?}", rhs.ty),
-                format!("{ty:?}"),
-                span,
-            );
-            self.push_semantic_error(kind);
+            self.push_invalid_literal_cast_error(ty, &rhs.ty, span);
             return rhs;
         }
         // the lhs has a type, but the rhs may be of a different type with
@@ -2259,6 +2626,7 @@ impl Lowerer {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn get_default_value(&mut self, ty: &Type, span: Span) -> semantic::Expr {
         use semantic::Expr;
         use semantic::ExprKind;
@@ -2297,50 +2665,62 @@ impl Lowerer {
                 self.push_unsupported_error_message(message, span);
                 None
             }
-            Type::BitArray(dims, _) => match dims {
-                ArrayDimensions::One(size) => Some(from_lit_kind(
-                    semantic::LiteralKind::Bitstring(BigInt::ZERO, *size),
-                )),
-                ArrayDimensions::Err => None,
-                _ => {
-                    self.push_unimplemented_error_message(
-                        "multidimensional bit array default value",
-                        span,
-                    );
-                    None
-                }
-            },
+            Type::BitArray(size, _) => Some(from_lit_kind(semantic::LiteralKind::Bitstring(
+                BigInt::ZERO,
+                *size,
+            ))),
             Type::Duration(_) => Some(from_lit_kind(LiteralKind::Duration(
                 0.0,
                 semantic::TimeUnit::Ns,
             ))),
-            Type::BoolArray(_) => {
-                self.push_unimplemented_error_message("bool array default value", span);
-                None
+            Type::BoolArray(dims) => {
+                let base_ty = Type::Bool(false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::DurationArray(_) => {
-                self.push_unimplemented_error_message("duration array default value", span);
-                None
+            Type::DurationArray(dims) => {
+                let base_ty = Type::Duration(false);
+                let default = || self.get_default_value(&Type::Duration(true), span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::AngleArray(_, _) => {
-                self.push_unimplemented_error_message("angle array default value", span);
-                None
+            Type::AngleArray(width, dims) => {
+                let base_ty = Type::Angle(*width, false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::ComplexArray(_, _) => {
-                self.push_unimplemented_error_message("complex array default value", span);
-                None
+            Type::ComplexArray(width, dims) => {
+                let base_ty = Type::Complex(*width, false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::FloatArray(_, _) => {
-                self.push_unimplemented_error_message("float array default value", span);
-                None
+            Type::FloatArray(width, dims) => {
+                let base_ty = Type::Float(*width, false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::IntArray(_, _) => {
-                self.push_unimplemented_error_message("int array default value", span);
-                None
+            Type::IntArray(width, dims) => {
+                let base_ty = Type::Int(*width, false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
-            Type::UIntArray(_, _) => {
-                self.push_unimplemented_error_message("uint array default value", span);
-                None
+            Type::UIntArray(width, dims) => {
+                let base_ty = Type::UInt(*width, false);
+                let default = || self.get_default_value(&base_ty, span);
+                Some(from_lit_kind(LiteralKind::Array(
+                    semantic::Array::from_default(dims.clone(), default, &base_ty),
+                )))
             }
             Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
                 let message = format!("default values for {ty:?}");
@@ -2413,12 +2793,9 @@ impl Lowerer {
         }
         // if lhs_ty is 1 dim bitarray and rhs is int/uint, we can cast
         let (is_int_to_bit_array, size) = match &lhs_ty {
-            Type::BitArray(dims, _) => {
+            Type::BitArray(size, _) => {
                 if matches!(rhs.ty, Type::Int(..) | Type::UInt(..)) {
-                    match dims {
-                        &ArrayDimensions::One(size) => (true, size),
-                        _ => (false, 0),
-                    }
+                    (true, *size)
                 } else {
                     (false, 0)
                 }
@@ -2665,7 +3042,7 @@ impl Lowerer {
             Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
             Type::Float(_, _) => Self::cast_float_expr_to_type(ty, expr),
             Type::Int(_, _) | Type::UInt(_, _) => Self::cast_int_expr_to_type(ty, expr),
-            Type::BitArray(dims, _) => Self::cast_bitarray_expr_to_type(dims, ty, expr),
+            Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             _ => None,
         }
     }
@@ -2782,13 +3159,10 @@ impl Lowerer {
     }
 
     fn cast_bitarray_expr_to_type(
-        dims: &ArrayDimensions,
+        array_width: u32,
         ty: &Type,
         rhs: &semantic::Expr,
     ) -> Option<semantic::Expr> {
-        let ArrayDimensions::One(array_width) = dims else {
-            return None;
-        };
         if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
             return None;
         }
@@ -2796,7 +3170,7 @@ impl Lowerer {
         // verfiy widths
         let int_width = ty.width();
 
-        if int_width.is_none() || (int_width == Some(*array_width)) {
+        if int_width.is_none() || (int_width == Some(array_width)) {
             Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
         } else {
             None
@@ -3038,14 +3412,14 @@ impl Lowerer {
             syntax::BinOp::AndB | syntax::BinOp::OrB | syntax::BinOp::XorB
         ) && matches!(
             left_type,
-            Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
+            Type::Bit(..) | Type::UInt(..) | Type::BitArray(_, _)
         )) {
             return true;
         }
         if (matches!(op, syntax::BinOp::Shl | syntax::BinOp::Shr)
             && matches!(
                 left_type,
-                Type::Bit(..) | Type::UInt(..) | Type::BitArray(ArrayDimensions::One(_), _)
+                Type::Bit(..) | Type::UInt(..) | Type::BitArray(_, _)
             ))
         {
             return true;
@@ -3064,38 +3438,28 @@ impl Lowerer {
         )
     }
 
-    fn lower_index_element(&mut self, index: &syntax::IndexElement) -> semantic::IndexElement {
+    fn lower_index(&mut self, index: &syntax::Index) -> Option<Vec<semantic::Index>> {
         match index {
-            syntax::IndexElement::DiscreteSet(set) => {
-                semantic::IndexElement::DiscreteSet(self.lower_discrete_set(set))
+            syntax::Index::IndexSet(set) => {
+                // According to the grammar: <https://openqasm.com/grammar/index.html>
+                //   "`setExpression` is only valid when being used as a single index.
+                //    Registers can support it for creating aliases, but arrays cannot."
+                self.push_semantic_error(SemanticErrorKind::IndexSetOnlyAllowedInAliasStmt(
+                    set.span,
+                ));
+                None
             }
-            syntax::IndexElement::IndexSet(set) => {
-                semantic::IndexElement::IndexSet(self.lower_index_set(set))
+            syntax::Index::IndexList(multidimensional_index) => {
+                self.lower_index_list(multidimensional_index)
             }
-        }
-    }
-
-    fn lower_index_set_item(&mut self, item: &syntax::IndexSetItem) -> semantic::IndexSetItem {
-        match item {
-            syntax::IndexSetItem::RangeDefinition(range_definition) => {
-                semantic::IndexSetItem::RangeDefinition(
-                    self.lower_range_definition(range_definition),
-                )
-            }
-            syntax::IndexSetItem::Expr(expr) => semantic::IndexSetItem::Expr(self.lower_expr(expr)),
-            syntax::IndexSetItem::Err => semantic::IndexSetItem::Err,
         }
     }
 
     fn lower_enumerable_set(&mut self, set: &syntax::EnumerableSet) -> semantic::EnumerableSet {
         match set {
-            syntax::EnumerableSet::DiscreteSet(set) => {
-                semantic::EnumerableSet::DiscreteSet(self.lower_discrete_set(set))
-            }
-            syntax::EnumerableSet::RangeDefinition(range_definition) => {
-                semantic::EnumerableSet::RangeDefinition(
-                    self.lower_range_definition(range_definition),
-                )
+            syntax::EnumerableSet::Set(set) => semantic::EnumerableSet::Set(self.lower_set(set)),
+            syntax::EnumerableSet::Range(range_definition) => {
+                semantic::EnumerableSet::Range(self.lower_range(range_definition))
             }
             syntax::EnumerableSet::Expr(expr) => {
                 semantic::EnumerableSet::Expr(self.lower_expr(expr))
@@ -3103,42 +3467,98 @@ impl Lowerer {
         }
     }
 
-    fn lower_index_set(&mut self, set: &syntax::IndexSet) -> semantic::IndexSet {
-        let items = set
-            .values
-            .iter()
-            .map(|expr| self.lower_index_set_item(expr))
-            .collect::<Vec<_>>();
-
-        semantic::IndexSet {
-            span: set.span,
-            values: syntax::list_from_iter(items),
-        }
-    }
-
-    fn lower_discrete_set(&mut self, set: &syntax::DiscreteSet) -> semantic::DiscreteSet {
+    fn lower_set(&mut self, set: &syntax::Set) -> semantic::Set {
         let items = set
             .values
             .iter()
             .map(|expr| self.lower_expr(expr))
             .collect::<Vec<_>>();
 
-        semantic::DiscreteSet {
+        semantic::Set {
             span: set.span,
-            values: list_from_iter(items),
+            values: syntax::list_from_iter(items),
         }
     }
 
-    fn lower_range_definition(
-        &mut self,
-        range_definition: &syntax::RangeDefinition,
-    ) -> semantic::RangeDefinition {
-        let start = range_definition.start.as_ref().map(|e| self.lower_expr(e));
-        let step = range_definition.step.as_ref().map(|e| self.lower_expr(e));
-        let end = range_definition.end.as_ref().map(|e| self.lower_expr(e));
+    fn lower_index_list(&mut self, list: &syntax::IndexList) -> Option<Vec<semantic::Index>> {
+        let indices: Vec<_> = list
+            .values
+            .iter()
+            .filter_map(|index| match &**index {
+                syntax::IndexListItem::RangeDefinition(range) => {
+                    self.lower_const_range(range).map(semantic::Index::Range)
+                }
+                syntax::IndexListItem::Expr(expr) => {
+                    Some(semantic::Index::Expr(self.lower_expr(expr)))
+                }
+                syntax::IndexListItem::Err => Some(semantic::Index::Expr(err_expr!(Type::Err))),
+            })
+            .collect();
 
-        semantic::RangeDefinition {
-            span: range_definition.span,
+        if list.values.len() != indices.len() {
+            return None;
+        }
+
+        Some(indices)
+    }
+
+    /// Ranges used for register and array slicing must be const evaluatable.
+    fn lower_const_range(&mut self, range: &syntax::Range) -> Option<semantic::Range> {
+        let mut lower_and_const_eval = |expr| {
+            let lowered_expr = self.lower_expr(expr);
+            let lit = lowered_expr.const_eval(self);
+            lit.map(|lit| {
+                let lit_expr = semantic::Expr {
+                    span: lowered_expr.span,
+                    kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
+                    ty: lowered_expr.ty,
+                };
+                // Range components (start, step, end) can be negative, so we coerce to an `int`.
+                self.coerce_literal_expr_to_type(&Type::Int(None, true), &lit_expr, &lit)
+            })
+        };
+
+        let start = range.start.as_ref().map(&mut lower_and_const_eval);
+        let step = range.step.as_ref().map(&mut lower_and_const_eval);
+        let end = range.end.as_ref().map(&mut lower_and_const_eval);
+
+        // The spec says that the step cannot be zero, so we push an error in that case.
+        // <https://openqasm.com/language/types.html#register-concatenation-and-slicing>
+        if let Some(Some(step)) = &step {
+            if let semantic::ExprKind::Lit(semantic::LiteralKind::Int(val)) = &*step.kind {
+                if *val == 0 {
+                    self.push_semantic_error(SemanticErrorKind::ZeroStepInRange(range.span));
+                    return None;
+                }
+            }
+        }
+
+        macro_rules! shortcircuit_inner {
+            ($nested_option:expr) => {
+                match $nested_option {
+                    Some(inner) => Some(inner?),
+                    None => None,
+                }
+            };
+        }
+
+        Some(semantic::Range {
+            span: range.span,
+            start: shortcircuit_inner!(start),
+            step: shortcircuit_inner!(step),
+            end: shortcircuit_inner!(end),
+        })
+    }
+
+    /// Ranges used for array initialization don't need to be const evaluatable
+    /// and can be computed at runtime.
+    fn lower_range(&mut self, range: &syntax::Range) -> semantic::Range {
+        let start = range.start.as_ref().map(|e| self.lower_expr(e));
+        let step = range.step.as_ref().map(|e| self.lower_expr(e));
+        let end = range.end.as_ref().map(|e| self.lower_expr(e));
+
+        semantic::Range {
+            span: range.span,
             start,
             step,
             end,
@@ -3147,15 +3567,31 @@ impl Lowerer {
 
     fn lower_index_expr(&mut self, expr: &syntax::IndexExpr) -> semantic::Expr {
         let collection = self.lower_expr(&expr.collection);
-        let index = self.lower_index_element(&expr.index);
-        let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, 1);
+        let Some(indices) = self.lower_index(&expr.index) else {
+            // Since we can't evaluate the indices, we can't know the indexed type.
+            return err_expr!(Type::Err, expr.span);
+        };
+
+        // The spec says:
+        // "One or more dimension(s) of an array can be zero,
+        //  in which case the array has size zero. An array of
+        //  size zero cannot be indexed, e.g. given
+        //  `array[float[32], 0] myArray;`
+        //  it is an error to access either myArray[0] or myArray[-1]."
+        if collection.ty.has_zero_size() {
+            let kind = SemanticErrorKind::ZeroSizeArrayAccess(expr.span);
+            self.push_semantic_error(kind);
+            return err_expr!(Type::Err, expr.span);
+        }
+
+        let indexed_ty = self.get_indexed_type(&collection.ty, expr.span, &indices);
 
         semantic::Expr {
             span: expr.span,
             kind: Box::new(semantic::ExprKind::IndexExpr(semantic::IndexExpr {
                 span: expr.span,
                 collection,
-                index,
+                indices: list_from_iter(indices),
             })),
             ty: indexed_ty,
         }
@@ -3165,7 +3601,7 @@ impl Lowerer {
         &mut self,
         ty: &Type,
         span: Span,
-        num_indices: usize,
+        indices: &[semantic::Index],
     ) -> super::types::Type {
         if !ty.is_array() {
             let kind = SemanticErrorKind::CannotIndexType(format!("{ty:?}"), span);
@@ -3173,78 +3609,97 @@ impl Lowerer {
             return super::types::Type::Err;
         }
 
-        if num_indices > ty.num_dims() {
+        if indices.len() > ty.num_dims() {
             let kind = SemanticErrorKind::TooManyIndices(span);
             self.push_semantic_error(kind);
             return super::types::Type::Err;
         }
 
-        let mut indexed_ty = ty.clone();
-        for _ in 0..num_indices {
-            let Some(ty) = indexed_ty.get_indexed_type() else {
-                // we failed to get the indexed type, unknown error
-                // we should have caught this earlier with the two checks above
-                let kind = SemanticErrorKind::CannotIndexType(format!("{ty:?}"), span);
-                self.push_semantic_error(kind);
-                return super::types::Type::Err;
-            };
-            indexed_ty = ty;
+        if let Some(indexed_ty) = ty.get_indexed_type(indices) {
+            indexed_ty
+        } else {
+            // we failed to get the indexed type, unknown error
+            // we should have caught this earlier with the two checks above
+            let kind = SemanticErrorKind::CannotIndexType(format!("{ty:?}"), span);
+            self.push_semantic_error(kind);
+            super::types::Type::Err
         }
-        indexed_ty
     }
 
-    /// Lower an indexed identifier expression
-    /// This is an identifier with *zero* or more indices
-    /// we tranform this into two different cases:
-    ///   1. An identifier with zero indices
-    ///   2. An identifier with one or more index
-    ///
+    /// A `syntax::IndexedIdent` is guaranteed to have at least one index.
     /// This changes the type of expression we return to simplify downstream compilation
     fn lower_indexed_ident_expr(&mut self, indexed_ident: &syntax::IndexedIdent) -> semantic::Expr {
-        let ident = indexed_ident.name.clone();
+        assert!(!indexed_ident.indices.is_empty());
 
-        // if we have no indices, we can just lower the identifier
-        if indexed_ident.indices.is_empty() {
-            return self.lower_ident_expr(&ident);
+        // We flatten the multiple square brackets, converting
+        // a[1, 2][5, 7][2, 4:8]
+        //   to
+        // a[1, 2, 5, 7, 2, 4:8]
+        let mut indices = Vec::new();
+        for qasm_index in &indexed_ident.indices {
+            if let Some(mut lowered_indices) = self.lower_index(qasm_index) {
+                indices.append(&mut lowered_indices);
+            }
         }
 
-        let indices = indexed_ident
-            .indices
-            .iter()
-            .map(|index| self.lower_index_element(index));
-        let indices = list_from_iter(indices);
+        if indices.len()
+            != indexed_ident
+                .indices
+                .iter()
+                .map(|i| i.num_indices())
+                .sum::<usize>()
+        {
+            // Since we can't evaluate all the indices, we can't know the indexed type.
+            return err_expr!(Type::Err, indexed_ident.span);
+        }
 
+        let ident = indexed_ident.ident.clone();
         let Some((symbol_id, lhs_symbol)) = self.symbols.get_symbol_by_name(&ident.name) else {
             self.push_missing_symbol_error(ident.name, ident.span);
             return err_expr!(Type::Err, indexed_ident.span);
         };
 
         let ty = lhs_symbol.ty.clone();
-        // use the supplied number of indicies rathar than the number of indicies we lowered
-        let ty = self.get_indexed_type(&ty, indexed_ident.span, indexed_ident.indices.len());
+
+        // The spec says:
+        // "One or more dimension(s) of an array can be zero,
+        //  in which case the array has size zero. An array of
+        //  size zero cannot be indexed, e.g. given
+        //  `array[float[32], 0] myArray;`
+        //  it is an error to access either myArray[0] or myArray[-1]."
+        if ty.has_zero_size() {
+            let kind = SemanticErrorKind::ZeroSizeArrayAccess(indexed_ident.span);
+            self.push_semantic_error(kind);
+            return err_expr!(Type::Err, indexed_ident.span);
+        }
+
+        // use the supplied number of indices rather than the number of indices we lowered
+        let indexed_ty = self.get_indexed_type(&ty, indexed_ident.span, &indices);
 
         semantic::Expr {
             span: indexed_ident.span,
-            kind: Box::new(semantic::ExprKind::IndexedIdentifier(
-                semantic::IndexedIdent {
-                    span: indexed_ident.span,
-                    name_span: ident.span,
-                    index_span: indexed_ident.index_span,
-                    symbol_id,
-                    indices,
-                },
-            )),
-            ty,
+            kind: Box::new(semantic::ExprKind::IndexedIdent(semantic::IndexedIdent {
+                span: indexed_ident.span,
+                name_span: ident.span,
+                index_span: indexed_ident.index_span,
+                symbol_id,
+                indices: list_from_iter(indices),
+            })),
+            ty: indexed_ty,
         }
     }
 
-    #[allow(clippy::unused_self)]
     fn lower_gate_operand(&mut self, operand: &syntax::GateOperand) -> semantic::GateOperand {
         let kind = match &operand.kind {
-            syntax::GateOperandKind::IndexedIdent(indexed_ident) => {
-                semantic::GateOperandKind::Expr(Box::new(
-                    self.lower_indexed_ident_expr(indexed_ident),
-                ))
+            syntax::GateOperandKind::IdentOrIndexedIdent(ident_or_indexed_ident) => {
+                let expr = match &**ident_or_indexed_ident {
+                    syntax::IdentOrIndexedIdent::Ident(ident) => self.lower_ident_expr(ident),
+                    syntax::IdentOrIndexedIdent::IndexedIdent(indexed_ident) => {
+                        self.lower_indexed_ident_expr(indexed_ident)
+                    }
+                };
+
+                semantic::GateOperandKind::Expr(Box::new(expr))
             }
             syntax::GateOperandKind::HardwareQubit(hw) => {
                 semantic::GateOperandKind::HardwareQubit(Self::lower_hardware_qubit(hw))
@@ -3377,10 +3832,10 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
     None
 }
 
-fn get_identifier_name(identifier: &syntax::Identifier) -> std::rc::Rc<str> {
+fn get_identifier_name(identifier: &syntax::IdentOrIndexedIdent) -> std::rc::Rc<str> {
     match identifier {
-        syntax::Identifier::Ident(ident) => ident.name.clone(),
-        syntax::Identifier::IndexedIdent(ident) => ident.name.name.clone(),
+        syntax::IdentOrIndexedIdent::Ident(ident) => ident.name.clone(),
+        syntax::IdentOrIndexedIdent::IndexedIdent(ident) => ident.ident.name.clone(),
     }
 }
 

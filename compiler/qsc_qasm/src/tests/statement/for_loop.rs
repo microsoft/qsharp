@@ -19,7 +19,7 @@ fn for_loops_can_iterate_over_discrete_set() -> miette::Result<(), Vec<Report>> 
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -39,7 +39,7 @@ fn for_loops_can_have_stmt_bodies() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -60,7 +60,7 @@ fn for_loops_can_iterate_over_range() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0;
         for i : Int in 0..2..20 {
-            set sum += i;
+            set sum = sum + i;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -81,7 +81,7 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
         import QasmStd.Intrinsic.*;
         mutable sum = 0.;
         for f : Double in [1.2, -3.4, 0.5, 9.8] {
-            set sum += f;
+            set sum = sum + f;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -89,11 +89,10 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-#[ignore = "Array literals not yet supported"]
 fn for_loops_can_iterate_float_array_symbol() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         float sum = 0.;
-        const array[float[64], 4] my_floats = {1.2, -3.4, 0.5, 9.8};
+        array[float[64], 4] my_floats = {1.2, -3.4, 0.5, 9.8};
         for float[64] f in my_floats {
             sum += f;
         }
@@ -101,12 +100,13 @@ fn for_loops_can_iterate_float_array_symbol() -> miette::Result<(), Vec<Report>>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
+        import QasmStd.Intrinsic.*;
         mutable sum = 0.;
-        let my_floats = [1.2, -3.4, 0.5, 9.8];
+        mutable my_floats = [1.2, -3.4, 0.5, 9.8];
         for f : Double in my_floats {
-            set sum += f;
+            set sum = sum + f;
         }
-        "#]]
+    "#]]
     .assert_eq(&qsharp);
     Ok(())
 }
@@ -132,7 +132,7 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
         mutable sum = 0;
         let reg = [One, Zero, One, Zero, One];
         for b : Result in reg {
-            set sum += QasmStd.Convert.ResultAsInt(b);
+            set sum = sum + QasmStd.Convert.ResultAsInt(b);
         }
     "#]]
     .assert_eq(&qsharp);

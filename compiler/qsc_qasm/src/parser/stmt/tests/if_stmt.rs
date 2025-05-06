@@ -29,10 +29,7 @@ fn simple_if_stmt() {
                             Stmt [27-33]:
                                 annotations: <empty>
                                 kind: AssignStmt [27-33]:
-                                    lhs: IndexedIdent [27-28]:
-                                        name: Ident [27-28] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [27-28] "a"
                                     rhs: Expr [31-32]: Lit: Int(0)
                     else_body: Stmt [45-67]:
                         annotations: <empty>
@@ -40,10 +37,7 @@ fn simple_if_stmt() {
                             Stmt [55-61]:
                                 annotations: <empty>
                                 kind: AssignStmt [55-61]:
-                                    lhs: IndexedIdent [55-56]:
-                                        name: Ident [55-56] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [55-56] "a"
                                     rhs: Expr [59-60]: Lit: Int(1)"#]],
     );
 }
@@ -71,10 +65,7 @@ fn if_stmt_missing_else() {
                             Stmt [27-33]:
                                 annotations: <empty>
                                 kind: AssignStmt [27-33]:
-                                    lhs: IndexedIdent [27-28]:
-                                        name: Ident [27-28] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [27-28] "a"
                                     rhs: Expr [31-32]: Lit: Int(0)
                     else_body: <none>"#]],
     );
@@ -123,10 +114,7 @@ fn nested_if_stmts() {
                                             Stmt [55-61]:
                                                 annotations: <empty>
                                                 kind: AssignStmt [55-61]:
-                                                    lhs: IndexedIdent [55-56]:
-                                                        name: Ident [55-56] "a"
-                                                        index_span: [0-0]
-                                                        indices: <empty>
+                                                    lhs: Ident [55-56] "a"
                                                     rhs: Expr [59-60]: Lit: Int(0)
                                     else_body: Stmt [77-107]:
                                         annotations: <empty>
@@ -134,10 +122,7 @@ fn nested_if_stmts() {
                                             Stmt [91-97]:
                                                 annotations: <empty>
                                                 kind: AssignStmt [91-97]:
-                                                    lhs: IndexedIdent [91-92]:
-                                                        name: Ident [91-92] "a"
-                                                        index_span: [0-0]
-                                                        indices: <empty>
+                                                    lhs: Ident [91-92] "a"
                                                     rhs: Expr [95-96]: Lit: Int(1)
                     else_body: Stmt [119-215]:
                         annotations: <empty>
@@ -155,10 +140,7 @@ fn nested_if_stmts() {
                                             Stmt [157-163]:
                                                 annotations: <empty>
                                                 kind: AssignStmt [157-163]:
-                                                    lhs: IndexedIdent [157-158]:
-                                                        name: Ident [157-158] "a"
-                                                        index_span: [0-0]
-                                                        indices: <empty>
+                                                    lhs: Ident [157-158] "a"
                                                     rhs: Expr [161-162]: Lit: Int(2)
                                     else_body: Stmt [179-209]:
                                         annotations: <empty>
@@ -166,10 +148,7 @@ fn nested_if_stmts() {
                                             Stmt [193-199]:
                                                 annotations: <empty>
                                                 kind: AssignStmt [193-199]:
-                                                    lhs: IndexedIdent [193-194]:
-                                                        name: Ident [193-194] "a"
-                                                        index_span: [0-0]
-                                                        indices: <empty>
+                                                    lhs: Ident [193-194] "a"
                                                     rhs: Expr [197-198]: Lit: Int(3)"#]],
     );
 }
@@ -193,10 +172,7 @@ fn single_stmt_if_stmt() {
                             duration: <none>
                             qubits:
                                 GateOperand [9-10]:
-                                    kind: IndexedIdent [9-10]:
-                                        name: Ident [9-10] "q"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    kind: Ident [9-10] "q"
                     else_body: <none>"#]],
     );
 }
@@ -224,10 +200,7 @@ fn annotations_in_single_stmt_if_stmt() {
                                 identifier: "bar"
                                 value: <none>
                         kind: AssignStmt [46-52]:
-                            lhs: IndexedIdent [46-47]:
-                                name: Ident [46-47] "x"
-                                index_span: [0-0]
-                                indices: <empty>
+                            lhs: Ident [46-47] "x"
                             rhs: Expr [50-51]: Lit: Int(5)
                     else_body: <none>"#]],
     );
@@ -256,10 +229,7 @@ fn nested_single_stmt_if_stmt() {
                                     duration: <none>
                                     qubits:
                                         GateOperand [16-17]:
-                                            kind: IndexedIdent [16-17]:
-                                                name: Ident [16-17] "q"
-                                                index_span: [0-0]
-                                                indices: <empty>
+                                            kind: Ident [16-17] "q"
                             else_body: <none>
                     else_body: <none>"#]],
     );
@@ -288,10 +258,7 @@ fn nested_single_stmt_if_else_stmt() {
                                     duration: <none>
                                     qubits:
                                         GateOperand [16-17]:
-                                            kind: IndexedIdent [16-17]:
-                                                name: Ident [16-17] "q"
-                                                index_span: [0-0]
-                                                indices: <empty>
+                                            kind: Ident [16-17] "q"
                             else_body: Stmt [24-42]:
                                 annotations: <empty>
                                 kind: IfStmt [24-42]:
@@ -309,10 +276,7 @@ fn nested_single_stmt_if_else_stmt() {
                                                     duration: <none>
                                                     qubits:
                                                         GateOperand [40-41]:
-                                                            kind: IndexedIdent [40-41]:
-                                                                name: Ident [40-41] "q"
-                                                                index_span: [0-0]
-                                                                indices: <empty>
+                                                            kind: Ident [40-41] "q"
                                             else_body: <none>
                                     else_body: <none>
                     else_body: <none>"#]],
@@ -338,10 +302,7 @@ fn single_stmt_if_stmt_else_stmt() {
                             duration: <none>
                             qubits:
                                 GateOperand [9-10]:
-                                    kind: IndexedIdent [9-10]:
-                                        name: Ident [9-10] "q"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    kind: Ident [9-10] "q"
                     else_body: Stmt [17-21]:
                         annotations: <empty>
                         kind: GateCall [17-21]:
@@ -351,9 +312,6 @@ fn single_stmt_if_stmt_else_stmt() {
                             duration: <none>
                             qubits:
                                 GateOperand [19-20]:
-                                    kind: IndexedIdent [19-20]:
-                                        name: Ident [19-20] "q"
-                                        index_span: [0-0]
-                                        indices: <empty>"#]],
+                                    kind: Ident [19-20] "q""#]],
     );
 }

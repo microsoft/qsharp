@@ -19,6 +19,11 @@ pub struct Error(pub SemanticErrorKind);
 ///   - it is missing many language features
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum SemanticErrorKind {
+    #[error("array declarations are only allowed in global scope")]
+    ArrayDeclarationInNonGlobalScope(#[label] Span),
+    #[error("{0}")]
+    #[diagnostic(code("Qasm.Lowerer.ArrayDeclarationTypeError"))]
+    ArrayDeclarationTypeError(String, #[label] Span),
     #[error("annotation missing target statement")]
     #[diagnostic(code("Qasm.Lowerer.AnnotationWithoutStatement"))]
     AnnotationWithoutStatement(#[label] Span),
@@ -28,6 +33,9 @@ pub enum SemanticErrorKind {
     #[error("array size must be a non-negative integer const expression")]
     #[diagnostic(code("Qasm.Lowerer.ArraySizeMustBeNonNegativeConstExpr"))]
     ArraySizeMustBeNonNegativeConstExpr(#[label] Span),
+    #[error("first quantum register is of type {0} but found an argument of type {1}")]
+    #[diagnostic(code("Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize"))]
+    BroadcastCallQuantumArgsDisagreeInSize(String, String, #[label] Span),
     #[error("calibration statements are not supported: {0}")]
     #[diagnostic(code("Qasm.Lowerer.CalibrationsNotSupported"))]
     CalibrationsNotSupported(String, #[label] Span),
@@ -113,6 +121,9 @@ pub enum SemanticErrorKind {
     #[error("indexed must be a single expression")]
     #[diagnostic(code("Qasm.Lowerer.IndexMustBeSingleExpr"))]
     IndexMustBeSingleExpr(#[label] Span),
+    #[error("index sets are only allowed in alias statements")]
+    #[diagnostic(code("Qasm.Lowerer.IndexSetOnlyAllowedInAliasStmt"))]
+    IndexSetOnlyAllowedInAliasStmt(#[label] Span),
     #[error("assigning {0} values to {1} must be in a range that be converted to {1}")]
     #[diagnostic(code("Qasm.Lowerer.InvalidCastValueRange"))]
     InvalidCastValueRange(String, String, #[label] Span),
@@ -191,7 +202,7 @@ pub enum SemanticErrorKind {
     #[error("too many controls specified")]
     #[diagnostic(code("Qasm.Lowerer.TooManyControls"))]
     TooManyControls(#[label] Span),
-    #[error("too many indicies specified")]
+    #[error("too many indices specified")]
     #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
     TooManyIndices(#[label] Span),
     #[error("bitwise not `~` is not allowed for instances of {0}")]
@@ -227,6 +238,13 @@ pub enum SemanticErrorKind {
     #[error("while statement missing {0} expression")]
     #[diagnostic(code("Qasm.Lowerer.WhileStmtMissingExpression"))]
     WhileStmtMissingExpression(String, #[label] Span),
+    #[error("zero size array access is not allowed")]
+    #[diagnostic(code("Qasm.Lowerer.ZeroSizeArrayAccess"))]
+    #[diagnostic(help("array size must be a positive integer const expression"))]
+    ZeroSizeArrayAccess(#[label] Span),
+    #[error("range step cannot be zero")]
+    #[diagnostic(code("Qasm.Lowerer.ZeroStepInRange"))]
+    ZeroStepInRange(#[label] Span),
 }
 
 impl From<Error> for crate::Error {

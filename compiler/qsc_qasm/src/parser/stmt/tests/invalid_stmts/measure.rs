@@ -43,12 +43,12 @@ fn assign_measure_multiple_qubits() {
                 annotations: <empty>
                 kind: AssignStmt [0-19]:
                     lhs: IndexedIdent [0-6]:
-                        name: Ident [0-1] "a"
+                        ident: Ident [0-1] "a"
                         index_span: [1-6]
                         indices:
-                            IndexSet [2-5]:
+                            IndexList [2-5]:
                                 values:
-                                    RangeDefinition [2-5]:
+                                    Range [2-5]:
                                         start: Expr [2-3]: Lit: Int(0)
                                         step: <none>
                                         end: Expr [4-5]: Lit: Int(1)
@@ -80,10 +80,7 @@ fn assign_arrow() {
             Stmt [0-14]:
                 annotations: <empty>
                 kind: AssignStmt [0-14]:
-                    lhs: IndexedIdent [0-1]:
-                        name: Ident [0-1] "a"
-                        index_span: [0-0]
-                        indices: <empty>
+                    lhs: Ident [0-1] "a"
                     rhs: MeasureExpr [4-14]:
                         operand: GateOperand [12-14]:
                             kind: HardwareQubit [12-14]: 0
