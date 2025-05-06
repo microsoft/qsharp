@@ -203,35 +203,8 @@ fn generate_unitary_call(
     qubits: &FxHashMap<usize, String>,
     indent: &str,
 ) -> String {
-    // "SX" will generate three operations: H, X and H
-    if unitary.gate == "SX" {
-        let h_str = operation_call(
-            &Unitary {
-                gate: "H".to_string(),
-                args: vec![],
-                children: vec![],
-                targets: unitary.targets.clone(),
-                controls: unitary.controls.clone(),
-                is_adjoint: false,
-            },
-            qubits,
-        );
-        let s_str = operation_call(
-            &Unitary {
-                gate: "S".to_string(),
-                args: vec![],
-                children: vec![],
-                targets: unitary.targets.clone(),
-                controls: unitary.controls.clone(),
-                is_adjoint: unitary.is_adjoint,
-            },
-            qubits,
-        );
-        format!("{indent}{h_str};\n{indent}{s_str};\n{indent}{h_str};\n")
-    } else {
-        let operation_str = operation_call(unitary, qubits);
-        format!("{indent}{operation_str};\n")
-    }
+    let operation_str = operation_call(unitary, qubits);
+    format!("{indent}{operation_str};\n")
 }
 
 fn generate_ket_call(ket: &Ket, qubits: &FxHashMap<usize, String>, indent: &str) -> String {

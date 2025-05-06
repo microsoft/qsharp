@@ -7,6 +7,7 @@ use rustc_hash::FxHashMap;
 
 use crate::hir::{CallableKind, FieldPath, Functor, ItemId, PackageId, Res};
 use std::{
+    cell::RefCell,
     fmt::{self, Debug, Display, Formatter, Write},
     rc::Rc,
 };
@@ -29,7 +30,7 @@ pub enum Ty {
     /// An array type.
     Array(Box<Ty>),
     /// An arrow type: `->` for a function or `=>` for an operation.
-    Arrow(Box<Arrow>),
+    Arrow(Rc<Arrow>),
     /// A placeholder type variable used during type inference.
     Infer(InferTyId),
     /// A type parameter.
@@ -144,7 +145,7 @@ impl Ty {
         match self {
             Ty::Infer(_) | Ty::Param { .. } | Ty::Prim(_) | Ty::Err => self.clone(),
             Ty::Array(item) => Ty::Array(Box::new(item.with_package(package))),
-            Ty::Arrow(arrow) => Ty::Arrow(Box::new(arrow.with_package(package))),
+            Ty::Arrow(arrow) => Ty::Arrow(Rc::new(arrow.with_package(package))),
             Ty::Tuple(items) => Ty::Tuple(
                 items
                     .iter()
@@ -166,11 +167,11 @@ impl Ty {
                     CallableKind::Operation => "=>",
                 };
 
-                let functors = match arrow.functors {
+                let functors = match *arrow.functors.borrow() {
                     FunctorSet::Value(FunctorSetValue::Empty)
                     | FunctorSet::Param(_, FunctorSetValue::Empty) => String::new(),
                     FunctorSet::Value(_) | FunctorSet::Infer(_) => {
-                        format!(" is {}", arrow.functors)
+                        format!(" is {}", arrow.functors.borrow())
                     }
                     FunctorSet::Param(_, functors) => {
                         format!(" is {functors}")
@@ -178,8 +179,8 @@ impl Ty {
                 };
                 format!(
                     "({} {arrow_symbol} {}{functors})",
-                    arrow.input.display(),
-                    arrow.output.display()
+                    arrow.input.borrow().display(),
+                    arrow.output.borrow().display()
                 )
             }
             Ty::Infer(_) | Ty::Err => "?".to_string(),
@@ -257,9 +258,9 @@ impl Scheme {
             params: self.params.clone(),
             ty: Box::new(Arrow {
                 kind: self.ty.kind,
-                input: Box::new(self.ty.input.with_package(package)),
-                output: Box::new(self.ty.output.with_package(package)),
-                functors: self.ty.functors,
+                input: RefCell::new(self.ty.input.borrow().with_package(package)),
+                output: RefCell::new(self.ty.output.borrow().with_package(package)),
+                functors: self.ty.functors.clone(),
             }),
         }
     }
@@ -309,7 +310,7 @@ fn instantiate_ty<'a>(
     match ty {
         Ty::Err | Ty::Infer(_) | Ty::Prim(_) | Ty::Udt(_, _) => Ok(ty.clone()),
         Ty::Array(item) => Ok(Ty::Array(Box::new(instantiate_ty(arg, item)?))),
-        Ty::Arrow(arrow) => Ok(Ty::Arrow(Box::new(instantiate_arrow_ty(arg, arrow)?))),
+        Ty::Arrow(arrow) => Ok(Ty::Arrow(Rc::new(instantiate_arrow_ty(arg, arrow)?))),
         Ty::Param { id, .. } => match arg(id) {
             Some(GenericArg::Ty(ty_arg)) => Ok(ty_arg.clone()),
             Some(_) => Err(InstantiationError::Kind(*id)),
@@ -328,23 +329,23 @@ fn instantiate_arrow_ty<'a>(
     arg: impl Fn(&ParamId) -> Option<&'a GenericArg> + Copy,
     arrow: &Arrow,
 ) -> Result<Arrow, InstantiationError> {
-    let input = instantiate_ty(arg, &arrow.input)?;
-    let output = instantiate_ty(arg, &arrow.output)?;
-    let functors = if let FunctorSet::Param(param, _) = arrow.functors {
+    let input = instantiate_ty(arg, &arrow.input.borrow())?;
+    let output = instantiate_ty(arg, &arrow.output.borrow())?;
+    let functors = if let FunctorSet::Param(param, _) = *arrow.functors.borrow() {
         match arg(&param) {
             Some(GenericArg::Functor(functor_arg)) => *functor_arg,
             Some(_) => return Err(InstantiationError::Kind(param)),
-            None => arrow.functors,
+            None => *arrow.functors.borrow(),
         }
     } else {
-        arrow.functors
+        *arrow.functors.borrow()
     };
 
     Ok(Arrow {
         kind: arrow.kind,
-        input: Box::new(input),
-        output: Box::new(output),
-        functors,
+        input: RefCell::new(input),
+        output: RefCell::new(output),
+        functors: RefCell::new(functors),
     })
 }
 
@@ -447,16 +448,16 @@ impl Display for GenericArg {
 }
 
 /// An arrow type: `->` for a function or `=>` for an operation.
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Arrow {
     /// Whether the callable is a function or an operation.
     pub kind: CallableKind,
     /// The input type to the callable.
-    pub input: Box<Ty>,
+    pub input: RefCell<Ty>,
     /// The output type from the callable.
-    pub output: Box<Ty>,
+    pub output: RefCell<Ty>,
     /// The functors supported by the callable.
-    pub functors: FunctorSet,
+    pub functors: RefCell<FunctorSet>,
 }
 
 impl Arrow {
@@ -464,9 +465,9 @@ impl Arrow {
     pub fn with_package(&self, package: PackageId) -> Self {
         Self {
             kind: self.kind,
-            input: Box::new(self.input.with_package(package)),
-            output: Box::new(self.output.with_package(package)),
-            functors: self.functors,
+            input: RefCell::new(self.input.borrow().with_package(package)),
+            output: RefCell::new(self.output.borrow().with_package(package)),
+            functors: self.functors.clone(),
         }
     }
 }
@@ -477,10 +478,15 @@ impl Display for Arrow {
             CallableKind::Function => "->",
             CallableKind::Operation => "=>",
         };
-        write!(f, "({} {arrow} {}", self.input, self.output)?;
-        if self.functors != FunctorSet::Value(FunctorSetValue::Empty) {
+        write!(
+            f,
+            "({} {arrow} {}",
+            self.input.borrow(),
+            self.output.borrow()
+        )?;
+        if self.functors != RefCell::new(FunctorSet::Value(FunctorSetValue::Empty)) {
             f.write_str(" is ")?;
-            Display::fmt(&self.functors, f)?;
+            Display::fmt(&self.functors.borrow(), f)?;
         }
         f.write_char(')')
     }
@@ -662,9 +668,9 @@ impl Udt {
             params: Vec::new(),
             ty: Box::new(Arrow {
                 kind: CallableKind::Function,
-                input: Box::new(self.get_pure_ty()),
-                output: Box::new(Ty::Udt(self.name.clone(), Res::Item(id))),
-                functors: FunctorSet::Value(FunctorSetValue::Empty),
+                input: RefCell::new(self.get_pure_ty()),
+                output: RefCell::new(Ty::Udt(self.name.clone(), Res::Item(id))),
+                functors: RefCell::new(FunctorSet::Value(FunctorSetValue::Empty)),
             }),
         }
     }

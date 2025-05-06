@@ -17,7 +17,7 @@ import { Register } from "./register";
  * @param obj2 - The second object or array to compare.
  * @returns True if the objects are deeply equal, false otherwise.
  */
-export const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
+const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
   if (obj1 === obj2) return true;
 
   if (
@@ -365,6 +365,20 @@ const getGateElems = (container: HTMLElement): SVGGraphicsElement[] => {
     : [];
 };
 
+/**
+ * Get list of qubit label elements for drag-and-drop.
+ *
+ * @param container The HTML container element containing the circuit visualization.
+ * @returns An array of SVGTextElement representing the qubit labels.
+ */
+const getQubitLabelElems = (container: HTMLElement): SVGTextElement[] => {
+  const circuitSvg = container.querySelector("svg[id]");
+  if (!circuitSvg) return [];
+  const labelGroup = circuitSvg.querySelector("g.qubit-input-states");
+  if (!labelGroup) return [];
+  return Array.from(labelGroup.querySelectorAll<SVGTextElement>("text"));
+};
+
 // Non-ASCII chars are fraught with danger. Copy/paste these when possible.
 // Use the following regex in VS Code to find invalid unicode chars
 // [^\x20-\x7e\u{03b8}-\u{03c8}\u{2020}\u{27e8}\u{27e9}]
@@ -379,6 +393,7 @@ const mathChars = {
 };
 
 export {
+  deepEqual,
   createUUID,
   getGateWidth,
   getChildTargets,
@@ -393,5 +408,6 @@ export {
   getToolboxElems,
   getHostElems,
   getGateElems,
+  getQubitLabelElems,
   mathChars,
 };

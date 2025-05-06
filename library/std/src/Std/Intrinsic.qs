@@ -828,6 +828,93 @@ operation S(qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 /// # Summary
+/// Applies the square root of X gate to a single qubit.
+///
+/// # Input
+/// ## qubit
+/// Qubit to which the gate should be applied.
+///
+/// # Remarks
+/// $$
+/// \begin{align}
+///     SX \mathrel{:=}
+///     \begin{bmatrix}
+///         \frac{1}{2} + \frac{i}{2} & \frac{1}{2} - \frac{i}{2} \\\\
+///         \frac{1}{2} - \frac{i}{2} & \frac{1}{2} + \frac{i}{2}
+///     \end{bmatrix}.
+/// \end{align}
+/// $$
+operation SX(qubit : Qubit) : Unit is Adj + Ctl {
+    body ... {
+        __quantum__qis__sx__body(qubit);
+    }
+    adjoint ... {
+        __quantum__qis__x__body(qubit);
+        __quantum__qis__sx__body(qubit);
+    }
+    controlled (ctls, ...) {
+        if Length(ctls) == 0 {
+            __quantum__qis__x__body(qubit);
+            __quantum__qis__sx__body(qubit);
+        } elif Length(ctls) == 1 {
+            within {
+                H(qubit);
+            } apply {
+                CS(ctls[0], qubit);
+            }
+        } elif Length(ctls) == 2 {
+            within {
+                H(qubit);
+            } apply {
+                Controlled CS([ctls[0]], (ctls[1], qubit));
+            }
+        } else {
+            use aux = Qubit[Length(ctls) - 2];
+            within {
+                CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
+                H(qubit);
+            } apply {
+                if Length(ctls) % 2 != 0 {
+                    Controlled CS([ctls[Length(ctls) - 1]], (aux[Length(ctls) - 3], qubit));
+                } else {
+                    Controlled CS([aux[Length(ctls) - 3]], (aux[Length(ctls) - 4], qubit));
+                }
+            }
+        }
+    }
+    controlled adjoint (ctls, ...) {
+        if Length(ctls) == 0 {
+            __quantum__qis__x__body(qubit);
+            __quantum__qis__sx__body(qubit);
+        } elif Length(ctls) == 1 {
+            within {
+                H(qubit);
+            } apply {
+                Adjoint CS(ctls[0], qubit);
+            }
+        } elif Length(ctls) == 2 {
+            within {
+                H(qubit);
+            } apply {
+                Controlled Adjoint CS([ctls[0]], (ctls[1], qubit));
+            }
+        } else {
+            use aux = Qubit[Length(ctls) - 2];
+            within {
+                CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
+                H(qubit);
+            } apply {
+                if Length(ctls) % 2 != 0 {
+                    Controlled Adjoint CS([ctls[Length(ctls) - 1]], (aux[Length(ctls) - 3], qubit));
+                } else {
+                    Controlled Adjoint CS([aux[Length(ctls) - 3]], (aux[Length(ctls) - 4], qubit));
+                }
+            }
+        }
+    }
+}
+
+/// # Summary
 /// Applies the SWAP gate to a pair of qubits.
 ///
 /// # Input
@@ -1127,4 +1214,4 @@ function Message(msg : String) : Unit {
     body intrinsic;
 }
 
-export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, T, X, Y, Z, ApplyUnitary, Message;
+export AND, CCNOT, CNOT, Exp, H, I, M, Measure, R, R1, R1Frac, Reset, ResetAll, RFrac, Rx, Rxx, Ry, Ryy, Rz, Rzz, S, SWAP, SX, T, X, Y, Z, ApplyUnitary, Message;

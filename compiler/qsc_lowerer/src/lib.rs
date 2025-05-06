@@ -844,9 +844,9 @@ impl Lowerer {
     fn lower_arrow(&mut self, arrow: &qsc_hir::ty::Arrow) -> Arrow {
         Arrow {
             kind: lower_callable_kind(arrow.kind),
-            input: Box::new(self.lower_ty(&arrow.input)),
-            output: Box::new(self.lower_ty(&arrow.output)),
-            functors: lower_functor_set(&arrow.functors),
+            input: Box::new(self.lower_ty(&arrow.input.borrow())),
+            output: Box::new(self.lower_ty(&arrow.output.borrow())),
+            functors: lower_functor_set(&arrow.functors.borrow()),
         }
     }
 
