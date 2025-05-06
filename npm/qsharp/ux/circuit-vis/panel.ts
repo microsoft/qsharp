@@ -27,9 +27,8 @@ const createPanel = (container: HTMLElement): void => {
     wrapper.style.display = "block";
     wrapper.style.overflow = "auto";
     wrapper.style.width = "100%";
-    wrapper.appendChild(_qubitLineControl());
-    container.appendChild(wrapper);
     wrapper.appendChild(circuit);
+    container.appendChild(wrapper);
 
     const panelElem = _panel();
     container.prepend(panelElem);
@@ -37,28 +36,6 @@ const createPanel = (container: HTMLElement): void => {
     container.style.height = "80vh";
     container.style.width = "95vw";
   }
-};
-
-const _qubitLineControl = (): HTMLElement => {
-  const qubitLineControlElem = _elem("div", "qubit-line-control");
-  _children(qubitLineControlElem, [
-    _title("Add/Remove Qubit Lines:"),
-    _addQubitLineControl(),
-    _removeQubitLineControl(),
-  ]);
-  return qubitLineControlElem;
-};
-
-const _addQubitLineControl = (): HTMLElement => {
-  const addQubitLineControlElem = _elem("button", "add-qubit-line");
-  addQubitLineControlElem.textContent = "+";
-  return addQubitLineControlElem;
-};
-
-const _removeQubitLineControl = (): HTMLElement => {
-  const removeQubitLineControlElem = _elem("button", "remove-qubit-line");
-  removeQubitLineControlElem.textContent = "-";
-  return removeQubitLineControlElem;
 };
 
 /**

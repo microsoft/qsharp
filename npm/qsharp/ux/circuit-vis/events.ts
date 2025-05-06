@@ -109,7 +109,6 @@ class CircuitEvents {
     this._addToolboxElementsEvents();
     this._addDropzoneElementsEvents();
     this._addQubitLineEvents();
-    this._addQubitLineControlEvents();
     this._addDocumentEvents();
   }
 
@@ -727,39 +726,6 @@ class CircuitEvents {
       });
       elem.style.pointerEvents = "all";
     });
-  }
-
-  /**
-   * Add event listeners for the buttons to add or remove qubit lines.
-   * The add button will append a new qubit line to the circuit.
-   * The remove button will remove the last qubit line from the circuit,
-   * along with any operations associated with it.
-   */
-  _addQubitLineControlEvents() {
-    const addQubitLineButton = this.container.querySelector(".add-qubit-line");
-    const removeQubitLineButton =
-      this.container.querySelector(".remove-qubit-line");
-
-    if (
-      addQubitLineButton &&
-      !addQubitLineButton.hasAttribute("data-event-added")
-    ) {
-      addQubitLineButton.addEventListener("click", () => {
-        this.qubits.push({ id: this.qubits.length });
-        this.renderFn();
-      });
-      addQubitLineButton.setAttribute("data-event-added", "true");
-    }
-
-    if (
-      removeQubitLineButton &&
-      !removeQubitLineButton.hasAttribute("data-event-added")
-    ) {
-      removeQubitLineButton.addEventListener("click", () => {
-        this.removeQubitLineWithConfirmation(this.qubits.length - 1);
-      });
-      removeQubitLineButton.setAttribute("data-event-added", "true");
-    }
   }
 
   /**
