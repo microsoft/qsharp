@@ -40,6 +40,15 @@ Most of the core components are implemented in Rust. These components are packag
   - **qsc_rir/**: Runtime Intermediate Representation
 - **fuzz/**: Fuzz testing infrastructure for the compiler
 - **language_service/**: Q# language service for editor features
+  - **src/code_action.rs**: Code actions
+  - **src/code_lens/**: Code lens
+  - **src/completion/**: Completions
+  - **src/definition/**: Go to definition
+  - **src/hover/**: Hover
+  - **src/references/**: Find references
+  - **src/rename/**: Inline rename
+  - **src/signature_help/**: Signature help
+  - **src/state/**: Language service state management
 - **noisy_simulator/**: Simulator for quantum noise modeling
 - **resource_estimator/**: Quantum Resource Estimator implementation
 - **wasm/**: WebAssembly bindings for core components
@@ -50,6 +59,10 @@ Most of the core components are implemented in Rust. These components are packag
 **Python**
 
 - **pip/**: The `qsharp` Python package
+  - **qsharp/**: Python package source
+  - **src/**: Rust implementation for Python bindings
+  - **tests/**: Unit tests
+  - **tests-integration/**: Integration tests with Qiskit (qiskit-core, qiskit-aer, qiskit_qasm3_import), PyQIR, QIR Runner, resource estimator, and simulators
 - **jupyterlab/**: JupyterLab extension for Q#
 - **widgets/**: Q# Jupyter widgets
 
@@ -58,12 +71,12 @@ Most of the core components are implemented in Rust. These components are packag
 - **katas/**: Quantum computing tutorials and exercises
 - **library/**: Q# standard and domain-specific libraries
   - **chemistry/**: Chemistry-specific quantum operations
-  - **core/**: Core quantum operations
+  - **core/**: Q# core library
   - **fixed_point/**: Fixed-point arithmetic support
   - **qtest/**: Testing utilities
   - **rotations/**: Quantum rotation operations
   - **signed/**: Signed arithmetic operations
-  - **std/**: Standard library functions
+  - **std/**: Q# standard library
 - **samples/**: Example Q# programs demonstrating language features
 - **samples_test/**: Tests for sample code
 
