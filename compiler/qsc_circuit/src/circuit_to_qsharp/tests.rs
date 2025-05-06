@@ -47,10 +47,10 @@ fn qsharp_from_circuit() {
   ]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -93,10 +93,10 @@ fn circuit_with_controlled_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -139,10 +139,10 @@ fn circuit_with_adjoint_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -186,10 +186,10 @@ fn circuit_with_controlled_adjoint_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -222,10 +222,10 @@ fn circuit_with_rz_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 Z(qs[0]);
@@ -267,10 +267,10 @@ fn circuit_with_controlled_gate_multiple_args() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 Z(qs[0]);
@@ -307,10 +307,10 @@ fn circuit_with_pi_arg() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 let π = Std.Math.PI();
                 H(qs[0]);
@@ -357,10 +357,10 @@ fn circuit_with_measurement_gate() {
   ]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Result {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -423,10 +423,10 @@ fn circuit_with_multiple_measurement_gates() {
   ]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Result[] {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 S(qs[1]);
@@ -466,7 +466,7 @@ fn empty_circuit_with_qubits() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
             }
 
@@ -491,10 +491,10 @@ fn circuit_with_qubit_missing_num_results() {
   ]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 1.
+            /// Expects a qubit register of at least 1 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 1 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 1.";
+                if Length(qs) < 1 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 1 qubits.";
                 }
                 H(qs[0]);
             }
@@ -523,10 +523,10 @@ fn circuit_with_ket_gates() {
   ]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 Reset(qs[0]);
                 fail "Unsupported ket operation: |1〉";
@@ -562,10 +562,10 @@ fn circuit_with_int_args() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 let π = Std.Math.PI();
                 H(qs[0]);
@@ -604,10 +604,10 @@ fn circuit_with_sqrt_x_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 Z(qs[0]);
@@ -651,10 +651,10 @@ fn circuit_with_ctrl_adj_sqrt_x_gate() {
   "qubits": [{ "id": 0 }, { "id": 1 }]
 }"#,
         &expect![[r#"
-            /// Expects a qubit register of size 2.
+            /// Expects a qubit register of at least 2 qubits.
             operation Test(qs : Qubit[]) : Unit is Ctl + Adj {
-                if Length(qs) != 2 {
-                    fail "Invalid number of qubits. Operation Test expects a qubit register of size 2.";
+                if Length(qs) < 2 {
+                    fail "Invalid number of qubits. Operation Test expects a qubit register of at least 2 qubits.";
                 }
                 H(qs[0]);
                 Z(qs[0]);
