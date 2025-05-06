@@ -386,9 +386,7 @@ fn indexed_type_builder(
     let not_indexed_dims = dims
         .clone()
         .into_iter()
-        .rev()
-        .take(dims.num_dims() - indices.len())
-        .rev();
+        .skip(indices.len());
 
     let dims_vec = indexed_dims
         .into_iter()
