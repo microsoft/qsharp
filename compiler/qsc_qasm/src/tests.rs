@@ -18,6 +18,7 @@ use qsc::{
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
+use rustc_hash::FxHashMap;
 use std::{path::Path, sync::Arc};
 
 pub(crate) mod assignment;
@@ -111,6 +112,7 @@ where
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pramga_config: FxHashMap::default(),
     };
 
     let unit = compiler.compile(&program);
@@ -185,6 +187,7 @@ where
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pramga_config: FxHashMap::default(),
     };
 
     let unit = compiler.compile(&program);
