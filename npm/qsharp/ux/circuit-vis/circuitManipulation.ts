@@ -46,6 +46,8 @@ const moveOperation = (
     JSON.stringify(originalOperation),
   );
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   // Update operation's targets and controls
   _moveY(
     circuitEvents,
@@ -65,15 +67,13 @@ const moveOperation = (
     insertNewColumn,
   );
 
-  _ensureQubitCount(circuitEvents, targetWire);
-
   const sourceOperationParent = findParentArray(
     circuitEvents.componentGrid,
     sourceLocation,
   );
   if (sourceOperationParent == null) return null;
   _removeOp(circuitEvents, originalOperation, sourceOperationParent);
-  _removeTrailingUnusedQubits(circuitEvents);
+  removeTrailingUnusedQubits(circuitEvents);
 
   return newSourceOperation;
 };
@@ -258,6 +258,8 @@ const addOperation = (
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   _addOp(
     circuitEvents,
     newSourceOperation,
@@ -265,8 +267,6 @@ const addOperation = (
     targetLastIndex,
     insertNewColumn,
   );
-
-  _ensureQubitCount(circuitEvents, targetWire);
 
   return newSourceOperation;
 };
@@ -293,28 +293,31 @@ const removeOperation = (
   if (sourceOperation == null || sourceOperationParent == null) return null;
 
   _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
-  _removeTrailingUnusedQubits(circuitEvents);
+  removeTrailingUnusedQubits(circuitEvents);
 };
 
 /**
- * Find and remove operations in-place based on a predicate function.
+ * Find and remove operations in-place that return `true` for a predicate function.
  *
- * @param componentGrid The grid of components to search through.
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param pred The predicate function to determine which operations to remove.
  */
 const findAndRemoveOperations = (
-  componentGrid: ComponentGrid,
+  circuitEvents: CircuitEvents,
   pred: (op: Operation) => boolean,
 ) => {
-  const inPlaceFilter = (
-    grid: ComponentGrid,
-    pred: (op: Operation) => boolean,
-  ) => {
+  // Remove operations that are true for the predicate function
+  const inPlaceFilter = (grid: ComponentGrid) => {
     let i = 0;
     while (i < grid.length) {
       let j = 0;
       while (j < grid[i].components.length) {
-        if (!pred(grid[i].components[j])) {
+        const op = grid[i].components[j];
+        if (op.children) {
+          inPlaceFilter(op.children);
+        }
+        if (pred(op)) {
+          circuitEvents.decrementQubitUseCountForOp(op);
           grid[i].components.splice(j, 1);
         } else {
           j++;
@@ -328,15 +331,7 @@ const findAndRemoveOperations = (
     }
   };
 
-  const recursivePred = (op: Operation) => {
-    if (pred(op)) return true;
-    if (op.children) {
-      inPlaceFilter(op.children, (child) => !recursivePred(child));
-    }
-    return false;
-  };
-
-  inPlaceFilter(componentGrid, (op) => !recursivePred(op));
+  inPlaceFilter(circuitEvents.componentGrid);
 };
 
 /**
@@ -362,6 +357,7 @@ const addControl = (
     op.controls.push({ qubit: wireIndex });
     op.controls.sort((a, b) => a.qubit - b.qubit);
     _ensureQubitCount(circuitEvents, wireIndex);
+    circuitEvents.qubitUseCounts[wireIndex]++;
     return true;
   }
   return false;
@@ -370,17 +366,26 @@ const addControl = (
 /**
  * Remove a control from the specified operation on the given wire index.
  *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param op The unitary operation from which the control will be removed.
  * @param wireIndex The index of the wire where the control will be removed.
  * @returns True if the control was removed, false if it did not exist.
  */
-const removeControl = (op: Unitary, wireIndex: number): boolean => {
+const removeControl = (
+  circuitEvents: CircuitEvents,
+  op: Unitary,
+  wireIndex: number,
+): boolean => {
   if (op.controls) {
     const controlIndex = op.controls.findIndex(
       (control) => control.qubit === wireIndex,
     );
     if (controlIndex !== -1) {
       op.controls.splice(controlIndex, 1);
+      circuitEvents.qubitUseCounts[wireIndex]--;
+      if (wireIndex === circuitEvents.qubits.length - 1) {
+        removeTrailingUnusedQubits(circuitEvents);
+      }
       return true;
     }
   }
@@ -433,6 +438,21 @@ const resolveOverlappingOperations = (parentArray: ComponentGrid): void => {
       i += newColumns.length;
     }
     i++;
+  }
+};
+
+/**
+ * Remove trailing unused qubits from the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ */
+const removeTrailingUnusedQubits = (circuitEvents: CircuitEvents) => {
+  while (
+    circuitEvents.qubitUseCounts.length > 0 &&
+    circuitEvents.qubitUseCounts[circuitEvents.qubitUseCounts.length - 1] === 0
+  ) {
+    circuitEvents.qubits.pop();
+    circuitEvents.qubitUseCounts.pop();
   }
 };
 
@@ -504,6 +524,8 @@ const _addOp = (
       sourceOperation,
     );
   }
+
+  circuitEvents.incrementQubitUseCountForOp(sourceOperation);
 
   if (sourceOperation.kind === "measurement") {
     for (const targetWire of sourceOperation.qubits) {
@@ -581,6 +603,8 @@ const _removeOp = (
     }
   }
 
+  circuitEvents.decrementQubitUseCountForOp(sourceOperation);
+
   if (sourceOperation.kind === "measurement") {
     for (const result of sourceOperation.results) {
       _updateMeasurementLines(circuitEvents, result.qubit);
@@ -628,36 +652,8 @@ const _ensureQubitCount = (circuitEvents: CircuitEvents, wireIndex: number) => {
       id: circuitEvents.qubits.length,
       numResults: undefined,
     });
+    circuitEvents.qubitUseCounts.push(0);
   }
-};
-
-/**
- * Remove trailing unused qubits from the circuit.
- *
- * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _removeTrailingUnusedQubits = (circuitEvents: CircuitEvents) => {
-  // ToDo: for now we are disabling this functionality
-  // // Find the highest wire index used by any operation
-  // let maxUsedWire = -1;
-  // for (const col of circuitEvents.componentGrid) {
-  //   for (const op of col.components) {
-  //     const regs = getOperationRegisters(op);
-  //     for (const reg of regs) {
-  //       if (typeof reg.qubit === "number" && reg.qubit > maxUsedWire) {
-  //         maxUsedWire = reg.qubit;
-  //       }
-  //     }
-  //   }
-  // }
-  // // Remove unused qubits from the end
-  // while (
-  //   circuitEvents.qubits.length > 0 &&
-  //   circuitEvents.qubits.length - 1 > maxUsedWire
-  // ) {
-  //   circuitEvents.qubits.pop();
-  // }
 };
 
 export {
@@ -668,4 +664,5 @@ export {
   addControl,
   removeControl,
   resolveOverlappingOperations,
+  removeTrailingUnusedQubits,
 };

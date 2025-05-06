@@ -18,6 +18,7 @@ import {
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
+  removeTrailingUnusedQubits,
   addControl,
   addOperation,
   findAndRemoveOperations,
@@ -59,6 +60,7 @@ class CircuitEvents {
   renderFn: () => void;
   componentGrid: ComponentGrid;
   qubits: Qubit[];
+  qubitUseCounts: number[];
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
   private ghostQubitLayer: SVGGElement;
@@ -89,9 +91,16 @@ class CircuitEvents {
 
     this.componentGrid = sqore.circuit.componentGrid;
     this.qubits = sqore.circuit.qubits;
+    this.qubitUseCounts = new Array(this.qubits.length).fill(0);
+    for (const column of this.componentGrid) {
+      for (const op of column.components) {
+        this.incrementQubitUseCountForOp(op);
+      }
+    }
 
     this.wireData = getWireData(this.container);
     this.columnXData = getColumnOffsetsAndWidths(this.container);
+    removeTrailingUnusedQubits(this);
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -599,11 +608,16 @@ class CircuitEvents {
       // If moving down and passing over itself, adjust index
       if (sourceWire < insertAt) insertAt--;
       moveArrayElement(this.qubits, sourceWire, insertAt);
+      moveArrayElement(this.qubitUseCounts, sourceWire, insertAt);
     } else {
       // Swap sourceWire and targetWire
       [this.qubits[sourceWire], this.qubits[targetWire]] = [
         this.qubits[targetWire],
         this.qubits[sourceWire],
+      ];
+      [this.qubitUseCounts[sourceWire], this.qubitUseCounts[targetWire]] = [
+        this.qubitUseCounts[targetWire],
+        this.qubitUseCounts[sourceWire],
       ];
     }
 
@@ -652,6 +666,7 @@ class CircuitEvents {
 
     // Resolve overlapping operations into their own columns
     resolveOverlappingOperations(this.componentGrid);
+    removeTrailingUnusedQubits(this);
     this.renderFn();
   };
 
@@ -789,11 +804,11 @@ class CircuitEvents {
     } else {
       const message =
         numOperations === 1
-          ? `There is ${numOperations} operation associated with this qubit line. Do you want to remove it?`
+          ? `There is 1 operation associated with this qubit line. Do you want to remove it?`
           : `There are ${numOperations} operations associated with this qubit line. Do you want to remove them?`;
       _createConfirmPrompt(message, (confirmed) => {
         if (confirmed) {
-          findAndRemoveOperations(this.componentGrid, check);
+          findAndRemoveOperations(this, check);
           doRemove();
         }
       });
@@ -803,6 +818,38 @@ class CircuitEvents {
   /*****************
    *     Misc.     *
    *****************/
+
+  /**
+   * Increment the use count for qubits used by the operation.
+   * @param op The operation to increment use counts for.
+   */
+  incrementQubitUseCountForOp(op: Operation) {
+    getOperationRegisters(op).forEach((reg) => {
+      if (
+        reg.result === undefined &&
+        reg.qubit >= 0 &&
+        reg.qubit < this.qubitUseCounts.length
+      ) {
+        this.qubitUseCounts[reg.qubit]++;
+      }
+    });
+  }
+
+  /**
+   * Decrement the use count for qubits used by the operation.
+   * @param op The operation to decrement the use count for.
+   */
+  decrementQubitUseCountForOp(op: Operation) {
+    getOperationRegisters(op).forEach((reg) => {
+      if (
+        reg.result === undefined &&
+        reg.qubit >= 0 &&
+        reg.qubit < this.qubitUseCounts.length
+      ) {
+        this.qubitUseCounts[reg.qubit]--;
+      }
+    });
+  }
 
   /**
    * Creates a ghost element for visual feedback during dragging.
@@ -955,6 +1002,7 @@ class CircuitEvents {
           this.selectedOperation.kind === "unitary"
         ) {
           const successful = removeControl(
+            this,
             this.selectedOperation,
             control.qubit,
           );
