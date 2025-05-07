@@ -61,7 +61,7 @@ pub(crate) fn get_completions(
 
     match compilation.kind {
         CompilationKind::OpenProject { .. } | CompilationKind::Notebook { .. } => {
-            qsharp::get_completions(
+            qsharp::completions(
                 compilation,
                 position_encoding,
                 package_offset,
@@ -70,7 +70,7 @@ pub(crate) fn get_completions(
                 source_name_relative,
             )
         }
-        CompilationKind::OpenQASM { .. } => openqasm::get_completions(
+        CompilationKind::OpenQASM { .. } => openqasm::completions(
             compilation,
             source_name,
             position,

@@ -13,7 +13,7 @@ use crate::{
 
 use super::{into_completion_list, Completion, Locals};
 
-pub(super) fn get_completions(
+pub(super) fn completions(
     compilation: &Compilation,
     _source_name: &str,
     _position: Position,
