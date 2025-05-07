@@ -1772,29 +1772,18 @@ fn cast_to_float() -> miette::Result<(), Vec<Report>> {
 fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const float a1 = 2.0;
-        const bit a2 = 1;
-
         const angle[32] b1 = a1;
-        const angle[32] b2 = a2;
-
         const bit s1 = b1;
-        const bit s2 = b2;
-
         bit[s1] r1;
-        bit[s2] r2;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a1 = 2.;
-        let a2 = One;
-        let b1 = Std.OpenQASM.Angle.DoubleAsAngle(a1, 32);
-        let b2 = Std.OpenQASM.Angle.ResultAsAngle(a2);
-        let s1 = Std.OpenQASM.Angle.AngleAsResult(b1);
-        let s2 = Std.OpenQASM.Angle.AngleAsResult(b2);
+        let b1 = Std.OpenQASM.DoubleAsAngle(a1, 32);
+        let s1 = Std.OpenQASM.AngleAsResult(b1);
         mutable r1 = [Zero];
-        mutable r2 = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())

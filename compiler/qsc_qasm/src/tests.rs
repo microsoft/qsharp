@@ -7,6 +7,7 @@ use crate::{
     compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
     QasmCompileUnit, QubitSemantics,
 };
+use expect_test::Expect;
 use miette::Report;
 use qsc::compile::compile_ast;
 use qsc::compile::package_store_with_stdlib;
@@ -303,6 +304,22 @@ pub fn compile_qasm_to_qsharp_operation<S: Into<Arc<str>>>(
 
 pub fn compile_qasm_to_qsharp<S: Into<Arc<str>>>(source: S) -> miette::Result<String, Vec<Report>> {
     compile_qasm_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
+}
+
+pub fn check_qasm_to_qsharp<S: Into<Arc<str>>>(source: S, expect: &Expect) {
+    match compile_qasm_to_qsharp(source) {
+        Ok(qsharp) => {
+            expect.assert_eq(&qsharp);
+        }
+        Err(errors) => {
+            let buffer = errors
+                .iter()
+                .map(|e| format!("{e:?}"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            expect.assert_eq(&buffer);
+        }
+    }
 }
 
 pub fn compile_qasm_to_qsharp_with_semantics<S: Into<Arc<str>>>(
