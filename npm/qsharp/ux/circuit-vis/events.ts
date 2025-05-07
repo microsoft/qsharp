@@ -102,6 +102,10 @@ class CircuitEvents {
     this.columnXData = getColumnOffsetsAndWidths(this.container);
     removeTrailingUnusedQubits(this);
 
+    if (this.qubits.length === 0) {
+      this.ghostQubitLayer.style.display = "block";
+    }
+
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
     this._addHostElementsEvents();
@@ -306,7 +310,9 @@ class CircuitEvents {
    */
   _addDropzoneLayerEvents() {
     this.container.addEventListener("mouseup", () => {
-      this.ghostQubitLayer.style.display = "none";
+      if (this.qubits.length !== 0) {
+        this.ghostQubitLayer.style.display = "none";
+      }
       this.dropzoneLayer.style.display = "none";
     });
 
