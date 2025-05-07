@@ -816,18 +816,24 @@
         ],
         "toolReferenceName": "qsharpRunProgram",
         "displayName": "Run Q# Program",
-        "modelDescription": "Run the current Q# program in the editor locally. Call this when the user wants to execute the Q# program currently open in the editor, for example when they ask 'Can you run this program?'",
+        "modelDescription": "Executes a Q# program. The path to a .qs file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# does not provide any CLI tools, so call this tool whenever you need to execute Q#, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a window will open to display a histogram of the results.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
           "type": "object",
           "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file to run."
+            },
             "shots": {
               "type": "number",
               "description": "The number of times to run the program. Defaults to 1 if not specified."
             }
           },
-          "required": [],
+          "required": [
+            "filePath"
+          ],
           "additionalProperties": false
         }
       }

@@ -80,7 +80,7 @@ const toolDefinitions: {
   },
   {
     name: "qsharp-run-program",
-    tool: async (input: { shots: number }) =>
+    tool: async (input: { filePath: string; shots: number }) =>
       await qsharpTools!.runProgram(input),
   },
 ];

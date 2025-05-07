@@ -133,6 +133,8 @@ the IQ# Jupyter kernel, or the \`dotnet\` command line tools. Job management is 
 now via tool calls integration into GitHub Copilot, or via Python code using the \`qsharp\`
 and \`azure-quantum\` packages.
 
+To execute Q# code, use the provided tools.
+
 ## Response formatting
 
 Avoid using LaTeX in your responses to the user.

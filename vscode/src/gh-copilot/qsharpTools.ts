@@ -6,10 +6,8 @@ import vscode from "vscode";
 import { loadCompilerWorker } from "../common";
 import { getPauliNoiseModel } from "../config";
 import { CopilotToolError } from "../copilot/tools";
-import {
-  getActiveQSharpDocumentUri,
-  getProgramForDocument,
-} from "../programConfig";
+import { getProgramForDocument } from "../programConfig";
+import { sendMessageToPanel } from "../webviewPanel.js";
 // import  { ConfigurationTarget } from "vscode";
 
 export class QSharpTools {
@@ -33,10 +31,13 @@ export class QSharpTools {
   /**
    * Runs the current Q# program in the editor
    */
-  async runProgram({ shots = 1 }: { shots?: number }): Promise<string> {
+  async runProgram(input: {
+    filePath: string;
+    shots?: number;
+  }): Promise<string> {
+    const shots = input.shots ?? 1;
     try {
-      // Get the active Q# document
-      const docUri = getActiveQSharpDocumentUri();
+      const docUri = vscode.Uri.file(input.filePath);
       if (!docUri) {
         throw new CopilotToolError(
           "No active Q# document found. Please open a Q# file first.",
@@ -54,6 +55,7 @@ export class QSharpTools {
       // Create an event target to capture results
       const evtTarget = new QscEventTarget(true);
       const outputResults: string[] = [];
+      const measurementResults: Record<string, number> = {};
 
       // Capture standard outputs and results
       evtTarget.addEventListener("Message", (evt) => {
@@ -62,10 +64,20 @@ export class QSharpTools {
 
       evtTarget.addEventListener("Result", (evt) => {
         // Handle both string results and diagnostics
-        if ((evt.detail.value as VSDiagnostic).message !== undefined) {
-          outputResults.push((evt.detail.value as VSDiagnostic).message);
+        if (!evt.detail.success && evt.detail.value.message !== undefined) {
+          outputResults.push(JSON.stringify(evt.detail.value));
         } else {
-          outputResults.push(`${evt.detail.value}`);
+          const result = `${evt.detail.value}`;
+          outputResults.push(result);
+
+          // Collect measurement results for histogram if multiple shots
+          if (shots > 1) {
+            if (measurementResults[result]) {
+              measurementResults[result]++;
+            } else {
+              measurementResults[result] = 1;
+            }
+          }
         }
       });
 
@@ -88,11 +100,32 @@ export class QSharpTools {
         if (outputResults.length === 0) {
           return "Program executed successfully but produced no output.";
         } else {
+          // If shots > 1, display histogram
+          if (shots > 1) {
+            const buckets: Array<[string, number]> =
+              Object.entries(measurementResults);
+            const histogram = {
+              buckets,
+              shotCount: shots,
+            };
+
+            const panelId = programResult.programConfig.projectName;
+
+            // Show the histogram
+            sendMessageToPanel(
+              { panelType: "histogram", id: panelId },
+              true, // reveal the panel
+              histogram,
+            );
+
+            return `Program executed successfully with ${shots} shots.\n Results: ${JSON.stringify(histogram)}`;
+          }
+
           return `Program executed successfully.\nOutput:\n${outputResults.join("\n")}`;
         }
-      } catch (e) {
+      } catch {
         throw new CopilotToolError(
-          `Program execution failed: ${e instanceof Error ? e.message : String(e)}`,
+          `Program execution failed: ${outputResults.join("\n")}`,
         );
       } finally {
         // Always terminate the worker when done
