@@ -6,7 +6,7 @@ use expect_test::expect;
 use crate::semantic::tests::check_classical_decls;
 
 #[test]
-fn to_angle_implicitly() {
+fn to_angle_implicitly_fails() {
     let input = r#"
          bit x = 1;
          angle y = x;
@@ -15,38 +15,41 @@ fn to_angle_implicitly() {
     check_classical_decls(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [10-20]:
-            symbol_id: 8
-            ty_span: [10-13]
-            init_expr: Expr [18-19]:
-                ty: Bit(true)
-                kind: Lit: Bit(1)
-        [8] Symbol [14-15]:
-            name: x
-            type: Bit(false)
-            qsharp_type: Result
-            io_kind: Default
-        ClassicalDeclarationStmt [30-42]:
-            symbol_id: 9
-            ty_span: [30-35]
-            init_expr: Expr [40-41]:
-                ty: Angle(None, false)
-                kind: Cast [0-0]:
-                    ty: Angle(None, false)
-                    expr: Expr [40-41]:
-                        ty: Bit(false)
-                        kind: SymbolId(8)
-        [9] Symbol [36-37]:
-            name: y
-            type: Angle(None, false)
-            qsharp_type: Angle
-            io_kind: Default
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [10-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [10-20]:
+                            symbol_id: 8
+                            ty_span: [10-13]
+                            init_expr: Expr [18-19]:
+                                ty: Bit(true)
+                                kind: Lit: Bit(1)
+                    Stmt [30-42]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [30-42]:
+                            symbol_id: 9
+                            ty_span: [30-35]
+                            init_expr: Expr [40-41]:
+                                ty: Bit(false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Bit(false) to type Angle(None, false)
+               ,-[test:3:20]
+             2 |          bit x = 1;
+             3 |          angle y = x;
+               :                    ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
 #[test]
-fn to_explicit_angle_implicitly() {
+fn to_explicit_angle_implicitly_fails() {
     let input = r#"
          bit x = 1;
          angle[4] y = x;
@@ -55,33 +58,36 @@ fn to_explicit_angle_implicitly() {
     check_classical_decls(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [10-20]:
-            symbol_id: 8
-            ty_span: [10-13]
-            init_expr: Expr [18-19]:
-                ty: Bit(true)
-                kind: Lit: Bit(1)
-        [8] Symbol [14-15]:
-            name: x
-            type: Bit(false)
-            qsharp_type: Result
-            io_kind: Default
-        ClassicalDeclarationStmt [30-45]:
-            symbol_id: 9
-            ty_span: [30-38]
-            init_expr: Expr [43-44]:
-                ty: Angle(Some(4), false)
-                kind: Cast [0-0]:
-                    ty: Angle(Some(4), false)
-                    expr: Expr [43-44]:
-                        ty: Bit(false)
-                        kind: SymbolId(8)
-        [9] Symbol [39-40]:
-            name: y
-            type: Angle(Some(4), false)
-            qsharp_type: Angle
-            io_kind: Default
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [10-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [10-20]:
+                            symbol_id: 8
+                            ty_span: [10-13]
+                            init_expr: Expr [18-19]:
+                                ty: Bit(true)
+                                kind: Lit: Bit(1)
+                    Stmt [30-45]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [30-45]:
+                            symbol_id: 9
+                            ty_span: [30-38]
+                            init_expr: Expr [43-44]:
+                                ty: Bit(false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Bit(false) to type Angle(Some(4), false)
+               ,-[test:3:23]
+             2 |          bit x = 1;
+             3 |          angle[4] y = x;
+               :                       ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -326,7 +332,7 @@ fn to_explicit_bigint_implicitly() {
 }
 
 #[test]
-fn to_implicit_float_implicitly_fails() {
+fn to_implicit_float_implicitly() {
     let input = "
         bit x = 1;
         float y = x;
@@ -335,35 +341,32 @@ fn to_implicit_float_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-19]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-19]:
-                            symbol_id: 8
-                            ty_span: [9-12]
-                            init_expr: Expr [17-18]:
-                                ty: Bit(true)
-                                kind: Lit: Bit(1)
-                    Stmt [28-40]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [28-40]:
-                            symbol_id: 9
-                            ty_span: [28-33]
-                            init_expr: Expr [38-39]:
-                                ty: Bit(false)
-                                kind: SymbolId(8)
-
-            [Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type Bit(false) to type Float(None, false)
-               ,-[test:3:19]
-             2 |         bit x = 1;
-             3 |         float y = x;
-               :                   ^
-             4 |     
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [17-18]:
+                    ty: Bit(true)
+                    kind: Lit: Bit(1)
+            [8] Symbol [13-14]:
+                name: x
+                type: Bit(false)
+                qsharp_type: Result
+                io_kind: Default
+            ClassicalDeclarationStmt [28-40]:
+                symbol_id: 9
+                ty_span: [28-33]
+                init_expr: Expr [38-39]:
+                    ty: Float(None, false)
+                    kind: Cast [0-0]:
+                        ty: Float(None, false)
+                        expr: Expr [38-39]:
+                            ty: Bit(false)
+                            kind: SymbolId(8)
+            [9] Symbol [34-35]:
+                name: y
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default
+        "#]],
     );
 }

@@ -8,6 +8,7 @@ use crate::{
     compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
     QasmCompileUnit, QubitSemantics,
 };
+use expect_test::Expect;
 use miette::Report;
 use qsc::compile::compile_ast;
 use qsc::interpret::Error;
@@ -329,6 +330,22 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
 
 pub fn compile_qasm_to_qsharp(source: &str) -> miette::Result<String, Vec<Report>> {
     compile_qasm_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
+}
+
+pub fn check_qasm_to_qsharp(source: &str, expect: &Expect) {
+    match compile_qasm_to_qsharp(source) {
+        Ok(qsharp) => {
+            expect.assert_eq(&qsharp);
+        }
+        Err(errors) => {
+            let buffer = errors
+                .iter()
+                .map(|e| format!("{e:?}"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            expect.assert_eq(&buffer);
+        }
+    }
 }
 
 pub fn compile_qasm_to_qsharp_with_semantics(

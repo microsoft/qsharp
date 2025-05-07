@@ -6,7 +6,7 @@ use expect_test::expect;
 use crate::semantic::tests::check_classical_decls;
 
 #[test]
-fn to_bit_implicitly_fails() {
+fn to_bit_implicitly() {
     let input = "
         float x = 42.;
         bit y = x;
@@ -15,41 +15,38 @@ fn to_bit_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-23]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-23]:
-                            symbol_id: 8
-                            ty_span: [9-14]
-                            init_expr: Expr [19-22]:
-                                ty: Float(None, false)
-                                kind: Lit: Float(42.0)
-                    Stmt [32-42]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [32-42]:
-                            symbol_id: 9
-                            ty_span: [32-35]
-                            init_expr: Expr [40-41]:
-                                ty: Float(None, false)
-                                kind: SymbolId(8)
-
-            [Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type Float(None, false) to type Bit(false)
-               ,-[test:3:17]
-             2 |         float x = 42.;
-             3 |         bit y = x;
-               :                 ^
-             4 |     
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [9-23]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [19-22]:
+                    ty: Float(None, false)
+                    kind: Lit: Float(42.0)
+            [8] Symbol [15-16]:
+                name: x
+                type: Float(None, false)
+                qsharp_type: Double
+                io_kind: Default
+            ClassicalDeclarationStmt [32-42]:
+                symbol_id: 9
+                ty_span: [32-35]
+                init_expr: Expr [40-41]:
+                    ty: Bit(false)
+                    kind: Cast [0-0]:
+                        ty: Bit(false)
+                        expr: Expr [40-41]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+            [9] Symbol [36-37]:
+                name: y
+                type: Bit(false)
+                qsharp_type: Result
+                io_kind: Default
+        "#]],
     );
 }
 
 #[test]
-fn explicit_width_to_bit_implicitly_fails() {
+fn explicit_width_to_bit_implicitly() {
     let input = "
         float[64] x = 42.;
         bit y = x;
@@ -58,36 +55,33 @@ fn explicit_width_to_bit_implicitly_fails() {
     check_classical_decls(
         input,
         &expect![[r#"
-            Program:
-                version: <none>
-                statements:
-                    Stmt [9-27]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [9-27]:
-                            symbol_id: 8
-                            ty_span: [9-18]
-                            init_expr: Expr [23-26]:
-                                ty: Float(Some(64), true)
-                                kind: Lit: Float(42.0)
-                    Stmt [36-46]:
-                        annotations: <empty>
-                        kind: ClassicalDeclarationStmt [36-46]:
-                            symbol_id: 9
-                            ty_span: [36-39]
-                            init_expr: Expr [44-45]:
-                                ty: Float(Some(64), false)
-                                kind: SymbolId(8)
-
-            [Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type Float(Some(64), false) to type Bit(false)
-               ,-[test:3:17]
-             2 |         float[64] x = 42.;
-             3 |         bit y = x;
-               :                 ^
-             4 |     
-               `----
-            ]"#]],
+            ClassicalDeclarationStmt [9-27]:
+                symbol_id: 8
+                ty_span: [9-18]
+                init_expr: Expr [23-26]:
+                    ty: Float(Some(64), true)
+                    kind: Lit: Float(42.0)
+            [8] Symbol [19-20]:
+                name: x
+                type: Float(Some(64), false)
+                qsharp_type: Double
+                io_kind: Default
+            ClassicalDeclarationStmt [36-46]:
+                symbol_id: 9
+                ty_span: [36-39]
+                init_expr: Expr [44-45]:
+                    ty: Bit(false)
+                    kind: Cast [0-0]:
+                        ty: Bit(false)
+                        expr: Expr [44-45]:
+                            ty: Float(Some(64), false)
+                            kind: SymbolId(8)
+            [9] Symbol [40-41]:
+                name: y
+                type: Bit(false)
+                qsharp_type: Result
+                io_kind: Default
+        "#]],
     );
 }
 
