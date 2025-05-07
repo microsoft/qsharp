@@ -7,7 +7,7 @@ use qsc::{qasm::parser::ast::StmtKind, LanguageFeatures};
 use qsc_project::{FileSystemAsync, PackageGraphSources, PackageInfo, Project};
 use rustc_hash::FxHashMap;
 
-pub async fn load_openqasm_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
+pub async fn load_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
 where
     T: FileSystemAsync + ?Sized,
 {
