@@ -367,6 +367,7 @@ impl From<PackageInfo> for qsc_project::PackageInfo {
 pub(crate) fn into_qsc_args(
     program: ProgramConfig,
     entry: Option<String>,
+    ignore_dependency_errors: bool,
 ) -> Result<
     (
         qsc::SourceMap,
@@ -388,7 +389,7 @@ pub(crate) fn into_qsc_args(
     // for building the user code.
     let buildable_program = BuildableProgram::new(capabilities, pkg_graph);
 
-    if !buildable_program.dependency_errors.is_empty() {
+    if !ignore_dependency_errors && !buildable_program.dependency_errors.is_empty() {
         return Err(buildable_program.dependency_errors);
     }
 

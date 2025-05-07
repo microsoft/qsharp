@@ -59,7 +59,7 @@ pub fn git_hash() -> String {
 #[wasm_bindgen]
 pub fn get_qir(program: ProgramConfig) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+        into_qsc_args(program, None, false).map_err(compile_errors_into_qsharp_errors_json)?;
 
     get_qir_(
         source_map,
@@ -84,7 +84,7 @@ pub(crate) fn get_qir_(
 #[wasm_bindgen]
 pub fn get_estimates(program: ProgramConfig, expr: &str, params: &str) -> Result<String, String> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+        into_qsc_args(program, Some(expr.into()), false).map_err(|mut e| {
             // Wrap in `interpret::Error` to match the error type from `Interpreter::new` below
             qsc::interpret::Error::from(e.pop().expect("expected at least one error")).to_string()
         })?;
@@ -113,7 +113,7 @@ pub fn get_circuit(
     operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+        into_qsc_args(program, None, false).map_err(compile_errors_into_qsharp_errors_json)?;
 
     let (package_type, entry_point) = match operation {
         Some(p) => {
@@ -224,7 +224,7 @@ pub fn get_hir(
 #[wasm_bindgen]
 pub fn get_rir(program: ProgramConfig) -> Result<Vec<String>, String> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, None).map_err(compile_errors_into_qsharp_errors_json)?;
+        into_qsc_args(program, None, false).map_err(compile_errors_into_qsharp_errors_json)?;
 
     qsc::codegen::qir::get_rir(
         source_map,
@@ -415,7 +415,7 @@ pub fn runWithPauliNoise(
     pauliNoise: &JsValue,
 ) -> Result<bool, JsValue> {
     let (source_map, capabilities, language_features, store, deps) =
-        into_qsc_args(program, Some(expr.into())).map_err(|mut e| {
+        into_qsc_args(program, Some(expr.into()), false).map_err(|mut e| {
             // Wrap in `interpret::Error` and `JsError` to match the error type
             // `run_internal_with_features` below
             JsError::from(qsc::interpret::Error::from(
@@ -541,7 +541,7 @@ serializable_type! {
 pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile> {
     let docs = if let Some(additional_program) = additional_program {
         let Ok((source_map, capabilities, language_features, package_store, dependencies)) =
-            into_qsc_args(additional_program, None)
+            into_qsc_args(additional_program, None, true)
         else {
             // Can't generate docs if building dependencies failed
             return Vec::new();
