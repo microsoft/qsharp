@@ -21,7 +21,7 @@ use crate::{
 
 use super::{collect_path_segments, into_completion_list, Completion, Locals, TextEditRange};
 
-pub(super) fn get_completions(
+pub(super) fn completions(
     compilation: &Compilation,
     position_encoding: Encoding,
     package_offset: u32,
