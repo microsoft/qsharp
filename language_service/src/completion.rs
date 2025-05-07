@@ -70,14 +70,9 @@ pub(crate) fn get_completions(
                 source_name_relative,
             )
         }
-        CompilationKind::OpenQASM { .. } => openqasm::completions(
-            compilation,
-            source_name,
-            position,
-            source_name_relative,
-            &source.contents,
-            source_offset,
-        ),
+        CompilationKind::OpenQASM { .. } => {
+            openqasm::completions(compilation, &source.contents, source_offset)
+        }
     }
 }
 

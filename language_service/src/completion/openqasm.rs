@@ -3,8 +3,6 @@
 
 use std::iter::once;
 
-use qsc::line_column::Position;
-
 use crate::{
     completion::{collect_path_segments, AstContext, Fields, Globals},
     protocol::{CompletionItemKind, CompletionList},
@@ -15,9 +13,6 @@ use super::{into_completion_list, Completion, Locals};
 
 pub(super) fn completions(
     compilation: &Compilation,
-    _source_name: &str,
-    _position: Position,
-    _source_name_relative: &str,
     source_contents: &str,
     cursor_offset: u32,
 ) -> CompletionList {
