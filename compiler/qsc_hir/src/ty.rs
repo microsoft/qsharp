@@ -537,12 +537,12 @@ impl FunctorSet {
     ///
     /// # Panics
     ///
-    /// Panics if this set is not a value.
+    /// Panics if this set does not have a value.
     #[must_use]
     pub fn expect_value(self, msg: &str) -> FunctorSetValue {
         match self {
-            Self::Value(value) => value,
-            Self::Param(_, _) | Self::Infer(_) => panic!("{msg}"),
+            Self::Value(value) | Self::Param(_, value) => value,
+            Self::Infer(_) => panic!("{msg}"),
         }
     }
 }
