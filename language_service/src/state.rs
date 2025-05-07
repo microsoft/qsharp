@@ -182,10 +182,7 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
-        if is_openqasm_file(doc_uri) {
-            return crate::load_openqasm_project(&*self.project_host, doc_uri).await;
-        }
-        match self.load_manifest(doc_uri).await {
+        match self.load_manifest_or_openqasm_project(doc_uri).await {
             Ok(Some(p)) => p,
             Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
             Err(errors) => Project {
@@ -205,6 +202,18 @@ impl<'a> CompilationStateUpdater<'a> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         self.load_manifest_from_dir(dir).await
+    }
+
+    async fn load_manifest_or_openqasm_project(
+        &self,
+        doc_uri: &Arc<str>,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
+        if is_openqasm_file(doc_uri) {
+            return Ok(Some(
+                crate::load_openqasm_project(&*self.project_host, doc_uri).await,
+            ));
+        }
+        self.load_manifest(doc_uri).await
     }
 
     async fn load_manifest_from_dir(
@@ -264,12 +273,11 @@ impl<'a> CompilationStateUpdater<'a> {
 
             let configuration = merge_configurations(&compilation_overrides, &self.configuration);
 
-            let package_graph_sources = loaded_project.package_graph_sources;
             let compilation = if matches!(loaded_project.project_type, ProjectType::OpenQASM) {
                 Compilation::new_qasm(
                     configuration.package_type,
                     configuration.target_profile,
-                    package_graph_sources,
+                    loaded_project.package_graph_sources,
                     loaded_project.errors,
                     &loaded_project.name,
                 )
@@ -279,7 +287,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     configuration.target_profile,
                     configuration.language_features,
                     &configuration.lints_config,
-                    package_graph_sources,
+                    loaded_project.package_graph_sources,
                     loaded_project.errors,
                     &loaded_project.name,
                 )
@@ -292,7 +300,7 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        let project = self.load_manifest(&uri.into()).await;
+        let project = self.load_manifest_or_openqasm_project(&uri.into()).await;
 
         let removed_compilation = self.remove_open_document(uri);
 
