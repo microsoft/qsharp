@@ -7,17 +7,15 @@
 //! paths that are implemented.
 
 use super::ast::{
-    BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, IndexExpr, IndexedIdent, LiteralKind,
-    UnaryOp, UnaryOpExpr,
+    BinOp, BinaryOpExpr, Cast, Expr, ExprKind, FunctionCall, Index, IndexExpr, IndexedIdent,
+    LiteralKind, UnaryOp, UnaryOpExpr,
 };
 use super::symbols::SymbolId;
+use super::types::compute_slice_components;
 use crate::semantic::types::binary_op_is_supported_for_types;
 use crate::semantic::Lowerer;
 use crate::stdlib::angle;
-use crate::{
-    convert::safe_i64_to_f64,
-    semantic::types::{ArrayDimensions, Type},
-};
+use crate::{convert::safe_i64_to_f64, semantic::types::Type};
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use qsc_data_structures::span::Span;
@@ -25,12 +23,24 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Eq, Error, PartialEq)]
 pub enum ConstEvalError {
+    #[error("division by error during const evaluation")]
+    #[diagnostic(code("Qasm.Lowerer.DivisionByZero"))]
+    DivisionByZero(#[label] Span),
     #[error("expression must be const")]
     #[diagnostic(code("Qasm.Lowerer.ExprMustBeConst"))]
     ExprMustBeConst(#[label] Span),
+    #[error("expression must be indexable")]
+    #[diagnostic(code("Qasm.Lowerer.ExprMustBeIndexable"))]
+    ExprMustBeIndexable(#[label] Span),
+    #[error("index must be an int")]
+    #[diagnostic(code("Qasm.Lowerer.IndexMustBeInt"))]
+    IndexMustBeInt(#[label] Span),
     #[error("uint expression must evaluate to a non-negative value, but it evaluated to {0}")]
     #[diagnostic(code("Qasm.Lowerer.NegativeUIntValue"))]
     NegativeUIntValue(i64, #[label] Span),
+    #[error("too many indices provided")]
+    #[diagnostic(code("Qasm.Lowerer.TooManyIndices"))]
+    TooManyIndices(#[label] Span),
     #[error("{0} doesn't fit in {1}")]
     #[diagnostic(code("Qasm.Lowerer.ValueOverflow"))]
     ValueOverflow(String, String, #[label] Span),
@@ -52,7 +62,7 @@ impl Expr {
 
         match &*self.kind {
             ExprKind::Ident(symbol_id) => symbol_id.const_eval(ctx),
-            ExprKind::IndexedIdentifier(indexed_ident) => indexed_ident.const_eval(ctx),
+            ExprKind::IndexedIdent(indexed_ident) => indexed_ident.const_eval(ctx),
             ExprKind::UnaryOp(unary_op_expr) => unary_op_expr.const_eval(ctx),
             ExprKind::BinaryOp(binary_op_expr) => binary_op_expr.const_eval(ctx),
             ExprKind::Lit(literal_kind) => Some(literal_kind.clone()),
@@ -75,10 +85,106 @@ impl SymbolId {
     }
 }
 
+impl LiteralKind {
+    /// Indexes an array given a list of indices.
+    ///
+    /// The result of indexing an array is either:
+    ///   1. An array, this happens when we use slices
+    ///      or don't index all the dimensions. This
+    ///      can be expressed as an `LiteralKind::Array`.
+    ///   2. A non-array, this happens when we index
+    ///      all dimensions. This can be expressed
+    ///      as a `LiteralKind`.
+    ///
+    /// So, in general we can return `Expr` from this function.
+    fn index_array(
+        self,
+        ctx: &mut Lowerer,
+        indices: &[Index],
+        collection_span: Span,
+    ) -> Option<Self> {
+        if let LiteralKind::Bitstring(value, size) = self {
+            // A bit array accepts a single index.
+            if indices.len() != 1 {
+                ctx.push_const_eval_error(ConstEvalError::TooManyIndices(collection_span));
+                return None;
+            }
+
+            let index = indices.first().expect("there is exactly one index");
+
+            Self::index_bitarray(ctx, value, size, index)
+        } else {
+            ctx.push_const_eval_error(ConstEvalError::ExprMustBeIndexable(collection_span));
+            None
+        }
+    }
+
+    fn index_bitarray(ctx: &mut Lowerer, value: BigInt, size: u32, index: &Index) -> Option<Self> {
+        match index {
+            Index::Expr(idx) => {
+                let Some(LiteralKind::Int(idx)) = idx.const_eval(ctx) else {
+                    ctx.push_const_eval_error(super::const_eval::ConstEvalError::IndexMustBeInt(
+                        index.span(),
+                    ));
+                    return None;
+                };
+
+                #[allow(clippy::cast_sign_loss)]
+                let idx = super::types::wrap_index_value(idx, i64::from(size)) as u64;
+                let mask = BigInt::from(1) << idx;
+                Some(Self::Bit((value & mask) != BigInt::ZERO))
+            }
+            Index::Range(range) => {
+                let (start, step, end) = compute_slice_components(range, size);
+                #[allow(clippy::cast_sign_loss)]
+                #[allow(clippy::cast_possible_truncation)]
+                let (start, end) = (start as usize, end as usize);
+
+                let mut new_bitarray_value = BigInt::ZERO;
+                let mut new_bitarray_size: u32 = 0;
+
+                #[allow(clippy::cast_possible_truncation)]
+                if start <= end && step > 0 {
+                    let step = step.unsigned_abs() as usize;
+                    for idx in (start..=end).step_by(step) {
+                        let mask = BigInt::from(1) << idx;
+                        if (value.clone() & mask) != BigInt::ZERO {
+                            new_bitarray_value |= BigInt::from(1) << new_bitarray_size;
+                        }
+                        new_bitarray_size += 1;
+                    }
+                } else if start >= end && step < 0 {
+                    let step = step.unsigned_abs() as usize;
+                    for idx in (end..=start).rev().step_by(step) {
+                        let mask = BigInt::from(1) << idx;
+                        if (value.clone() & mask) != BigInt::ZERO {
+                            new_bitarray_value |= BigInt::from(1) << new_bitarray_size;
+                        }
+                        new_bitarray_size += 1;
+                    }
+                }
+
+                Some(Self::Bitstring(new_bitarray_value, new_bitarray_size))
+            }
+        }
+    }
+}
+
 impl IndexedIdent {
+    fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
+        let expr = ctx.symbols[self.symbol_id].get_const_expr();
+        let value = expr.const_eval(ctx)?;
+        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
+        value.index_array(ctx, &indices, self.name_span)
+    }
+}
+
+impl IndexExpr {
     #[allow(clippy::unused_self)]
-    fn const_eval(&self, _ctx: &mut Lowerer) -> Option<LiteralKind> {
-        None
+    fn const_eval(&self, ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
+        let value = self.collection.const_eval(ctx)?;
+        let indices: Vec<_> = self.indices.iter().map(|idx| (**idx).clone()).collect();
+        value.index_array(ctx, &indices, self.collection.span)
     }
 }
 
@@ -457,25 +563,45 @@ impl BinaryOpExpr {
             },
             BinOp::Div => match lhs_ty {
                 Type::Int(..) | Type::UInt(..) => {
-                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs / rhs))
+                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                        if rhs == 0 {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Int(lhs / rhs)
+                    })
                 }
                 Type::Float(..) => {
-                    rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), Float(lhs / rhs))
+                    rewrap_lit!((lhs, rhs), (Float(lhs), Float(rhs)), {
+                        if rhs == 0. {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Float(lhs / rhs)
+                    })
                 }
                 Type::Angle(..) => match &self.rhs.ty {
                     Type::UInt(..) => {
-                        rewrap_lit!(
-                            (lhs, rhs),
-                            (Angle(lhs), Int(rhs)),
+                        rewrap_lit!((lhs, rhs), (Angle(lhs), Int(rhs)), {
+                            if rhs == 0 {
+                                ctx.push_const_eval_error(ConstEvalError::DivisionByZero(
+                                    self.span(),
+                                ));
+                                return None;
+                            }
                             Angle(lhs / u64::try_from(rhs).ok()?)
-                        )
+                        })
                     }
                     Type::Angle(..) => {
-                        rewrap_lit!(
-                            (lhs, rhs),
-                            (Angle(lhs), Angle(rhs)),
+                        rewrap_lit!((lhs, rhs), (Angle(lhs), Angle(rhs)), {
+                            if rhs.value == 0 {
+                                ctx.push_const_eval_error(ConstEvalError::DivisionByZero(
+                                    self.span(),
+                                ));
+                                return None;
+                            }
                             Int((lhs / rhs).try_into().ok()?)
-                        )
+                        })
                     }
                     _ => None,
                 },
@@ -483,7 +609,13 @@ impl BinaryOpExpr {
             },
             BinOp::Mod => match lhs_ty {
                 Type::Int(..) | Type::UInt(..) => {
-                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), Int(lhs % rhs))
+                    rewrap_lit!((lhs, rhs), (Int(lhs), Int(rhs)), {
+                        if rhs == 0 {
+                            ctx.push_const_eval_error(ConstEvalError::DivisionByZero(self.span()));
+                            return None;
+                        }
+                        Int(lhs % rhs)
+                    })
                 }
                 _ => None,
             },
@@ -505,13 +637,6 @@ impl BinaryOpExpr {
 }
 
 impl FunctionCall {
-    #[allow(clippy::unused_self)]
-    fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
-        None
-    }
-}
-
-impl IndexExpr {
     #[allow(clippy::unused_self)]
     fn const_eval(&self, _ctx: &mut Lowerer, _ty: &Type) -> Option<LiteralKind> {
         None
@@ -708,13 +833,8 @@ fn cast_to_bitarray(cast: &Cast, ctx: &mut Lowerer) -> Option<LiteralKind> {
     use LiteralKind::{Angle, Bit, Bitstring, Bool, Int};
     let lit = cast.expr.const_eval(ctx)?;
 
-    let Type::BitArray(dims, _) = &cast.ty else {
+    let Type::BitArray(size, _) = &cast.ty else {
         unreachable!("we got here after matching Type::BitArray in Cast::const_eval");
-    };
-
-    let ArrayDimensions::One(size) = dims else {
-        ctx.push_unsupported_error_message("multidimensional arrays", cast.span);
-        return None;
     };
     let size = *size;
 

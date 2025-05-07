@@ -36,10 +36,7 @@ fn nested_blocks() {
                                 Stmt [70-76]:
                                     annotations: <empty>
                                     kind: AssignStmt [70-76]:
-                                        lhs: IndexedIdent [70-71]:
-                                            name: Ident [70-71] "x"
-                                            index_span: [0-0]
-                                            indices: <empty>
+                                        lhs: Ident [70-71] "x"
                                         rhs: Expr [74-75]: Lit: Int(2)"#]],
     );
 }

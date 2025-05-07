@@ -1092,13 +1092,13 @@ fn measure_register_decl() {
                     init_expr: MeasureExpr [10-30]:
                         operand: GateOperand [18-30]:
                             kind: IndexedIdent [18-30]:
-                                name: Ident [18-24] "qubits"
+                                ident: Ident [18-24] "qubits"
                                 index_span: [24-30]
                                 indices:
-                                    IndexSet [25-26]:
+                                    IndexList [25-26]:
                                         values:
                                             Expr [25-26]: Lit: Int(2)
-                                    IndexSet [28-29]:
+                                    IndexList [28-29]:
                                         values:
                                             Expr [28-29]: Lit: Int(3)"#]],
     );
@@ -1121,6 +1121,28 @@ fn const_decl_with_measurement_init_fails() {
                     Span {
                         lo: 16,
                         hi: 23,
+                    },
+                ),
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn const_array_decl_fails() {
+    check(
+        parse,
+        "const array[int, 2] a = {1, 2};",
+        &expect![[r#"
+            Error(
+                Rule(
+                    "scalar type",
+                    Type(
+                        Array,
+                    ),
+                    Span {
+                        lo: 6,
+                        hi: 11,
                     },
                 ),
             )

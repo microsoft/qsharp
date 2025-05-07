@@ -55,16 +55,19 @@ fn addition_assign_op() {
                 init_expr: Expr [53-56]:
                     ty: Complex(None, true)
                     kind: Lit: Complex(0.0, 0.0)
-            AssignOpStmt [66-73]:
+            AssignStmt [66-73]:
                 symbol_id: 9
-                indices: <empty>
-                op: Add
-                lhs: Expr [71-72]:
+                lhs_span: [66-67]
+                rhs: Expr [66-73]:
                     ty: Complex(None, false)
-                    kind: SymbolId(8)
-                rhs: Expr [71-72]:
-                    ty: Complex(None, false)
-                    kind: SymbolId(8)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [66-67]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(9)
+                        rhs: Expr [71-72]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(8)
         "#]],
     );
 }
@@ -120,16 +123,19 @@ fn subtraction_assign_op() {
                 init_expr: Expr [53-56]:
                     ty: Complex(None, true)
                     kind: Lit: Complex(0.0, 0.0)
-            AssignOpStmt [66-73]:
+            AssignStmt [66-73]:
                 symbol_id: 9
-                indices: <empty>
-                op: Sub
-                lhs: Expr [71-72]:
+                lhs_span: [66-67]
+                rhs: Expr [66-73]:
                     ty: Complex(None, false)
-                    kind: SymbolId(8)
-                rhs: Expr [71-72]:
-                    ty: Complex(None, false)
-                    kind: SymbolId(8)
+                    kind: BinaryOpExpr:
+                        op: Sub
+                        lhs: Expr [66-67]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(9)
+                        rhs: Expr [71-72]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(8)
         "#]],
     );
 }
@@ -185,16 +191,19 @@ fn multiplication_assign_op() {
                 init_expr: Expr [53-56]:
                     ty: Complex(None, true)
                     kind: Lit: Complex(0.0, 0.0)
-            AssignOpStmt [66-73]:
+            AssignStmt [66-73]:
                 symbol_id: 9
-                indices: <empty>
-                op: Mul
-                lhs: Expr [71-72]:
+                lhs_span: [66-67]
+                rhs: Expr [66-73]:
                     ty: Complex(None, false)
-                    kind: SymbolId(8)
-                rhs: Expr [71-72]:
-                    ty: Complex(None, false)
-                    kind: SymbolId(8)
+                    kind: BinaryOpExpr:
+                        op: Mul
+                        lhs: Expr [66-67]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(9)
+                        rhs: Expr [71-72]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(8)
         "#]],
     );
 }
@@ -250,16 +259,19 @@ fn division_assign_op() {
                 init_expr: Expr [53-56]:
                     ty: Complex(None, true)
                     kind: Lit: Complex(0.0, 0.0)
-            AssignOpStmt [66-73]:
+            AssignStmt [66-73]:
                 symbol_id: 9
-                indices: <empty>
-                op: Div
-                lhs: Expr [71-72]:
+                lhs_span: [66-67]
+                rhs: Expr [66-73]:
                     ty: Complex(None, false)
-                    kind: SymbolId(8)
-                rhs: Expr [71-72]:
-                    ty: Complex(None, false)
-                    kind: SymbolId(8)
+                    kind: BinaryOpExpr:
+                        op: Div
+                        lhs: Expr [66-67]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(9)
+                        rhs: Expr [71-72]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(8)
         "#]],
     );
 }
@@ -315,16 +327,19 @@ fn power_assign_op() {
                 init_expr: Expr [53-56]:
                     ty: Complex(None, true)
                     kind: Lit: Complex(0.0, 0.0)
-            AssignOpStmt [66-74]:
+            AssignStmt [66-74]:
                 symbol_id: 9
-                indices: <empty>
-                op: Exp
-                lhs: Expr [72-73]:
+                lhs_span: [66-67]
+                rhs: Expr [66-74]:
                     ty: Complex(None, false)
-                    kind: SymbolId(8)
-                rhs: Expr [72-73]:
-                    ty: Complex(None, false)
-                    kind: SymbolId(8)
+                    kind: BinaryOpExpr:
+                        op: Exp
+                        lhs: Expr [66-67]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(9)
+                        rhs: Expr [72-73]:
+                            ty: Complex(None, false)
+                            kind: SymbolId(8)
         "#]],
     );
 }

@@ -267,7 +267,7 @@ impl Display for GateOperand {
 
 #[derive(Clone, Debug, Default)]
 pub enum GateOperandKind {
-    IndexedIdent(Box<IndexedIdent>),
+    IdentOrIndexedIdent(Box<IdentOrIndexedIdent>),
     HardwareQubit(Box<HardwareQubit>),
     #[default]
     Err,
@@ -276,7 +276,7 @@ pub enum GateOperandKind {
 impl Display for GateOperandKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::IndexedIdent(ident) => write!(f, "{ident}"),
+            Self::IdentOrIndexedIdent(ident) => write!(f, "{ident}"),
             Self::HardwareQubit(qubit) => write!(f, "{qubit}"),
             Self::Err => write!(f, "Error"),
         }
@@ -286,7 +286,7 @@ impl Display for GateOperandKind {
 impl WithSpan for GateOperandKind {
     fn with_span(self, span: Span) -> Self {
         match self {
-            Self::IndexedIdent(ident) => Self::IndexedIdent(ident.with_span(span)),
+            Self::IdentOrIndexedIdent(ident) => Self::IdentOrIndexedIdent(ident.with_span(span)),
             Self::HardwareQubit(qubit) => Self::HardwareQubit(qubit.with_span(span)),
             Self::Err => Self::Err,
         }
@@ -314,7 +314,7 @@ impl WithSpan for HardwareQubit {
 #[derive(Clone, Debug)]
 pub struct AliasDeclStmt {
     pub span: Span,
-    pub ident: Identifier,
+    pub ident: Box<IdentOrIndexedIdent>,
     pub exprs: List<Expr>,
 }
 
@@ -492,26 +492,35 @@ impl Display for Block {
 }
 
 #[derive(Clone, Debug)]
-pub enum Identifier {
-    Ident(Box<Ident>),
-    IndexedIdent(Box<IndexedIdent>),
+pub enum IdentOrIndexedIdent {
+    Ident(Ident),
+    IndexedIdent(IndexedIdent),
 }
 
-impl Identifier {
+impl IdentOrIndexedIdent {
     #[must_use]
     pub fn span(&self) -> Span {
         match self {
-            Identifier::Ident(ident) => ident.span,
-            Identifier::IndexedIdent(ident) => ident.span,
+            IdentOrIndexedIdent::Ident(ident) => ident.span,
+            IdentOrIndexedIdent::IndexedIdent(ident) => ident.span,
         }
     }
 }
 
-impl Display for Identifier {
+impl Display for IdentOrIndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Identifier::Ident(ident) => write!(f, "{ident}"),
-            Identifier::IndexedIdent(ident) => write!(f, "{ident}"),
+            IdentOrIndexedIdent::Ident(ident) => write!(f, "{ident}"),
+            IdentOrIndexedIdent::IndexedIdent(ident) => write!(f, "{ident}"),
+        }
+    }
+}
+
+impl WithSpan for IdentOrIndexedIdent {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            Self::Ident(ident) => Self::Ident(ident.with_span(span)),
+            Self::IndexedIdent(ident) => Self::IndexedIdent(ident.with_span(span)),
         }
     }
 }
@@ -547,14 +556,14 @@ impl WithSpan for Ident {
 pub struct IndexedIdent {
     pub span: Span,
     pub index_span: Span,
-    pub name: Ident,
-    pub indices: List<IndexElement>,
+    pub ident: Ident,
+    pub indices: List<Index>,
 }
 
 impl Display for IndexedIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         writeln_header(f, "IndexedIdent", self.span)?;
-        writeln_field(f, "name", &self.name)?;
+        writeln_field(f, "ident", &self.ident)?;
         writeln_field(f, "index_span", &self.index_span)?;
         write_list_field(f, "indices", &self.indices)
     }
@@ -598,48 +607,117 @@ impl Display for Expr {
 }
 
 #[derive(Clone, Debug)]
-pub struct DiscreteSet {
+pub enum Index {
+    /// Only allowed in registers, and only in alias statements.
+    /// `alias b = a[{1, 5, 8}];`
+    IndexSet(Set),
+    /// A list of indices, used for multidimensional indexing.
+    /// `int b = a[2, 3:7];`
+    IndexList(IndexList),
+}
+
+impl Display for Index {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Index::IndexSet(set) => write!(f, "{set}"),
+            Index::IndexList(list) => write!(f, "{list}"),
+        }
+    }
+}
+
+impl Index {
+    #[must_use]
+    pub fn span(&self) -> Span {
+        match self {
+            Index::IndexSet(set) => set.span,
+            Index::IndexList(set) => set.span,
+        }
+    }
+
+    #[must_use]
+    pub fn num_indices(&self) -> usize {
+        match self {
+            // According to the spec Index sets count as a single index.
+            Index::IndexSet(_) => 1,
+            Index::IndexList(index_list) => index_list.values.len(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Set {
     pub span: Span,
     pub values: List<Expr>,
 }
 
-impl Display for DiscreteSet {
+impl Display for Set {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "DiscreteSet", self.span)?;
+        writeln_header(f, "Set", self.span)?;
         write_list_field(f, "values", &self.values)
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct IndexSet {
+pub struct IndexList {
     pub span: Span,
-    pub values: List<IndexSetItem>,
+    pub values: List<IndexListItem>,
 }
 
-impl Display for IndexSet {
+impl Display for IndexList {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "IndexSet", self.span)?;
+        writeln_header(f, "IndexList", self.span)?;
         write_list_field(f, "values", &self.values)
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub enum IndexListItem {
+    RangeDefinition(Range),
+    Expr(Expr),
+    #[default]
+    Err,
+}
+
+/// This is needed to able to use `IndexSetItem` in the `seq` combinator.
+impl WithSpan for IndexListItem {
+    fn with_span(self, span: Span) -> Self {
+        match self {
+            IndexListItem::RangeDefinition(range) => {
+                IndexListItem::RangeDefinition(range.with_span(span))
+            }
+            IndexListItem::Expr(expr) => IndexListItem::Expr(expr.with_span(span)),
+            IndexListItem::Err => IndexListItem::Err,
+        }
+    }
+}
+
+impl Display for IndexListItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            IndexListItem::RangeDefinition(range) => write!(f, "{range}"),
+            IndexListItem::Expr(expr) => write!(f, "{expr}"),
+            IndexListItem::Err => write!(f, "Err"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-pub struct RangeDefinition {
+pub struct Range {
     pub span: Span,
     pub start: Option<Expr>,
     pub end: Option<Expr>,
     pub step: Option<Expr>,
 }
 
-impl WithSpan for RangeDefinition {
+impl WithSpan for Range {
     fn with_span(self, span: Span) -> Self {
         Self { span, ..self }
     }
 }
 
-impl Display for RangeDefinition {
+impl Display for Range {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln_header(f, "RangeDefinition", self.span)?;
+        writeln_header(f, "Range", self.span)?;
         writeln_opt_field(f, "start", self.start.as_ref())?;
         writeln_opt_field(f, "step", self.step.as_ref())?;
         write_opt_field(f, "end", self.end.as_ref())
@@ -684,7 +762,7 @@ impl Display for GateModifierKind {
 pub struct ClassicalArgument {
     pub span: Span,
     pub ty: ScalarType,
-    pub name: Identifier,
+    pub name: Box<IdentOrIndexedIdent>,
     pub access: Option<AccessControl>,
 }
 
@@ -1144,7 +1222,7 @@ impl Display for BoxStmt {
 pub struct MeasureArrowStmt {
     pub span: Span,
     pub measurement: MeasureExpr,
-    pub target: Option<Box<IndexedIdent>>,
+    pub target: Option<Box<IdentOrIndexedIdent>>,
 }
 
 impl Display for MeasureArrowStmt {
@@ -1416,16 +1494,16 @@ impl Display for ForStmt {
 
 #[derive(Clone, Debug)]
 pub enum EnumerableSet {
-    DiscreteSet(DiscreteSet),
-    RangeDefinition(RangeDefinition),
+    Set(Set),
+    Range(Range),
     Expr(Expr),
 }
 
 impl Display for EnumerableSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            EnumerableSet::DiscreteSet(set) => write!(f, "{set}"),
-            EnumerableSet::RangeDefinition(range) => write!(f, "{range}"),
+            EnumerableSet::Set(set) => write!(f, "{set}"),
+            EnumerableSet::Range(range) => write!(f, "{range}"),
             EnumerableSet::Expr(expr) => write!(f, "{expr}"),
         }
     }
@@ -1500,7 +1578,7 @@ impl Display for ExprKind {
 #[derive(Clone, Debug)]
 pub struct AssignStmt {
     pub span: Span,
-    pub lhs: IndexedIdent,
+    pub lhs: Box<IdentOrIndexedIdent>,
     pub rhs: ValueExpr,
 }
 
@@ -1516,7 +1594,7 @@ impl Display for AssignStmt {
 pub struct AssignOpStmt {
     pub span: Span,
     pub op: BinOp,
-    pub lhs: IndexedIdent,
+    pub lhs: Box<IdentOrIndexedIdent>,
     pub rhs: ValueExpr,
 }
 
@@ -1593,7 +1671,7 @@ impl Display for Cast {
 pub struct IndexExpr {
     pub span: Span,
     pub collection: Expr,
-    pub index: IndexElement,
+    pub index: Index,
 }
 
 impl Display for IndexExpr {
@@ -1662,62 +1740,6 @@ impl fmt::Display for Version {
         match self.minor {
             Some(minor) => write!(f, "{}.{}", self.major, minor),
             None => write!(f, "{}", self.major),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum IndexElement {
-    DiscreteSet(DiscreteSet),
-    IndexSet(IndexSet),
-}
-
-impl Display for IndexElement {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            IndexElement::DiscreteSet(set) => write!(f, "{set}"),
-            IndexElement::IndexSet(set) => write!(f, "{set}"),
-        }
-    }
-}
-
-impl IndexElement {
-    #[must_use]
-    pub fn span(&self) -> Span {
-        match self {
-            IndexElement::DiscreteSet(set) => set.span,
-            IndexElement::IndexSet(set) => set.span,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub enum IndexSetItem {
-    RangeDefinition(RangeDefinition),
-    Expr(Expr),
-    #[default]
-    Err,
-}
-
-/// This is needed to able to use `IndexSetItem` in the `seq` combinator.
-impl WithSpan for IndexSetItem {
-    fn with_span(self, span: Span) -> Self {
-        match self {
-            IndexSetItem::RangeDefinition(range) => {
-                IndexSetItem::RangeDefinition(range.with_span(span))
-            }
-            IndexSetItem::Expr(expr) => IndexSetItem::Expr(expr.with_span(span)),
-            IndexSetItem::Err => IndexSetItem::Err,
-        }
-    }
-}
-
-impl Display for IndexSetItem {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            IndexSetItem::RangeDefinition(range) => write!(f, "{range}"),
-            IndexSetItem::Expr(expr) => write!(f, "{expr}"),
-            IndexSetItem::Err => write!(f, "Err"),
         }
     }
 }

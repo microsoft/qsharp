@@ -11,7 +11,7 @@ fn for_loop() {
         &expect![[r#"
             ForStmt [0-29]:
                 loop_variable: 8
-                iterable: DiscreteSet [13-22]:
+                iterable: Set [13-22]:
                     values:
                         Expr [14-15]:
                             ty: Int(None, true)
@@ -24,7 +24,10 @@ fn for_loop() {
                             kind: Lit: Int(3)
                 body: Stmt [23-29]:
                     annotations: <empty>
-                    kind: BreakStmt [23-29]:
+                    kind: Block [23-29]:
+                        Stmt [23-29]:
+                            annotations: <empty>
+                            kind: BreakStmt [23-29]:
         "#]],
     );
 }
@@ -40,7 +43,10 @@ fn while_loop() {
                     kind: Lit: Bool(true)
                 body: Stmt [13-19]:
                     annotations: <empty>
-                    kind: BreakStmt [13-19]:
+                    kind: Block [13-19]:
+                        Stmt [13-19]:
+                            annotations: <empty>
+                            kind: BreakStmt [13-19]:
         "#]],
     );
 }

@@ -30,20 +30,21 @@ use crate::{
         build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
         build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
         build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_top_level_ns_with_items, build_tuple_expr,
-        build_unary_op_expr, build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array,
-        build_while_stmt, build_wrapped_block_expr, managed_qubit_alloc_array,
-        map_qsharp_type_to_ast_ty, wrap_expr_in_parens,
+        build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
+        build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
+        build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
+        build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
+        wrap_expr_in_parens,
     },
     io::SourceResolver,
     parser::ast::{list_from_iter, List},
     semantic::{
         ast::{
-            BinaryOpExpr, Cast, DiscreteSet, Expr, GateOperand, GateOperandKind, IndexElement,
-            IndexExpr, IndexSet, IndexedIdent, LiteralKind, MeasureExpr, TimeUnit, UnaryOpExpr,
+            Array, BinaryOpExpr, Cast, Expr, GateOperand, GateOperandKind, Index, IndexExpr,
+            IndexedIdent, LiteralKind, MeasureExpr, Set, TimeUnit, UnaryOpExpr,
         },
         symbols::{IOKind, Symbol, SymbolId, SymbolTable},
-        types::{promote_types, ArrayDimensions, Type},
+        types::{promote_types, Type},
     },
     CompilerConfig, OperationSignature, OutputSemantics, ProgramType, QasmCompileUnit,
     QubitSemantics,
@@ -423,7 +424,6 @@ impl QasmCompiler {
             semast::StmtKind::Alias(stmt) => self.compile_alias_decl_stmt(stmt),
             semast::StmtKind::Assign(stmt) => self.compile_assign_stmt(stmt),
             semast::StmtKind::IndexedAssign(stmt) => self.compile_indexed_assign_stmt(stmt),
-            semast::StmtKind::AssignOp(stmt) => self.compile_assign_op_stmt(stmt),
             semast::StmtKind::Barrier(stmt) => Self::compile_barrier_stmt(stmt),
             semast::StmtKind::Box(stmt) => self.compile_box_stmt(stmt),
             semast::StmtKind::Block(stmt) => self.compile_block_stmt(stmt),
@@ -472,13 +472,10 @@ impl QasmCompiler {
     fn compile_assign_stmt(&mut self, stmt: &semast::AssignStmt) -> Option<qsast::Stmt> {
         let symbol = self.symbols[stmt.symbol_id].clone();
         let name = &symbol.name;
-
         let stmt_span = stmt.span;
         let name_span = stmt.lhs_span;
-
         let rhs = self.compile_expr(&stmt.rhs);
         let stmt = build_assignment_statement(name_span, name, rhs, stmt_span);
-
         Some(stmt)
     }
 
@@ -486,107 +483,94 @@ impl QasmCompiler {
         &mut self,
         stmt: &semast::IndexedAssignStmt,
     ) -> Option<qsast::Stmt> {
-        let symbol = self.symbols[stmt.symbol_id].clone();
+        let symbol = self.symbols[stmt.indexed_ident.symbol_id].clone();
+        let name = &symbol.name;
 
-        let indices: Vec<_> = stmt
+        // We collect the indices in the reverse order, so that we can use `Vec::pop`.
+        let mut indices: Vec<_> = stmt
+            .indexed_ident
             .indices
             .iter()
-            .map(|elem| self.compile_index_element(elem))
+            .rev()
+            .map(|elem| self.compile_index(elem))
             .collect();
 
         let rhs = self.compile_expr(&stmt.rhs);
 
-        if stmt.indices.len() != 1 {
-            self.push_unimplemented_error_message(
-                "multi-dimensional array index expressions",
-                stmt.span,
-            );
+        if indices.is_empty() {
             return None;
         }
 
-        let index_expr = indices[0].clone();
+        let first_index = indices.pop().expect("there is at least one index");
 
-        let stmt = build_indexed_assignment_statement(
-            stmt.name_span,
-            symbol.name.clone(),
-            index_expr,
-            rhs,
-            stmt.span,
-        );
+        // If we have a single index, we build a `w/=` expr.
+        let stmt = if indices.is_empty() {
+            build_indexed_assignment_statement(
+                stmt.indexed_ident.name_span,
+                symbol.name.clone(),
+                first_index,
+                rhs,
+                stmt.span,
+            )
+        }
+        // If there is more than one index. We still use a `w/=` for the
+        // first index, since that is more efficient. But we use `w/`
+        // expressions for the rest of the indices.
+        else {
+            let lhs = build_path_ident_expr(
+                name,
+                stmt.indexed_ident.name_span,
+                stmt.indexed_ident.name_span,
+            );
+            let indexed_lhs_span = Span {
+                lo: lhs.span.lo,
+                hi: first_index.span.hi,
+            };
+            let indexed_lhs = build_index_expr(lhs, first_index.clone(), indexed_lhs_span);
+            let rhs = Self::compile_ternary_update_expr(indexed_lhs, indices, rhs);
+
+            build_indexed_assignment_statement(
+                stmt.indexed_ident.name_span,
+                symbol.name.clone(),
+                first_index,
+                rhs,
+                stmt.span,
+            )
+        };
 
         Some(stmt)
     }
 
-    fn compile_assign_op_stmt(&mut self, stmt: &semast::AssignOpStmt) -> Option<qsast::Stmt> {
-        // If the lhs is of type Angle, we call compile_assign_stmt with the rhs = lhs + rhs.
-        // This will call compile_binary_expr which handles angle & complex correctly.
-        if matches!(&stmt.lhs.ty, Type::Angle(..) | Type::Complex(..)) {
-            if stmt.indices.is_empty() {
-                let rhs = semast::Expr {
-                    span: stmt.span,
-                    ty: stmt.lhs.ty.clone(),
-                    kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
-                        op: stmt.op,
-                        lhs: stmt.lhs.clone(),
-                        rhs: stmt.rhs.clone(),
-                    })),
-                };
-
-                let stmt = semast::AssignStmt {
-                    span: stmt.span,
-                    symbol_id: stmt.symbol_id,
-                    lhs_span: stmt.lhs.span,
-                    rhs,
-                };
-
-                return self.compile_assign_stmt(&stmt);
-            }
-
-            if stmt.indices.len() != 1 {
-                self.push_unimplemented_error_message(
-                    "multi-dimensional array index expressions",
-                    stmt.span,
-                );
-                return None;
-            }
-
-            let lhs = semast::Expr {
-                span: stmt.span,
-                ty: stmt.lhs.ty.clone(),
-                kind: Box::new(semast::ExprKind::IndexExpr(semast::IndexExpr {
-                    span: stmt.lhs.span,
-                    collection: stmt.lhs.clone(),
-                    index: *stmt.indices[0].clone(),
-                })),
-            };
-
-            let rhs = semast::Expr {
-                span: stmt.span,
-                ty: stmt.lhs.ty.clone(),
-                kind: Box::new(semast::ExprKind::BinaryOp(semast::BinaryOpExpr {
-                    op: stmt.op,
-                    lhs,
-                    rhs: stmt.rhs.clone(),
-                })),
-            };
-
-            let stmt = semast::IndexedAssignStmt {
-                span: stmt.span,
-                symbol_id: stmt.symbol_id,
-                name_span: stmt.lhs.span,
-                indices: stmt.indices.clone(),
-                rhs,
-            };
-
-            return self.compile_indexed_assign_stmt(&stmt);
+    fn compile_ternary_update_expr(
+        lhs: qsast::Expr,
+        mut indices: Vec<qsast::Expr>,
+        rhs: qsast::Expr,
+    ) -> qsast::Expr {
+        // Base case: no indices. We shouldn't reach this case.
+        let ternary_expr = if indices.is_empty() {
+            err_expr(lhs.span)
         }
+        // Base case: single index.
+        else if indices.len() == 1 {
+            let index = indices.pop().expect("there is exactly one index");
+            build_ternary_update_expr(lhs, index, rhs)
+        }
+        // Recursive case.
+        else {
+            let index = indices.pop().expect("there is exactly one index");
+            let rhs = {
+                let span = Span {
+                    lo: lhs.span.lo,
+                    hi: index.span.hi,
+                };
+                let lhs = build_index_expr(lhs.clone(), index.clone(), span);
+                Self::compile_ternary_update_expr(lhs, indices, rhs)
+            };
+            build_ternary_update_expr(lhs, index, rhs)
+        };
 
-        let lhs = self.compile_expr(&stmt.lhs);
-        let rhs = self.compile_expr(&stmt.rhs);
-        let qsop = Self::map_bin_op(stmt.op);
-
-        let expr = build_binary_expr(true, qsop, lhs, rhs, stmt.span);
-        Some(build_stmt_semi_from_expr(expr))
+        let paren_span = ternary_expr.span;
+        wrap_expr_in_parens(ternary_expr, paren_span)
     }
 
     fn compile_barrier_stmt(stmt: &semast::BarrierStmt) -> Option<qsast::Stmt> {
@@ -1158,7 +1142,7 @@ impl QasmCompiler {
                 ..Default::default()
             },
             semast::ExprKind::Ident(symbol_id) => self.compile_ident_expr(*symbol_id, expr.span),
-            semast::ExprKind::IndexedIdentifier(indexed_ident) => {
+            semast::ExprKind::IndexedIdent(indexed_ident) => {
                 self.compile_indexed_ident_expr(indexed_ident)
             }
             semast::ExprKind::UnaryOp(unary_op_expr) => self.compile_unary_op_expr(unary_op_expr),
@@ -1206,7 +1190,7 @@ impl QasmCompiler {
         let index: Vec<_> = indexed_ident
             .indices
             .iter()
-            .map(|elem| self.compile_index_element(elem))
+            .map(|elem| self.compile_index(elem))
             .collect();
 
         if index.len() != 1 {
@@ -1417,7 +1401,7 @@ impl QasmCompiler {
             crate::semantic::types::Type::Int(_, _) | crate::semantic::types::Type::UInt(_, _) => {
                 Self::cast_int_expr_to_ty(expr, &cast.expr.ty, &cast.ty, cast.span)
             }
-            crate::semantic::types::Type::BitArray(ArrayDimensions::One(size), _) => {
+            crate::semantic::types::Type::BitArray(size, _) => {
                 Self::cast_bit_array_expr_to_ty(expr, &cast.expr.ty, &cast.ty, size, cast.span)
             }
             _ => err_expr(cast.span),
@@ -1432,14 +1416,22 @@ impl QasmCompiler {
     }
 
     fn compile_index_expr(&mut self, index_expr: &IndexExpr) -> qsast::Expr {
-        let expr = self.compile_expr(&index_expr.collection);
-        let index = self.compile_index_element(&index_expr.index);
+        let mut expr = self.compile_expr(&index_expr.collection);
 
-        qsast::Expr {
-            id: qsast::NodeId::default(),
-            span: index_expr.span,
-            kind: Box::new(qsast::ExprKind::Index(Box::new(expr), Box::new(index))),
+        for index in &index_expr.indices {
+            let index = self.compile_index(index);
+            let span = Span {
+                lo: index_expr.span.lo,
+                hi: index.span.hi,
+            };
+            expr = qsast::Expr {
+                id: qsast::NodeId::default(),
+                span,
+                kind: Box::new(qsast::ExprKind::Index(Box::new(expr), Box::new(index))),
+            }
         }
+
+        expr
     }
 
     fn compile_paren_expr(&mut self, paren: &Expr, span: Span) -> qsast::Expr {
@@ -1471,14 +1463,14 @@ impl QasmCompiler {
         }
     }
 
-    fn compile_index_element(&mut self, elem: &IndexElement) -> qsast::Expr {
+    fn compile_index(&mut self, elem: &Index) -> qsast::Expr {
         match elem {
-            IndexElement::DiscreteSet(discrete_set) => self.compile_discrete_set(discrete_set),
-            IndexElement::IndexSet(index_set) => self.compile_index_set(index_set),
+            Index::Expr(expr) => self.compile_expr(expr),
+            Index::Range(range) => self.compile_range_expr(range),
         }
     }
 
-    fn compile_discrete_set(&mut self, set: &DiscreteSet) -> qsast::Expr {
+    fn compile_set(&mut self, set: &Set) -> qsast::Expr {
         let expr_list: Vec<_> = set
             .values
             .iter()
@@ -1488,28 +1480,15 @@ impl QasmCompiler {
         build_expr_array_expr(expr_list, set.span)
     }
 
-    fn compile_index_set(&mut self, set: &IndexSet) -> qsast::Expr {
-        // This is a temporary limitation. We can only handle
-        // single index expressions for now.
-        if set.values.len() == 1 {
-            if let semast::IndexSetItem::Expr(expr) = &*set.values[0] {
-                return self.compile_expr(expr);
-            }
-        }
-
-        self.push_unsupported_error_message("index set expressions with multiple values", set.span);
-        err_expr(set.span)
-    }
-
     fn compile_enumerable_set(&mut self, set: &semast::EnumerableSet) -> qsast::Expr {
         match set {
-            semast::EnumerableSet::DiscreteSet(set) => self.compile_discrete_set(set),
+            semast::EnumerableSet::Set(set) => self.compile_set(set),
             semast::EnumerableSet::Expr(expr) => self.compile_expr(expr),
-            semast::EnumerableSet::RangeDefinition(range) => self.compile_range_expr(range),
+            semast::EnumerableSet::Range(range) => self.compile_range_expr(range),
         }
     }
 
-    fn compile_range_expr(&mut self, range: &semast::RangeDefinition) -> qsast::Expr {
+    fn compile_range_expr(&mut self, range: &semast::Range) -> qsast::Expr {
         let Some(start) = &range.start else {
             self.push_unimplemented_error_message("omitted range start", range.span);
             return err_expr(range.span);
@@ -1525,9 +1504,14 @@ impl QasmCompiler {
         build_range_expr(start, end, step, range.span)
     }
 
-    fn compile_array_literal(&mut self, _value: &List<Expr>, span: Span) -> qsast::Expr {
-        self.push_unimplemented_error_message("array literals", span);
-        err_expr(span)
+    fn compile_array_literal(&mut self, array: &Array, span: Span) -> qsast::Expr {
+        let exprs = array
+            .data
+            .iter()
+            .map(|expr| self.compile_expr(expr))
+            .collect();
+
+        build_expr_array_expr(exprs, span)
     }
 
     fn compile_bit_literal(value: bool, span: Span) -> qsast::Expr {
@@ -1696,10 +1680,7 @@ impl QasmCompiler {
         size: u32,
         span: Span,
     ) -> qsast::Expr {
-        assert!(matches!(
-            expr_ty,
-            Type::BitArray(ArrayDimensions::One(_), _)
-        ));
+        assert!(matches!(expr_ty, Type::BitArray(_, _)));
 
         let name_span = expr.span;
         let operand_span = span;
@@ -1866,10 +1847,7 @@ impl QasmCompiler {
         let name_span = expr.span;
         let operand_span = span;
         match ty {
-            Type::BitArray(dims, _) => {
-                let ArrayDimensions::One(size) = dims else {
-                    return err_expr(span);
-                };
+            Type::BitArray(size, _) => {
                 let size = i64::from(*size);
 
                 let size_expr = build_lit_int_expr(size, Span::default());

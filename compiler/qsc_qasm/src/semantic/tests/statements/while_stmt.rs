@@ -24,12 +24,15 @@ fn single_stmt_body_creates_its_own_scope() {
                     kind: Lit: Bool(true)
                 body: Stmt [32-42]:
                     annotations: <empty>
-                    kind: ClassicalDeclarationStmt [32-42]:
-                        symbol_id: 9
-                        ty_span: [32-35]
-                        init_expr: Expr [40-41]:
-                            ty: Int(None, false)
-                            kind: Lit: Int(1)
+                    kind: Block [32-42]:
+                        Stmt [32-42]:
+                            annotations: <empty>
+                            kind: ClassicalDeclarationStmt [32-42]:
+                                symbol_id: 9
+                                ty_span: [32-35]
+                                init_expr: Expr [40-41]:
+                                    ty: Int(None, false)
+                                    kind: Lit: Int(1)
         "#]],
     );
 }
@@ -82,10 +85,13 @@ fn condition_cast() {
                             kind: Lit: Int(1)
                 body: Stmt [10-15]:
                     annotations: <empty>
-                    kind: ExprStmt [10-15]:
-                        expr: Expr [10-14]:
-                            ty: Bool(true)
-                            kind: Lit: Bool(true)
+                    kind: Block [10-15]:
+                        Stmt [10-15]:
+                            annotations: <empty>
+                            kind: ExprStmt [10-15]:
+                                expr: Expr [10-14]:
+                                    ty: Bool(true)
+                                    kind: Lit: Bool(true)
         "#]],
     );
 }

@@ -26,10 +26,7 @@ fn simple_while() {
                             Stmt [30-36]:
                                 annotations: <empty>
                                 kind: AssignStmt [30-36]:
-                                    lhs: IndexedIdent [30-31]:
-                                        name: Ident [30-31] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [30-31] "a"
                                     rhs: Expr [34-35]: Lit: Int(0)"#]],
     );
 }
@@ -68,10 +65,7 @@ fn while_stmt_body() {
                     body: Stmt [28-34]:
                         annotations: <empty>
                         kind: AssignStmt [28-34]:
-                            lhs: IndexedIdent [28-29]:
-                                name: Ident [28-29] "a"
-                                index_span: [0-0]
-                                indices: <empty>
+                            lhs: Ident [28-29] "a"
                             rhs: Expr [32-33]: Lit: Int(0)"#]],
     );
 }
@@ -99,10 +93,7 @@ fn while_loop_with_continue_stmt() {
                             Stmt [30-36]:
                                 annotations: <empty>
                                 kind: AssignStmt [30-36]:
-                                    lhs: IndexedIdent [30-31]:
-                                        name: Ident [30-31] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [30-31] "a"
                                     rhs: Expr [34-35]: Lit: Int(0)
                             Stmt [45-54]:
                                 annotations: <empty>
@@ -133,10 +124,7 @@ fn while_loop_with_break_stmt() {
                             Stmt [30-36]:
                                 annotations: <empty>
                                 kind: AssignStmt [30-36]:
-                                    lhs: IndexedIdent [30-31]:
-                                        name: Ident [30-31] "a"
-                                        index_span: [0-0]
-                                        indices: <empty>
+                                    lhs: Ident [30-31] "a"
                                     rhs: Expr [34-35]: Lit: Int(0)
                             Stmt [45-51]:
                                 annotations: <empty>
@@ -163,10 +151,7 @@ fn single_stmt_while_stmt() {
                             duration: <none>
                             qubits:
                                 GateOperand [12-13]:
-                                    kind: IndexedIdent [12-13]:
-                                        name: Ident [12-13] "q"
-                                        index_span: [0-0]
-                                        indices: <empty>"#]],
+                                    kind: Ident [12-13] "q""#]],
     );
 }
 
@@ -193,10 +178,7 @@ fn annotations_in_single_stmt_while_stmt() {
                                 identifier: "bar"
                                 value: <none>
                         kind: AssignStmt [49-55]:
-                            lhs: IndexedIdent [49-50]:
-                                name: Ident [49-50] "x"
-                                index_span: [0-0]
-                                indices: <empty>
+                            lhs: Ident [49-50] "x"
                             rhs: Expr [53-54]: Lit: Int(5)"#]],
     );
 }
@@ -224,9 +206,6 @@ fn nested_single_stmt_while_stmt() {
                                     duration: <none>
                                     qubits:
                                         GateOperand [22-23]:
-                                            kind: IndexedIdent [22-23]:
-                                                name: Ident [22-23] "q"
-                                                index_span: [0-0]
-                                                indices: <empty>"#]],
+                                            kind: Ident [22-23] "q""#]],
     );
 }

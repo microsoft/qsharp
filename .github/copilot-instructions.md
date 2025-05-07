@@ -34,8 +34,7 @@ Most of the core components are implemented in Rust. These components are packag
   - **qsc_partial_eval/**: Partial evaluation and optimization
   - **qsc_passes/**: HIR passes
   - **qsc_project/**: Project system and manifest handling
-  - **qsc_qasm/**: OpenQASM to Q# compiler
-  - **qsc_qasm3/**: OpenQASM 3.0 support
+  - **qsc_qasm/**: OpenQASM compiler frontend
   - **qsc_rca/**: Resource counting and analysis
   - **qsc_rir/**: Runtime Intermediate Representation
 - **fuzz/**: Fuzz testing infrastructure for the compiler
@@ -64,7 +63,7 @@ Most of the core components are implemented in Rust. These components are packag
   - **tests/**: Unit tests
   - **tests-integration/**: Integration tests with Qiskit, PyQIR, QIR Runner, and simulators
     - **interop_qiskit/**: Qiskit interoperability tests
-      - **test_circuits/**: Test circuit definitions 
+      - **test_circuits/**: Test circuit definitions
       - **test_gateset_qasm.py**: QASM gate set tests
       - **test_gate_correctness.py**: Gate correctness validation
       - **test_qir.py**: QIR integration with Qiskit

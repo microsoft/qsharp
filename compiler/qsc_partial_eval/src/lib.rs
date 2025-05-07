@@ -99,6 +99,10 @@ pub enum Error {
     #[diagnostic(help("try invoking the desired callable directly"))]
     UnexpectedDynamicValue(#[label] PackageSpan),
 
+    #[error("cannot use a dynamic value of type `{0}` returned from intrinsic callable")]
+    #[diagnostic(code("Qsc.PartialEval.UnexpectedDynamicIntrsinicReturnType"))]
+    UnexpectedDynamicIntrinsicReturnType(String, #[label] PackageSpan),
+
     #[error("partial evaluation failed with error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] PackageSpan),
@@ -134,6 +138,7 @@ impl Error {
         match self {
             Self::CapabilityError(_) => None,
             Self::UnexpectedDynamicValue(span)
+            | Self::UnexpectedDynamicIntrinsicReturnType(_, span)
             | Self::EvaluationFailed(_, span)
             | Self::OutputResultLiteral(span)
             | Self::Unexpected(_, span)
@@ -1638,19 +1643,16 @@ impl<'a> PartialEvaluator<'a> {
         callee_expr_span: PackageSpan,
         call_type: CallableType,
     ) -> Result<Value, Error> {
-        // Intrinsic callables that make it to this point are expected to be unitary.
-        if callable_decl.output != Ty::UNIT {
-            return Err(Error::Unexpected(
-                format!(
-                    "non-classical call to non-Unit intrinsic `{}`",
-                    callable_decl.name.name
-                ),
-                callee_expr_span,
-            ));
-        }
-
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl, call_type);
+        let output_var = callable.output_type.map(|output_ty| {
+            let variable_id = self.resource_manager.next_var();
+            rir::Variable {
+                variable_id,
+                ty: output_ty,
+            }
+        });
+
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
@@ -1672,10 +1674,22 @@ impl<'a> PartialEvaluator<'a> {
             .map(|arg| self.map_eval_value_to_rir_operand(&arg.into_value()))
             .collect();
 
-        let instruction = Instruction::Call(callable_id, args_operands, None);
+        let instruction = Instruction::Call(callable_id, args_operands, output_var);
         let current_block = self.get_current_rir_block_mut();
         current_block.0.push(instruction);
-        Ok(Value::unit())
+        let ret_val = match output_var {
+            None => Value::unit(),
+            Some(output_var) => {
+                let rir_var = map_rir_var_to_eval_var(output_var).map_err(|()| {
+                    Error::UnexpectedDynamicIntrinsicReturnType(
+                        callable_decl.output.to_string(),
+                        callee_expr_span,
+                    )
+                })?;
+                Value::Var(rir_var)
+            }
+        };
+        Ok(ret_val)
     }
 
     fn eval_expr_call_to_spec(

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::{cmp::max, rc::Rc};
+#[cfg(test)]
+mod tests;
 
+use super::ast::{BinOp, ExprKind, Index, LiteralKind, Range};
+use crate::{parser::ast as syntax, semantic::ast::Expr};
 use core::fmt;
 use std::fmt::{Display, Formatter};
-
-use crate::parser::ast as syntax;
-
-use super::ast::{BinOp, LiteralKind};
+use std::{cmp::max, rc::Rc};
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum Type {
@@ -29,8 +29,8 @@ pub enum Type {
     HardwareQubit,
 
     // magic arrays
-    BitArray(ArrayDimensions, bool),
-    QubitArray(ArrayDimensions),
+    BitArray(u32, bool),
+    QubitArray(u32),
 
     // proper arrays
     BoolArray(ArrayDimensions),
@@ -68,12 +68,24 @@ impl Display for Type {
             Type::BitArray(dims, is_const) => write!(f, "BitArray({dims:?}, {is_const})"),
             Type::QubitArray(dims) => write!(f, "QubitArray({dims:?})"),
             Type::BoolArray(dims) => write!(f, "BoolArray({dims:?})"),
-            Type::DurationArray(dims) => write!(f, "DurationArray({dims:?})"),
-            Type::AngleArray(width, dims) => write!(f, "AngleArray({width:?}, {dims:?})"),
-            Type::ComplexArray(width, dims) => write!(f, "ComplexArray({width:?}, {dims:?})"),
-            Type::FloatArray(width, dims) => write!(f, "FloatArray({width:?}, {dims:?})"),
-            Type::IntArray(width, dims) => write!(f, "IntArray({width:?}, {dims:?})"),
-            Type::UIntArray(width, dims) => write!(f, "UIntArray({width:?}, {dims:?})"),
+            Type::DurationArray(dims) => {
+                write!(f, "DurationArray({dims:?})")
+            }
+            Type::AngleArray(width, dims) => {
+                write!(f, "AngleArray({width:?}, {dims:?})")
+            }
+            Type::ComplexArray(width, dims) => {
+                write!(f, "ComplexArray({width:?}, {dims:?})")
+            }
+            Type::FloatArray(width, dims) => {
+                write!(f, "FloatArray({width:?}, {dims:?})")
+            }
+            Type::IntArray(width, dims) => {
+                write!(f, "IntArray({width:?}, {dims:?})")
+            }
+            Type::UIntArray(width, dims) => {
+                write!(f, "UIntArray({width:?}, {dims:?})")
+            }
             Type::Gate(cargs, qargs) => write!(f, "Gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
                 write!(f, "Function({params_ty:?}) -> {return_ty:?}")
@@ -101,6 +113,51 @@ impl Type {
                 | Type::QubitArray(..)
                 | Type::UIntArray(..)
         )
+    }
+
+    pub(crate) fn array_dims(&self) -> Option<ArrayDimensions> {
+        match self {
+            Self::AngleArray(_, dims)
+            | Self::BoolArray(dims)
+            | Self::ComplexArray(_, dims)
+            | Self::DurationArray(dims)
+            | Self::FloatArray(_, dims)
+            | Self::IntArray(_, dims)
+            | Self::UIntArray(_, dims) => Some(dims.clone()),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn has_zero_size(&self) -> bool {
+        match self {
+            Type::BitArray(size, _) | Type::QubitArray(size) => *size == 0,
+            Type::BoolArray(dims)
+            | Type::AngleArray(_, dims)
+            | Type::ComplexArray(_, dims)
+            | Type::DurationArray(dims)
+            | Type::FloatArray(_, dims)
+            | Type::IntArray(_, dims)
+            | Type::UIntArray(_, dims) => {
+                let size = dims.clone().into_iter().reduce(|a, b| a * b).unwrap_or(1);
+                size == 0
+            }
+            _ => false,
+        }
+    }
+
+    pub(crate) fn make_array_ty(dims: &[u32], base_ty: &Self) -> Self {
+        let dims = dims.into();
+
+        match base_ty {
+            Self::Bool(_) => Self::BoolArray(dims),
+            Self::Duration(_) => Self::DurationArray(dims),
+            Self::Angle(width, _) => Self::AngleArray(*width, dims),
+            Self::Complex(width, _) => Self::ComplexArray(*width, dims),
+            Self::Float(width, _) => Self::FloatArray(*width, dims),
+            Self::Int(width, _) => Self::IntArray(*width, dims),
+            Self::UInt(width, _) => Self::UIntArray(*width, dims),
+            _ => Self::Err,
+        }
     }
 
     #[must_use]
@@ -137,19 +194,19 @@ impl Type {
         matches!(
             self,
             Type::Bit(_)
-                | Type::Int(_, _)
-                | Type::UInt(_, _)
-                | Type::Float(_, _)
-                | Type::Angle(_, _)
-                | Type::Complex(_, _)
-                | Type::Bool(_)
-                | Type::BitArray(_, _)
-                | Type::IntArray(_, _)
-                | Type::UIntArray(_, _)
-                | Type::FloatArray(_, _)
-                | Type::AngleArray(_, _)
-                | Type::ComplexArray(_, _)
-                | Type::BoolArray(_)
+                | Type::Int(..)
+                | Type::UInt(..)
+                | Type::Float(..)
+                | Type::Angle(..)
+                | Type::Complex(..)
+                | Type::Bool(..)
+                | Type::BitArray(..)
+                | Type::IntArray(..)
+                | Type::UIntArray(..)
+                | Type::FloatArray(..)
+                | Type::AngleArray(..)
+                | Type::ComplexArray(..)
+                | Type::BoolArray(..)
                 | Type::Range
                 | Type::Set
         )
@@ -159,19 +216,18 @@ impl Type {
     pub fn num_dims(&self) -> usize {
         match self {
             Type::AngleArray(_, dims)
-            | Type::BitArray(dims, _)
             | Type::BoolArray(dims)
             | Type::DurationArray(dims)
             | Type::ComplexArray(_, dims)
             | Type::FloatArray(_, dims)
             | Type::IntArray(_, dims)
-            | Type::QubitArray(dims)
             | Type::UIntArray(_, dims) => dims.num_dims(),
+            Type::BitArray(..) | Type::QubitArray(..) => 1,
             _ => 0,
         }
     }
 
-    /// Get the indexed type of a given type.
+    /// Get the indexed type of a type given a list of indices.
     /// For example, if the type is `Int[2][3]`, the indexed type is `Int[2]`.
     /// If the type is `Int[2]`, the indexed type is `Int`.
     /// If the type is `Int`, the indexed type is `None`.
@@ -179,44 +235,65 @@ impl Type {
     /// This is useful for determining the type of an array element.
     #[allow(clippy::too_many_lines)]
     #[must_use]
-    pub fn get_indexed_type(&self) -> Option<Self> {
+    pub fn get_indexed_type(&self, indices: &[super::ast::Index]) -> Option<Self> {
         let ty = match self {
-            Type::BitArray(dims, is_const) => indexed_type_builder(
-                || Type::Bit(*is_const),
-                |d| Type::BitArray(d, *is_const),
-                dims,
+            Type::BitArray(size, constness) => indexed_type_builder(
+                || Type::Bit(*constness),
+                |d| {
+                    let ArrayDimensions::One(size) = d else {
+                        unreachable!("dims was hardcoded to have one dimension")
+                    };
+                    Type::BitArray(size, *constness)
+                },
+                &ArrayDimensions::One(*size),
+                indices,
             ),
-            Type::QubitArray(dims) => indexed_type_builder(|| Type::Qubit, Type::QubitArray, dims),
+            Type::QubitArray(size) => indexed_type_builder(
+                || Type::Qubit,
+                |d| {
+                    let ArrayDimensions::One(size) = d else {
+                        unreachable!("dims was hardcoded to have one dimension")
+                    };
+                    Type::QubitArray(size)
+                },
+                &ArrayDimensions::One(*size),
+                indices,
+            ),
             Type::BoolArray(dims) => {
-                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims)
+                indexed_type_builder(|| Type::Bool(false), Type::BoolArray, dims, indices)
             }
             Type::AngleArray(size, dims) => indexed_type_builder(
                 || Type::Angle(*size, false),
                 |d| Type::AngleArray(*size, d),
                 dims,
+                indices,
             ),
             Type::ComplexArray(size, dims) => indexed_type_builder(
                 || Type::Complex(*size, false),
                 |d| Type::ComplexArray(*size, d),
                 dims,
+                indices,
             ),
             Type::DurationArray(dims) => {
-                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims)
+                indexed_type_builder(|| Type::Duration(false), Type::DurationArray, dims, indices)
             }
             Type::FloatArray(size, dims) => indexed_type_builder(
                 || Type::Float(*size, false),
                 |d| Type::FloatArray(*size, d),
                 dims,
+                indices,
             ),
             Type::IntArray(size, dims) => indexed_type_builder(
                 || Type::Int(*size, false),
                 |d| Type::IntArray(*size, d),
                 dims,
+                indices,
             ),
             Type::UIntArray(size, dims) => indexed_type_builder(
                 || Type::UInt(*size, false),
                 |d| Type::UIntArray(*size, d),
                 dims,
+                indices,
             ),
             _ => return None,
         };
@@ -234,7 +311,7 @@ impl Type {
             Type::Float(w, _) => Self::Float(*w, true),
             Type::Int(w, _) => Self::Int(*w, true),
             Type::UInt(w, _) => Self::UInt(*w, true),
-            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), true),
+            Type::BitArray(size, _) => Self::BitArray(*size, true),
             _ => self.clone(),
         }
     }
@@ -250,7 +327,7 @@ impl Type {
             Type::Float(w, _) => Self::Float(*w, false),
             Type::Int(w, _) => Self::Int(*w, false),
             Type::UInt(w, _) => Self::UInt(*w, false),
-            Type::BitArray(dims, _) => Self::BitArray(dims.clone(), false),
+            Type::BitArray(size, _) => Self::BitArray(*size, false),
             _ => self.clone(),
         }
     }
@@ -263,25 +340,158 @@ impl Type {
     }
 }
 
+/// This function builds the indexed type of a given type.
+///
+/// Its first argument is a function that builds the base type of an array,
+/// which is only used if the array is fully indexed, and the result of the
+/// indexing operation is a scalar type.
+///
+/// Its second argument is a function that builds the array type given the
+/// new dims of the array after indexing, and the base type of the array.
+///
+/// Finally it takes the dimensions of the array being indexed and the indices
+/// used to index it. The function returns the type of the result after indexing.
 fn indexed_type_builder(
-    ty: impl Fn() -> Type,
-    ty_array: impl Fn(ArrayDimensions) -> Type,
+    base_ty_builder: impl Fn() -> Type,
+    array_ty_builder: impl Fn(ArrayDimensions) -> Type,
     dims: &ArrayDimensions,
+    indices: &[super::ast::Index],
 ) -> Type {
-    match dims.clone() {
-        ArrayDimensions::One(_) => ty(),
-        ArrayDimensions::Two(d1, _) => ty_array(ArrayDimensions::One(d1)),
-        ArrayDimensions::Three(d1, d2, _) => ty_array(ArrayDimensions::Two(d1, d2)),
-        ArrayDimensions::Four(d1, d2, d3, _) => ty_array(ArrayDimensions::Three(d1, d2, d3)),
-        ArrayDimensions::Five(d1, d2, d3, d4, _) => ty_array(ArrayDimensions::Four(d1, d2, d3, d4)),
-        ArrayDimensions::Six(d1, d2, d3, d4, d5, _) => {
-            ty_array(ArrayDimensions::Five(d1, d2, d3, d4, d5))
-        }
-        ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, _) => {
-            ty_array(ArrayDimensions::Six(d1, d2, d3, d4, d5, d6))
-        }
-        ArrayDimensions::Err => Type::Err,
+    if matches!(dims, ArrayDimensions::Err) {
+        return Type::Err;
     }
+
+    // By this point it's guaranteed that the number of indices is
+    // less or equal to the number of dims.
+    assert!(dims.num_dims() >= indices.len());
+
+    let mut indexed_dims = Vec::new();
+
+    for (dim, index) in dims.clone().into_iter().clone().zip(indices) {
+        match index {
+            Index::Expr(..) => (),
+
+            // If we have a range we need to compute the size of the slice
+            Index::Range(range) => {
+                if let Some(slice_size) = compute_slice_size(range, dim) {
+                    indexed_dims.push(slice_size);
+                } else {
+                    return Type::Err;
+                }
+            }
+        }
+    }
+
+    // These are the remaining dimensions after applying all indices.
+    let not_indexed_dims = dims.clone().into_iter().skip(indices.len());
+
+    let dims_vec = indexed_dims
+        .into_iter()
+        .chain(not_indexed_dims)
+        .collect::<Vec<_>>();
+
+    if dims_vec.is_empty() {
+        base_ty_builder()
+    } else {
+        array_ty_builder((&dims_vec[..]).into())
+    }
+}
+
+/// The spec says: "Indexing of arrays is n-based i.e., negative indices are allowed."
+/// <https://openqasm.com/language/types.html#arrays>
+/// Does that means indexes always wrap around and there is no index out of bounds error?
+///
+/// Rust's % operator performs a remainder operator, not a modulo operation.
+/// We need to use `i64::rem_euclid` instead.
+pub(crate) fn wrap_index_value(val: i64, dimension_size: i64) -> i64 {
+    val.rem_euclid(dimension_size)
+}
+
+/// Computes the slice's start, step, and end.
+pub(crate) fn compute_slice_components(range: &Range, dimension_size: u32) -> (i64, i64, i64) {
+    // Helper function to extract the literal value from the start,
+    // step, and end components of the range. These expressions are
+    // guaranteed to be of literals of type `int` by this point.
+    let unwrap_lit_or_default = |expr: Option<&Expr>, default: i64| {
+        if let Some(expr) = expr {
+            if let ExprKind::Lit(LiteralKind::Int(val)) = &*expr.kind {
+                *val
+            } else {
+                unreachable!("range components are guaranteed to be int literals")
+            }
+        } else {
+            default
+        }
+    };
+    let start = unwrap_lit_or_default(range.start.as_ref(), 0);
+    let step = unwrap_lit_or_default(range.step.as_ref(), 1);
+    let end = unwrap_lit_or_default(range.end.as_ref(), i64::from(dimension_size) - 1);
+
+    let start = wrap_index_value(start, i64::from(dimension_size));
+    let end = wrap_index_value(end, i64::from(dimension_size));
+
+    (start, step, end)
+}
+
+/// This function returns `None` if the range step is zero.
+fn compute_slice_size(range: &Range, dimension_size: u32) -> Option<u32> {
+    // If the dimension is zero, the slice will also have size zero.
+    // If the dimension size is zero, the slice will always be empty.
+    // So we return Some(0) as the size of the slice.
+    if dimension_size == 0 {
+        return Some(0);
+    }
+
+    let (start, step, end) = compute_slice_components(range, dimension_size);
+
+    // <https://openqasm.com/language/types.html#register-concatenation-and-slicing>
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    // The range corresponds to the set
+    // {start, start + 1 * step, start + 2 * step, ..., start + m * step}
+    //   (Note that the range has m + 1 elements)
+    // where m is the largest integer such that:
+    //
+    // if step > 0,
+    //   start + m * step <= end
+    //
+    // solving for m we have,
+    //   m * step <= (end - start)
+    //   m <= (end - start) / step
+    //
+    // the largest integer m satisfying this inequality is,
+    //   m = floor((end - start) / step)
+    //
+    // when start <= end. Since rust's integer division matches
+    // this behavior we don't need to take the floor.
+    // When start > end, the slice is empty and m = 0.
+    //
+    // --
+    //
+    // If the step < 0,
+    //   start + m * step >= end
+    //
+    // solving for m we have,
+    //   m * step >= end - start
+
+    // since step is negative, when we divide both sides
+    // of the inequality by it, the inequality sign changes.
+    //   m <= (end - start) / step
+    //
+    // Note that we get the same expression that in the case
+    // when step > 0, however here is expected that end <= start.
+    let slice_size = if step > 0 {
+        if start <= end {
+            ((end - start) / step) as u32 + 1
+        } else {
+            0
+        }
+    } else if end <= start {
+        ((end - start) / step) as u32 + 1
+    } else {
+        0
+    };
+
+    Some(slice_size)
 }
 
 #[derive(Debug, Clone, Default, Eq, Hash, PartialEq)]
@@ -330,6 +540,60 @@ impl ArrayDimensions {
             ArrayDimensions::Six(_, _, _, _, _, _) => 6,
             ArrayDimensions::Seven(_, _, _, _, _, _, _) => 7,
             ArrayDimensions::Err => 0,
+        }
+    }
+
+    #[must_use]
+    pub fn indexed_dim_size(&self) -> Option<u32> {
+        match self {
+            ArrayDimensions::One(d)
+            | ArrayDimensions::Two(_, d)
+            | ArrayDimensions::Three(_, _, d)
+            | ArrayDimensions::Four(_, _, _, d)
+            | ArrayDimensions::Five(_, _, _, _, d)
+            | ArrayDimensions::Six(_, _, _, _, _, d)
+            | ArrayDimensions::Seven(_, _, _, _, _, _, d) => Some(*d),
+            ArrayDimensions::Err => None,
+        }
+    }
+}
+
+impl IntoIterator for ArrayDimensions {
+    type Item = u32;
+    type IntoIter = std::vec::IntoIter<u32>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            ArrayDimensions::One(d1) => vec![d1].into_iter(),
+            ArrayDimensions::Two(d1, d2) => vec![d1, d2].into_iter(),
+            ArrayDimensions::Three(d1, d2, d3) => vec![d1, d2, d3].into_iter(),
+            ArrayDimensions::Four(d1, d2, d3, d4) => vec![d1, d2, d3, d4].into_iter(),
+            ArrayDimensions::Five(d1, d2, d3, d4, d5) => vec![d1, d2, d3, d4, d5].into_iter(),
+            ArrayDimensions::Six(d1, d2, d3, d4, d5, d6) => {
+                vec![d1, d2, d3, d4, d5, d6].into_iter()
+            }
+            ArrayDimensions::Seven(d1, d2, d3, d4, d5, d6, d7) => {
+                vec![d1, d2, d3, d4, d5, d6, d7].into_iter()
+            }
+            ArrayDimensions::Err => vec![].into_iter(),
+        }
+    }
+}
+
+impl From<&[u32]> for ArrayDimensions {
+    fn from(dims: &[u32]) -> Self {
+        let dims = dims.to_vec();
+        match dims.len() {
+            1 => ArrayDimensions::One(dims[0]),
+            2 => ArrayDimensions::Two(dims[0], dims[1]),
+            3 => ArrayDimensions::Three(dims[0], dims[1], dims[2]),
+            4 => ArrayDimensions::Four(dims[0], dims[1], dims[2], dims[3]),
+            5 => ArrayDimensions::Five(dims[0], dims[1], dims[2], dims[3], dims[4]),
+            6 => ArrayDimensions::Six(dims[0], dims[1], dims[2], dims[3], dims[4], dims[5]),
+            7 => ArrayDimensions::Seven(
+                dims[0], dims[1], dims[2], dims[3], dims[4], dims[5], dims[6],
+            ),
+            _ => ArrayDimensions::Err,
         }
     }
 }
@@ -406,11 +670,8 @@ fn get_uint_ty(ty: &Type) -> Option<Type> {
         Some(Type::UInt(ty.width(), ty.is_const()))
     } else if matches!(ty, Type::Bool(..) | Type::Bit(..)) {
         Some(Type::UInt(Some(1), ty.is_const()))
-    } else if let Type::BitArray(dims, _) = ty {
-        match dims {
-            ArrayDimensions::One(d) => Some(Type::UInt(Some(*d), ty.is_const())),
-            _ => None,
-        }
+    } else if let Type::BitArray(size, _) = ty {
+        Some(Type::UInt(Some(*size), ty.is_const()))
     } else {
         None
     }
@@ -498,9 +759,9 @@ pub(crate) fn types_equal_except_const(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Float(lhs_width, _), Type::Float(rhs_width, _))
         | (Type::Angle(lhs_width, _), Type::Angle(rhs_width, _))
         | (Type::Complex(lhs_width, _), Type::Complex(rhs_width, _)) => lhs_width == rhs_width,
-        (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
-        | (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
-        | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
+        (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
+        | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims)) => lhs_dims == rhs_dims,
         (Type::IntArray(lhs_width, lhs_dims), Type::IntArray(rhs_width, rhs_dims))
         | (Type::UIntArray(lhs_width, lhs_dims), Type::UIntArray(rhs_width, rhs_dims))
         | (Type::FloatArray(lhs_width, lhs_dims), Type::FloatArray(rhs_width, rhs_dims))
@@ -535,10 +796,10 @@ pub(crate) fn base_types_equal(lhs: &Type, rhs: &Type) -> bool {
         | (Type::Angle(_, _), Type::Angle(_, _))
         | (Type::Complex(_, _), Type::Complex(_, _))
         | (Type::Gate(_, _), Type::Gate(_, _)) => true,
-        (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _))
-        | (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
-        | (Type::QubitArray(lhs_dims), Type::QubitArray(rhs_dims)) => lhs_dims == rhs_dims,
-        (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
+        (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _))
+        | (Type::QubitArray(lhs_size), Type::QubitArray(rhs_size)) => lhs_size == rhs_size,
+        (Type::BoolArray(lhs_dims), Type::BoolArray(rhs_dims))
+        | (Type::IntArray(_, lhs_dims), Type::IntArray(_, rhs_dims))
         | (Type::UIntArray(_, lhs_dims), Type::UIntArray(_, rhs_dims))
         | (Type::FloatArray(_, lhs_dims), Type::FloatArray(_, rhs_dims))
         | (Type::AngleArray(_, lhs_dims), Type::AngleArray(_, rhs_dims))
@@ -579,9 +840,8 @@ pub fn can_cast_literal(lhs_ty: &Type, ty_lit: &Type) -> bool {
         }
         || {
             match lhs_ty {
-                Type::BitArray(dims, _) => {
-                    matches!(dims, ArrayDimensions::One(_))
-                        && matches!(ty_lit, Type::Int(_, _) | Type::UInt(_, _))
+                Type::BitArray(_, _) => {
+                    matches!(ty_lit, Type::Int(_, _) | Type::UInt(_, _))
                 }
                 _ => false,
             }
@@ -607,15 +867,10 @@ pub(crate) fn can_cast_literal_with_value_knowledge(lhs_ty: &Type, kind: &Litera
 // https://openqasm.com/language/classical.html
 pub(crate) fn unary_op_can_be_applied_to_type(op: syntax::UnaryOp, ty: &Type) -> bool {
     match op {
-        syntax::UnaryOp::NotB => match ty {
-            Type::Bit(_) | Type::UInt(_, _) | Type::Angle(_, _) => true,
-            Type::BitArray(dims, _) | Type::UIntArray(_, dims) | Type::AngleArray(_, dims) => {
-                // the spe says "registers of the same size" which is a bit ambiguous
-                // but we can assume that it means that the array is a single dim
-                matches!(dims, ArrayDimensions::One(_))
-            }
-            _ => false,
-        },
+        syntax::UnaryOp::NotB => matches!(
+            ty,
+            Type::Bit(_) | Type::UInt(_, _) | Type::Angle(_, _) | Type::BitArray(_, _)
+        ),
         syntax::UnaryOp::NotL => matches!(ty, Type::Bool(_)),
         syntax::UnaryOp::Neg => {
             matches!(ty, Type::Int(_, _) | Type::Float(_, _) | Type::Angle(_, _))
@@ -664,14 +919,7 @@ pub(crate) fn binop_requires_int_conversion_for_type(
         | syntax::BinOp::Lt
         | syntax::BinOp::Lte
         | syntax::BinOp::Neq => match (lhs, rhs) {
-            (Type::BitArray(lhs_dims, _), Type::BitArray(rhs_dims, _)) => {
-                match (lhs_dims, rhs_dims) {
-                    (ArrayDimensions::One(lhs_size), ArrayDimensions::One(rhs_size)) => {
-                        lhs_size == rhs_size
-                    }
-                    _ => false,
-                }
-            }
+            (Type::BitArray(lhs_size, _), Type::BitArray(rhs_size, _)) => lhs_size == rhs_size,
             _ => false,
         },
         _ => false,
@@ -745,7 +993,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
         (left_type, right_type),
         (Type::Int(..) | Type::UInt(..), Type::BitArray(..))
     ) {
-        let Type::BitArray(ArrayDimensions::One(size), _) = right_type else {
+        let Type::BitArray(size, _) = right_type else {
             return None;
         };
 
@@ -760,7 +1008,7 @@ fn try_promote_bitarray_to_int(left_type: &Type, right_type: &Type) -> Option<Ty
         (left_type, right_type),
         (Type::BitArray(..), Type::Int(..) | Type::UInt(..))
     ) {
-        let Type::BitArray(ArrayDimensions::One(size), _) = left_type else {
+        let Type::BitArray(size, _) = left_type else {
             return None;
         };
 

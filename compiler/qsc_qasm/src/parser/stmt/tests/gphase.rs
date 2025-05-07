@@ -42,10 +42,7 @@ fn gphase_qubit_ident() {
                     duration: <none>
                     qubits:
                         GateOperand [10-12]:
-                            kind: IndexedIdent [10-12]:
-                                name: Ident [10-12] "q0"
-                                index_span: [0-0]
-                                indices: <empty>"#]],
+                            kind: Ident [10-12] "q0""#]],
     );
 }
 
@@ -66,10 +63,10 @@ fn gphase_qubit_register() {
                     qubits:
                         GateOperand [10-14]:
                             kind: IndexedIdent [10-14]:
-                                name: Ident [10-11] "q"
+                                ident: Ident [10-11] "q"
                                 index_span: [11-14]
                                 indices:
-                                    IndexSet [12-13]:
+                                    IndexList [12-13]:
                                         values:
                                             Expr [12-13]: Lit: Int(2)"#]],
     );
@@ -91,16 +88,13 @@ fn gphase_multiple_qubits() {
                     duration: <none>
                     qubits:
                         GateOperand [10-12]:
-                            kind: IndexedIdent [10-12]:
-                                name: Ident [10-12] "q0"
-                                index_span: [0-0]
-                                indices: <empty>
+                            kind: Ident [10-12] "q0"
                         GateOperand [14-18]:
                             kind: IndexedIdent [14-18]:
-                                name: Ident [14-15] "q"
+                                ident: Ident [14-15] "q"
                                 index_span: [15-18]
                                 indices:
-                                    IndexSet [16-17]:
+                                    IndexList [16-17]:
                                         values:
                                             Expr [16-17]: Lit: Int(4)"#]],
     );
@@ -201,9 +195,6 @@ fn gphase_ctrl_inv_modifiers() {
                     duration: <none>
                     qubits:
                         GateOperand [28-30]:
-                            kind: IndexedIdent [28-30]:
-                                name: Ident [28-30] "q0"
-                                index_span: [0-0]
-                                indices: <empty>"#]],
+                            kind: Ident [28-30] "q0""#]],
     );
 }
