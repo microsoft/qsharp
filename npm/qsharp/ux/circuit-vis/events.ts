@@ -733,20 +733,15 @@ class CircuitEvents {
    * @param qubitIdx The index of the qubit to remove.
    */
   removeQubitLineWithConfirmation(qubitIdx: number) {
-    // Determines if the operation is associated with the qubit line
-    const check = (op: Operation) => {
-      return getOperationRegisters(op).some((reg) => reg.qubit == qubitIdx);
-    };
-
     // Count number of operations associated with the qubit line
-    const numOperations = this.componentGrid.reduce(
-      (acc, column) => acc + column.components.filter((op) => check(op)).length,
-      0,
-    );
+    const numOperations = this.qubitUseCounts[qubitIdx];
 
     const doRemove = () => {
       // Remove the qubit
       this.qubits.splice(qubitIdx, 1);
+      this.qubitUseCounts.splice(qubitIdx, 1);
+      this.wireData.splice(qubitIdx, 1);
+      removeTrailingUnusedQubits(this);
 
       // Update all remaining operation references
       for (const column of this.componentGrid) {
@@ -774,7 +769,9 @@ class CircuitEvents {
           : `There are ${numOperations} operations associated with this qubit line. Do you want to remove them?`;
       _createConfirmPrompt(message, (confirmed) => {
         if (confirmed) {
-          findAndRemoveOperations(this, check);
+          findAndRemoveOperations(this, (op: Operation) =>
+            getOperationRegisters(op).some((reg) => reg.qubit == qubitIdx),
+          );
           doRemove();
         }
       });
