@@ -13,11 +13,14 @@ fn indexed_bit_cannot_be_implicitly_converted_to_float() {
         if (x[0] == 1.) {
         }
     ";
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import QasmStd.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         if QasmStd.Convert.ResultAsDouble(x[0]) == 1. {};
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]

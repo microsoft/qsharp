@@ -143,9 +143,12 @@ fn to_implicit_float_implicitly_fails() {
         bit x = 1;
         float y = x;
     ";
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import QasmStd.Intrinsic.*;
         mutable x = One;
         mutable y = QasmStd.Convert.ResultAsDouble(x);
-    "#]]);
+    "#]],
+    );
 }

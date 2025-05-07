@@ -12,11 +12,14 @@ fn to_bit_implicitly() {
         float x = 42.;
         bit y = x;
     ";
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
         mutable y = QasmStd.Convert.DoubleAsResult(x);
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -25,11 +28,14 @@ fn explicit_width_to_bit_implicitly() {
         float[64] x = 42.;
         bit y = x;
     ";
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         import QasmStd.Intrinsic.*;
         mutable x = 42.;
         mutable y = QasmStd.Convert.DoubleAsResult(x);
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
