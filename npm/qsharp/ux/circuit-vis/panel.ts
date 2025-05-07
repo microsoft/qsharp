@@ -17,19 +17,45 @@ import { getGateWidth } from "./utils";
  * @param container     HTML element for rendering visualization into
  */
 const createPanel = (container: HTMLElement): void => {
-  if (container.querySelector(".panel") == null) {
-    const circuit = container.querySelector("svg[id]");
-    if (circuit == null) {
-      throw new Error("No circuit found in the container");
-    }
-
-    const wrapper = _elem("div", "");
+  // Find or create the wrapper
+  let wrapper: HTMLElement | null = container.querySelector(".circuit-wrapper");
+  const circuit = container.querySelector("svg[id]");
+  if (circuit == null) {
+    throw new Error("No circuit found in the container");
+  }
+  if (!wrapper) {
+    wrapper = _elem("div", "");
+    wrapper.className = "circuit-wrapper";
     wrapper.style.display = "block";
     wrapper.style.overflow = "auto";
     wrapper.style.width = "100%";
     wrapper.appendChild(circuit);
     container.appendChild(wrapper);
+  } else if (circuit.parentElement !== wrapper) {
+    // If wrapper exists but SVG is not inside, ensure it's appended
+    wrapper.appendChild(circuit);
+  }
 
+  // Remove any previous message
+  const prevMsg = wrapper.querySelector(".empty-circuit-message");
+  if (prevMsg) prevMsg.remove();
+
+  // Check if the circuit is empty by inspecting the .wires group
+  const wiresGroup = circuit?.querySelector(".wires");
+  if (!wiresGroup || wiresGroup.children.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.className = "empty-circuit-message";
+    emptyMsg.textContent =
+      "Your circuit is empty. Drag gates from the toolbox to get started!";
+    emptyMsg.style.padding = "2em";
+    emptyMsg.style.textAlign = "center";
+    emptyMsg.style.color = "#888";
+    emptyMsg.style.fontSize = "1.1em";
+    wrapper.appendChild(emptyMsg);
+    return;
+  }
+
+  if (container.querySelector(".panel") == null) {
     const panelElem = _panel();
     container.prepend(panelElem);
     container.style.display = "flex";

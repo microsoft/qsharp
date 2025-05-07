@@ -31,12 +31,12 @@ interface Context {
 }
 
 /**
- * Create dragzones elements for dragging on circuit.
+ * Create dropzones elements for dragging on circuit.
  *
  * @param container     HTML element for rendering visualization into
  * @param sqore         Sqore object
  */
-const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
+const createDropzones = (container: HTMLElement, sqore: Sqore): void => {
   const svg = container.querySelector("svg[id]") as SVGElement;
 
   const context: Context = {
@@ -520,7 +520,7 @@ const makeDropzoneBox = (
 };
 
 export {
-  createDragzones,
+  createDropzones,
   createGateGhost,
   createQubitLabelGhost,
   createWireDropzone,
