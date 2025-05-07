@@ -325,4 +325,16 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
     targetProfile: targetProfile,
     lints: [{ lint: "needlessOperation", level: "warn" }],
   });
+
+  // Re-scan all open Q# files
+  vscode.workspace.textDocuments.forEach((document) => {
+    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
+      const content = document.getText();
+      languageService.updateDocument(
+        document.uri.toString(),
+        document.version,
+        content,
+      );
+    }
+  });
 }
