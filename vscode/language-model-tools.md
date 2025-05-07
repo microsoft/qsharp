@@ -54,4 +54,3 @@
 
 - **Name**: `qsharp-run-program`
 - **Description**: Run the current Q# program in the editor locally. Call this when the user wants to execute the Q# program currently open in the editor, for example when they ask 'Can you run this program?'
-
