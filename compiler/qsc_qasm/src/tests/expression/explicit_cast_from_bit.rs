@@ -45,7 +45,7 @@ fn bitarray_to_bool() {
         &expect![[r#"
             import QasmStd.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsBoolBE(a);
+            QasmStd.Convert.ResultArrayAsBool(a);
         "#]],
     );
 }

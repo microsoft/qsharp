@@ -74,9 +74,9 @@ function ResultAsDouble(value : Result) : Double {
     }
 }
 
-/// The ``RESULT_ARRAY_AS_BOOL_BE`` function is used to implement the cast expr in QASM for bit[bits] to bool.
+/// The ``RESULT_ARRAY_AS_BOOL`` function is used to implement the cast expr in QASM for bit[bits] to bool.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsBoolBE(array: Result[]) : Bool {
+function ResultArrayAsBool(array: Result[]) : Bool {
     for result in array {
         if result == One {
             return true;
@@ -88,7 +88,7 @@ function ResultArrayAsBoolBE(array: Result[]) : Bool {
 /// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsResultBE(array: Result[]) : Result {
-    BoolAsResult(ResultArrayAsBoolBE(array))
+    BoolAsResult(ResultArrayAsBool(array))
 }
 
 /// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to angle[bits].
