@@ -836,6 +836,58 @@
           ],
           "additionalProperties": false
         }
+      },
+      {
+        "name": "qsharp-generate-circuit",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpGenerateCircuit",
+        "displayName": "Generate Q# Circuit Diagram",
+        "modelDescription": "Generates a visual circuit diagram for a Q# program. The path to a .qs file must be specified in the `filePath` parameter. This tool will compile the Q# program and generate a quantum circuit diagram that visually represents the quantum operations in the code. The diagram will be displayed in a dedicated circuit panel.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file to generate a circuit diagram for."
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-run-resource-estimator",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpRunResourceEstimator",
+        "displayName": "Run Q# Resource Estimator",
+        "modelDescription": "Runs the quantum resource estimator on a Q# program to calculate the required physical resources. The path to a .qs file must be specified in the `filePath` parameter. This tool will analyze the Q# program and generate estimates of the quantum resources required to run the algorithm, such as the number of qubits, T gates, and other quantum operations. Results will be displayed in a dedicated resource estimator panel.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file to estimate resources for."
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
       }
     ]
   },

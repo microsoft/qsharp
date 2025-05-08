@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, QscEventTarget, VSDiagnostic } from "qsharp-lang";
+import { log, QscEventTarget } from "qsharp-lang";
 import vscode from "vscode";
 import { loadCompilerWorker } from "../common";
 import { getPauliNoiseModel } from "../config";
@@ -135,6 +135,74 @@ export class QSharpTools {
       log.error("Failed to run program. ", e);
       throw new CopilotToolError(
         "Failed to run the Q# program: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  } /**
+   * Generates a circuit diagram for the specified Q# file
+   */
+  async generateCircuit(input: { filePath: string }): Promise<string> {
+    try {
+      // Get the Q# document from the file path
+      const docUri = vscode.Uri.file(input.filePath);
+      if (!docUri) {
+        throw new CopilotToolError(
+          "Invalid file path. Please provide a valid path to a Q# file.",
+        );
+      }
+
+      // Check if the program can be compiled
+      const programResult = await getProgramForDocument(docUri);
+      if (!programResult.success) {
+        throw new CopilotToolError(
+          `Cannot generate circuit: ${programResult.errorMsg}`,
+        );
+      }
+
+      // TODO: pass file path
+      // Generate the circuit diagram (without specifying an operation - will show all)
+      await vscode.commands.executeCommand("qsharp-vscode.showCircuit");
+
+      return "Circuit diagram generated and displayed in the circuit panel.";
+    } catch (e) {
+      log.error("Failed to generate circuit diagram. ", e);
+      throw new CopilotToolError(
+        "Failed to generate circuit diagram: " +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  }
+
+  /**
+   * Runs the resource estimator on the specified Q# file
+   */
+  async runResourceEstimator(input: { filePath: string }): Promise<string> {
+    try {
+      // Get the Q# document from the file path
+      const docUri = vscode.Uri.file(input.filePath);
+      if (!docUri) {
+        throw new CopilotToolError(
+          "Invalid file path. Please provide a valid path to a Q# file.",
+        );
+      }
+
+      // Check if the program can be compiled
+      const programResult = await getProgramForDocument(docUri);
+      if (!programResult.success) {
+        throw new CopilotToolError(
+          `Cannot run resource estimator: ${programResult.errorMsg}`,
+        );
+      }
+
+      // TODO: pass file path
+      // Call the showRe command from the VS Code extension
+      await vscode.commands.executeCommand("qsharp-vscode.showRe");
+
+      return "Resource estimation started. Results will be displayed in the resource estimator panel.";
+    } catch (e) {
+      log.error("Failed to run resource estimator. ", e);
+      throw new CopilotToolError(
+        "Failed to run resource estimator: " +
           (e instanceof Error ? e.message : String(e)),
       );
     }
