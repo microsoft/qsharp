@@ -384,16 +384,9 @@ fn sized_float_to_sized_float_truncating() {
     check(
         source,
         &expect![[r#"
-            Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type Float(Some(32), false) to type
-              | Float(Some(16), false)
-               ,-[Test.qasm:3:19]
-             2 |         float[32] a;
-             3 |         float[16](a);
-               :                   ^
-             4 |     
-               `----
+            import QasmStd.Intrinsic.*;
+            mutable a = 0.;
+            a;
         "#]],
     );
 }

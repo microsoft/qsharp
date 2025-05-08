@@ -1290,7 +1290,7 @@ fn sized_complex_to_sized_complex() {
 }
 
 #[test]
-fn sized_complex_to_sized_complex_truncating_fails() {
+fn sized_complex_to_sized_complex_truncating() {
     let source = "
         complex[float[32]] a;
         complex[float[16]](a);
@@ -1298,35 +1298,17 @@ fn sized_complex_to_sized_complex_truncating_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-30]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-30]:
-                        symbol_id: 8
-                        ty_span: [9-27]
-                        init_expr: Expr [0-0]:
-                            ty: Complex(Some(32), true)
-                            kind: Lit: Complex(0.0, 0.0)
-                Stmt [39-61]:
-                    annotations: <empty>
-                    kind: ExprStmt [39-61]:
-                        expr: Expr [58-59]:
-                            ty: Complex(Some(32), false)
-                            kind: SymbolId(8)
-
-        [Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Complex(Some(32), false) to type
-          | Complex(Some(16), false)
-           ,-[test:3:28]
-         2 |         complex[float[32]] a;
-         3 |         complex[float[16]](a);
-           :                            ^
-         4 |     
-           `----
-        ]"#]],
+            ClassicalDeclarationStmt [9-30]:
+                symbol_id: 8
+                ty_span: [9-27]
+                init_expr: Expr [0-0]:
+                    ty: Complex(Some(32), true)
+                    kind: Lit: Complex(0.0, 0.0)
+            ExprStmt [39-61]:
+                expr: Expr [58-59]:
+                    ty: Complex(Some(32), false)
+                    kind: SymbolId(8)
+        "#]],
     );
 }
 

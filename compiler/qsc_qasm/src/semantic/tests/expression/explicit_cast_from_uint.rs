@@ -1103,21 +1103,35 @@ fn uint_to_bitarray_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-36]:
-            expr: Expr [33-34]:
-                ty: BitArray(32, false)
-                kind: Cast [33-34]:
-                    ty: BitArray(32, false)
-                    expr: Expr [33-34]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-16]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-16]:
+                            symbol_id: 8
+                            ty_span: [9-13]
+                            init_expr: Expr [0-0]:
+                                ty: UInt(None, true)
+                                kind: Lit: Int(0)
+                    Stmt [25-36]:
+                        annotations: <empty>
+                        kind: ExprStmt [25-36]:
+                            expr: Expr [33-34]:
+                                ty: UInt(None, false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type UInt(None, false) to type BitArray(32,
+              | false)
+               ,-[test:3:17]
+             2 |         uint a;
+             3 |         bit[32](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -1184,21 +1198,35 @@ fn sized_uint_to_bitarray_truncating_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-20]:
-            symbol_id: 8
-            ty_span: [9-17]
-            init_expr: Expr [0-0]:
-                ty: UInt(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [29-40]:
-            expr: Expr [37-38]:
-                ty: BitArray(16, false)
-                kind: Cast [37-38]:
-                    ty: BitArray(16, false)
-                    expr: Expr [37-38]:
-                        ty: UInt(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: UInt(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [29-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-40]:
+                            expr: Expr [37-38]:
+                                ty: UInt(Some(32), false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type UInt(Some(32), false) to type BitArray(16,
+              | false)
+               ,-[test:3:17]
+             2 |         uint[32] a;
+             3 |         bit[16](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -1211,20 +1239,34 @@ fn sized_uint_to_bitarray_expanding_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-20]:
-            symbol_id: 8
-            ty_span: [9-17]
-            init_expr: Expr [0-0]:
-                ty: UInt(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [29-40]:
-            expr: Expr [37-38]:
-                ty: BitArray(64, false)
-                kind: Cast [37-38]:
-                    ty: BitArray(64, false)
-                    expr: Expr [37-38]:
-                        ty: UInt(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: UInt(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [29-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-40]:
+                            expr: Expr [37-38]:
+                                ty: UInt(Some(32), false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type UInt(Some(32), false) to type BitArray(64,
+              | false)
+               ,-[test:3:17]
+             2 |         uint[32] a;
+             3 |         bit[64](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }

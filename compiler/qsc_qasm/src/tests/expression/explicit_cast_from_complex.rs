@@ -786,7 +786,7 @@ fn sized_complex_to_sized_complex() {
 }
 
 #[test]
-fn sized_complex_to_sized_complex_truncating_fails() {
+fn sized_complex_to_sized_complex_truncating() {
     let source = "
         complex[float[32]] a;
         complex[float[16]](a);
@@ -794,16 +794,9 @@ fn sized_complex_to_sized_complex_truncating_fails() {
     check(
         source,
         &expect![[r#"
-            Qasm.Lowerer.CannotCast
-
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Complex(Some(16), false)
-               ,-[Test.qasm:3:28]
-             2 |         complex[float[32]] a;
-             3 |         complex[float[16]](a);
-               :                            ^
-             4 |     
-               `----
+            import QasmStd.Intrinsic.*;
+            mutable a = Std.Math.Complex(0., 0.);
+            a;
         "#]],
     );
 }

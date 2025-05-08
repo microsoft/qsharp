@@ -255,7 +255,8 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
             return 1;
         }
 
-        bit p = parity(2);
+        uint[2] x = 2;
+        bit p = parity(x);
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -268,7 +269,8 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
                 Zero
             };
         }
-        mutable p = parity(QasmStd.Convert.IntAsResultArrayBE(2, 2));
+        mutable x = 2;
+        mutable p = parity(QasmStd.Convert.IntAsResultArrayBE(x, 2));
     "#]]
     .assert_eq(&qsharp);
     Ok(())

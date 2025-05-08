@@ -822,12 +822,16 @@ fn angle_to_bitarray_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
-                Value = 0,
-                Size = 53
-            };
-            QasmStd.Angle.AngleAsResultArrayBE(a);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(None, false) to type BitArray(32,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         angle a;
+             3 |         bit[32](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }
@@ -879,12 +883,16 @@ fn sized_angle_to_bitarray_truncating_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
-                Value = 0,
-                Size = 53
-            };
-            QasmStd.Angle.AngleAsResultArrayBE(a);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(Some(32), false) to type BitArray(16,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         angle[32] a;
+             3 |         bit[16](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }
@@ -898,12 +906,16 @@ fn sized_angle_to_bitarray_expanding_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
-                Value = 0,
-                Size = 53
-            };
-            QasmStd.Angle.AngleAsResultArrayBE(a);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(Some(32), false) to type BitArray(64,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         angle[32] a;
+             3 |         bit[64](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }

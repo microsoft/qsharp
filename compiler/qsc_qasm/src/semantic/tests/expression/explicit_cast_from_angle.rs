@@ -1354,21 +1354,35 @@ fn angle_to_bitarray_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Angle(None, true)
-                kind: Lit: Angle(0)
-        ExprStmt [26-37]:
-            expr: Expr [34-35]:
-                ty: BitArray(32, false)
-                kind: Cast [34-35]:
-                    ty: BitArray(32, false)
-                    expr: Expr [34-35]:
-                        ty: Angle(None, false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-17]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-17]:
+                            symbol_id: 8
+                            ty_span: [9-14]
+                            init_expr: Expr [0-0]:
+                                ty: Angle(None, true)
+                                kind: Lit: Angle(0)
+                    Stmt [26-37]:
+                        annotations: <empty>
+                        kind: ExprStmt [26-37]:
+                            expr: Expr [34-35]:
+                                ty: Angle(None, false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(None, false) to type BitArray(32,
+              | false)
+               ,-[test:3:17]
+             2 |         angle a;
+             3 |         bit[32](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -1435,21 +1449,35 @@ fn sized_angle_to_bitarray_truncating_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-21]:
-            symbol_id: 8
-            ty_span: [9-18]
-            init_expr: Expr [0-0]:
-                ty: Angle(Some(32), true)
-                kind: Lit: Angle(0)
-        ExprStmt [30-41]:
-            expr: Expr [38-39]:
-                ty: BitArray(16, false)
-                kind: Cast [38-39]:
-                    ty: BitArray(16, false)
-                    expr: Expr [38-39]:
-                        ty: Angle(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-21]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-21]:
+                            symbol_id: 8
+                            ty_span: [9-18]
+                            init_expr: Expr [0-0]:
+                                ty: Angle(Some(32), true)
+                                kind: Lit: Angle(0)
+                    Stmt [30-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [30-41]:
+                            expr: Expr [38-39]:
+                                ty: Angle(Some(32), false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(Some(32), false) to type BitArray(16,
+              | false)
+               ,-[test:3:17]
+             2 |         angle[32] a;
+             3 |         bit[16](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -1462,20 +1490,34 @@ fn sized_angle_to_bitarray_expanding_fails() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-21]:
-            symbol_id: 8
-            ty_span: [9-18]
-            init_expr: Expr [0-0]:
-                ty: Angle(Some(32), true)
-                kind: Lit: Angle(0)
-        ExprStmt [30-41]:
-            expr: Expr [38-39]:
-                ty: BitArray(64, false)
-                kind: Cast [38-39]:
-                    ty: BitArray(64, false)
-                    expr: Expr [38-39]:
-                        ty: Angle(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-21]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-21]:
+                            symbol_id: 8
+                            ty_span: [9-18]
+                            init_expr: Expr [0-0]:
+                                ty: Angle(Some(32), true)
+                                kind: Lit: Angle(0)
+                    Stmt [30-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [30-41]:
+                            expr: Expr [38-39]:
+                                ty: Angle(Some(32), false)
+                                kind: SymbolId(8)
+
+            [Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Angle(Some(32), false) to type BitArray(64,
+              | false)
+               ,-[test:3:17]
+             2 |         angle[32] a;
+             3 |         bit[64](a);
+               :                 ^
+             4 |     
+               `----
+            ]"#]],
     );
 }

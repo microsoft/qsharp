@@ -602,35 +602,21 @@ fn sized_float_to_sized_float_truncating() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-21]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-21]:
-                        symbol_id: 8
-                        ty_span: [9-18]
-                        init_expr: Expr [0-0]:
-                            ty: Float(Some(32), true)
-                            kind: Lit: Float(0.0)
-                Stmt [30-43]:
-                    annotations: <empty>
-                    kind: ExprStmt [30-43]:
+            ClassicalDeclarationStmt [9-21]:
+                symbol_id: 8
+                ty_span: [9-18]
+                init_expr: Expr [0-0]:
+                    ty: Float(Some(32), true)
+                    kind: Lit: Float(0.0)
+            ExprStmt [30-43]:
+                expr: Expr [40-41]:
+                    ty: Float(Some(16), false)
+                    kind: Cast [40-41]:
+                        ty: Float(Some(16), false)
                         expr: Expr [40-41]:
                             ty: Float(Some(32), false)
                             kind: SymbolId(8)
-
-        [Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Float(Some(32), false) to type
-          | Float(Some(16), false)
-           ,-[test:3:19]
-         2 |         float[32] a;
-         3 |         float[16](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+        "#]],
     );
 }
 

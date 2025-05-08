@@ -3060,12 +3060,14 @@ impl Lowerer {
         // which cannot be bypassed and must be handled by built-in Q# casts from
         // the standard library.
         match &expr.ty {
-            Type::Angle(..) => Self::cast_angle_expr_to_type(ty, expr),
+            Type::Angle(width, _) => Self::cast_angle_expr_to_type(ty, expr, *width),
             Type::Bit(..) => Self::cast_bit_expr_to_type(ty, expr),
             Type::Bool(..) => Self::cast_bool_expr_to_type(ty, expr),
             Type::Complex(..) => cast_complex_expr_to_type(ty, expr),
             Type::Float(..) => Self::cast_float_expr_to_type(ty, expr),
-            Type::Int(..) | Type::UInt(..) => Self::cast_int_expr_to_type(ty, expr),
+            Type::Int(width, _) | Type::UInt(width, _) => {
+                Self::cast_int_expr_to_type(ty, expr, *width)
+            }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             _ => None,
         }
@@ -3078,10 +3080,17 @@ impl Lowerer {
     /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
     /// | angle          | Yes   | No  | No   | No    | -     | Yes    | No       | No    |
     /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
-    fn cast_angle_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    fn cast_angle_expr_to_type(
+        ty: &Type,
+        rhs: &semantic::Expr,
+        width: Option<u32>,
+    ) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Angle(..)));
         match ty {
-            Type::Angle(..) | Type::Bit(..) | Type::BitArray(..) | Type::Bool(..) => {
+            Type::Angle(..) | Type::Bit(..) | Type::Bool(..) => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
+            Type::BitArray(size, _) if Some(*size) == width => {
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
@@ -3122,13 +3131,18 @@ impl Lowerer {
     fn cast_float_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Float(..)));
         match ty {
-            Type::Angle(..) | Type::Int(..) | Type::UInt(..) | Type::Bool(..) | Type::Bit(..) => {
+            Type::Angle(..)
+            | Type::Int(..)
+            | Type::UInt(..)
+            | Type::Float(..)
+            | Type::Bool(..)
+            | Type::Bit(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
+            Type::Complex(..) => {
+                // Even though the spec doesn't say it, we need to allow
+                // casting from float to complex, else this kind of expression
+                // would be invalid: 2.0 + sin(pi) + 1.0i
                 Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
-            // Even though the spec doesn't say it, we need to allow
-            // casting from float to complex, else this kind of expression
-            // would be invalid: 2.0 + sin(pi) + 1.0i
-            Type::Complex(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
             _ => None,
         }
     }
@@ -3164,12 +3178,15 @@ impl Lowerer {
     ///
     /// Additional cast to ``BigInt``
     #[allow(clippy::too_many_lines)]
-    fn cast_int_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    fn cast_int_expr_to_type(
+        ty: &Type,
+        rhs: &semantic::Expr,
+        width: Option<u32>,
+    ) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Int(..) | Type::UInt(..)));
 
         match ty {
-            Type::BitArray(..)
-            | Type::Float(..)
+            Type::Float(..)
             | Type::Int(..)
             | Type::UInt(..)
             | Type::Bool(..)
@@ -3178,6 +3195,9 @@ impl Lowerer {
             // casting from int to complex, else this kind of expression
             // would be invalid: 2 + 1i
             | Type::Complex(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
+            Type::BitArray(size, _) if Some(*size) == width => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
             _ => None,
         }
     }
@@ -3840,19 +3860,10 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
     assert!(matches!(rhs.ty, Type::Complex(..)));
 
     if matches!((ty, &rhs.ty), (Type::Complex(..), Type::Complex(..))) {
-        // we are both complex, but our widths are different. If both
-        // had implicit widths, we would have already matched for the
-        // (None, None). If the rhs width is bigger, we will return
-        // None to let the cast fail
-
-        // Here, we can safely cast the rhs to the lhs type if the
-        // lhs width can hold the rhs's width
-        if ty.width().is_none() && rhs.ty.width().is_some() {
-            return Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()));
-        }
-        if ty.width() >= rhs.ty.width() {
-            return Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()));
-        }
+        // complex can only cast to complex. We do the same as for floats
+        // when handling the widths, that is, ignoring them, since complex
+        // numbers are a pair of floats.
+        return Some(rhs.clone());
     }
     None
 }

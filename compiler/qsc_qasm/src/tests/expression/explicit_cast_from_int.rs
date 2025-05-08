@@ -681,9 +681,16 @@ fn int_to_bitarray_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = 0;
-            QasmStd.Convert.IntAsResultArrayBE(a, 32);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Int(None, false) to type BitArray(32,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         int a;
+             3 |         bit[32](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }
@@ -733,9 +740,16 @@ fn sized_int_to_bitarray_truncating_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = 0;
-            QasmStd.Convert.IntAsResultArrayBE(a, 16);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Int(Some(32), false) to type BitArray(16,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         int[32] a;
+             3 |         bit[16](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }
@@ -749,9 +763,16 @@ fn sized_int_to_bitarray_expanding_fails() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = 0;
-            QasmStd.Convert.IntAsResultArrayBE(a, 64);
+            Qasm.Lowerer.CannotCast
+
+              x cannot cast expression of type Int(Some(32), false) to type BitArray(64,
+              | false)
+               ,-[Test.qasm:3:17]
+             2 |         int[32] a;
+             3 |         bit[64](a);
+               :                 ^
+             4 |     
+               `----
         "#]],
     );
 }
