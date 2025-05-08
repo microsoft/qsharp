@@ -25,7 +25,7 @@ fn int_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = 5;
@@ -59,7 +59,7 @@ fn uint_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Int, Int, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = 5;
@@ -93,7 +93,7 @@ fn bit_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result, Result, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = One;
@@ -127,17 +127,17 @@ fn bitarray_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result[], Result[], Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = [One];
                 mutable y = [Zero];
-                mutable f = (QasmStd.Convert.ResultArrayAsIntBE(x) > QasmStd.Convert.ResultArrayAsIntBE(y));
-                mutable e = (QasmStd.Convert.ResultArrayAsIntBE(x) >= QasmStd.Convert.ResultArrayAsIntBE(y));
-                mutable a = (QasmStd.Convert.ResultArrayAsIntBE(x) < QasmStd.Convert.ResultArrayAsIntBE(y));
-                mutable c = (QasmStd.Convert.ResultArrayAsIntBE(x) <= QasmStd.Convert.ResultArrayAsIntBE(y));
-                mutable b = (QasmStd.Convert.ResultArrayAsIntBE(x) == QasmStd.Convert.ResultArrayAsIntBE(y));
-                mutable d = (QasmStd.Convert.ResultArrayAsIntBE(x) != QasmStd.Convert.ResultArrayAsIntBE(y));
+                mutable f = (Std.Qasm.Convert.ResultArrayAsIntBE(x) > Std.Qasm.Convert.ResultArrayAsIntBE(y));
+                mutable e = (Std.Qasm.Convert.ResultArrayAsIntBE(x) >= Std.Qasm.Convert.ResultArrayAsIntBE(y));
+                mutable a = (Std.Qasm.Convert.ResultArrayAsIntBE(x) < Std.Qasm.Convert.ResultArrayAsIntBE(y));
+                mutable c = (Std.Qasm.Convert.ResultArrayAsIntBE(x) <= Std.Qasm.Convert.ResultArrayAsIntBE(y));
+                mutable b = (Std.Qasm.Convert.ResultArrayAsIntBE(x) == Std.Qasm.Convert.ResultArrayAsIntBE(y));
+                mutable d = (Std.Qasm.Convert.ResultArrayAsIntBE(x) != Std.Qasm.Convert.ResultArrayAsIntBE(y));
                 (x, y, f, e, a, c, b, d)
             }
         }"#]]
@@ -167,21 +167,21 @@ fn bitarray_var_comparison_to_int_can_be_translated() -> miette::Result<(), Vec<
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             operation Test(y : Int) : (Result[], Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = [One];
-                mutable a = (QasmStd.Convert.ResultArrayAsIntBE(x) > y);
-                mutable b = (QasmStd.Convert.ResultArrayAsIntBE(x) >= y);
-                mutable c = (QasmStd.Convert.ResultArrayAsIntBE(x) < y);
-                mutable d = (QasmStd.Convert.ResultArrayAsIntBE(x) <= y);
-                mutable e = (QasmStd.Convert.ResultArrayAsIntBE(x) == y);
-                mutable f = (QasmStd.Convert.ResultArrayAsIntBE(x) != y);
-                mutable g = (y > QasmStd.Convert.ResultArrayAsIntBE(x));
-                mutable h = (y >= QasmStd.Convert.ResultArrayAsIntBE(x));
-                mutable i = (y < QasmStd.Convert.ResultArrayAsIntBE(x));
-                mutable j = (y <= QasmStd.Convert.ResultArrayAsIntBE(x));
-                mutable k = (y == QasmStd.Convert.ResultArrayAsIntBE(x));
-                mutable l = (y != QasmStd.Convert.ResultArrayAsIntBE(x));
+                mutable a = (Std.Qasm.Convert.ResultArrayAsIntBE(x) > y);
+                mutable b = (Std.Qasm.Convert.ResultArrayAsIntBE(x) >= y);
+                mutable c = (Std.Qasm.Convert.ResultArrayAsIntBE(x) < y);
+                mutable d = (Std.Qasm.Convert.ResultArrayAsIntBE(x) <= y);
+                mutable e = (Std.Qasm.Convert.ResultArrayAsIntBE(x) == y);
+                mutable f = (Std.Qasm.Convert.ResultArrayAsIntBE(x) != y);
+                mutable g = (y > Std.Qasm.Convert.ResultArrayAsIntBE(x));
+                mutable h = (y >= Std.Qasm.Convert.ResultArrayAsIntBE(x));
+                mutable i = (y < Std.Qasm.Convert.ResultArrayAsIntBE(x));
+                mutable j = (y <= Std.Qasm.Convert.ResultArrayAsIntBE(x));
+                mutable k = (y == Std.Qasm.Convert.ResultArrayAsIntBE(x));
+                mutable l = (y != Std.Qasm.Convert.ResultArrayAsIntBE(x));
                 (x, a, b, c, d, e, f, g, h, i, j, k, l)
             }
         }"#]]
@@ -205,7 +205,7 @@ fn float_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> 
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Double, Double, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = 5.;
@@ -241,7 +241,7 @@ fn bool_var_comparisons_can_be_translated() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.Qasm.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) {
                 mutable x = true;

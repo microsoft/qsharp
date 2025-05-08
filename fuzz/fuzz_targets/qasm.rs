@@ -9,11 +9,11 @@ allocator::assign_global!();
 use libfuzzer_sys::fuzz_target;
 
 use qsc::{
-    compile::compile_ast,
+    compile::{compile_ast, package_store_with_stdlib},
     hir::PackageId,
     qasm::{
-        compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, package_store_with_qasm,
-        CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
+        compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig,
+        OutputSemantics, ProgramType, QubitSemantics,
     },
     target::Profile,
     PackageStore, PackageType,
@@ -22,11 +22,11 @@ use qsc::{
 fn compile(data: &[u8]) {
     if let Ok(fuzzed_code) = std::str::from_utf8(data) {
         thread_local! {
-            static STORE_STD: (PackageId, PackageId, PackageStore) = {
-                package_store_with_qasm(Profile::Unrestricted.into())
+            static STORE_STD: (PackageId, PackageStore) = {
+                package_store_with_stdlib(Profile::Unrestricted.into())
             };
         }
-        STORE_STD.with(|(stdid, qasmid, store)| {
+        STORE_STD.with(|(stdid, store)| {
             let mut resolver = InMemorySourceResolver::from_iter([]);
             let config = CompilerConfig::new(
                 QubitSemantics::Qiskit,
@@ -44,11 +44,7 @@ fn compile(data: &[u8]) {
             );
             let (sources, _, package, _) = unit.into_tuple();
 
-            let dependencies = vec![
-                (PackageId::CORE, None),
-                (*stdid, None),
-                (*qasmid, Some("QasmStd".into())),
-            ];
+            let dependencies = vec![(PackageId::CORE, None), (*stdid, None)];
 
             let (mut _unit, _errors) = compile_ast(
                 store,
