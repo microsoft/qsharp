@@ -47,7 +47,7 @@ const createDropzones = (container: HTMLElement, sqore: Sqore): void => {
   };
   _addStyles(container, getWireData(container));
   _addDataWires(container);
-  svg.appendChild(_ghostQuibitLayer(context));
+  svg.appendChild(_ghostQubitLayer(context));
   svg.appendChild(_dropzoneLayer(context));
 };
 
