@@ -30,7 +30,7 @@ const formatInputs = (
   let currY: number = startY;
   qubits.forEach(({ id, numResults }, wireIndex) => {
     // Add qubit wire to list of qubit wires
-    qubitWires.push(_qubitInput(currY, wireIndex, id.toString()));
+    qubitWires.push(qubitInput(currY, wireIndex, id.toString()));
 
     // Create qubit register
     registers[id] = { type: RegisterType.Qubit, y: currY };
@@ -69,7 +69,7 @@ const formatInputs = (
  *
  * @returns SVG text component for the input register.
  */
-const _qubitInput = (
+const qubitInput = (
   y: number,
   wireIndex: number,
   subscript?: string,
@@ -89,4 +89,4 @@ const _qubitInput = (
   return el;
 };
 
-export { formatInputs };
+export { formatInputs, qubitInput };

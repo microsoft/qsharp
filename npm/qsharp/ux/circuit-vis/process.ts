@@ -28,7 +28,7 @@ const processOperations = (
   registers: RegisterMap,
 ): { renderDataArray: GateRenderData[][]; svgWidth: number } => {
   if (componentGrid.length === 0)
-    return { renderDataArray: [], svgWidth: startX };
+    return { renderDataArray: [], svgWidth: startX + gatePadding * 2 };
   const numColumns: number = componentGrid.length;
   const columnsWidths: number[] = new Array(numColumns).fill(minGateWidth);
 

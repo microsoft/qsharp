@@ -16,7 +16,7 @@ import {
 import { GateRenderData, GateType } from "./gateRenderData";
 import { createUUID } from "./utils";
 import { gateHeight, minGateWidth, minToolboxHeight, svgNS } from "./constants";
-import { createDragzones } from "./draggable";
+import { createDropzones } from "./draggable";
 import { enableEvents } from "./events";
 import { createPanel } from "./panel";
 
@@ -145,7 +145,7 @@ export class Sqore {
     this.addGateClickHandlers(container, _circuit);
 
     if (this.isEditable) {
-      createDragzones(container, this);
+      createDropzones(container, this);
       createPanel(container);
       enableEvents(container, this, () => this.renderCircuit(container));
       if (this.editCallback != undefined) {

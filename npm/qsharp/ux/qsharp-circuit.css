@@ -331,41 +331,8 @@
     opacity: 0.5;
   }
 
-  .qubit-line-control {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .qubit-line-control .title {
-    margin-left: 16px;
-  }
-
-  .add-qubit-line,
-  .remove-qubit-line {
-    border-radius: 4px;
-    padding: 8px 16px;
-    margin: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    user-select: none;
-    background: var(--vscode-button-background, #007acc);
-    color: var(--vscode-button-foreground, #ffffff);
-    border: 1px solid var(--vscode-button-border, #005a9e);
-  }
-
-  .add-qubit-line:hover,
-  .remove-qubit-line:hover {
-    background: var(--vscode-button-hoverBackground, #005a9e);
-  }
-
-  .add-qubit-line:disabled,
-  .remove-qubit-line:disabled {
-    background: var(--vscode-button-secondaryBackground, #d4d4d4);
-    color: var(--vscode-disabledForeground, #a1a1a1);
-    border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
-    cursor: not-allowed;
+  .ghost-opacity {
+    opacity: 0.5;
   }
 }
 

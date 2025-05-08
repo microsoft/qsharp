@@ -3,9 +3,16 @@
 
 import { getMinMaxRegIdx } from "../../src/utils";
 import { ComponentGrid, Operation } from "./circuit";
-import { gatePadding, minGateWidth, registerHeight, startX } from "./constants";
-import { box, controlDot } from "./formatters/formatUtils";
+import {
+  gatePadding,
+  minGateWidth,
+  registerHeight,
+  regLineStart,
+  startX,
+} from "./constants";
+import { box, controlDot, line } from "./formatters/formatUtils";
 import { formatGate } from "./formatters/gateFormatter";
+import { qubitInput } from "./formatters/inputFormatter";
 import { toRenderData } from "./panel";
 import { Sqore } from "./sqore";
 import {
@@ -18,26 +25,29 @@ import {
 
 interface Context {
   container: HTMLElement;
+  svg: SVGElement;
   operationGrid: ComponentGrid;
   wireData: number[];
 }
 
 /**
- * Create dragzones elements for dragging on circuit.
+ * Create dropzones elements for dragging on circuit.
  *
  * @param container     HTML element for rendering visualization into
  * @param sqore         Sqore object
  */
-const createDragzones = (container: HTMLElement, sqore: Sqore): void => {
+const createDropzones = (container: HTMLElement, sqore: Sqore): void => {
   const svg = container.querySelector("svg[id]") as SVGElement;
 
   const context: Context = {
     container,
+    svg,
     operationGrid: sqore.circuit.componentGrid,
     wireData: getWireData(container),
   };
   _addStyles(container, getWireData(container));
   _addDataWires(container);
+  svg.appendChild(_ghostQubitLayer(context));
   svg.appendChild(_dropzoneLayer(context));
 };
 
@@ -274,6 +284,55 @@ const _center = (elem: SVGGraphicsElement): { cX: number; cY: number } => {
 };
 
 /**
+ * Create layer with ghost qubit wire and label
+ */
+const _ghostQubitLayer = (context: Context) => {
+  const { container, svg } = context;
+
+  const wireData = getWireData(container);
+
+  const svgHeight = Number(svg.getAttribute("height") || svg.clientHeight || 0);
+  const svgWidth = Number(svg.getAttribute("width") || svg.clientWidth || 800);
+  const ghostY = svgHeight;
+
+  const ghostLayer = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  ghostLayer.classList.add("ghost-qubit-layer");
+  ghostLayer.style.display = "none";
+  // Insert before dropzone-layer if possible, otherwise at end
+  const dzLayer = svg.querySelector("g.dropzone-layer");
+  if (dzLayer) {
+    svg.insertBefore(ghostLayer, dzLayer);
+  } else {
+    svg.appendChild(ghostLayer);
+  }
+
+  const ghostWire = line(
+    regLineStart,
+    ghostY,
+    svgWidth,
+    ghostY,
+    "qubit-wire ghost-opacity",
+  );
+
+  const ghostLabel = qubitInput(
+    ghostY,
+    wireData.length,
+    wireData.length.toString(),
+  );
+  ghostLabel.classList.add("ghost-opacity");
+  ghostLayer.appendChild(ghostWire);
+  ghostLayer.appendChild(ghostLabel);
+
+  context.svg.setAttribute("height", (svgHeight + registerHeight).toString());
+  svg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight + registerHeight}`);
+
+  return ghostLayer;
+};
+
+/**
  * Create dropzone layer with all dropzones populated
  */
 const _dropzoneLayer = (context: Context) => {
@@ -284,10 +343,10 @@ const _dropzoneLayer = (context: Context) => {
   dropzoneLayer.classList.add("dropzone-layer");
   dropzoneLayer.style.display = "none";
 
-  const { container, operationGrid, wireData } = context;
-  if (wireData.length === 0) return dropzoneLayer; // Return early if there are no wires
+  const { container, operationGrid } = context;
 
   const colArray = getColumnOffsetsAndWidths(container);
+  const wireData = getWireData(container);
 
   // Create dropzones for each intersection of columns and wires
   for (let colIndex = 0; colIndex < colArray.length; colIndex++) {
@@ -459,7 +518,7 @@ const makeDropzoneBox = (
 };
 
 export {
-  createDragzones,
+  createDropzones,
   createGateGhost,
   createQubitLabelGhost,
   createWireDropzone,
