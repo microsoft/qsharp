@@ -31,7 +31,7 @@ function Main() : (Int, String) {
     // Note that the type of `item` is `Int`, not `(Int)`.
 
     // A tuple with a single item may be created with a trailing comma.
-    let myTuple = (0,);
+    let myTuple = (0, );
     Message($"myTuple: {myTuple}");
     // The type of `myTuple` is `(Int)` or, rather `(Int,)`, not `Int`.
 
