@@ -138,7 +138,7 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn to_implicit_float_implicitly_fails() {
+fn to_implicit_float_implicitly() {
     let source = "
         bit x = 1;
         float y = x;

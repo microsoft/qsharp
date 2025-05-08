@@ -7,7 +7,7 @@ use expect_test::expect;
 use miette::Report;
 
 #[test]
-fn indexed_bit_cannot_be_implicitly_converted_to_float() {
+fn indexed_bit_can_be_implicitly_converted_to_float() {
     let source = "
         bit[5] x;
         if (x[0] == 1.) {
