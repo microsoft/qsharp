@@ -50,10 +50,10 @@ import { isPanelOpen } from "../webviewPanel";
 import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
-  "The Q# program contains one or more compile errors and cannot run. See debug console for more details.";
+  "The program contains one or more compile errors and cannot run. See debug console for more details.";
 const ErrorProgramMissingEntry =
   "The Q# program does not contain an entry point and cannot run. See debug console for more details.";
-const SimulationCompleted = "Q# simulation completed.";
+const SimulationCompleted = "simulation completed.";
 const ConfigurationDelayMS = 1000;
 
 function delay(ms: number): Promise<void> {
@@ -852,7 +852,7 @@ export class QscDebugSession extends LoggingDebugSession {
             variables: [
               {
                 name: "Circuit",
-                value: "See Q# Circuit panel",
+                value: "See QDK Circuit panel",
                 variablesReference: 0,
               },
             ],
