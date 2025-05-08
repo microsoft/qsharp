@@ -15,11 +15,11 @@ function Main() : (Int, String) {
     Message($"Unpacked: {name}, {n}, {d}");
 
     // If not all items are needed, a tuple may be unpacked into
-    // a tuple of variables with a wildcard `_` for the unwanted items.
+    // a tuple of variables with a discard binding `_` for the unneeded items.
     let (name, _, _) = myTuple;
     Message($"Name: {name}");
 
-    // A single item in a round brackets does not denote a tuple. In this case,
+    // A single item in parentheses does not denote a tuple. In this case,
     // the parentheses are used to group the expression, not to create a tuple.
     // Note that the type of `item` is `Int`, not `(Int)`.
     let item = (0);
