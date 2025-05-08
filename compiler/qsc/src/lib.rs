@@ -33,7 +33,7 @@ pub mod ast {
 pub mod project {
     pub use qsc_project::{
         DirEntry, EntryType, Error, FileSystem, Manifest, ManifestDescriptor, PackageCache,
-        PackageGraphSources,
+        PackageGraphSources, ProjectType,
     };
 }
 

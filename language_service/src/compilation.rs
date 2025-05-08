@@ -17,7 +17,7 @@ use qsc::{
     CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::{LintLevel, LintOrGroupConfig};
-use qsc_project::{PackageGraphSources, Project};
+use qsc_project::{PackageGraphSources, Project, ProjectType};
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
 use std::{iter::once, mem::take};
@@ -57,7 +57,7 @@ pub(crate) enum CompilationKind {
     /// to a cell.
     Notebook { project: Option<Project> },
     OpenQASM {
-        package_graph_sources: PackageGraphSources,
+        sources: Vec<(Arc<str>, Arc<str>)>,
         /// a human-readable name for the package (not a unique URI -- meant to be read by humans)
         friendly_name: Arc<str>,
     },
@@ -145,8 +145,11 @@ impl Compilation {
         let (sources, dependencies, store, mut errors) = match &project {
             Some(p) if p.errors.is_empty() => {
                 trace!("using buildable program from project");
+                let ProjectType::QSharp(sources) = &p.project_type else {
+                    unreachable!("Project type should be Q#")
+                };
                 let buildable_program =
-                    prepare_package_store(target_profile.into(), p.package_graph_sources.clone());
+                    prepare_package_store(target_profile.into(), sources.clone());
 
                 (
                     SourceMap::new(buildable_program.user_code.sources, None),
@@ -249,19 +252,13 @@ impl Compilation {
     pub(crate) fn new_qasm(
         package_type: PackageType,
         target_profile: Profile,
-        package_graph_sources: PackageGraphSources,
+        sources: Vec<(Arc<str>, Arc<str>)>,
         project_errors: Vec<project::Error>,
         friendly_name: &Arc<str>,
     ) -> Self {
-        let (path, source) = package_graph_sources
-            .root
-            .sources
-            .first()
-            .expect("expected to find qasm source");
+        let (path, source) = sources.first().expect("expected to find qasm source");
 
-        let mut resolver = package_graph_sources
-            .root
-            .sources
+        let mut resolver = sources
             .clone()
             .into_iter()
             .collect::<InMemorySourceResolver>();
@@ -285,7 +282,7 @@ impl Compilation {
             package_store: store,
             user_package_id: source_package_id,
             kind: CompilationKind::OpenQASM {
-                package_graph_sources,
+                sources,
                 friendly_name: friendly_name.clone(),
             },
             compile_errors,
@@ -417,12 +414,12 @@ impl Compilation {
                 project.clone(),
             ),
             CompilationKind::OpenQASM {
-                ref package_graph_sources,
+                ref sources,
                 ref friendly_name,
             } => Self::new_qasm(
                 package_type,
                 target_profile,
-                package_graph_sources.clone(),
+                sources.clone(),
                 Vec::new(), // project errors will stay the same
                 friendly_name,
             ),

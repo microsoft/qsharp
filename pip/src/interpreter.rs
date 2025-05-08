@@ -31,7 +31,7 @@ use qsc::{
         CircuitEntryPoint, PauliNoise, Value,
     },
     packages::BuildableProgram,
-    project::{FileSystem, PackageCache, PackageGraphSources},
+    project::{FileSystem, PackageCache, PackageGraphSources, ProjectType},
     qasm::{compile_to_qsharp_ast_with_config, CompilerConfig, QubitSemantics},
     target::Profile,
     LanguageFeatures, PackageType, SourceMap,
@@ -361,8 +361,10 @@ impl Interpreter {
                 if !project.errors.is_empty() {
                     return Err(project.errors.into_py_err());
                 }
-
-                BuildableProgram::new(target, project.package_graph_sources)
+                let ProjectType::QSharp(package_graph_sources) = project.project_type else {
+                    unreachable!("Project type should be Q#")
+                };
+                BuildableProgram::new(target, package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }

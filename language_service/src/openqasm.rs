@@ -3,8 +3,8 @@
 
 use std::{path::Path, sync::Arc};
 
-use qsc::{qasm::parser::ast::StmtKind, LanguageFeatures};
-use qsc_project::{FileSystemAsync, PackageGraphSources, PackageInfo, Project};
+use qsc::qasm::parser::ast::StmtKind;
+use qsc_project::{FileSystemAsync, Project};
 use rustc_hash::FxHashMap;
 
 pub async fn load_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
@@ -73,20 +73,11 @@ where
     let sources = loaded_files.into_iter().collect::<Vec<_>>();
 
     Project {
-        package_graph_sources: PackageGraphSources {
-            root: PackageInfo {
-                sources,
-                language_features: LanguageFeatures::default(),
-                dependencies: FxHashMap::default(),
-                package_type: None,
-            },
-            packages: FxHashMap::default(),
-        },
         path: doc_uri.clone(),
         name: get_file_name_from_uri(doc_uri),
         lints: Vec::default(),
         errors,
-        project_type: qsc_project::ProjectType::OpenQASM,
+        project_type: qsc_project::ProjectType::OpenQASM(sources),
     }
 }
 
