@@ -14,6 +14,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 
 mod class_completions;
+mod openqasm;
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
     let (compilation, cursor_position, _) = compile_with_markers(source_with_cursor, true);
