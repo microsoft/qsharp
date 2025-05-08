@@ -4699,7 +4699,7 @@ fn field_access_not_ident() {
 #[test]
 fn type_exceeding_size_limit_is_not_propaged_and_generates_error() {
     check(
-        indoc!{"
+        indoc! {"
             namespace A {
                 function Foo() : Unit {
                     let tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[] = [];
@@ -4723,6 +4723,6 @@ fn type_exceeding_size_limit_is_not_propaged_and_generates_error() {
             Error(Type(Error(AmbiguousTy(Span { lo: 574, hi: 576 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 603 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 600 }))))
-        "##]]
+        "##]],
     );
 }
