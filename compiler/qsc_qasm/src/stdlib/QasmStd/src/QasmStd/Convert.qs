@@ -134,7 +134,7 @@ function ResultArrayAsIntBE(results : Result[]) : Int {
 }
 
 /// The ``DOUBLE_AS_RESULT`` function is used to implement the cast expr in QASM for float to bit.
-/// with big-endian order. This is needed for round-trip conversion for bin ops.
+/// This is needed for round-trip conversion for bin ops.
 function DoubleAsResult(value : Double) : Result {
     if Truncate(value) == 0 {
         Zero
