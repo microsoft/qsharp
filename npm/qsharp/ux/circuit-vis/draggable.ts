@@ -286,7 +286,7 @@ const _center = (elem: SVGGraphicsElement): { cX: number; cY: number } => {
 /**
  * Create layer with ghost qubit wire and label
  */
-const _ghostQuibitLayer = (context: Context) => {
+const _ghostQubitLayer = (context: Context) => {
   const { container, svg } = context;
 
   const wireData = getWireData(container);
