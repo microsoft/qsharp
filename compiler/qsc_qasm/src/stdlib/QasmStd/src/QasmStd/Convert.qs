@@ -74,7 +74,7 @@ function ResultAsDouble(value : Result) : Double {
     }
 }
 
-/// The ``RESULT_ARRAY_AS_BOOL`` function is used to implement the cast expr in QASM for bit[bits] to bool.
+/// The ``RESULT_ARRAY_AS_BOOL`` function is used to implement the cast expr in QASM for bit[] to bool.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsBool(array: Result[]) : Bool {
     for result in array {
@@ -85,16 +85,16 @@ function ResultArrayAsBool(array: Result[]) : Bool {
     false
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to bit.
+/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[] to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsResultBE(array: Result[]) : Result {
     BoolAsResult(ResultArrayAsBool(array))
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to angle[bits].
+/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsAngleBE(array: Result[], bits: Int) : Angle {
-    IntAsAngle(ResultArrayAsIntBE(array), bits)
+function ResultArrayAsAngleBE(array: Result[]) : Angle {
+    IntAsAngle(ResultArrayAsIntBE(array), Length(array))
 }
 
 /// The ``INT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for int to bit[].
@@ -109,19 +109,19 @@ function IntAsResultArrayBE(number : Int, bits : Int) : Result[] {
     Std.Arrays.Reversed(result)
 }
 
-/// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[bits] to bit[bits].
+/// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[n] to bit[n].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function AngleAsResultArrayBE(angle : Angle, bits : Int) : Result[] {
-    IntAsResultArrayBE(angle.Value, bits)
+function AngleAsResultArrayBE(angle : Angle) : Result[] {
+    IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
-/// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[bits].
+/// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function BoolAsResultArrayBE(value : Bool, bits: Int) : Result[] {
     IntAsResultArrayBE(BoolAsInt(value), bits)
 }
 
-/// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[bits].
+/// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultAsResultArrayBE(value : Result, bits: Int) : Result[] {
     IntAsResultArrayBE(ResultAsInt(value), bits)

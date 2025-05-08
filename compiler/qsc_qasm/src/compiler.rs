@@ -1703,16 +1703,12 @@ impl QasmCompiler {
             Type::Bool(..) => {
                 build_convert_cast_call_by_name("ResultArrayAsBool", expr, name_span, operand_span)
             }
-            Type::Angle(Some(width), _) if *width == size => {
-                let size_expr = build_lit_int_expr(i64::from(size), Span::default());
-                build_qasmstd_convert_call_with_two_params(
-                    "ResultArrayAsAngleBE",
-                    expr,
-                    size_expr,
-                    name_span,
-                    operand_span,
-                )
-            }
+            Type::Angle(Some(width), _) if *width == size => build_convert_cast_call_by_name(
+                "ResultArrayAsAngleBE",
+                expr,
+                name_span,
+                operand_span,
+            ),
             Type::Int(Some(width), _) | Type::UInt(Some(width), _) if *width == size => {
                 build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
             }

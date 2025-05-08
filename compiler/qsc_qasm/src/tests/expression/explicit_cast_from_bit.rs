@@ -552,7 +552,7 @@ fn bitarray_to_sized_angle() {
         &expect![[r#"
             import QasmStd.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsAngleBE(a, 32);
+            QasmStd.Convert.ResultArrayAsAngleBE(a);
         "#]],
     );
 }
