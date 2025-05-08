@@ -44,17 +44,17 @@ fn default_simple_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [false, false, false];
         mutable b = [0, 0, 0];
         mutable c = [0, 0, 0];
-        mutable d = [new QasmStd.Angle.Angle {
+        mutable d = [new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
         }];
@@ -78,26 +78,26 @@ fn default_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[false, false, false], [false, false, false]];
         mutable b = [[0, 0, 0], [0, 0, 0]];
         mutable c = [[0, 0, 0], [0, 0, 0]];
-        mutable d = [[new QasmStd.Angle.Angle {
+        mutable d = [[new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }], [new QasmStd.Angle.Angle {
+        }], [new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
         }]];
@@ -120,11 +120,11 @@ fn initialized_simple_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [false, true, true];
         mutable b = [-2, 0, 3];
         mutable c = [1, 2, 3];
-        mutable d = [QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(2., 53), QasmStd.Angle.DoubleAsAngle(4., 53)];
+        mutable d = [Std.OpenQASM.Angle.DoubleAsAngle(-1., 53), Std.OpenQASM.Angle.DoubleAsAngle(2., 53), Std.OpenQASM.Angle.DoubleAsAngle(4., 53)];
         mutable e = [Std.Convert.IntAsDouble(-2), Std.Convert.IntAsDouble(0), 3.];
         mutable f = [Std.Math.Complex(Std.Convert.IntAsDouble(2), 0.), Std.Math.Complex(3., 0.), Std.Math.Complex(0., 5.)];
     "#]]
@@ -169,7 +169,7 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[if 0 == 0 {
             false
         } else {
@@ -184,8 +184,8 @@ fn initialized_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
             true
         }], [false, true, true]];
         mutable b = [[-2, 0, 0], [1, 2, 2]];
-        mutable c = [[0, 1, 1], [QasmStd.Convert.BoolAsInt(false), QasmStd.Convert.BoolAsInt(true), QasmStd.Convert.BoolAsInt(true)]];
-        mutable d = [[QasmStd.Angle.DoubleAsAngle(-1., 53), QasmStd.Angle.DoubleAsAngle(0., 53), QasmStd.Angle.DoubleAsAngle(0., 53)], [QasmStd.Angle.DoubleAsAngle(1., 53), QasmStd.Angle.DoubleAsAngle(5., 53), QasmStd.Angle.DoubleAsAngle(5., 53)]];
+        mutable c = [[0, 1, 1], [Std.OpenQASM.Convert.BoolAsInt(false), Std.OpenQASM.Convert.BoolAsInt(true), Std.OpenQASM.Convert.BoolAsInt(true)]];
+        mutable d = [[Std.OpenQASM.Angle.DoubleAsAngle(-1., 53), Std.OpenQASM.Angle.DoubleAsAngle(0., 53), Std.OpenQASM.Angle.DoubleAsAngle(0., 53)], [Std.OpenQASM.Angle.DoubleAsAngle(1., 53), Std.OpenQASM.Angle.DoubleAsAngle(5., 53), Std.OpenQASM.Angle.DoubleAsAngle(5., 53)]];
         mutable e = [[Std.Convert.IntAsDouble(-1), 0., 0.], [1., 5., 5.]];
         mutable f = [[Std.Math.Complex(Std.Convert.IntAsDouble(-2), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.), Std.Math.Complex(Std.Convert.IntAsDouble(0), 0.)], [Std.Math.Complex(0., 3.), Std.Math.MinusC(Std.Math.Complex(1., 0.), Std.Math.Complex(0., 2.)), Std.Math.Complex(0., 0.)]];
     "#]]
@@ -213,17 +213,17 @@ fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [false, false, false];
         mutable b = [0, 0, 0];
         mutable c = [0, 0, 0];
-        mutable d = [new QasmStd.Angle.Angle {
+        mutable d = [new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
         }];
@@ -232,7 +232,7 @@ fn assign_to_simple_arrays() -> miette::Result<(), Vec<Report>> {
         set a w/= 1 <- true;
         set b w/= 1 <- 4;
         set c w/= 1 <- 4;
-        set d w/= 1 <- new QasmStd.Angle.Angle {
+        set d w/= 1 <- new Std.OpenQASM.Angle.Angle {
             Value = 5734161139222659,
             Size = 53
         };
@@ -263,26 +263,26 @@ fn assign_to_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[false, false], [false, false], [false, false]];
         mutable b = [[0, 0], [0, 0], [0, 0]];
         mutable c = [[0, 0], [0, 0], [0, 0]];
-        mutable d = [[new QasmStd.Angle.Angle {
+        mutable d = [[new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }], [new QasmStd.Angle.Angle {
+        }], [new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }], [new QasmStd.Angle.Angle {
+        }], [new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
-        }, new QasmStd.Angle.Angle {
+        }, new Std.OpenQASM.Angle.Angle {
             Value = 0,
             Size = 53
         }]];
@@ -291,7 +291,7 @@ fn assign_to_multidimensional_arrays() -> miette::Result<(), Vec<Report>> {
         set a w/= 2 <- (a[2] w/ 1 <- true);
         set b w/= 2 <- (b[2] w/ 1 <- 4);
         set c w/= 2 <- (c[2] w/ 1 <- 4);
-        set d w/= 2 <- (d[2] w/ 1 <- new QasmStd.Angle.Angle {
+        set d w/= 2 <- (d[2] w/ 1 <- new Std.OpenQASM.Angle.Angle {
             Value = 5734161139222659,
             Size = 53
         });
@@ -312,7 +312,7 @@ fn assign_slice() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [0, 0, 0];
         mutable b = [5, 6];
         set a w/= 1..2 <- b;
@@ -329,7 +329,7 @@ fn default_simple_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [];
     "#]]
     .assert_eq(&qsharp);
@@ -344,7 +344,7 @@ fn init_simple_array_with_size_zero() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [];
     "#]]
     .assert_eq(&qsharp);
@@ -359,7 +359,7 @@ fn default_multidimensional_array_with_size_zero() -> miette::Result<(), Vec<Rep
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[], []];
     "#]]
     .assert_eq(&qsharp);
@@ -374,7 +374,7 @@ fn init_multidimensional_array_with_size_zero() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[], []];
     "#]]
     .assert_eq(&qsharp);
@@ -389,7 +389,7 @@ fn array_with_size_one() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [0];
     "#]]
     .assert_eq(&qsharp);
@@ -480,7 +480,7 @@ fn arrays_with_7_dimensions_are_supported() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [[[[[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]], [[[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]], [[[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]], [[[0, 0]], [[0, 0]]]]]]];
     "#]]
     .assert_eq(&qsharp);

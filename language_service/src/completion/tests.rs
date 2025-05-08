@@ -2977,7 +2977,7 @@ fn package_aliases() {
                         label: "MyDep",
                         kind: Module,
                         sort_text: Some(
-                            "0700MyDep",
+                            "0600MyDep",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3007,7 +3007,7 @@ fn package_alias_members() {
                         label: "Other",
                         kind: Module,
                         sort_text: Some(
-                            "0800Other",
+                            "0700Other",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3054,7 +3054,7 @@ fn dependency_namespace_members() {
                         label: "Sub",
                         kind: Module,
                         sort_text: Some(
-                            "0800Sub",
+                            "0700Sub",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3152,7 +3152,7 @@ fn member_completion_in_imported_namespace_from_dependency() {
                         label: "Bar",
                         kind: Module,
                         sort_text: Some(
-                            "0800Bar",
+                            "0700Bar",
                         ),
                         detail: None,
                         additional_text_edits: None,
@@ -3205,7 +3205,7 @@ fn aliased_namespace_in_dependency() {
                         label: "Bar",
                         kind: Module,
                         sort_text: Some(
-                            "0800Bar",
+                            "0700Bar",
                         ),
                         detail: None,
                         additional_text_edits: None,

@@ -16,7 +16,7 @@ fn for_loops_can_iterate_over_discrete_set() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
             set sum = sum + i;
@@ -36,7 +36,7 @@ fn for_loops_can_have_stmt_bodies() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0;
         for i : Int in [1, 5, 10] {
             set sum = sum + i;
@@ -57,7 +57,7 @@ fn for_loops_can_iterate_over_range() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0;
         for i : Int in 0..2..20 {
             set sum = sum + i;
@@ -78,7 +78,7 @@ fn for_loops_can_iterate_float_set() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0.;
         for f : Double in [1.2, -3.4, 0.5, 9.8] {
             set sum = sum + f;
@@ -100,7 +100,7 @@ fn for_loops_can_iterate_float_array_symbol() -> miette::Result<(), Vec<Report>>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0.;
         mutable my_floats = [1.2, -3.4, 0.5, 9.8];
         for f : Double in my_floats {
@@ -128,11 +128,11 @@ fn for_loops_can_iterate_bit_register() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable sum = 0;
         let reg = [One, Zero, One, Zero, One];
         for b : Result in reg {
-            set sum = sum + QasmStd.Convert.ResultAsInt(b);
+            set sum = sum + Std.OpenQASM.Convert.ResultAsInt(b);
         }
     "#]]
     .assert_eq(&qsharp);

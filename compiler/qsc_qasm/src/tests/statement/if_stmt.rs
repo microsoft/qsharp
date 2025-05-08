@@ -20,11 +20,11 @@ fn can_use_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         h(q);
         mutable result = QIR.Intrinsic.__quantum__qis__m__body(q);
-        if QasmStd.Convert.ResultAsBool(result) {
+        if Std.OpenQASM.Convert.ResultAsBool(result) {
             Reset(q);
         };
     "#]]
@@ -47,11 +47,11 @@ fn can_use_negated_cond_with_implicit_cast_to_bool() -> miette::Result<(), Vec<R
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         h(q);
         mutable result = QIR.Intrinsic.__quantum__qis__m__body(q);
-        if not QasmStd.Convert.ResultAsBool(result) {
+        if not Std.OpenQASM.Convert.ResultAsBool(result) {
             Reset(q);
         };
     "#]]
@@ -74,7 +74,7 @@ fn then_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             z(q);
@@ -95,7 +95,7 @@ fn else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             z(q);
@@ -118,7 +118,7 @@ fn then_and_else_branch_can_be_stmt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         if 0 == 1 {
             z(q);

@@ -3,13 +3,13 @@
 
 use crate::io::{InMemorySourceResolver, SourceResolver};
 use crate::semantic::{parse_source, QasmSemanticParseResult};
-use crate::stdlib::compile::package_store_with_qasm;
 use crate::{
     compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
     QasmCompileUnit, QubitSemantics,
 };
 use miette::Report;
 use qsc::compile::compile_ast;
+use qsc::compile::package_store_with_stdlib;
 use qsc::interpret::Error;
 use qsc::target::Profile;
 use qsc::{
@@ -60,12 +60,8 @@ pub(crate) fn generate_qir_from_ast(
     profile: Profile,
 ) -> Result<String, Vec<Error>> {
     let capabilities = profile.into();
-    let (stdid, qasmid, mut store) = package_store_with_qasm(capabilities);
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let (stdid, mut store) = package_store_with_stdlib(capabilities);
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
     qsc::codegen::qir::get_qir_from_ast(
         &mut store,
         &dependencies,
@@ -189,7 +185,7 @@ fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Rep
 /// used to do full compilation with best effort of the input.
 /// This is useful for fuzz testing.
 fn compile_qasm_best_effort(source: &str, profile: Profile) {
-    let (stdid, qasmid, store) = package_store_with_qasm(profile.into());
+    let (stdid, store) = package_store_with_stdlib(profile.into());
 
     let mut resolver = InMemorySourceResolver::from_iter([]);
     let config = CompilerConfig::new(
@@ -204,11 +200,7 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
         compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
     let (sources, _, package, _) = unit.into_tuple();
 
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut _unit, _errors) = compile_ast(
         &store,

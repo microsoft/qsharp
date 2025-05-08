@@ -664,12 +664,8 @@ fn create_interpreter_from_ast(
     package_type: PackageType,
 ) -> Result<Interpreter, Vec<interpret::Error>> {
     let capabilities = profile.into();
-    let (stdid, qasmid, mut store) = qsc::qasm::package_store_with_qasm(capabilities);
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let (stdid, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut unit, errors) = qsc::compile::compile_ast(
         &store,

@@ -631,7 +631,12 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     if name.starts_with("QIR") {
         None // We ignore "QIR" namespaces
     } else {
-        Some(name.name())
+        let name = name.name();
+        if name.to_lowercase().starts_with("std.openqasm") {
+            None // We ignore openqasm namespaces
+        } else {
+            Some(name)
+        }
     }
 }
 

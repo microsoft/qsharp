@@ -82,7 +82,7 @@ fn bitarray_indexing() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, Zero, One];
         let b = a[2];
         function f() : Unit {
@@ -106,7 +106,7 @@ fn bitarray_slicing() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let a = [One, Zero, One, Zero, One];
         let b = a[1..3];
         function f() : Unit {
@@ -129,7 +129,7 @@ fn bitarray_const_evaluation() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         let a = [Zero, One, Zero, One, Zero];
         function f() : Unit {
             mutable b = [Zero, One, Zero, One, Zero][1];

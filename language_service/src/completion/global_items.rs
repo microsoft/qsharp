@@ -281,6 +281,12 @@ impl<'a> Globals<'a> {
                     if !is_user_package && candidate_ns == ["Main".into()] {
                         return None;
                     }
+                    // filter out QASM namespaces
+                    if !is_user_package
+                        && namespace.name().to_lowercase().starts_with("std.openqasm")
+                    {
+                        return None;
+                    }
 
                     let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
                     if let Some(end) = prefix_stripped {
@@ -494,7 +500,11 @@ impl<'a> Globals<'a> {
                     if matches!(item.visibility, Visibility::Internal) && !is_user_package {
                         return None; // ignore item if not in the user's package
                     }
-
+                    if !is_user_package
+                        && namespace.name().to_lowercase().starts_with("std.openqasm")
+                    {
+                        return None; // ignore item if in a QASM namespace
+                    }
                     return match &item.kind {
                         ItemKind::Callable(callable_decl) if include_callables => {
                             Some(RelevantItem {

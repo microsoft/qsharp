@@ -1231,7 +1231,7 @@ impl QasmCompiler {
         if matches!(expr.ty, Type::Angle(..)) {
             build_call_with_param(
                 "AngleNotB",
-                &["QasmStd", "Angle"],
+                &["Std", "OpenQASM", "Angle"],
                 compiled_expr,
                 span,
                 expr.span,
@@ -1326,7 +1326,7 @@ impl QasmCompiler {
             }
         };
 
-        build_call_with_params(fn_name, &["QasmStd", "Angle"], operands, span, span)
+        build_call_with_params(fn_name, &["Std", "OpenQASM", "Angle"], operands, span, span)
     }
 
     fn compile_complex_binary_op(
@@ -1785,7 +1785,7 @@ impl QasmCompiler {
                     build_lit_int_expr(width.unwrap_or(f64::MANTISSA_DIGITS).into(), expr_span);
                 build_call_with_params(
                     "DoubleAsAngle",
-                    &["QasmStd", "Angle"],
+                    &["Std", "OpenQASM", "Angle"],
                     vec![expr, width],
                     expr_span,
                     expr_span,

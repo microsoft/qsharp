@@ -66,7 +66,7 @@ fn resolved_idenfiers_are_compiled_as_refs() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable p = Std.Math.PI();
         mutable x = p;
     "#]]
