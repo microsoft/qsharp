@@ -314,6 +314,10 @@ pub fn generate_docs(
             package_kind = PackageKind::UserCode;
         } else if let Some(alias) = compilation.dependencies.get(&package_id) {
             // This is a direct dependency of the user code.
+            if alias.contains("QasmStd") {
+                // QasmStd is a special package that we don't want to document.
+                continue;
+            }
             package_kind = PackageKind::AliasedPackage(alias.to_string());
         } else {
             // This is not a package user can access (an indirect dependency).

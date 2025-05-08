@@ -443,10 +443,19 @@ impl<'a> Globals<'a> {
                 if self.compilation.user_package_id == id {
                     return Some((true, None, &unit.package));
                 }
-                self.compilation
-                    .dependencies
-                    .get(&id)
-                    .map(|alias| (false, alias.as_ref().map(AsRef::as_ref), &unit.package))
+                if let Some(alias) = self.compilation.dependencies.get(&id) {
+                    if let Some(alias) = alias.as_ref() {
+                        if alias.contains("QasmStd") {
+                            None
+                        } else {
+                            Some((false, Some(alias.as_ref()), &unit.package))
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             });
         once((
             false,
