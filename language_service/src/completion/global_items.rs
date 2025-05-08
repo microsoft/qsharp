@@ -281,6 +281,10 @@ impl<'a> Globals<'a> {
                     if !is_user_package && candidate_ns == ["Main".into()] {
                         return None;
                     }
+                    // filter out QASM namespaces
+                    if !is_user_package && namespace.name().to_lowercase().contains("qasm") {
+                        return None;
+                    }
 
                     let prefix_stripped = candidate_ns.strip_prefix(ns_prefix);
                     if let Some(end) = prefix_stripped {
