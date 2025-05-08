@@ -133,9 +133,9 @@ function ResultArrayAsIntBE(results : Result[]) : Int {
     Std.Convert.ResultArrayAsInt(Std.Arrays.Reversed(results))
 }
 
-/// The ``DOUBLE_AS_BIT`` function is used to implement the cast expr in QASM for float to bit.
+/// The ``DOUBLE_AS_RESULT`` function is used to implement the cast expr in QASM for float to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function DoubleAsBit(value : Double) : Result {
+function DoubleAsResult(value : Double) : Result {
     if Truncate(value) == 0 {
         Zero
     } else {
