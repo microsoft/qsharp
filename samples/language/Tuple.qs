@@ -14,10 +14,40 @@ function Main() : (Int, String) {
     let myTuple = ("Id", 0, 1.);
     Message($"Tuple: {myTuple}");
 
+    // A tuple may be unpacked by assigning it to a tuple of variables
+    let (name, n, d) = myTuple;
+    Message($"Unpacked: {name}, {n}, {d}");
+
+    // If not all items are needed, a tuple may be unpacked into
+    // a tuple of variables with a wildcard `_` for the unwanted items.
+    let (name, _, _) = myTuple;
+    Message($"Name: {name}");
+
+    // A "tuple" may be created with a single item, but it is treated
+    // as the item itself enclosed in parenthesis, which is called
+    // singleton tuple equivalence.
+    let item = (0);
+    Message($"Item: {item}");
+    // Note that the type of `item` is `Int`, not `(Int)`.
+
+    // A tuple with a single item may be created with a trailing comma.
+    let myTuple = (0,);
+    Message($"myTuple: {myTuple}");
+    // The type of `myTuple` is `(Int)` or, rather `(Int,)`, not `Int`.
+
     // A tuple of type `Pauli`, and a nested tuple of type `(Int, Int)`.
     // The type annotation is provided for clarity, but not necessary.
     let myTuple : (Pauli, (Int, Int)) = (PauliX, (3, 1));
     Message($"Tuple: {myTuple}");
+
+    // A tuple containing a nested tuple may  be unpacked
+    // into a tuple of variables with the same structure.
+    let (p, (x, y)) = myTuple;
+    Message($"Unpacked: {p}, {x}, {y}");
+
+    // The outer tuple may be unpacked without unpacking the inner tuple.
+    let (_, coords) = myTuple;
+    Message($"Inner tuple: {coords}");
 
     return (0, "Foo");
 }
