@@ -5,10 +5,6 @@
 // A tuple literal is a sequence of one or more expressions of any type,
 // separated by commas and enclosed in parentheses `(` and `)`. The type of
 // the tuple includes the information about each item type.
-//
-// Tuples containing a single item are treated as identical to the item
-// itself, both in type and value, which is called singleton tuple equivalence.
-
 function Main() : (Int, String) {
     // A tuple of type `String`, `Int`, and `Double`
     let myTuple = ("Id", 0, 1.);
@@ -23,17 +19,16 @@ function Main() : (Int, String) {
     let (name, _, _) = myTuple;
     Message($"Name: {name}");
 
-    // A "tuple" may be created with a single item, but it is treated
-    // as the item itself enclosed in parenthesis, which is called
-    // singleton tuple equivalence.
+    // A single item in a round brackets does not denote a tuple.
+    // The parentheses are used to group the expression, not to create a tuple.
+    // Note that the type of `item` is `Int`, not `(Int)`.
     let item = (0);
     Message($"Item: {item}");
-    // Note that the type of `item` is `Int`, not `(Int)`.
 
     // A tuple with a single item may be created with a trailing comma.
+    // The type of `myTuple` is `(Int)` or, rather `(Int,)`, not `Int`.
     let myTuple = (0, );
     Message($"myTuple: {myTuple}");
-    // The type of `myTuple` is `(Int)` or, rather `(Int,)`, not `Int`.
 
     // A tuple of type `Pauli`, and a nested tuple of type `(Int, Int)`.
     // The type annotation is provided for clarity, but not necessary.
