@@ -74,7 +74,7 @@ function ResultAsDouble(value : Result) : Double {
     }
 }
 
-/// The ``RESULT_ARRAY_AS_BOOL_BE`` function is used to implement the cast expr in QASM for bit[n] to bool.
+/// The ``RESULT_ARRAY_AS_BOOL_BE`` function is used to implement the cast expr in QASM for bit[bits] to bool.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsBoolBE(array: Result[]) : Bool {
     for result in array {
@@ -85,7 +85,7 @@ function ResultArrayAsBoolBE(array: Result[]) : Bool {
     false
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to bit.
+/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsResultBE(array: Result[]) : Result {
     BoolAsResult(ResultArrayAsBoolBE(array))
@@ -109,19 +109,19 @@ function IntAsResultArrayBE(number : Int, bits : Int) : Result[] {
     Std.Arrays.Reversed(result)
 }
 
-/// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[n] to bit[n].
+/// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[bits] to bit[bits].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function AngleAsResultArrayBE(angle : Angle, bits : Int) : Result[] {
     IntAsResultArrayBE(angle.Value, bits)
 }
 
-/// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[n].
+/// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[bits].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function BoolAsResultArrayBE(value : Bool, bits: Int) : Result[] {
     IntAsResultArrayBE(BoolAsInt(value), bits)
 }
 
-/// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[n].
+/// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[bits].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultAsResultArrayBE(value : Result, bits: Int) : Result[] {
     IntAsResultArrayBE(ResultAsInt(value), bits)
