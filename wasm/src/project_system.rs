@@ -296,14 +296,26 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 &value.errors,
             ));
         }
+        let package_graph_sources = match value.project_type {
+            qsc_project::ProjectType::QSharp(ref pgs) => pgs.clone(),
+            qsc_project::ProjectType::OpenQASM(ref sources) => qsc_project::PackageGraphSources {
+                root: qsc_project::PackageInfo {
+                    sources: sources.clone(),
+                    language_features: LanguageFeatures::default(),
+                    dependencies: FxHashMap::default(),
+                    package_type: None,
+                },
+                packages: FxHashMap::default(),
+            },
+        };
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.path.to_string(),
             lints: value.lints,
-            package_graph_sources: value.package_graph_sources.into(),
+            package_graph_sources: package_graph_sources.into(),
             project_type: match value.project_type {
-                qsc_project::ProjectType::QSharp => "qsharp".into(),
-                qsc_project::ProjectType::OpenQASM => "openqasm".into(),
+                qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
+                qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
             },
         };
         Ok(project_config.into())

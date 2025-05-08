@@ -4,54 +4,55 @@ use crate::{compile, LanguageFeatures, TargetCapabilityFlags};
 use expect_test::expect;
 use qsc_frontend::compile::{CompileUnit, SourceMap};
 use qsc_passes::PackageType;
-use qsc_project::{PackageInfo, Project};
+use qsc_project::{PackageInfo, Project, ProjectType};
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
 
 fn mock_program() -> Project {
-    Project {
-        // Mock data for the ProgramConfig
-        package_graph_sources: qsc_project::PackageGraphSources {
-            root: qsc_project::PackageInfo {
+    // Mock data for the ProgramConfig
+    let package_graph_sources = qsc_project::PackageGraphSources {
+        root: qsc_project::PackageInfo {
+            sources: vec![(
+                Arc::from("test"),
+                Arc::from("@EntryPoint() operation Main() : Unit {}"),
+            )],
+            language_features: LanguageFeatures::default(),
+            dependencies: FxHashMap::from_iter(vec![(
+                Arc::from("SomeLibraryAlias"),
+                Arc::from("SomeLibraryKey"),
+            )]),
+            package_type: Some(qsc_project::PackageType::Exe),
+        },
+        packages: FxHashMap::from_iter(vec![(
+            Arc::from("SomeLibraryKey"),
+            PackageInfo {
                 sources: vec![(
-                    Arc::from("test"),
-                    Arc::from("@EntryPoint() operation Main() : Unit {}"),
+                    Arc::from("librarymain"),
+                    Arc::from("operation LibraryMain() : Unit {} export LibraryMain;"),
                 )],
                 language_features: LanguageFeatures::default(),
-                dependencies: FxHashMap::from_iter(vec![(
-                    Arc::from("SomeLibraryAlias"),
-                    Arc::from("SomeLibraryKey"),
-                )]),
-                package_type: Some(qsc_project::PackageType::Exe),
+                dependencies: FxHashMap::default(),
+                package_type: Some(qsc_project::PackageType::Lib),
             },
-            packages: FxHashMap::from_iter(vec![(
-                Arc::from("SomeLibraryKey"),
-                PackageInfo {
-                    sources: vec![(
-                        Arc::from("librarymain"),
-                        Arc::from("operation LibraryMain() : Unit {} export LibraryMain;"),
-                    )],
-                    language_features: LanguageFeatures::default(),
-                    dependencies: FxHashMap::default(),
-                    package_type: Some(qsc_project::PackageType::Lib),
-                },
-            )]),
-        },
+        )]),
+    };
+    Project {
         lints: vec![],
         errors: vec![],
         path: "project/qsharp.json".into(),
         name: "project".into(),
-        project_type: qsc_project::ProjectType::QSharp,
+        project_type: qsc_project::ProjectType::QSharp(package_graph_sources),
     }
 }
 
 #[test]
 fn test_prepare_package_store() {
     let program = mock_program();
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        program.package_graph_sources,
-    );
+    let ProjectType::QSharp(package_graph_sources) = program.project_type else {
+        panic!("project should be a Q# project");
+    };
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r"
             []
@@ -119,17 +120,17 @@ fn test_prepare_package_store() {
 
 #[test]
 fn missing_dependency_doesnt_force_failure() {
-    let mut program = mock_program();
-    program
-        .package_graph_sources
+    let program = mock_program();
+    let ProjectType::QSharp(mut package_graph_sources) = program.project_type else {
+        panic!("project should be a Q# project");
+    };
+    package_graph_sources
         .root
         .dependencies
         .insert("NonExistent".into(), "nonexistent-dep-key".into());
 
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        program.package_graph_sources,
-    );
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r"
             []
@@ -195,10 +196,12 @@ fn missing_dependency_doesnt_force_failure() {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn dependency_error() {
-    let mut program = mock_program();
+    let program = mock_program();
     // Inject a syntax error into one of the dependencies
-    program
-        .package_graph_sources
+    let ProjectType::QSharp(mut package_graph_sources) = program.project_type else {
+        panic!("project should be a Q# project");
+    };
+    package_graph_sources
         .packages
         .values_mut()
         .next()
@@ -206,10 +209,8 @@ fn dependency_error() {
         .sources[0]
         .1 = "broken_syntax".into();
 
-    let buildable_program = super::prepare_package_store(
-        TargetCapabilityFlags::default(),
-        program.package_graph_sources,
-    );
+    let buildable_program =
+        super::prepare_package_store(TargetCapabilityFlags::default(), package_graph_sources);
 
     expect![[r#"
         [

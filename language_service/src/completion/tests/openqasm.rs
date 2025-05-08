@@ -10,31 +10,19 @@ use indoc::indoc;
 use qsc::{
     line_column::{Position, Range},
     location::Location,
-    LanguageFeatures, PackageType,
+    PackageType,
 };
-use qsc_project::{PackageGraphSources, PackageInfo};
-use rustc_hash::FxHashMap;
 
 fn compile_project_with_markers_cursor_optional(
     sources_with_markers: &[(&str, &str)],
 ) -> (Compilation, Option<(String, Position)>, Vec<Location>) {
     let (sources, cursor_location, target_spans) = get_sources_and_markers(sources_with_markers);
 
-    let package_graph_sources = PackageGraphSources {
-        root: PackageInfo {
-            sources: sources.clone(),
-            language_features: LanguageFeatures::default(),
-            dependencies: FxHashMap::default(),
-            package_type: None,
-        },
-        packages: FxHashMap::default(),
-    };
-
     (
         Compilation::new_qasm(
             PackageType::Lib,
             qsc::target::Profile::Unrestricted,
-            package_graph_sources,
+            sources,
             vec![],
             &Arc::from("test project"),
         ),

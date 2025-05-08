@@ -248,49 +248,58 @@ impl<'a> CompilationStateUpdater<'a> {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
-            for (ref l_uri, ref mut source) in
-                &mut loaded_project.package_graph_sources.root.sources
-            {
+            let root_sources = match loaded_project.project_type {
+                ProjectType::OpenQASM(ref mut sources) => sources,
+                ProjectType::QSharp(ref mut package_graph_sources) => {
+                    &mut package_graph_sources.root.sources
+                }
+            };
+            for (ref l_uri, ref mut source) in root_sources {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();
                 }
             }
 
-            let compilation_overrides = PartialConfiguration {
-                language_features: Some(
-                    loaded_project.package_graph_sources.root.language_features,
-                ),
-                lints_config: loaded_project.lints,
-                package_type: loaded_project.package_graph_sources.root.package_type.map(
-                    |x| match x {
-                        qsc_project::PackageType::Exe => qsc::PackageType::Exe,
-                        qsc_project::PackageType::Lib => qsc::PackageType::Lib,
-                    },
-                ),
-                ..PartialConfiguration::default()
+            let (configuration, compilation_overrides) = match loaded_project.project_type {
+                ProjectType::QSharp(ref package_graph_sources) => {
+                    let compilation_overrides = PartialConfiguration {
+                        language_features: Some(package_graph_sources.root.language_features),
+                        lints_config: loaded_project.lints,
+                        package_type: package_graph_sources.root.package_type.map(|x| match x {
+                            qsc_project::PackageType::Exe => qsc::PackageType::Exe,
+                            qsc_project::PackageType::Lib => qsc::PackageType::Lib,
+                        }),
+                        ..PartialConfiguration::default()
+                    };
+
+                    (
+                        merge_configurations(&compilation_overrides, &self.configuration),
+                        compilation_overrides,
+                    )
+                }
+                ProjectType::OpenQASM(..) => {
+                    (self.configuration.clone(), PartialConfiguration::default())
+                }
             };
 
-            let configuration = merge_configurations(&compilation_overrides, &self.configuration);
-
-            let compilation = if matches!(loaded_project.project_type, ProjectType::OpenQASM) {
-                Compilation::new_qasm(
+            let compilation = match loaded_project.project_type {
+                ProjectType::OpenQASM(sources) => Compilation::new_qasm(
                     configuration.package_type,
                     configuration.target_profile,
-                    loaded_project.package_graph_sources,
+                    sources,
                     loaded_project.errors,
                     &loaded_project.name,
-                )
-            } else {
-                Compilation::new(
+                ),
+                ProjectType::QSharp(package_graph_sources) => Compilation::new(
                     configuration.package_type,
                     configuration.target_profile,
                     configuration.language_features,
                     &configuration.lints_config,
-                    loaded_project.package_graph_sources,
+                    package_graph_sources,
                     loaded_project.errors,
                     &loaded_project.name,
-                )
+                ),
             };
 
             state

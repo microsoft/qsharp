@@ -11,6 +11,7 @@ use qsc::{
     },
     LanguageFeatures,
 };
+use qsc_project::ProjectType;
 
 use crate::{
     compilation::CompilationKind,
@@ -89,7 +90,10 @@ fn expected_word_kinds(
         CompilationKind::Notebook { project } => possible_words_at_offset_in_fragments(
             source_contents,
             project.as_ref().map_or(LanguageFeatures::default(), |p| {
-                p.package_graph_sources.root.language_features
+                let ProjectType::QSharp(sources) = &p.project_type else {
+                    unreachable!("Project type should be Q#")
+                };
+                sources.root.language_features
             }),
             cursor_offset,
         ),
