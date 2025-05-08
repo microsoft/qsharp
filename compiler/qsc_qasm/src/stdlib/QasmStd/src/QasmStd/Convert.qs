@@ -91,7 +91,7 @@ function ResultArrayAsResultBE(array: Result[]) : Result {
     BoolAsResult(ResultArrayAsBoolBE(array))
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
+/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[bits] to angle[bits].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsAngleBE(array: Result[], bits: Int) : Angle {
     IntAsAngle(ResultArrayAsIntBE(array), bits)
