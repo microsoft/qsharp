@@ -5,6 +5,58 @@ use crate::semantic::tests::check_stmt_kinds;
 use expect_test::expect;
 
 #[test]
+fn implicit_cast_from_int() {
+    let input = "
+        complex x = 2 + 3 im;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+        ClassicalDeclarationStmt [9-30]:
+            symbol_id: 8
+            ty_span: [9-16]
+            init_expr: Expr [21-29]:
+                ty: Complex(None, false)
+                kind: BinaryOpExpr:
+                    op: Add
+                    lhs: Expr [21-22]:
+                        ty: Complex(None, true)
+                        kind: Lit: Complex(2.0, 0.0)
+                    rhs: Expr [25-29]:
+                        ty: Complex(None, true)
+                        kind: Lit: Complex(0.0, 3.0)
+    "#]],
+    );
+}
+
+#[test]
+fn implicit_cast_from_float() {
+    let input = "
+        complex x = 2.0 + 3.0 im;
+    ";
+
+    check_stmt_kinds(
+        input,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-34]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [21-33]:
+                    ty: Complex(None, false)
+                    kind: BinaryOpExpr:
+                        op: Add
+                        lhs: Expr [21-24]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(2.0, 0.0)
+                        rhs: Expr [27-33]:
+                            ty: Complex(None, true)
+                            kind: Lit: Complex(0.0, 3.0)
+        "#]],
+    );
+}
+
+#[test]
 fn addition() {
     let input = "
         input complex[float] a;
