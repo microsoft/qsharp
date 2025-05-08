@@ -49,11 +49,10 @@ fn collect_hardcoded_words(
     }
 
     for keyword in expected.iter_keywords() {
-        let keyword = keyword.to_string();
-        // Skip adding the underscore keyword to the list, it's more confusing than helpful.
-        if keyword != "_" {
-            completions.push(Completion::new(keyword, CompletionItemKind::Keyword));
-        }
+        completions.push(Completion::new(
+            keyword.to_string(),
+            CompletionItemKind::Keyword,
+        ));
     }
 
     completions
