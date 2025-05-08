@@ -323,8 +323,6 @@ const _ghostQuibitLayer = (context: Context) => {
     wireData.length.toString(),
   );
   ghostLabel.classList.add("ghost-opacity");
-
-  // Append to ghost-qubit-layer instead of dropzoneLayer
   ghostLayer.appendChild(ghostWire);
   ghostLayer.appendChild(ghostLabel);
 
