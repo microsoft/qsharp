@@ -816,7 +816,7 @@
         ],
         "toolReferenceName": "qsharpRunProgram",
         "displayName": "Run Q# Program",
-        "modelDescription": "Executes a Q# program. The path to a .qs file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# does not provide any CLI tools, so call this tool whenever you need to execute Q#, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a window will open to display a histogram of the results.",
+        "modelDescription": "Executes a Q# program. The path to a .qs file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# does not provide any CLI tools, so call this tool whenever you need to execute Q#, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a histogram will be generated, and the results will be displayed in a dedicated panel.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
@@ -824,7 +824,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file to run."
+              "description": "The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program."
             },
             "shots": {
               "type": "number",
@@ -854,7 +854,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file to generate a circuit diagram for."
+              "description": "The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program."
             }
           },
           "required": [
@@ -880,7 +880,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file to estimate resources for."
+              "description": "The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program."
             }
           },
           "required": [
