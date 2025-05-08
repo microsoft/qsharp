@@ -4,7 +4,6 @@
 mod binary;
 mod explicit_cast_from_angle;
 mod explicit_cast_from_bit;
-mod explicit_cast_from_bitarray;
 mod explicit_cast_from_bool;
 mod explicit_cast_from_complex;
 mod explicit_cast_from_duration;
