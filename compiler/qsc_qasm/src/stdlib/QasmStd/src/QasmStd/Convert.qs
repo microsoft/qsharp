@@ -124,7 +124,9 @@ function BoolAsResultArrayBE(value : Bool, bits: Int) : Result[] {
 /// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultAsResultArrayBE(value : Result, bits: Int) : Result[] {
-    IntAsResultArrayBE(ResultAsInt(value), bits)
+    // Since we are in big endian notation, the most significant bit is stored
+    // first, in other words the least significant bit is at the end.
+    return Repeated(Zero, bits - 1) + [value]
 }
 
 /// The ``RESULT_ARRAY_AS_INT_BE`` function is used to implement the cast expr in QASM for bit[] to uint.
