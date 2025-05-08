@@ -91,3 +91,45 @@ fn fuzz_2348() {
     super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
+
+#[test]
+fn fuzz_2369() {
+    let source = r#"// Ope0 standard gate) mibrary
+//
+// Notely the set that the intarlenly.  See the
+// `source/language/standard_lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ πtdgpow(0.` documeni )5 tanverx a { po0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+g,aoooooootoe i {adnv @WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW _lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse off sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+g,aoooooootoe i {adnv @WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW _lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoogaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoogaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` w(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inver5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe tg  i {adnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ staildnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ stail."#;
+    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
