@@ -45,7 +45,7 @@ fn bool_to_int() {
             ExprStmt [25-32]:
                 expr: Expr [29-30]:
                     ty: Int(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [29-30]:
                         ty: Int(None, false)
                         expr: Expr [29-30]:
                             ty: Bool(false)
@@ -72,7 +72,7 @@ fn bool_to_uint() {
             ExprStmt [25-33]:
                 expr: Expr [30-31]:
                     ty: UInt(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [30-31]:
                         ty: UInt(None, false)
                         expr: Expr [30-31]:
                             ty: Bool(false)
@@ -90,21 +90,21 @@ fn bool_to_float() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: Bool(true)
-                kind: Lit: Bool(false)
-        ExprStmt [25-34]:
-            expr: Expr [31-32]:
-                ty: Float(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: Bool(true)
+                    kind: Lit: Bool(false)
+            ExprStmt [25-34]:
+                expr: Expr [31-32]:
                     ty: Float(None, false)
-                    expr: Expr [31-32]:
-                        ty: Bool(false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: Float(None, false)
+                        expr: Expr [31-32]:
+                            ty: Bool(false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -157,21 +157,21 @@ fn bool_to_bit() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: Bool(true)
-                kind: Lit: Bool(false)
-        ExprStmt [25-32]:
-            expr: Expr [29-30]:
-                ty: Bit(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: Bool(true)
+                    kind: Lit: Bool(false)
+            ExprStmt [25-32]:
+                expr: Expr [29-30]:
                     ty: Bit(false)
-                    expr: Expr [29-30]:
-                        ty: Bool(false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [29-30]:
+                        ty: Bit(false)
+                        expr: Expr [29-30]:
+                            ty: Bool(false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -193,7 +193,7 @@ fn bool_to_bitarray() {
             ExprStmt [25-35]:
                 expr: Expr [32-33]:
                     ty: BitArray(8, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [32-33]:
                         ty: BitArray(8, false)
                         expr: Expr [32-33]:
                             ty: Bool(false)

@@ -22,7 +22,7 @@ fn int_to_bool() {
             ExprStmt [24-32]:
                 expr: Expr [29-30]:
                     ty: Bool(false)
-                    kind: Cast [0-0]:
+                    kind: Cast [29-30]:
                         ty: Bool(false)
                         expr: Expr [29-30]:
                             ty: Int(None, false)
@@ -72,7 +72,7 @@ fn int_to_uint() {
             ExprStmt [24-32]:
                 expr: Expr [29-30]:
                     ty: UInt(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [29-30]:
                         ty: UInt(None, false)
                         expr: Expr [29-30]:
                             ty: Int(None, false)
@@ -99,7 +99,7 @@ fn int_to_float() {
             ExprStmt [24-33]:
                 expr: Expr [30-31]:
                     ty: Float(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [30-31]:
                         ty: Float(None, false)
                         expr: Expr [30-31]:
                             ty: Int(None, false)
@@ -166,7 +166,7 @@ fn int_to_bit() {
             ExprStmt [24-31]:
                 expr: Expr [28-29]:
                     ty: Bit(false)
-                    kind: Cast [0-0]:
+                    kind: Cast [28-29]:
                         ty: Bit(false)
                         expr: Expr [28-29]:
                             ty: Int(None, false)
@@ -193,7 +193,7 @@ fn int_to_bitarray() {
             ExprStmt [24-34]:
                 expr: Expr [31-32]:
                     ty: BitArray(8, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [31-32]:
                         ty: BitArray(8, false)
                         expr: Expr [31-32]:
                             ty: Int(None, false)
@@ -263,7 +263,7 @@ fn int_to_complex() {
             ExprStmt [24-35]:
                 expr: Expr [32-33]:
                     ty: Complex(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [32-33]:
                         ty: Complex(None, false)
                         expr: Expr [32-33]:
                             ty: Int(None, false)

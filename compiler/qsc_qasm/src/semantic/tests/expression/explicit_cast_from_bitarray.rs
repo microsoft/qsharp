@@ -22,7 +22,7 @@ fn bitarray_to_bool() {
             ExprStmt [27-35]:
                 expr: Expr [32-33]:
                     ty: Bool(false)
-                    kind: Cast [0-0]:
+                    kind: Cast [32-33]:
                         ty: Bool(false)
                         expr: Expr [32-33]:
                             ty: BitArray(8, false)
@@ -40,21 +40,21 @@ fn bitarray_to_int() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-18]:
-            symbol_id: 8
-            ty_span: [9-15]
-            init_expr: Expr [0-0]:
-                ty: BitArray(8, true)
-                kind: Lit: Bitstring("00000000")
-        ExprStmt [27-34]:
-            expr: Expr [31-32]:
-                ty: Int(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-18]:
+                symbol_id: 8
+                ty_span: [9-15]
+                init_expr: Expr [0-0]:
+                    ty: BitArray(8, true)
+                    kind: Lit: Bitstring("00000000")
+            ExprStmt [27-34]:
+                expr: Expr [31-32]:
                     ty: Int(None, false)
-                    expr: Expr [31-32]:
-                        ty: BitArray(8, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: Int(None, false)
+                        expr: Expr [31-32]:
+                            ty: BitArray(8, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -67,21 +67,21 @@ fn bitarray_to_uint() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-18]:
-            symbol_id: 8
-            ty_span: [9-15]
-            init_expr: Expr [0-0]:
-                ty: BitArray(8, true)
-                kind: Lit: Bitstring("00000000")
-        ExprStmt [27-35]:
-            expr: Expr [32-33]:
-                ty: UInt(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-18]:
+                symbol_id: 8
+                ty_span: [9-15]
+                init_expr: Expr [0-0]:
+                    ty: BitArray(8, true)
+                    kind: Lit: Bitstring("00000000")
+            ExprStmt [27-35]:
+                expr: Expr [32-33]:
                     ty: UInt(None, false)
-                    expr: Expr [32-33]:
-                        ty: BitArray(8, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [32-33]:
+                        ty: UInt(None, false)
+                        expr: Expr [32-33]:
+                            ty: BitArray(8, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -144,7 +144,7 @@ fn bitarray_to_angle() {
             ExprStmt [27-39]:
                 expr: Expr [36-37]:
                     ty: Angle(Some(8), false)
-                    kind: Cast [0-0]:
+                    kind: Cast [36-37]:
                         ty: Angle(Some(8), false)
                         expr: Expr [36-37]:
                             ty: BitArray(8, false)
@@ -171,7 +171,7 @@ fn bitarray_to_bit() {
             ExprStmt [27-34]:
                 expr: Expr [31-32]:
                     ty: Bit(false)
-                    kind: Cast [0-0]:
+                    kind: Cast [31-32]:
                         ty: Bit(false)
                         expr: Expr [31-32]:
                             ty: BitArray(8, false)

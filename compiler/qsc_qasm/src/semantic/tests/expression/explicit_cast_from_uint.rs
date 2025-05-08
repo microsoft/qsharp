@@ -13,21 +13,21 @@ fn uint_to_bool() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-33]:
-            expr: Expr [30-31]:
-                ty: Bool(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: UInt(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [25-33]:
+                expr: Expr [30-31]:
                     ty: Bool(false)
-                    expr: Expr [30-31]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [30-31]:
+                        ty: Bool(false)
+                        expr: Expr [30-31]:
+                            ty: UInt(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -40,21 +40,21 @@ fn uint_to_int() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-32]:
-            expr: Expr [29-30]:
-                ty: Int(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: UInt(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [25-32]:
+                expr: Expr [29-30]:
                     ty: Int(None, false)
-                    expr: Expr [29-30]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [29-30]:
+                        ty: Int(None, false)
+                        expr: Expr [29-30]:
+                            ty: UInt(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -90,21 +90,21 @@ fn uint_to_float() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-34]:
-            expr: Expr [31-32]:
-                ty: Float(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: UInt(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [25-34]:
+                expr: Expr [31-32]:
                     ty: Float(None, false)
-                    expr: Expr [31-32]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: Float(None, false)
+                        expr: Expr [31-32]:
+                            ty: UInt(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -158,21 +158,21 @@ fn uint_to_bit() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-32]:
-            expr: Expr [29-30]:
-                ty: Bit(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: UInt(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [25-32]:
+                expr: Expr [29-30]:
                     ty: Bit(false)
-                    expr: Expr [29-30]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [29-30]:
+                        ty: Bit(false)
+                        expr: Expr [29-30]:
+                            ty: UInt(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -185,21 +185,21 @@ fn uint_to_bitarray() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-16]:
-            symbol_id: 8
-            ty_span: [9-13]
-            init_expr: Expr [0-0]:
-                ty: UInt(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [25-35]:
-            expr: Expr [32-33]:
-                ty: BitArray(8, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-16]:
+                symbol_id: 8
+                ty_span: [9-13]
+                init_expr: Expr [0-0]:
+                    ty: UInt(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [25-35]:
+                expr: Expr [32-33]:
                     ty: BitArray(8, false)
-                    expr: Expr [32-33]:
-                        ty: UInt(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [32-33]:
+                        ty: BitArray(8, false)
+                        expr: Expr [32-33]:
+                            ty: UInt(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -261,7 +261,7 @@ fn uint_to_complex() {
             ExprStmt [25-36]:
                 expr: Expr [33-34]:
                     ty: Complex(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [33-34]:
                         ty: Complex(None, false)
                         expr: Expr [33-34]:
                             ty: UInt(None, false)

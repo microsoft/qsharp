@@ -13,21 +13,21 @@ fn float_to_bool() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Float(None, true)
-                kind: Lit: Float(0.0)
-        ExprStmt [26-34]:
-            expr: Expr [31-32]:
-                ty: Bool(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Float(None, true)
+                    kind: Lit: Float(0.0)
+            ExprStmt [26-34]:
+                expr: Expr [31-32]:
                     ty: Bool(false)
-                    expr: Expr [31-32]:
-                        ty: Float(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: Bool(false)
+                        expr: Expr [31-32]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -40,21 +40,21 @@ fn float_to_int() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Float(None, true)
-                kind: Lit: Float(0.0)
-        ExprStmt [26-33]:
-            expr: Expr [30-31]:
-                ty: Int(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Float(None, true)
+                    kind: Lit: Float(0.0)
+            ExprStmt [26-33]:
+                expr: Expr [30-31]:
                     ty: Int(None, false)
-                    expr: Expr [30-31]:
-                        ty: Float(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [30-31]:
+                        ty: Int(None, false)
+                        expr: Expr [30-31]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -67,21 +67,21 @@ fn float_to_uint() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Float(None, true)
-                kind: Lit: Float(0.0)
-        ExprStmt [26-34]:
-            expr: Expr [31-32]:
-                ty: UInt(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Float(None, true)
+                    kind: Lit: Float(0.0)
+            ExprStmt [26-34]:
+                expr: Expr [31-32]:
                     ty: UInt(None, false)
-                    expr: Expr [31-32]:
-                        ty: Float(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: UInt(None, false)
+                        expr: Expr [31-32]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -117,21 +117,21 @@ fn float_to_angle() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Float(None, true)
-                kind: Lit: Float(0.0)
-        ExprStmt [26-35]:
-            expr: Expr [32-33]:
-                ty: Angle(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Float(None, true)
+                    kind: Lit: Float(0.0)
+            ExprStmt [26-35]:
+                expr: Expr [32-33]:
                     ty: Angle(None, false)
-                    expr: Expr [32-33]:
-                        ty: Float(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [32-33]:
+                        ty: Angle(None, false)
+                        expr: Expr [32-33]:
+                            ty: Float(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -153,7 +153,7 @@ fn float_to_bit() {
             ExprStmt [26-33]:
                 expr: Expr [30-31]:
                     ty: Bit(false)
-                    kind: Cast [0-0]:
+                    kind: Cast [30-31]:
                         ty: Bit(false)
                         expr: Expr [30-31]:
                             ty: Float(None, false)
@@ -264,7 +264,7 @@ fn float_to_complex() {
             ExprStmt [26-37]:
                 expr: Expr [34-35]:
                     ty: Complex(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [34-35]:
                         ty: Complex(None, false)
                         expr: Expr [34-35]:
                             ty: Float(None, false)

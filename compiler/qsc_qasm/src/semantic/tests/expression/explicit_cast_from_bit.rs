@@ -13,21 +13,21 @@ fn bit_to_bool() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Bit(true)
-                kind: Lit: Bit(0)
-        ExprStmt [24-32]:
-            expr: Expr [29-30]:
-                ty: Bool(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Bit(true)
+                    kind: Lit: Bit(0)
+            ExprStmt [24-32]:
+                expr: Expr [29-30]:
                     ty: Bool(false)
-                    expr: Expr [29-30]:
-                        ty: Bit(false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [29-30]:
+                        ty: Bool(false)
+                        expr: Expr [29-30]:
+                            ty: Bit(false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -40,21 +40,21 @@ fn bit_to_int() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Bit(true)
-                kind: Lit: Bit(0)
-        ExprStmt [24-31]:
-            expr: Expr [28-29]:
-                ty: Int(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Bit(true)
+                    kind: Lit: Bit(0)
+            ExprStmt [24-31]:
+                expr: Expr [28-29]:
                     ty: Int(None, false)
-                    expr: Expr [28-29]:
-                        ty: Bit(false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-29]:
+                        ty: Int(None, false)
+                        expr: Expr [28-29]:
+                            ty: Bit(false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -67,21 +67,21 @@ fn bit_to_uint() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Bit(true)
-                kind: Lit: Bit(0)
-        ExprStmt [24-32]:
-            expr: Expr [29-30]:
-                ty: UInt(None, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Bit(true)
+                    kind: Lit: Bit(0)
+            ExprStmt [24-32]:
+                expr: Expr [29-30]:
                     ty: UInt(None, false)
-                    expr: Expr [29-30]:
-                        ty: Bit(false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [29-30]:
+                        ty: UInt(None, false)
+                        expr: Expr [29-30]:
+                            ty: Bit(false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -103,7 +103,7 @@ fn bit_to_float() {
             ExprStmt [24-33]:
                 expr: Expr [30-31]:
                     ty: Float(None, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [30-31]:
                         ty: Float(None, false)
                         expr: Expr [30-31]:
                             ty: Bit(false)
@@ -193,7 +193,7 @@ fn bit_to_bitarray() {
             ExprStmt [24-34]:
                 expr: Expr [31-32]:
                     ty: BitArray(8, false)
-                    kind: Cast [0-0]:
+                    kind: Cast [31-32]:
                         ty: BitArray(8, false)
                         expr: Expr [31-32]:
                             ty: Bit(false)

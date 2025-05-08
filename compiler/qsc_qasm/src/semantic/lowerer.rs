@@ -670,7 +670,15 @@ impl Lowerer {
     fn lower_cast_expr(&mut self, cast: &syntax::Cast) -> semantic::Expr {
         let expr = self.lower_expr(&cast.arg);
         let ty = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
-        self.cast_expr_to_type(&ty, &expr)
+        let mut cast = self.cast_expr_to_type(&ty, &expr);
+
+        // This is an explicit cast, so we know its span. If casting
+        // succeded, override the default span with the cast span.
+        if let semantic::ExprKind::Cast(cast_ref) = cast.kind.as_mut() {
+            cast_ref.span = cast.span;
+        }
+
+        cast
     }
 
     fn lower_ident_expr(&mut self, ident: &syntax::Ident) -> semantic::Expr {

@@ -13,21 +13,21 @@ fn angle_to_bool() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Angle(None, true)
-                kind: Lit: Angle(0)
-        ExprStmt [26-34]:
-            expr: Expr [31-32]:
-                ty: Bool(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Angle(None, true)
+                    kind: Lit: Angle(0)
+            ExprStmt [26-34]:
+                expr: Expr [31-32]:
                     ty: Bool(false)
-                    expr: Expr [31-32]:
-                        ty: Angle(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [31-32]:
+                        ty: Bool(false)
+                        expr: Expr [31-32]:
+                            ty: Angle(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -185,21 +185,21 @@ fn angle_to_bit() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Angle(None, true)
-                kind: Lit: Angle(0)
-        ExprStmt [26-33]:
-            expr: Expr [30-31]:
-                ty: Bit(false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Angle(None, true)
+                    kind: Lit: Angle(0)
+            ExprStmt [26-33]:
+                expr: Expr [30-31]:
                     ty: Bit(false)
-                    expr: Expr [30-31]:
-                        ty: Angle(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [30-31]:
+                        ty: Bit(false)
+                        expr: Expr [30-31]:
+                            ty: Angle(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -212,21 +212,21 @@ fn angle_to_bitarray() {
     check(
         input,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-17]:
-            symbol_id: 8
-            ty_span: [9-14]
-            init_expr: Expr [0-0]:
-                ty: Angle(None, true)
-                kind: Lit: Angle(0)
-        ExprStmt [26-36]:
-            expr: Expr [33-34]:
-                ty: BitArray(8, false)
-                kind: Cast [0-0]:
+            ClassicalDeclarationStmt [9-17]:
+                symbol_id: 8
+                ty_span: [9-14]
+                init_expr: Expr [0-0]:
+                    ty: Angle(None, true)
+                    kind: Lit: Angle(0)
+            ExprStmt [26-36]:
+                expr: Expr [33-34]:
                     ty: BitArray(8, false)
-                    expr: Expr [33-34]:
-                        ty: Angle(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [33-34]:
+                        ty: BitArray(8, false)
+                        expr: Expr [33-34]:
+                            ty: Angle(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
