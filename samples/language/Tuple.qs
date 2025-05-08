@@ -19,8 +19,8 @@ function Main() : (Int, String) {
     let (name, _, _) = myTuple;
     Message($"Name: {name}");
 
-    // A single item in a round brackets does not denote a tuple.
-    // The parentheses are used to group the expression, not to create a tuple.
+    // A single item in a round brackets does not denote a tuple. In this case,
+    // the parentheses are used to group the expression, not to create a tuple.
     // Note that the type of `item` is `Int`, not `(Int)`.
     let item = (0);
     Message($"Item: {item}");
