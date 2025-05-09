@@ -3,8 +3,8 @@
 
 import { ILanguageService, log } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpNotebookCell } from "../common.js";
 import { findQSharpCellMagic, jupyterNotebookType } from "../notebook.js";
+import { isQdkNotebookCell2 } from "../common.js";
 
 const qsharpConfigMimeType = "application/x.qsharp-config";
 
@@ -76,7 +76,7 @@ export function registerQSharpNotebookCellUpdateHandlers(
   function getQSharpCells(notebook: vscode.NotebookDocument) {
     return notebook
       .getCells()
-      .filter((cell) => isQsharpNotebookCell(cell.document));
+      .filter((cell) => isQdkNotebookCell2(cell.document));
   }
 
   function getQSharpText(document: vscode.TextDocument) {

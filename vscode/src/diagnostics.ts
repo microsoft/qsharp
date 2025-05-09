@@ -4,7 +4,6 @@
 import { IQSharpError, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
-  hasOpenQasmExt,
   qsharpExtensionId,
   qsharpLanguageId,
   toVsCodeDiagnostic,
@@ -178,13 +177,9 @@ function reportIfQSharpErrors(e: unknown) {
 
     for (const error of qsharpErrors) {
       const uri = getSourceUri(error.document);
-      let languageId = "Q#";
-      if (hasOpenQasmExt(uri)) {
-        languageId = "OpenQASM";
-      }
 
       const diagnostics = byUri.get(uri) || [];
-      error.diagnostic.message = `${languageId} command error: ${error.diagnostic.message}`;
+      error.diagnostic.message = `QDK command error: ${error.diagnostic.message}`;
       diagnostics.push(toVsCodeDiagnostic(error.diagnostic));
       byUri.set(uri, diagnostics);
     }

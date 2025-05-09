@@ -3,9 +3,9 @@
 
 import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isOpenQasmDocument, isQsharpDocument } from "./common";
 import { getTarget } from "./config";
 import { loadOpenQasmProject, loadProject } from "./projectSystem";
+import { isOpenQasmDocument2, isQdkDocument } from "./common";
 
 /**
  * Notice the similarity to @type {ProgramConfig} and @type {IProjectConfig}.
@@ -38,88 +38,65 @@ export type FullProgramConfigOrError =
     };
 
 /**
- * @returns The currently active Q# project configuration. This is a general-purpose
+ * @returns The currently active QDK project configuration. This is a general-purpose
  *   function that is useful for any extension command that is intended to
  *   operate on the "current" project.
  */
 export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
-  const docUri = getActiveQSharpDocumentUri();
-  if (docUri) {
-    return await getQSharpProgramForDocument(docUri);
-  } else {
-    const docUri = getActiveOpenQasmDocumentUri();
-    if (!docUri) {
-      return {
-        success: false,
-        errorMsg: "The currently active window is not a supported document",
-      };
-    }
-    return await getOpenQasmProgramForDocument(docUri);
+  const doc = getActiveQdkDocument();
+  if (!doc) {
+    return {
+      success: false,
+      errorMsg:
+        "The currently active window is not a document supported by the QDK",
+    };
   }
+
+  return getProgramForDocument(doc);
 }
 
 /**
- * @returns The URI of the currently active Q# document, or undefined if the current
- *   active editor is not a Q# document.
+ * @returns The URI of the currently active QDK document, or undefined if the current
+ *   active editor is not a QDK document.
  */
-export function getActiveQSharpDocumentUri(): vscode.Uri | undefined {
-  const editor = vscode.window.activeTextEditor;
-
-  return editor?.document && isQsharpDocument(editor.document)
-    ? editor.document.uri
-    : undefined;
+export function getActiveQdkDocumentUri(): vscode.Uri | undefined {
+  return getActiveQdkDocument()?.uri;
 }
 
-/**
- * @returns The URI of the currently active Q# document, or undefined if the current
- *   active editor is not a Q# document.
- */
-export function getActiveOpenQasmDocumentUri(): vscode.Uri | undefined {
+export function getActiveQdkDocument(): vscode.TextDocument | undefined {
   const editor = vscode.window.activeTextEditor;
 
-  return editor?.document && isOpenQasmDocument(editor.document)
-    ? editor.document.uri
+  return editor?.document && isQdkDocument(editor.document)
+    ? editor.document
     : undefined;
 }
 
 export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
-  const docUri = getVisibleQSharpDocumentUri();
-  if (docUri) {
-    return await getQSharpProgramForDocument(docUri);
-  } else {
-    const docUri = getVisibleOpenQasmDocumentUri();
-    if (!docUri) {
-      return {
-        success: false,
-        errorMsg: "The currently active window is not a supported document",
-      };
-    }
-    return await getOpenQasmProgramForDocument(docUri);
-  }
-}
-
-export function getVisibleQSharpDocumentUri(): vscode.Uri | undefined {
-  return vscode.window.visibleTextEditors.find((editor) =>
-    isQsharpDocument(editor.document),
-  )?.document.uri;
-}
-
-export async function getVisibleOpenQasmProgram(): Promise<FullProgramConfigOrError> {
-  const docUri = getVisibleOpenQasmDocumentUri();
-  if (!docUri) {
+  const doc = getVisibleQdkDocument();
+  if (!doc) {
     return {
       success: false,
-      errorMsg: "Unable to find a visible OpenQASM document",
+      errorMsg:
+        "There are no visible windows that contain a document supported by the QDK",
     };
   }
-
-  return await getOpenQasmProgramForDocument(docUri);
+  return getProgramForDocument(doc);
 }
 
-export function getVisibleOpenQasmDocumentUri(): vscode.Uri | undefined {
+export function getVisibleQdkDocumentUri(): vscode.Uri | undefined {
+  return getVisibleQdkDocument()?.uri;
+}
+
+function getVisibleQdkDocument(): vscode.TextDocument | undefined {
   return vscode.window.visibleTextEditors.find((editor) =>
-    isOpenQasmDocument(editor.document),
-  )?.document.uri;
+    isQdkDocument(editor.document),
+  )?.document;
+}
+
+export async function getProgramForDocument(doc: vscode.TextDocument) {
+  return isOpenQasmDocument2(doc)
+    ? await getOpenQasmProgramForDocument(doc.uri)
+    : await getQSharpProgramForDocument(doc.uri);
 }
 
 /**

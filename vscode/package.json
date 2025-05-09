@@ -147,18 +147,13 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.runEditorContents",
-          "when": "resourceLangId == openqasm",
-          "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.openqasm.debugEditorContents",
@@ -624,15 +619,16 @@
       {
         "type": "qsharp",
         "languages": [
-          "qsharp"
+          "qsharp",
+          "openqasm"
         ],
-        "label": "Q# Debug",
+        "label": "QDK Debug",
         "configurationAttributes": {
           "launch": {
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Absolute path to a text file.",
+                "description": "Absolute path to a source file.",
                 "default": "${file}"
               },
               "stopOnEntry": {
@@ -644,44 +640,6 @@
                 "type": "string",
                 "description": "Entry expression.",
                 "default": ""
-              },
-              "shots": {
-                "type": "number",
-                "description": "Number of shots to execute.",
-                "default": 1
-              },
-              "trace": {
-                "type": "boolean",
-                "description": "Enable logging of the Debug Adapter Protocol.",
-                "default": false
-              },
-              "showCircuit": {
-                "type": "boolean",
-                "description": "Display the quantum circuit diagram while running.",
-                "default": false
-              }
-            }
-          }
-        }
-      },
-      {
-        "type": "openqasm",
-        "languages": [
-          "openqasm"
-        ],
-        "label": "OpenQASM Debug",
-        "configurationAttributes": {
-          "launch": {
-            "properties": {
-              "program": {
-                "type": "string",
-                "description": "Absolute path to a text file.",
-                "default": "${file}"
-              },
-              "stopOnEntry": {
-                "type": "boolean",
-                "description": "Automatically stop after launch.",
-                "default": false
               },
               "shots": {
                 "type": "number",
