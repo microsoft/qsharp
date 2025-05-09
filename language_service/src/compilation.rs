@@ -273,11 +273,6 @@ impl Compilation {
                 capabilities,
             );
 
-        let dependencies = dependencies
-            .into_iter()
-            .chain(once((source_package_id, None)))
-            .collect();
-
         Self {
             package_store: store,
             user_package_id: source_package_id,
@@ -287,7 +282,7 @@ impl Compilation {
             },
             compile_errors,
             project_errors,
-            dependencies,
+            dependencies: dependencies.into_iter().collect(),
             test_cases: vec![],
         }
     }
