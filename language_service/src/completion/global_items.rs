@@ -498,7 +498,9 @@ impl<'a> Globals<'a> {
                     if matches!(item.visibility, Visibility::Internal) && !is_user_package {
                         return None; // ignore item if not in the user's package
                     }
-
+                    if !is_user_package && namespace.name().to_lowercase().contains("qasm") {
+                        return None; // ignore item if in a QASM namespace
+                    }
                     return match &item.kind {
                         ItemKind::Callable(callable_decl) if include_callables => {
                             Some(RelevantItem {
