@@ -214,7 +214,7 @@ pub fn init_debugger(
     entry: Option<String>,
 ) -> Result<Debugger, Vec<Error>> {
     let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
-        into_qsc_args(program, entry)
+        into_qsc_args(program, entry, false)
             .map_err(|e| e.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
     Debugger::new(
