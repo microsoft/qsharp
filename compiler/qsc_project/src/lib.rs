@@ -13,6 +13,7 @@ mod error;
 mod fs;
 mod js;
 mod manifest;
+pub mod openqasm;
 mod project;
 
 pub use error::StdFsError;

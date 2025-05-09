@@ -200,7 +200,8 @@ impl ProjectLoader {
     }
 
     pub async fn load_openqasm_project(&self, file_path: String) -> Result<IProjectConfig, String> {
-        let project_config = qsls::openqasm::load_project(&self.0, &file_path.clone().into()).await;
+        let project_config =
+            qsc_project::openqasm::load_project(&self.0, &file_path.clone().into()).await;
         // Will return error if project has errors
         project_config.try_into()
     }
