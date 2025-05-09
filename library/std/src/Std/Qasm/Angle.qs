@@ -44,7 +44,7 @@ function AngleAsBoolArrayBE(angle : Angle) : Bool[] {
 }
 
 function AngleAsResultArray(angle : Angle) : Result[] {
-    Convert.IntAsResultArrayBE(angle.Value, angle.Size)
+    Std.Qasm.Convert.IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
 function AngleAsDouble(angle : Angle) : Double {
@@ -65,7 +65,7 @@ function AngleAsBool(angle : Angle) : Bool {
 }
 
 function ResultAsAngle(result : Result) : Angle {
-    new Angle { Value = Convert.ResultAsInt(result), Size = 1 }
+    new Angle { Value = Std.Qasm.Convert.ResultAsInt(result), Size = 1 }
 }
 
 function AngleAsResult(angle : Angle) : Result {

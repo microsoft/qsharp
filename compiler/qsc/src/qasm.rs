@@ -22,7 +22,6 @@ pub mod completion {
     pub use qsc_qasm::parser::completion::*;
 }
 pub use qsc_qasm::compile_to_qsharp_ast_with_config;
-pub use qsc_qasm::package_store_with_qasm;
 
 #[must_use]
 pub fn parse_raw_qasm_as_fragments<S, P, R>(

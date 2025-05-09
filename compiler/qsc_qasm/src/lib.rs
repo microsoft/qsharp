@@ -5,7 +5,6 @@ mod ast_builder;
 mod compiler;
 mod stdlib;
 pub use compiler::compile_to_qsharp_ast_with_config;
-pub use stdlib::package_store_with_qasm;
 mod convert;
 pub mod display_utils;
 pub mod io;
