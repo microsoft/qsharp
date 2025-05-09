@@ -3,8 +3,8 @@
 
 use std::{path::Path, sync::Arc};
 
-use qsc::qasm::parser::ast::StmtKind;
-use qsc_project::{FileSystemAsync, Project};
+use super::{FileSystemAsync, Project};
+use qsc_qasm::parser::ast::StmtKind;
 use rustc_hash::FxHashMap;
 
 pub async fn load_project<T>(project_host: &T, doc_uri: &Arc<str>) -> Project
@@ -34,7 +34,7 @@ where
             Ok((file, source)) => {
                 loaded_files.insert(file, source.clone());
 
-                let (program, _errors) = qsc::qasm::parser::parse(source.as_ref());
+                let (program, _errors) = qsc_qasm::parser::parse(source.as_ref());
 
                 let includes: Vec<Arc<str>> = program
                     .statements
@@ -62,7 +62,7 @@ where
                 }
             }
             Err(e) => {
-                errors.push(qsc::project::Error::FileSystem {
+                errors.push(super::project::Error::FileSystem {
                     about_path: doc_uri.to_string(),
                     error: e.to_string(),
                 });
@@ -77,7 +77,7 @@ where
         name: get_file_name_from_uri(doc_uri),
         lints: Vec::default(),
         errors,
-        project_type: qsc_project::ProjectType::OpenQASM(sources),
+        project_type: super::ProjectType::OpenQASM(sources),
     }
 }
 

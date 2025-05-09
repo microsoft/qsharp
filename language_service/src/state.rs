@@ -210,7 +210,7 @@ impl<'a> CompilationStateUpdater<'a> {
     ) -> Result<Option<Project>, Vec<project::Error>> {
         if is_openqasm_file(doc_uri) {
             return Ok(Some(
-                crate::openqasm::load_project(&*self.project_host, doc_uri).await,
+                qsc_project::openqasm::load_project(&*self.project_host, doc_uri).await,
             ));
         }
         self.load_manifest(doc_uri).await

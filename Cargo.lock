@@ -1268,6 +1268,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_linter",
  "qsc_project",
+ "qsc_qasm",
  "regex-lite",
  "rustc-hash",
  "serde",
