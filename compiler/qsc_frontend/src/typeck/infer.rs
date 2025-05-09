@@ -19,6 +19,7 @@ use std::{
 };
 
 const MAX_TY_RECURSION_DEPTH: i8 = 100;
+const MAX_TY_SIZE: usize = 100;
 
 #[derive(Debug, Default)]
 struct Solution {
@@ -817,6 +818,11 @@ impl Solver {
     }
 
     fn bind_ty(&mut self, infer: InferTyId, ty: Ty, span: Span) -> Vec<Constraint> {
+        if ty.size() > MAX_TY_SIZE {
+            self.errors
+                .push(Error(ErrorKind::TySizeLimitExceeded(ty.display(), span)));
+            return Vec::new();
+        }
         self.solution.tys.insert(infer, ty.clone());
         let mut constraint = vec![Constraint::Eq {
             expected: ty,
