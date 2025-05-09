@@ -390,10 +390,10 @@ fn parse_include(s: &mut ParserContext) -> Result<StmtKind> {
     recovering_semi(s);
 
     if let Some(lit) = lit {
-        if let LiteralKind::String(v) = lit.kind {
+        if let LiteralKind::String(filename) = lit.kind {
             return Ok(StmtKind::Include(IncludeStmt {
                 span: s.span(lo),
-                filename: v.to_string(),
+                filename,
             }));
         }
     }

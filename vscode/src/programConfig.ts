@@ -3,9 +3,9 @@
 
 import { IProjectConfig, ProgramConfig } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpDocument } from "./common";
+import { isOpenQasmDocument, isQsharpDocument } from "./common";
 import { getTarget } from "./config";
-import { loadProject } from "./projectSystem";
+import { loadOpenQasmProject, loadProject } from "./projectSystem";
 
 /**
  * Notice the similarity to @type {ProgramConfig} and @type {IProjectConfig}.
@@ -27,7 +27,7 @@ import { loadProject } from "./projectSystem";
 
 export type FullProgramConfig = Required<ProgramConfig & IProjectConfig>;
 
-type FullProgramConfigOrError =
+export type FullProgramConfigOrError =
   | {
       success: true;
       programConfig: FullProgramConfig;
@@ -44,14 +44,18 @@ type FullProgramConfigOrError =
  */
 export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
   const docUri = getActiveQSharpDocumentUri();
-  if (!docUri) {
-    return {
-      success: false,
-      errorMsg: "The currently active window is not a Q# document",
-    };
+  if (docUri) {
+    return await getQSharpProgramForDocument(docUri);
+  } else {
+    const docUri = getActiveOpenQasmDocumentUri();
+    if (!docUri) {
+      return {
+        success: false,
+        errorMsg: "The currently active window is not a supported document",
+      };
+    }
+    return await getOpenQasmProgramForDocument(docUri);
   }
-
-  return await getProgramForDocument(docUri);
 }
 
 /**
@@ -66,21 +70,55 @@ export function getActiveQSharpDocumentUri(): vscode.Uri | undefined {
     : undefined;
 }
 
+/**
+ * @returns The URI of the currently active Q# document, or undefined if the current
+ *   active editor is not a Q# document.
+ */
+export function getActiveOpenQasmDocumentUri(): vscode.Uri | undefined {
+  const editor = vscode.window.activeTextEditor;
+
+  return editor?.document && isOpenQasmDocument(editor.document)
+    ? editor.document.uri
+    : undefined;
+}
+
 export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
   const docUri = getVisibleQSharpDocumentUri();
-  if (!docUri) {
-    return {
-      success: false,
-      errorMsg: "Unable to find a visible Q# document",
-    };
+  if (docUri) {
+    return await getQSharpProgramForDocument(docUri);
+  } else {
+    const docUri = getVisibleOpenQasmDocumentUri();
+    if (!docUri) {
+      return {
+        success: false,
+        errorMsg: "The currently active window is not a supported document",
+      };
+    }
+    return await getOpenQasmProgramForDocument(docUri);
   }
-
-  return await getProgramForDocument(docUri);
 }
 
 export function getVisibleQSharpDocumentUri(): vscode.Uri | undefined {
   return vscode.window.visibleTextEditors.find((editor) =>
     isQsharpDocument(editor.document),
+  )?.document.uri;
+}
+
+export async function getVisibleOpenQasmProgram(): Promise<FullProgramConfigOrError> {
+  const docUri = getVisibleOpenQasmDocumentUri();
+  if (!docUri) {
+    return {
+      success: false,
+      errorMsg: "Unable to find a visible OpenQASM document",
+    };
+  }
+
+  return await getOpenQasmProgramForDocument(docUri);
+}
+
+export function getVisibleOpenQasmDocumentUri(): vscode.Uri | undefined {
+  return vscode.window.visibleTextEditors.find((editor) =>
+    isOpenQasmDocument(editor.document),
   )?.document.uri;
 }
 
@@ -90,7 +128,7 @@ export function getVisibleQSharpDocumentUri(): vscode.Uri | undefined {
  *   including any settings that come from the qsharp.json as well as the
  *   user/workspace settings.
  */
-export async function getProgramForDocument(
+export async function getQSharpProgramForDocument(
   docUri: vscode.Uri,
 ): Promise<FullProgramConfigOrError> {
   // Target profile comes from settings
@@ -105,6 +143,30 @@ export async function getProgramForDocument(
     return {
       success: false,
       errorMsg: e.message || "Failed to load Q# project",
+    };
+  }
+}
+
+/**
+ * @param docUri An OpenQASM document URI.
+ * @returns The program configuration that applies to this document,
+ *   with user/workspace settings.
+ */
+export async function getOpenQasmProgramForDocument(
+  docUri: vscode.Uri,
+): Promise<FullProgramConfigOrError> {
+  // Target profile comes from settings
+  const profile = getTarget();
+
+  // Project configs come from the document
+  try {
+    const program = await loadOpenQasmProject(docUri);
+
+    return { success: true, programConfig: { profile, ...program } };
+  } catch (e: any) {
+    return {
+      success: false,
+      errorMsg: e.message || "Failed to load OpenQASM project",
     };
   }
 }

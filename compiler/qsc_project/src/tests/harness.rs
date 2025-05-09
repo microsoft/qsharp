@@ -9,7 +9,7 @@ use std::{
 use expect_test::Expect;
 use qsc_project::{
     key_for_package_ref, package_ref_from_key, Error, FileSystem, Manifest, PackageRef, Project,
-    StdFs,
+    ProjectType, StdFs,
 };
 use rustc_hash::FxHashMap;
 
@@ -50,18 +50,22 @@ pub fn check_files_in_project(project_path: &PathBuf, expect: &Expect) {
 
     normalize(&mut project, &root_path);
 
+    let ProjectType::QSharp(package_graph_sources) = &mut project.project_type else {
+        unreachable!("Project type should be Q#")
+    };
+
     // Collect sources grouped by package
     let mut sources_by_package = Vec::new();
 
     // Collect root sources
     let mut root_sources = Vec::new();
-    for (path, _contents) in &project.package_graph_sources.root.sources {
+    for (path, _contents) in &package_graph_sources.root.sources {
         root_sources.push(path.to_string());
     }
     sources_by_package.push(("root".to_string(), root_sources));
 
     // Collect package sources
-    for (package_name, package_info) in &project.package_graph_sources.packages {
+    for (package_name, package_info) in &package_graph_sources.packages {
         let mut package_sources = Vec::new();
         for (path, _contents) in &package_info.sources {
             package_sources.push(path.to_string());
@@ -78,7 +82,9 @@ pub fn check_files_in_project(project_path: &PathBuf, expect: &Expect) {
 /// Some error messages may contain paths formatted into strings, in that case
 /// we'll just replace the message with filler text.
 fn normalize(project: &mut Project, root_path: &Path) {
-    let pkg_graph = &mut project.package_graph_sources;
+    let ProjectType::QSharp(ref mut pkg_graph) = project.project_type else {
+        unreachable!("Project type should be Q#")
+    };
 
     normalize_pkg(&mut pkg_graph.root, root_path);
 

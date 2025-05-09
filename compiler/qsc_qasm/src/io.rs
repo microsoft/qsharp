@@ -5,10 +5,7 @@ mod error;
 pub use error::Error;
 pub use error::ErrorKind;
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
@@ -19,26 +16,24 @@ use rustc_hash::FxHashMap;
 pub trait SourceResolver {
     fn ctx(&mut self) -> &mut SourceResolverContext;
 
-    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
-    where
-        P: AsRef<Path>;
+    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error>;
 }
 
 pub struct IncludeGraphNode {
-    parent: Option<PathBuf>,
-    children: Vec<PathBuf>,
+    parent: Option<Arc<str>>,
+    children: Vec<Arc<str>>,
 }
 
 #[derive(Default)]
 pub struct SourceResolverContext {
     /// A graph representation of the include chain.
-    include_graph: FxHashMap<PathBuf, IncludeGraphNode>,
+    include_graph: FxHashMap<Arc<str>, IncludeGraphNode>,
     /// Path being resolved.
-    current_file: Option<PathBuf>,
+    current_file: Option<Arc<str>>,
 }
 
 impl SourceResolverContext {
-    pub fn check_include_errors(&mut self, path: &PathBuf) -> miette::Result<(), Error> {
+    pub fn check_include_errors(&mut self, path: &Arc<str>) -> miette::Result<(), Error> {
         // If the new path makes a cycle in the include graph, we return
         // an error showing the cycle to the user.
         if let Some(cycle) = self.cycle_made_by_including_path(path) {
@@ -50,12 +45,12 @@ impl SourceResolverContext {
         // error saying "<FILE> was already included in <FILE>".
         if let Some(parent_file) = self.path_was_already_included(path) {
             return Err(Error(ErrorKind::MultipleInclude(
-                path.display().to_string(),
-                parent_file.display().to_string(),
+                path.to_string(),
+                parent_file.to_string(),
             )));
         }
 
-        self.add_path_to_include_graph(path.clone());
+        self.add_path_to_include_graph(path);
 
         Ok(())
     }
@@ -75,46 +70,45 @@ impl SourceResolverContext {
     ///
     /// To check if adding `path` to the include graph creates a cycle we just
     /// need to verify if path is an ancestor of the current file.
-    fn cycle_made_by_including_path(&self, path: &PathBuf) -> Option<Cycle> {
-        let mut current_file = self.current_file.as_ref();
+    fn cycle_made_by_including_path(&self, path: &Arc<str>) -> Option<Cycle> {
+        let mut current_file = self.current_file.clone()?;
         let mut paths = Vec::new();
 
-        while let Some(file) = current_file {
+        loop {
+            let file = current_file.clone();
             paths.push(file.clone());
-            current_file = self.get_parent(file);
-            if file == path {
+            current_file = self.get_parent(&current_file)?;
+            if file == *path {
                 paths.reverse();
                 paths.push(path.clone());
                 return Some(Cycle { paths });
             }
         }
-
-        None
     }
 
     /// Returns the file that included `path`.
     /// Returns `None` if `path` is the "main" file.
-    fn get_parent(&self, path: &PathBuf) -> Option<&PathBuf> {
+    fn get_parent(&self, path: &Arc<str>) -> Option<Arc<str>> {
         self.include_graph
             .get(path)
-            .and_then(|node| node.parent.as_ref())
+            .and_then(|node| node.parent.clone())
     }
 
     /// If the path was already included, returns the path of the file that
     /// included it. Else, returns None.
-    fn path_was_already_included(&self, path: &PathBuf) -> Option<PathBuf> {
+    fn path_was_already_included(&self, path: &Arc<str>) -> Option<Arc<str>> {
         // SAFETY: The call to expect should be unreachable, since the parent
         //         will only be None for the "main" file. But including the
         //         main file will trigger a cyclic include error before this
         //         function is called.
         self.include_graph
             .get(path)
-            .map(|node| node.parent.clone().expect("unreachable"))
+            .map(|node| node.parent.clone())?
     }
 
     /// Adds `path` as a child of `current_path`, and then changes
     /// the `current_path` to `path`.
-    fn add_path_to_include_graph(&mut self, path: PathBuf) {
+    fn add_path_to_include_graph(&mut self, path: &Arc<str>) {
         // 1. Add path to the current file children.
         self.current_file.as_ref().and_then(|file| {
             self.include_graph
@@ -132,14 +126,14 @@ impl SourceResolverContext {
         );
 
         // 3. Update the current file.
-        self.current_file = Some(path);
+        self.current_file = Some(path.clone());
     }
 }
 
 /// We use this struct to print a nice error message when we find a cycle.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cycle {
-    paths: Vec<PathBuf>,
+    paths: Vec<Arc<str>>,
 }
 
 impl std::fmt::Display for Cycle {
@@ -148,7 +142,7 @@ impl std::fmt::Display for Cycle {
         let children = self.paths[1..].iter();
 
         for (parent, child) in parents.zip(children) {
-            write!(f, "\n  {} includes {}", parent.display(), child.display())?;
+            write!(f, "\n  {parent} includes {child}")?;
         }
 
         Ok(())
@@ -162,7 +156,7 @@ impl std::fmt::Display for Cycle {
 /// This requires users to build up a map of include file paths to their
 /// contents prior to parsing.
 pub struct InMemorySourceResolver {
-    sources: FxHashMap<PathBuf, String>,
+    sources: FxHashMap<Arc<str>, Arc<str>>,
     ctx: SourceResolverContext,
 }
 
@@ -170,7 +164,7 @@ impl FromIterator<(Arc<str>, Arc<str>)> for InMemorySourceResolver {
     fn from_iter<T: IntoIterator<Item = (Arc<str>, Arc<str>)>>(iter: T) -> Self {
         let mut map = FxHashMap::default();
         for (path, source) in iter {
-            map.insert(PathBuf::from(path.to_string()), source.to_string());
+            map.insert(path, source);
         }
 
         InMemorySourceResolver {
@@ -185,17 +179,12 @@ impl SourceResolver for InMemorySourceResolver {
         &mut self.ctx
     }
 
-    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), Error>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-        self.ctx().check_include_errors(&path.to_path_buf())?;
+    fn resolve(&mut self, path: &Arc<str>) -> miette::Result<(Arc<str>, Arc<str>), Error> {
+        self.ctx().check_include_errors(path)?;
         match self.sources.get(path) {
-            Some(source) => Ok((path.to_owned(), source.clone())),
+            Some(source) => Ok((path.clone(), source.clone())),
             None => Err(Error(ErrorKind::NotFound(format!(
-                "Could not resolve include file: {}",
-                path.display()
+                "Could not resolve include file: {path}"
             )))),
         }
     }

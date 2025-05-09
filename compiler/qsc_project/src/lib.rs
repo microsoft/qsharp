@@ -13,6 +13,7 @@ mod error;
 mod fs;
 mod js;
 mod manifest;
+pub mod openqasm;
 mod project;
 
 pub use error::StdFsError;
@@ -23,5 +24,6 @@ pub use manifest::{Manifest, ManifestDescriptor, PackageRef, PackageType, MANIFE
 pub use project::FileSystemAsync;
 pub use project::{
     key_for_package_ref, package_ref_from_key, DependencyCycle, DirEntry, EntryType, Error,
-    FileSystem, PackageCache, PackageGraphSources, PackageInfo, Project, GITHUB_SCHEME,
+    FileSystem, PackageCache, PackageGraphSources, PackageInfo, Project, ProjectType,
+    GITHUB_SCHEME,
 };

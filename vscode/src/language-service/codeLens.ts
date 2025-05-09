@@ -9,12 +9,21 @@ import {
 import * as vscode from "vscode";
 import { toVsCodeRange } from "../common";
 
-export function createCodeLensProvider(languageService: ILanguageService) {
-  return new QSharpCodeLensProvider(languageService);
+export function createQsCodeLensProvider(languageService: ILanguageService) {
+  return new CodeLensProvider(languageService, mapQSharpCodeLens);
 }
 
-class QSharpCodeLensProvider implements vscode.CodeLensProvider {
-  constructor(public languageService: ILanguageService) {}
+export function createOpenQasmCodeLensProvider(
+  languageService: ILanguageService,
+) {
+  return new CodeLensProvider(languageService, mapOpenQasmCodeLens);
+}
+
+class CodeLensProvider implements vscode.CodeLensProvider {
+  constructor(
+    public languageService: ILanguageService,
+    private commandMapper: (value: ICodeLens) => vscode.CodeLens,
+  ) {}
   // We could raise events when code lenses change,
   // but there's no need as the editor seems to query often enough.
   // onDidChangeCodeLenses?: vscode.Event<void> | undefined;
@@ -31,11 +40,11 @@ class QSharpCodeLensProvider implements vscode.CodeLensProvider {
       document.uri.toString(),
     );
 
-    return codeLenses.map((cl) => mapCodeLens(cl));
+    return codeLenses.map((cl) => this.commandMapper(cl));
   }
 }
 
-function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
+function mapQSharpCodeLens(cl: ICodeLens): vscode.CodeLens {
   let command;
   let title;
   let tooltip;
@@ -63,6 +72,46 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
     case "circuit":
       title = "Circuit";
       command = "qsharp-vscode.showCircuit";
+      tooltip = "Show circuit";
+      break;
+  }
+
+  return new vscode.CodeLens(toVsCodeRange(cl.range), {
+    title,
+    command,
+    arguments: cl.args ?? [],
+    tooltip,
+  });
+}
+
+function mapOpenQasmCodeLens(cl: ICodeLens): vscode.CodeLens {
+  let command;
+  let title;
+  let tooltip;
+  switch (cl.command) {
+    case "histogram":
+      title = "Histogram";
+      command = "qsharp-vscode.openqasm.showHistogram";
+      tooltip = "Run and show histogram";
+      break;
+    case "estimate":
+      title = "Estimate";
+      command = "qsharp-vscode.openqasm.showRe";
+      tooltip = "Calculate resource estimates";
+      break;
+    case "debug":
+      title = "Debug";
+      command = "qsharp-vscode.openqasm.debugEditorContents";
+      tooltip = "Debug callable";
+      break;
+    case "run":
+      title = "Run";
+      command = "qsharp-vscode.openqasm.runEditorContents";
+      tooltip = "Run callable";
+      break;
+    case "circuit":
+      title = "Circuit";
+      command = "qsharp-vscode.openqasm.showCircuit";
       tooltip = "Show circuit";
       break;
   }

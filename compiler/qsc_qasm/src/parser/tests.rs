@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::path::Path;
 use std::sync::Arc;
 
 use crate::io::InMemorySourceResolver;
@@ -16,17 +15,13 @@ use super::{scan::ParserContext, Parser};
 use expect_test::Expect;
 use std::fmt::Display;
 
-pub(crate) fn parse_all<P>(
-    path: P,
+pub(crate) fn parse_all<S: Into<Arc<str>>>(
+    path: S,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmParseResult, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmParseResult, Vec<Report>> {
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let (path, source) = resolver
-        .resolve(path.as_ref())
-        .map_err(|e| vec![Report::new(e)])?;
+    let (path, source) = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?;
     let res = crate::parser::parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -40,11 +35,9 @@ where
     }
 }
 
-pub(crate) fn parse<S>(source: S) -> miette::Result<QasmParseResult, Vec<Report>>
-where
-    S: AsRef<str>,
-{
-    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.as_ref().into())]);
+pub(crate) fn parse<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmParseResult, Vec<Report>> {
+    let source = source.into();
+    let mut resolver = InMemorySourceResolver::from_iter([("test".into(), source.clone())]);
     let res = parse_source(source, "test", &mut resolver);
     if res.source.has_errors() {
         let errors = res

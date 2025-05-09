@@ -21,7 +21,7 @@ use qsc_eval::{
 };
 use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
-use qsc_project::{FileSystem, StdFs};
+use qsc_project::{FileSystem, ProjectType, StdFs};
 use std::{
     fs,
     io::{self, prelude::BufRead, Write},
@@ -299,8 +299,11 @@ fn load_project(
     }
 
     // This builds all the dependencies
+    let ProjectType::QSharp(package_graph_sources) = project.project_type else {
+        panic!("project should be a Q# project");
+    };
     let buildable_program =
-        BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+        BuildableProgram::new(TargetCapabilityFlags::all(), package_graph_sources);
 
     if !buildable_program.dependency_errors.is_empty() {
         for e in buildable_program.dependency_errors {

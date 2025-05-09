@@ -142,6 +142,56 @@ async fn close_last_doc_in_project() {
 }
 
 #[tokio::test]
+async fn close_last_doc_in_openqasm_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document(
+            "openqasm_files/self-contained.qasm",
+            1,
+            "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+        )
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "openqasm_files/self-contained.qasm": OpenDocument {
+                    version: 1,
+                    compilation: "openqasm_files/self-contained.qasm",
+                    latest_str_content: "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            openqasm_files/self-contained.qasm: [
+              "openqasm_files/self-contained.qasm": "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    updater
+        .close_document("openqasm_files/self-contained.qasm")
+        .await;
+
+    // now there should be no file and no compilation
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect!["[]"],
+    );
+}
+
+#[tokio::test]
 async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
@@ -2257,6 +2307,17 @@ fn test_fs() -> FsNode {
                             ],
                         )],
                     ),
+                ],
+            ),
+            dir(
+                "openqasm_files",
+                [
+                    file(
+                        "self-contained.qasm",
+                        "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                    ),
+                    file("multifile.qasm", "include \"stdgates.inc\";\ninclude \"imports.inc\";\nBar();\nBar();\nqubit q;\nh q;\nreset q;\n"),
+                    file("imports.inc", "\ndef Bar() {\n\nint c = 42;\n}\n"),
                 ],
             ),
         ]

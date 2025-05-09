@@ -12,6 +12,7 @@ use std::{
     fmt::{self, Display, Formatter},
     hash::Hash,
     rc::Rc,
+    sync::Arc,
 };
 
 use super::prim::SeqItem;
@@ -1083,7 +1084,7 @@ impl Display for Pragma {
 #[derive(Clone, Debug)]
 pub struct IncludeStmt {
     pub span: Span,
-    pub filename: String,
+    pub filename: Arc<str>,
 }
 
 impl Display for IncludeStmt {
@@ -1704,7 +1705,7 @@ pub enum LiteralKind {
     Imaginary(f64),
     Int(i64),
     BigInt(BigInt),
-    String(Rc<str>),
+    String(Arc<str>),
 }
 
 impl Display for LiteralKind {

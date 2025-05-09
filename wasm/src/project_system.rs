@@ -28,6 +28,7 @@ export interface IProjectHost {
 export interface IProgramConfig {
     packageGraphSources: IPackageGraphSources;
     profile: TargetProfile;
+    projectType: ProjectType;
 }
 "#;
 
@@ -71,6 +72,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, structural)]
     fn profile(this: &ProgramConfig) -> String;
+
+    #[wasm_bindgen(method, getter, structural)]
+    fn projectType(this: &ProgramConfig) -> String;
 }
 
 thread_local! { static PACKAGE_CACHE: Rc<RefCell<PackageCache>> = Rc::default(); }
@@ -194,6 +198,13 @@ impl ProjectLoader {
         // Will return error if project has errors
         project_config.try_into()
     }
+
+    pub async fn load_openqasm_project(&self, file_path: String) -> Result<IProjectConfig, String> {
+        let project_config =
+            qsc_project::openqasm::load_project(&self.0, &file_path.clone().into()).await;
+        // Will return error if project has errors
+        project_config.try_into()
+    }
 }
 
 fn project_errors_into_qsharp_errors_json(
@@ -286,11 +297,27 @@ impl TryFrom<qsc_project::Project> for IProjectConfig {
                 &value.errors,
             ));
         }
+        let package_graph_sources = match value.project_type {
+            qsc_project::ProjectType::QSharp(ref pgs) => pgs.clone(),
+            qsc_project::ProjectType::OpenQASM(ref sources) => qsc_project::PackageGraphSources {
+                root: qsc_project::PackageInfo {
+                    sources: sources.clone(),
+                    language_features: LanguageFeatures::default(),
+                    dependencies: FxHashMap::default(),
+                    package_type: None,
+                },
+                packages: FxHashMap::default(),
+            },
+        };
         let project_config = ProjectConfig {
             project_name: value.name.to_string(),
             project_uri: value.path.to_string(),
             lints: value.lints,
-            package_graph_sources: value.package_graph_sources.into(),
+            package_graph_sources: package_graph_sources.into(),
+            project_type: match value.project_type {
+                qsc_project::ProjectType::QSharp(..) => "qsharp".into(),
+                qsc_project::ProjectType::OpenQASM(..) => "openqasm".into(),
+            },
         };
         Ok(project_config.into())
     }
@@ -303,6 +330,7 @@ serializable_type! {
         pub project_uri: String,
         pub package_graph_sources: PackageGraphSources,
         pub lints: Vec<LintOrGroupConfig>,
+        pub project_type: String,
     },
     r#"export interface IProjectConfig {
         /**
@@ -316,6 +344,10 @@ serializable_type! {
         packageGraphSources: IPackageGraphSources;
         lints: ({ lint: string; level: string } | { group: string; level: string })[];
         errors: string[];
+        /**
+         * The type of project. This is used to determine how to load the project.
+         */
+        projectType: ProjectType;
     }"#,
     IProjectConfig
 }
@@ -409,4 +441,24 @@ pub(crate) fn into_qsc_args(
         store,
         user_code_dependencies,
     ))
+}
+
+#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::type_complexity)]
+pub(crate) fn into_openqasm_args(
+    program: ProgramConfig,
+) -> (Vec<(Arc<str>, Arc<str>)>, qsc::TargetCapabilityFlags) {
+    let capabilities = qsc::target::Profile::from_str(&program.profile())
+        .unwrap_or_else(|()| panic!("Invalid target : {}", program.profile()))
+        .into();
+
+    let pkg_graph: PackageGraphSources = program.packageGraphSources().into();
+    let pkg_graph: qsc_project::PackageGraphSources = pkg_graph.into();
+    let sources = pkg_graph.root.sources;
+
+    (sources, capabilities)
+}
+
+pub(crate) fn is_openqasm_program(program: &ProgramConfig) -> bool {
+    program.projectType() == "openqasm"
 }

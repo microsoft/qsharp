@@ -21,7 +21,7 @@ use qsc::{
     packages::BuildableProgram,
     LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
-use qsc_project::{FileSystem, StdFs};
+use qsc_project::{FileSystem, ProjectType, StdFs};
 
 // Two tests are needed to check interpreter working in debug and non-debug mode.
 // This results in two expected strings defined. Although two strings are typically the same,
@@ -116,8 +116,11 @@ fn compile_project(project_folder: &str) {
     }
 
     // This builds all the dependencies
+    let ProjectType::QSharp(package_graph_sources) = project.project_type else {
+        panic!("project should be a Q# project");
+    };
     let buildable_program =
-        BuildableProgram::new(TargetCapabilityFlags::all(), project.package_graph_sources);
+        BuildableProgram::new(TargetCapabilityFlags::all(), package_graph_sources);
 
     if !buildable_program.dependency_errors.is_empty() {
         for e in buildable_program.dependency_errors {

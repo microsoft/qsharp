@@ -46,15 +46,15 @@ pub fn package_store_with_qasm(
 
 pub const STD_LIB: &[(&str, &str)] = &[
     (
-        "openqasm-library-source:QasmStd/Angle.qs",
+        "qsharp-library-source:QasmStd/Angle.qs",
         include_str!("QasmStd/src/QasmStd/Angle.qs"),
     ),
     (
-        "openqasm-library-source:QasmStd/Convert.qs",
+        "qsharp-library-source:QasmStd/Convert.qs",
         include_str!("QasmStd/src/QasmStd/Convert.qs"),
     ),
     (
-        "openqasm-library-source:QasmStd/Intrinsic.qs",
+        "qsharp-library-source:QasmStd/Intrinsic.qs",
         include_str!("QasmStd/src/QasmStd/Intrinsic.qs"),
     ),
 ];

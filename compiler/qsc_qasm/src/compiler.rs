@@ -4,7 +4,7 @@
 pub mod error;
 
 use core::f64;
-use std::{path::Path, rc::Rc};
+use std::{rc::Rc, sync::Arc};
 
 use error::CompilerErrorKind;
 use num_bigint::BigInt;
@@ -63,17 +63,17 @@ fn err_expr(span: Span) -> qsast::Expr {
     }
 }
 
-pub fn compile_to_qsharp_ast_with_config<S, P, R>(
+#[must_use]
+pub fn compile_to_qsharp_ast_with_config<
+    R: SourceResolver,
+    S: Into<Arc<str>>,
+    P: Into<Arc<str>>,
+>(
     source: S,
     path: P,
     resolver: Option<&mut R>,
     config: CompilerConfig,
-) -> QasmCompileUnit
-where
-    S: AsRef<str>,
-    P: AsRef<Path>,
-    R: SourceResolver,
-{
+) -> QasmCompileUnit {
     let res = if let Some(resolver) = resolver {
         crate::semantic::parse_source(source, path, resolver)
     } else {
