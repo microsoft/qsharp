@@ -440,11 +440,18 @@ fn use_of_dynamic_rhs_exp_binop_yields_errors() {
 }
 
 #[test]
-fn return_within_dynamic_scope_yields_no_errors() {
+fn return_within_dynamic_scope_yields_errors() {
     check_profile(
         RETURN_WITHIN_DYNAMIC_SCOPE,
         &expect![[r#"
-            []
+            [
+                ReturnWithinDynamicScope(
+                    Span {
+                        lo: 128,
+                        hi: 136,
+                    },
+                ),
+            ]
         "#]],
     );
 }

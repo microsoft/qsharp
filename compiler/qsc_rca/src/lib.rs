@@ -890,7 +890,7 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
-            capabilities |= TargetCapabilityFlags::Adaptive;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
