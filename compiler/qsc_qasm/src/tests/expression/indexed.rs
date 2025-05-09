@@ -164,7 +164,7 @@ fn index_set_in_non_alias_stmt_fails() {
          4 |         qubit qq;
          5 |         if(ans[{1, 3}] == 4) x qq;
            :                ^^^^^^
-         6 |
+         6 |     
            `----
         , Qasm.Lowerer.CannotCast
 
@@ -173,7 +173,7 @@ fn index_set_in_non_alias_stmt_fails() {
          4 |         qubit qq;
          5 |         if(ans[{1, 3}] == 4) x qq;
            :            ^^^^^^^^^^^
-         6 |
+         6 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));

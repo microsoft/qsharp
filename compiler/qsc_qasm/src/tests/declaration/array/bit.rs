@@ -158,7 +158,7 @@ fn indexing_a_bitarray_of_zero_size_fails() {
          2 |         bit[0] a;
          3 |         a[0];
            :         ^^^^
-         4 |
+         4 |     
            `----
           help: array size must be a positive integer const expression
         ]"#]]

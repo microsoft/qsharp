@@ -22,20 +22,20 @@ fn unresolved_idenfiers_raise_symbol_error() {
 
           x undefined symbol: t
            ,-[Test.qasm:2:19]
-         1 |
+         1 | 
          2 |         float x = t;
            :                   ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Float(None, false)
            ,-[Test.qasm:2:19]
-         1 |
+         1 | 
          2 |         float x = t;
            :                   ^
-         3 |
+         3 |     
            `----
     "#]]
     .assert_eq(&errs_string);

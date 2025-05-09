@@ -147,10 +147,10 @@ fn initialized_simple_array_with_wrong_size_fails() {
 
           x expected an array of size 3 but found one of size 2
            ,-[Test.qasm:2:27]
-         1 |
+         1 | 
          2 |         array[int, 3] b = { -2, 0 };
            :                           ^^^^^^^^^
-         3 |
+         3 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
@@ -415,7 +415,7 @@ fn indexing_a_simple_array_of_zero_size_fails() {
          2 |         array[int, 0] a;
          3 |         a[0];
            :         ^^^^
-         4 |
+         4 |     
            `----
           help: array size must be a positive integer const expression
         ]"#]]
@@ -441,7 +441,7 @@ fn indexing_a_multidimensional_array_of_size_zero_fails() {
          2 |         array[int, 3, 0, 2] a;
          3 |         a[1:2];
            :         ^^^^^^
-         4 |
+         4 |     
            `----
           help: array size must be a positive integer const expression
         ]"#]]
@@ -502,10 +502,10 @@ fn arrays_with_8_dimensions_are_unsupported() {
 
           x arrays with more than 7 dimensions are not supported
            ,-[Test.qasm:2:9]
-         1 |
+         1 | 
          2 |         array[int, 1, 2, 3, 4, 5, 6, 7, 8] a;
            :         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-         3 |
+         3 |     
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));

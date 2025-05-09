@@ -99,7 +99,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
@@ -109,7 +109,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
          5 |         bit[b] r1;
          6 |         bit[c] r2;
            :             ^
-         7 |
+         7 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -438,7 +438,7 @@ fn binary_op_shl_creg_fails() {
 
           x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
-         1 |
+         1 | 
          2 |         const creg a[3] = "101";
            :               ^^^^
          3 |         const creg b[3] = a << 2;
@@ -461,7 +461,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.CannotCast
@@ -471,7 +471,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
@@ -481,7 +481,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
@@ -491,7 +491,7 @@ fn binary_op_shl_creg_fails() {
          3 |         const creg b[3] = a << 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -603,7 +603,7 @@ fn binary_op_shr_creg_fails() {
 
           x expected scalar type, found keyword `creg`
            ,-[Test.qasm:2:15]
-         1 |
+         1 | 
          2 |         const creg a[4] = "1011";
            :               ^^^^
          3 |         const creg b[4] = a >> 2;
@@ -626,7 +626,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.CannotCast
@@ -636,7 +636,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
@@ -646,7 +646,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
@@ -656,7 +656,7 @@ fn binary_op_shr_creg_fails() {
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
            :             ^
-         5 |
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -1866,60 +1866,60 @@ fn binary_op_err_type_fails() {
 
           x undefined symbol: a
            ,-[Test.qasm:2:13]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :             ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: b
            ,-[Test.qasm:2:17]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :                 ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type UInt(None, true)
            ,-[Test.qasm:2:13]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :             ^^^^^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:13]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :             ^^^^^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
 
           x designator must be a const expression
            ,-[Test.qasm:2:13]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :             ^^^^^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.CannotCastLiteral
 
           x cannot cast literal expression of type Int(None, true) to type Err
            ,-[Test.qasm:2:9]
-         1 |
+         1 | 
          2 |         int[a + b] x = 2;
            :         ^^^^^^^^^^^^^^^^^
-         3 |
+         3 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -1942,57 +1942,57 @@ fn fuzzer_issue_2294() {
           x expected `;`, found EOF
            ,-[Test.qasm:3:5]
          2 |         ctrl(5/_)@l
-         3 |
+         3 |     
            `----
 
         Qasm.Parser.MissingGateCallOperands
 
           x missing gate call operands
            ,-[Test.qasm:2:9]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :         ^^^^^^^^^^^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: _
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.CannotCast
 
           x cannot cast expression of type Err to type Float(None, true)
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
            ,-[Test.qasm:2:16]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |
+         3 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
 
           x ctrl modifier argument must be a const expression
            ,-[Test.qasm:2:14]
-         1 |
+         1 | 
          2 |         ctrl(5/_)@l
            :              ^^^
-         3 |
+         3 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -2015,7 +2015,7 @@ fn binary_op_with_non_supported_types_fails() {
 
           x cannot cast expression of type Duration(true) to type Float(None, true)
            ,-[Test.qasm:2:27]
-         1 |
+         1 | 
          2 |         const int a = 2 / 0s;
            :                           ^^
          3 |         def f() { a; }
@@ -2025,7 +2025,7 @@ fn binary_op_with_non_supported_types_fails() {
 
           x Div is not supported between types Float(None, true) and Duration(true)
            ,-[Test.qasm:2:23]
-         1 |
+         1 | 
          2 |         const int a = 2 / 0s;
            :                       ^^^^^^
          3 |         def f() { a; }
@@ -2035,7 +2035,7 @@ fn binary_op_with_non_supported_types_fails() {
 
           x timing literals are not supported
            ,-[Test.qasm:2:27]
-         1 |
+         1 | 
          2 |         const int a = 2 / 0s;
            :                           ^^
          3 |         def f() { a; }
@@ -2061,7 +2061,7 @@ fn division_of_int_by_zero_int_errors() {
 
           x division by error during const evaluation
            ,-[Test.qasm:2:23]
-         1 |
+         1 | 
          2 |         const int a = 2 / 0;
            :                       ^^^^^
          3 |         def f() { a; }
@@ -2114,7 +2114,7 @@ fn division_by_zero_float_errors() {
 
           x division by error during const evaluation
            ,-[Test.qasm:2:25]
-         1 |
+         1 | 
          2 |         const float a = 2.0 / 0.0;
            :                         ^^^^^^^^^
          3 |         def f() { a; }
@@ -2168,7 +2168,7 @@ fn modulo_of_int_by_zero_int_errors() {
 
           x division by error during const evaluation
            ,-[Test.qasm:2:23]
-         1 |
+         1 | 
          2 |         const int a = 2 % 0;
            :                       ^^^^^
          3 |         def f() { a; }
