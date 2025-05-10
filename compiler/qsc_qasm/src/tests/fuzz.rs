@@ -91,3 +91,10 @@ fn fuzz_2348() {
     super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
+
+#[test]
+fn fuzz_2366() {
+    let source = "t[:π";
+    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}

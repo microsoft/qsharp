@@ -3511,14 +3511,22 @@ impl Lowerer {
         let mut lower_and_const_eval = |expr| {
             let lowered_expr = self.lower_expr(expr);
             let lit = lowered_expr.const_eval(self);
-            lit.map(|lit| {
+            lit.and_then(|lit| {
                 let lit_expr = semantic::Expr {
                     span: lowered_expr.span,
                     kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
                     ty: lowered_expr.ty,
                 };
                 // Range components (start, step, end) can be negative, so we coerce to an `int`.
-                self.coerce_literal_expr_to_type(&Type::Int(None, true), &lit_expr, &lit)
+                let ty = Type::Int(None, true);
+                if can_cast_literal(&ty, &lit_expr.ty)
+                    || can_cast_literal_with_value_knowledge(&ty, &lit)
+                {
+                    Some(self.coerce_literal_expr_to_type(&ty, &lit_expr, &lit))
+                } else {
+                    self.push_invalid_literal_cast_error(&ty, &lit_expr.ty, lit_expr.span);
+                    None
+                }
             })
         };
 
