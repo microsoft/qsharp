@@ -338,7 +338,7 @@ export function updateCircuitPanel(
     : projectName;
 
   // Trim the QIR: prefix from the target profile name - that's meant for the ui text in the status bar
-  const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("QIR: ", "")} `;
+  const target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
 
   const props = {
     title,
