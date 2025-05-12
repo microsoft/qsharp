@@ -534,7 +534,7 @@
     ],
     "debuggers": [
       {
-        "type": "qdk",
+        "type": "qsharp",
         "languages": [
           "qsharp",
           "openqasm"

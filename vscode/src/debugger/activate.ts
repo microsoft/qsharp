@@ -33,7 +33,7 @@ export async function activateDebugger(
 
   const provider = new QsDebugConfigProvider();
   context.subscriptions.push(
-    vscode.debug.registerDebugConfigurationProvider("qdk", provider),
+    vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
 
   const factory = new InlineDebugAdapterFactory(async (uri) => {
@@ -41,7 +41,7 @@ export async function activateDebugger(
     return getProgramForDocument(file);
   });
   context.subscriptions.push(
-    vscode.debug.registerDebugAdapterDescriptorFactory("qdk", factory),
+    vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
 }
 
@@ -100,7 +100,7 @@ function registerCommands(context: vscode.ExtensionContext) {
   ) {
     clearCommandDiagnostics();
 
-    if (vscode.debug.activeDebugSession?.type === "qdk") {
+    if (vscode.debug.activeDebugSession?.type === "qsharp") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;
     }
@@ -117,7 +117,7 @@ function registerCommands(context: vscode.ExtensionContext) {
       vscode.debug.startDebugging(
         undefined,
         {
-          type: "qdk",
+          type: "qsharp",
           request: "launch",
           shots: 1,
           ...config,
@@ -165,7 +165,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
       // if launch.json is missing or empty, try to launch the active Q# document
       const docUri = getActiveQdkDocumentUri();
       if (docUri) {
-        config.type = "qdk";
+        config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
         config.programUri = docUri.toString();
@@ -201,7 +201,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // apply defaults if not set
-    config.type = "qdk";
+    config.type = "qsharp";
     config.name = config.name ?? "Launch";
     config.request = config.request ?? "launch";
     config.shots = config.shots ?? 1;
