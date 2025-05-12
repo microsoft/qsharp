@@ -393,6 +393,72 @@ async fn target_profile_update_fixes_error() {
 }
 
 #[tokio::test]
+async fn target_profile_update_updates_test_cases() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    updater
+        .update_document(
+            "single/foo.qs",
+            1,
+            r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+
+    // reset accumulated test cases after each check
+    test_cases.borrow_mut().clear();
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "foo.BaseTest",
+                        compilation_uri: "single/foo.qs",
+                        location: Location {
+                            source: "single/foo.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 32,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 40,
+                                },
+                            },
+                        },
+                        friendly_name: "foo.qs",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
