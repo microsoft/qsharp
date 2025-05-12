@@ -251,15 +251,15 @@ suite("OpenQASM Debugger Tests", function suite() {
         id: 1,
         source: {
           name: "Intrinsic.qs",
-          path: "qsharp-library-source:QasmStd/Intrinsic.qs",
+          path: "qsharp-library-source:Std/OpenQASM/Intrinsic.qs",
           sourceReference: 0,
           adapterData: "qsharp-adapter-data",
         },
-        line: 103,
+        line: 107,
         column: 5,
         name: "h ",
-        endLine: 103,
-        endColumn: 14,
+        endLine: 107,
+        endColumn: 28,
       },
       {
         id: 0,
@@ -280,7 +280,7 @@ suite("OpenQASM Debugger Tests", function suite() {
 
     // text editor should now be open on intrinsic.qs
     await waitForTextEditorOn(
-      vscode.Uri.parse("qsharp-library-source:QasmStd/Intrinsic.qs"),
+      vscode.Uri.parse("qsharp-library-source:Std/OpenQASM/Intrinsic.qs"),
     );
   });
 

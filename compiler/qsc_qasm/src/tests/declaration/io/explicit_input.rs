@@ -15,7 +15,7 @@ input bit[2] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Result[]) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -32,7 +32,7 @@ input bit c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Result) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -48,7 +48,7 @@ input bool c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Bool) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -64,7 +64,7 @@ input complex[float] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(c : Std.Math.Complex) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -80,7 +80,7 @@ input float f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(f : Double) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -96,7 +96,7 @@ input float[60] f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(f : Double) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -112,7 +112,7 @@ input int i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -128,7 +128,7 @@ input int[60] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -144,7 +144,7 @@ input uint i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -160,7 +160,7 @@ input uint[60] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : Int) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -176,7 +176,7 @@ input int[65] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(i : BigInt) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);
@@ -231,7 +231,7 @@ input bit[2] b2;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test(bi : BigInt, i : Int, ui : Int, u : Int, f : Double, b : Bool, c : Result, cf : Std.Math.Complex, b2 : Result[]) : Unit {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
         }
     "#]]
     .assert_eq(&qsharp);

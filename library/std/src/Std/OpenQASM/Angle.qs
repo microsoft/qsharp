@@ -5,15 +5,6 @@
 /// It is an internal implementation detail for OpenQASM compilation
 /// and is not intended for use outside of this context.
 
-import Std.Arrays.Reversed;
-import Std.Convert.BigIntAsBoolArray;
-import Std.Convert.BoolArrayAsInt;
-import Std.Convert.IntAsBigInt;
-import Std.Convert.IntAsBoolArray;
-import Std.Convert.IntAsDouble;
-import Std.Diagnostics.Fact;
-import Std.Math.RoundHalfAwayFromZero;
-
 // Export the Angle type and its associated functions.
 export Angle;
 // Export the array conversion functions for Angle.
@@ -40,11 +31,11 @@ struct Angle {
 }
 
 function AngleAsBoolArrayBE(angle : Angle) : Bool[] {
-    Reversed(IntAsBoolArray(angle.Value, angle.Size))
+    Std.Arrays.Reversed(Std.Convert.IntAsBoolArray(angle.Value, angle.Size))
 }
 
 function AngleAsResultArray(angle : Angle) : Result[] {
-    Convert.IntAsResultArrayBE(angle.Value, angle.Size)
+    Std.OpenQASM.Convert.IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
 function AngleAsDouble(angle : Angle) : Double {
@@ -54,8 +45,8 @@ function AngleAsDouble(angle : Angle) : Double {
     } else {
         angle
     };
-    let denom = IntAsDouble(1 <<< angle.Size);
-    let value = IntAsDouble(angle.Value);
+    let denom = Std.Convert.IntAsDouble(1 <<< angle.Size);
+    let value = Std.Convert.IntAsDouble(angle.Value);
     let factor = (2.0 * Std.Math.PI()) / denom;
     value * factor
 }
@@ -65,7 +56,7 @@ function AngleAsBool(angle : Angle) : Bool {
 }
 
 function ResultAsAngle(result : Result) : Angle {
-    new Angle { Value = Convert.ResultAsInt(result), Size = 1 }
+    new Angle { Value = Std.OpenQASM.Convert.ResultAsInt(result), Size = 1 }
 }
 
 function AngleAsResult(angle : Angle) : Result {
@@ -73,8 +64,8 @@ function AngleAsResult(angle : Angle) : Result {
 }
 
 function IntAsAngle(value : Int, size : Int) : Angle {
-    Fact(value >= 0, "Value must be >= 0");
-    Fact(size > 0, "Size must be > 0");
+    Std.Diagnostics.Fact(value >= 0, "Value must be >= 0");
+    Std.Diagnostics.Fact(size > 0, "Size must be > 0");
     new Angle { Value = value, Size = size }
 }
 
@@ -86,13 +77,13 @@ function DoubleAsAngle(value : Double, size : Int) : Angle {
         value = value + tau;
     }
 
-    Fact(value >= 0., "Value must be >= 0.");
-    Fact(value < tau, "Value must be < tau.");
-    Fact(size > 0, "Size must be > 0");
+    Std.Diagnostics.Fact(value >= 0., "Value must be >= 0.");
+    Std.Diagnostics.Fact(value < tau, "Value must be < tau.");
+    Std.Diagnostics.Fact(size > 0, "Size must be > 0");
 
 
     let factor = tau / Std.Convert.IntAsDouble(1 <<< size);
-    let value = RoundHalfAwayFromZero(value / factor);
+    let value = Std.Math.RoundHalfAwayFromZero(value / factor);
     new Angle { Value = value, Size = size }
 }
 
@@ -101,7 +92,7 @@ function AdjustAngleSizeNoTruncation(angle : Angle, new_size : Int) : Angle {
 }
 
 function AdjustAngleSize(angle : Angle, new_size : Int, truncate : Bool) : Angle {
-    Fact(new_size > 0, "New size must be > 0");
+    Std.Diagnostics.Fact(new_size > 0, "New size must be > 0");
     let (value, size) = (angle.Value, angle.Size);
     if new_size < size {
         let value = if truncate {
@@ -134,14 +125,14 @@ function AdjustAngleSize(angle : Angle, new_size : Int, truncate : Bool) : Angle
 // Bit shift
 
 function AngleShl(angle : Angle, operand : Int) : Angle {
-    Fact(operand >= 0, "Shift amount must be >= 0");
+    Std.Diagnostics.Fact(operand >= 0, "Shift amount must be >= 0");
     let mask = (1 <<< angle.Size) - 1;
     let value = (angle.Value <<< operand) &&& mask;
     new Angle { Value = value, Size = angle.Size }
 }
 
 function AngleShr(angle : Angle, operand : Int) : Angle {
-    Fact(operand >= 0, "Shift amount must be >= 0");
+    Std.Diagnostics.Fact(operand >= 0, "Shift amount must be >= 0");
     let value = (angle.Value >>> operand);
     new Angle { Value = value, Size = angle.Size }
 }
@@ -155,19 +146,19 @@ function AngleNotB(angle : Angle) : Angle {
 }
 
 function AngleAndB(lhs : Angle, rhs : Angle) : Angle {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = lhs.Value &&& rhs.Value;
     new Angle { Value = value, Size = lhs.Size }
 }
 
 function AngleOrB(lhs : Angle, rhs : Angle) : Angle {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = lhs.Value ||| rhs.Value;
     new Angle { Value = value, Size = lhs.Size }
 }
 
 function AngleXorB(lhs : Angle, rhs : Angle) : Angle {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = lhs.Value ^^^ rhs.Value;
     new Angle { Value = value, Size = lhs.Size }
 }
@@ -175,57 +166,57 @@ function AngleXorB(lhs : Angle, rhs : Angle) : Angle {
 // Comparison
 
 function AngleEq(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value == rhs.Value
 }
 
 function AngleNeq(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value != rhs.Value
 }
 
 function AngleGt(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value > rhs.Value
 }
 
 function AngleGte(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value >= rhs.Value
 }
 
 function AngleLt(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value < rhs.Value
 }
 
 function AngleLte(lhs : Angle, rhs : Angle) : Bool {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     lhs.Value <= rhs.Value
 }
 
 // Arithmetic
 
 function AddAngles(lhs : Angle, rhs : Angle) : Angle {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = (lhs.Value + rhs.Value) % (1 <<< lhs.Size);
     new Angle { Value = value, Size = lhs.Size }
 }
 
 function SubtractAngles(lhs : Angle, rhs : Angle) : Angle {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = (lhs.Value + ((1 <<< lhs.Size) -  rhs.Value)) % (1 <<< lhs.Size);
     new Angle { Value = value, Size = lhs.Size }
 }
 
 function MultiplyAngleByInt(angle : Angle, factor : Int) : Angle {
-    Fact(factor >= 0, "Factor amount must be >= 0");
+    Std.Diagnostics.Fact(factor >= 0, "Factor amount must be >= 0");
     let value = (angle.Value * factor) % (1 <<< angle.Size);
     new Angle { Value = value, Size = angle.Size }
 }
 
 function MultiplyAngleByBigInt(angle : Angle, factor : BigInt) : Angle {
-    Fact(factor >= 0L, "Factor amount must be >= 0");
+    Std.Diagnostics.Fact(factor >= 0L, "Factor amount must be >= 0");
     let value : BigInt = Std.Convert.IntAsBigInt(angle.Value);
     let value = (value * factor) % Std.Convert.IntAsBigInt(1 <<< angle.Size);
     let value = Std.Convert.BigIntAsInt(value);
@@ -233,13 +224,13 @@ function MultiplyAngleByBigInt(angle : Angle, factor : BigInt) : Angle {
 }
 
 function DivideAngleByAngle(lhs : Angle, rhs : Angle) : Int {
-    Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
+    Std.Diagnostics.Fact(lhs.Size == rhs.Size, "Angle sizes must be the same");
     let value = lhs.Value / rhs.Value;
     value
 }
 
 function DivideAngleByInt(angle : Angle, divisor : Int) : Angle {
-    Fact(divisor > 0, "Divisor amount must be > 0");
+    Std.Diagnostics.Fact(divisor > 0, "Divisor amount must be > 0");
     let value = angle.Value / divisor;
     new Angle { Value = value, Size = angle.Size }
 }

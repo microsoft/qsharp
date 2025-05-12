@@ -27,21 +27,21 @@ fn bit_array_bits_and_register_ops() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp_file(source)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             @EntryPoint()
             operation Test() : (Result[], Result[], Result[], Result[], Result[]) {
                 mutable a = [One, Zero, Zero, Zero, One, One, One, One];
                 mutable b = [Zero, One, One, One, Zero, Zero, Zero, Zero];
                 mutable ls_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-                set ls_a_1 = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) <<< 1, 8));
+                set ls_a_1 = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) <<< 1, 8));
                 mutable a_or_b = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-                set a_or_b = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) ||| QasmStd.Convert.ResultArrayAsIntBE(b), 8));
+                set a_or_b = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) ||| Std.OpenQASM.Convert.ResultArrayAsIntBE(b), 8));
                 mutable a_and_b = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-                set a_and_b = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) &&& QasmStd.Convert.ResultArrayAsIntBE(b), 8));
+                set a_and_b = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) &&& Std.OpenQASM.Convert.ResultArrayAsIntBE(b), 8));
                 mutable a_xor_b = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-                set a_xor_b = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) ^^^ QasmStd.Convert.ResultArrayAsIntBE(b), 8));
+                set a_xor_b = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) ^^^ Std.OpenQASM.Convert.ResultArrayAsIntBE(b), 8));
                 mutable rs_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-                set rs_a_1 = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) >>> 1, 8));
+                set rs_a_1 = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) >>> 1, 8));
                 (ls_a_1, a_or_b, a_and_b, a_xor_b, rs_a_1)
             }
         }"#]]
@@ -59,10 +59,10 @@ fn bit_array_left_shift() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable a = [One, Zero, Zero, Zero, One, One, One, One];
         mutable ls_a_1 = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-        set ls_a_1 = (QasmStd.Convert.IntAsResultArrayBE(QasmStd.Convert.ResultArrayAsIntBE(a) <<< 1, 8));
+        set ls_a_1 = (Std.OpenQASM.Convert.IntAsResultArrayBE(Std.OpenQASM.Convert.ResultArrayAsIntBE(a) <<< 1, 8));
     "#]]
     .assert_eq(&qsharp);
     Ok(())

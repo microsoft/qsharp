@@ -17,7 +17,7 @@ fn shl() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.__AngleShl__(a, b);
+        mutable x = Std.OpenQASM.Angle.__AngleShl__(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -33,7 +33,7 @@ fn shr() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleShr(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleShr(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -51,7 +51,7 @@ fn andb() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleAndB(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleAndB(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -67,7 +67,7 @@ fn orb() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleOrB(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleOrB(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -83,7 +83,7 @@ fn xorb() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleXorB(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleXorB(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -101,7 +101,7 @@ fn eq() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleEq(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleEq(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -117,7 +117,7 @@ fn neq() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleNeq(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleNeq(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -133,7 +133,7 @@ fn gt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleGt(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleGt(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -149,7 +149,7 @@ fn gte() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleGte(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleGte(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -165,7 +165,7 @@ fn lt() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleLt(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleLt(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -181,7 +181,7 @@ fn lte() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AngleLte(a, b);
+        mutable x = Std.OpenQASM.Angle.AngleLte(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -199,7 +199,7 @@ fn addition() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.AddAngles(a, b);
+        mutable x = Std.OpenQASM.Angle.AddAngles(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -215,7 +215,7 @@ fn subtraction() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.SubtractAngles(a, b);
+        mutable x = Std.OpenQASM.Angle.SubtractAngles(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -231,7 +231,7 @@ fn multiplication_by_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.MultiplyAngleByInt(a, b);
+        mutable x = Std.OpenQASM.Angle.MultiplyAngleByInt(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -247,7 +247,7 @@ fn division_by_uint() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.DivideAngleByInt(a, b);
+        mutable x = Std.OpenQASM.Angle.DivideAngleByInt(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -263,7 +263,7 @@ fn division_by_angle() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
-        mutable x = QasmStd.Angle.DivideAngleByAngle(a, b);
+        mutable x = Std.OpenQASM.Angle.DivideAngleByAngle(a, b);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

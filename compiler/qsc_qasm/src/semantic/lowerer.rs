@@ -286,7 +286,7 @@ impl Lowerer {
     /// definitions for many gates that aren't included in the
     /// standard gates include file. We define them here so that
     /// the symbol table is complete and we can lower the QASM3.
-    /// We must also define the gates in the `QasmStd` module so
+    /// We must also define the gates in the `Std.OpenQASM` module so
     /// that we can compile the QASM3 to Q#.
     fn define_qiskit_standard_gate_if_needed<S>(&mut self, name: S, span: Span)
     where

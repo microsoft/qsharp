@@ -17,7 +17,7 @@ fn simulatable_intrinsic_can_be_applied_to_gate() -> miette::Result<(), Vec<Repo
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         @SimulatableIntrinsic()
         operation my_h(q : Qubit) : Unit {
             h(q);
@@ -39,7 +39,7 @@ fn simulatable_intrinsic_can_be_applied_to_def() -> miette::Result<(), Vec<Repor
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         @SimulatableIntrinsic()
         operation my_h(q : Qubit) : Unit {
             h(q);
@@ -61,7 +61,7 @@ fn config_can_be_applied_to_gate() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         @Config(Base)
         operation my_h(q : Qubit) : Unit is Adj + Ctl {
             h(q);
@@ -83,7 +83,7 @@ fn config_can_be_applied_to_def() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         @Config(Base)
         operation my_h(q : Qubit) : Unit {
             h(q);

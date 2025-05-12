@@ -27,7 +27,8 @@ pub mod completion {
     pub use qsc_qasm::parser::completion::*;
 }
 pub use qsc_qasm::compile_to_qsharp_ast_with_config;
-pub use qsc_qasm::package_store_with_qasm;
+
+use crate::compile::package_store_with_stdlib;
 
 pub struct CompileRawQasmResult(
     pub PackageStore,
@@ -68,12 +69,8 @@ pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
 
     let (source_map, errors, package, sig) = unit.into_tuple();
 
-    let (stdid, qasmid, mut store) = package_store_with_qasm(capabilities);
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let (stdid, mut store) = package_store_with_stdlib(capabilities);
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut unit, compile_errors) = crate::compile::compile_ast(
         &store,

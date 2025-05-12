@@ -22,14 +22,14 @@ fn to_bit_and_back_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable _bit0 = Zero;
         mutable _bit1 = Zero;
         set _bit0 = One;
-        set _bit1 = QasmStd.Convert.BoolAsResult(a);
+        set _bit1 = Std.OpenQASM.Convert.BoolAsResult(a);
         set _bit0 = _bit1;
         set _bit0 = _bit1;
-        set a = QasmStd.Convert.ResultAsBool(_bit1);
+        set a = Std.OpenQASM.Convert.ResultAsBool(_bit1);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -44,9 +44,9 @@ fn to_bit_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsResult(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsResult(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -61,9 +61,9 @@ fn to_implicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsInt(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -78,9 +78,9 @@ fn to_explicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsInt(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -95,9 +95,9 @@ fn to_implicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsInt(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -112,9 +112,9 @@ fn to_explicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsInt(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -129,9 +129,9 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsBigInt(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsBigInt(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -146,9 +146,9 @@ fn to_implicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsDouble(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsDouble(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -163,9 +163,9 @@ fn to_explicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = true;
-        mutable y = QasmStd.Convert.BoolAsDouble(x);
+        mutable y = Std.OpenQASM.Convert.BoolAsDouble(x);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
