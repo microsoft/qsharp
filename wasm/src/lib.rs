@@ -652,9 +652,24 @@ pub fn generate_docs(additional_program: Option<ProgramConfig>) -> Vec<IDocFile>
     result
 }
 
+fn get_debugger_from_openqasm(
+    sources: &[(Arc<str>, Arc<str>)],
+    capabilities: TargetCapabilityFlags,
+) -> Result<(String, interpret::Interpreter), String> {
+    get_configured_interpreter_from_openqasm(sources, capabilities, true)
+}
+
 fn get_interpreter_from_openqasm(
     sources: &[(Arc<str>, Arc<str>)],
     capabilities: TargetCapabilityFlags,
+) -> Result<(String, interpret::Interpreter), String> {
+    get_configured_interpreter_from_openqasm(sources, capabilities, false)
+}
+
+fn get_configured_interpreter_from_openqasm(
+    sources: &[(Arc<str>, Arc<str>)],
+    capabilities: TargetCapabilityFlags,
+    dbg: bool,
 ) -> Result<(String, interpret::Interpreter), String> {
     let (file, source) = sources
         .iter()
@@ -684,7 +699,7 @@ fn get_interpreter_from_openqasm(
     let language_features = LanguageFeatures::default();
     let entry_expr = sig.create_entry_expr_from_params(String::new());
     let interpreter = interpret::Interpreter::from(
-        true,
+        dbg,
         store,
         source_package_id,
         capabilities,

@@ -4,7 +4,7 @@
 use crate::line_column::{Location, Range};
 use crate::project_system::{into_qsc_args, ProgramConfig};
 use crate::{
-    get_interpreter_from_openqasm, into_openqasm_args, is_openqasm_program, serializable_type,
+    get_debugger_from_openqasm, into_openqasm_args, is_openqasm_program, serializable_type,
     CallbackReceiver,
 };
 use qsc::fir::StmtId;
@@ -32,7 +32,7 @@ impl DebugService {
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
         if is_openqasm_program(&program) {
             let (sources, capabilities) = into_openqasm_args(program);
-            match get_interpreter_from_openqasm(&sources, capabilities) {
+            match get_debugger_from_openqasm(&sources, capabilities) {
                 Ok((entry_expr, mut interpreter)) => {
                     if let Err(e) = interpreter.set_entry_expr(&entry_expr) {
                         return render_errors(e);
