@@ -8,7 +8,8 @@ import * as vscode from "vscode";
 import { qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
-  getActiveQSharpDocumentUri,
+  FullProgramConfigOrError,
+  getActiveQdkDocumentUri,
   getProgramForDocument,
 } from "../programConfig";
 import { getRandomGuid } from "../utils";
@@ -34,14 +35,21 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider("openqasm", provider),
+  );
 
-  const factory = new InlineDebugAdapterFactory();
+  const factory = new InlineDebugAdapterFactory(async (uri) => {
+    const file = await vscode.workspace.openTextDocument(uri);
+    return getProgramForDocument(file);
+  });
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
 }
 
 function registerCommands(context: vscode.ExtensionContext) {
+  // Register commands for running and debugging Q# files.
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContents`,
@@ -51,9 +59,9 @@ function registerCommands(context: vscode.ExtensionContext) {
         if (typeof expr !== "string") {
           expr = undefined;
         }
-        startDebugging(
+        startQdkDebugging(
           resource,
-          { name: "Run Q# File", stopOnEntry: false, entry: expr },
+          { name: "Run File", stopOnEntry: false, entry: expr },
           { noDebug: true },
         );
       },
@@ -66,8 +74,8 @@ function registerCommands(context: vscode.ExtensionContext) {
         if (typeof expr !== "string") {
           expr = undefined;
         }
-        startDebugging(resource, {
-          name: "Debug Q# File",
+        startQdkDebugging(resource, {
+          name: "Debug File",
           stopOnEntry: true,
           entry: expr,
         });
@@ -76,7 +84,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContentsWithCircuit`,
       (resource: vscode.Uri) =>
-        startDebugging(
+        startQdkDebugging(
           resource,
           {
             name: "Run file and show circuit diagram",
@@ -88,7 +96,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     ),
   );
 
-  function startDebugging(
+  function startQdkDebugging(
     resource: vscode.Uri | undefined,
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
@@ -100,7 +108,11 @@ function registerCommands(context: vscode.ExtensionContext) {
       return;
     }
 
-    const targetResource = resource || getActiveQSharpDocumentUri();
+    const targetResource = resource || getActiveQdkDocumentUri();
+    if (!targetResource) {
+      // No active document
+      return;
+    }
 
     if (targetResource) {
       config.programUri = targetResource.toString();
@@ -154,7 +166,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         .toString();
     } else {
       // if launch.json is missing or empty, try to launch the active Q# document
-      const docUri = getActiveQSharpDocumentUri();
+      const docUri = getActiveQdkDocumentUri();
       if (docUri) {
         config.type = "qsharp";
         config.name = "Launch";
@@ -192,7 +204,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // apply defaults if not set
-    config.type = config.type ?? "qsharp";
+    config.type = "qsharp";
     config.name = config.name ?? "Launch";
     config.request = config.request ?? "launch";
     config.shots = config.shots ?? 1;
@@ -212,13 +224,19 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
+  constructor(
+    private programLoader: (
+      uri: vscode.Uri,
+    ) => Promise<FullProgramConfigOrError>,
+  ) {}
+
   async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const uri = vscode.Uri.parse(session.configuration.programUri);
-    const program = await getProgramForDocument(uri);
+    const program = await this.programLoader(uri);
     if (!program.success) {
       throw new Error(program.errorMsg);
     }

@@ -32,16 +32,16 @@ export async function setTarget(target: TargetProfile) {
 export function getTargetFriendlyName(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
-      return "Q#: QIR base";
+      return "QIR base";
     case "adaptive_ri":
-      return "Q#: QIR Adaptive RI";
+      return "QIR Adaptive RI";
     case "adaptive_rif":
-      return "Q#: QIR Adaptive RIF";
+      return "QIR Adaptive RIF";
     case "unrestricted":
-      return "Q#: unrestricted";
+      return "QIR unrestricted";
     default:
       log.error("invalid target profile found");
-      return "Q#: invalid";
+      return "QIR invalid";
   }
 }
 

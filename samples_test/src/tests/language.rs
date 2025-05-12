@@ -320,11 +320,23 @@ pub const TERNARY_EXPECT_DEBUG: Expect = expect![[r#"
     ()"#]];
 pub const TUPLE_EXPECT: Expect = expect![[r#"
     Tuple: (Id, 0, 1.0)
+    Unpacked: Id, 0, 1.0
+    Name: Id
+    Item: 0
+    myTuple: (0,)
     Tuple: (PauliX, (3, 1))
+    Unpacked: PauliX, 3, 1
+    Inner tuple: (3, 1)
     (0, Foo)"#]];
 pub const TUPLE_EXPECT_DEBUG: Expect = expect![[r#"
     Tuple: (Id, 0, 1.0)
+    Unpacked: Id, 0, 1.0
+    Name: Id
+    Item: 0
+    myTuple: (0,)
     Tuple: (PauliX, (3, 1))
+    Unpacked: PauliX, 3, 1
+    Inner tuple: (3, 1)
     (0, Foo)"#]];
 pub const TYPEDECLARATIONS_EXPECT: Expect = expect!["()"];
 pub const TYPEDECLARATIONS_EXPECT_DEBUG: Expect = expect!["()"];

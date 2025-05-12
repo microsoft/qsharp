@@ -15,10 +15,10 @@ use miette::Diagnostic;
 use qsc::line_column::Encoding;
 use qsc::{compile, project, target::Profile, LanguageFeatures, PackageType};
 use qsc_linter::LintOrGroupConfig;
-use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project};
+use qsc_project::{FileSystemAsync, JSProjectHost, PackageCache, Project, ProjectType};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::path::PathBuf;
-use std::{cell::RefCell, fmt::Debug, mem::take, rc::Rc, sync::Arc};
+
+use std::{cell::RefCell, fmt::Debug, mem::take, path::PathBuf, rc::Rc, sync::Arc, vec};
 
 #[derive(Default, Debug)]
 pub(super) struct CompilationState {
@@ -150,14 +150,7 @@ impl<'a> CompilationStateUpdater<'a> {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = match self.load_manifest(&doc_uri).await {
-            Ok(Some(p)) => p,
-            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
-            Err(errors) => Project {
-                errors,
-                ..Project::from_single_file(doc_uri.clone(), text.clone())
-            },
-        };
+        let project = self.load_project_from_doc_uri(&doc_uri, &text).await;
 
         let compilation_uri = project.path.clone();
 
@@ -188,6 +181,17 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics_and_test_callables();
     }
 
+    async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
+        match self.load_manifest_or_openqasm_project(doc_uri).await {
+            Ok(Some(p)) => p,
+            Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
+            Err(errors) => Project {
+                errors,
+                ..Project::from_single_file(doc_uri.clone(), text.clone())
+            },
+        }
+    }
+
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
@@ -198,6 +202,18 @@ impl<'a> CompilationStateUpdater<'a> {
         let dir = self.project_host.find_manifest_directory(doc_uri).await;
 
         self.load_manifest_from_dir(dir).await
+    }
+
+    async fn load_manifest_or_openqasm_project(
+        &self,
+        doc_uri: &Arc<str>,
+    ) -> Result<Option<Project>, Vec<project::Error>> {
+        if is_openqasm_file(doc_uri) {
+            return Ok(Some(
+                qsc_project::openqasm::load_project(&*self.project_host, doc_uri).await,
+            ));
+        }
+        self.load_manifest(doc_uri).await
     }
 
     async fn load_manifest_from_dir(
@@ -232,40 +248,59 @@ impl<'a> CompilationStateUpdater<'a> {
             // replace source with one from memory if it exists
             // this is what prioritizes open buffers over what exists on the fs for a
             // given document
-            for (ref l_uri, ref mut source) in
-                &mut loaded_project.package_graph_sources.root.sources
-            {
+            let root_sources = match loaded_project.project_type {
+                ProjectType::OpenQASM(ref mut sources) => sources,
+                ProjectType::QSharp(ref mut package_graph_sources) => {
+                    &mut package_graph_sources.root.sources
+                }
+            };
+            for (ref l_uri, ref mut source) in root_sources {
                 if let Some(doc) = state.open_documents.get(l_uri) {
                     trace!("{l_uri} is open, using source from open document");
                     *source = doc.latest_str_content.clone();
                 }
             }
 
-            let compilation_overrides = PartialConfiguration {
-                language_features: Some(
-                    loaded_project.package_graph_sources.root.language_features,
-                ),
-                lints_config: loaded_project.lints,
-                package_type: loaded_project.package_graph_sources.root.package_type.map(
-                    |x| match x {
-                        qsc_project::PackageType::Exe => qsc::PackageType::Exe,
-                        qsc_project::PackageType::Lib => qsc::PackageType::Lib,
-                    },
-                ),
-                ..PartialConfiguration::default()
+            let (configuration, compilation_overrides) = match loaded_project.project_type {
+                ProjectType::QSharp(ref package_graph_sources) => {
+                    let compilation_overrides = PartialConfiguration {
+                        language_features: Some(package_graph_sources.root.language_features),
+                        lints_config: loaded_project.lints,
+                        package_type: package_graph_sources.root.package_type.map(|x| match x {
+                            qsc_project::PackageType::Exe => qsc::PackageType::Exe,
+                            qsc_project::PackageType::Lib => qsc::PackageType::Lib,
+                        }),
+                        ..PartialConfiguration::default()
+                    };
+
+                    (
+                        merge_configurations(&compilation_overrides, &self.configuration),
+                        compilation_overrides,
+                    )
+                }
+                ProjectType::OpenQASM(..) => {
+                    (self.configuration.clone(), PartialConfiguration::default())
+                }
             };
 
-            let configuration = merge_configurations(&compilation_overrides, &self.configuration);
-
-            let compilation = Compilation::new(
-                configuration.package_type,
-                configuration.target_profile,
-                configuration.language_features,
-                &configuration.lints_config,
-                loaded_project.package_graph_sources,
-                loaded_project.errors,
-                &loaded_project.name,
-            );
+            let compilation = match loaded_project.project_type {
+                ProjectType::OpenQASM(sources) => Compilation::new_qasm(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                ),
+                ProjectType::QSharp(package_graph_sources) => Compilation::new(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    configuration.language_features,
+                    &configuration.lints_config,
+                    package_graph_sources,
+                    loaded_project.errors,
+                    &loaded_project.name,
+                ),
+            };
 
             state
                 .compilations
@@ -274,7 +309,7 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 
     pub(super) async fn close_document(&mut self, uri: &str) {
-        let project = self.load_manifest(&uri.into()).await;
+        let project = self.load_manifest_or_openqasm_project(&uri.into()).await;
 
         let removed_compilation = self.remove_open_document(uri);
 
@@ -580,6 +615,10 @@ impl<'a> CompilationStateUpdater<'a> {
             (self.test_callable_receiver)(TestCallables { callables });
         });
     }
+}
+
+fn is_openqasm_file(doc_uri: &Arc<str>) -> bool {
+    doc_uri.ends_with("qasm") || doc_uri.ends_with("inc")
 }
 
 impl CompilationState {

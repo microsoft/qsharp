@@ -18,6 +18,7 @@ import {
 } from "./utils";
 import { addContextMenuToHostElem, promptForArguments } from "./contextMenu";
 import {
+  removeTrailingUnusedQubits,
   addControl,
   addOperation,
   findAndRemoveOperations,
@@ -59,8 +60,10 @@ class CircuitEvents {
   renderFn: () => void;
   componentGrid: ComponentGrid;
   qubits: Qubit[];
+  qubitUseCounts: number[];
   private circuitSvg: SVGElement;
   private dropzoneLayer: SVGGElement;
+  private ghostQubitLayer: SVGGElement;
   private temporaryDropzones: SVGElement[] = [];
   private wireData: number[];
   private columnXData: { xOffset: number; colWidth: number }[];
@@ -82,12 +85,26 @@ class CircuitEvents {
     this.dropzoneLayer = container.querySelector(
       ".dropzone-layer",
     ) as SVGGElement;
+    this.ghostQubitLayer = container.querySelector(
+      ".ghost-qubit-layer",
+    ) as SVGGElement;
 
     this.componentGrid = sqore.circuit.componentGrid;
     this.qubits = sqore.circuit.qubits;
+    this.qubitUseCounts = new Array(this.qubits.length).fill(0);
+    for (const column of this.componentGrid) {
+      for (const op of column.components) {
+        this.incrementQubitUseCountForOp(op);
+      }
+    }
 
     this.wireData = getWireData(this.container);
     this.columnXData = getColumnOffsetsAndWidths(this.container);
+    removeTrailingUnusedQubits(this);
+
+    if (this.qubits.length === 0) {
+      this.ghostQubitLayer.style.display = "block";
+    }
 
     this._addContextMenuEvent();
     this._addDropzoneLayerEvents();
@@ -96,7 +113,6 @@ class CircuitEvents {
     this._addToolboxElementsEvents();
     this._addDropzoneElementsEvents();
     this._addQubitLineEvents();
-    this._addQubitLineControlEvents();
     this._addDocumentEvents();
   }
 
@@ -293,10 +309,12 @@ class CircuitEvents {
    * Add events specifically for dropzoneLayer
    */
   _addDropzoneLayerEvents() {
-    this.container.addEventListener(
-      "mouseup",
-      () => (this.dropzoneLayer.style.display = "none"),
-    );
+    this.container.addEventListener("mouseup", () => {
+      if (this.qubits.length !== 0) {
+        this.ghostQubitLayer.style.display = "none";
+      }
+      this.dropzoneLayer.style.display = "none";
+    });
 
     this.circuitSvg.addEventListener("mouseup", () => {
       this.mouseUpOnCircuit = true;
@@ -404,6 +422,7 @@ class CircuitEvents {
         }
 
         this.container.classList.add("moving");
+        this.ghostQubitLayer.style.display = "block";
         this.dropzoneLayer.style.display = "block";
       });
 
@@ -432,6 +451,7 @@ class CircuitEvents {
   toolboxMousedownHandler = (ev: MouseEvent) => {
     if (ev.button !== 0) return;
     this.container.classList.add("moving");
+    this.ghostQubitLayer.style.display = "block";
     this.dropzoneLayer.style.display = "block";
     const elem = ev.currentTarget as HTMLElement;
     const type = elem.getAttribute("data-type");
@@ -517,7 +537,7 @@ class CircuitEvents {
     } else if (sourceLocation && this.selectedWire != null) {
       if (copying) {
         if (this.movingControl && this.selectedOperation.kind === "unitary") {
-          addControl(this.selectedOperation, targetWire);
+          addControl(this, this.selectedOperation, targetWire);
           moveOperation(
             this,
             sourceLocation,
@@ -593,11 +613,16 @@ class CircuitEvents {
       // If moving down and passing over itself, adjust index
       if (sourceWire < insertAt) insertAt--;
       moveArrayElement(this.qubits, sourceWire, insertAt);
+      moveArrayElement(this.qubitUseCounts, sourceWire, insertAt);
     } else {
       // Swap sourceWire and targetWire
       [this.qubits[sourceWire], this.qubits[targetWire]] = [
         this.qubits[targetWire],
         this.qubits[sourceWire],
+      ];
+      [this.qubitUseCounts[sourceWire], this.qubitUseCounts[targetWire]] = [
+        this.qubitUseCounts[targetWire],
+        this.qubitUseCounts[sourceWire],
       ];
     }
 
@@ -646,6 +671,7 @@ class CircuitEvents {
 
     // Resolve overlapping operations into their own columns
     resolveOverlappingOperations(this.componentGrid);
+    removeTrailingUnusedQubits(this);
     this.renderFn();
   };
 
@@ -667,9 +693,10 @@ class CircuitEvents {
         this.selectedWire = sourceWire;
 
         // Dropzones ON each wire (skip self)
+        // Exclude ghost qubit line (last wire)
         for (
           let targetWire = 0;
-          targetWire < this.wireData.length;
+          targetWire < this.wireData.length - 1; // Exclude ghost
           targetWire++
         ) {
           if (targetWire === sourceWire) continue;
@@ -686,7 +713,8 @@ class CircuitEvents {
         }
 
         // Dropzones BETWEEN wires (including before first and after last)
-        for (let i = 0; i <= this.wireData.length; i++) {
+        // Exclude after ghost qubit line
+        for (let i = 0; i <= this.wireData.length - 1; i++) {
           // Optionally, skip if dropping "between" at the source wire's own position
           if (i === sourceWire || i === sourceWire + 1) continue;
           const dropzone = createWireDropzone(
@@ -707,57 +735,19 @@ class CircuitEvents {
   }
 
   /**
-   * Add event listeners for the buttons to add or remove qubit lines.
-   * The add button will append a new qubit line to the circuit.
-   * The remove button will remove the last qubit line from the circuit,
-   * along with any operations associated with it.
-   */
-  _addQubitLineControlEvents() {
-    const addQubitLineButton = this.container.querySelector(".add-qubit-line");
-    const removeQubitLineButton =
-      this.container.querySelector(".remove-qubit-line");
-
-    if (
-      addQubitLineButton &&
-      !addQubitLineButton.hasAttribute("data-event-added")
-    ) {
-      addQubitLineButton.addEventListener("click", () => {
-        this.qubits.push({ id: this.qubits.length });
-        this.renderFn();
-      });
-      addQubitLineButton.setAttribute("data-event-added", "true");
-    }
-
-    if (
-      removeQubitLineButton &&
-      !removeQubitLineButton.hasAttribute("data-event-added")
-    ) {
-      removeQubitLineButton.addEventListener("click", () => {
-        this.removeQubitLineWithConfirmation(this.qubits.length - 1);
-      });
-      removeQubitLineButton.setAttribute("data-event-added", "true");
-    }
-  }
-
-  /**
    * Removes a qubit line by index, with confirmation if it has associated operations.
    * @param qubitIdx The index of the qubit to remove.
    */
   removeQubitLineWithConfirmation(qubitIdx: number) {
-    // Determines if the operation is associated with the qubit line
-    const check = (op: Operation) => {
-      return getOperationRegisters(op).some((reg) => reg.qubit == qubitIdx);
-    };
-
     // Count number of operations associated with the qubit line
-    const numOperations = this.componentGrid.reduce(
-      (acc, column) => acc + column.components.filter((op) => check(op)).length,
-      0,
-    );
+    const numOperations = this.qubitUseCounts[qubitIdx];
 
     const doRemove = () => {
       // Remove the qubit
       this.qubits.splice(qubitIdx, 1);
+      this.qubitUseCounts.splice(qubitIdx, 1);
+      this.wireData.splice(qubitIdx, 1);
+      removeTrailingUnusedQubits(this);
 
       // Update all remaining operation references
       for (const column of this.componentGrid) {
@@ -781,11 +771,13 @@ class CircuitEvents {
     } else {
       const message =
         numOperations === 1
-          ? `There is ${numOperations} operation associated with this qubit line. Do you want to remove it?`
+          ? `There is 1 operation associated with this qubit line. Do you want to remove it?`
           : `There are ${numOperations} operations associated with this qubit line. Do you want to remove them?`;
       _createConfirmPrompt(message, (confirmed) => {
         if (confirmed) {
-          findAndRemoveOperations(this.componentGrid, check);
+          findAndRemoveOperations(this, (op: Operation) =>
+            getOperationRegisters(op).some((reg) => reg.qubit == qubitIdx),
+          );
           doRemove();
         }
       });
@@ -795,6 +787,38 @@ class CircuitEvents {
   /*****************
    *     Misc.     *
    *****************/
+
+  /**
+   * Increment the use count for qubits used by the operation.
+   * @param op The operation to increment use counts for.
+   */
+  incrementQubitUseCountForOp(op: Operation) {
+    getOperationRegisters(op).forEach((reg) => {
+      if (
+        reg.result === undefined &&
+        reg.qubit >= 0 &&
+        reg.qubit < this.qubitUseCounts.length
+      ) {
+        this.qubitUseCounts[reg.qubit]++;
+      }
+    });
+  }
+
+  /**
+   * Decrement the use count for qubits used by the operation.
+   * @param op The operation to decrement the use count for.
+   */
+  decrementQubitUseCountForOp(op: Operation) {
+    getOperationRegisters(op).forEach((reg) => {
+      if (
+        reg.result === undefined &&
+        reg.qubit >= 0 &&
+        reg.qubit < this.qubitUseCounts.length
+      ) {
+        this.qubitUseCounts[reg.qubit]--;
+      }
+    });
+  }
 
   /**
    * Creates a ghost element for visual feedback during dragging.
@@ -831,6 +855,7 @@ class CircuitEvents {
   _startAddingControl(selectedOperation: Unitary, selectedLocation: string) {
     this.selectedOperation = selectedOperation;
     this.container.classList.add("adding-control");
+    this.ghostQubitLayer.style.display = "block";
 
     // Create dropzones for each wire that isn't already a target or control
     for (let wireIndex = 0; wireIndex < this.wireData.length; wireIndex++) {
@@ -855,9 +880,14 @@ class CircuitEvents {
             this.selectedOperation != null &&
             this.selectedOperation.kind === "unitary"
           ) {
-            const successful = addControl(this.selectedOperation, wireIndex);
+            const successful = addControl(
+              this,
+              this.selectedOperation,
+              wireIndex,
+            );
             this.selectedOperation = null;
             this.container.classList.remove("adding-control");
+            this.ghostQubitLayer.style.display = "none";
             if (successful) {
               const indexes = locationStringToIndexes(selectedLocation);
               const [columnIndex, position] = indexes[indexes.length - 1];
@@ -941,6 +971,7 @@ class CircuitEvents {
           this.selectedOperation.kind === "unitary"
         ) {
           const successful = removeControl(
+            this,
             this.selectedOperation,
             control.qubit,
           );

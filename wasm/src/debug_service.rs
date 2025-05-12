@@ -3,7 +3,10 @@
 
 use crate::line_column::{Location, Range};
 use crate::project_system::{into_qsc_args, ProgramConfig};
-use crate::{serializable_type, CallbackReceiver};
+use crate::{
+    get_debugger_from_openqasm, into_openqasm_args, is_openqasm_program, serializable_type,
+    CallbackReceiver,
+};
 use qsc::fir::StmtId;
 use qsc::fmt_complex;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
@@ -27,12 +30,27 @@ impl DebugService {
 
     #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_program(&mut self, program: ProgramConfig, entry: Option<String>) -> String {
-        match init_debugger(program, entry) {
-            Ok(debugger) => {
-                self.debugger = Some(debugger);
-                String::new()
+        if is_openqasm_program(&program) {
+            let (sources, capabilities) = into_openqasm_args(program);
+            match get_debugger_from_openqasm(&sources, capabilities) {
+                Ok((entry_expr, mut interpreter)) => {
+                    if let Err(e) = interpreter.set_entry_expr(&entry_expr) {
+                        return render_errors(e);
+                    }
+                    let debugger = qsc::interpret::Debugger::from(interpreter, Encoding::Utf16);
+                    self.debugger = Some(debugger);
+                    String::new()
+                }
+                Err(e) => e,
             }
-            Err(e) => render_errors(e),
+        } else {
+            match init_debugger(program, entry) {
+                Ok(debugger) => {
+                    self.debugger = Some(debugger);
+                    String::new()
+                }
+                Err(e) => render_errors(e),
+            }
         }
     }
 

@@ -35,7 +35,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
                 mutable meas = [Zero];
@@ -64,7 +64,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
     "#;
 
     let qir = compile_qasm_to_qir(source, Profile::Base)?;
-    expect![
+    expect![[
         r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -98,7 +98,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
 "#
-    ]
+    ]]
     .assert_eq(&qir);
 
     Ok(())

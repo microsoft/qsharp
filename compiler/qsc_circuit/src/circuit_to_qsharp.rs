@@ -69,7 +69,10 @@ fn build_operation_def(circuit_name: &str, circuit: &Circuit) -> String {
     let summary = if qubits.is_empty() {
         String::new()
     } else {
-        format!("/// Expects a qubit register of size {}.\n", qubits.len())
+        format!(
+            "/// Expects a qubit register of at least {} qubits.\n",
+            qubits.len()
+        )
     };
 
     let mut qsharp_str = format!(
@@ -152,11 +155,10 @@ fn generate_qubit_validation(
     let indent = "    ".repeat(indentation_level);
     let inner_indent = "    ".repeat(indentation_level + 1);
     format!(
-        "{indent}if Length(qs) != {} {{\n\
-        {inner_indent}fail \"Invalid number of qubits. Operation {} expects a qubit register of size {}.\";\n\
+        "{indent}if Length(qs) < {} {{\n\
+        {inner_indent}fail \"Invalid number of qubits. Operation {circuit_name} expects a qubit register of at least {} qubits.\";\n\
         {indent}}}\n",
         qubits.len(),
-        circuit_name,
         qubits.len()
     )
 }

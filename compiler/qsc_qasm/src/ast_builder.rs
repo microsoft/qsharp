@@ -1048,7 +1048,7 @@ pub(crate) fn build_qasm_import_items() -> Vec<Item> {
 
 pub(crate) fn build_qasm_import_decl_intrinsic() -> Item {
     let path_kind = Path {
-        segments: Some(Box::new([build_ident("QasmStd")])),
+        segments: Some(Box::new([build_ident("Std"), build_ident("OpenQASM")])),
         name: Box::new(build_ident("Intrinsic")),
         id: NodeId::default(),
         span: Span::default(),
@@ -1170,7 +1170,7 @@ fn build_angle_ident_pathkind() -> PathKind {
 fn build_qasmstd_convert_pathkind<S: AsRef<str>>(name: S, span: Span) -> PathKind {
     let alloc_ident = build_ident(name.as_ref());
     PathKind::Ok(Box::new(Path {
-        segments: build_idents(&["QasmStd", "Convert"]),
+        segments: build_idents(&["Std", "OpenQASM", "Convert"]),
         name: Box::new(alloc_ident),
         id: NodeId::default(),
         span,
@@ -1180,7 +1180,7 @@ fn build_qasmstd_convert_pathkind<S: AsRef<str>>(name: S, span: Span) -> PathKin
 fn build_angle_pathkind<S: AsRef<str>>(name: S, span: Span) -> PathKind {
     let alloc_ident = build_ident(name.as_ref());
     PathKind::Ok(Box::new(Path {
-        segments: build_idents(&["QasmStd", "Angle"]),
+        segments: build_idents(&["Std", "OpenQASM", "Angle"]),
         name: Box::new(alloc_ident),
         id: NodeId::default(),
         span,
