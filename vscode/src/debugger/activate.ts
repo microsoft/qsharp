@@ -35,6 +35,9 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider("openqasm", provider),
+  );
 
   const factory = new InlineDebugAdapterFactory(async (uri) => {
     const file = await vscode.workspace.openTextDocument(uri);
