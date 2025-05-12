@@ -363,6 +363,7 @@ impl Compilation {
 
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
+        self.test_cases = new.test_cases;
         self.compile_errors = new.compile_errors;
     }
 }
