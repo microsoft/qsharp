@@ -346,6 +346,60 @@ impl Default for SymbolTable {
 }
 
 impl SymbolTable {
+    /// U and CX are the only gates in QASM2
+    /// all others in the std lib are defined
+    /// in terms of U and CX gates.
+    pub fn new_qasm2() -> Self {
+        let global = Scope::new(ScopeKind::Global);
+
+        let mut slf = Self {
+            scopes: vec![global],
+            symbols: IndexMap::default(),
+            current_id: SymbolId::default(),
+        };
+
+        slf.insert_symbol(Symbol {
+            name: "U".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(3, 1),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 3, 1),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: U"));
+
+        slf.insert_symbol(Symbol {
+            name: "CX".to_string(),
+            span: Span::default(),
+            ty: Type::Gate(0, 2),
+            qsharp_ty: crate::types::Type::Callable(crate::types::CallableKind::Operation, 0, 2),
+            io_kind: IOKind::Default,
+            const_expr: None,
+        })
+        .unwrap_or_else(|_| panic!("Failed to insert symbol: CX"));
+
+        // Define global constants.
+        for (symbol, val) in BUILTIN_SYMBOLS {
+            let ty = Type::Float(None, true);
+            let expr = Expr {
+                span: Span::default(),
+                kind: Box::new(ExprKind::Lit(LiteralKind::Float(val))),
+                ty: ty.clone(),
+            };
+
+            slf.insert_symbol(Symbol {
+                name: symbol.to_string(),
+                span: Span::default(),
+                ty,
+                qsharp_ty: crate::types::Type::Double(true),
+                io_kind: IOKind::Default,
+                const_expr: Some(Rc::new(expr)),
+            })
+            .unwrap_or_else(|_| panic!("Failed to insert symbol: {symbol}"));
+        }
+        slf
+    }
+
     pub fn push_scope(&mut self, kind: ScopeKind) {
         assert!(kind != ScopeKind::Global, "Cannot push a global scope");
         self.scopes.push(Scope::new(kind));
