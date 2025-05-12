@@ -5,7 +5,11 @@
 // the "./main.js" module is the entry point.
 
 import * as wasm from "../lib/web/qsc_wasm.js";
-import initWasm, { IProjectHost, TargetProfile } from "../lib/web/qsc_wasm.js";
+import initWasm, {
+  IProjectHost,
+  TargetProfile,
+  ProjectType,
+} from "../lib/web/qsc_wasm.js";
 import {
   Compiler,
   ICompiler,
@@ -180,7 +184,7 @@ export type {
   LanguageServiceTestCallablesEvent,
 } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
-export { log, type LogLevel, type TargetProfile };
+export { log, type LogLevel, type TargetProfile, type ProjectType };
 export type {
   ICompiler,
   ICompilerWorker,

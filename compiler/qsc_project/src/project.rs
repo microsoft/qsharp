@@ -20,6 +20,17 @@ use thiserror::Error;
 
 pub const GITHUB_SCHEME: &str = "qsharp-github-source";
 
+#[derive(Debug, Clone)]
+pub enum ProjectType {
+    /// A Q# project. Described by a `qsharp.json` manifest or a single Q# file
+    /// Value is the package graph, including all sources and per-package
+    /// configuration settings.
+    QSharp(PackageGraphSources),
+    /// A QASM project. Described by an `OpenQASM` source file and its includes
+    /// Value is the collection of sources and all includes.
+    OpenQASM(Vec<(Arc<str>, Arc<str>)>),
+}
+
 /// Describes a Q# project with all its sources and dependencies resolved.
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -29,13 +40,12 @@ pub struct Project {
     /// A path that represents the whole project.
     /// Typically the `qsharp.json` path for projects, or the document path for single files.
     pub path: Arc<str>,
-    /// The package graph, including all sources and per-package
-    /// configuration settings.
-    pub package_graph_sources: PackageGraphSources,
     /// Lint configuration for the project, typically comes from the root `qsharp.json`.
     pub lints: Vec<LintOrGroupConfig>,
     /// Any errors encountered while loading the project.
     pub errors: Vec<Error>,
+    /// The type of project. This is used to determine how to load the project.
+    pub project_type: ProjectType,
 }
 
 impl Project {
@@ -46,21 +56,21 @@ impl Project {
         let display_name = PathBuf::from(name.as_ref())
             .file_name()
             .map_or_else(|| name.clone(), |f| f.to_string_lossy().into());
-
-        Self {
-            package_graph_sources: PackageGraphSources {
-                root: PackageInfo {
-                    sources: vec![(name.clone(), contents)],
-                    language_features: LanguageFeatures::default(),
-                    dependencies: FxHashMap::default(),
-                    package_type: None,
-                },
-                packages: FxHashMap::default(),
+        let source = PackageGraphSources {
+            root: PackageInfo {
+                sources: vec![(name.clone(), contents)],
+                language_features: LanguageFeatures::default(),
+                dependencies: FxHashMap::default(),
+                package_type: None,
             },
+            packages: FxHashMap::default(),
+        };
+        Self {
             path: name,
             name: display_name,
             lints: Vec::default(),
             errors: Vec::default(),
+            project_type: ProjectType::QSharp(source),
         }
     }
 }
@@ -371,11 +381,11 @@ pub trait FileSystemAsync {
             .into();
 
         Ok(Project {
-            package_graph_sources: PackageGraphSources { root, packages },
             lints: manifest.lints,
             errors,
             name,
             path: manifest_path,
+            project_type: ProjectType::QSharp(PackageGraphSources { root, packages }),
         })
     }
 
