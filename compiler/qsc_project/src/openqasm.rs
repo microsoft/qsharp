@@ -114,7 +114,10 @@ fn get_includes(program: &Program, parent: &Arc<str>) -> Vec<(Arc<str>, Arc<str>
         .iter()
         .filter_map(|stmt| {
             if let StmtKind::Include(include) = &*stmt.kind {
-                if include.filename.to_lowercase() == "stdgates.inc" {
+                if matches!(
+                    include.filename.to_lowercase().as_ref(),
+                    "stdgates.inc" | "qelib1.inc"
+                ) {
                     return None;
                 }
                 Some((parent.clone(), include.filename.clone()))
