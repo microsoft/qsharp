@@ -46,6 +46,8 @@ const moveOperation = (
     JSON.stringify(originalOperation),
   );
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   // Update operation's targets and controls
   _moveY(
     circuitEvents,
@@ -71,6 +73,7 @@ const moveOperation = (
   );
   if (sourceOperationParent == null) return null;
   _removeOp(circuitEvents, originalOperation, sourceOperationParent);
+  removeTrailingUnusedQubits(circuitEvents);
 
   return newSourceOperation;
 };
@@ -255,6 +258,8 @@ const addOperation = (
     newSourceOperation.targets = [{ qubit: targetWire }];
   }
 
+  _ensureQubitCount(circuitEvents, targetWire);
+
   _addOp(
     circuitEvents,
     newSourceOperation,
@@ -287,29 +292,32 @@ const removeOperation = (
 
   if (sourceOperation == null || sourceOperationParent == null) return null;
 
-  // Delete sourceOperation
   _removeOp(circuitEvents, sourceOperation, sourceOperationParent);
+  removeTrailingUnusedQubits(circuitEvents);
 };
 
 /**
- * Find and remove operations in-place based on a predicate function.
+ * Find and remove operations in-place that return `true` for a predicate function.
  *
- * @param componentGrid The grid of components to search through.
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param pred The predicate function to determine which operations to remove.
  */
 const findAndRemoveOperations = (
-  componentGrid: ComponentGrid,
+  circuitEvents: CircuitEvents,
   pred: (op: Operation) => boolean,
 ) => {
-  const inPlaceFilter = (
-    grid: ComponentGrid,
-    pred: (op: Operation) => boolean,
-  ) => {
+  // Remove operations that are true for the predicate function
+  const inPlaceFilter = (grid: ComponentGrid) => {
     let i = 0;
     while (i < grid.length) {
       let j = 0;
       while (j < grid[i].components.length) {
-        if (!pred(grid[i].components[j])) {
+        const op = grid[i].components[j];
+        if (op.children) {
+          inPlaceFilter(op.children);
+        }
+        if (pred(op)) {
+          circuitEvents.decrementQubitUseCountForOp(op);
           grid[i].components.splice(j, 1);
         } else {
           j++;
@@ -323,25 +331,22 @@ const findAndRemoveOperations = (
     }
   };
 
-  const recursivePred = (op: Operation) => {
-    if (pred(op)) return true;
-    if (op.children) {
-      inPlaceFilter(op.children, (child) => !recursivePred(child));
-    }
-    return false;
-  };
-
-  inPlaceFilter(componentGrid, (op) => !recursivePred(op));
+  inPlaceFilter(circuitEvents.componentGrid);
 };
 
 /**
  * Add a control to the specified operation on the given wire index.
  *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param op The unitary operation to which the control will be added.
  * @param wireIndex The index of the wire where the control will be added.
  * @returns True if the control was added, false if it already existed.
  */
-const addControl = (op: Unitary, wireIndex: number): boolean => {
+const addControl = (
+  circuitEvents: CircuitEvents,
+  op: Unitary,
+  wireIndex: number,
+): boolean => {
   if (!op.controls) {
     op.controls = [];
   }
@@ -351,6 +356,8 @@ const addControl = (op: Unitary, wireIndex: number): boolean => {
   if (!existingControl) {
     op.controls.push({ qubit: wireIndex });
     op.controls.sort((a, b) => a.qubit - b.qubit);
+    _ensureQubitCount(circuitEvents, wireIndex);
+    circuitEvents.qubitUseCounts[wireIndex]++;
     return true;
   }
   return false;
@@ -359,17 +366,26 @@ const addControl = (op: Unitary, wireIndex: number): boolean => {
 /**
  * Remove a control from the specified operation on the given wire index.
  *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
  * @param op The unitary operation from which the control will be removed.
  * @param wireIndex The index of the wire where the control will be removed.
  * @returns True if the control was removed, false if it did not exist.
  */
-const removeControl = (op: Unitary, wireIndex: number): boolean => {
+const removeControl = (
+  circuitEvents: CircuitEvents,
+  op: Unitary,
+  wireIndex: number,
+): boolean => {
   if (op.controls) {
     const controlIndex = op.controls.findIndex(
       (control) => control.qubit === wireIndex,
     );
     if (controlIndex !== -1) {
       op.controls.splice(controlIndex, 1);
+      circuitEvents.qubitUseCounts[wireIndex]--;
+      if (wireIndex === circuitEvents.qubits.length - 1) {
+        removeTrailingUnusedQubits(circuitEvents);
+      }
       return true;
     }
   }
@@ -422,6 +438,21 @@ const resolveOverlappingOperations = (parentArray: ComponentGrid): void => {
       i += newColumns.length;
     }
     i++;
+  }
+};
+
+/**
+ * Remove trailing unused qubits from the circuit.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ */
+const removeTrailingUnusedQubits = (circuitEvents: CircuitEvents) => {
+  while (
+    circuitEvents.qubitUseCounts.length > 0 &&
+    circuitEvents.qubitUseCounts[circuitEvents.qubitUseCounts.length - 1] === 0
+  ) {
+    circuitEvents.qubits.pop();
+    circuitEvents.qubitUseCounts.pop();
   }
 };
 
@@ -494,9 +525,11 @@ const _addOp = (
     );
   }
 
+  circuitEvents.incrementQubitUseCountForOp(sourceOperation);
+
   if (sourceOperation.kind === "measurement") {
-    for (const targetWires of sourceOperation.qubits) {
-      _updateMeasurementLines(circuitEvents, targetWires.qubit);
+    for (const targetWire of sourceOperation.qubits) {
+      _updateMeasurementLines(circuitEvents, targetWire.qubit);
     }
   }
 };
@@ -570,6 +603,8 @@ const _removeOp = (
     }
   }
 
+  circuitEvents.decrementQubitUseCountForOp(sourceOperation);
+
   if (sourceOperation.kind === "measurement") {
     for (const result of sourceOperation.results) {
       _updateMeasurementLines(circuitEvents, result.qubit);
@@ -587,6 +622,7 @@ const _updateMeasurementLines = (
   circuitEvents: CircuitEvents,
   wireIndex: number,
 ) => {
+  _ensureQubitCount(circuitEvents, wireIndex);
   let resultIndex = 0;
   for (const col of circuitEvents.componentGrid) {
     for (const comp of col.components) {
@@ -604,6 +640,22 @@ const _updateMeasurementLines = (
     resultIndex > 0 ? resultIndex : undefined;
 };
 
+/**
+ * Ensure that the qubit count in the circuit is sufficient for the given wire index.
+ *
+ * @param circuitEvents The CircuitEvents instance to handle circuit-related events.
+ * @param wireIndex The index of the wire to check.
+ */
+const _ensureQubitCount = (circuitEvents: CircuitEvents, wireIndex: number) => {
+  while (circuitEvents.qubits.length <= wireIndex) {
+    circuitEvents.qubits.push({
+      id: circuitEvents.qubits.length,
+      numResults: undefined,
+    });
+    circuitEvents.qubitUseCounts.push(0);
+  }
+};
+
 export {
   moveOperation,
   addOperation,
@@ -612,4 +664,5 @@ export {
   addControl,
   removeControl,
   resolveOverlappingOperations,
+  removeTrailingUnusedQubits,
 };
