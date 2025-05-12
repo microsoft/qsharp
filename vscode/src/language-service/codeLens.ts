@@ -9,14 +9,8 @@ import {
 import * as vscode from "vscode";
 import { toVsCodeRange } from "../common";
 
-export function createQsCodeLensProvider(languageService: ILanguageService) {
-  return new CodeLensProvider(languageService, mapQSharpCodeLens);
-}
-
-export function createOpenQasmCodeLensProvider(
-  languageService: ILanguageService,
-) {
-  return new CodeLensProvider(languageService, mapOpenQasmCodeLens);
+export function createQdkCodeLensProvider(languageService: ILanguageService) {
+  return new CodeLensProvider(languageService, mapCodeLens);
 }
 
 class CodeLensProvider implements vscode.CodeLensProvider {
@@ -44,7 +38,7 @@ class CodeLensProvider implements vscode.CodeLensProvider {
   }
 }
 
-function mapQSharpCodeLens(cl: ICodeLens): vscode.CodeLens {
+function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
   let command;
   let title;
   let tooltip;
@@ -72,46 +66,6 @@ function mapQSharpCodeLens(cl: ICodeLens): vscode.CodeLens {
     case "circuit":
       title = "Circuit";
       command = "qsharp-vscode.showCircuit";
-      tooltip = "Show circuit";
-      break;
-  }
-
-  return new vscode.CodeLens(toVsCodeRange(cl.range), {
-    title,
-    command,
-    arguments: cl.args ?? [],
-    tooltip,
-  });
-}
-
-function mapOpenQasmCodeLens(cl: ICodeLens): vscode.CodeLens {
-  let command;
-  let title;
-  let tooltip;
-  switch (cl.command) {
-    case "histogram":
-      title = "Histogram";
-      command = "qsharp-vscode.openqasm.showHistogram";
-      tooltip = "Run and show histogram";
-      break;
-    case "estimate":
-      title = "Estimate";
-      command = "qsharp-vscode.openqasm.showRe";
-      tooltip = "Calculate resource estimates";
-      break;
-    case "debug":
-      title = "Debug";
-      command = "qsharp-vscode.openqasm.debugEditorContents";
-      tooltip = "Debug callable";
-      break;
-    case "run":
-      title = "Run";
-      command = "qsharp-vscode.openqasm.runEditorContents";
-      tooltip = "Run callable";
-      break;
-    case "circuit":
-      title = "Circuit";
-      command = "qsharp-vscode.openqasm.showCircuit";
       tooltip = "Show circuit";
       break;
   }

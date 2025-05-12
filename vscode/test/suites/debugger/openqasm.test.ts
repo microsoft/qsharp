@@ -28,7 +28,7 @@ suite("OpenQASM Debugger Tests", function suite() {
 
   this.beforeEach(async () => {
     tracker = new Tracker("openqasm");
-    disposable = vscode.debug.registerDebugAdapterTrackerFactory("openqasm", {
+    disposable = vscode.debug.registerDebugAdapterTrackerFactory("qdk", {
       createDebugAdapterTracker(): vscode.ProviderResult<vscode.DebugAdapterTracker> {
         return tracker;
       },
@@ -48,7 +48,7 @@ suite("OpenQASM Debugger Tests", function suite() {
 
     // launch debugger
     await vscode.commands.executeCommand(
-      `${qsharpExtensionId}.openqasm.debugEditorContents`,
+      `${qsharpExtensionId}.debugEditorContents`,
     );
 
     await waitUntilPaused([
@@ -75,7 +75,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // pass it in directly here
     await vscode.debug.startDebugging(workspaceFolder, {
       name: `Launch ${selfContainedName}`,
-      type: "openqasm",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}" + `${selfContainedName}`,
     });
@@ -105,7 +105,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // ${file} will expand to the filesystem path of the currently opened file
     await vscode.debug.startDebugging(workspaceFolder, {
       name: `Launch ${selfContainedName}`,
-      type: "openqasm",
+      type: "qdk",
       request: "launch",
       program: "${file}",
     });
@@ -133,7 +133,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: `Launch ${selfContainedName}`,
-      type: "openqasm",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}" + `${selfContainedName}`,
       stopOnEntry: true,
@@ -180,7 +180,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: `Launch ${selfContainedName}`,
-      type: "openqasm",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}" + `${selfContainedName}`,
       stopOnEntry: false,
@@ -218,7 +218,7 @@ suite("OpenQASM Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: `Launch ${selfContainedName}`,
-      type: "openqasm",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}" + `${selfContainedName}`,
       stopOnEntry: false,

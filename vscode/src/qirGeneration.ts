@@ -197,10 +197,4 @@ export function initCodegen(context: vscode.ExtensionContext) {
       getQirForActiveWindowCommand,
     ),
   );
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      `${qsharpExtensionId}.openqasm.getQir`,
-      getQirForActiveWindowCommand,
-    ),
-  );
 }

@@ -30,12 +30,7 @@ import {
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
-import {
-  basename,
-  isOpenQasmDocument,
-  isQsharpDocument,
-  toVsCodeRange,
-} from "../common";
+import { basename, isQdkDocument, toVsCodeRange } from "../common";
 import {
   DebugEvent,
   EventType,
@@ -915,7 +910,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
-      if (isQsharpDocument(doc) || isOpenQasmDocument(doc)) {
+      if (isQdkDocument(doc)) {
         return doc;
       }
       return undefined;

@@ -277,13 +277,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
-    commands.registerCommand(
-      `${qsharpExtensionId}.openqasm.showRe`,
-      handleShowEstimates,
-    ),
-  );
-
-  context.subscriptions.push(
     commands.registerCommand(`${qsharpExtensionId}.showHelp`, async () => {
       const message = {};
       sendMessageToPanel({ panelType: "help" }, true, message);
@@ -397,23 +390,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand(
-      `${qsharpExtensionId}.openqasm.showHistogram`,
-      handleShowHistogram,
-    ),
-  );
-
-  context.subscriptions.push(
-    commands.registerCommand(
       `${qsharpExtensionId}.showCircuit`,
-      async (resource?: vscode.Uri, operation?: IOperationInfo) => {
-        await showCircuitCommand(context.extensionUri, operation);
-      },
-    ),
-  );
-
-  context.subscriptions.push(
-    commands.registerCommand(
-      `${qsharpExtensionId}.openqasm.showCircuit`,
       async (resource?: vscode.Uri, operation?: IOperationInfo) => {
         await showCircuitCommand(context.extensionUri, operation);
       },

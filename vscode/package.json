@@ -1,7 +1,7 @@
 {
   "name": "qsharp-lang-vscode-dev",
   "displayName": "[DEV BUILD] Azure Quantum Development Kit (QDK)",
-  "description": "Q# Language Support",
+  "description": "Quantum Language Support",
   "version": "0.0.0",
   "publisher": "quantum",
   "icon": "resources/qdk.png",
@@ -23,7 +23,9 @@
     "onNotebook:jupyter-notebook",
     "onDebug",
     "onDebugResolve:qsharp",
+    "onDebugResolve:openqasm",
     "onDebugDynamicConfigurations:qsharp",
+    "onDebugDynamicConfigurations:openqasm",
     "onFileSystem:qsharp-vfs",
     "onWebviewPanel:qsharp-webview"
   ],
@@ -37,7 +39,7 @@
           {
             "id": "qsharp-vscode.welcome.editor",
             "title": "Welcome to the Azure Quantum Development Kit",
-            "description": "The Azure Quantum Development Kit (QDK) is an open-source SDK that you can use to write quantum programs and execute them on quantum hardware. This walkthrough will show you how to get started with the Azure Quantum Development Kit in VS Code.\n\nThe QDK gives you rich editor support for writing quantum programs in the Q# language, such as error checking, signature help, completion lists, safely renaming identifiers, and much more.",
+            "description": "The Azure Quantum Development Kit (QDK) is an open-source SDK that you can use to write quantum programs and execute them on quantum hardware. This walkthrough will show you how to get started with the Azure Quantum Development Kit in VS Code.\n\nThe QDK gives you rich editor support for writing quantum programs, such as error checking, signature help, completion lists, safely renaming identifiers, and much more.",
             "media": {
               "image": "resources/intellisense.png",
               "altText": "Intellisense"
@@ -147,37 +149,27 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp",
-          "group": "navigation@2"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.runEditorContents",
-          "when": "resourceLangId == openqasm",
-          "group": "navigation@1"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.debugEditorContents",
-          "when": "resourceLangId == openqasm",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
           "group": "navigation@2"
         }
       ],
       "commandPalette": [
         {
           "command": "qsharp-vscode.debugEditorContents",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.runEditorContentsWithCircuit",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.targetSubmit",
@@ -201,15 +193,15 @@
         },
         {
           "command": "qsharp-vscode.getQir",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.showHistogram",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.showRe",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.showHelp",
@@ -217,7 +209,7 @@
         },
         {
           "command": "qsharp-vscode.showCircuit",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.showDocumentation",
@@ -225,7 +217,7 @@
         },
         {
           "command": "qsharp-vscode.setTargetProfile",
-          "when": "resourceLangId == qsharp"
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm"
         },
         {
           "command": "qsharp-vscode.webOpener",
@@ -241,38 +233,6 @@
         },
         {
           "command": "qsharp-vscode.updateCopilotInstructions"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.debugEditorContents",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.runEditorContents",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.runEditorContentsWithCircuit",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.getQir",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.setTargetProfile",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.showHistogram",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.showRe",
-          "when": "resourceLangId == openqasm"
-        },
-        {
-          "command": "qsharp-vscode.openqasm.showCircuit",
-          "when": "resourceLangId == openqasm"
         }
       ],
       "view/title": [
@@ -367,23 +327,23 @@
       {
         "command": "qsharp-vscode.createProject",
         "title": "Create Q# project",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.webOpener",
         "title": "Internal web opener",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.debugEditorContents",
-        "title": "Debug Q# file",
+        "title": "Debug file",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(debug-alt)"
       },
       {
         "command": "qsharp-vscode.runEditorContents",
-        "title": "Run Q# File",
+        "title": "Run File",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
@@ -391,159 +351,115 @@
       {
         "command": "qsharp-vscode.runEditorContentsWithCircuit",
         "title": "Run file and show circuit diagram",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.showHistogram",
         "title": "Run file and show histogram",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.showRe",
         "title": "Calculate Resource Estimates",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.showCircuit",
         "title": "Show circuit",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.showDocumentation",
         "title": "Show API documentation",
-        "category": "Q#"
+        "category": "QDK"
       },
       {
         "command": "qsharp-vscode.workspacesRefresh",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Refresh Azure Quantum workspaces",
         "icon": "$(refresh)"
       },
       {
         "command": "qsharp-vscode.workspacesAdd",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Connect to an Azure Quantum workspace",
         "icon": "$(add)"
       },
       {
         "command": "qsharp-vscode.workspacesRemove",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Remove workspace connection",
         "icon": "$(remove)"
       },
       {
         "command": "qsharp-vscode.copilotClear",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Clear Quantum Copilot chat",
         "enablement": "!qdkCopilotIsBusy",
         "icon": "$(clear-all)"
       },
       {
         "command": "qsharp-vscode.workspacePythonCode",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Copy Python code to connect to workspace"
       },
       {
         "command": "qsharp-vscode.workspaceOpenPortal",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Open the workspace in the Azure portal",
         "icon": "$(link-external)"
       },
       {
         "command": "qsharp-vscode.targetSubmit",
-        "category": "Q#",
-        "title": "Submit current Q# program",
+        "category": "QDK",
+        "title": "Submit current QDK program",
         "icon": "$(run)"
       },
       {
         "command": "qsharp-vscode.getQir",
-        "category": "Q#",
-        "title": "Get QIR for current Q# program"
+        "category": "QDK",
+        "title": "Get QIR for current QDK program"
       },
       {
         "command": "qsharp-vscode.downloadResults",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Download Azure Quantum job results",
         "icon": "$(cloud-download)"
       },
       {
         "command": "qsharp-vscode.setTargetProfile",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Set the Azure Quantum QIR target profile"
       },
       {
         "command": "qsharp-vscode.createNotebook",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Create an Azure Quantum notebook"
       },
       {
         "command": "qsharp-vscode.openPlayground",
-        "category": "Q#",
-        "title": "Open Q# playground"
+        "category": "QDK",
+        "title": "Open QDK playground"
       },
       {
         "command": "qsharp-vscode.populateFilesList",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Populate qsharp.json files list"
       },
       {
         "command": "qsharp-vscode.addProjectReference",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Add Q# project reference"
       },
       {
         "command": "qsharp-vscode.updateCopilotInstructions",
-        "category": "Q#",
+        "category": "QDK",
         "title": "Update Copilot instructions file for Q#"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.debugEditorContents",
-        "title": "Debug OpenQASM file",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(debug-alt)"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.runEditorContents",
-        "title": "Run OpenQASM File",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(play)"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.runEditorContentsWithCircuit",
-        "title": "Run file and show circuit diagram",
-        "category": "OpenQASM"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.getQir",
-        "title": "Get QIR for current OpenQASM program",
-        "category": "OpenQASM"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.setTargetProfile",
-        "title": "Set the Azure Quantum QIR target profile",
-        "category": "OpenQASM"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.showHistogram",
-        "title": "Run file and show histogram",
-        "category": "OpenQASM"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.showRe",
-        "title": "Calculate Resource Estimates",
-        "category": "OpenQASM"
-      },
-      {
-        "command": "qsharp-vscode.openqasm.showCircuit",
-        "title": "Show circuit",
-        "category": "OpenQASM"
       }
     ],
     "breakpoints": [
@@ -622,17 +538,18 @@
     ],
     "debuggers": [
       {
-        "type": "qsharp",
+        "type": "qdk",
         "languages": [
-          "qsharp"
+          "qsharp",
+          "openqasm"
         ],
-        "label": "Q# Debug",
+        "label": "QDK Debug",
         "configurationAttributes": {
           "launch": {
             "properties": {
               "program": {
                 "type": "string",
-                "description": "Absolute path to a text file.",
+                "description": "Absolute path to a source file.",
                 "default": "${file}"
               },
               "stopOnEntry": {
@@ -644,44 +561,6 @@
                 "type": "string",
                 "description": "Entry expression.",
                 "default": ""
-              },
-              "shots": {
-                "type": "number",
-                "description": "Number of shots to execute.",
-                "default": 1
-              },
-              "trace": {
-                "type": "boolean",
-                "description": "Enable logging of the Debug Adapter Protocol.",
-                "default": false
-              },
-              "showCircuit": {
-                "type": "boolean",
-                "description": "Display the quantum circuit diagram while running.",
-                "default": false
-              }
-            }
-          }
-        }
-      },
-      {
-        "type": "openqasm",
-        "languages": [
-          "openqasm"
-        ],
-        "label": "OpenQASM Debug",
-        "configurationAttributes": {
-          "launch": {
-            "properties": {
-              "program": {
-                "type": "string",
-                "description": "Absolute path to a text file.",
-                "default": "${file}"
-              },
-              "stopOnEntry": {
-                "type": "boolean",
-                "description": "Automatically stop after launch.",
-                "default": false
               },
               "shots": {
                 "type": "number",
@@ -839,7 +718,7 @@
         ],
         "toolReferenceName": "azureQuantumSubmitToTarget",
         "displayName": "Submit to Azure Quantum Target",
-        "modelDescription": "Submit the current Q# program to Azure Quantum with the provided information. Call this when you need to submit or run a Q# program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
+        "modelDescription": "Submit the current program to Azure Quantum with the provided information. Call this when you need to submit or run a program with Azure Quantum, for example when a customer asks 'Can you submit this program to Azure?'",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {

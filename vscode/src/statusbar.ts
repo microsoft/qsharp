@@ -3,15 +3,14 @@
 
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpDocument, qsharpExtensionId } from "./common";
+import { isQdkDocument, qsharpExtensionId } from "./common";
 import { getTarget, getTargetFriendlyName, setTarget } from "./config";
-import { getActiveQSharpDocumentUri } from "./programConfig";
+import { getActiveQdkDocumentUri } from "./programConfig";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
 
-  disposables.push(registerQSharpTargetProfileCommand());
-  disposables.push(registerOpenQasmTargetProfileCommand());
+  disposables.push(registerSetTargetProfileCommand());
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -23,7 +22,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 
   disposables.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && isQsharpDocument(editor.document)) {
+      if (editor && isQdkDocument(editor.document)) {
         refreshStatusBarItemValue();
       } else if (editor?.document.uri.scheme !== "output") {
         // The output window counts as a text editor.
@@ -41,7 +40,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   disposables.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (
-        getActiveQSharpDocumentUri() &&
+        getActiveQdkDocumentUri() &&
         event.affectsConfiguration("Q#.qir.targetProfile")
       ) {
         refreshStatusBarItemValue();
@@ -49,7 +48,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     }),
   );
 
-  if (getActiveQSharpDocumentUri()) {
+  if (getActiveQdkDocumentUri()) {
     refreshStatusBarItemValue();
   }
 
@@ -87,16 +86,9 @@ async function setTargetProfile() {
   }
 }
 
-function registerQSharpTargetProfileCommand() {
+function registerSetTargetProfileCommand() {
   return vscode.commands.registerCommand(
     `${qsharpExtensionId}.setTargetProfile`,
-    setTargetProfile,
-  );
-}
-
-function registerOpenQasmTargetProfileCommand() {
-  return vscode.commands.registerCommand(
-    `${qsharpExtensionId}.openqasm.setTargetProfile`,
     setTargetProfile,
   );
 }

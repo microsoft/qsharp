@@ -24,7 +24,7 @@ suite("Q# Debugger Tests", function suite() {
 
   this.beforeEach(async () => {
     tracker = new Tracker();
-    disposable = vscode.debug.registerDebugAdapterTrackerFactory("qsharp", {
+    disposable = vscode.debug.registerDebugAdapterTrackerFactory("qdk", {
       createDebugAdapterTracker(): vscode.ProviderResult<vscode.DebugAdapterTracker> {
         return tracker;
       },
@@ -71,7 +71,7 @@ suite("Q# Debugger Tests", function suite() {
     // pass it in directly here
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
     });
@@ -101,7 +101,7 @@ suite("Q# Debugger Tests", function suite() {
     // ${file} will expand to the filesystem path of the currently opened file
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${file}",
     });
@@ -129,7 +129,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
       stopOnEntry: true,
@@ -176,7 +176,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
       stopOnEntry: false,
@@ -213,7 +213,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
       stopOnEntry: false,
@@ -260,7 +260,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
       stopOnEntry: true,
@@ -336,7 +336,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.debug.startDebugging(workspaceFolder, {
       name: "Launch foo.qs",
-      type: "qsharp",
+      type: "qdk",
       request: "launch",
       program: "${workspaceFolder}src/foo.qs",
       stopOnEntry: false,
