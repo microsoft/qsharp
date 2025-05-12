@@ -337,7 +337,6 @@ export function updateCircuitPanel(
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
     : projectName;
 
-  // Trim the QIR: prefix from the target profile name - that's meant for the ui text in the status bar
   const target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
 
   const props = {

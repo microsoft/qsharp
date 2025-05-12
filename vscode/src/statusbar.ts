@@ -94,21 +94,21 @@ function registerSetTargetProfileCommand() {
 }
 
 const targetProfiles = [
-  { configName: "base", uiText: "QIR: base" },
-  { configName: "adaptive_ri", uiText: "QIR: Adaptive RI" },
-  { configName: "adaptive_rif", uiText: "QIR: Adaptive RIF" },
-  { configName: "unrestricted", uiText: "QIR: unrestricted" },
+  { configName: "base", uiText: "QIR base" },
+  { configName: "adaptive_ri", uiText: "QIR Adaptive RI" },
+  { configName: "adaptive_rif", uiText: "QIR Adaptive RIF" },
+  { configName: "unrestricted", uiText: "QIR unrestricted" },
 ];
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "QIR: base":
+    case "QIR base":
       return "base";
-    case "QIR: Adaptive RI":
+    case "QIR Adaptive RI":
       return "adaptive_ri";
-    case "QIR: Adaptive RIF":
+    case "QIR Adaptive RIF":
       return "adaptive_rif";
-    case "QIR: unrestricted":
+    case "QIR unrestricted":
       return "unrestricted";
     default:
       log.error("invalid target profile found");
