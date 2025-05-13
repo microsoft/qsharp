@@ -45,4 +45,4 @@ def GenerateRandomNumber(qubit q, int nBits) -> int {
 qubit q;
 
 // Generate a 5-bit random number using the qubit `q`.
-int random = GenerateRandomNumber(q, 3);
+int random = GenerateRandomNumber(q, 5);
