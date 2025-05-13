@@ -23,9 +23,7 @@
     "onNotebook:jupyter-notebook",
     "onDebug",
     "onDebugResolve:qsharp",
-    "onDebugResolve:openqasm",
     "onDebugDynamicConfigurations:qsharp",
-    "onDebugDynamicConfigurations:openqasm",
     "onFileSystem:qsharp-vfs",
     "onWebviewPanel:qsharp-webview"
   ],

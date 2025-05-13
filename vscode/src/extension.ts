@@ -79,13 +79,13 @@ export async function activate(
 
   context.subscriptions.push(CircuitEditorProvider.register(context));
 
-  initAzureWorkspaces(context);
+  await initAzureWorkspaces(context);
   initCodegen(context);
-  activateDebugger(context);
+  await activateDebugger(context);
   registerCreateNotebookCommand(context);
   registerWebViewCommands(context);
-  initFileSystem(context);
-  initProjectCreator(context);
+  await initFileSystem(context);
+  await initProjectCreator(context);
   registerCopilotPanel(context);
   registerLanguageModelTools(context);
   registerGhCopilotInstructionsCommand(context);

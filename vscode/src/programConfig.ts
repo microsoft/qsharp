@@ -52,7 +52,7 @@ export async function getActiveProgram(): Promise<FullProgramConfigOrError> {
     };
   }
 
-  return getProgramForDocument(doc);
+  return await getProgramForDocument(doc);
 }
 
 export function getActiveQdkDocumentUri(): vscode.Uri | undefined {
@@ -75,7 +75,7 @@ export async function getVisibleProgram(): Promise<FullProgramConfigOrError> {
         "There are no visible windows that contain a document supported by the QDK",
     };
   }
-  return getProgramForDocument(doc);
+  return await getProgramForDocument(doc);
 }
 
 export function getVisibleQdkDocumentUri(): vscode.Uri | undefined {

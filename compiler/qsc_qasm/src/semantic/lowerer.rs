@@ -1401,10 +1401,14 @@ impl Lowerer {
 
     fn lower_expr_stmt(&mut self, stmt: &syntax::ExprStmt) -> semantic::StmtKind {
         let expr = self.lower_expr(&stmt.expr);
-        semantic::StmtKind::ExprStmt(semantic::ExprStmt {
-            span: stmt.span,
-            expr,
-        })
+        if matches!(&*expr.kind, semantic::ExprKind::Err) {
+            semantic::StmtKind::Err
+        } else {
+            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                span: stmt.span,
+                expr,
+            })
+        }
     }
 
     fn lower_extern(&mut self, stmt: &syntax::ExternDecl) -> semantic::StmtKind {
@@ -2038,7 +2042,7 @@ impl Lowerer {
         // 1. Check that we are in the global scope. QASM3 semantics
         //    only allow gate definitions in the global scope.
         if !self.symbols.is_current_scope_global() {
-            let kind = SemanticErrorKind::QuantumDeclarationInNonGlobalScope(stmt.span);
+            let kind = SemanticErrorKind::GateDeclarationInNonGlobalScope(stmt.span);
             self.push_semantic_error(kind);
         }
 
@@ -2124,6 +2128,11 @@ impl Lowerer {
     }
 
     fn lower_quantum_decl(&mut self, stmt: &syntax::QubitDeclaration) -> semantic::StmtKind {
+        if !self.symbols.is_current_scope_global() {
+            let kind = SemanticErrorKind::QubitDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
         // If there wasn't an explicit size, infer the size to be 1.
         let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
             let size_expr = self.lower_expr(size_expr);
@@ -3510,15 +3519,18 @@ impl Lowerer {
     fn lower_const_range(&mut self, range: &syntax::Range) -> Option<semantic::Range> {
         let mut lower_and_const_eval = |expr| {
             let lowered_expr = self.lower_expr(expr);
-            let lit = lowered_expr.const_eval(self);
-            lit.map(|lit| {
-                let lit_expr = semantic::Expr {
-                    span: lowered_expr.span,
-                    kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
-                    ty: lowered_expr.ty,
-                };
-                // Range components (start, step, end) can be negative, so we coerce to an `int`.
-                self.coerce_literal_expr_to_type(&Type::Int(None, true), &lit_expr, &lit)
+            let lit_expr = Self::try_cast_expr_to_type(&Type::Int(None, true), &lowered_expr);
+            let Some(lowered_expr) = lit_expr else {
+                self.push_invalid_cast_error(&Type::Int(None, true), &lowered_expr.ty, expr.span);
+                return None;
+            };
+            // const_eval will push any needed errors
+            let lit = lowered_expr.const_eval(self)?;
+
+            Some(semantic::Expr {
+                span: lowered_expr.span,
+                kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
+                ty: Type::Int(None, true),
             })
         };
 

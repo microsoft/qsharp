@@ -51,7 +51,12 @@ export type LanguageServiceEvent =
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ILanguageService {
   updateConfiguration(config: IWorkspaceConfiguration): Promise<void>;
-  updateDocument(uri: string, version: number, code: string): Promise<void>;
+  updateDocument(
+    uri: string,
+    version: number,
+    code: string,
+    languageId: string,
+  ): Promise<void>;
   updateNotebookDocument(
     notebookUri: string,
     version: number,
@@ -62,7 +67,7 @@ export interface ILanguageService {
       code: string;
     }[],
   ): Promise<void>;
-  closeDocument(uri: string): Promise<void>;
+  closeDocument(uri: string, languageId: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
   getCodeActions(documentUri: string, range: IRange): Promise<ICodeAction[]>;
   getCompletions(
@@ -151,8 +156,14 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     version: number,
     code: string,
+    languageId: string,
   ): Promise<void> {
-    this.languageService.update_document(documentUri, version, code);
+    this.languageService.update_document(
+      documentUri,
+      version,
+      code,
+      languageId,
+    );
   }
 
   async updateNotebookDocument(
@@ -164,8 +175,8 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.update_notebook_document(notebookUri, metadata, cells);
   }
 
-  async closeDocument(documentUri: string): Promise<void> {
-    this.languageService.close_document(documentUri);
+  async closeDocument(documentUri: string, languageId: string): Promise<void> {
+    this.languageService.close_document(documentUri, languageId);
   }
 
   async closeNotebookDocument(documentUri: string): Promise<void> {

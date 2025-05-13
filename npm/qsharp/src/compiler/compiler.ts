@@ -144,7 +144,7 @@ export class Compiler implements ICompiler {
         findManifestDirectory: async () => null,
       },
     );
-    languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code, "qsharp");
     // Yield to let the language service background worker handle the update
     await Promise.resolve();
     languageService.stop_background_work();

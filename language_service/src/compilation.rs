@@ -264,7 +264,7 @@ impl Compilation {
             .collect::<InMemorySourceResolver>();
         let capabilities = target_profile.into();
 
-        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, compile_errors) =
+        let CompileRawQasmResult(store, source_package_id, dependencies, _sig, mut compile_errors) =
             qsc::qasm::compile_raw_qasm(
                 source.clone(),
                 path.clone(),
@@ -272,6 +272,18 @@ impl Compilation {
                 package_type,
                 capabilities,
             );
+
+        let unit = store
+            .get(source_package_id)
+            .expect("expected to find user package");
+
+        run_fir_passes(
+            &mut compile_errors,
+            target_profile,
+            &store,
+            source_package_id,
+            unit,
+        );
 
         Self {
             package_store: store,

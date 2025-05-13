@@ -282,6 +282,7 @@ export function Editor(props: {
         srcModel.uri.toString(),
         srcModel.getVersionId(),
         srcModel.getValue(),
+        srcModel.getLanguageId(),
       );
       const measure = performance.measure(
         "update-document",
@@ -299,7 +300,10 @@ export function Editor(props: {
     return () => {
       log.info("Disposing a monaco editor");
       window.removeEventListener("resize", onResize);
-      props.languageService.closeDocument(srcModel.uri.toString());
+      props.languageService.closeDocument(
+        srcModel.uri.toString(),
+        srcModel.getLanguageId(),
+      );
       newEditor.dispose();
     };
   }, []);
