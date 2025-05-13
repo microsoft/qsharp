@@ -16,6 +16,11 @@ include "stdgates.inc";
 qubit q1;
 qubit q2;
 
+// Qubits are initially in an undefined state.
+// Reset is used here to initialize qubits to |0⟩ state.
+reset q1;
+reset q2;
+
 // Set qubit `q1` in superposition of |0⟩ and |1⟩ by applying a Hadamard gate.
 h q1;
 // Entangle the two qubits `q1` and `q2` using the `cx` gate.
