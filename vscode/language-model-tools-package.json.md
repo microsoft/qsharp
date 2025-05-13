@@ -140,4 +140,14 @@
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `filePath` | `string` | Yes | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
+| `qubitTypes` | `array` | No | Array of qubit type labels to use for resource estimation. Allowed values:
+- 'qubit_gate_ns_e3': Superconducting/spin qubit with 1e-3 error rate
+- 'qubit_gate_ns_e4': Superconducting/spin qubit with 1e-4 error rate
+- 'qubit_gate_us_e3': Trapped ion qubit with 1e-3 error rate
+- 'qubit_gate_us_e4': Trapped ion qubit with 1e-4 error rate
+- 'qubit_maj_ns_e4 + surface_code': Majorana qubit with 1e-4 error rate (surface code QEC)
+- 'qubit_maj_ns_e6 + surface_code': Majorana qubit with 1e-6 error rate (surface code QEC)
+- 'qubit_maj_ns_e4 + floquet_code': Majorana qubit with 1e-4 error rate (floquet code QEC)
+- 'qubit_maj_ns_e6 + floquet_code': Majorana qubit with 1e-6 error rate (floquet code QEC) |
+| `errorBudget` | `number` | No | Error budget for the resource estimation. Must be a number between 0 and 1. Default is 0.001. |
 

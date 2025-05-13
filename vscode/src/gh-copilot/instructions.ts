@@ -341,3 +341,18 @@ export function registerGhCopilotInstructionsCommand(
     });
   }
 }
+
+// some test code to try out configuration updates
+// log.info("QSharpTools initialized");
+// const cfg = vscode.workspace.getConfiguration("chat");
+// const val = cfg.inspect("agent")?.globalValue;
+// cfg.update("agent.enabled", true, ConfigurationTarget.Global).then(
+//   () => {
+//     const lastVal = cfg.inspect("agent")?.globalValue;
+//     log.info("Agent config value: ", lastVal);
+//   },
+//   (e) => {
+//     log.error("Failed to update agent config", e);
+//   },
+// );
+// log.info("Agent config value: ", val);

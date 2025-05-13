@@ -1,210 +1,287 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log, QscEventTarget } from "qsharp-lang";
+import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
-import { loadCompilerWorker } from "../common";
-import { getPauliNoiseModel } from "../config";
+import { CircuitOrError, generateCircuit } from "../circuit";
+import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
+import { HistogramData } from "../copilot/shared";
 import { CopilotToolError } from "../copilot/tools";
-import { getProgramForDocument } from "../programConfig";
+import { createDebugConsoleEventTarget } from "../debugger/output";
+import { resourceEstimateTool } from "../estimate";
+import { FullProgramConfig, getProgramForDocument } from "../programConfig";
 import { sendMessageToPanel } from "../webviewPanel.js";
-// import  { ConfigurationTarget } from "vscode";
+
+/**
+ * In general, tool calls that deal with Q# should include this project
+ * info in their output. Since Copilot just passes in a file path, and isn't
+ * familiar with how we expand the project or how we determine target profile,
+ * this output will give Copilot context to understand what just happened.
+ */
+type ProjectInfo = {
+  project: {
+    name: string;
+    targetProfile: string;
+  };
+};
+
+type RunProgramResult = ProjectInfo &
+  (
+    | {
+        output: string;
+        result: string | vscode.Diagnostic;
+      }
+    | {
+        histogram: HistogramData;
+        sampleFailures: vscode.Diagnostic[];
+        message: string;
+      }
+  );
 
 export class QSharpTools {
-  constructor(private extensionUri: vscode.Uri) {
-    // some test code to try out configuration updates
-    // log.info("QSharpTools initialized");
-    // const cfg = vscode.workspace.getConfiguration("chat");
-    // const val = cfg.inspect("agent")?.globalValue;
-    // cfg.update("agent.enabled", true, ConfigurationTarget.Global).then(
-    //   () => {
-    //     const lastVal = cfg.inspect("agent")?.globalValue;
-    //     log.info("Agent config value: ", lastVal);
-    //   },
-    //   (e) => {
-    //     log.error("Failed to update agent config", e);
-    //   },
-    // );
-    // log.info("Agent config value: ", val);
-  }
+  constructor(private extensionUri: vscode.Uri) {}
 
   /**
-   * Runs the current Q# program in the editor
+   * Implements the `qsharp-run-program` tool call.
    */
   async runProgram(input: {
     filePath: string;
     shots?: number;
-  }): Promise<string> {
+  }): Promise<RunProgramResult> {
     const shots = input.shots ?? 1;
-    try {
-      const docUri = vscode.Uri.file(input.filePath);
-      if (!docUri) {
-        throw new CopilotToolError(
-          "No active Q# document found. Please open a Q# file first.",
-        );
-      }
 
-      // Check if the program can be compiled
-      const programResult = await getProgramForDocument(docUri);
-      if (!programResult.success) {
-        throw new CopilotToolError(
-          `Cannot run the program: ${programResult.errorMsg}`,
-        );
-      }
+    const program = await this.getProgram(input.filePath);
+    const programConfig = program.programConfig;
 
-      // Create an event target to capture results
-      const evtTarget = new QscEventTarget(true);
-      const outputResults: string[] = [];
-      const measurementResults: Record<string, number> = {};
+    const output: string[] = [];
+    let finalHistogram: HistogramData | undefined;
+    let sampleFailures: vscode.Diagnostic[] = [];
+    const panelId = programConfig.projectName;
 
-      // Capture standard outputs and results
-      evtTarget.addEventListener("Message", (evt) => {
-        outputResults.push(evt.detail);
-      });
-
-      evtTarget.addEventListener("Result", (evt) => {
-        // Handle both string results and diagnostics
-        if (!evt.detail.success && evt.detail.value.message !== undefined) {
-          outputResults.push(JSON.stringify(evt.detail.value));
-        } else {
-          const result = `${evt.detail.value}`;
-          outputResults.push(result);
-
-          // Collect measurement results for histogram if multiple shots
-          if (shots > 1) {
-            if (measurementResults[result]) {
-              measurementResults[result]++;
-            } else {
-              measurementResults[result] = 1;
-            }
+    await this.runQsharp(
+      programConfig,
+      shots,
+      (msg) => {
+        output.push(msg);
+      },
+      (histogram, failures) => {
+        finalHistogram = histogram;
+        const uniqueFailures = new Set<string>();
+        sampleFailures = [];
+        for (const failure of failures) {
+          const failureKey = `${failure.message}-${failure.range?.start.line}-${failure.range?.start.character}`;
+          if (!uniqueFailures.has(failureKey)) {
+            uniqueFailures.add(failureKey);
+            sampleFailures.push(failure);
+          }
+          if (sampleFailures.length === 3) {
+            break;
           }
         }
-      });
-
-      const worker = await loadCompilerWorker(this.extensionUri!);
-
-      try {
-        // Get the noise model (if configured)
-        const noise = getPauliNoiseModel();
-
-        // Run the program with the compiler worker
-        await worker.runWithPauliNoise(
-          programResult.programConfig,
-          "", // No specific entry expression
-          shots,
-          noise,
-          evtTarget,
-        );
-
-        // Format and return the results
-        if (outputResults.length === 0) {
-          return "Program executed successfully but produced no output.";
-        } else {
-          // If shots > 1, display histogram
-          if (shots > 1) {
-            const buckets: Array<[string, number]> =
-              Object.entries(measurementResults);
-            const histogram = {
-              buckets,
-              shotCount: shots,
-            };
-
-            const panelId = programResult.programConfig.projectName;
-
-            // Show the histogram
-            sendMessageToPanel(
-              { panelType: "histogram", id: panelId },
-              true, // reveal the panel
-              histogram,
-            );
-
-            return `Program executed successfully with ${shots} shots.\n Results: ${JSON.stringify(histogram)}`;
-          }
-
-          return `Program executed successfully.\nOutput:\n${outputResults.join("\n")}`;
+        if (
+          shots > 1 &&
+          histogram.buckets.filter((b) => b[0] !== "ERROR").length > 0
+        ) {
+          // Display the histogram panel only if we're running multiple shots,
+          // and we have at least one successful result.
+          sendMessageToPanel(
+            { panelType: "histogram", id: panelId },
+            true, // reveal the panel
+            histogram,
+          );
         }
-      } catch {
-        throw new CopilotToolError(
-          `Program execution failed: ${outputResults.join("\n")}`,
-        );
-      } finally {
-        // Always terminate the worker when done
-        worker.terminate();
-      }
-    } catch (e) {
-      log.error("Failed to run program. ", e);
-      throw new CopilotToolError(
-        "Failed to run the Q# program: " +
-          (e instanceof Error ? e.message : String(e)),
-      );
-    }
-  } /**
-   * Generates a circuit diagram for the specified Q# file
-   */
-  async generateCircuit(input: { filePath: string }): Promise<string> {
-    try {
-      // Get the Q# document from the file path
-      const docUri = vscode.Uri.file(input.filePath);
-      if (!docUri) {
-        throw new CopilotToolError(
-          "Invalid file path. Please provide a valid path to a Q# file.",
-        );
-      }
+      },
+    );
 
-      // Check if the program can be compiled
-      const programResult = await getProgramForDocument(docUri);
-      if (!programResult.success) {
-        throw new CopilotToolError(
-          `Cannot generate circuit: ${programResult.errorMsg}`,
-        );
-      }
+    const project = {
+      name: programConfig.projectName,
+      targetProfile: programConfig.profile,
+    };
 
-      // TODO: pass file path
-      // Generate the circuit diagram (without specifying an operation - will show all)
-      await vscode.commands.executeCommand("qsharp-vscode.showCircuit");
-
-      return "Circuit diagram generated and displayed in the circuit panel.";
-    } catch (e) {
-      log.error("Failed to generate circuit diagram. ", e);
-      throw new CopilotToolError(
-        "Failed to generate circuit diagram: " +
-          (e instanceof Error ? e.message : String(e)),
-      );
+    if (shots === 1) {
+      // Return the output and results directly
+      return {
+        project,
+        output: output.join("\n"),
+        result:
+          sampleFailures.length > 0
+            ? sampleFailures[0]
+            : (finalHistogram?.buckets[0][0] as string),
+      };
+    } else {
+      // No output, return the histogram
+      return {
+        project,
+        sampleFailures,
+        histogram: finalHistogram!,
+        message: `Results are displayed in the Histogram panel.`,
+      };
     }
   }
 
   /**
-   * Runs the resource estimator on the specified Q# file
+   * Implements the `qsharp-generate-circuit` tool call.
    */
-  async runResourceEstimator(input: { filePath: string }): Promise<string> {
+  async generateCircuit(input: { filePath: string }): Promise<
+    ProjectInfo &
+      CircuitOrError & {
+        message?: string;
+      }
+  > {
+    const program = await this.getProgram(input.filePath);
+    const programConfig = program.programConfig;
+
+    const circuitOrError = await generateCircuit(this.extensionUri, {
+      program: programConfig,
+    });
+
+    const result = {
+      project: {
+        name: programConfig.projectName,
+        targetProfile: programConfig.profile,
+      },
+      ...circuitOrError,
+    };
+
+    if (circuitOrError.result === "success") {
+      return {
+        ...result,
+        message: "Circuit is displayed in the Circuit panel.",
+      };
+    } else {
+      return {
+        ...result,
+      };
+    }
+  }
+
+  /**
+   * Implements the `qsharp-run-resource-estimator` tool call.
+   */
+  async runResourceEstimator(input: {
+    filePath: string;
+    qubitTypes?: string[];
+    errorBudget?: number;
+  }): Promise<
+    ProjectInfo & {
+      estimates?: object[];
+      message: string;
+    }
+  > {
+    const program = await this.getProgram(input.filePath);
+    const programConfig = program.programConfig;
+
+    const project = {
+      name: programConfig.projectName,
+      targetProfile: programConfig.profile,
+    };
+
     try {
-      // Get the Q# document from the file path
-      const docUri = vscode.Uri.file(input.filePath);
-      if (!docUri) {
-        throw new CopilotToolError(
-          "Invalid file path. Please provide a valid path to a Q# file.",
-        );
-      }
+      const qubitTypes = input.qubitTypes ?? ["qubit_gate_ns_e3"];
+      const errorBudget = input.errorBudget ?? 0.001;
 
-      // Check if the program can be compiled
-      const programResult = await getProgramForDocument(docUri);
-      if (!programResult.success) {
-        throw new CopilotToolError(
-          `Cannot run resource estimator: ${programResult.errorMsg}`,
-        );
-      }
+      const estimates = await resourceEstimateTool(
+        this.extensionUri,
+        programConfig,
+        qubitTypes,
+        errorBudget,
+      );
 
-      // TODO: pass file path
-      // Call the showRe command from the VS Code extension
-      await vscode.commands.executeCommand("qsharp-vscode.showRe");
-
-      return "Resource estimation started. Results will be displayed in the resource estimator panel.";
+      return {
+        project,
+        estimates,
+        message: "Results are displayed in the resource estimator panel.",
+      };
     } catch (e) {
-      log.error("Failed to run resource estimator. ", e);
       throw new CopilotToolError(
         "Failed to run resource estimator: " +
           (e instanceof Error ? e.message : String(e)),
       );
     }
+  }
+
+  private async getProgram(filePath: string) {
+    const docUri = vscode.Uri.file(filePath);
+
+    const program = await getProgramForDocument(docUri);
+    if (!program.success) {
+      throw new CopilotToolError(
+        `Cannot get program for the file ${filePath} . error: ${program.errorMsg}`,
+      );
+    }
+    return program;
+  }
+
+  private async runQsharp(
+    program: FullProgramConfig,
+    shots: number,
+    out: (message: string) => void,
+    resultUpdate: (
+      histogram: HistogramData,
+      failures: vscode.Diagnostic[],
+    ) => void,
+  ) {
+    let histogram: HistogramData | undefined;
+    const evtTarget = createDebugConsoleEventTarget((msg) => {
+      out(msg);
+    }, true /* captureEvents */);
+
+    // create a promise that we'll resolve when the run is done
+    let resolvePromise: () => void = () => {};
+    const allShotsDone = new Promise<void>((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    evtTarget.addEventListener("uiResultsRefresh", () => {
+      const results = evtTarget.getResults();
+      const resultCount = evtTarget.resultCount(); // compiler errors come through here too
+      const buckets = new Map();
+      const failures = [];
+      for (let i = 0; i < resultCount; ++i) {
+        const key = results[i].result;
+        const strKey = typeof key !== "string" ? "ERROR" : key;
+        const newValue = (buckets.get(strKey) || 0) + 1;
+        buckets.set(strKey, newValue);
+        if (!results[i].success) {
+          failures.push(toVsCodeDiagnostic(results[i].result as VSDiagnostic));
+        }
+      }
+      histogram = {
+        buckets: Array.from(buckets.entries()),
+        shotCount: resultCount,
+      };
+      resultUpdate(histogram, failures);
+      if (shots === resultCount || failures.length > 0) {
+        // TODO: ugh
+        resolvePromise();
+      }
+    });
+
+    const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
+    const compilerTimeout = setTimeout(() => {
+      worker.terminate();
+    }, compilerRunTimeoutMs);
+    const worker = loadCompilerWorker(this.extensionUri!);
+
+    try {
+      await worker.run(program, "", shots, evtTarget);
+      // We can still receive events after the above call is done
+      await allShotsDone;
+    } catch {
+      // Compiler errors can come through here. But the error object here doesn't contain enough
+      // information to be useful. So wait for the one that comes through the event target.
+      await allShotsDone;
+
+      const failures = evtTarget
+        .getResults()
+        .filter((result) => !result.success)
+        .map((result) => toVsCodeDiagnostic(result.result as VSDiagnostic));
+
+      throw new CopilotToolError(
+        `Program failed with compilation errors. ${JSON.stringify(failures)}`,
+      );
+    }
+    clearTimeout(compilerTimeout);
+    worker.terminate();
   }
 }

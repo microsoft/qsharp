@@ -14,7 +14,11 @@ import {
 import { Uri } from "vscode";
 import { getTargetFriendlyName } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
-import { FullProgramConfig, getActiveProgram } from "./programConfig";
+import {
+  FullProgramConfig,
+  getActiveProgram,
+  getProgramForDocument,
+} from "./programConfig";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
@@ -32,7 +36,7 @@ type CircuitParams = {
 /**
  * Result of a circuit generation attempt.
  */
-type CircuitOrError = {
+export type CircuitOrError = {
   simulated: boolean;
 } & (
   | {
@@ -49,6 +53,7 @@ type CircuitOrError = {
 
 export async function showCircuitCommand(
   extensionUri: Uri,
+  resource: Uri | undefined,
   operation: IOperationInfo | undefined,
 ) {
   clearCommandDiagnostics();
@@ -56,7 +61,9 @@ export async function showCircuitCommand(
   const associationId = getRandomGuid();
   sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
 
-  const program = await getActiveProgram();
+  const program = resource
+    ? await getProgramForDocument(resource)
+    : await getActiveProgram();
   if (!program.success) {
     throw new Error(program.errorMsg);
   }
@@ -116,7 +123,7 @@ export async function showCircuitCommand(
  * that means this is a dynamic circuit. We fall back to using the
  * simulator in this case ("trace" mode), which is slower.
  */
-async function generateCircuit(
+export async function generateCircuit(
   extensionUri: Uri,
   params: CircuitParams,
 ): Promise<CircuitOrError> {
