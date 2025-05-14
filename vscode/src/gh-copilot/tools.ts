@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import * as azqTools from "../copilot/azqTools";
 import { ToolState } from "../copilot/tools";
 import { log } from "qsharp-lang";
+import { Target } from "../azure/treeView";
 
 const toolDefinitions: {
   name: string;
@@ -85,7 +86,9 @@ async function getProviders(): Promise<any> {
   return (await azqTools.getProviders(workspaceState)).result;
 }
 
-async function getTarget(input: { target_id: string }): Promise<any> {
+async function getTarget(input: {
+  target_id: string;
+}): Promise<Target | undefined> {
   return (await azqTools.getTarget(workspaceState, input)).result;
 }
 
