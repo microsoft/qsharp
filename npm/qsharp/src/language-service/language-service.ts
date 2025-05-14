@@ -102,7 +102,7 @@ export interface ILanguageService {
     position: IPosition,
   ): Promise<ITextEdit | undefined>;
   getCodeLenses(documentUri: string): Promise<ICodeLens[]>;
-
+  getQSharpText(program: string): Promise<string>;
   dispose(): Promise<void>;
 
   addEventListener<T extends LanguageServiceEvent["type"]>(
@@ -260,6 +260,10 @@ export class QSharpLanguageService implements ILanguageService {
     return this.languageService.get_code_lenses(documentUri);
   }
 
+  async getQSharpText(program: string): Promise<string> {
+    return this.languageService.get_qsharp_text(program);
+  }
+
   async dispose() {
     this.languageService.stop_background_work();
     await this.backgroundWork;
@@ -340,6 +344,7 @@ export const languageServiceProtocol: ServiceProtocol<
     getRename: "request",
     prepareRename: "request",
     getCodeLenses: "request",
+    getQSharpText: "request",
     dispose: "request",
     addEventListener: "addEventListener",
     removeEventListener: "removeEventListener",

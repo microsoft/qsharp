@@ -43,24 +43,28 @@ export function registerQdkNotebookCellUpdateHandlers(
     }),
   );
 
-  function updateIfQdkNotebook(notebook: vscode.NotebookDocument) {
+  async function updateIfQdkNotebook(notebook: vscode.NotebookDocument) {
     if (notebook.notebookType === jupyterNotebookType) {
       const qsharpMetadata = getQSharpConfigMetadata(notebook);
       const qdkCells = getQdkCells(notebook);
       const notebookUri = notebook.uri.toString();
       if (qdkCells.length > 0) {
         openQdkNotebooks.add(notebookUri);
+        const cells = await Promise.all(
+          qdkCells.map(async (cell) => {
+            const code = await getQSharpText(cell.document);
+            return {
+              uri: cell.document.uri.toString(),
+              version: cell.document.version,
+              code: code,
+            };
+          }),
+        );
         languageService.updateNotebookDocument(
           notebookUri,
           notebook.version,
           qsharpMetadata,
-          qdkCells.map((cell) => {
-            return {
-              uri: cell.document.uri.toString(),
-              version: cell.document.version,
-              code: getQSharpText(cell.document),
-            };
-          }),
+          cells,
         );
       } else {
         // All Q# cells could have been deleted, check if we know this doc from previous calls
@@ -83,7 +87,7 @@ export function registerQdkNotebookCellUpdateHandlers(
       .filter((cell) => isQdkNotebookCell(cell.document));
   }
 
-  function getQSharpText(document: vscode.TextDocument) {
+  async function getQSharpText(document: vscode.TextDocument): Promise<string> {
     const qsharpMagicRange = findQSharpCellMagic(document);
     if (qsharpMagicRange) {
       const magicStartOffset = document.offsetAt(qsharpMagicRange.start);
@@ -102,7 +106,7 @@ export function registerQdkNotebookCellUpdateHandlers(
 
     const magicRange = findOpenQasmCellMagic(document);
     if (magicRange) {
-      return extractQSharpText(document, magicRange);
+      return await extractQSharpText(document, magicRange);
     } else {
       // No %%qsharp/%%openqasm magic. This can happen if the user manually sets the
       // cell language to Q#/OpenQASM. Python won't recognize the cell as a QDK cell,
@@ -117,13 +121,21 @@ export function registerQdkNotebookCellUpdateHandlers(
   }
 
   // placeoholder for openqasm cell preprocessing
-  function extractQSharpText(
+  async function extractQSharpText(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     document: vscode.TextDocument,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     magicRange: vscode.Range,
-  ): string {
-    return "";
+  ): Promise<string> {
+    const magicStartOffset = document.offsetAt(magicRange.start);
+    const magicEndOffset = document.offsetAt(magicRange.end);
+
+    const text = document.getText();
+    const program =
+      text.substring(0, magicStartOffset) +
+      "//openqasm" +
+      text.substring(magicEndOffset);
+    return await languageService.getQSharpText(program);
   }
 
   return subscriptions;

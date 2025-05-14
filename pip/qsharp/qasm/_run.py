@@ -17,8 +17,36 @@ from .._qsharp import (
     get_interpreter,
     ipython_helper,
 )
+from .. import Result
 from .. import telemetry_events
 from ._ipython import display_or_print
+
+
+def _map_qsharp_result_to_bit(v) -> str:
+    if isinstance(v, Result):
+        if v == Result.One:
+            return "1"
+        else:
+            return "0"
+    return str(v)
+
+
+# Convert Q# output to the result format expected by Qiskit
+def _convert_result_arrays_to_bitstrings(obj):
+    if isinstance(obj, tuple):
+        return tuple([_convert_result_arrays_to_bitstrings(term) for term in obj])
+    elif isinstance(obj, list):
+        # if all elements are Q# results, convert to bitstring
+        if all([isinstance(bit, Result) for bit in obj]):
+            return "".join([_map_qsharp_result_to_bit(bit) for bit in obj])
+        return [_convert_result_arrays_to_bitstrings(bit) for bit in obj]
+    elif isinstance(obj, Result):
+        if obj == Result.One:
+            return 1
+        else:
+            return 0
+    else:
+        return obj
 
 
 def run(
@@ -164,4 +192,5 @@ def run(
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_run_qasm_end(durationMs, shots)
 
+    results = [_convert_result_arrays_to_bitstrings(result) for result in results]
     return results

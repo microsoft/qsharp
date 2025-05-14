@@ -295,9 +295,10 @@ impl<'a> CompilationStateUpdater<'a> {
                         compilation_overrides,
                     )
                 }
-                ProjectType::OpenQASM(..) => {
-                    (self.configuration.clone(), PartialConfiguration::default())
-                }
+                ProjectType::OpenQASM(..) => (
+                    merge_configurations(&PartialConfiguration::default(), &self.configuration),
+                    PartialConfiguration::default(),
+                ),
             };
 
             let compilation = match loaded_project.project_type {

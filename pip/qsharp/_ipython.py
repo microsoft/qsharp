@@ -8,13 +8,28 @@ This module provides IPython magic functions for integrating Q# code
 execution within Jupyter notebooks.
 """
 
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from time import monotonic
 from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
-from ._native import QSharpError
-from ._qsharp import get_interpreter
+from IPython.core.magic_arguments import (
+    argument,
+    magic_arguments,
+    parse_argstring,
+    argument_group,
+)
+from ._native import ProgramType, QSharpError, QasmError  # type: ignore
+from ._qsharp import get_interpreter, TargetProfile
 from . import telemetry_events
 import pathlib
+
+
+def d(output):
+    display(output)
+    # This is a workaround to ensure that the output is flushed. This avoids an issue
+    # where the output is not displayed until the next output is generated or the cell
+    # is finished executing.
+    display(display_id=True)
 
 
 def register_magic():
@@ -44,6 +59,65 @@ def register_magic():
             return results
         except QSharpError as e:
             # pylint: disable=raise-missing-from
+            raise QSharpCellError(str(e))
+
+    @magic_arguments()
+    @argument_group("Interactive")
+    @argument(
+        "--name",
+        "-n",
+        type=str,
+        help=("Create callable with given name"),
+    )
+    @argument_group("Simulation")
+    @argument(
+        "--shots",
+        "-s",
+        type=int,
+        default=1,
+        help=("Number of shots to run"),
+    )
+    @argument_group("Compilation")
+    @argument(
+        "--compile",
+        "-c",
+        help=("Compile the OpenQASM code to a QIR"),
+    )
+    @argument(
+        "--target_profile",
+        "-t",
+        type=type(TargetProfile),
+        default=TargetProfile.Adaptive_RIF,
+        help=("Target profile to use for compilation"),
+    )
+    @register_cell_magic
+    def openqasm(line, cell):
+        """Cell magic to interpret OpenQASM code in Jupyter notebooks."""
+        # This effectively pings the kernel to ensure it recognizes the cell is running and helps with
+        # accureate cell execution timing.
+        clear_output()
+        telemetry_events.on_run_cell()
+        start_time = monotonic()
+
+        try:
+            from .qasm import import_qasm, run, compile
+
+            args = parse_argstring(openqasm, line)
+            if args.name is None:
+                shots = args.shots
+                results = run(cell, shots=shots)
+            elif args.compile:
+                results = compile(cell, target_profile=args.target_profile)
+            else:
+                results = import_qasm(cell, name=args.name)
+            durationMs = (monotonic() - start_time) * 1000
+            telemetry_events.on_run_cell_end(durationMs)
+
+            return results
+        except QSharpError as e:
+            # pylint: disable=raise-missing-from
+            raise QSharpCellError(str(e))
+        except QasmError as e:
             raise QSharpCellError(str(e))
 
 

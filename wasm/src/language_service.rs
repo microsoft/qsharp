@@ -371,6 +371,17 @@ impl LanguageService {
             })
             .collect()
     }
+
+    #[allow(clippy::unused_self)]
+    pub fn get_qsharp_text(&self, program: &str) -> String {
+        let program = qsc::qasm::parse_raw_qasm_as_fragments(
+            program,
+            "notebook.cell",
+            None::<&mut qsc::qasm::io::InMemorySourceResolver>,
+        );
+        let (_, _, package, _) = program.into_tuple();
+        qsc::codegen::qsharp::write_package_string(&package)
+    }
 }
 
 serializable_type! {
