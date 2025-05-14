@@ -39,7 +39,7 @@ export function Circuit(props: {
     circuit.qubits.length > MAX_QUBITS;
 
   return (
-    <div class="qs-circuit-widget">
+    <div>
       {unrenderable ? (
         <Unrenderable
           qubits={circuit.qubits.length}
