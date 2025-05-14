@@ -3,7 +3,9 @@
 
 use super::lint;
 use crate::linter::{ast::declare_ast_lints, Compilation};
-use qsc_ast::ast::{BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind};
+use qsc_ast::ast::{
+    BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind, TernOp,
+};
 use qsc_data_structures::span::Span;
 
 // Read Me:
@@ -30,6 +32,7 @@ declare_ast_lints! {
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
     (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
     (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
+    (DiscourageUpdateExpr, LintLevel::Warn, "discouraged use of update expressions", "update expressions (w/=, w/) are discouraged; consider using explicit assignment instead"),
 }
 
 #[derive(Default)]
@@ -254,6 +257,22 @@ impl AstLintPass for DiscourageChainAssignment {
                     // Add the rhs to the repressed expressions because it is now part of an existing chain.
                     self.repressed_exprs.push(rhs.id);
                 }
+            }
+            _ => {}
+        }
+    }
+}
+
+#[derive(Default)]
+struct DiscourageUpdateExpr {
+    level: LintLevel,
+}
+
+impl AstLintPass for DiscourageUpdateExpr {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+        match expr.kind.as_ref() {
+            ExprKind::AssignUpdate(..) | ExprKind::TernOp(TernOp::Update, ..) => {
+                buffer.push(lint!(self, expr.span));
             }
             _ => {}
         }
