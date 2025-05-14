@@ -398,7 +398,7 @@
         "command": "qsharp-vscode.copilotClear",
         "category": "QDK",
         "title": "Clear Quantum Copilot chat",
-        "enablement": "!qdkCopilotIsBusy",
+        "enablement": "config.Q#.chat.enabled && !qdkCopilotIsBusy",
         "icon": "$(clear-all)"
       },
       {
@@ -825,6 +825,116 @@
           },
           "required": [
             "target_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-run-program",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpRunProgram",
+        "displayName": "Run Q# Program",
+        "modelDescription": "Executes a Q# program. The path to a .qs file must be specified in the `filePath` parameter. A quantum simulator will be run locally. Q# does not provide any CLI tools, so call this tool whenever you need to execute Q#, instead of running any CLI commands. The `shots` parameter controls the number of times to repeat the simulation. If the number of shots is greater than 1, a histogram will be generated, and the results will be displayed in a dedicated panel.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+            },
+            "shots": {
+              "type": "number",
+              "description": "The number of times to run the program. Defaults to 1 if not specified.",
+              "default": 1
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-generate-circuit",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpGenerateCircuit",
+        "displayName": "Generate Q# Circuit Diagram",
+        "modelDescription": "Generates a visual circuit diagram for a Q# program. The path to a .qs file must be specified in the `filePath` parameter. This tool will compile the Q# program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation. The diagram will be displayed in a dedicated circuit panel.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+            }
+          },
+          "required": [
+            "filePath"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "qsharp-run-resource-estimator",
+        "tags": [
+          "azure-quantum",
+          "qsharp",
+          "qdk"
+        ],
+        "toolReferenceName": "qsharpRunResourceEstimator",
+        "displayName": "Run Q# Resource Estimator",
+        "modelDescription": "Runs the quantum resource estimator on a Q# program to calculate the required physical resources. The path to a .qs file must be specified in the `filePath` parameter. This tool will analyze the Q# program and generate estimates of the quantum resources required to run the algorithm, such as the number of qubits, T gates, and other quantum operations. Results will be displayed in a dedicated resource estimator panel.",
+        "canBeReferencedInPrompt": true,
+        "icon": "./resources/file-icon-light.svg",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
+            },
+            "qubitTypes": {
+              "type": "array",
+              "description": "Array of qubit type labels to use for resource estimation. Allowed values:\n- 'qubit_gate_ns_e3': Superconducting/spin qubit with 1e-3 error rate\n- 'qubit_gate_ns_e4': Superconducting/spin qubit with 1e-4 error rate\n- 'qubit_gate_us_e3': Trapped ion qubit with 1e-3 error rate\n- 'qubit_gate_us_e4': Trapped ion qubit with 1e-4 error rate\n- 'qubit_maj_ns_e4 + surface_code': Majorana qubit with 1e-4 error rate (surface code QEC)\n- 'qubit_maj_ns_e6 + surface_code': Majorana qubit with 1e-6 error rate (surface code QEC)\n- 'qubit_maj_ns_e4 + floquet_code': Majorana qubit with 1e-4 error rate (floquet code QEC)\n- 'qubit_maj_ns_e6 + floquet_code': Majorana qubit with 1e-6 error rate (floquet code QEC)",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "qubit_gate_ns_e3",
+                  "qubit_gate_ns_e4",
+                  "qubit_gate_us_e3",
+                  "qubit_gate_us_e4",
+                  "qubit_maj_ns_e4 + surface_code",
+                  "qubit_maj_ns_e6 + surface_code",
+                  "qubit_maj_ns_e4 + floquet_code",
+                  "qubit_maj_ns_e6 + floquet_code"
+                ]
+              },
+              "default": [
+                "qubit_gate_ns_e3"
+              ]
+            },
+            "errorBudget": {
+              "type": "number",
+              "description": "Error budget for the resource estimation. Must be a number between 0 and 1. Default is 0.001.",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.001
+            }
+          },
+          "required": [
+            "filePath"
           ],
           "additionalProperties": false
         }
