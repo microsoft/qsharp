@@ -17,6 +17,7 @@ def syndrome(qubit[3] d, qubit[2] a) -> bit[2] {
   measure a[1] -> b[1];
   return b;
 }
+
 reset q[0];
 reset q[1];
 reset q[2];
