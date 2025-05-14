@@ -879,7 +879,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program."
+              "description": "The absolute path to the .qs file. If this file is part of a project, the whole project will be compiled as the program. A .qs file belongs to a project if it resides anywhere under a src/ directory whose parent directory also contains a qsharp.json manifest."
             }
           },
           "required": [
