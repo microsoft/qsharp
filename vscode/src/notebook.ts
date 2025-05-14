@@ -76,19 +76,6 @@ export function registerQSharpNotebookHandlers() {
               `setting cell ${cell.index} language to ${qsharpLanguageId}`,
             );
           }
-        } else if (findOpenQasmCellMagic(document)) {
-          // If this is a code cell that starts with %%openqasm, and language wasn't already set to OpenQASM, set it.
-          if (currentLanguageId !== openqasmLanguageId) {
-            // Remember the "default" language of the notebook (this will normally be Python)
-            defaultLanguageId = currentLanguageId;
-            vscode.languages.setTextDocumentLanguage(
-              cell.document,
-              openqasmLanguageId,
-            );
-            log.trace(
-              `setting cell ${cell.index} language to ${openqasmLanguageId}`,
-            );
-          }
         } else {
           // This is not a %%qsharp/%%openqasm cell. If the language was set to Q#/OpenQASM,
           // change it back to the default language.
