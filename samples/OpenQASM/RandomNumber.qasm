@@ -1,21 +1,18 @@
-/// # Summary
-/// OpenQASM Quantum Random Number Generator
-///
-/// # Description
-/// This program implements a quantum random number generator by setting qubits
-/// in superposition and then using the measurement results as random bits.
+// OpenQASM Quantum Random Number Generator
+//
+// This program implements a quantum random number generator by setting qubits
+// in superposition and then using the measurement results as random bits.
 
 OPENQASM 3;
 include "stdgates.inc";
 
-/// # Summary
-/// Generates one random bit using a qubit `q`.
+// Generates one random bit using a qubit `q`.
 def GenerateRandomBit(qubit q) -> bit {
   // Resets qubit `q` to |0〉 state
   reset q;
   // Sets the qubit into superposition of 0 and 1 using the Hadamard gate.
   h q;
-  
+
   // At this point qubit `q` has 50% chance of being measured in the |0〉 state
   // and 50% chance of being measured in the |1〉 state.
   bit b = measure q;
@@ -24,8 +21,7 @@ def GenerateRandomBit(qubit q) -> bit {
   return b;
 }
 
-/// # Summary
-/// Generates a random integer with `nBit` bits using qubit `q`
+// Generates a random integer with `nBit` bits using qubit `q`
 def GenerateRandomNumber(qubit q, int nBits) -> int {
   int number = 0;
 

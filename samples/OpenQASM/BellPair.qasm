@@ -1,13 +1,10 @@
-/// # Summary
-/// OpenQASM Bell Pair sample
-///
-/// # Description
-/// Bell pairs are specific quantum states of two qubits that represent
-/// the simplest (and maximal) examples of quantum entanglement. This sample
-/// prepares |Φ⁺⟩ = (|00⟩+|11⟩)/√2.
-///
-/// # References
-/// - [Bell state](https://en.wikipedia.org/wiki/Bell_state)
+// OpenQASM Bell Pair sample
+//
+// Bell pairs are specific quantum states of two qubits that represent
+// the simplest (and maximal) examples of quantum entanglement. This sample
+// prepares |Φ⁺⟩ = (|00⟩+|11⟩)/√2.
+//
+// See [Bell state](https://en.wikipedia.org/wiki/Bell_state)
 
 OPENQASM 3;
 include "stdgates.inc";
