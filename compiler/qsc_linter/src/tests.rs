@@ -767,6 +767,32 @@ fn needless_operation_inside_function_call() {
 }
 
 #[test]
+fn discourage_update_expr_code_action() {
+    check(
+        &wrap_in_callable("arr w/= idx <- 42;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "arr w/= idx <- 42",
+                    level: Warn,
+                    message: "discouraged use of update expressions",
+                    help: "update expressions (w/=, w/) are discouraged; consider using explicit assignment instead",
+                    code_action_edits: [
+                        (
+                            "arr[idx] = 42",
+                            Span {
+                                lo: 71,
+                                hi: 88,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
     check_with_deduplication(
         "

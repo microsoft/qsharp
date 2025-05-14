@@ -269,9 +269,23 @@ struct DiscourageUpdateExpr {
 }
 
 impl AstLintPass for DiscourageUpdateExpr {
-    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
         match expr.kind.as_ref() {
-            ExprKind::AssignUpdate(..) | ExprKind::TernOp(TernOp::Update, ..) => {
+            ExprKind::AssignUpdate(record, index, value) => {
+                // Provide a code action to convert `w/=` to a plain assignment.
+                // Use the source code for lhs and rhs directly from the compilation.
+                let record_src = compilation.get_source_code(record.span);
+                let index_src = compilation.get_source_code(index.span);
+                let value_src = compilation.get_source_code(value.span);
+                let edit = vec![(
+                    format!("{record_src}[{index_src}] = {value_src}"),
+                    expr.span,
+                )];
+
+                buffer.push(lint!(self, expr.span, edit));
+            }
+            ExprKind::TernOp(TernOp::Update, ..) => {
+                // No code action for now, just a lint.
                 buffer.push(lint!(self, expr.span));
             }
             _ => {}
