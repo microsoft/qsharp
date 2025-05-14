@@ -82,18 +82,15 @@ const toolDefinitions: {
   },
   {
     name: "qsharp-run-program",
-    tool: async (input: { filePath: string; shots: number }) =>
-      await qsharpTools!.runProgram(input),
+    tool: async (input) => await qsharpTools!.runProgram(input),
   },
   {
     name: "qsharp-generate-circuit",
-    tool: async (input: { filePath: string }) =>
-      await qsharpTools!.generateCircuit(input),
+    tool: async (input) => await qsharpTools!.generateCircuit(input),
   },
   {
     name: "qsharp-run-resource-estimator",
-    tool: async (input: { filePath: string }) =>
-      await qsharpTools!.runResourceEstimator(input),
+    tool: async (input) => await qsharpTools!.runResourceEstimator(input),
   },
 ];
 
