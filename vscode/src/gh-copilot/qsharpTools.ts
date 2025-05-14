@@ -203,7 +203,9 @@ export class QSharpTools {
   private async getProgram(filePath: string) {
     const docUri = vscode.Uri.file(filePath);
 
-    const program = await getProgramForDocument(docUri);
+    const doc = await vscode.workspace.openTextDocument(docUri);
+
+    const program = await getProgramForDocument(doc);
     if (!program.success) {
       throw new CopilotToolError(
         `Cannot get program for the file ${filePath} . error: ${program.errorMsg}`,
