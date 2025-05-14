@@ -146,11 +146,19 @@ impl<'a> CompilationStateUpdater<'a> {
         }
     }
 
-    pub(super) async fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub(super) async fn update_document(
+        &mut self,
+        uri: &str,
+        version: u32,
+        text: &str,
+        language_id: &str,
+    ) {
         let doc_uri: Arc<str> = Arc::from(uri);
         let text: Arc<str> = Arc::from(text);
 
-        let project = self.load_project_from_doc_uri(&doc_uri, &text).await;
+        let project = self
+            .load_project_from_doc_uri(&doc_uri, &text, language_id)
+            .await;
 
         let compilation_uri = project.path.clone();
 
@@ -181,8 +189,16 @@ impl<'a> CompilationStateUpdater<'a> {
         self.publish_diagnostics_and_test_callables();
     }
 
-    async fn load_project_from_doc_uri(&mut self, doc_uri: &Arc<str>, text: &Arc<str>) -> Project {
-        match self.load_manifest_or_openqasm_project(doc_uri).await {
+    async fn load_project_from_doc_uri(
+        &mut self,
+        doc_uri: &Arc<str>,
+        text: &Arc<str>,
+        language_id: &str,
+    ) -> Project {
+        match self
+            .load_manifest_or_openqasm_project(doc_uri, language_id)
+            .await
+        {
             Ok(Some(p)) => p,
             Ok(None) => Project::from_single_file(doc_uri.clone(), text.clone()),
             Err(errors) => Project {
@@ -207,8 +223,9 @@ impl<'a> CompilationStateUpdater<'a> {
     async fn load_manifest_or_openqasm_project(
         &self,
         doc_uri: &Arc<str>,
+        language_id: &str,
     ) -> Result<Option<Project>, Vec<project::Error>> {
-        if is_openqasm_file(doc_uri) {
+        if is_openqasm_file(language_id) {
             return Ok(Some(
                 qsc_project::openqasm::load_project(&*self.project_host, doc_uri).await,
             ));
@@ -308,8 +325,10 @@ impl<'a> CompilationStateUpdater<'a> {
         });
     }
 
-    pub(super) async fn close_document(&mut self, uri: &str) {
-        let project = self.load_manifest_or_openqasm_project(&uri.into()).await;
+    pub(super) async fn close_document(&mut self, uri: &str, language_id: &str) {
+        let project = self
+            .load_manifest_or_openqasm_project(&uri.into(), language_id)
+            .await;
 
         let removed_compilation = self.remove_open_document(uri);
 
@@ -617,8 +636,8 @@ impl<'a> CompilationStateUpdater<'a> {
     }
 }
 
-fn is_openqasm_file(doc_uri: &Arc<str>) -> bool {
-    doc_uri.ends_with("qasm") || doc_uri.ends_with("inc")
+fn is_openqasm_file(language_id: &str) -> bool {
+    language_id == "openqasm"
 }
 
 impl CompilationState {

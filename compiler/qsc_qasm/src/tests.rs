@@ -435,6 +435,7 @@ pub(crate) fn compare_qasm_and_qasharp_asts(source: &str) {
         Some(&mut resolver),
         config,
     );
+    fail_on_compilation_errors(&unit);
     let despanned_qasm_ast = AstDespanner.despan(&unit.package);
 
     // 2. Generate Q# source from the QASM ast.

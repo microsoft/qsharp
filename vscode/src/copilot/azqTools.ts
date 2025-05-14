@@ -431,8 +431,6 @@ export async function submitToTarget(
 
   const workspace = await getConversationWorkspace(toolState);
 
-  const providerId = target.id.split(".")?.[0];
-
   let qir = "";
   try {
     qir = await getQirForVisibleSource(supportsAdaptive(target.id));
@@ -466,7 +464,7 @@ export async function submitToTarget(
       token,
       quantumUris,
       qir,
-      providerId,
+      target.providerId,
       target.id,
       jobName,
       numberOfShots,

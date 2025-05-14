@@ -8,9 +8,9 @@ use crate::semantic::tests::check_stmt_kind;
 #[test]
 fn with_no_init_expr() {
     check_stmt_kind(
-        "qreg a;",
+        "qubit a;",
         &expect![[r#"
-            QubitDeclaration [0-7]:
+            QubitDeclaration [0-8]:
                 symbol_id: 8"#]],
     );
 }
@@ -18,25 +18,25 @@ fn with_no_init_expr() {
 #[test]
 fn with_no_init_expr_in_non_global_scope() {
     check_stmt_kind(
-        "{qreg a;}",
+        "{qubit a;}",
         &expect![[r#"
             Program:
                 version: <none>
                 statements:
-                    Stmt [0-9]:
+                    Stmt [0-10]:
                         annotations: <empty>
-                        kind: Block [0-9]:
-                            Stmt [1-8]:
+                        kind: Block [0-10]:
+                            Stmt [1-9]:
                                 annotations: <empty>
-                                kind: QubitDeclaration [1-8]:
+                                kind: QubitDeclaration [1-9]:
                                     symbol_id: 8
 
             [Qasm.Lowerer.QubitDeclarationInNonGlobalScope
 
               x qubit declarations must be done in global scope
                ,-[test:1:2]
-             1 | {qreg a;}
-               :  ^^^^^^^
+             1 | {qubit a;}
+               :  ^^^^^^^^
                `----
             ]"#]],
     );
@@ -45,39 +45,39 @@ fn with_no_init_expr_in_non_global_scope() {
 #[test]
 fn array_with_no_init_expr() {
     check_stmt_kind(
-        "qreg a[3];",
+        "qubit[3] a;",
         &expect![[r#"
-            QubitArrayDeclaration [0-10]:
+            QubitArrayDeclaration [0-11]:
                 symbol_id: 8
                 size: 3
-                size_span: [7-8]"#]],
+                size_span: [6-7]"#]],
     );
 }
 
 #[test]
 fn array_with_no_init_expr_in_non_global_scope() {
     check_stmt_kind(
-        "{qreg a[3];}",
+        "{qubit[3] a;}",
         &expect![[r#"
             Program:
                 version: <none>
                 statements:
-                    Stmt [0-12]:
+                    Stmt [0-13]:
                         annotations: <empty>
-                        kind: Block [0-12]:
-                            Stmt [1-11]:
+                        kind: Block [0-13]:
+                            Stmt [1-12]:
                                 annotations: <empty>
-                                kind: QubitArrayDeclaration [1-11]:
+                                kind: QubitArrayDeclaration [1-12]:
                                     symbol_id: 8
                                     size: 3
-                                    size_span: [8-9]
+                                    size_span: [7-8]
 
             [Qasm.Lowerer.QubitDeclarationInNonGlobalScope
 
               x qubit declarations must be done in global scope
                ,-[test:1:2]
-             1 | {qreg a[3];}
-               :  ^^^^^^^^^^
+             1 | {qubit[3] a;}
+               :  ^^^^^^^^^^^
                `----
             ]"#]],
     );

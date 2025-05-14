@@ -117,12 +117,13 @@ impl LanguageService {
     /// This is the "entry point" for the language service's logic, after its constructor.
     ///
     /// LSP: textDocument/didOpen, textDocument/didChange
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str, language_id: &str) {
         trace!("update_document: {uri} {version}");
         self.send_update(Update::Document {
             uri: uri.into(),
             version,
             text: text.into(),
+            language_id: language_id.into(),
         });
     }
 
@@ -130,9 +131,12 @@ impl LanguageService {
     /// typically occurs when the document is closed in the editor.
     ///
     /// LSP: textDocument/didClose
-    pub fn close_document(&mut self, uri: &str) {
+    pub fn close_document(&mut self, uri: &str, language_id: &str) {
         trace!("close_document: {uri}");
-        self.send_update(Update::CloseDocument { uri: uri.into() });
+        self.send_update(Update::CloseDocument {
+            uri: uri.into(),
+            language_id: language_id.into(),
+        });
     }
 
     /// The uri refers to the notebook itself, not any of the individual cells.
@@ -424,11 +428,18 @@ fn push_update(pending_updates: &mut Vec<Update>, update: Update) {
 
 async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update) {
     match update {
-        Update::CloseDocument { uri } => {
-            updater.close_document(&uri).await;
+        Update::CloseDocument { uri, language_id } => {
+            updater.close_document(&uri, &language_id).await;
         }
-        Update::Document { uri, version, text } => {
-            updater.update_document(&uri, version, &text).await;
+        Update::Document {
+            uri,
+            version,
+            text,
+            language_id,
+        } => {
+            updater
+                .update_document(&uri, version, &text, &language_id)
+                .await;
         }
         Update::NotebookDocument {
             notebook_uri,
@@ -462,9 +473,11 @@ enum Update {
         uri: String,
         version: u32,
         text: String,
+        language_id: String,
     },
     CloseDocument {
         uri: String,
+        language_id: String,
     },
     NotebookDocument {
         notebook_uri: String,
