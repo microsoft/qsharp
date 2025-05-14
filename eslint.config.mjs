@@ -20,7 +20,6 @@ export default tseslint.config(
       "jupyterlab/lib/",
       "jupyterlab/qsharp-jupyterlab/labextension/",
       "**/.*/",
-      "vscode/extract-tools.js",
       "vscode/out/",
       "vscode/test/out/",
       "widgets/src/qsharp_widgets/static/",

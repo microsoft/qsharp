@@ -7,7 +7,11 @@ import { window } from "vscode";
 import { loadCompilerWorker } from "./common";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import {
+  CommandInvocationType,
+  EventType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getOrCreatePanel, sendMessageToPanel } from "./webviewPanel";
 
@@ -22,7 +26,7 @@ export async function resourceEstimateCommand(
   const associationId = getRandomGuid();
   sendTelemetryEvent(
     EventType.TriggerResourceEstimation,
-    { associationId },
+    { associationId, invocationType: CommandInvocationType.Command },
     {},
   );
 
@@ -162,7 +166,7 @@ export function resourceEstimateTool(
   const associationId = getRandomGuid();
   sendTelemetryEvent(
     EventType.TriggerResourceEstimation,
-    { associationId },
+    { associationId, invocationType: CommandInvocationType.ChatToolCall },
     {},
   );
 

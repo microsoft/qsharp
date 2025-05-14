@@ -15,11 +15,11 @@ import {
   WorkspaceTreeProvider,
 } from "../azure/treeView.js";
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
-import { getQirForVisibleSource } from "../qirGeneration.js";
-import { sendMessageToPanel } from "../webviewPanel.js";
 import { HistogramData } from "./shared.js";
+import { getQirForVisibleSource } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
 import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
+import { sendMessageToPanel } from "../webviewPanel.js";
 
 /**
  * These tool definitions correspond to the ones declared

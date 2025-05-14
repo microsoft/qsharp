@@ -11,8 +11,6 @@ import { QSharpTools } from "./qsharpTools";
 const workspaceState: ToolState = {};
 let qsharpTools: QSharpTools | undefined;
 
-// TODO: how much of these azure quantum ones really need canBeReferencedInPrompt: true?
-
 const toolDefinitions: {
   name: string;
   tool: (input: any) => Promise<any>;

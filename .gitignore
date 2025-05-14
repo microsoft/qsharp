@@ -20,6 +20,3 @@ __pycache__/
 .pytest_cache/
 .idea/
 *.so
-# temp - local dev stuff for reference
-reference.json
-language-model-tools-reference.json.md

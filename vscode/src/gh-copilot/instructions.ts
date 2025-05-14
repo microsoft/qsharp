@@ -133,8 +133,6 @@ the IQ# Jupyter kernel, or the \`dotnet\` command line tools. Job management is 
 now via tool calls integration into GitHub Copilot, or via Python code using the \`qsharp\`
 and \`azure-quantum\` packages.
 
-To execute Q# code, use the provided tools.
-
 ## Response formatting
 
 Avoid using LaTeX in your responses to the user.
@@ -176,7 +174,7 @@ async function hasQSharpCopilotInstructions(
  * Command to update or create the Copilot instructions file for Q#.
  * Shows a prompt to the user and updates the file if confirmed.
  */
-async function updateGhCopilotInstructionsCommand(userInvoked: boolean) {
+async function updateGhCopilotInstructionsCommand() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showErrorMessage("No workspace folder is open");
@@ -193,13 +191,10 @@ async function updateGhCopilotInstructionsCommand(userInvoked: boolean) {
     resourceUri = currentDoc ?? workspaceFolders[0].uri;
   }
 
-  return await updateCopilotInstructions(resourceUri, userInvoked);
+  return await updateCopilotInstructions(resourceUri);
 }
 
-export async function updateCopilotInstructions(
-  resource: vscode.Uri,
-  userInvoked: boolean,
-): Promise<vscode.MessageItem | undefined> {
+export async function updateCopilotInstructions(resource: vscode.Uri) {
   // Always add copilot instructions in the workspace root
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(resource)?.uri;
   if (!workspaceFolder) {
@@ -211,32 +206,16 @@ export async function updateCopilotInstructions(
     return;
   }
 
-  sendTelemetryEvent(
-    EventType.UpdateCopilotInstructionsStart,
-    {
-      trigger: userInvoked ? "user" : "startup",
-    },
-    {},
-  );
+  sendTelemetryEvent(EventType.UpdateCopilotInstructionsStart, {}, {});
 
-  const buttons = [{ title: "Yes" }, { title: "No", isCloseAffordance: true }];
-  if (!userInvoked) {
-    buttons.push({ title: "Don't show again" });
-  }
-
-  const modal = userInvoked;
-
+  // Show a yes/no prompt to the user
   const response = await vscode.window.showInformationMessage(
-    "Add Q# guidance to copilot-instructions.md?\n\n" +
-      "Updating this file will help GitHub Copilot understand and work better with Q# files and other Quantum Development Kit features.\n\n" +
-      "Learn more at " +
-      (modal
-        ? "https://aka.ms/qdk.copilot" // links don't render in modal dialogs
-        : "[https://aka.ms/qdk.copilot](https://aka.ms/qdk.copilot)"),
-    {
-      modal,
-    },
-    ...buttons,
+    "We're about to update your `copilot-instructions.md` file.\n\n" +
+      "This file helps GitHub Copilot understand and work better with Q# files and features provided by the Quantum Development Kit extension.\n\n" +
+      "Would you like to proceed with updating `copilot-instructions.md`?",
+    { modal: true },
+    { title: "Yes" },
+    { title: "No", isCloseAffordance: true },
   );
 
   if (response?.title !== "Yes") {
@@ -244,13 +223,7 @@ export async function updateCopilotInstructions(
       reason: "User canceled",
       flowStatus: UserFlowStatus.Aborted,
     });
-
-    vscode.window.showInformationMessage(
-      "To add Q# guidance to copilot-instructions.md at any time, " +
-        'run the command "Q#: Update Copilot instructions file for Q#".',
-    );
-
-    return response; // User dismissed the dialog
+    return; // User canceled or dismissed the dialog
   }
 
   try {
@@ -301,8 +274,7 @@ export async function updateCopilotInstructions(
       { flowStatus: UserFlowStatus.Failed, reason: "Error" },
       {},
     );
-
-    return response;
+    return;
   }
 
   // Send telemetry event for successful completion
@@ -320,39 +292,7 @@ export function registerGhCopilotInstructionsCommand(
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "qsharp-vscode.updateCopilotInstructions",
-      () => updateGhCopilotInstructionsCommand(true),
+      updateGhCopilotInstructionsCommand,
     ),
   );
-
-  // Also do a one-time prompt at startup
-  if (
-    context.globalState.get<boolean>(
-      "showUpdateCopilotInstructionsPromptAtStartup",
-      true,
-    )
-  ) {
-    updateGhCopilotInstructionsCommand(false).then((response) => {
-      if (response?.title === "Don't show again") {
-        context.globalState.update(
-          "showUpdateCopilotInstructionsPromptAtStartup",
-          false,
-        );
-      }
-    });
-  }
 }
-
-// some test code to try out configuration updates
-// log.info("QSharpTools initialized");
-// const cfg = vscode.workspace.getConfiguration("chat");
-// const val = cfg.inspect("agent")?.globalValue;
-// cfg.update("agent.enabled", true, ConfigurationTarget.Global).then(
-//   () => {
-//     const lastVal = cfg.inspect("agent")?.globalValue;
-//     log.info("Agent config value: ", lastVal);
-//   },
-//   (e) => {
-//     log.error("Failed to update agent config", e);
-//   },
-// );
-// log.info("Agent config value: ", val);

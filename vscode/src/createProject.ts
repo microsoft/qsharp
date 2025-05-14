@@ -65,7 +65,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         }
 
         // Call updateCopilotInstructions to update the Copilot instructions file
-        await updateCopilotInstructions(folderUri, true);
+        await updateCopilotInstructions(folderUri);
       },
     ),
   );
