@@ -557,7 +557,13 @@ impl Lowerer {
                 let arg = self.lower_expr(arg);
                 fir::ExprKind::Call(call, arg)
             }
-            hir::ExprKind::Fail(message) => fir::ExprKind::Fail(self.lower_expr(message)),
+            hir::ExprKind::Fail(message) => {
+                let fail = fir::ExprKind::Fail(self.lower_expr(message));
+                if self.enable_debug {
+                    self.exec_graph.push(ExecGraphNode::Fail);
+                }
+                fail
+            }
             hir::ExprKind::Field(container, field) => {
                 let container = self.lower_expr(container);
                 let field = lower_field(field);
