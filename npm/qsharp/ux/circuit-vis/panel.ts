@@ -55,7 +55,6 @@ const createPanel = (container: HTMLElement): void => {
   }
 
   if (container.querySelector(".panel") == null) {
-    console.log("Creating panel");
     const panelElem = _panel();
     container.prepend(panelElem);
     container.style.display = "flex";
