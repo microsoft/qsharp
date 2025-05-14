@@ -869,7 +869,7 @@
         ],
         "toolReferenceName": "qsharpGenerateCircuit",
         "displayName": "Generate Q# Circuit Diagram",
-        "modelDescription": "Generates a visual circuit diagram for a Q# program. The path to a .qs file must be specified in the `filePath` parameter. This tool will compile the Q# program and generate a quantum circuit diagram that visually represents the quantum operations in the code. The diagram will be displayed in a dedicated circuit panel.",
+        "modelDescription": "Generates a visual circuit diagram for a Q# program. The path to a .qs file must be specified in the `filePath` parameter. This tool will compile the Q# program and generate a quantum circuit diagram that visually represents the quantum operations in the code. If the program contains any dynamic behavior such as comparing measurement results, then the program will be executed using a quantum simulator, and the resulting circuit diagram will simply be a trace of the operations that were actually executed during simulation. The diagram will be displayed in a dedicated circuit panel.",
         "canBeReferencedInPrompt": true,
         "icon": "./resources/file-icon-light.svg",
         "inputSchema": {
