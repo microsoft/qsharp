@@ -7,7 +7,7 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
-use qsc_hir::mut_visit::MutVisitor;
+use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 use crate::index_assignment::ConvertToWSlash;
 
@@ -22,7 +22,11 @@ fn check(file: &str, expect: &Expect) {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
-    ConvertToWSlash::default().visit_package(&mut unit.package);
+    ConvertToWSlash {
+        assigner: &mut unit.assigner,
+    }
+    .visit_package(&mut unit.package);
+    Validator::default().visit_package(&unit.package);
     expect.assert_eq(&unit.package.to_string());
 }
 

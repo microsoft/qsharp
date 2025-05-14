@@ -104,8 +104,8 @@ impl PassContext {
         call_limits.visit_package(package);
         let callable_errors = call_limits.errors;
 
-        let mut convert_to_wslash = ConvertToWSlash::default();
-        convert_to_wslash.visit_package(package);
+        ConvertToWSlash { assigner }.visit_package(package);
+        Validator::default().visit_package(package);
 
         self.borrow_check.visit_package(package);
         let borrow_errors = &mut self.borrow_check.errors;
