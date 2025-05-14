@@ -73,7 +73,7 @@ function ResultAsDouble(value : Result) : Double {
 
 /// The ``RESULT_ARRAY_AS_BOOL`` function is used to implement the cast expr in QASM for bit[] to bool.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsBool(array: Result[]) : Bool {
+function ResultArrayAsBool(array : Result[]) : Bool {
     for result in array {
         if result == One {
             return true;
@@ -84,13 +84,13 @@ function ResultArrayAsBool(array: Result[]) : Bool {
 
 /// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[] to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsResultBE(array: Result[]) : Result {
+function ResultArrayAsResultBE(array : Result[]) : Result {
     BoolAsResult(ResultArrayAsBool(array))
 }
 
 /// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsAngleBE(array: Result[]) : Std.OpenQASM.Angle.Angle {
+function ResultArrayAsAngleBE(array : Result[]) : Std.OpenQASM.Angle.Angle {
     Std.OpenQASM.Angle.IntAsAngle(ResultArrayAsIntBE(array), Length(array))
 }
 
@@ -114,13 +114,13 @@ function AngleAsResultArrayBE(angle : Std.OpenQASM.Angle.Angle) : Result[] {
 
 /// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function BoolAsResultArrayBE(value : Bool, bits: Int) : Result[] {
+function BoolAsResultArrayBE(value : Bool, bits : Int) : Result[] {
     IntAsResultArrayBE(BoolAsInt(value), bits)
 }
 
 /// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultAsResultArrayBE(value : Result, bits: Int) : Result[] {
+function ResultAsResultArrayBE(value : Result, bits : Int) : Result[] {
     // Since we are in big endian notation, the most significant bit is stored
     // first, in other words the least significant bit is at the end.
     return Std.Core.Repeated(Zero, bits - 1) + [value]
