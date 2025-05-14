@@ -395,6 +395,9 @@ export class QscDebugSession extends LoggingDebugSession {
           this.eventTarget,
         );
 
+        // Ensure the circuit is updated before checking for fail, since the
+        // right-hand side of the fail expression may itself be a block that includes
+        // gate calls.
         await this.updateCircuit();
 
         if (result.id == StepResultId.Fail) {
