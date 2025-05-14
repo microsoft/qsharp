@@ -55,7 +55,7 @@ export interface ILanguageService {
     uri: string,
     version: number,
     code: string,
-    languageId: string,
+    languageId?: string,
   ): Promise<void>;
   updateNotebookDocument(
     notebookUri: string,
@@ -67,7 +67,7 @@ export interface ILanguageService {
       code: string;
     }[],
   ): Promise<void>;
-  closeDocument(uri: string, languageId: string): Promise<void>;
+  closeDocument(uri: string, languageId?: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
   getCodeActions(documentUri: string, range: IRange): Promise<ICodeAction[]>;
   getCompletions(
@@ -156,13 +156,13 @@ export class QSharpLanguageService implements ILanguageService {
     documentUri: string,
     version: number,
     code: string,
-    languageId: string,
+    languageId?: string,
   ): Promise<void> {
     this.languageService.update_document(
       documentUri,
       version,
       code,
-      languageId,
+      languageId || "qsharp",
     );
   }
 
@@ -175,8 +175,8 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.update_notebook_document(notebookUri, metadata, cells);
   }
 
-  async closeDocument(documentUri: string, languageId: string): Promise<void> {
-    this.languageService.close_document(documentUri, languageId);
+  async closeDocument(documentUri: string, languageId?: string): Promise<void> {
+    this.languageService.close_document(documentUri, languageId || "qsharp");
   }
 
   async closeNotebookDocument(documentUri: string): Promise<void> {
