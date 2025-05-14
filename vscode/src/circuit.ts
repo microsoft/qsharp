@@ -14,11 +14,7 @@ import {
 import { Uri } from "vscode";
 import { getTargetFriendlyName } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
-import {
-  FullProgramConfig,
-  getActiveProgram,
-  getProgramForDocument,
-} from "./programConfig";
+import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
@@ -53,7 +49,6 @@ export type CircuitOrError = {
 
 export async function showCircuitCommand(
   extensionUri: Uri,
-  resource: Uri | undefined,
   operation: IOperationInfo | undefined,
 ) {
   clearCommandDiagnostics();
@@ -61,9 +56,7 @@ export async function showCircuitCommand(
   const associationId = getRandomGuid();
   sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
 
-  const program = resource
-    ? await getProgramForDocument(resource)
-    : await getActiveProgram();
+  const program = await getActiveProgram();
   if (!program.success) {
     throw new Error(program.errorMsg);
   }
