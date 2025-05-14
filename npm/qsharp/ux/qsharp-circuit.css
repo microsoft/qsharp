@@ -6,7 +6,10 @@
   p {
     padding: 10px 0px;
   }
+}
 
+/* Circuit widget */
+.qs-circuit-widget {
   /* Error div in circuit panel */
   .qs-circuit-error {
     padding: 10px 0px;
