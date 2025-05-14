@@ -27,9 +27,9 @@ fn bit_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsBool(a);
+            Std.OpenQASM.Convert.ResultAsBool(a);
         "#]],
     );
 }
@@ -43,9 +43,9 @@ fn bitarray_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsBool(a);
+            Std.OpenQASM.Convert.ResultArrayAsBool(a);
         "#]],
     );
 }
@@ -111,9 +111,9 @@ fn bit_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsInt(a);
+            Std.OpenQASM.Convert.ResultAsInt(a);
         "#]],
     );
 }
@@ -127,9 +127,9 @@ fn bit_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsInt(a);
+            Std.OpenQASM.Convert.ResultAsInt(a);
         "#]],
     );
 }
@@ -167,9 +167,9 @@ fn bitarray_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsIntBE(a);
+            Std.OpenQASM.Convert.ResultArrayAsIntBE(a);
         "#]],
     );
 }
@@ -233,9 +233,9 @@ fn bit_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsInt(a);
+            Std.OpenQASM.Convert.ResultAsInt(a);
         "#]],
     );
 }
@@ -249,9 +249,9 @@ fn bit_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsInt(a);
+            Std.OpenQASM.Convert.ResultAsInt(a);
         "#]],
     );
 }
@@ -289,9 +289,9 @@ fn bitarray_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsIntBE(a);
+            Std.OpenQASM.Convert.ResultArrayAsIntBE(a);
         "#]],
     );
 }
@@ -355,9 +355,9 @@ fn bit_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsDouble(a);
+            Std.OpenQASM.Convert.ResultAsDouble(a);
         "#]],
     );
 }
@@ -371,9 +371,9 @@ fn bit_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsDouble(a);
+            Std.OpenQASM.Convert.ResultAsDouble(a);
         "#]],
     );
 }
@@ -550,9 +550,9 @@ fn bitarray_to_sized_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsAngleBE(a);
+            Std.OpenQASM.Convert.ResultArrayAsAngleBE(a);
         "#]],
     );
 }
@@ -756,7 +756,7 @@ fn bit_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
             a;
         "#]],
@@ -772,9 +772,9 @@ fn bit_to_bitarray() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Zero;
-            QasmStd.Convert.ResultAsResultArrayBE(a, 32);
+            Std.OpenQASM.Convert.ResultAsResultArrayBE(a, 32);
         "#]],
     );
 }
@@ -788,9 +788,9 @@ fn bitarray_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            QasmStd.Convert.ResultArrayAsResultBE(a);
+            Std.OpenQASM.Convert.ResultArrayAsResultBE(a);
         "#]],
     );
 }
@@ -804,7 +804,7 @@ fn bitarray_to_bitarray() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
             a;
         "#]],

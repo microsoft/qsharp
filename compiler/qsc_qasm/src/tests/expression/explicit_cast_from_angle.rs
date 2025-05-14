@@ -27,12 +27,12 @@ fn angle_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsBool(a);
+            Std.OpenQASM.Angle.AngleAsBool(a);
         "#]],
     );
 }
@@ -46,12 +46,12 @@ fn sized_angle_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsBool(a);
+            Std.OpenQASM.Angle.AngleAsBool(a);
         "#]],
     );
 }
@@ -543,8 +543,8 @@ fn angle_to_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
@@ -562,8 +562,8 @@ fn angle_to_sized_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
@@ -581,8 +581,8 @@ fn sized_angle_to_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
@@ -600,8 +600,8 @@ fn sized_angle_to_sized_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
@@ -619,8 +619,8 @@ fn sized_angle_to_sized_angle_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
@@ -638,12 +638,12 @@ fn sized_angle_to_sized_angle_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AdjustAngleSizeNoTruncation(a, 64);
+            Std.OpenQASM.Angle.AdjustAngleSizeNoTruncation(a, 64);
         "#]],
     );
 }
@@ -803,12 +803,12 @@ fn angle_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsResult(a);
+            Std.OpenQASM.Angle.AngleAsResult(a);
         "#]],
     );
 }
@@ -845,12 +845,12 @@ fn sized_angle_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsResult(a);
+            Std.OpenQASM.Angle.AngleAsResult(a);
         "#]],
     );
 }
@@ -864,12 +864,12 @@ fn sized_angle_to_bitarray() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
-            mutable a = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable a = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsResultArrayBE(a);
+            Std.OpenQASM.Angle.AngleAsResultArrayBE(a);
         "#]],
     );
 }

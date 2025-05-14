@@ -27,7 +27,7 @@ fn bool_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
             a;
         "#]],
@@ -73,9 +73,9 @@ fn bool_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsInt(a);
+            Std.OpenQASM.Convert.BoolAsInt(a);
         "#]],
     );
 }
@@ -89,9 +89,9 @@ fn bool_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsInt(a);
+            Std.OpenQASM.Convert.BoolAsInt(a);
         "#]],
     );
 }
@@ -109,9 +109,9 @@ fn bool_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsInt(a);
+            Std.OpenQASM.Convert.BoolAsInt(a);
         "#]],
     );
 }
@@ -125,9 +125,9 @@ fn bool_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsInt(a);
+            Std.OpenQASM.Convert.BoolAsInt(a);
         "#]],
     );
 }
@@ -145,9 +145,9 @@ fn bool_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsDouble(a);
+            Std.OpenQASM.Convert.BoolAsDouble(a);
         "#]],
     );
 }
@@ -161,9 +161,9 @@ fn bool_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsDouble(a);
+            Std.OpenQASM.Convert.BoolAsDouble(a);
         "#]],
     );
 }
@@ -278,9 +278,9 @@ fn bool_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsResult(a);
+            Std.OpenQASM.Convert.BoolAsResult(a);
         "#]],
     );
 }
@@ -294,9 +294,9 @@ fn bool_to_bitarray() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = false;
-            QasmStd.Convert.BoolAsResultArrayBE(a, 32);
+            Std.OpenQASM.Convert.BoolAsResultArrayBE(a, 32);
         "#]],
     );
 }

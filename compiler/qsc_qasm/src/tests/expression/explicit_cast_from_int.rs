@@ -27,7 +27,7 @@ fn int_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             if a == 0 {
                 false
@@ -47,7 +47,7 @@ fn sized_int_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             if a == 0 {
                 false
@@ -120,7 +120,7 @@ fn int_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -136,7 +136,7 @@ fn int_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -152,7 +152,7 @@ fn sized_int_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -168,7 +168,7 @@ fn sized_int_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -184,7 +184,7 @@ fn sized_int_to_sized_int_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -200,7 +200,7 @@ fn sized_int_to_sized_int_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -220,7 +220,7 @@ fn int_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -236,7 +236,7 @@ fn int_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -252,7 +252,7 @@ fn sized_int_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -268,7 +268,7 @@ fn sized_int_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -284,7 +284,7 @@ fn sized_int_to_sized_uint_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -300,7 +300,7 @@ fn sized_int_to_sized_uint_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             a;
         "#]],
@@ -320,7 +320,7 @@ fn int_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -336,7 +336,7 @@ fn int_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -352,7 +352,7 @@ fn sized_int_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -368,7 +368,7 @@ fn sized_int_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -384,7 +384,7 @@ fn sized_int_to_sized_float_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -400,7 +400,7 @@ fn sized_int_to_sized_float_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Convert.IntAsDouble(a);
         "#]],
@@ -561,7 +561,7 @@ fn int_to_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -577,7 +577,7 @@ fn int_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -593,7 +593,7 @@ fn sized_int_to_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -609,7 +609,7 @@ fn sized_int_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -625,7 +625,7 @@ fn sized_int_to_sized_complex_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -641,7 +641,7 @@ fn sized_int_to_sized_complex_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             Std.Math.Complex(Std.Convert.IntAsDouble(a), 0.);
         "#]],
@@ -661,7 +661,7 @@ fn int_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             if a == 0 {
                 One
@@ -704,7 +704,7 @@ fn sized_int_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
             if a == 0 {
                 One
@@ -724,9 +724,9 @@ fn sized_int_to_bitarray() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0;
-            QasmStd.Convert.IntAsResultArrayBE(a, 32);
+            Std.OpenQASM.Convert.IntAsResultArrayBE(a, 32);
         "#]],
     );
 }

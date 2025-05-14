@@ -1781,8 +1781,8 @@ fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a1 = 2.;
-        let b1 = Std.OpenQASM.DoubleAsAngle(a1, 32);
-        let s1 = Std.OpenQASM.AngleAsResult(b1);
+        let b1 = Std.OpenQASM.Angle.DoubleAsAngle(a1, 32);
+        let s1 = Std.OpenQASM.Angle.AngleAsResult(b1);
         mutable r1 = [Zero];
     "#]]
     .assert_eq(&qsharp);

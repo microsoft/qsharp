@@ -15,9 +15,9 @@ fn to_bit_implicitly() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
-        mutable y = QasmStd.Convert.DoubleAsResult(x);
+        mutable y = Std.OpenQASM.Convert.DoubleAsResult(x);
     "#]],
     );
 }
@@ -31,9 +31,9 @@ fn explicit_width_to_bit_implicitly() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
-        mutable y = QasmStd.Convert.DoubleAsResult(x);
+        mutable y = Std.OpenQASM.Convert.DoubleAsResult(x);
     "#]],
     );
 }

@@ -694,7 +694,7 @@ fn complex_to_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.Math.Complex(0., 0.);
             a;
         "#]],
@@ -778,7 +778,7 @@ fn sized_complex_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.Math.Complex(0., 0.);
             a;
         "#]],
@@ -794,7 +794,7 @@ fn sized_complex_to_sized_complex_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = Std.Math.Complex(0., 0.);
             a;
         "#]],

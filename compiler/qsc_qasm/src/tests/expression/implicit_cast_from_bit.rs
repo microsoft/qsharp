@@ -146,9 +146,9 @@ fn to_implicit_float_implicitly() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = One;
-        mutable y = QasmStd.Convert.ResultAsDouble(x);
+        mutable y = Std.OpenQASM.Convert.ResultAsDouble(x);
     "#]],
     );
 }

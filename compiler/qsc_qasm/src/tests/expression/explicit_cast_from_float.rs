@@ -27,7 +27,7 @@ fn float_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             if Std.Math.Truncate(a) == 0 {
                 false
@@ -47,7 +47,7 @@ fn sized_float_to_bool() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             if Std.Math.Truncate(a) == 0 {
                 false
@@ -120,7 +120,7 @@ fn float_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -136,7 +136,7 @@ fn float_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -152,7 +152,7 @@ fn sized_float_to_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -168,7 +168,7 @@ fn sized_float_to_sized_int() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -184,7 +184,7 @@ fn sized_float_to_sized_int_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -200,7 +200,7 @@ fn sized_float_to_sized_int_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -220,7 +220,7 @@ fn float_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -236,7 +236,7 @@ fn float_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -252,7 +252,7 @@ fn sized_float_to_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -268,7 +268,7 @@ fn sized_float_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -284,7 +284,7 @@ fn sized_float_to_sized_uint_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -300,7 +300,7 @@ fn sized_float_to_sized_uint_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Truncate(a);
         "#]],
@@ -320,7 +320,7 @@ fn float_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -336,7 +336,7 @@ fn float_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -352,7 +352,7 @@ fn sized_float_to_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -368,7 +368,7 @@ fn sized_float_to_sized_float() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -384,7 +384,7 @@ fn sized_float_to_sized_float_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -400,7 +400,7 @@ fn sized_float_to_sized_float_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             a;
         "#]],
@@ -420,9 +420,9 @@ fn float_to_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 53);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 53);
         "#]],
     );
 }
@@ -436,9 +436,9 @@ fn float_to_sized_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 32);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 32);
         "#]],
     );
 }
@@ -452,9 +452,9 @@ fn sized_float_to_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 53);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 53);
         "#]],
     );
 }
@@ -468,9 +468,9 @@ fn sized_float_to_sized_angle() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 32);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 32);
         "#]],
     );
 }
@@ -484,9 +484,9 @@ fn sized_float_to_sized_angle_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 16);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 16);
         "#]],
     );
 }
@@ -500,9 +500,9 @@ fn sized_float_to_sized_angle_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Angle.DoubleAsAngle(a, 64);
+            Std.OpenQASM.Angle.DoubleAsAngle(a, 64);
         "#]],
     );
 }
@@ -520,7 +520,7 @@ fn float_to_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -536,7 +536,7 @@ fn float_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -552,7 +552,7 @@ fn sized_float_to_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -568,7 +568,7 @@ fn sized_float_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -584,7 +584,7 @@ fn sized_float_to_sized_complex_truncating() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -600,7 +600,7 @@ fn sized_float_to_sized_complex_expanding() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
             Std.Math.Complex(a, 0.);
         "#]],
@@ -620,9 +620,9 @@ fn float_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Convert.DoubleAsResult(a);
+            Std.OpenQASM.Convert.DoubleAsResult(a);
         "#]],
     );
 }
@@ -659,9 +659,9 @@ fn sized_float_to_bit() {
     check(
         source,
         &expect![[r#"
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable a = 0.;
-            QasmStd.Convert.DoubleAsResult(a);
+            Std.OpenQASM.Convert.DoubleAsResult(a);
         "#]],
     );
 }

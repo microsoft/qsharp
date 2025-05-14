@@ -16,9 +16,9 @@ fn indexed_bit_can_be_implicitly_converted_to_float() {
     check_qasm_to_qsharp(
         source,
         &expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
-        if QasmStd.Convert.ResultAsDouble(x[0]) == 1. {};
+        if Std.OpenQASM.Convert.ResultAsDouble(x[0]) == 1. {};
     "#]],
     );
 }

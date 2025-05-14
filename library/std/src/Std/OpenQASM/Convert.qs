@@ -1,6 +1,3 @@
-import Std.Math.Truncate;
-import Angle.IntAsAngle;
-import Angle.Angle;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -93,8 +90,8 @@ function ResultArrayAsResultBE(array: Result[]) : Result {
 
 /// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsAngleBE(array: Result[]) : Angle {
-    IntAsAngle(ResultArrayAsIntBE(array), Length(array))
+function ResultArrayAsAngleBE(array: Result[]) : Std.OpenQASM.Angle.Angle {
+    Std.OpenQASM.Angle.IntAsAngle(ResultArrayAsIntBE(array), Length(array))
 }
 
 /// The ``INT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for int to bit[].
@@ -111,7 +108,7 @@ function IntAsResultArrayBE(number : Int, bits : Int) : Result[] {
 
 /// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[n] to bit[n].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
-function AngleAsResultArrayBE(angle : Angle) : Result[] {
+function AngleAsResultArrayBE(angle : Std.OpenQASM.Angle.Angle) : Result[] {
     IntAsResultArrayBE(angle.Value, angle.Size)
 }
 
@@ -126,7 +123,7 @@ function BoolAsResultArrayBE(value : Bool, bits: Int) : Result[] {
 function ResultAsResultArrayBE(value : Result, bits: Int) : Result[] {
     // Since we are in big endian notation, the most significant bit is stored
     // first, in other words the least significant bit is at the end.
-    return Repeated(Zero, bits - 1) + [value]
+    return Std.Core.Repeated(Zero, bits - 1) + [value]
 }
 
 /// The ``RESULT_ARRAY_AS_INT_BE`` function is used to implement the cast expr in QASM for bit[] to uint.
@@ -138,7 +135,7 @@ function ResultArrayAsIntBE(results : Result[]) : Int {
 /// The ``DOUBLE_AS_RESULT`` function is used to implement the cast expr in QASM for float to bit.
 /// This is needed for round-trip conversion for bin ops.
 function DoubleAsResult(value : Double) : Result {
-    if Truncate(value) == 0 {
+    if Std.Math.Truncate(value) == 0 {
         Zero
     } else {
         One
