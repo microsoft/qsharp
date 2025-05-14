@@ -6,11 +6,7 @@ import * as vscode from "vscode";
 import { window } from "vscode";
 import { loadCompilerWorker } from "./common";
 import { clearCommandDiagnostics } from "./diagnostics";
-import {
-  FullProgramConfig,
-  getActiveProgram,
-  getProgramForDocument,
-} from "./programConfig";
+import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getOrCreatePanel, sendMessageToPanel } from "./webviewPanel";
@@ -30,9 +26,7 @@ export async function resourceEstimateCommand(
     {},
   );
 
-  const program = resource
-    ? await getProgramForDocument(resource)
-    : await getActiveProgram();
+  const program = await getActiveProgram();
   if (!program.success) {
     throw new Error(program.errorMsg);
   }

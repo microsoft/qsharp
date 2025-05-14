@@ -8,7 +8,7 @@
 ### Input Parameters
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 
 ## Get Azure Quantum Job Details
 
@@ -17,9 +17,9 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `job_id` | `string` | Yes | Job's unique identifier. |
+| Parameter | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `job_id`  | `string` | Yes      | Job's unique identifier. |
 
 ## Connect to Azure Quantum Workspace
 
@@ -29,7 +29,7 @@
 ### Input Parameters
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 
 ## Download Azure Quantum Job Results
 
@@ -38,9 +38,9 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `job_id` | `string` | Yes | Job's unique identifier. |
+| Parameter | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `job_id`  | `string` | Yes      | Job's unique identifier. |
 
 ## Get Azure Quantum Workspaces
 
@@ -50,7 +50,7 @@
 ### Input Parameters
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 
 ## Submit to Azure Quantum Target
 
@@ -59,11 +59,11 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `job_name` | `string` | Yes | The string to name the created job. |
-| `target_id` | `string` | Yes | The ID or name of the target to submit the job to. |
-| `number_of_shots` | `number` | Yes | The number of shots to use for the job. |
+| Parameter         | Type     | Required | Description                                        |
+| ----------------- | -------- | -------- | -------------------------------------------------- |
+| `job_name`        | `string` | Yes      | The string to name the created job.                |
+| `target_id`       | `string` | Yes      | The ID or name of the target to submit the job to. |
+| `number_of_shots` | `number` | Yes      | The number of shots to use for the job.            |
 
 ## Get Active Azure Quantum Workspace
 
@@ -73,7 +73,7 @@
 ### Input Parameters
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 
 ## Set Active Azure Quantum Workspace
 
@@ -82,9 +82,9 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `workspace_id` | `string` | Yes | The id of the workspace to set as active. |
+| Parameter      | Type     | Required | Description                               |
+| -------------- | -------- | -------- | ----------------------------------------- |
+| `workspace_id` | `string` | Yes      | The id of the workspace to set as active. |
 
 ## Get Azure Quantum Providers
 
@@ -94,7 +94,7 @@
 ### Input Parameters
 
 | Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
+| --------- | ---- | -------- | ----------- |
 
 ## Get Azure Quantum Target
 
@@ -103,9 +103,9 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `target_id` | `string` | Yes | The ID of the target to get. |
+| Parameter   | Type     | Required | Description                  |
+| ----------- | -------- | -------- | ---------------------------- |
+| `target_id` | `string` | Yes      | The ID of the target to get. |
 
 ## Run Q# Program
 
@@ -114,10 +114,10 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `filePath` | `string` | Yes | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
-| `shots` | `number` | No | The number of times to run the program. Defaults to 1 if not specified. |
+| Parameter  | Type     | Required | Description                                                                                                                                                                       |
+| ---------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filePath` | `string` | Yes      | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
+| `shots`    | `number` | No       | The number of times to run the program. Defaults to 1 if not specified.                                                                                                           |
 
 ## Generate Q# Circuit Diagram
 
@@ -126,9 +126,9 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `filePath` | `string` | Yes | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
+| Parameter  | Type     | Required | Description                                                                                                                                                                       |
+| ---------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filePath` | `string` | Yes      | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
 
 ## Run Q# Resource Estimator
 
@@ -137,10 +137,11 @@
 
 ### Input Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `filePath` | `string` | Yes | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
-| `qubitTypes` | `array` | No | Array of qubit type labels to use for resource estimation. Allowed values:
+| Parameter    | Type     | Required | Description                                                                                                                                                                       |
+| ------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filePath`   | `string` | Yes      | The absolute path to the .qs file. If this file is part of a project, as defined by being in a folder with a qsharp.json file, the whole project will be compiled as the program. |
+| `qubitTypes` | `array`  | No       | Array of qubit type labels to use for resource estimation. Allowed values:                                                                                                        |
+
 - 'qubit_gate_ns_e3': Superconducting/spin qubit with 1e-3 error rate
 - 'qubit_gate_ns_e4': Superconducting/spin qubit with 1e-4 error rate
 - 'qubit_gate_us_e3': Trapped ion qubit with 1e-3 error rate
@@ -149,5 +150,4 @@
 - 'qubit_maj_ns_e6 + surface_code': Majorana qubit with 1e-6 error rate (surface code QEC)
 - 'qubit_maj_ns_e4 + floquet_code': Majorana qubit with 1e-4 error rate (floquet code QEC)
 - 'qubit_maj_ns_e6 + floquet_code': Majorana qubit with 1e-6 error rate (floquet code QEC) |
-| `errorBudget` | `number` | No | Error budget for the resource estimation. Must be a number between 0 and 1. Default is 0.001. |
-
+  | `errorBudget` | `number` | No | Error budget for the resource estimation. Must be a number between 0 and 1. Default is 0.001. |
