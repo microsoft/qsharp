@@ -6,6 +6,12 @@
   p {
     padding: 10px 0px;
   }
+}
+
+/* Circuit widget */
+.qs-circuit {
+  /* Background color for the circuit diagram */
+  background: var(--main-background);
 
   /* Error div in circuit panel */
   .qs-circuit-error {
@@ -22,24 +28,21 @@
   https://github.com/microsoft/quantum-viz.js/blob/288e0cb506ee866ecca1b414c522e2d634f7b36d/src/styles.ts
 */
 
-  /* Background color for the circuit diagram */
-  .qs-circuit {
-    background: var(--main-background);
-  }
-
   /* Wires and gate outlines */
-  .qs-circuit line,
-  .qs-circuit circle,
-  .qs-circuit rect {
+  line,
+  circle,
+  rect {
     stroke: var(--main-color);
     stroke-width: 1;
   }
 
   /* Text for qubit labels */
-  .qs-circuit text {
+  text {
     fill: var(--main-color);
     dominant-baseline: middle;
     text-anchor: middle;
+    user-select: none;
+    pointer-events: none;
   }
 
   /* When run in VS Code, the "KaTeX_Main" and "KaTeX_Math" fonts are already present */
@@ -60,17 +63,17 @@
   }
 
   /* Background for gates */
-  .qs-circuit .gate-unitary {
+  .gate-unitary {
     fill: var(--vscode-button-secondaryBackground, #333333);
   }
 
   /* Text for gates */
-  .qs-circuit .gate text {
+  .gate text {
     fill: var(--vscode-button-secondaryForeground, #ffffff);
   }
 
   /* Default style for arg-button */
-  .qs-circuit .arg-button {
+  .arg-button {
     fill: var(--vscode-editor-foreground, #ffffff);
     text-decoration: none;
     cursor: default;
@@ -79,7 +82,7 @@
   }
 
   /* Edit mode style for arg-button (hyperlink appearance) */
-  .qs-circuit .arg-button.edit-mode {
+  .arg-button.edit-mode {
     fill: var(--vscode-textLink-foreground, #0066cc);
     text-decoration: underline;
     cursor: pointer;
@@ -87,56 +90,56 @@
   }
 
   /* Hover style for arg-button in edit mode */
-  .qs-circuit .arg-button.edit-mode:hover {
+  .arg-button.edit-mode:hover {
     fill: var(--vscode-textLink-activeForeground, #004499); /* Hover color */
   }
 
   /* Dot and line for controlled gates */
-  .qs-circuit .gate > line,
-  .qs-circuit .control-dot {
+  .gate > line,
+  .control-dot {
     fill: var(--main-color);
   }
 
   /* X gate */
-  .qs-circuit .gate > .oplus > line,
-  .qs-circuit .gate > .oplus > circle {
+  .gate > .oplus > line,
+  .gate > .oplus > circle {
     fill: var(--main-background);
     stroke: var(--main-color);
     stroke-width: 2;
   }
 
   /* Measurement gate */
-  .qs-circuit .gate-measure {
+  .gate-measure {
     fill: var(--vscode-button-background, #007acc);
   }
 
   /* Measurement gate icon */
-  .qs-circuit .gate > g > line,
-  .qs-circuit .arc-measure {
+  .gate > g > line,
+  .arc-measure {
     stroke: var(--vscode-button-foreground, #ffffff);
     fill: none;
     stroke-width: 1;
   }
 
   /* Ket gate */
-  .qs-circuit .gate-ket {
+  .gate-ket {
     fill: var(--vscode-button-background, #007acc);
   }
 
   /* Ket gate text */
-  .qs-circuit text.ket-text {
+  text.ket-text {
     fill: var(--vscode-button-foreground, #ffffff);
     stroke: none;
   }
 
   /* SWAP gate */
-  .qs-circuit rect.gate-swap {
+  rect.gate-swap {
     fill: transparent;
     stroke: transparent;
   }
 
   /* Classical wire */
-  .qs-circuit .register-classical {
+  .register-classical {
     stroke-width: 0.5;
   }
 
@@ -145,108 +148,104 @@
   They relate to conditional circuits which are not currently supported.
 */
 
-  .qs-circuit .hidden {
+  .hidden {
     display: none;
   }
 
-  .qs-circuit .classically-controlled-unknown {
+  .classically-controlled-unknown {
     opacity: 0.25;
   }
 
-  .qs-circuit .classically-controlled-one .classical-container,
-  .qs-circuit .classically-controlled-one .classical-line {
+  .classically-controlled-one .classical-container,
+  .classically-controlled-one .classical-line {
     stroke: #4059bd;
     stroke-width: 1.3;
     fill: #4059bd;
     fill-opacity: 0.1;
   }
 
-  .qs-circuit .classically-controlled-zero .classical-container,
-  .qs-circuit .classically-controlled-zero .classical-line {
+  .classically-controlled-zero .classical-container,
+  .classically-controlled-zero .classical-line {
     stroke: #c40000;
     stroke-width: 1.3;
     fill: #c40000;
     fill-opacity: 0.1;
   }
 
-  .qs-circuit .classically-controlled-btn {
+  .classically-controlled-btn {
     cursor: pointer;
   }
 
-  .qs-circuit .classically-controlled-unknown .classically-controlled-btn {
+  .classically-controlled-unknown .classically-controlled-btn {
     fill: #e5e5e5;
   }
 
-  .qs-circuit .classically-controlled-one .classically-controlled-btn {
+  .classically-controlled-one .classically-controlled-btn {
     fill: #4059bd;
   }
 
-  .qs-circuit .classically-controlled-zero .classically-controlled-btn {
+  .classically-controlled-zero .classically-controlled-btn {
     fill: #c40000;
   }
 
-  .qs-circuit .classically-controlled-btn text {
+  .classically-controlled-btn text {
     dominant-baseline: middle;
     text-anchor: middle;
     stroke: none;
     font-family: Arial;
   }
 
-  .qs-circuit .classically-controlled-unknown .classically-controlled-btn text {
+  .classically-controlled-unknown .classically-controlled-btn text {
     fill: #000000;
   }
 
-  .qs-circuit .classically-controlled-one .classically-controlled-btn text {
+  .classically-controlled-one .classically-controlled-btn text {
     fill: #ffffff;
   }
 
-  .qs-circuit .classically-controlled-zero .classically-controlled-btn text {
+  .classically-controlled-zero .classically-controlled-btn text {
     fill: #ffffff;
   }
 
-  .qs-circuit .qviz .gate-collapse,
-  .qs-circuit .qviz .gate-expand {
+  .qviz .gate-collapse,
+  .qviz .gate-expand {
     opacity: 0;
     transition: opacity 1s;
   }
 
-  .qs-circuit .qviz:hover .gate-collapse,
-  .qs-circuit .qviz:hover .gate-expand {
+  .qviz:hover .gate-collapse,
+  .qviz:hover .gate-expand {
     visibility: visible;
     opacity: 0.2;
     transition: visibility 1s;
     transition: opacity 1s;
   }
 
-  .qs-circuit .gate-expand,
+  .gate-expand,
   .gate-collapse {
     cursor: pointer;
   }
 
-  .qs-circuit .gate-collapse circle,
-  .qs-circuit .gate-expand circle {
+  .gate-collapse circle,
+  .gate-expand circle {
     fill: white;
     stroke-width: 2px;
     stroke: black;
   }
 
-  .qs-circuit .gate-collapse path,
-  .qs-circuit .gate-expand path {
+  .gate-collapse path,
+  .gate-expand path {
     stroke-width: 4px;
     stroke: black;
   }
 
-  .qs-circuit .gate:hover > .gate-collapse,
-  .qs-circuit .gate:hover > .gate-expand {
+  .gate:hover > .gate-collapse,
+  .gate:hover > .gate-expand {
     visibility: visible;
     opacity: 1;
     transition: opacity 1s;
   }
 
-  text {
-    user-select: none;
-    pointer-events: none;
-  }
   .dropzone-layer {
     display: none;
   }
