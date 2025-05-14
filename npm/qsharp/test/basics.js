@@ -497,6 +497,7 @@ test("language service diagnostics", async () => {
         return [m1];
     }
 }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -533,6 +534,7 @@ test("test callable discovery", async () => {
     @Test()
     operation main() : Unit {}
 }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -571,6 +573,7 @@ namespace Sample2 {
   }    
 }
 `,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -654,6 +657,7 @@ test("diagnostics with related spans", async () => {
         DumpMachine();
       }
     }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -684,6 +688,7 @@ test("language service diagnostics - web worker", async () => {
         return [m1];
     }
 }`,
+    "qsharp",
   );
 
   // dispose() will complete when the language service has processed all the updates.
@@ -711,6 +716,7 @@ test("language service configuration update", async () => {
     operation Test() : Unit {
     }
 }`,
+    "qsharp",
   );
 
   // Above document should have generated a missing entrypoint error.

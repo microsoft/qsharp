@@ -127,12 +127,12 @@ impl LanguageService {
             });
     }
 
-    pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
-        self.0.update_document(uri, version, text);
+    pub fn update_document(&mut self, uri: &str, version: u32, text: &str, language_id: &str) {
+        self.0.update_document(uri, version, text, language_id);
     }
 
-    pub fn close_document(&mut self, uri: &str) {
-        self.0.close_document(uri);
+    pub fn close_document(&mut self, uri: &str, language_id: &str) {
+        self.0.close_document(uri, language_id);
     }
 
     pub fn update_notebook_document(

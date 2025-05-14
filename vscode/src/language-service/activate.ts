@@ -242,7 +242,10 @@ function registerDocumentUpdateHandlers(
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (isQdkDocument(document) && !isNotebookCell(document)) {
-        languageService.closeDocument(document.uri.toString());
+        languageService.closeDocument(
+          document.uri.toString(),
+          document.languageId,
+        );
       }
     }),
   );
@@ -292,6 +295,7 @@ function registerDocumentUpdateHandlers(
         document.uri.toString(),
         document.version,
         content,
+        document.languageId,
       );
     }
   }
