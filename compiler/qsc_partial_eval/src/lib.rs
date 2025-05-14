@@ -12,9 +12,7 @@ mod evaluation_context;
 mod management;
 
 use core::panic;
-use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, Scope,
-};
+use evaluation_context::{Arg, BlockNode, EvalControlFlow, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::{functors::FunctorApp, span::Span, target::TargetCapabilityFlags};
@@ -1772,12 +1770,8 @@ impl<'a> PartialEvaluator<'a> {
         // Evaluate the body expression.
         // First, we cache the current static variable mappings so that we can restore them later.
         let cached_mappings = self.clone_current_static_var_map();
-        let if_true_branch_control_flow =
+        let if_true_block_id =
             self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
-        let if_true_block_id = match if_true_branch_control_flow {
-            BranchControlFlow::Block(block_id) => block_id,
-            BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
-        };
 
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
         let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
@@ -1785,7 +1779,7 @@ impl<'a> PartialEvaluator<'a> {
             let post_if_true_mappings = self.clone_current_static_var_map();
             // Restore the cached mappings from before evaluating the true block.
             self.overwrite_current_static_var_map(cached_mappings);
-            let if_false_branch_control_flow = self.eval_expr_if_branch(
+            let if_false_block_id = self.eval_expr_if_branch(
                 otherwise_expr_id,
                 continuation_block_node_id,
                 maybe_if_expr_var,
@@ -1793,10 +1787,7 @@ impl<'a> PartialEvaluator<'a> {
             // Only keep the static mappings that are the same in both blocks; when they are different,
             // the variable is no longer static across the if expression.
             self.keep_matching_static_var_mappings(&post_if_true_mappings);
-            match if_false_branch_control_flow {
-                BranchControlFlow::Block(block_id) => block_id,
-                BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
-            }
+            if_false_block_id
         } else {
             // Only keep the static mappings that are the same after the true block as before; when they are different,
             // the variable is no longer static across the if expression.
@@ -1837,7 +1828,7 @@ impl<'a> PartialEvaluator<'a> {
         branch_body_expr_id: ExprId,
         continuation_block_id: rir::BlockId,
         if_expr_var: Option<rir::Variable>,
-    ) -> Result<BranchControlFlow, Error> {
+    ) -> Result<rir::BlockId, Error> {
         // Create the block node that corresponds to the branch body and push it as the active one.
         let block_node_id = self.create_program_block();
         let block_node = BlockNode {
@@ -1849,7 +1840,8 @@ impl<'a> PartialEvaluator<'a> {
         // Evaluate the branch body expression.
         let body_control = self.try_eval_expr(branch_body_expr_id)?;
         if body_control.is_return() {
-            return Ok(BranchControlFlow::Return(body_control.into_value()));
+            let body_span = self.get_expr_package_span(branch_body_expr_id);
+            return Err(Error::Unimplemented("early return".to_string(), body_span));
         }
 
         // If there is a variable to save the value of the if expression to, add a store instruction.
@@ -1863,7 +1855,7 @@ impl<'a> PartialEvaluator<'a> {
         let jump_ins = Instruction::Jump(continuation_block_id);
         self.get_current_rir_block_mut().0.push(jump_ins);
         let _ = self.eval_context.pop_block_node();
-        Ok(BranchControlFlow::Block(block_node_id))
+        Ok(block_node_id)
     }
 
     fn eval_expr_if_with_classical_condition(

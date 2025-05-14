@@ -3,14 +3,14 @@
 
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
-import { isQsharpDocument, qsharpExtensionId } from "./common";
+import { isQdkDocument, qsharpExtensionId } from "./common";
 import { getTarget, getTargetFriendlyName, setTarget } from "./config";
-import { getActiveQSharpDocumentUri } from "./programConfig";
+import { getActiveQdkDocumentUri } from "./programConfig";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
 
-  disposables.push(registerTargetProfileCommand());
+  disposables.push(registerSetTargetProfileCommand());
 
   const statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -22,7 +22,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
 
   disposables.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor && isQsharpDocument(editor.document)) {
+      if (editor && isQdkDocument(editor.document)) {
         refreshStatusBarItemValue();
       } else if (editor?.document.uri.scheme !== "output") {
         // The output window counts as a text editor.
@@ -40,7 +40,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   disposables.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (
-        getActiveQSharpDocumentUri() &&
+        getActiveQdkDocumentUri() &&
         event.affectsConfiguration("Q#.qir.targetProfile")
       ) {
         refreshStatusBarItemValue();
@@ -48,7 +48,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     }),
   );
 
-  if (getActiveQSharpDocumentUri()) {
+  if (getActiveQdkDocumentUri()) {
     refreshStatusBarItemValue();
   }
 
@@ -73,40 +73,42 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   return disposables;
 }
 
-function registerTargetProfileCommand() {
+async function setTargetProfile() {
+  const target = await vscode.window.showQuickPick(
+    targetProfiles.map((profile) => ({
+      label: profile.uiText,
+    })),
+    { placeHolder: "Select the QIR target profile" },
+  );
+
+  if (target) {
+    setTarget(getTargetProfileSetting(target.label));
+  }
+}
+
+function registerSetTargetProfileCommand() {
   return vscode.commands.registerCommand(
     `${qsharpExtensionId}.setTargetProfile`,
-    async () => {
-      const target = await vscode.window.showQuickPick(
-        targetProfiles.map((profile) => ({
-          label: profile.uiText,
-        })),
-        { placeHolder: "Select the QIR target profile" },
-      );
-
-      if (target) {
-        setTarget(getTargetProfileSetting(target.label));
-      }
-    },
+    setTargetProfile,
   );
 }
 
 const targetProfiles = [
-  { configName: "base", uiText: "Q#: QIR base" },
-  { configName: "adaptive_ri", uiText: "Q#: QIR Adaptive RI" },
-  { configName: "adaptive_rif", uiText: "Q#: QIR Adaptive RIF" },
-  { configName: "unrestricted", uiText: "Q#: unrestricted" },
+  { configName: "base", uiText: "QIR base" },
+  { configName: "adaptive_ri", uiText: "QIR Adaptive RI" },
+  { configName: "adaptive_rif", uiText: "QIR Adaptive RIF" },
+  { configName: "unrestricted", uiText: "QIR unrestricted" },
 ];
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "Q#: QIR base":
+    case "QIR base":
       return "base";
-    case "Q#: QIR Adaptive RI":
+    case "QIR Adaptive RI":
       return "adaptive_ri";
-    case "Q#: QIR Adaptive RIF":
+    case "QIR Adaptive RIF":
       return "adaptive_rif";
-    case "Q#: unrestricted":
+    case "QIR unrestricted":
       return "unrestricted";
     default:
       log.error("invalid target profile found");

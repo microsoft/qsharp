@@ -322,7 +322,7 @@ fn compile_fake_stdlib() -> (PackageId, PackageStore) {
 }
 
 #[allow(clippy::type_complexity)]
-fn get_sources_and_markers(
+pub(crate) fn get_sources_and_markers(
     sources: &[(&str, &str)],
 ) -> (
     Vec<(Arc<str>, Arc<str>)>,

@@ -66,7 +66,7 @@ const addContextMenuToHostElem = (
       const removeControlOption = _createContextMenuItem(
         "Remove control",
         () => {
-          removeControl(selectedOperation, dataWire);
+          removeControl(circuitEvents, selectedOperation, dataWire);
           circuitEvents.renderFn();
         },
       );

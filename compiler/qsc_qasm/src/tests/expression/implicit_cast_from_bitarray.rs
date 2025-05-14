@@ -15,9 +15,9 @@ fn to_int_decl_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable reg = [Zero, Zero, Zero, Zero, Zero];
-        mutable b = QasmStd.Convert.ResultArrayAsIntBE(reg);
+        mutable b = Std.OpenQASM.Convert.ResultArrayAsIntBE(reg);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -33,10 +33,10 @@ fn to_int_assignment_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable reg = [Zero, Zero, Zero, Zero, Zero];
         mutable a = 0;
-        set a = QasmStd.Convert.ResultArrayAsIntBE(reg);
+        set a = Std.OpenQASM.Convert.ResultArrayAsIntBE(reg);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -52,10 +52,10 @@ fn to_int_with_equal_width_in_assignment_implicitly() -> miette::Result<(), Vec<
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable reg = [Zero, Zero, Zero, Zero, Zero];
         mutable a = 0;
-        set a = QasmStd.Convert.ResultArrayAsIntBE(reg);
+        set a = Std.OpenQASM.Convert.ResultArrayAsIntBE(reg);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -70,9 +70,9 @@ fn to_int_with_equal_width_in_decl_implicitly() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable reg = [Zero, Zero, Zero, Zero, Zero];
-        mutable a = QasmStd.Convert.ResultArrayAsIntBE(reg);
+        mutable a = Std.OpenQASM.Convert.ResultArrayAsIntBE(reg);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

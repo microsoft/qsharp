@@ -3,13 +3,13 @@
 
 use crate::io::{InMemorySourceResolver, SourceResolver};
 use crate::semantic::{parse_source, QasmSemanticParseResult};
-use crate::stdlib::compile::package_store_with_qasm;
 use crate::{
     compile_to_qsharp_ast_with_config, CompilerConfig, OutputSemantics, ProgramType,
     QasmCompileUnit, QubitSemantics,
 };
 use miette::Report;
 use qsc::compile::compile_ast;
+use qsc::compile::package_store_with_stdlib;
 use qsc::interpret::Error;
 use qsc::target::Profile;
 use qsc::{
@@ -18,7 +18,7 @@ use qsc::{
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 pub(crate) mod assignment;
 pub(crate) mod declaration;
@@ -60,12 +60,8 @@ pub(crate) fn generate_qir_from_ast(
     profile: Profile,
 ) -> Result<String, Vec<Error>> {
     let capabilities = profile.into();
-    let (stdid, qasmid, mut store) = package_store_with_qasm(capabilities);
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let (stdid, mut store) = package_store_with_stdlib(capabilities);
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
     qsc::codegen::qir::get_qir_from_ast(
         &mut store,
         &dependencies,
@@ -75,10 +71,7 @@ pub(crate) fn generate_qir_from_ast(
     )
 }
 
-fn compile<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+fn compile<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::Qiskit,
@@ -89,13 +82,10 @@ where
     compile_with_config(source, config)
 }
 
-fn compile_with_config<S>(
+fn compile_with_config<S: Into<Arc<str>>>(
     source: S,
     config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let res = parse(source)?;
     if res.has_syntax_errors() {
         for e in res.sytax_errors() {
@@ -118,13 +108,10 @@ where
 }
 
 #[allow(dead_code)]
-pub fn compile_all<P>(
+pub fn compile_all<P: Into<Arc<str>>>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::Qiskit,
@@ -136,13 +123,10 @@ where
 }
 
 #[allow(dead_code)]
-pub fn compile_all_fragments<P>(
+pub fn compile_all_fragments<P: Into<Arc<str>>>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -153,10 +137,7 @@ where
     compile_all_with_config(path, sources, config)
 }
 
-fn compile_fragments<S>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    S: AsRef<str>,
-{
+fn compile_fragments<S: Into<Arc<str>>>(source: S) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -167,14 +148,11 @@ where
     compile_with_config(source, config)
 }
 
-pub fn compile_all_with_config<P>(
+pub fn compile_all_with_config<P: Into<Arc<str>>>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
     config: CompilerConfig,
-) -> miette::Result<QasmCompileUnit, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmCompileUnit, Vec<Report>> {
     let res = parse_all(path, sources)?;
     assert!(!res.has_syntax_errors());
     let program = res.program;
@@ -207,7 +185,7 @@ fn compile_qasm_to_qir(source: &str, profile: Profile) -> Result<String, Vec<Rep
 /// used to do full compilation with best effort of the input.
 /// This is useful for fuzz testing.
 fn compile_qasm_best_effort(source: &str, profile: Profile) {
-    let (stdid, qasmid, store) = package_store_with_qasm(profile.into());
+    let (stdid, store) = package_store_with_stdlib(profile.into());
 
     let mut resolver = InMemorySourceResolver::from_iter([]);
     let config = CompilerConfig::new(
@@ -222,11 +200,7 @@ fn compile_qasm_best_effort(source: &str, profile: Profile) {
         compile_to_qsharp_ast_with_config(source, "source.qasm", Some(&mut resolver), config);
     let (sources, _, package, _) = unit.into_tuple();
 
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut _unit, _errors) = compile_ast(
         &store,
@@ -250,13 +224,14 @@ pub(crate) fn compare_compilation_to_qsharp(unit: &QasmCompileUnit, expected: &s
     difference::assert_diff!(&qsharp, expected, "\n", 0);
 }
 
-pub(crate) fn parse<S>(source: S) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    S: AsRef<str>,
-{
-    let mut resolver =
-        InMemorySourceResolver::from_iter([("Test.qasm".into(), source.as_ref().into())]);
-    let res = parse_source(source, "Test.qasm", &mut resolver);
+pub(crate) fn parse<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
+    let source = source.into();
+    let name: Arc<str> = "Test.qasm".into();
+    let sources = [(name.clone(), source.clone())];
+    let mut resolver = InMemorySourceResolver::from_iter(sources);
+    let res = parse_source(source, name, &mut resolver);
     if res.source.has_errors() {
         let errors = res
             .errors()
@@ -268,18 +243,13 @@ where
     Ok(res)
 }
 
-pub(crate) fn parse_all<P>(
+pub(crate) fn parse_all<P: Into<Arc<str>>>(
     path: P,
     sources: impl IntoIterator<Item = (Arc<str>, Arc<str>)>,
-) -> miette::Result<QasmSemanticParseResult, Vec<Report>>
-where
-    P: AsRef<Path>,
-{
+) -> miette::Result<QasmSemanticParseResult, Vec<Report>> {
+    let path = path.into();
     let mut resolver = InMemorySourceResolver::from_iter(sources);
-    let source = resolver
-        .resolve(path.as_ref())
-        .map_err(|e| vec![Report::new(e)])?
-        .1;
+    let source = resolver.resolve(&path).map_err(|e| vec![Report::new(e)])?.1;
     let res = parse_source(source, path, &mut resolver);
     if res.source.has_errors() {
         let errors = res
@@ -293,7 +263,9 @@ where
     }
 }
 
-pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp_file<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -310,7 +282,9 @@ pub fn compile_qasm_to_qsharp_file(source: &str) -> miette::Result<String, Vec<R
     Ok(qsharp)
 }
 
-pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp_operation<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,
@@ -327,12 +301,12 @@ pub fn compile_qasm_to_qsharp_operation(source: &str) -> miette::Result<String, 
     Ok(qsharp)
 }
 
-pub fn compile_qasm_to_qsharp(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_to_qsharp<S: Into<Arc<str>>>(source: S) -> miette::Result<String, Vec<Report>> {
     compile_qasm_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
 }
 
-pub fn compile_qasm_to_qsharp_with_semantics(
-    source: &str,
+pub fn compile_qasm_to_qsharp_with_semantics<S: Into<Arc<str>>>(
+    source: S,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(
@@ -355,12 +329,14 @@ pub fn qsharp_from_qasm_compilation(unit: QasmCompileUnit) -> miette::Result<Str
     Ok(qsharp)
 }
 
-pub fn compile_qasm_stmt_to_qsharp(source: &str) -> miette::Result<String, Vec<Report>> {
+pub fn compile_qasm_stmt_to_qsharp<S: Into<Arc<str>>>(
+    source: S,
+) -> miette::Result<String, Vec<Report>> {
     compile_qasm_stmt_to_qsharp_with_semantics(source, QubitSemantics::Qiskit)
 }
 
-pub fn compile_qasm_stmt_to_qsharp_with_semantics(
-    source: &str,
+pub fn compile_qasm_stmt_to_qsharp_with_semantics<S: Into<Arc<str>>>(
+    source: S,
     qubit_semantics: QubitSemantics,
 ) -> miette::Result<String, Vec<Report>> {
     let config = CompilerConfig::new(

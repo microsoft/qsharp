@@ -25,7 +25,7 @@ export class QirGenerationError extends Error {
   }
 }
 
-export async function getQirForVisibleQs(
+export async function getQirForVisibleSource(
   targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
   const program = await getVisibleProgram();
@@ -129,7 +129,7 @@ async function getQirForProgram(
       {
         location: vscode.ProgressLocation.Notification,
         cancellable: true,
-        title: "Q#: Generating QIR",
+        title: "Generating QIR",
       },
       async (progress, token) => {
         token.onCancellationRequested(() => {
@@ -169,6 +169,22 @@ async function getQirForProgram(
   return result;
 }
 
+async function getQirForActiveWindowCommand() {
+  try {
+    const qir = await getQirForActiveWindow();
+    const qirDoc = await vscode.workspace.openTextDocument({
+      language: "llvm",
+      content: qir,
+    });
+    await vscode.window.showTextDocument(qirDoc);
+  } catch (e: any) {
+    log.error("QIR generation failed. ", e);
+    if (e.name === "QirGenerationError") {
+      vscode.window.showErrorMessage(e.message);
+    }
+  }
+}
+
 export function initCodegen(context: vscode.ExtensionContext) {
   compilerWorkerScriptPath = vscode.Uri.joinPath(
     context.extensionUri,
@@ -176,20 +192,9 @@ export function initCodegen(context: vscode.ExtensionContext) {
   ).toString();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(`${qsharpExtensionId}.getQir`, async () => {
-      try {
-        const qir = await getQirForActiveWindow();
-        const qirDoc = await vscode.workspace.openTextDocument({
-          language: "llvm",
-          content: qir,
-        });
-        await vscode.window.showTextDocument(qirDoc);
-      } catch (e: any) {
-        log.error("QIR generation failed. ", e);
-        if (e.name === "QirGenerationError") {
-          vscode.window.showErrorMessage(e.message);
-        }
-      }
-    }),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.getQir`,
+      getQirForActiveWindowCommand,
+    ),
   );
 }

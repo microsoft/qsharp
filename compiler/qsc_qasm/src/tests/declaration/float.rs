@@ -291,7 +291,7 @@ fn init_float_with_int_value_less_than_safely_representable_values_is_runtime_co
 ) -> miette::Result<(), Vec<Report>> {
     let min_exact_int = -(2i64.pow(f64::MANTISSA_DIGITS));
     let next = min_exact_int - 1;
-    let source = &format!("float a = {next};");
+    let source = format!("float a = {next};");
     let qsharp = compile_qasm_stmt_to_qsharp(source)?;
     expect![[r#"
         mutable a = Std.Convert.IntAsDouble(-9007199254740993);

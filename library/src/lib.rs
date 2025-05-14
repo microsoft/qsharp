@@ -93,4 +93,16 @@ pub const STD_LIB: &[(&str, &str)] = &[
         "qsharp-library-source:Std/legacy_api.qs",
         include_str!("../std/src/legacy_api.qs"),
     ),
+    (
+        "qsharp-library-source:Std/OpenQASM/Angle.qs",
+        include_str!("../std/src/Std/OpenQASM/Angle.qs"),
+    ),
+    (
+        "qsharp-library-source:Std/OpenQASM/Convert.qs",
+        include_str!("../std/src/Std/OpenQASM/Convert.qs"),
+    ),
+    (
+        "qsharp-library-source:Std/OpenQASM/Intrinsic.qs",
+        include_str!("../std/src/Std/OpenQASM/Intrinsic.qs"),
+    ),
 ];

@@ -4,7 +4,7 @@
 import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
-import { getActiveQSharpDocumentUri } from "../programConfig";
+import { getActiveQdkDocumentUri } from "../programConfig";
 
 const codingInstructionsTitle = "# Q# coding instructions (updated April 2025)";
 
@@ -188,8 +188,8 @@ async function updateGhCopilotInstructionsCommand(userInvoked: boolean) {
     // Single workspace folder, just use that
     resourceUri = workspaceFolders[0].uri;
   } else {
-    // Prefer the workspace of the active Q# document if available
-    const currentDoc = getActiveQSharpDocumentUri();
+    // Prefer the workspace of the active document if available
+    const currentDoc = getActiveQdkDocumentUri();
     resourceUri = currentDoc ?? workspaceFolders[0].uri;
   }
 

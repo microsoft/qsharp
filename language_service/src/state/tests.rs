@@ -142,6 +142,56 @@ async fn close_last_doc_in_project() {
 }
 
 #[tokio::test]
+async fn close_last_doc_in_openqasm_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document(
+            "openqasm_files/self-contained.qasm",
+            1,
+            "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+        )
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "openqasm_files/self-contained.qasm": OpenDocument {
+                    version: 1,
+                    compilation: "openqasm_files/self-contained.qasm",
+                    latest_str_content: "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            openqasm_files/self-contained.qasm: [
+              "openqasm_files/self-contained.qasm": "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    updater
+        .close_document("openqasm_files/self-contained.qasm")
+        .await;
+
+    // now there should be no file and no compilation
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect!["[]"],
+    );
+}
+
+#[tokio::test]
 async fn clear_on_document_close() {
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
@@ -340,6 +390,72 @@ async fn target_profile_update_fixes_error() {
               uri: "single/foo.qs" version: Some(1) errors: [],
             ]"#]],
     );
+}
+
+#[tokio::test]
+async fn target_profile_update_updates_test_cases() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    updater
+        .update_document(
+            "single/foo.qs",
+            1,
+            r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+
+    // reset accumulated test cases after each check
+    test_cases.borrow_mut().clear();
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "foo.BaseTest",
+                        compilation_uri: "single/foo.qs",
+                        location: Location {
+                            source: "single/foo.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 32,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 40,
+                                },
+                            },
+                        },
+                        friendly_name: "foo.qs",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
 }
 
 #[tokio::test]
@@ -2257,6 +2373,17 @@ fn test_fs() -> FsNode {
                             ],
                         )],
                     ),
+                ],
+            ),
+            dir(
+                "openqasm_files",
+                [
+                    file(
+                        "self-contained.qasm",
+                        "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                    ),
+                    file("multifile.qasm", "include \"stdgates.inc\";\ninclude \"imports.inc\";\nBar();\nBar();\nqubit q;\nh q;\nreset q;\n"),
+                    file("imports.inc", "\ndef Bar() {\n\nint c = 42;\n}\n"),
                 ],
             ),
         ]

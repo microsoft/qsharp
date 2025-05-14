@@ -40,7 +40,7 @@ fn programs_with_includes_can_be_parsed() -> miette::Result<(), Vec<Report>> {
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
                 @SimulatableIntrinsic()
@@ -83,7 +83,7 @@ fn programs_with_includes_with_includes_can_be_compiled() -> miette::Result<(), 
     let qsharp = qsharp_from_qasm_compilation(r)?;
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             @EntryPoint()
             operation Test() : Unit {
                 mutable a = Zero;

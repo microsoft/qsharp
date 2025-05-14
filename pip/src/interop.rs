@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::path::{Path, PathBuf};
+use std::fmt::Write;
+use std::path::Path;
+use std::sync::Arc;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -18,8 +20,6 @@ use qsc::{
 };
 use qsc::{Backend, PackageType, PauliNoise, SparseSim};
 
-use std::fmt::Write;
-
 use crate::fs::file_system;
 use crate::interpreter::{
     format_error, format_errors, OptionalCallbackReceiver, OutputSemantics, ProgramType,
@@ -35,7 +35,7 @@ where
     T: FileSystem,
 {
     fs: T,
-    path: PathBuf,
+    path: Arc<str>,
     ctx: SourceResolverContext,
 }
 
@@ -43,10 +43,10 @@ impl<T> ImportResolver<T>
 where
     T: FileSystem,
 {
-    pub(crate) fn new<P: AsRef<Path>>(fs: T, path: P) -> Self {
+    pub(crate) fn new(fs: T, path: Arc<str>) -> Self {
         Self {
             fs,
-            path: PathBuf::from(path.as_ref()),
+            path,
             ctx: Default::default(),
         }
     }
@@ -60,23 +60,21 @@ where
         &mut self.ctx
     }
 
-    fn resolve<P>(&mut self, path: P) -> miette::Result<(PathBuf, String), qsc::qasm::io::Error>
-    where
-        P: AsRef<Path>,
-    {
+    fn resolve(
+        &mut self,
+        path: &Arc<str>,
+    ) -> miette::Result<(Arc<str>, Arc<str>), qsc::qasm::io::Error> {
         let path = self
             .fs
-            .resolve_path(self.path.as_path(), path.as_ref())
+            .resolve_path(Path::new(self.path.as_ref()), Path::new(path.as_ref()))
             .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
-        self.ctx().check_include_errors(&path)?;
+        self.ctx()
+            .check_include_errors(&path.display().to_string().into())?;
         let (path, source) = self
             .fs
             .read_file(path.as_ref())
             .map_err(|e| qsc::qasm::io::Error(qsc::qasm::io::ErrorKind::IO(e.to_string())))?;
-        Ok((
-            PathBuf::from(path.as_ref().to_owned()),
-            source.as_ref().to_owned(),
-        ))
+        Ok((path, source))
     }
 }
 
@@ -138,10 +136,10 @@ pub(crate) fn run_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, search_path.into());
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source,
+        source.into(),
         &operation_name,
         &mut resolver,
         ProgramType::File,
@@ -238,12 +236,12 @@ pub(crate) fn resource_estimate_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, search_path.into());
 
     let program_type = ProgramType::File;
     let output_semantics = OutputSemantics::ResourceEstimation;
     let (package, source_map, _) = compile_qasm_enriching_errors(
-        source,
+        source.into(),
         &operation_name,
         &mut resolver,
         program_type,
@@ -324,12 +322,12 @@ pub(crate) fn compile_qasm_program_to_qir(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, search_path.into());
 
     let program_ty = ProgramType::File;
     let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source,
+        source.into(),
         &operation_name,
         &mut resolver,
         program_ty,
@@ -348,7 +346,7 @@ pub(crate) fn compile_qasm_program_to_qir(
 }
 
 pub(crate) fn compile_qasm_enriching_errors<S: AsRef<str>, R: SourceResolver>(
-    source: S,
+    source: Arc<str>,
     operation_name: S,
     resolver: &mut R,
     program_ty: ProgramType,
@@ -421,12 +419,12 @@ pub(crate) fn compile_qasm_to_qsharp(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, search_path.into());
 
     let program_ty = get_program_type(&kwargs, || ProgramType::File)?;
     let output_semantics = get_output_semantics(&kwargs, || OutputSemantics::Qiskit)?;
     let (package, _, _) = compile_qasm_enriching_errors(
-        source,
+        source.into(),
         &operation_name,
         &mut resolver,
         program_ty,
@@ -582,10 +580,10 @@ pub(crate) fn circuit_qasm_program(
     let search_path = get_search_path(&kwargs)?;
 
     let fs = create_filesystem_from_py(py, read_file, list_directory, resolve_path, fetch_github);
-    let mut resolver = ImportResolver::new(fs, PathBuf::from(search_path));
+    let mut resolver = ImportResolver::new(fs, search_path.into());
 
     let (package, source_map, signature) = compile_qasm_enriching_errors(
-        source,
+        source.into(),
         &operation_name,
         &mut resolver,
         ProgramType::File,
@@ -666,12 +664,8 @@ fn create_interpreter_from_ast(
     package_type: PackageType,
 ) -> Result<Interpreter, Vec<interpret::Error>> {
     let capabilities = profile.into();
-    let (stdid, qasmid, mut store) = qsc::qasm::package_store_with_qasm(capabilities);
-    let dependencies = vec![
-        (PackageId::CORE, None),
-        (stdid, None),
-        (qasmid, Some("QasmStd".into())),
-    ];
+    let (stdid, mut store) = qsc::compile::package_store_with_stdlib(capabilities);
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
 
     let (mut unit, errors) = qsc::compile::compile_ast(
         &store,

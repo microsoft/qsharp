@@ -197,6 +197,34 @@ export async function loadProject(
   return project;
 }
 
+/**
+ * Given an OpenQASM Document URI, returns the configuration and list of complete source files
+ * associated with that document.
+ *
+ * @param documentUri An OpenQASM document.
+ * @returns The project configuration for that document.
+ * @throws Error if the qsharp.json cannot be parsed.
+ */
+export async function loadOpenQasmProject(
+  documentUri: vscode.Uri,
+): Promise<IProjectConfig> {
+  if (!projectLoader) {
+    projectLoader = await getProjectLoader({
+      findManifestDirectory,
+      readFile,
+      listDirectory,
+      fetchGithub: fetchGithubRaw,
+      resolvePath: async (a, b) => resolvePath(a, b),
+    });
+  }
+  const project = invokeAndReportCommandDiagnostics(
+    async () =>
+      await projectLoader!.load_openqasm_project(documentUri.toString()),
+  );
+
+  return project;
+}
+
 async function singleFileProject(
   documentUri: vscode.Uri,
 ): Promise<IProjectConfig> {
@@ -218,6 +246,7 @@ async function singleFileProject(
     },
     lints: [],
     errors: [],
+    projectType: "qsharp",
   };
 }
 

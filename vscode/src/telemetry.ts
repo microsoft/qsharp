@@ -300,6 +300,7 @@ export enum QsharpDocumentType {
   JupyterCell = "JupyterCell",
   Qsharp = "Qsharp",
   Circuit = "Circuit",
+  OpenQasm = "OpenQasm",
   Other = "Other",
 }
 

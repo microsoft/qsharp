@@ -22,9 +22,13 @@ export dcx, ecr, r, rzx, cs, csdg, sxdg, csx, cu1, cu3, rccx, c3sqrtx, c3x, rc3x
 
 export __quantum__qis__barrier__body;
 
-import Angle.*;
-
-import Std.Intrinsic.*;
+import Std.OpenQASM.Angle.Angle;
+import Std.OpenQASM.Angle.AngleAsDouble;
+import Std.OpenQASM.Angle.DoubleAsAngle;
+import Std.OpenQASM.Angle.AddAngles;
+import Std.OpenQASM.Angle.SubtractAngles;
+import Std.OpenQASM.Angle.DivideAngleByInt;
+import Std.OpenQASM.Angle.NegAngle;
 
 function ZERO_ANGLE() : Angle {
     return DoubleAsAngle(0., 1);
@@ -73,10 +77,10 @@ operation U(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit is
         let phi = AngleAsDouble(phi);
         let lambda = AngleAsDouble(lambda);
 
-        Rz(lambda, qubit);
-        Ry(theta, qubit);
-        Rz(phi, qubit);
-        R(PauliI, -lambda - phi - theta, qubit);
+        Std.Intrinsic.Rz(lambda, qubit);
+        Std.Intrinsic.Ry(theta, qubit);
+        Std.Intrinsic.Rz(phi, qubit);
+        Std.Intrinsic.R(PauliI, -lambda - phi - theta, qubit);
     }
     adjoint auto;
     controlled auto;
@@ -88,35 +92,35 @@ operation p(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation x(qubit : Qubit) : Unit is Adj + Ctl {
-    X(qubit);
+    Std.Intrinsic.X(qubit);
 }
 
 operation y(qubit : Qubit) : Unit is Adj + Ctl {
-    Y(qubit);
+    Std.Intrinsic.Y(qubit);
 }
 
 operation z(qubit : Qubit) : Unit is Adj + Ctl {
-    Z(qubit);
+    Std.Intrinsic.Z(qubit);
 }
 
 operation h(qubit : Qubit) : Unit is Adj + Ctl {
-    H(qubit);
+    Std.Intrinsic.H(qubit);
 }
 
 operation s(qubit : Qubit) : Unit is Adj + Ctl {
-    S(qubit);
+    Std.Intrinsic.S(qubit);
 }
 
 operation sdg(qubit : Qubit) : Unit is Adj + Ctl {
-    Adjoint S(qubit);
+    Adjoint Std.Intrinsic.S(qubit);
 }
 
 operation t(qubit : Qubit) : Unit is Adj + Ctl {
-    T(qubit);
+    Std.Intrinsic.T(qubit);
 }
 
 operation tdg(qubit : Qubit) : Unit is Adj + Ctl {
-    Adjoint T(qubit);
+    Adjoint Std.Intrinsic.T(qubit);
 }
 
 operation sx(qubit : Qubit) : Unit is Adj + Ctl {
@@ -125,21 +129,21 @@ operation sx(qubit : Qubit) : Unit is Adj + Ctl {
 
 operation rx(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     let theta = AngleAsDouble(theta);
-    Rx(theta, qubit);
+    Std.Intrinsic.Rx(theta, qubit);
 }
 
 operation ry(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     let theta = AngleAsDouble(theta);
-    Ry(theta, qubit);
+    Std.Intrinsic.Ry(theta, qubit);
 }
 
 operation rz(theta : Angle, qubit : Qubit) : Unit is Adj + Ctl {
     let theta = AngleAsDouble(theta);
-    Rz(theta, qubit);
+    Std.Intrinsic.Rz(theta, qubit);
 }
 
 operation cx(ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
-    CNOT(ctrl, qubit);
+    Std.Intrinsic.CNOT(ctrl, qubit);
 }
 
 operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
@@ -147,11 +151,11 @@ operation cp(lambda : Angle, ctrl : Qubit, qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation swap(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
-    SWAP(qubit1, qubit2);
+    Std.Intrinsic.SWAP(qubit1, qubit2);
 }
 
 operation ccx(ctrl1 : Qubit, ctrl2 : Qubit, target : Qubit) : Unit is Adj + Ctl {
-    CCNOT(ctrl1, ctrl2, target);
+    Std.Intrinsic.CCNOT(ctrl1, ctrl2, target);
 }
 
 operation cu(theta : Angle, phi : Angle, lambda : Angle, gamma : Angle, qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl {
@@ -165,7 +169,7 @@ operation phase(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
 }
 
 operation id(qubit : Qubit) : Unit is Adj + Ctl {
-    I(qubit)
+    Std.Intrinsic.I(qubit)
 }
 
 operation u1(lambda : Angle, qubit : Qubit) : Unit is Adj + Ctl {
@@ -199,17 +203,17 @@ operation u3(theta : Angle, phi : Angle, lambda : Angle, qubit : Qubit) : Unit i
 
 /// rxx: gate rxx(theta) a, b { h a; h b; cx a, b; rz(theta) b; cx a, b; h b; h a; }
 operation rxx(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Rxx(AngleAsDouble(theta), qubit0, qubit1);
+    Std.Intrinsic.Rxx(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// ryy: gate ryy(theta) a, b { rx(pi/2) a; rx(pi/2) b; cx a, b; rz(theta) b; cx a, b; rx(-pi/2) a; rx(-pi/2) b; }
 operation ryy(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Ryy(AngleAsDouble(theta), qubit0, qubit1);
+    Std.Intrinsic.Ryy(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// rzz: gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
 operation rzz(theta : Angle, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl {
-    Rzz(AngleAsDouble(theta), qubit0, qubit1);
+    Std.Intrinsic.Rzz(AngleAsDouble(theta), qubit0, qubit1);
 }
 
 /// Double-CNOT gate.

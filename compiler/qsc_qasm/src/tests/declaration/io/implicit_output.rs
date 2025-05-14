@@ -14,7 +14,7 @@ bit[2] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Result[] {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable c = [Zero, Zero];
             c
         }
@@ -32,7 +32,7 @@ bit c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Result {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable c = Zero;
             c
         }
@@ -50,7 +50,7 @@ bool c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Bool {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable c = false;
             c
         }
@@ -68,7 +68,7 @@ complex[float] c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Std.Math.Complex {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable c = Std.Math.Complex(0., 0.);
             c
         }
@@ -86,7 +86,7 @@ float f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Double {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable f = 0.;
             f
         }
@@ -104,7 +104,7 @@ float[42] f;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Double {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable f = 0.;
             f
         }
@@ -122,7 +122,7 @@ int[42] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Int {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable i = 0;
             i
         }
@@ -140,7 +140,7 @@ int i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Int {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable i = 0;
             i
         }
@@ -158,7 +158,7 @@ uint i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Int {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable i = 0;
             i
         }
@@ -176,7 +176,7 @@ uint[42] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Int {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable i = 0;
             i
         }
@@ -194,7 +194,7 @@ int[65] i;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : BigInt {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable i = 0;
             i
         }
@@ -220,7 +220,7 @@ bit[2] b2;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : (BigInt, Int, Int, Int, Double, Bool, Result, Std.Math.Complex, Result[]) {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             mutable bi = 0;
             mutable i = 0;
             mutable ui = 0;
@@ -246,12 +246,12 @@ angle c;
     let qsharp = compile_qasm_to_qsharp_operation(source)?;
     expect![[r#"
         operation Test() : Double {
-            import QasmStd.Intrinsic.*;
-            mutable c = new QasmStd.Angle.Angle {
+            import Std.OpenQASM.Intrinsic.*;
+            mutable c = new Std.OpenQASM.Angle.Angle {
                 Value = 0,
                 Size = 53
             };
-            QasmStd.Angle.AngleAsDouble(c)
+            Std.OpenQASM.Angle.AngleAsDouble(c)
         }
     "#]]
     .assert_eq(&qsharp);

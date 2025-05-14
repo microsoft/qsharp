@@ -127,7 +127,8 @@ export function startTestDiscovery(
       run.appendOutput(`No compilation URI for test ${testCase.id}\r\n`);
       return;
     }
-    const programResult = await getProgramForDocument(uri);
+    const file = await vscode.workspace.openTextDocument(uri);
+    const programResult = await getProgramForDocument(file);
 
     if (!programResult.success) {
       throw new Error(programResult.errorMsg);

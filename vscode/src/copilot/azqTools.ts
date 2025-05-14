@@ -15,7 +15,7 @@ import {
   WorkspaceTreeProvider,
 } from "../azure/treeView.js";
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
-import { getQirForVisibleQs } from "../qirGeneration.js";
+import { getQirForVisibleSource } from "../qirGeneration.js";
 import { sendMessageToPanel } from "../webviewPanel.js";
 import { HistogramData } from "./shared.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
@@ -435,7 +435,7 @@ export async function submitToTarget(
 
   let qir = "";
   try {
-    qir = await getQirForVisibleQs(supportsAdaptive(target.id));
+    qir = await getQirForVisibleSource(supportsAdaptive(target.id));
   } catch (e: any) {
     if (e?.name === "QirGenerationError") {
       throw new CopilotToolError(e.message);

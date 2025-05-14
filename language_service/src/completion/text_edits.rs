@@ -27,7 +27,7 @@ impl TextEditRange {
         };
         finder.visit_package(&compilation.user_unit().ast.package);
 
-        let insert_open_at = match compilation.kind {
+        let insert_open_at = match &compilation.kind {
             CompilationKind::OpenProject { .. } => finder.start_of_namespace,
             // Since notebooks don't typically contain namespace declarations,
             // open statements should just get before the first non-whitespace
@@ -36,6 +36,9 @@ impl TextEditRange {
                 compilation,
                 offset,
             )),
+            CompilationKind::OpenQASM { .. } => {
+                unreachable!("OpenQASM should not be used for Q# text edits")
+            }
         };
 
         let indent = match insert_open_at {
