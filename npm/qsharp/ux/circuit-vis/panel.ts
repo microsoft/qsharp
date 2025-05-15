@@ -52,7 +52,6 @@ const createPanel = (container: HTMLElement): void => {
     emptyMsg.style.color = "#888";
     emptyMsg.style.fontSize = "1.1em";
     wrapper.appendChild(emptyMsg);
-    return;
   }
 
   if (container.querySelector(".panel") == null) {
