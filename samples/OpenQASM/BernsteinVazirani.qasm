@@ -1,11 +1,7 @@
-// # Sample
-// Bernstein-Vazirani Algorithm
+// OpenQASM Bernstein-Vazirani sample
 //
-// # Description
-// The Bernstein-Vazirani algorithm determines the value of a bit string
-// encoded in a function.
-//
-// This OpenQASM program implements the Bernstein-Vazirani algorithm.
+// This sample demonstrates the Bernstein-Vazirani algorithm,
+// which determines the value of a bit string encoded in a function.
 
 OPENQASM 3;
 include "stdgates.inc";
@@ -70,9 +66,7 @@ def BernsteinVazirani(qubit[nQubits] queryRegister, qubit target) -> bit[nQubits
     PrepareUniform(queryRegister);
 
     // Measure the qubits
-    for int i in [0:nQubits-1] {
-        results[i] = measure queryRegister[i];
-    }
+    results = measure queryRegister;
 
     // The string we are looking for is returned after execution.
     return results;
@@ -84,9 +78,7 @@ def BernsteinVazirani(qubit[nQubits] queryRegister, qubit target) -> bit[nQubits
 qubit[nQubits] queryRegister;
 qubit target;
 
-for int i in [0:nQubits-1] {
-    reset queryRegister[i];
-}
+reset queryRegister;
 reset target;
 
 // This register will hold and return the bit string found by the algorithm.
