@@ -32,7 +32,7 @@ declare_ast_lints! {
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
     (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
     (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
-    (DeprecatedAssignUpdateExpr, LintLevel::Warn, "deprecated use of update assignment expressions", "update assignment expressions (w/=) are deprecated; consider using explicit assignment instead"),
+    (DeprecatedAssignUpdateExpr, LintLevel::Allow, "deprecated use of update assignment expressions", "update assignment expressions (w/=) are deprecated; consider using explicit assignment instead"),
     (DeprecatedUpdateExpr, LintLevel::Allow, "deprecated use of update expressions", "update expressions (w/) are deprecated; consider using explicit assignment instead"),
 }
 
