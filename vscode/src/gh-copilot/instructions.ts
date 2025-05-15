@@ -14,7 +14,7 @@ export async function updateCopilotInstructions(
   context: vscode.ExtensionContext,
 ): Promise<string | undefined> {
   const globalStateUri = context.globalStorageUri;
-  const userInvoked = trigger === "Command";
+  const userInvoked = trigger === "Command" || trigger === "Project";
 
   if (isExtensionInstructionsConfigured(globalStateUri)) {
     if (userInvoked) {
