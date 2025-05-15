@@ -753,6 +753,14 @@ pub(crate) fn build_reset_call(expr: ast::Expr, name_span: Span, operand_span: S
     build_global_call_with_one_param("Reset", expr, name_span, operand_span)
 }
 
+pub(crate) fn build_reset_all_call(
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    build_global_call_with_one_param("ResetAll", expr, name_span, operand_span)
+}
+
 pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(
     name: S,
     expr: ast::Expr,
