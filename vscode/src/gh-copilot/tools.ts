@@ -96,19 +96,19 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
   qsharpTools = new QSharpTools(context.extensionUri);
   for (const { name, tool: fn, confirm: confirmFn } of toolDefinitions) {
     context.subscriptions.push(
-      vscode.lm.registerTool(name, tool(context.extensionUri, fn, confirmFn)),
+      vscode.lm.registerTool(name, tool(context, fn, confirmFn)),
     );
   }
 }
 
 function tool(
-  extensionUri: vscode.Uri,
+  context: vscode.ExtensionContext,
   toolFn: (input: any) => Promise<any>,
   confirmFn?: (input: any) => vscode.PreparedToolInvocation,
 ): vscode.LanguageModelTool<any> {
   return {
     invoke: (options: vscode.LanguageModelToolInvocationOptions<any>) =>
-      invokeTool(extensionUri, options.input, toolFn),
+      invokeTool(context, options.input, toolFn),
     prepareInvocation:
       confirmFn &&
       ((options: vscode.LanguageModelToolInvocationPrepareOptions<any>) =>
@@ -117,11 +117,11 @@ function tool(
 }
 
 async function invokeTool(
-  extensionUri: vscode.Uri,
+  context: vscode.ExtensionContext,
   input: any,
   toolFn: (input: any) => Promise<any>,
 ): Promise<vscode.LanguageModelToolResult> {
-  updateCopilotInstructions("ChatToolCall", extensionUri);
+  updateCopilotInstructions("ChatToolCall", context);
 
   const result = await toolFn(input);
 

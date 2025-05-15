@@ -11,11 +11,12 @@ import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
  */
 export async function updateCopilotInstructions(
   trigger: "Command" | "Project" | "Activation" | "ChatToolCall",
-  extensionUri: vscode.Uri,
+  context: vscode.ExtensionContext,
 ): Promise<string | undefined> {
+  const globalStateUri = context.globalStorageUri;
   const userInvoked = trigger === "Command";
 
-  if (isExtensionInstructionsConfigured(extensionUri)) {
+  if (isExtensionInstructionsConfigured(globalStateUri)) {
     if (userInvoked) {
       // fire-and-forget
       showInfoMessage("Copilot instructions for Q# are already configured.", {
@@ -53,7 +54,7 @@ export async function updateCopilotInstructions(
   }
 
   try {
-    await addExtensionInstructionsToUserConfig(extensionUri);
+    await addExtensionInstructionsToUserConfig(globalStateUri);
     const removedOldInstructions = await removeOldQSharpCopilotInstructions();
 
     // fire-and-forget
@@ -93,8 +94,10 @@ export async function updateCopilotInstructions(
  * Checks the user's instructionsFilesLocations setting to see if
  * our extension's instructions directory is already included.
  */
-function isExtensionInstructionsConfigured(extensionUri: vscode.Uri): boolean {
-  const extensionInstructionsDir = getExtensionInstructionsDir(extensionUri);
+function isExtensionInstructionsConfigured(
+  globalStateUri: vscode.Uri,
+): boolean {
+  const extensionInstructionsDir = getExtensionInstructionsDir(globalStateUri);
   const instructionsLocations = getConfiguredInstructionsFilesLocations();
 
   // Check if our directory is in the map as a key and it's enabled (true)
@@ -109,10 +112,10 @@ function isExtensionInstructionsConfigured(extensionUri: vscode.Uri): boolean {
  * our extension's instructions directory.
  */
 async function addExtensionInstructionsToUserConfig(
-  extensionUri: vscode.Uri,
+  globalStateUri: vscode.Uri,
 ): Promise<void> {
   const instructionsLocations = getConfiguredInstructionsFilesLocations();
-  const extensionInstructionsDir = getExtensionInstructionsDir(extensionUri);
+  const extensionInstructionsDir = getExtensionInstructionsDir(globalStateUri);
 
   // Only add the extension's chat-instructions directory
   // if it's not already configured or if it's disabled
@@ -149,9 +152,9 @@ function getConfiguredInstructionsFilesLocations(): Record<string, boolean> {
  *
  * TODO: create GitHub issue to track how we handle this in the browser.
  */
-function getExtensionInstructionsDir(extensionUri: vscode.Uri): string {
+function getExtensionInstructionsDir(globalStateUri: vscode.Uri): string {
   const instructionsUri = vscode.Uri.joinPath(
-    extensionUri,
+    globalStateUri,
     "chat-instructions",
   );
 
@@ -298,37 +301,66 @@ function getOldInstructionsFileLocation(
   );
 }
 
+async function copyInstructionsFileToGlobalStorage(
+  context: vscode.ExtensionContext,
+) {
+  const source = vscode.Uri.joinPath(
+    context.extensionUri,
+    "chat-instructions",
+    "qsharp.instructions.md",
+  );
+
+  const target = vscode.Uri.joinPath(
+    context.globalStorageUri,
+    "chat-instructions",
+    "qsharp.instructions.md",
+  );
+
+  try {
+    await vscode.workspace.fs.copy(source, target, { overwrite: true });
+    return true;
+  } catch {
+    log.warn(
+      `Error copying Q# instructions file from ${source.toString()} to ${target.toString()}`,
+    );
+    return false;
+  }
+}
+
 /**
  * Registers the command to configure GitHub Copilot to use Q# coding instructions.
  * This updates the chat.instructionsFilesLocations setting to include the extension's
  * chat-instructions directory, rather than creating a file in the user's workspace.
  */
-export function registerGhCopilotInstructionsCommand(
+export async function registerGhCopilotInstructionsCommand(
   context: vscode.ExtensionContext,
 ) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "qsharp-vscode.updateCopilotInstructions",
-      () => updateCopilotInstructions("Command", context.extensionUri),
+      () => updateCopilotInstructions("Command", context),
     ),
   );
+
+  // Copy the instructions file to the global storage location
+  // The global storage location is stable across versions,
+  // but our instructions content may change from version to version.
+  await copyInstructionsFileToGlobalStorage(context);
 
   // Also do a one-time prompt at activation time
   if (
     context.globalState.get<boolean>(
-      "showUpdateCopilotInstructionsPromptAtStartup1",
+      "showUpdateCopilotInstructionsPromptAtStartup2", // TODO
       true,
     )
   ) {
-    updateCopilotInstructions("Activation", context.extensionUri).then(
-      (response) => {
-        if (response === "Don't show again") {
-          context.globalState.update(
-            "showUpdateCopilotInstructionsPromptAtStartup1",
-            false,
-          );
-        }
-      },
-    );
+    updateCopilotInstructions("Activation", context).then((response) => {
+      if (response === "Don't show again") {
+        context.globalState.update(
+          "showUpdateCopilotInstructionsPromptAtStartup2", // TODO
+          false,
+        );
+      }
+    });
   }
 }

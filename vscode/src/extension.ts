@@ -88,6 +88,7 @@ export async function activate(
   await initProjectCreator(context);
   registerCopilotPanel(context);
   registerLanguageModelTools(context);
+  // fire-and-forget
   registerGhCopilotInstructionsCommand(context);
 
   log.info("Q# extension activated.");
