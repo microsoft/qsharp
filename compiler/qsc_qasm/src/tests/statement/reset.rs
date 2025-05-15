@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    tests::{compile_with_config, fail_on_compilation_errors, gen_qsharp},
+    tests::{compile_qasm_to_qsharp, compile_with_config, fail_on_compilation_errors, gen_qsharp},
     CompilerConfig, OutputSemantics, ProgramType, QubitSemantics,
 };
 use expect_test::expect;
@@ -35,7 +35,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
     let qsharp = gen_qsharp(&unit.package);
     expect![[r#"
         namespace qasm_import {
-            import QasmStd.Intrinsic.*;
+            import Std.OpenQASM.Intrinsic.*;
             @EntryPoint()
             operation Test() : Result[] {
                 mutable meas = [Zero];
@@ -64,7 +64,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
     "#;
 
     let qir = compile_qasm_to_qir(source, Profile::Base)?;
-    expect![
+    expect![[
         r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -98,7 +98,7 @@ fn reset_with_base_profile_is_rewritten_without_resets() -> miette::Result<(), V
         !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
         !3 = !{i32 1, !"dynamic_result_management", i1 false}
 "#
-    ]
+    ]]
     .assert_eq(&qir);
 
     Ok(())
@@ -158,5 +158,90 @@ fn reset_with_adaptive_ri_profile_generates_reset_qir() -> miette::Result<(), Ve
     ]
     .assert_eq(&qir);
 
+    Ok(())
+}
+
+#[test]
+fn on_a_single_qubit() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit q;
+        reset q;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        Reset(q);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn on_an_indexed_qubit_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit[5] q;
+        reset q[2];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(5);
+        Reset(q[2]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn on_a_span_indexed_qubit_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit[5] q;
+        reset q[1:3];
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(5);
+        ResetAll(q[1..3]);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn on_a_zero_len_qubit_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit[0] q;
+        reset q;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(0);
+        ResetAll(q);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}
+
+#[test]
+fn on_an_unindexed_qubit_register() -> miette::Result<(), Vec<Report>> {
+    let source = r#"
+        qubit[5] q;
+        reset q;
+    "#;
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.AllocateQubitArray(5);
+        ResetAll(q);
+    "#]]
+    .assert_eq(&qsharp);
     Ok(())
 }

@@ -10,8 +10,12 @@ import {
 import * as vscode from "vscode";
 import {
   isCircuitDocument,
+  isNotebookCell,
+  isOpenQasmDocument,
+  isQdkDocument,
+  isQdkNotebookCell,
   isQsharpDocument,
-  isQsharpNotebookCell,
+  openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
 import { getTarget } from "../config.js";
@@ -28,13 +32,13 @@ import {
   sendTelemetryEvent,
 } from "../telemetry.js";
 import { createCodeActionsProvider } from "./codeActions.js";
-import { createCodeLensProvider } from "./codeLens.js";
+import { createQdkCodeLensProvider } from "./codeLens.js";
 import { createCompletionItemProvider } from "./completion.js";
 import { createDefinitionProvider } from "./definition.js";
 import { startLanguageServiceDiagnostics } from "./diagnostics.js";
 import { createFormattingProvider } from "./format.js";
 import { createHoverProvider } from "./hover.js";
-import { registerQSharpNotebookCellUpdateHandlers } from "./notebook.js";
+import { registerQdkNotebookCellUpdateHandlers } from "./notebook.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
@@ -61,9 +65,7 @@ export async function activateLanguageService(
   subscriptions.push(...registerDocumentUpdateHandlers(languageService));
 
   // synchronize notebook cell contents
-  subscriptions.push(
-    ...registerQSharpNotebookCellUpdateHandlers(languageService),
-  );
+  subscriptions.push(...registerQdkNotebookCellUpdateHandlers(languageService));
 
   // synchronize configuration
   subscriptions.push(registerConfigurationChangeHandlers(languageService));
@@ -92,6 +94,15 @@ export async function activateLanguageService(
       // Trigger characters should be kept in sync with the ones in `playground/src/main.tsx`
       "@",
       ".",
+    ),
+  );
+
+  subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      openqasmLanguageId,
+      createCompletionItemProvider(languageService),
+      "@",
+      "[",
     ),
   );
 
@@ -141,7 +152,7 @@ export async function activateLanguageService(
   subscriptions.push(
     vscode.languages.registerCodeLensProvider(
       qsharpLanguageId,
-      createCodeLensProvider(languageService),
+      createQdkCodeLensProvider(languageService),
     ),
   );
 
@@ -149,6 +160,14 @@ export async function activateLanguageService(
     vscode.languages.registerCodeActionsProvider(
       qsharpLanguageId,
       createCodeActionsProvider(languageService),
+    ),
+  );
+
+  // code lens for openqasm
+  subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      openqasmLanguageId,
+      createQdkCodeLensProvider(languageService),
     ),
   );
 
@@ -190,36 +209,19 @@ function registerDocumentUpdateHandlers(
   languageService: ILanguageService,
 ): vscode.Disposable[] {
   vscode.workspace.textDocuments.forEach((document) => {
-    updateIfQsharpDocument(document);
+    updateIfQdkDocument(document);
   });
 
   // we manually send an OpenDocument telemetry event if this is a Q# document, because the
   // below subscriptions won't fire for documents that are already open when the extension is activated
   vscode.workspace.textDocuments.forEach((document) => {
-    if (isQsharpDocument(document)) {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : isCircuitDocument(document)
-          ? QsharpDocumentType.Circuit
-          : QsharpDocumentType.Qsharp;
-      sendTelemetryEvent(
-        EventType.OpenedDocument,
-        { documentType },
-        { linesOfCode: document.lineCount },
-      );
-    }
+    sendDocumentOpenedEvent(document);
   });
 
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpNotebookCell(document)
-        ? QsharpDocumentType.JupyterCell
-        : isCircuitDocument(document)
-          ? QsharpDocumentType.Circuit
-          : isQsharpDocument(document)
-            ? QsharpDocumentType.Qsharp
-            : QsharpDocumentType.Other;
+      const documentType = determineDocumentType(document);
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
@@ -227,20 +229,23 @@ function registerDocumentUpdateHandlers(
           { linesOfCode: document.lineCount },
         );
       }
-      updateIfQsharpDocument(document);
+      updateIfQdkDocument(document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((evt) => {
-      updateIfQsharpDocument(evt.document);
+      updateIfQdkDocument(evt.document);
     }),
   );
 
   subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
-      if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
-        languageService.closeDocument(document.uri.toString());
+      if (isQdkDocument(document) && !isNotebookCell(document)) {
+        languageService.closeDocument(
+          document.uri.toString(),
+          document.languageId,
+        );
       }
     }),
   );
@@ -276,25 +281,49 @@ function registerDocumentUpdateHandlers(
           // Check that the document is on the same project as the manifest.
           document.fileName.startsWith(project_folder)
         ) {
-          updateIfQsharpDocument(document);
+          updateIfQdkDocument(document);
         }
       });
     }
   }
 
-  async function updateIfQsharpDocument(document: vscode.TextDocument) {
-    if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
+  async function updateIfQdkDocument(document: vscode.TextDocument) {
+    if (isQdkDocument(document) && !isNotebookCell(document)) {
       const content = document.getText();
 
       languageService.updateDocument(
         document.uri.toString(),
         document.version,
         content,
+        document.languageId,
       );
     }
   }
 
   return subscriptions;
+}
+
+function determineDocumentType(document: vscode.TextDocument) {
+  return isQdkNotebookCell(document)
+    ? QsharpDocumentType.JupyterCell
+    : isCircuitDocument(document)
+      ? QsharpDocumentType.Circuit
+      : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isOpenQasmDocument(document)
+          ? QsharpDocumentType.OpenQasm
+          : QsharpDocumentType.Other;
+}
+
+function sendDocumentOpenedEvent(document: vscode.TextDocument) {
+  if (isQdkDocument(document)) {
+    const documentType = determineDocumentType(document);
+    sendTelemetryEvent(
+      EventType.OpenedDocument,
+      { documentType },
+      { linesOfCode: document.lineCount },
+    );
+  }
 }
 
 function registerConfigurationChangeHandlers(

@@ -389,9 +389,9 @@ export async function queryWorkspace(workspace: WorkspaceConnection) {
     return {
       providerId: provider.id,
       currentAvailability: provider.currentAvailability,
-      targets: provider.targets.filter(
-        (target) => !shouldExcludeTarget(target.id),
-      ),
+      targets: provider.targets
+        .map((target) => ({ ...target, providerId: provider.id }))
+        .filter((target) => !shouldExcludeTarget(target.id)),
     };
   });
 

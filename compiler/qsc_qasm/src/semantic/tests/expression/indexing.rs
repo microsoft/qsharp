@@ -250,10 +250,7 @@ fn array_slice_with_zero_step_errors() {
                                 kind: Lit: Bitstring("00010000")
                     Stmt [32-39]:
                         annotations: <empty>
-                        kind: ExprStmt [32-39]:
-                            expr: Expr [32-38]:
-                                ty: Err
-                                kind: Err
+                        kind: Err
 
             [Qasm.Lowerer.ZeroStepInRange
 

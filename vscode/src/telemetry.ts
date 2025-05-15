@@ -195,7 +195,10 @@ type EventTypes = {
     measurements: { linesOfCode: number };
   };
   [EventType.TriggerResourceEstimation]: {
-    properties: { associationId: string };
+    properties: {
+      associationId: string;
+      invocationType: CommandInvocationType;
+    };
     measurements: Empty;
   };
   [EventType.ResourceEstimationStart]: {
@@ -298,6 +301,7 @@ export enum QsharpDocumentType {
   JupyterCell = "JupyterCell",
   Qsharp = "Qsharp",
   Circuit = "Circuit",
+  OpenQasm = "OpenQasm",
   Other = "Other",
 }
 
@@ -318,6 +322,11 @@ export enum FormatEvent {
   OnDocument = "OnDocument",
   OnRange = "OnRange",
   OnType = "OnType",
+}
+
+export enum CommandInvocationType {
+  Command = "Command",
+  ChatToolCall = "ChatToolCall",
 }
 
 let reporter: TelemetryReporter | undefined;

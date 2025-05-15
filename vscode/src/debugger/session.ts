@@ -30,7 +30,7 @@ import {
   log,
 } from "qsharp-lang";
 import { updateCircuitPanel } from "../circuit";
-import { basename, isQsharpDocument, toVsCodeRange } from "../common";
+import { basename, isQdkDocument, toVsCodeRange } from "../common";
 import {
   DebugEvent,
   EventType,
@@ -45,10 +45,10 @@ import { isPanelOpen } from "../webviewPanel";
 import { FullProgramConfig } from "../programConfig";
 
 const ErrorProgramHasErrors =
-  "The Q# program contains one or more compile errors and cannot run. See debug console for more details.";
+  "The program contains one or more compile errors and cannot run. See debug console for more details.";
 const ErrorProgramMissingEntry =
   "The Q# program does not contain an entry point and cannot run. See debug console for more details.";
-const SimulationCompleted = "Q# simulation completed.";
+const SimulationCompleted = "simulation completed.";
 const ConfigurationDelayMS = 1000;
 
 function delay(ms: number): Promise<void> {
@@ -336,6 +336,9 @@ export class QscDebugSession extends LoggingDebugSession {
       this.sendEvent(evt);
     } else if (result.id == StepResultId.Return) {
       await this.endSession(`ending session`, 0);
+    } else if (result.id == StepResultId.Fail) {
+      log.trace(`step result: ${result.id} ${result.value}`);
+      this.sendEvent(new StoppedEvent("exception", QscDebugSession.threadID));
     } else {
       log.trace(`step result: ${result.id} ${result.value}`);
       this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
@@ -387,12 +390,21 @@ export class QscDebugSession extends LoggingDebugSession {
     // supports shots.
     for (let i = 0; i < args.shots; i++) {
       try {
-        const result = await this.debugService.evalContinue(
+        let result = await this.debugService.evalContinue(
           bps,
           this.eventTarget,
         );
 
+        // Ensure the circuit is updated before checking for fail, since the
+        // right-hand side of the fail expression may itself be a block that includes
+        // gate calls.
         await this.updateCircuit();
+
+        if (result.id == StepResultId.Fail) {
+          // This was a runtime failure in the program, so we need to continue to
+          // trigger the actual failure event.
+          result = await this.debugService.evalContinue(bps, this.eventTarget);
+        }
 
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
@@ -847,7 +859,7 @@ export class QscDebugSession extends LoggingDebugSession {
             variables: [
               {
                 name: "Circuit",
-                value: "See Q# Circuit panel",
+                value: "See QDK Circuit panel",
                 variablesReference: 0,
               },
             ],
@@ -910,10 +922,10 @@ export class QscDebugSession extends LoggingDebugSession {
 
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
-      if (!isQsharpDocument(doc)) {
-        return;
+      if (isQdkDocument(doc)) {
+        return doc;
       }
-      return doc;
+      return undefined;
     } catch (e) {
       log.trace(`Failed to open ${uri}: ${e}`);
     }

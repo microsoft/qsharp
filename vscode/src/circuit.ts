@@ -32,7 +32,7 @@ type CircuitParams = {
 /**
  * Result of a circuit generation attempt.
  */
-type CircuitOrError = {
+export type CircuitOrError = {
   simulated: boolean;
 } & (
   | {
@@ -116,7 +116,7 @@ export async function showCircuitCommand(
  * that means this is a dynamic circuit. We fall back to using the
  * simulator in this case ("trace" mode), which is slower.
  */
-async function generateCircuit(
+export async function generateCircuit(
   extensionUri: Uri,
   params: CircuitParams,
 ): Promise<CircuitOrError> {
@@ -337,8 +337,7 @@ export function updateCircuitPanel(
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
     : projectName;
 
-  // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
-  const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
+  const target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
 
   const props = {
     title,

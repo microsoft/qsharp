@@ -27,6 +27,7 @@ import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getPauliNoiseModel } from "./config";
 import { qsharpExtensionId } from "./common";
+import { resourceEstimateCommand } from "./estimate";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -47,230 +48,8 @@ export function registerWebViewCommands(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand(
       `${qsharpExtensionId}.showRe`,
-      async (resource?: vscode.Uri, expr?: string) => {
-        clearCommandDiagnostics();
-        const associationId = getRandomGuid();
-        sendTelemetryEvent(
-          EventType.TriggerResourceEstimation,
-          { associationId },
-          {},
-        );
-        const program = await getActiveProgram();
-        if (!program.success) {
-          throw new Error(program.errorMsg);
-        }
-
-        const qubitType = await window.showQuickPick(
-          [
-            {
-              label: "qubit_gate_ns_e3",
-              detail: "Superconducting/spin qubit with 1e-3 error rate",
-              picked: true,
-              params: {
-                qubitParams: { name: "qubit_gate_ns_e3" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_gate_ns_e4",
-              detail: "Superconducting/spin qubit with 1e-4 error rate",
-              params: {
-                qubitParams: { name: "qubit_gate_ns_e4" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_gate_us_e3",
-              detail: "Trapped ion qubit with 1e-3 error rate",
-              params: {
-                qubitParams: { name: "qubit_gate_us_e3" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_gate_us_e4",
-              detail: "Trapped ion qubit with 1e-4 error rate",
-              params: {
-                qubitParams: { name: "qubit_gate_us_e4" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_maj_ns_e4 + surface_code",
-              detail: "Majorana qubit with 1e-4 error rate (surface code QEC)",
-              params: {
-                qubitParams: { name: "qubit_maj_ns_e4" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_maj_ns_e6 + surface_code",
-              detail: "Majorana qubit with 1e-6 error rate (surface code QEC)",
-              params: {
-                qubitParams: { name: "qubit_maj_ns_e6" },
-                qecScheme: { name: "surface_code" },
-              },
-            },
-            {
-              label: "qubit_maj_ns_e4 + floquet_code",
-              detail: "Majorana qubit with 1e-4 error rate (floquet code QEC)",
-              params: {
-                qubitParams: { name: "qubit_maj_ns_e4" },
-                qecScheme: { name: "floquet_code" },
-              },
-            },
-            {
-              label: "qubit_maj_ns_e6 + floquet_code",
-              detail: "Majorana qubit with 1e-6 error rate (floquet code QEC)",
-              params: {
-                qubitParams: { name: "qubit_maj_ns_e6" },
-                qecScheme: { name: "floquet_code" },
-              },
-            },
-          ],
-          {
-            canPickMany: true,
-            title: "Qubit types",
-            placeHolder: "Superconducting/spin qubit with 1e-3 error rate",
-            matchOnDetail: true,
-          },
-        );
-
-        if (!qubitType) {
-          return;
-        }
-
-        // Prompt for error budget (default to 0.001)
-        const validateErrorBudget = (input: string) => {
-          const result = parseFloat(input);
-          if (isNaN(result) || result <= 0.0 || result >= 1.0) {
-            return "Error budgets must be between 0 and 1";
-          }
-        };
-
-        const errorBudget = await window.showInputBox({
-          value: "0.001",
-          prompt: "Error budget",
-          validateInput: validateErrorBudget,
-        });
-
-        // abort if the user hits <Esc> during shots entry
-        if (errorBudget === undefined) {
-          return;
-        }
-
-        let runName = await window.showInputBox({
-          title: "Friendly name for run",
-          value: `${program.programConfig.projectName}`,
-        });
-        if (!runName) {
-          return;
-        }
-
-        const params = qubitType.map((item) => ({
-          ...item.params,
-          errorBudget: parseFloat(errorBudget),
-          estimateType: "frontier",
-        }));
-
-        log.info("RE params", params);
-
-        sendMessageToPanel({ panelType: "estimates" }, true, {
-          calculating: true,
-        });
-
-        const estimatePanel = getOrCreatePanel("estimates");
-        // Ensure the name is unique
-        if (estimatePanel.state[runName] !== undefined) {
-          let idx = 2;
-          for (;;) {
-            const newName = `${runName}-${idx}`;
-            if (estimatePanel.state[newName] === undefined) {
-              runName = newName;
-              break;
-            }
-            idx++;
-          }
-        }
-        estimatePanel.state[runName] = true;
-
-        // Start the worker, run the code, and send the results to the webview
-        log.debug("Starting resource estimates worker.");
-        let timedOut = false;
-
-        const worker = getCompilerWorker(compilerWorkerScriptPath);
-        const compilerTimeout = setTimeout(() => {
-          log.info("Compiler timeout. Terminating worker.");
-          timedOut = true;
-          worker.terminate();
-        }, compilerRunTimeoutMs);
-
-        try {
-          const start = performance.now();
-          sendTelemetryEvent(
-            EventType.ResourceEstimationStart,
-            { associationId },
-            {},
-          );
-          const estimatesStr = await worker.getEstimates(
-            program.programConfig,
-            expr ?? "",
-            JSON.stringify(params),
-          );
-          sendTelemetryEvent(
-            EventType.ResourceEstimationEnd,
-            { associationId },
-            { timeToCompleteMs: performance.now() - start },
-          );
-          log.debug("Estimates result", estimatesStr);
-
-          // Should be an array of one ReData object returned
-          const estimates = JSON.parse(estimatesStr);
-
-          for (const item of estimates) {
-            // if item doesn't have a status property, it's an error
-            if (!("status" in item) || item.status !== "success") {
-              log.error("Estimates error code: ", item.code);
-              log.error("Estimates error message: ", item.message);
-              throw item.message;
-            }
-          }
-
-          (estimates as Array<any>).forEach(
-            (item) => (item.jobParams.sharedRunName = runName),
-          );
-
-          clearTimeout(compilerTimeout);
-
-          const message = {
-            calculating: false,
-            estimates,
-          };
-          sendMessageToPanel({ panelType: "estimates" }, true, message);
-        } catch (e: any) {
-          // Stop the 'calculating' animation
-          const message = {
-            calculating: false,
-            estimates: [],
-          };
-          sendMessageToPanel({ panelType: "estimates" }, false, message);
-
-          if (timedOut) {
-            // Show a VS Code popup that a timeout occurred
-            window.showErrorMessage(
-              "The resource estimation timed out. Please try again.",
-            );
-          } else {
-            log.error("getEstimates error: ", e.toString());
-            throw new Error("Estimating failed with error: " + e.toString());
-          }
-        } finally {
-          if (!timedOut) {
-            log.debug("Terminating resource estimates worker.");
-            worker.terminate();
-          }
-        }
-      },
+      async (resource?: vscode.Uri, expr?: string) =>
+        resourceEstimateCommand(context.extensionUri, resource, expr),
     ),
   );
 
@@ -281,110 +60,108 @@ export function registerWebViewCommands(context: ExtensionContext) {
     }),
   );
 
+  const handleShowHistogram = async (resource?: vscode.Uri, expr?: string) => {
+    clearCommandDiagnostics();
+
+    const associationId = getRandomGuid();
+    sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
+    function resultToLabel(result: string | VSDiagnostic): string {
+      if (typeof result !== "string") return "ERROR";
+      return result;
+    }
+
+    const program = await getActiveProgram();
+    if (!program.success) {
+      throw new Error(program.errorMsg);
+    }
+
+    const panelId = program.programConfig.projectName;
+
+    // Start the worker, run the code, and send the results to the webview
+    const worker = getCompilerWorker(compilerWorkerScriptPath);
+    const compilerTimeout = setTimeout(() => {
+      worker.terminate();
+    }, compilerRunTimeoutMs);
+
+    try {
+      const validateShotsInput = (input: string) => {
+        const result = parseFloat(input);
+        if (isNaN(result) || Math.floor(result) !== result || result <= 0) {
+          return "Number of shots must be a positive integer";
+        }
+      };
+
+      const numberOfShots =
+        (await window.showInputBox({
+          value: "100",
+          prompt: "Number of shots",
+          validateInput: validateShotsInput,
+        })) || "100";
+
+      // abort if the user hits <Esc> during shots entry
+      if (numberOfShots === undefined) {
+        return;
+      }
+
+      sendMessageToPanel(
+        { panelType: "histogram", id: panelId },
+        true,
+        undefined,
+      );
+
+      const evtTarget = new QscEventTarget(true);
+      evtTarget.addEventListener("uiResultsRefresh", () => {
+        const results = evtTarget.getResults();
+        const resultCount = evtTarget.resultCount();
+        const buckets = new Map();
+        for (let i = 0; i < resultCount; ++i) {
+          const key = results[i].result;
+          const strKey = resultToLabel(key);
+          const newValue = (buckets.get(strKey) || 0) + 1;
+          buckets.set(strKey, newValue);
+        }
+        const message = {
+          buckets: Array.from(buckets.entries()),
+          shotCount: resultCount,
+        };
+        sendMessageToPanel(
+          { panelType: "histogram", id: panelId },
+          false,
+          message,
+        );
+      });
+      const start = performance.now();
+      sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
+
+      const noise = getPauliNoiseModel();
+      if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
+        sendTelemetryEvent(EventType.NoisySimulation, { associationId }, {});
+      }
+      await worker.runWithPauliNoise(
+        program.programConfig,
+        expr ?? "",
+        parseInt(numberOfShots),
+        noise,
+        evtTarget,
+      );
+      sendTelemetryEvent(
+        EventType.HistogramEnd,
+        { associationId },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      clearTimeout(compilerTimeout);
+    } catch (e: any) {
+      log.error("Histogram error. ", e.toString());
+      throw new Error("Run failed. " + e.toString());
+    } finally {
+      worker.terminate();
+    }
+  };
+
   context.subscriptions.push(
     commands.registerCommand(
       `${qsharpExtensionId}.showHistogram`,
-      async (resource?: vscode.Uri, expr?: string) => {
-        clearCommandDiagnostics();
-
-        const associationId = getRandomGuid();
-        sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
-        function resultToLabel(result: string | VSDiagnostic): string {
-          if (typeof result !== "string") return "ERROR";
-          return result;
-        }
-
-        const program = await getActiveProgram();
-        if (!program.success) {
-          throw new Error(program.errorMsg);
-        }
-
-        const panelId = program.programConfig.projectName;
-
-        // Start the worker, run the code, and send the results to the webview
-        const worker = getCompilerWorker(compilerWorkerScriptPath);
-        const compilerTimeout = setTimeout(() => {
-          worker.terminate();
-        }, compilerRunTimeoutMs);
-
-        try {
-          const validateShotsInput = (input: string) => {
-            const result = parseFloat(input);
-            if (isNaN(result) || Math.floor(result) !== result || result <= 0) {
-              return "Number of shots must be a positive integer";
-            }
-          };
-
-          const numberOfShots =
-            (await window.showInputBox({
-              value: "100",
-              prompt: "Number of shots",
-              validateInput: validateShotsInput,
-            })) || "100";
-
-          // abort if the user hits <Esc> during shots entry
-          if (numberOfShots === undefined) {
-            return;
-          }
-
-          sendMessageToPanel(
-            { panelType: "histogram", id: panelId },
-            true,
-            undefined,
-          );
-
-          const evtTarget = new QscEventTarget(true);
-          evtTarget.addEventListener("uiResultsRefresh", () => {
-            const results = evtTarget.getResults();
-            const resultCount = evtTarget.resultCount();
-            const buckets = new Map();
-            for (let i = 0; i < resultCount; ++i) {
-              const key = results[i].result;
-              const strKey = resultToLabel(key);
-              const newValue = (buckets.get(strKey) || 0) + 1;
-              buckets.set(strKey, newValue);
-            }
-            const message = {
-              buckets: Array.from(buckets.entries()),
-              shotCount: resultCount,
-            };
-            sendMessageToPanel(
-              { panelType: "histogram", id: panelId },
-              false,
-              message,
-            );
-          });
-          const start = performance.now();
-          sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
-
-          const noise = getPauliNoiseModel();
-          if (noise[0] != 0 || noise[1] != 0 || noise[2] != 0) {
-            sendTelemetryEvent(
-              EventType.NoisySimulation,
-              { associationId },
-              {},
-            );
-          }
-          await worker.runWithPauliNoise(
-            program.programConfig,
-            expr ?? "",
-            parseInt(numberOfShots),
-            noise,
-            evtTarget,
-          );
-          sendTelemetryEvent(
-            EventType.HistogramEnd,
-            { associationId },
-            { timeToCompleteMs: performance.now() - start },
-          );
-          clearTimeout(compilerTimeout);
-        } catch (e: any) {
-          log.error("Histogram error. ", e.toString());
-          throw new Error("Run failed. " + e.toString());
-        } finally {
-          worker.terminate();
-        }
-      },
+      handleShowHistogram,
     ),
   );
 
@@ -429,9 +206,9 @@ const panels: Record<PanelType, { [id: string]: PanelDesc }> = {
 };
 
 const panelTypeToTitle: Record<PanelType, string> = {
-  histogram: "Q# Histogram",
-  estimates: "Q# Estimates",
-  circuit: "Q# Circuit",
+  histogram: "QDK Histogram",
+  estimates: "QDK Estimates",
+  circuit: "QDK Circuit",
   help: "Q# Help",
   documentation: "Q# Documentation",
 };
@@ -492,7 +269,7 @@ function createPanel(
   }
 }
 
-function getOrCreatePanel(type: PanelType, id?: string): PanelDesc {
+export function getOrCreatePanel(type: PanelType, id?: string): PanelDesc {
   const panel = getPanel(type, id);
   if (panel) {
     return panel;

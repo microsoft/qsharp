@@ -9,12 +9,15 @@ import {
 import * as vscode from "vscode";
 import { toVsCodeRange } from "../common";
 
-export function createCodeLensProvider(languageService: ILanguageService) {
-  return new QSharpCodeLensProvider(languageService);
+export function createQdkCodeLensProvider(languageService: ILanguageService) {
+  return new CodeLensProvider(languageService, mapCodeLens);
 }
 
-class QSharpCodeLensProvider implements vscode.CodeLensProvider {
-  constructor(public languageService: ILanguageService) {}
+class CodeLensProvider implements vscode.CodeLensProvider {
+  constructor(
+    public languageService: ILanguageService,
+    private commandMapper: (value: ICodeLens) => vscode.CodeLens,
+  ) {}
   // We could raise events when code lenses change,
   // but there's no need as the editor seems to query often enough.
   // onDidChangeCodeLenses?: vscode.Event<void> | undefined;
@@ -31,7 +34,7 @@ class QSharpCodeLensProvider implements vscode.CodeLensProvider {
       document.uri.toString(),
     );
 
-    return codeLenses.map((cl) => mapCodeLens(cl));
+    return codeLenses.map((cl) => this.commandMapper(cl));
   }
 }
 

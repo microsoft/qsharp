@@ -12,6 +12,7 @@ import {
   IProgramConfig as wasmIProgramConfig,
   TargetProfile,
   type VSDiagnostic,
+  ProjectType,
 } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
@@ -106,6 +107,8 @@ export type ProgramConfig = (
 ) & {
   /** Target compilation profile. */
   profile?: TargetProfile;
+  /** The type of project. This is used to determine how to load the project. */
+  projectType?: ProjectType;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -141,7 +144,7 @@ export class Compiler implements ICompiler {
         findManifestDirectory: async () => null,
       },
     );
-    languageService.update_document("code", 1, code);
+    languageService.update_document("code", 1, code, "qsharp");
     // Yield to let the language service background worker handle the update
     await Promise.resolve();
     languageService.stop_background_work();
@@ -292,7 +295,11 @@ export function toWasmProgramConfig(
     packageGraphSources = program.packageGraphSources;
   }
 
-  return { packageGraphSources, profile: program.profile || defaultProfile };
+  return {
+    packageGraphSources,
+    profile: program.profile || defaultProfile,
+    projectType: program.projectType || "qsharp",
+  };
 }
 
 export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {

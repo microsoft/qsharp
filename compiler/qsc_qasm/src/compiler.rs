@@ -4,7 +4,7 @@
 pub mod error;
 
 use core::f64;
-use std::{path::Path, rc::Rc};
+use std::{rc::Rc, sync::Arc};
 
 use error::CompilerErrorKind;
 use num_bigint::BigInt;
@@ -29,8 +29,8 @@ use crate::{
         build_math_call_no_params, build_measure_call, build_operation_with_stmts,
         build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
         build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
+        build_reset_all_call, build_reset_call, build_return_expr, build_return_unit,
+        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
         build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
         build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
@@ -63,17 +63,17 @@ fn err_expr(span: Span) -> qsast::Expr {
     }
 }
 
-pub fn compile_to_qsharp_ast_with_config<S, P, R>(
+#[must_use]
+pub fn compile_to_qsharp_ast_with_config<
+    R: SourceResolver,
+    S: Into<Arc<str>>,
+    P: Into<Arc<str>>,
+>(
     source: S,
     path: P,
     resolver: Option<&mut R>,
     config: CompilerConfig,
-) -> QasmCompileUnit
-where
-    S: AsRef<str>,
-    P: AsRef<Path>,
-    R: SourceResolver,
-{
+) -> QasmCompileUnit {
     let res = if let Some(resolver) = resolver {
         crate::semantic::parse_source(source, path, resolver)
     } else {
@@ -1037,9 +1037,15 @@ impl QasmCompiler {
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
+        let is_register = matches!(stmt.operand.kind, crate::semantic::ast::GateOperandKind::Expr(ref expr) if matches!(expr.ty, Type::QubitArray(..)));
+
         let operand = self.compile_gate_operand(&stmt.operand);
         let operand_span = operand.span;
-        let expr = build_reset_call(operand, stmt.reset_token_span, operand_span);
+        let expr = if is_register {
+            build_reset_all_call(operand, stmt.reset_token_span, operand_span)
+        } else {
+            build_reset_call(operand, stmt.reset_token_span, operand_span)
+        };
         Some(build_stmt_semi_from_expr(expr))
     }
 
@@ -1231,7 +1237,7 @@ impl QasmCompiler {
         if matches!(expr.ty, Type::Angle(..)) {
             build_call_with_param(
                 "AngleNotB",
-                &["QasmStd", "Angle"],
+                &["Std", "OpenQASM", "Angle"],
                 compiled_expr,
                 span,
                 expr.span,
@@ -1326,7 +1332,7 @@ impl QasmCompiler {
             }
         };
 
-        build_call_with_params(fn_name, &["QasmStd", "Angle"], operands, span, span)
+        build_call_with_params(fn_name, &["Std", "OpenQASM", "Angle"], operands, span, span)
     }
 
     fn compile_complex_binary_op(
@@ -1618,7 +1624,7 @@ impl QasmCompiler {
             }
             Type::Bit(..) => build_angle_cast_call_by_name("AngleAsResult", expr, span, span),
             Type::BitArray(..) => {
-                build_angle_cast_call_by_name("AngleAsResultArray", expr, span, span)
+                build_angle_cast_call_by_name("AngleAsResultArrayBE", expr, span, span)
             }
             Type::Bool(..) => build_angle_cast_call_by_name("AngleAsBool", expr, span, span),
             _ => err_expr(span),
@@ -1644,21 +1650,18 @@ impl QasmCompiler {
         let operand_span = expr.span;
         let name_span = span;
         match ty {
-            &Type::Angle(..) => {
+            Type::Angle(..) => {
                 build_angle_cast_call_by_name("ResultAsAngle", expr, name_span, operand_span)
             }
-            &Type::Bool(..) => {
+            Type::Bool(..) => {
                 build_convert_cast_call_by_name("ResultAsBool", expr, name_span, operand_span)
             }
-            &Type::Float(..) => {
-                // The spec says that this cast isn't supported, but it
-                // casts to other types that case to float. For now, we'll
-                // say it is invalid like the spec.
-                err_expr(span)
+            Type::Float(..) => {
+                build_convert_cast_call_by_name("ResultAsDouble", expr, name_span, operand_span)
             }
-            &Type::Int(w, _) | &Type::UInt(w, _) => {
+            Type::Int(w, _) | Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
-                    if width > 64 {
+                    if *width > 64 {
                         "ResultAsBigInt"
                     } else {
                         "ResultAsInt"
@@ -1668,6 +1671,16 @@ impl QasmCompiler {
                 };
 
                 build_convert_cast_call_by_name(function, expr, name_span, operand_span)
+            }
+            Type::BitArray(size, _) => {
+                let size_expr = build_lit_int_expr(i64::from(*size), Span::default());
+                build_qasmstd_convert_call_with_two_params(
+                    "ResultAsResultArrayBE",
+                    expr,
+                    size_expr,
+                    name_span,
+                    operand_span,
+                )
             }
             _ => err_expr(span),
         }
@@ -1681,21 +1694,31 @@ impl QasmCompiler {
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::BitArray(_, _)));
+        // There is no operand, choosing the span of the node
+        // but we could use the expr span as well.
+        let operand_span = expr.span;
+        let name_span = span;
 
-        let name_span = expr.span;
-        let operand_span = span;
-
-        if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
-            return err_expr(span);
-        }
-        // we know we have a bit array being cast to an int/uint
-        // verfiy widths
-        let int_width = ty.width();
-
-        if int_width.is_none() || (int_width == Some(size)) {
-            build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
-        } else {
-            err_expr(span)
+        match ty {
+            Type::Bit(..) => build_convert_cast_call_by_name(
+                "ResultArrayAsResultBE",
+                expr,
+                name_span,
+                operand_span,
+            ),
+            Type::Bool(..) => {
+                build_convert_cast_call_by_name("ResultArrayAsBool", expr, name_span, operand_span)
+            }
+            Type::Angle(Some(width), _) if *width == size => {
+                build_angle_cast_call_by_name("ResultArrayAsAngleBE", expr, name_span, operand_span)
+            }
+            Type::Int(Some(width), _) | Type::UInt(Some(width), _) if *width == size => {
+                build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
+            }
+            Type::Int(None, _) | Type::UInt(None, _) => {
+                build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
+            }
+            _ => err_expr(span),
         }
     }
 
@@ -1733,6 +1756,16 @@ impl QasmCompiler {
                     "BoolAsInt"
                 };
                 build_convert_cast_call_by_name(function, expr, name_span, operand_span)
+            }
+            Type::BitArray(size, _) => {
+                let size_expr = build_lit_int_expr(i64::from(*size), Span::default());
+                build_qasmstd_convert_call_with_two_params(
+                    "BoolAsResultArrayBE",
+                    expr,
+                    size_expr,
+                    name_span,
+                    operand_span,
+                )
             }
             _ => err_expr(span),
         }
@@ -1776,6 +1809,8 @@ impl QasmCompiler {
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Float(..)));
+        let name_span = expr.span;
+        let operand_span = span;
 
         match ty {
             &Type::Complex(..) => build_complex_from_expr(expr),
@@ -1785,7 +1820,7 @@ impl QasmCompiler {
                     build_lit_int_expr(width.unwrap_or(f64::MANTISSA_DIGITS).into(), expr_span);
                 build_call_with_params(
                     "DoubleAsAngle",
-                    &["QasmStd", "Angle"],
+                    &["Std", "OpenQASM", "Angle"],
                     vec![expr, width],
                     expr_span,
                     expr_span,
@@ -1817,6 +1852,9 @@ impl QasmCompiler {
                     build_lit_bool_expr(true, span),
                     span,
                 )
+            }
+            &Type::Bit(..) => {
+                build_convert_cast_call_by_name("DoubleAsResult", expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }

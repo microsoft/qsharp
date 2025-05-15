@@ -17,7 +17,6 @@ fn fuzz_2297_referencing_qubit_parameter() {
         q1;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -30,7 +29,6 @@ fn fuzz_2297_referencing_angle_parameter() {
         r;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -44,7 +42,6 @@ fn fuzz_2297_def() {
         q1;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -60,35 +57,60 @@ fn fuzz_2297_with_trailing_comma() {
             q1;
         }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2298() {
     let source = r#"gate y()a{gate a,b{}b"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2313() {
     let source = r#"ctrl(π/0s)@a"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2332() {
     let source = r#"ctrl(0/0)@s"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2348() {
     let source = r#"ctrl(0%0)@s"#;
-    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2366() {
+    let source = "t[:π";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2368() {
+    let source = "c[:0s";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2379() {
+    let source = "1[true:";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2391() {
+    let source = "c[:0s";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2392() {
+    let source = "e[π:";
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 

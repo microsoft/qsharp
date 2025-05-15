@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::sync::Arc;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use qsc_qasm::{
     compile_to_qsharp_ast_with_config, io::InMemorySourceResolver, CompilerConfig, OutputSemantics,
     ProgramType, QasmCompileUnit, QubitSemantics,
 };
 
-fn rgqft_multiplier(source: &str) -> QasmCompileUnit {
+fn rgqft_multiplier<S: Into<Arc<str>>>(source: S) -> QasmCompileUnit {
     let config = CompilerConfig::new(
         QubitSemantics::Qiskit,
         OutputSemantics::OpenQasm,

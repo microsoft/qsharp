@@ -11,6 +11,7 @@ mod extern_decl;
 mod float;
 mod int;
 mod qreg;
+mod qubit;
 mod stretch;
 mod uint;
 

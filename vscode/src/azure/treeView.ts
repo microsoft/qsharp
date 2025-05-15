@@ -115,6 +115,7 @@ export type Provider = {
 
 export type Target = {
   id: string;
+  providerId: string;
   currentAvailability: "Available" | "Degraded" | "Unavailable";
   averageQueueTime: number; // minutes
 };

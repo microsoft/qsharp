@@ -103,6 +103,9 @@ pub enum SemanticErrorKind {
     #[error("for statements must have a body or statement")]
     #[diagnostic(code("Qasm.Lowerer.ForStatementsMustHaveABodyOrStatement"))]
     ForStatementsMustHaveABodyOrStatement(#[label] Span),
+    #[error("gate declarations must be done in global scope")]
+    #[diagnostic(code("Qasm.Lowerer.GateDeclarationInNonGlobalScope"))]
+    GateDeclarationInNonGlobalScope(#[label] Span),
     #[error("if statement missing {0} expression")]
     #[diagnostic(code("Qasm.Lowerer.IfStmtMissingExpression"))]
     IfStmtMissingExpression(String, #[label] Span),
@@ -169,9 +172,9 @@ pub enum SemanticErrorKind {
     #[error("pow gate modifiers must have an exponent")]
     #[diagnostic(code("Qasm.Lowerer.PowModifierMustHaveExponent"))]
     PowModifierMustHaveExponent(#[label] Span),
-    #[error("quantum declarations must be done in global scope")]
-    #[diagnostic(code("Qasm.Lowerer.QuantumDeclarationInNonGlobalScope"))]
-    QuantumDeclarationInNonGlobalScope(#[label] Span),
+    #[error("qubit declarations must be done in global scope")]
+    #[diagnostic(code("Qasm.Lowerer.QubitDeclarationInNonGlobalScope"))]
+    QubitDeclarationInNonGlobalScope(#[label] Span),
     #[error("quantum typed values cannot be used in binary expressions")]
     #[diagnostic(code("Qasm.Lowerer.QuantumTypesInBinaryExpression"))]
     QuantumTypesInBinaryExpression(#[label] Span),

@@ -31,6 +31,7 @@ async fn no_error() {
             "single/foo.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
 
@@ -44,7 +45,7 @@ async fn clear_error() {
     let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "namespace {")
+        .update_document("single/foo.qs", 1, "namespace {", "qsharp")
         .await;
 
     expect_errors(
@@ -63,6 +64,7 @@ async fn clear_error() {
             "single/foo.qs",
             2,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
 
@@ -86,6 +88,7 @@ async fn close_last_doc_in_project() {
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -93,10 +96,13 @@ async fn close_last_doc_in_project() {
             "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
+            "qsharp",
         )
         .await;
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
     // now there should be one compilation and one open document
 
     check_state_and_errors(
@@ -127,7 +133,60 @@ async fn close_last_doc_in_project() {
               uri: "project/src/this_file.qs" version: None errors: [],
             ]"#]],
     );
-    updater.close_document("project/src/other_file.qs").await;
+    updater
+        .close_document("project/src/other_file.qs", "qsharp")
+        .await;
+
+    // now there should be no file and no compilation
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {}
+        "#]],
+        &expect![""],
+        &expect!["[]"],
+    );
+}
+
+#[tokio::test]
+async fn close_last_doc_in_openqasm_project() {
+    let received_errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&received_errors, &test_cases);
+
+    updater
+        .update_document(
+            "openqasm_files/self-contained.qasm",
+            1,
+            "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            "openqasm",
+        )
+        .await;
+
+    check_state_and_errors(
+        &updater,
+        &received_errors,
+        &expect![[r#"
+            {
+                "openqasm_files/self-contained.qasm": OpenDocument {
+                    version: 1,
+                    compilation: "openqasm_files/self-contained.qasm",
+                    latest_str_content: "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                },
+            }
+        "#]],
+        &expect![[r#"
+            openqasm_files/self-contained.qasm: [
+              "openqasm_files/self-contained.qasm": "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+            ],
+        "#]],
+        &expect!["[]"],
+    );
+
+    updater
+        .close_document("openqasm_files/self-contained.qasm", "openqasm")
+        .await;
 
     // now there should be no file and no compilation
     check_state_and_errors(
@@ -149,7 +208,7 @@ async fn clear_on_document_close() {
     let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "namespace {")
+        .update_document("single/foo.qs", 1, "namespace {", "qsharp")
         .await;
 
     expect_errors(
@@ -163,7 +222,7 @@ async fn clear_on_document_close() {
             ]"#]],
     );
 
-    updater.close_document("single/foo.qs").await;
+    updater.close_document("single/foo.qs", "qsharp").await;
 
     expect_errors(
         &errors,
@@ -181,7 +240,7 @@ async fn compile_error() {
     let mut updater = new_updater(&errors, &test_cases);
 
     updater
-        .update_document("single/foo.qs", 1, "badsyntax")
+        .update_document("single/foo.qs", 1, "badsyntax", "qsharp")
         .await;
 
     expect_errors(
@@ -209,7 +268,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     });
 
     updater
-        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
     // we expect two errors, one for `set x = 2` and one for `x`
@@ -240,7 +299,7 @@ async fn base_profile_rca_errors_are_reported_when_compilation_succeeds() {
     });
 
     updater
-        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }", "qsharp")
         .await;
 
     // we expect two errors, one for `set x = 2.0` and one for `x`
@@ -276,6 +335,7 @@ async fn package_type_update_causes_error() {
             "single/foo.qs",
             1,
             "namespace Foo { operation Test() : Unit {} }",
+            "qsharp",
         )
         .await;
 
@@ -314,6 +374,7 @@ async fn target_profile_update_fixes_error() {
             "single/foo.qs",
             1,
             r#"namespace Foo { operation Main() : Unit { use q = Qubit(); if M(q) == Zero { Message("hi") } } }"#,
+            "qsharp",
         )
         .await;
 
@@ -343,6 +404,73 @@ async fn target_profile_update_fixes_error() {
 }
 
 #[tokio::test]
+async fn target_profile_update_updates_test_cases() {
+    let errors = RefCell::new(Vec::new());
+    let test_cases = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors, &test_cases);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Unrestricted),
+        package_type: Some(PackageType::Lib),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    updater
+        .update_document(
+            "single/foo.qs",
+            1,
+            r#"@Config(Base) @Test() operation BaseTest() : Unit {}"#,
+            "qsharp",
+        )
+        .await;
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+
+    // reset accumulated test cases after each check
+    test_cases.borrow_mut().clear();
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Base),
+        ..WorkspaceConfigurationUpdate::default()
+    });
+
+    expect![[r#"
+        [
+            TestCallables {
+                callables: [
+                    TestCallable {
+                        callable_name: "foo.BaseTest",
+                        compilation_uri: "single/foo.qs",
+                        location: Location {
+                            source: "single/foo.qs",
+                            range: Range {
+                                start: Position {
+                                    line: 0,
+                                    column: 32,
+                                },
+                                end: Position {
+                                    line: 0,
+                                    column: 40,
+                                },
+                            },
+                        },
+                        friendly_name: "foo.qs",
+                    },
+                ],
+            },
+        ]
+    "#]]
+    .assert_debug_eq(&test_cases.borrow());
+}
+
+#[tokio::test]
 async fn target_profile_update_causes_error_in_stdlib() {
     let errors = RefCell::new(Vec::new());
     let test_cases = RefCell::new(Vec::new());
@@ -352,6 +480,7 @@ async fn target_profile_update_causes_error_in_stdlib() {
         "single/foo.qs",
         1,
         r#"namespace Foo { @EntryPoint() operation Main() : Unit { use q = Qubit(); let r = M(q); let b = Microsoft.Quantum.Convert.ResultAsBool(r); } }"#,
+        "qsharp",
     ).await;
 
     expect_errors(&errors, &expect!["[]"]);
@@ -735,6 +864,7 @@ async fn update_doc_updates_project() {
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -742,6 +872,7 @@ async fn update_doc_updates_project() {
             "project/src/this_file.qs",
             1,
             "namespace Foo { we should see this in the source }",
+            "qsharp",
         )
         .await;
 
@@ -816,7 +947,12 @@ async fn file_not_in_files_list() {
 
     // Open the file that is listed in the files list
     updater
-        .update_document("project/src/explicitly_listed.qs", 1, "// CONTENTS")
+        .update_document(
+            "project/src/explicitly_listed.qs",
+            1,
+            "// CONTENTS",
+            "qsharp",
+        )
         .await;
 
     // The whole project should be loaded, which should generate
@@ -850,7 +986,7 @@ async fn file_not_in_files_list() {
 
     // Open the unlisted file as well.
     updater
-        .update_document("project/src/unlisted.qs", 1, "// CONTENTS")
+        .update_document("project/src/unlisted.qs", 1, "// CONTENTS", "qsharp")
         .await;
 
     // Documents are both open and correctly associated with the project.
@@ -919,7 +1055,7 @@ async fn file_not_under_src() {
 
     // Open the file that is not under src.
     updater
-        .update_document("project/not_under_src.qs", 1, "// CONTENTS")
+        .update_document("project/not_under_src.qs", 1, "// CONTENTS", "qsharp")
         .await;
 
     // This document is not associated with the manifest,
@@ -947,7 +1083,7 @@ async fn file_not_under_src() {
 
     // Open the file that's properly under the "src" directory.
     updater
-        .update_document("project/src/under_src.qs", 1, "// CONTENTS")
+        .update_document("project/src/under_src.qs", 1, "// CONTENTS", "qsharp")
         .await;
 
     // The manifest is loaded, `not_under_src.qs` is still not associated with it.
@@ -997,6 +1133,7 @@ async fn close_doc_prioritizes_fs() {
             "project/src/other_file.qs",
             1,
             "namespace Foo { @EntryPoint() operation Main() : Unit {} }",
+            "qsharp",
         )
         .await;
     updater
@@ -1004,10 +1141,13 @@ async fn close_doc_prioritizes_fs() {
             "project/src/this_file.qs",
             1,
             "/* this should not show up in the final state */ we should not see compile errors",
+            "qsharp",
         )
         .await;
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
 
     check_state_and_errors(
         &updater,
@@ -1050,6 +1190,7 @@ async fn delete_manifest() {
             "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1079,6 +1220,7 @@ async fn delete_manifest() {
             "project/src/this_file.qs",
             2,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1112,6 +1254,7 @@ async fn delete_manifest_then_close() {
             "project/src/this_file.qs",
             1,
             "// DISK CONTENTS\n namespace Foo { }",
+            "qsharp",
         )
         .await;
 
@@ -1136,7 +1279,9 @@ async fn delete_manifest_then_close() {
 
     TEST_FS.with(|fs| fs.borrow_mut().remove("project/qsharp.json"));
 
-    updater.close_document("project/src/this_file.qs").await;
+    updater
+        .close_document("project/src/this_file.qs", "qsharp")
+        .await;
 
     check_state(
         &updater,
@@ -1154,11 +1299,21 @@ async fn doc_switches_project() {
     let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            1,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            1,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1194,11 +1349,21 @@ async fn doc_switches_project() {
     });
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 2, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            2,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            2,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     // the error should now be coming from the parent qsharp.json? But the document
@@ -1235,11 +1400,21 @@ async fn doc_switches_project_on_close() {
     let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
-        .update_document("nested_projects/src/subdir/src/a.qs", 1, "namespace A {}")
+        .update_document(
+            "nested_projects/src/subdir/src/a.qs",
+            1,
+            "namespace A {}",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 1, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            1,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1275,11 +1450,16 @@ async fn doc_switches_project_on_close() {
     });
 
     updater
-        .close_document("nested_projects/src/subdir/src/a.qs")
+        .close_document("nested_projects/src/subdir/src/a.qs", "qsharp")
         .await;
 
     updater
-        .update_document("nested_projects/src/subdir/src/b.qs", 2, "namespace B {}")
+        .update_document(
+            "nested_projects/src/subdir/src/b.qs",
+            2,
+            "namespace B {}",
+            "qsharp",
+        )
         .await;
 
     check_state(
@@ -1392,7 +1572,7 @@ async fn lints_update_after_manifest_change() {
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check generated lints.
@@ -1417,7 +1597,7 @@ async fn lints_update_after_manifest_change() {
 
     // Trigger a document update
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check lints again
@@ -1453,7 +1633,7 @@ async fn lints_prefer_workspace_over_defaults() {
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // Check generated lints.
@@ -1502,7 +1682,7 @@ async fn lints_prefer_manifest_over_workspace() {
 
     // Trigger a document update.
     updater
-        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .update_document("project/src/this_file.qs", 1, this_file_qs, "qsharp")
         .await;
 
     // No lints expected ("allow" wins over "warn")
@@ -1533,7 +1713,12 @@ async fn missing_dependency_reported() {
 
     // Trigger a document update.
     updater
-        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function Main() : Unit {}",
+            "qsharp",
+        )
         .await;
 
     expect_errors(
@@ -1580,7 +1765,12 @@ async fn error_from_dependency_reported() {
 
     // Trigger a document update.
     updater
-        .update_document("parent/src/main.qs", 1, "function Main() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function Main() : Unit {}",
+            "qsharp",
+        )
         .await;
 
     expect_errors(
@@ -1602,11 +1792,16 @@ async fn single_github_source_no_errors() {
     let mut updater = new_updater(&received_errors, &test_cases);
 
     updater
-        .update_document("qsharp-github-source:foo/bar/Main.qs", 1, "badsyntax")
+        .update_document(
+            "qsharp-github-source:foo/bar/Main.qs",
+            1,
+            "badsyntax",
+            "qsharp",
+        )
         .await;
 
     updater
-        .update_document("/foo/bar/Main.qs", 1, "badsyntax")
+        .update_document("/foo/bar/Main.qs", 1, "badsyntax", "qsharp")
         .await;
 
     // Same error exists in both files, but the github one should not be reported
@@ -1671,6 +1866,7 @@ async fn test_case_detected() {
             "parent/src/main.qs",
             1,
             "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
         )
         .await;
 
@@ -1727,7 +1923,12 @@ async fn test_case_removed() {
 
     // Trigger a document update.
     updater
-        .update_document("parent/src/main.qs", 1, "function MyTestCase() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            1,
+            "function MyTestCase() : Unit {}",
+            "qsharp",
+        )
         .await;
 
     expect![[r#"
@@ -1768,6 +1969,7 @@ async fn test_case_modified() {
             "parent/src/main.qs",
             1,
             "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
         )
         .await;
 
@@ -1776,6 +1978,7 @@ async fn test_case_modified() {
             "parent/src/main.qs",
             2,
             "@Test() function MyTestCase2() : Unit { }",
+            "qsharp",
         )
         .await;
 
@@ -1858,11 +2061,17 @@ async fn test_annotation_removed() {
             "parent/src/main.qs",
             1,
             "@Test() function MyTestCase() : Unit {}",
+            "qsharp",
         )
         .await;
 
     updater
-        .update_document("parent/src/main.qs", 2, "function MyTestCase() : Unit {}")
+        .update_document(
+            "parent/src/main.qs",
+            2,
+            "function MyTestCase() : Unit {}",
+            "qsharp",
+        )
         .await;
 
     expect![[r#"
@@ -1928,6 +2137,7 @@ async fn multiple_tests() {
             "parent/src/main.qs",
             1,
             "@Test() function Test1() : Unit {} @Test() function Test2() : Unit {}",
+            "qsharp",
         )
         .await;
 
@@ -2009,6 +2219,7 @@ async fn test_case_in_different_files() {
             "parent/src/test1.qs",
             1,
             "@Test() function Test1() : Unit {}",
+            "qsharp",
         )
         .await;
 
@@ -2257,6 +2468,17 @@ fn test_fs() -> FsNode {
                             ],
                         )],
                     ),
+                ],
+            ),
+            dir(
+                "openqasm_files",
+                [
+                    file(
+                        "self-contained.qasm",
+                        "include \"stdgates.inc\";\nqubit q;\nreset q;\nx q;\nh q;\nbit c = measure q;\n",
+                    ),
+                    file("multifile.qasm", "include \"stdgates.inc\";\ninclude \"imports.inc\";\nBar();\nBar();\nqubit q;\nh q;\nreset q;\n"),
+                    file("imports.inc", "\ndef Bar() {\n\nint c = 42;\n}\n"),
                 ],
             ),
         ]

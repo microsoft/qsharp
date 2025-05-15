@@ -1,26 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile_qasm_stmt_to_qsharp, compile_qasm_to_qsharp};
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 
 use expect_test::expect;
 use miette::Report;
 
 #[test]
-fn indexed_bit_cannot_be_implicitly_converted_to_float() {
+fn indexed_bit_can_be_implicitly_converted_to_float() {
     let source = "
         bit[5] x;
         if (x[0] == 1.) {
         }
     ";
-
-    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
-        panic!("Expected an error");
-    };
-
-    assert_eq!(1, errors.len(), "Expected one error");
-    expect!["cannot cast expression of type Bit(false) to type Float(None, true)"]
-        .assert_eq(&errors[0].to_string());
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable x = [Zero, Zero, Zero, Zero, Zero];
+        if Std.OpenQASM.Convert.ResultAsDouble(x[0]) == 1. {};
+    "#]],
+    );
 }
 
 #[test]
@@ -34,9 +34,9 @@ fn indexed_bit_can_implicitly_convert_to_int() -> miette::Result<(), Vec<Report>
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
-        if QasmStd.Convert.ResultAsInt(x[0]) == 1 {
+        if Std.OpenQASM.Convert.ResultAsInt(x[0]) == 1 {
             set x w/= 1 <- One;
         };
     "#]]
@@ -55,9 +55,9 @@ fn indexed_bit_can_implicitly_convert_to_bool() -> miette::Result<(), Vec<Report
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
-        if QasmStd.Convert.ResultAsBool(x[0]) {
+        if Std.OpenQASM.Convert.ResultAsBool(x[0]) {
             set x w/= 1 <- One;
         };
     "#]]
@@ -74,7 +74,7 @@ fn bit_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = [Zero, Zero, Zero, Zero, Zero];
         mutable y = x[0];
     "#]]
@@ -91,7 +91,7 @@ fn bool_indexed_ty_is_same_as_element_ty() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = [false, false, false, false, false];
         mutable y = x[0];
     "#]]
@@ -110,10 +110,10 @@ fn bitstring_slicing() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable ans = [One, Zero, One, Zero, One];
         let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
-        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3]) == 4 {
+        if Std.OpenQASM.Convert.ResultArrayAsIntBE(ans[0..3]) == 4 {
             x(qq);
         };
     "#]]
@@ -132,10 +132,10 @@ fn bitstring_slicing_with_step() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable ans = [One, Zero, One, Zero, One];
         let qq = QIR.Runtime.__quantum__rt__qubit_allocate();
-        if QasmStd.Convert.ResultArrayAsIntBE(ans[0..3..2]) == 4 {
+        if Std.OpenQASM.Convert.ResultArrayAsIntBE(ans[0..3..2]) == 4 {
             x(qq);
         };
     "#]]

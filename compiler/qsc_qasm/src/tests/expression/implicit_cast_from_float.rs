@@ -4,7 +4,7 @@
 use expect_test::expect;
 use miette::Report;
 
-use crate::tests::compile_qasm_to_qsharp;
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 
 #[test]
 fn to_bit_implicitly() {
@@ -12,13 +12,14 @@ fn to_bit_implicitly() {
         float x = 42.;
         bit y = x;
     ";
-
-    let Err(error) = compile_qasm_to_qsharp(source) else {
-        panic!("Expected error")
-    };
-
-    expect!["cannot cast expression of type Float(None, false) to type Bit(false)"]
-        .assert_eq(&error[0].to_string());
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable x = 42.;
+        mutable y = Std.OpenQASM.Convert.DoubleAsResult(x);
+    "#]],
+    );
 }
 
 #[test]
@@ -27,13 +28,14 @@ fn explicit_width_to_bit_implicitly() {
         float[64] x = 42.;
         bit y = x;
     ";
-
-    let Err(error) = compile_qasm_to_qsharp(source) else {
-        panic!("Expected error")
-    };
-
-    expect!["cannot cast expression of type Float(Some(64), false) to type Bit(false)"]
-        .assert_eq(&error[0].to_string());
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable x = 42.;
+        mutable y = Std.OpenQASM.Convert.DoubleAsResult(x);
+    "#]],
+    );
 }
 
 #[test]
@@ -45,7 +47,7 @@ fn to_bool_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = if Std.Math.Truncate(x) == 0 {
             false
@@ -66,7 +68,7 @@ fn to_implicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Truncate(x);
     "#]]
@@ -83,7 +85,7 @@ fn to_explicit_int_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Truncate(x);
     "#]]
@@ -100,7 +102,7 @@ fn to_implicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Truncate(x);
     "#]]
@@ -117,7 +119,7 @@ fn to_explicit_uint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Truncate(x);
     "#]]
@@ -134,7 +136,7 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Convert.IntAsBigInt(Std.Math.Truncate(x));
     "#]]
@@ -151,7 +153,7 @@ fn to_implicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = x;
     "#]]
@@ -168,7 +170,7 @@ fn to_explicit_float_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = x;
     "#]]
@@ -185,7 +187,7 @@ fn to_implicit_complex_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Complex(x, 0.);
     "#]]
@@ -202,7 +204,7 @@ fn to_explicit_complex_implicitly() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         mutable x = 42.;
         mutable y = Std.Math.Complex(x, 0.);
     "#]]

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import { TextDocument, Uri, Range, Location } from "vscode";
-import { Utils } from "vscode-uri";
 import {
   getCompilerWorker,
   ICompilerWorker,
@@ -15,40 +14,59 @@ import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 export const qsharpCircuitLanguageId = "qsharpcircuit";
+export const openqasmLanguageId = "openqasm";
+
+// Returns true for all documents supported by the extension, including unsaved files, notebook cells, circuit files, qasm files, etc.
+// excludes text documents we don't want to add support for at all, such as git/pr/chat "virtual" document views
+export function isQdkDocument(document: TextDocument): boolean {
+  return (
+    !isUnsupportedScheme(document.uri.scheme) &&
+    isQdkSupportedLanguage(document)
+  );
+}
+
+function isQdkSupportedLanguage(document: TextDocument): boolean {
+  return (
+    document.languageId === qsharpLanguageId ||
+    document.languageId === qsharpCircuitLanguageId ||
+    document.languageId === openqasmLanguageId
+  );
+}
+
+function isUnsupportedScheme(scheme: string): boolean {
+  return scheme === "git" || scheme === "pr" || scheme.startsWith("chat");
+}
 
 // Returns true for all Q# documents, including unsaved files, notebook cells, circuit files, etc.
 export function isQsharpDocument(document: TextDocument): boolean {
   return (
-    (document.languageId === qsharpLanguageId &&
-      (Utils.extname(document.uri) === ".qs" || document.isUntitled) &&
-      document.uri.scheme !== "git" &&
-      document.uri.scheme !== "pr" &&
-      // The Copilot Chat window also creates documents with various schemes that start
-      // with "chat", such as "chat-editing-text-model" and others.
-      !document.uri.scheme.startsWith("chat")) ||
-    isCircuitDocument(document)
+    !isUnsupportedScheme(document.uri.scheme) &&
+    document.languageId === qsharpLanguageId
   );
 }
 
 // Returns true for all circuit documents
 export function isCircuitDocument(document: TextDocument): boolean {
   return (
-    document.languageId === qsharpCircuitLanguageId &&
-    (Utils.extname(document.uri) === ".qsc" || document.isUntitled) &&
-    document.uri.scheme !== "git" &&
-    document.uri.scheme !== "pr" &&
-    // The Copilot Chat window also creates documents with various schemes that start
-    // with "chat", such as "chat-editing-text-model" and others.
-    !document.uri.scheme.startsWith("chat")
+    !isUnsupportedScheme(document.uri.scheme) &&
+    document.languageId === qsharpCircuitLanguageId
   );
 }
 
-// Returns true for only Q# notebook cell documents.
-export function isQsharpNotebookCell(document: TextDocument): boolean {
+export function isQdkNotebookCell(document: TextDocument): boolean {
+  return isQdkDocument(document) && isNotebookCell(document);
+}
+
+// Returns true for all OpenQASM documents, including unsaved files, notebook cells, etc.
+export function isOpenQasmDocument(document: TextDocument): boolean {
   return (
-    document.languageId === qsharpLanguageId &&
-    document.uri.scheme === "vscode-notebook-cell"
+    !isUnsupportedScheme(document.uri.scheme) &&
+    document.languageId === openqasmLanguageId
   );
+}
+
+export function isNotebookCell(document: TextDocument): boolean {
+  return document.uri.scheme === "vscode-notebook-cell";
 }
 
 export const qsharpExtensionId = "qsharp-vscode";

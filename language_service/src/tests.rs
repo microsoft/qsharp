@@ -19,7 +19,7 @@ async fn single_document() {
     let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("foo.qs", 1, "namespace Foo { }");
+    ls.update_document("foo.qs", 1, "namespace Foo { }", "qsharp");
 
     worker.apply_pending().await;
 
@@ -54,7 +54,7 @@ async fn single_document_update() {
     let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("foo.qs", 1, "namespace Foo { }");
+    ls.update_document("foo.qs", 1, "namespace Foo { }", "qsharp");
 
     worker.apply_pending().await;
 
@@ -85,6 +85,7 @@ async fn single_document_update() {
         "foo.qs",
         1,
         "namespace Foo { @EntryPoint() operation Bar() : Unit {} }",
+        "qsharp",
     );
 
     worker.apply_pending().await;
@@ -120,7 +121,7 @@ async fn document_in_project() {
     let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors, &test_cases);
 
-    ls.update_document("project/src/this_file.qs", 1, "namespace Foo { }");
+    ls.update_document("project/src/this_file.qs", 1, "namespace Foo { }", "qsharp");
 
     check_errors_and_no_compilation(
         &ls,
@@ -178,6 +179,7 @@ async fn completions_requested_before_document_load() {
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+        "qsharp"
     );
 
     // we intentionally don't await work to test how LSP features function when
@@ -209,6 +211,7 @@ async fn completions_requested_after_document_load() {
         "foo.qs",
         1,
         "namespace Foo { open Microsoft.Quantum.Diagnostics; @EntryPoint() operation Main() : Unit { DumpMachine() } }",
+        "qsharp"
     );
 
     worker.apply_pending().await;

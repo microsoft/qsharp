@@ -15,7 +15,7 @@ fn funcall_with_no_arguments_generates_correct_qsharp() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function empty() : Unit {}
         empty();
     "#]]
@@ -32,7 +32,7 @@ fn void_function_with_one_argument_generates_correct_qsharp() -> miette::Result<
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function f(x : Int) : Unit {}
         f(2);
     "#]]
@@ -52,7 +52,7 @@ fn funcall_with_one_argument_generates_correct_qsharp() -> miette::Result<(), Ve
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function square(x : Int) : Int {
             return x * x;
         }
@@ -74,7 +74,7 @@ fn funcall_with_two_arguments_generates_correct_qsharp() -> miette::Result<(), V
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function sum(x : Int, y : Int) : Int {
             return x + y;
         }
@@ -99,11 +99,11 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         operation parity(qs : Qubit[]) : Result {
             mutable a = QIR.Intrinsic.__quantum__qis__m__body(qs[0]);
             mutable b = QIR.Intrinsic.__quantum__qis__m__body(qs[1]);
-            return if QasmStd.Convert.ResultAsInt(a) ^^^ QasmStd.Convert.ResultAsInt(b) == 0 {
+            return if Std.OpenQASM.Convert.ResultAsInt(a) ^^^ Std.OpenQASM.Convert.ResultAsInt(b) == 0 {
                 One
             } else {
                 Zero
@@ -186,7 +186,7 @@ fn funcall_accepts_qubit_argument() -> miette::Result<(), Vec<Report>> {
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         operation h_wrapper(q : Qubit) : Unit {
             h(q);
         }
@@ -209,7 +209,7 @@ fn classical_decl_initialized_with_funcall() -> miette::Result<(), Vec<Report>> 
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function square(x : Int) : Int {
             return x * x;
         }
@@ -222,11 +222,11 @@ fn classical_decl_initialized_with_funcall() -> miette::Result<(), Vec<Report>> 
 #[test]
 fn classical_decl_initialized_with_incompatible_funcall_errors() {
     let source = r#"
-        def square(float x) -> float {
-            return x * x;
+        def square(float x) -> angle {
+            return angle(x * x);
         }
 
-        bit a = square(2.0);
+        float a = square(2.0);
     "#;
 
     let Err(errors) = compile_qasm_to_qsharp(source) else {
@@ -236,11 +236,12 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
     expect![[r#"
         [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Float(None, false) to type Bit(false)
-           ,-[Test.qasm:6:17]
+          x cannot cast expression of type Angle(None, false) to type Float(None,
+          | false)
+           ,-[Test.qasm:6:19]
          5 | 
-         6 |         bit a = square(2.0);
-           :                 ^^^^^^^^^^^
+         6 |         float a = square(2.0);
+           :                   ^^^^^^^^^^^
          7 |     
            `----
         ]"#]]
@@ -254,12 +255,13 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
             return 1;
         }
 
-        bit p = parity(2);
+        uint[2] x = 2;
+        bit p = parity(x);
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
-        import QasmStd.Intrinsic.*;
+        import Std.OpenQASM.Intrinsic.*;
         function parity(arr : Result[]) : Result {
             return if 1 == 0 {
                 One
@@ -267,7 +269,8 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
                 Zero
             };
         }
-        mutable p = parity(QasmStd.Convert.IntAsResultArrayBE(2, 2));
+        mutable x = 2;
+        mutable p = parity(Std.OpenQASM.Convert.IntAsResultArrayBE(x, 2));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
