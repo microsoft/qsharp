@@ -7,6 +7,7 @@ use qsc_ast::ast::{
     BinOp, Block, Expr, ExprKind, Item, ItemKind, Lit, NodeId, Stmt, StmtKind, TernOp,
 };
 use qsc_data_structures::span::Span;
+use qsc_hir::ty::Ty;
 
 // Read Me:
 //  To add a new lint add a new tuple to this structure. The tuple has four elements:
@@ -272,14 +273,16 @@ struct DeprecatedAssignUpdateExpr {
 impl AstLintPass for DeprecatedAssignUpdateExpr {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
         if let ExprKind::AssignUpdate(record, index, value) = expr.kind.as_ref() {
-            let record_src = compilation.get_source_code(record.span);
-            let index_src = compilation.get_source_code(index.span);
-            let value_src = compilation.get_source_code(value.span);
-            let edit = vec![(
-                format!("{record_src}[{index_src}] = {value_src}"),
-                expr.span,
-            )];
-            buffer.push(lint!(self, expr.span, edit));
+            if let Some(Ty::Array(_)) = compilation.compile_unit.ast.tys.terms.get(record.id) {
+                let record_src = compilation.get_source_code(record.span);
+                let index_src = compilation.get_source_code(index.span);
+                let value_src = compilation.get_source_code(value.span);
+                let edit = vec![(
+                    format!("{record_src}[{index_src}] = {value_src}"),
+                    expr.span,
+                )];
+                buffer.push(lint!(self, expr.span, edit));
+            }
         }
     }
 }
@@ -290,9 +293,11 @@ struct DeprecatedUpdateExpr {
 }
 
 impl AstLintPass for DeprecatedUpdateExpr {
-    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
-        if let ExprKind::TernOp(TernOp::Update, ..) = expr.kind.as_ref() {
-            buffer.push(lint!(self, expr.span));
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
+        if let ExprKind::TernOp(TernOp::Update, record, ..) = expr.kind.as_ref() {
+            if let Some(Ty::Array(_)) = compilation.compile_unit.ast.tys.terms.get(record.id) {
+                buffer.push(lint!(self, expr.span));
+            }
         }
     }
 }
