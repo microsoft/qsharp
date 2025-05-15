@@ -71,24 +71,22 @@ def ReflectAboutUniform(qubit[nQubits] qs) {
 // Main program
 
 // Allocate qubits
-qubit[nQubits] qubits;
+qubit[nQubits] qs;
 qubit aux;
 // The state we are looking for is returned after execution.
 output bit[nQubits] results;
 
 // Reset the qubits to the |0⟩ state before use.
-reset qubits;
+reset qs;
 reset aux;
 
 // Prepare uniform superposition
-PrepareUniform(qubits);
+PrepareUniform(qs);
 
 for int i in [1:iterations] {
-    ReflectAboutMarked(qubits, aux);
-    ReflectAboutUniform(qubits);
+    ReflectAboutMarked(qs, aux);
+    ReflectAboutUniform(qs);
 }
 
 // Measure the qubits
-for int i in [0:nQubits-1] {
-    results[i] = measure qubits[i];
-}
+results = measure qs;
