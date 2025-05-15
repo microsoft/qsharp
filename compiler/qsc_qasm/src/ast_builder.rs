@@ -211,30 +211,13 @@ pub(crate) fn build_lit_result_expr(value: qsc_ast::ast::Result, span: Span) -> 
     }
 }
 
-pub(crate) fn build_lit_result_array_expr_from_bitstring<S: AsRef<str>>(
-    bitstring: S,
+pub(crate) fn build_lit_result_array_expr<I: IntoIterator<Item = ast::Result>>(
+    values: I,
     span: Span,
 ) -> Expr {
-    let values = bitstring
-        .as_ref()
-        .chars()
-        .filter_map(|c| {
-            if c == '0' {
-                Some(ast::Result::Zero)
-            } else if c == '1' {
-                Some(ast::Result::One)
-            } else {
-                None
-            }
-        })
-        .collect();
-    build_lit_result_array_expr(values, span)
-}
-
-pub(crate) fn build_lit_result_array_expr(values: Vec<qsc_ast::ast::Result>, span: Span) -> Expr {
     let exprs: Vec<_> = values
         .into_iter()
-        .map(|v| build_lit_result_expr(v, Span::default()))
+        .map(|value| build_lit_result_expr(value, Span::default()))
         .collect();
     build_expr_array_expr(exprs, span)
 }

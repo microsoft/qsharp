@@ -97,24 +97,6 @@ fn fuzz_2368() {
 }
 
 #[test]
-fn fuzz_2379() {
-    let source = "1[true:";
-    compile_qasm_best_effort(source, Profile::Unrestricted);
-}
-
-#[test]
-fn fuzz_2391() {
-    let source = "c[:0s";
-    compile_qasm_best_effort(source, Profile::Unrestricted);
-}
-
-#[test]
-fn fuzz_2392() {
-    let source = "e[π:";
-    compile_qasm_best_effort(source, Profile::Unrestricted);
-}
-
-#[test]
 fn fuzz_2369() {
     let source = r#"// Ope0 standard gate) mibrary
 //
@@ -152,5 +134,29 @@ gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(5
 gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inver5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
 gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
 gaoooooootoe tg  i {adnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ staildnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ stail."#;
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2379() {
+    let source = "1[true:";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2391() {
+    let source = "c[:0s";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2392() {
+    let source = "e[π:";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2397() {
+    let source = "creg a[551615";
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
