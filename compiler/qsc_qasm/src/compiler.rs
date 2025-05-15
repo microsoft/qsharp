@@ -26,11 +26,12 @@ use crate::{
         build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
         build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
         build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
-        build_math_call_no_params, build_measure_call, build_operation_with_stmts,
-        build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
-        build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
-        build_reset_all_call, build_reset_call, build_return_expr, build_return_unit,
-        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
+        build_math_call_no_params, build_measure_call, build_measureeachz_call,
+        build_operation_with_stmts, build_path_ident_expr, build_path_ident_ty,
+        build_qasm_import_decl, build_qasm_import_items,
+        build_qasmstd_convert_call_with_two_params, build_range_expr, build_reset_all_call,
+        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
+        build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
         build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
         build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
@@ -1164,7 +1165,7 @@ impl QasmCompiler {
             semast::ExprKind::Cast(cast) => self.compile_cast_expr(cast),
             semast::ExprKind::IndexExpr(index_expr) => self.compile_index_expr(index_expr),
             semast::ExprKind::Paren(pexpr) => self.compile_paren_expr(pexpr, expr.span),
-            semast::ExprKind::Measure(expr) => self.compile_measure_expr(expr),
+            semast::ExprKind::Measure(mexpr) => self.compile_measure_expr(mexpr, &expr.ty),
         }
     }
 
@@ -1445,12 +1446,22 @@ impl QasmCompiler {
         wrap_expr_in_parens(expr, span)
     }
 
-    fn compile_measure_expr(&mut self, expr: &MeasureExpr) -> qsast::Expr {
+    fn compile_measure_expr(
+        &mut self,
+        expr: &MeasureExpr,
+        ty: &crate::semantic::types::Type,
+    ) -> qsast::Expr {
+        assert!(matches!(ty, Type::BitArray(..) | Type::Bit(..)));
+
         let call_span = expr.span;
         let name_span = expr.measure_token_span;
         let arg = self.compile_gate_operand(&expr.operand);
         let operand_span = expr.operand.span;
-        build_measure_call(arg, name_span, operand_span, call_span)
+        if matches!(ty, Type::Bit(..)) {
+            build_measure_call(arg, name_span, operand_span, call_span)
+        } else {
+            build_measureeachz_call(arg, name_span, operand_span, call_span)
+        }
     }
 
     fn compile_gate_operand(&mut self, op: &GateOperand) -> qsast::Expr {
