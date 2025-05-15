@@ -2640,15 +2640,19 @@ impl Lowerer {
     }
 
     fn lower_measure_expr(&mut self, expr: &syntax::MeasureExpr) -> semantic::Expr {
+        let operand = self.lower_gate_operand(&expr.operand);
+        let ty = get_measurement_ty_from_gate_operand(&operand);
+
         let measurement = semantic::MeasureExpr {
             span: expr.span,
             measure_token_span: expr.measure_token_span,
             operand: self.lower_gate_operand(&expr.operand),
         };
+
         semantic::Expr {
             span: expr.span,
             kind: Box::new(semantic::ExprKind::Measure(measurement)),
-            ty: Type::Bit(false),
+            ty,
         }
     }
 
@@ -3874,6 +3878,16 @@ fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
         })),
         ty,
     }
+}
+
+fn get_measurement_ty_from_gate_operand(operand: &semantic::GateOperand) -> Type {
+    if let semantic::GateOperandKind::Expr(ref expr) = &operand.kind {
+        if let Type::QubitArray(size) = expr.ty {
+            return Type::BitArray(size, false);
+        }
+    }
+
+    Type::Bit(false)
 }
 
 /// +----------------+-------------------------------------------------------------+

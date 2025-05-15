@@ -101,8 +101,8 @@ fn funcall_with_qubit_argument() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         operation parity(qs : Qubit[]) : Result {
-            mutable a = QIR.Intrinsic.__quantum__qis__m__body(qs[0]);
-            mutable b = QIR.Intrinsic.__quantum__qis__m__body(qs[1]);
+            mutable a = Std.Intrinsic.M(qs[0]);
+            mutable b = Std.Intrinsic.M(qs[1]);
             return if Std.OpenQASM.Convert.ResultAsInt(a) ^^^ Std.OpenQASM.Convert.ResultAsInt(b) == 0 {
                 One
             } else {

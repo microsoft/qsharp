@@ -740,8 +740,24 @@ pub(crate) fn build_measure_call(
     stmt_span: Span,
 ) -> ast::Expr {
     build_call_with_param(
-        "__quantum__qis__m__body",
-        &["QIR", "Intrinsic"],
+        "M",
+        &["Std", "Intrinsic"],
+        expr,
+        name_span,
+        operand_span,
+        stmt_span,
+    )
+}
+
+pub(crate) fn build_measureeachz_call(
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+    stmt_span: Span,
+) -> ast::Expr {
+    build_call_with_param(
+        "MeasureEachZ",
+        &["Std", "Measurement"],
         expr,
         name_span,
         operand_span,

@@ -42,7 +42,7 @@ fn reset_calls_are_generated_from_qasm() -> miette::Result<(), Vec<Report>> {
                 let q = QIR.Runtime.AllocateQubitArray(1);
                 Reset(q[0]);
                 h(q[0]);
-                set meas w/= 0 <- QIR.Intrinsic.__quantum__qis__m__body(q[0]);
+                set meas w/= 0 <- Std.Intrinsic.M(q[0]);
                 Std.Arrays.Reversed(meas)
             }
         }"#]]
