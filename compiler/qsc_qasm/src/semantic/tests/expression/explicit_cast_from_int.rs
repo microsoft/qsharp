@@ -27,21 +27,21 @@ fn int_to_bool() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-32]:
-            expr: Expr [29-30]:
-                ty: Bool(false)
-                kind: Cast [29-30]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-32]:
+                expr: Expr [24-31]:
                     ty: Bool(false)
-                    expr: Expr [29-30]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-31]:
+                        ty: Bool(false)
+                        expr: Expr [29-30]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -54,21 +54,21 @@ fn sized_int_to_bool() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-36]:
-            expr: Expr [33-34]:
-                ty: Bool(false)
-                kind: Cast [33-34]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-36]:
+                expr: Expr [28-35]:
                     ty: Bool(false)
-                    expr: Expr [33-34]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-35]:
+                        ty: Bool(false)
+                        expr: Expr [33-34]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -85,34 +85,34 @@ fn int_to_duration_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-15]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-15]:
-                        symbol_id: 8
-                        ty_span: [9-12]
-                        init_expr: Expr [0-0]:
-                            ty: Int(None, true)
-                            kind: Lit: Int(0)
-                Stmt [24-36]:
-                    annotations: <empty>
-                    kind: ExprStmt [24-36]:
-                        expr: Expr [33-34]:
-                            ty: Int(None, false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-15]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-15]:
+                            symbol_id: 8
+                            ty_span: [9-12]
+                            init_expr: Expr [0-0]:
+                                ty: Int(None, true)
+                                kind: Lit: Int(0)
+                    Stmt [24-36]:
+                        annotations: <empty>
+                        kind: ExprStmt [24-36]:
+                            expr: Expr [24-35]:
+                                ty: Int(None, false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, false) to type Duration(false)
-           ,-[test:3:18]
-         2 |         int a;
-         3 |         duration(a);
-           :                  ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(None, false) to type Duration(false)
+               ,-[test:3:9]
+             2 |         int a;
+             3 |         duration(a);
+               :         ^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -125,35 +125,35 @@ fn sized_int_to_duration_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-19]:
-                        symbol_id: 8
-                        ty_span: [9-16]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(32), true)
-                            kind: Lit: Int(0)
-                Stmt [28-40]:
-                    annotations: <empty>
-                    kind: ExprStmt [28-40]:
-                        expr: Expr [37-38]:
-                            ty: Int(Some(32), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-19]:
+                            symbol_id: 8
+                            ty_span: [9-16]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [28-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [28-40]:
+                            expr: Expr [28-39]:
+                                ty: Int(Some(32), false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(Some(32), false) to type
-          | Duration(false)
-           ,-[test:3:18]
-         2 |         int[32] a;
-         3 |         duration(a);
-           :                  ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(Some(32), false) to type
+              | Duration(false)
+               ,-[test:3:9]
+             2 |         int[32] a;
+             3 |         duration(a);
+               :         ^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -170,17 +170,17 @@ fn int_to_int() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-31]:
-            expr: Expr [28-29]:
-                ty: Int(None, false)
-                kind: SymbolId(8)
-    "#]],
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-31]:
+                expr: Expr [24-30]:
+                    ty: Int(None, false)
+                    kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -193,21 +193,21 @@ fn int_to_sized_int() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-35]:
-            expr: Expr [32-33]:
-                ty: Int(Some(32), false)
-                kind: Cast [32-33]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-35]:
+                expr: Expr [24-34]:
                     ty: Int(Some(32), false)
-                    expr: Expr [32-33]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-34]:
+                        ty: Int(Some(32), false)
+                        expr: Expr [32-33]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -220,21 +220,21 @@ fn sized_int_to_int() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-35]:
-            expr: Expr [32-33]:
-                ty: Int(None, false)
-                kind: Cast [32-33]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-35]:
+                expr: Expr [28-34]:
                     ty: Int(None, false)
-                    expr: Expr [32-33]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-34]:
+                        ty: Int(None, false)
+                        expr: Expr [32-33]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -247,17 +247,17 @@ fn sized_int_to_sized_int() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-39]:
-            expr: Expr [36-37]:
-                ty: Int(Some(32), false)
-                kind: SymbolId(8)
-    "#]],
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
+                    ty: Int(Some(32), false)
+                    kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -270,21 +270,21 @@ fn sized_int_to_sized_int_truncating() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-39]:
-            expr: Expr [36-37]:
-                ty: Int(Some(16), false)
-                kind: Cast [36-37]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
                     ty: Int(Some(16), false)
-                    expr: Expr [36-37]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-38]:
+                        ty: Int(Some(16), false)
+                        expr: Expr [36-37]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -297,21 +297,21 @@ fn sized_int_to_sized_int_expanding() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-39]:
-            expr: Expr [36-37]:
-                ty: Int(Some(64), false)
-                kind: Cast [36-37]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
                     ty: Int(Some(64), false)
-                    expr: Expr [36-37]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-38]:
+                        ty: Int(Some(64), false)
+                        expr: Expr [36-37]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -328,21 +328,21 @@ fn int_to_uint() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-32]:
-            expr: Expr [29-30]:
-                ty: UInt(None, false)
-                kind: Cast [29-30]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-32]:
+                expr: Expr [24-31]:
                     ty: UInt(None, false)
-                    expr: Expr [29-30]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-31]:
+                        ty: UInt(None, false)
+                        expr: Expr [29-30]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -355,21 +355,21 @@ fn int_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-36]:
-            expr: Expr [33-34]:
-                ty: UInt(Some(32), false)
-                kind: Cast [33-34]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-36]:
+                expr: Expr [24-35]:
                     ty: UInt(Some(32), false)
-                    expr: Expr [33-34]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-35]:
+                        ty: UInt(Some(32), false)
+                        expr: Expr [33-34]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -382,21 +382,21 @@ fn sized_int_to_uint() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-36]:
-            expr: Expr [33-34]:
-                ty: UInt(None, false)
-                kind: Cast [33-34]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-36]:
+                expr: Expr [28-35]:
                     ty: UInt(None, false)
-                    expr: Expr [33-34]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-35]:
+                        ty: UInt(None, false)
+                        expr: Expr [33-34]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -409,21 +409,21 @@ fn sized_int_to_sized_uint() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-40]:
-            expr: Expr [37-38]:
-                ty: UInt(Some(32), false)
-                kind: Cast [37-38]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-40]:
+                expr: Expr [28-39]:
                     ty: UInt(Some(32), false)
-                    expr: Expr [37-38]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-39]:
+                        ty: UInt(Some(32), false)
+                        expr: Expr [37-38]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -436,21 +436,21 @@ fn sized_int_to_sized_uint_truncating() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-40]:
-            expr: Expr [37-38]:
-                ty: UInt(Some(16), false)
-                kind: Cast [37-38]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-40]:
+                expr: Expr [28-39]:
                     ty: UInt(Some(16), false)
-                    expr: Expr [37-38]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-39]:
+                        ty: UInt(Some(16), false)
+                        expr: Expr [37-38]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -463,21 +463,21 @@ fn sized_int_to_sized_uint_expanding() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-40]:
-            expr: Expr [37-38]:
-                ty: UInt(Some(64), false)
-                kind: Cast [37-38]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-40]:
+                expr: Expr [28-39]:
                     ty: UInt(Some(64), false)
-                    expr: Expr [37-38]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-39]:
+                        ty: UInt(Some(64), false)
+                        expr: Expr [37-38]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -494,21 +494,21 @@ fn int_to_float() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-33]:
-            expr: Expr [30-31]:
-                ty: Float(None, false)
-                kind: Cast [30-31]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-33]:
+                expr: Expr [24-32]:
                     ty: Float(None, false)
-                    expr: Expr [30-31]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-32]:
+                        ty: Float(None, false)
+                        expr: Expr [30-31]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -521,21 +521,21 @@ fn int_to_sized_float() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-37]:
-            expr: Expr [34-35]:
-                ty: Float(Some(32), false)
-                kind: Cast [34-35]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-37]:
+                expr: Expr [24-36]:
                     ty: Float(Some(32), false)
-                    expr: Expr [34-35]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-36]:
+                        ty: Float(Some(32), false)
+                        expr: Expr [34-35]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -548,21 +548,21 @@ fn sized_int_to_float() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-37]:
-            expr: Expr [34-35]:
-                ty: Float(None, false)
-                kind: Cast [34-35]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-37]:
+                expr: Expr [28-36]:
                     ty: Float(None, false)
-                    expr: Expr [34-35]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-36]:
+                        ty: Float(None, false)
+                        expr: Expr [34-35]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -575,21 +575,21 @@ fn sized_int_to_sized_float() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-41]:
-            expr: Expr [38-39]:
-                ty: Float(Some(32), false)
-                kind: Cast [38-39]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-41]:
+                expr: Expr [28-40]:
                     ty: Float(Some(32), false)
-                    expr: Expr [38-39]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-40]:
+                        ty: Float(Some(32), false)
+                        expr: Expr [38-39]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -602,21 +602,21 @@ fn sized_int_to_sized_float_truncating() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-41]:
-            expr: Expr [38-39]:
-                ty: Float(Some(16), false)
-                kind: Cast [38-39]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-41]:
+                expr: Expr [28-40]:
                     ty: Float(Some(16), false)
-                    expr: Expr [38-39]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-40]:
+                        ty: Float(Some(16), false)
+                        expr: Expr [38-39]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -629,21 +629,21 @@ fn sized_int_to_sized_float_expanding() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-41]:
-            expr: Expr [38-39]:
-                ty: Float(Some(64), false)
-                kind: Cast [38-39]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-41]:
+                expr: Expr [28-40]:
                     ty: Float(Some(64), false)
-                    expr: Expr [38-39]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-40]:
+                        ty: Float(Some(64), false)
+                        expr: Expr [38-39]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -660,34 +660,34 @@ fn int_to_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-15]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-15]:
-                        symbol_id: 8
-                        ty_span: [9-12]
-                        init_expr: Expr [0-0]:
-                            ty: Int(None, true)
-                            kind: Lit: Int(0)
-                Stmt [24-33]:
-                    annotations: <empty>
-                    kind: ExprStmt [24-33]:
-                        expr: Expr [30-31]:
-                            ty: Int(None, false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-15]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-15]:
+                            symbol_id: 8
+                            ty_span: [9-12]
+                            init_expr: Expr [0-0]:
+                                ty: Int(None, true)
+                                kind: Lit: Int(0)
+                    Stmt [24-33]:
+                        annotations: <empty>
+                        kind: ExprStmt [24-33]:
+                            expr: Expr [24-32]:
+                                ty: Int(None, false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, false) to type Angle(None, false)
-           ,-[test:3:15]
-         2 |         int a;
-         3 |         angle(a);
-           :               ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(None, false) to type Angle(None, false)
+               ,-[test:3:9]
+             2 |         int a;
+             3 |         angle(a);
+               :         ^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -700,35 +700,35 @@ fn int_to_sized_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-15]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-15]:
-                        symbol_id: 8
-                        ty_span: [9-12]
-                        init_expr: Expr [0-0]:
-                            ty: Int(None, true)
-                            kind: Lit: Int(0)
-                Stmt [24-37]:
-                    annotations: <empty>
-                    kind: ExprStmt [24-37]:
-                        expr: Expr [34-35]:
-                            ty: Int(None, false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-15]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-15]:
+                            symbol_id: 8
+                            ty_span: [9-12]
+                            init_expr: Expr [0-0]:
+                                ty: Int(None, true)
+                                kind: Lit: Int(0)
+                    Stmt [24-37]:
+                        annotations: <empty>
+                        kind: ExprStmt [24-37]:
+                            expr: Expr [24-36]:
+                                ty: Int(None, false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, false) to type Angle(Some(32),
-          | false)
-           ,-[test:3:19]
-         2 |         int a;
-         3 |         angle[32](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(None, false) to type Angle(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         int a;
+             3 |         angle[32](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -741,35 +741,35 @@ fn sized_int_to_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-19]:
-                        symbol_id: 8
-                        ty_span: [9-16]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(32), true)
-                            kind: Lit: Int(0)
-                Stmt [28-37]:
-                    annotations: <empty>
-                    kind: ExprStmt [28-37]:
-                        expr: Expr [34-35]:
-                            ty: Int(Some(32), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-19]:
+                            symbol_id: 8
+                            ty_span: [9-16]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [28-37]:
+                        annotations: <empty>
+                        kind: ExprStmt [28-37]:
+                            expr: Expr [28-36]:
+                                ty: Int(Some(32), false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(Some(32), false) to type Angle(None,
-          | false)
-           ,-[test:3:15]
-         2 |         int[32] a;
-         3 |         angle(a);
-           :               ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(Some(32), false) to type Angle(None,
+              | false)
+               ,-[test:3:9]
+             2 |         int[32] a;
+             3 |         angle(a);
+               :         ^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -782,35 +782,35 @@ fn sized_int_to_sized_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-19]:
-                        symbol_id: 8
-                        ty_span: [9-16]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(32), true)
-                            kind: Lit: Int(0)
-                Stmt [28-41]:
-                    annotations: <empty>
-                    kind: ExprStmt [28-41]:
-                        expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-19]:
+                            symbol_id: 8
+                            ty_span: [9-16]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [28-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [28-41]:
+                            expr: Expr [28-40]:
+                                ty: Int(Some(32), false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(Some(32), false) to type
-          | Angle(Some(32), false)
-           ,-[test:3:19]
-         2 |         int[32] a;
-         3 |         angle[32](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(Some(32), false) to type
+              | Angle(Some(32), false)
+               ,-[test:3:9]
+             2 |         int[32] a;
+             3 |         angle[32](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -823,35 +823,35 @@ fn sized_int_to_sized_angle_truncating_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-19]:
-                        symbol_id: 8
-                        ty_span: [9-16]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(32), true)
-                            kind: Lit: Int(0)
-                Stmt [28-41]:
-                    annotations: <empty>
-                    kind: ExprStmt [28-41]:
-                        expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-19]:
+                            symbol_id: 8
+                            ty_span: [9-16]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [28-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [28-41]:
+                            expr: Expr [28-40]:
+                                ty: Int(Some(32), false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(Some(32), false) to type
-          | Angle(Some(16), false)
-           ,-[test:3:19]
-         2 |         int[32] a;
-         3 |         angle[16](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(Some(32), false) to type
+              | Angle(Some(16), false)
+               ,-[test:3:9]
+             2 |         int[32] a;
+             3 |         angle[16](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -864,35 +864,35 @@ fn sized_int_to_sized_angle_expanding_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-19]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-19]:
-                        symbol_id: 8
-                        ty_span: [9-16]
-                        init_expr: Expr [0-0]:
-                            ty: Int(Some(32), true)
-                            kind: Lit: Int(0)
-                Stmt [28-41]:
-                    annotations: <empty>
-                    kind: ExprStmt [28-41]:
-                        expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-19]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-19]:
+                            symbol_id: 8
+                            ty_span: [9-16]
+                            init_expr: Expr [0-0]:
+                                ty: Int(Some(32), true)
+                                kind: Lit: Int(0)
+                    Stmt [28-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [28-41]:
+                            expr: Expr [28-40]:
+                                ty: Int(Some(32), false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.CannotCast
+            [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(Some(32), false) to type
-          | Angle(Some(64), false)
-           ,-[test:3:19]
-         2 |         int[32] a;
-         3 |         angle[64](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Int(Some(32), false) to type
+              | Angle(Some(64), false)
+               ,-[test:3:9]
+             2 |         int[32] a;
+             3 |         angle[64](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -909,21 +909,21 @@ fn int_to_complex() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-35]:
-            expr: Expr [32-33]:
-                ty: Complex(None, false)
-                kind: Cast [32-33]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-35]:
+                expr: Expr [24-34]:
                     ty: Complex(None, false)
-                    expr: Expr [32-33]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-34]:
+                        ty: Complex(None, false)
+                        expr: Expr [32-33]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -936,21 +936,21 @@ fn int_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-46]:
-            expr: Expr [43-44]:
-                ty: Complex(Some(32), false)
-                kind: Cast [43-44]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-46]:
+                expr: Expr [24-45]:
                     ty: Complex(Some(32), false)
-                    expr: Expr [43-44]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-45]:
+                        ty: Complex(Some(32), false)
+                        expr: Expr [43-44]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -963,21 +963,21 @@ fn sized_int_to_complex() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-39]:
-            expr: Expr [36-37]:
-                ty: Complex(None, false)
-                kind: Cast [36-37]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
                     ty: Complex(None, false)
-                    expr: Expr [36-37]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-38]:
+                        ty: Complex(None, false)
+                        expr: Expr [36-37]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -990,21 +990,21 @@ fn sized_int_to_sized_complex() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-50]:
-            expr: Expr [47-48]:
-                ty: Complex(Some(32), false)
-                kind: Cast [47-48]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-50]:
+                expr: Expr [28-49]:
                     ty: Complex(Some(32), false)
-                    expr: Expr [47-48]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-49]:
+                        ty: Complex(Some(32), false)
+                        expr: Expr [47-48]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1017,21 +1017,21 @@ fn sized_int_to_sized_complex_truncating() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-50]:
-            expr: Expr [47-48]:
-                ty: Complex(Some(16), false)
-                kind: Cast [47-48]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-50]:
+                expr: Expr [28-49]:
                     ty: Complex(Some(16), false)
-                    expr: Expr [47-48]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-49]:
+                        ty: Complex(Some(16), false)
+                        expr: Expr [47-48]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1044,21 +1044,21 @@ fn sized_int_to_sized_complex_expanding() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-50]:
-            expr: Expr [47-48]:
-                ty: Complex(Some(64), false)
-                kind: Cast [47-48]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-50]:
+                expr: Expr [28-49]:
                     ty: Complex(Some(64), false)
-                    expr: Expr [47-48]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-49]:
+                        ty: Complex(Some(64), false)
+                        expr: Expr [47-48]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1075,21 +1075,21 @@ fn int_to_bit() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-15]:
-            symbol_id: 8
-            ty_span: [9-12]
-            init_expr: Expr [0-0]:
-                ty: Int(None, true)
-                kind: Lit: Int(0)
-        ExprStmt [24-31]:
-            expr: Expr [28-29]:
-                ty: Bit(false)
-                kind: Cast [28-29]:
+            ClassicalDeclarationStmt [9-15]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [0-0]:
+                    ty: Int(None, true)
+                    kind: Lit: Int(0)
+            ExprStmt [24-31]:
+                expr: Expr [24-30]:
                     ty: Bit(false)
-                    expr: Expr [28-29]:
-                        ty: Int(None, false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [24-30]:
+                        ty: Bit(false)
+                        expr: Expr [28-29]:
+                            ty: Int(None, false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1116,7 +1116,7 @@ fn int_to_bitarray_fails() {
                     Stmt [24-35]:
                         annotations: <empty>
                         kind: ExprStmt [24-35]:
-                            expr: Expr [32-33]:
+                            expr: Expr [24-34]:
                                 ty: Int(None, false)
                                 kind: SymbolId(8)
 
@@ -1124,10 +1124,10 @@ fn int_to_bitarray_fails() {
 
               x cannot cast expression of type Int(None, false) to type BitArray(32,
               | false)
-               ,-[test:3:17]
+               ,-[test:3:9]
              2 |         int a;
              3 |         bit[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
             ]"#]],
@@ -1143,21 +1143,21 @@ fn sized_int_to_bit() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-35]:
-            expr: Expr [32-33]:
-                ty: Bit(false)
-                kind: Cast [32-33]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-35]:
+                expr: Expr [28-34]:
                     ty: Bit(false)
-                    expr: Expr [32-33]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-34]:
+                        ty: Bit(false)
+                        expr: Expr [32-33]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1170,21 +1170,21 @@ fn sized_int_to_bitarray() {
     check(
         source,
         &expect![[r#"
-        ClassicalDeclarationStmt [9-19]:
-            symbol_id: 8
-            ty_span: [9-16]
-            init_expr: Expr [0-0]:
-                ty: Int(Some(32), true)
-                kind: Lit: Int(0)
-        ExprStmt [28-39]:
-            expr: Expr [36-37]:
-                ty: BitArray(32, false)
-                kind: Cast [36-37]:
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [0-0]:
+                    ty: Int(Some(32), true)
+                    kind: Lit: Int(0)
+            ExprStmt [28-39]:
+                expr: Expr [28-38]:
                     ty: BitArray(32, false)
-                    expr: Expr [36-37]:
-                        ty: Int(Some(32), false)
-                        kind: SymbolId(8)
-    "#]],
+                    kind: Cast [28-38]:
+                        ty: BitArray(32, false)
+                        expr: Expr [36-37]:
+                            ty: Int(Some(32), false)
+                            kind: SymbolId(8)
+        "#]],
     );
 }
 
@@ -1211,7 +1211,7 @@ fn sized_int_to_bitarray_truncating_fails() {
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
-                            expr: Expr [36-37]:
+                            expr: Expr [28-38]:
                                 ty: Int(Some(32), false)
                                 kind: SymbolId(8)
 
@@ -1219,10 +1219,10 @@ fn sized_int_to_bitarray_truncating_fails() {
 
               x cannot cast expression of type Int(Some(32), false) to type BitArray(16,
               | false)
-               ,-[test:3:17]
+               ,-[test:3:9]
              2 |         int[32] a;
              3 |         bit[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
             ]"#]],
@@ -1252,7 +1252,7 @@ fn sized_int_to_bitarray_expanding_fails() {
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
-                            expr: Expr [36-37]:
+                            expr: Expr [28-38]:
                                 ty: Int(Some(32), false)
                                 kind: SymbolId(8)
 
@@ -1260,10 +1260,10 @@ fn sized_int_to_bitarray_expanding_fails() {
 
               x cannot cast expression of type Int(Some(32), false) to type BitArray(64,
               | false)
-               ,-[test:3:17]
+               ,-[test:3:9]
              2 |         int[32] a;
              3 |         bit[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
             ]"#]],

@@ -50,10 +50,10 @@ fn bool_to_duration_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bool(false) to type Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -184,10 +184,10 @@ fn bool_to_angle_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bool(false) to type Angle(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -206,10 +206,10 @@ fn bool_to_sized_angle_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bool(false) to type Angle(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -232,10 +232,10 @@ fn bool_to_complex_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bool(false) to type Complex(None, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -255,10 +255,10 @@ fn bool_to_sized_complex_fails() {
 
               x cannot cast expression of type Bool(false) to type Complex(Some(32),
               | false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],

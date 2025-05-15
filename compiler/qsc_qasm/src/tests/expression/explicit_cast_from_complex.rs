@@ -30,10 +30,10 @@ fn complex_to_bool_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Complex(None, false) to type Bool(false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bool(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
         "#]],
@@ -53,10 +53,10 @@ fn sized_complex_to_bool_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Bool(false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bool(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
         "#]],
@@ -80,10 +80,10 @@ fn complex_to_duration_fails() {
 
               x cannot cast expression of type Complex(None, false) to type
               | Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -103,10 +103,10 @@ fn sized_complex_to_duration_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -130,10 +130,10 @@ fn complex_to_int_fails() {
 
               x cannot cast expression of type Complex(None, false) to type Int(None,
               | false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         int(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
         "#]],
@@ -153,10 +153,10 @@ fn complex_to_sized_int_fails() {
 
               x cannot cast expression of type Complex(None, false) to type Int(Some(32),
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         int[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -176,10 +176,10 @@ fn sized_complex_to_int_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type Int(None,
               | false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
         "#]],
@@ -199,10 +199,10 @@ fn sized_complex_to_sized_int_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Int(Some(32), false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -222,10 +222,10 @@ fn sized_complex_to_sized_int_truncating_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Int(Some(16), false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -245,10 +245,10 @@ fn sized_complex_to_sized_int_expanding_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Int(Some(64), false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -272,10 +272,10 @@ fn complex_to_uint_fails() {
 
               x cannot cast expression of type Complex(None, false) to type UInt(None,
               | false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         uint(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
         "#]],
@@ -295,10 +295,10 @@ fn complex_to_sized_uint_fails() {
 
               x cannot cast expression of type Complex(None, false) to type UInt(Some(32),
               | false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         uint[32](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -318,10 +318,10 @@ fn sized_complex_to_uint_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type UInt(None,
               | false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
         "#]],
@@ -341,10 +341,10 @@ fn sized_complex_to_sized_uint_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | UInt(Some(32), false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[32](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -364,10 +364,10 @@ fn sized_complex_to_sized_uint_truncating_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | UInt(Some(16), false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[16](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -387,10 +387,10 @@ fn sized_complex_to_sized_uint_expanding_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | UInt(Some(64), false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[64](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -414,10 +414,10 @@ fn complex_to_float_fails() {
 
               x cannot cast expression of type Complex(None, false) to type Float(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         float(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -437,10 +437,10 @@ fn complex_to_sized_float_fails() {
 
               x cannot cast expression of type Complex(None, false) to type
               | Float(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         float[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -460,10 +460,10 @@ fn sized_complex_to_float_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Float(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -483,10 +483,10 @@ fn sized_complex_to_sized_float_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Float(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -506,10 +506,10 @@ fn sized_complex_to_sized_float_truncating_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Float(Some(16), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[16](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -529,10 +529,10 @@ fn sized_complex_to_sized_float_expanding_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Float(Some(64), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[64](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -556,10 +556,10 @@ fn complex_to_angle_fails() {
 
               x cannot cast expression of type Complex(None, false) to type Angle(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -579,10 +579,10 @@ fn complex_to_sized_angle_fails() {
 
               x cannot cast expression of type Complex(None, false) to type
               | Angle(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -602,10 +602,10 @@ fn sized_complex_to_angle_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Angle(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -625,10 +625,10 @@ fn sized_complex_to_sized_angle_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Angle(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -648,10 +648,10 @@ fn sized_complex_to_sized_angle_truncating_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Angle(Some(16), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[16](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -671,10 +671,10 @@ fn sized_complex_to_sized_angle_expanding_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | Angle(Some(64), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[64](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -714,10 +714,10 @@ fn complex_to_sized_complex() {
 
               x this statement is not yet handled during OpenQASM 3 import: cast complex
               | expressions
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
 
@@ -725,10 +725,10 @@ fn complex_to_sized_complex() {
 
               x casting Complex(None, false) to Complex(Some(32), false) type are not
               | supported
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -748,10 +748,10 @@ fn sized_complex_to_complex() {
 
               x this statement is not yet handled during OpenQASM 3 import: cast complex
               | expressions
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
 
@@ -759,10 +759,10 @@ fn sized_complex_to_complex() {
 
               x casting Complex(Some(32), false) to Complex(None, false) type are not
               | supported
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -814,10 +814,10 @@ fn sized_complex_to_sized_complex_expanding() {
 
               x this statement is not yet handled during OpenQASM 3 import: cast complex
               | expressions
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex[float[64]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
 
@@ -825,10 +825,10 @@ fn sized_complex_to_sized_complex_expanding() {
 
               x casting Complex(Some(32), false) to Complex(Some(64), false) type are
               | not supported
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex[float[64]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -851,10 +851,10 @@ fn complex_to_bit_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Complex(None, false) to type Bit(false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bit(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
         "#]],
@@ -874,10 +874,10 @@ fn complex_to_bitarray_fails() {
 
               x cannot cast expression of type Complex(None, false) to type BitArray(32,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bit[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -896,10 +896,10 @@ fn sized_complex_to_bit_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Complex(Some(32), false) to type Bit(false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
         "#]],
@@ -919,10 +919,10 @@ fn sized_complex_to_bitarray_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | BitArray(32, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -942,10 +942,10 @@ fn sized_complex_to_bitarray_truncating_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | BitArray(16, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -965,10 +965,10 @@ fn sized_complex_to_bitarray_expanding_fails() {
 
               x cannot cast expression of type Complex(Some(32), false) to type
               | BitArray(64, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],

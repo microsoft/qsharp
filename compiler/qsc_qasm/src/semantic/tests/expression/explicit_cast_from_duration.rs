@@ -27,43 +27,43 @@ fn duration_to_bool_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-37]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-37]:
-                        expr: Expr [34-35]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-37]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-37]:
+                            expr: Expr [29-36]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         bool(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         bool(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Bool(false)
-           ,-[test:3:14]
-         2 |         duration a;
-         3 |         bool(a);
-           :              ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Bool(false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         bool(a);
+               :         ^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -80,34 +80,34 @@ fn duration_to_duration() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-41]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-41]:
-                        expr: Expr [38-39]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-41]:
+                            expr: Expr [29-40]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         duration(a);
-           `----
-        ]"#]],
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         duration(a);
+               `----
+            ]"#]],
     );
 }
 
@@ -124,43 +124,43 @@ fn duration_to_int_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-36]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-36]:
-                        expr: Expr [33-34]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-36]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-36]:
+                            expr: Expr [29-35]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         int(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         int(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Int(None, false)
-           ,-[test:3:13]
-         2 |         duration a;
-         3 |         int(a);
-           :             ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Int(None, false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         int(a);
+               :         ^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -173,44 +173,44 @@ fn duration_to_sized_int_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-40]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-40]:
-                        expr: Expr [37-38]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-40]:
+                            expr: Expr [29-39]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         int[32](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         int[32](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Int(Some(32),
-          | false)
-           ,-[test:3:17]
-         2 |         duration a;
-         3 |         int[32](a);
-           :                 ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Int(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         int[32](a);
+               :         ^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -227,43 +227,43 @@ fn duration_to_uint_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-37]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-37]:
-                        expr: Expr [34-35]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-37]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-37]:
+                            expr: Expr [29-36]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         uint(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         uint(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type UInt(None, false)
-           ,-[test:3:14]
-         2 |         duration a;
-         3 |         uint(a);
-           :              ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type UInt(None, false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         uint(a);
+               :         ^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -276,44 +276,44 @@ fn duration_to_sized_uint_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-41]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-41]:
-                        expr: Expr [38-39]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-41]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-41]:
+                            expr: Expr [29-40]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         uint[32](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         uint[32](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type UInt(Some(32),
-          | false)
-           ,-[test:3:18]
-         2 |         duration a;
-         3 |         uint[32](a);
-           :                  ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type UInt(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         uint[32](a);
+               :         ^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -330,43 +330,43 @@ fn duration_to_float_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-38]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-38]:
-                        expr: Expr [35-36]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-38]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-38]:
+                            expr: Expr [29-37]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         float(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         float(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Float(None, false)
-           ,-[test:3:15]
-         2 |         duration a;
-         3 |         float(a);
-           :               ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Float(None, false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         float(a);
+               :         ^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -379,44 +379,44 @@ fn duration_to_sized_float_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-42]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-42]:
-                        expr: Expr [39-40]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-42]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-42]:
+                            expr: Expr [29-41]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         float[32](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         float[32](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Float(Some(32),
-          | false)
-           ,-[test:3:19]
-         2 |         duration a;
-         3 |         float[32](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Float(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         float[32](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -433,43 +433,43 @@ fn duration_to_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-38]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-38]:
-                        expr: Expr [35-36]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-38]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-38]:
+                            expr: Expr [29-37]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         angle(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         angle(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Angle(None, false)
-           ,-[test:3:15]
-         2 |         duration a;
-         3 |         angle(a);
-           :               ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Angle(None, false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         angle(a);
+               :         ^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -482,44 +482,44 @@ fn duration_to_sized_angle_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-42]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-42]:
-                        expr: Expr [39-40]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-42]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-42]:
+                            expr: Expr [29-41]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         angle[32](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         angle[32](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Angle(Some(32),
-          | false)
-           ,-[test:3:19]
-         2 |         duration a;
-         3 |         angle[32](a);
-           :                   ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Angle(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         angle[32](a);
+               :         ^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -536,44 +536,44 @@ fn duration_to_complex_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-40]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-40]:
-                        expr: Expr [37-38]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-40]:
+                            expr: Expr [29-39]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         complex(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         complex(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Complex(None,
-          | false)
-           ,-[test:3:17]
-         2 |         duration a;
-         3 |         complex(a);
-           :                 ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Complex(None,
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         complex(a);
+               :         ^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -586,44 +586,44 @@ fn duration_to_sized_complex_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-51]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-51]:
-                        expr: Expr [48-49]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-51]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-51]:
+                            expr: Expr [29-50]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         complex[float[32]](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         complex[float[32]](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Complex(Some(32),
-          | false)
-           ,-[test:3:28]
-         2 |         duration a;
-         3 |         complex[float[32]](a);
-           :                            ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Complex(Some(32),
+              | false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         complex[float[32]](a);
+               :         ^^^^^^^^^^^^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -640,43 +640,43 @@ fn duration_to_bit_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-36]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-36]:
-                        expr: Expr [33-34]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-36]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-36]:
+                            expr: Expr [29-35]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         bit(a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         bit(a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type Bit(false)
-           ,-[test:3:13]
-         2 |         duration a;
-         3 |         bit(a);
-           :             ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type Bit(false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         bit(a);
+               :         ^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }
 
@@ -689,42 +689,42 @@ fn duration_to_bitarray_fails() {
     check(
         source,
         &expect![[r#"
-        Program:
-            version: <none>
-            statements:
-                Stmt [9-20]:
-                    annotations: <empty>
-                    kind: ClassicalDeclarationStmt [9-20]:
-                        symbol_id: 8
-                        ty_span: [9-17]
-                        init_expr: Expr [0-0]:
-                            ty: Duration(true)
-                            kind: Lit: Duration(0.0, Ns)
-                Stmt [29-40]:
-                    annotations: <empty>
-                    kind: ExprStmt [29-40]:
-                        expr: Expr [37-38]:
-                            ty: Duration(false)
-                            kind: SymbolId(8)
+            Program:
+                version: <none>
+                statements:
+                    Stmt [9-20]:
+                        annotations: <empty>
+                        kind: ClassicalDeclarationStmt [9-20]:
+                            symbol_id: 8
+                            ty_span: [9-17]
+                            init_expr: Expr [0-0]:
+                                ty: Duration(true)
+                                kind: Lit: Duration(0.0, Ns)
+                    Stmt [29-40]:
+                        annotations: <empty>
+                        kind: ExprStmt [29-40]:
+                            expr: Expr [29-39]:
+                                ty: Duration(false)
+                                kind: SymbolId(8)
 
-        [Qasm.Lowerer.NotSupported
+            [Qasm.Lowerer.NotSupported
 
-          x duration type values are not supported
-           ,-[test:2:9]
-         1 | 
-         2 |         duration a;
-           :         ^^^^^^^^
-         3 |         bit[32](a);
-           `----
-        , Qasm.Lowerer.CannotCast
+              x duration type values are not supported
+               ,-[test:2:9]
+             1 | 
+             2 |         duration a;
+               :         ^^^^^^^^
+             3 |         bit[32](a);
+               `----
+            , Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(false) to type BitArray(32, false)
-           ,-[test:3:17]
-         2 |         duration a;
-         3 |         bit[32](a);
-           :                 ^
-         4 |     
-           `----
-        ]"#]],
+              x cannot cast expression of type Duration(false) to type BitArray(32, false)
+               ,-[test:3:9]
+             2 |         duration a;
+             3 |         bit[32](a);
+               :         ^^^^^^^^^^
+             4 |     
+               `----
+            ]"#]],
     );
 }

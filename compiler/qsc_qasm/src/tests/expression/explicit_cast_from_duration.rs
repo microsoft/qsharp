@@ -40,10 +40,10 @@ fn duration_to_bool_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type Bool(false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bool(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
 
@@ -122,10 +122,10 @@ fn duration_to_int_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type Int(None, false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         int(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
 
@@ -165,10 +165,10 @@ fn duration_to_sized_int_fails() {
 
               x cannot cast expression of type Duration(false) to type Int(Some(32),
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         int[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
 
@@ -211,10 +211,10 @@ fn duration_to_uint_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type UInt(None, false)
-               ,-[Test.qasm:3:14]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         uint(a);
-               :              ^
+               :         ^^^^^^^
              4 |     
                `----
 
@@ -254,10 +254,10 @@ fn duration_to_sized_uint_fails() {
 
               x cannot cast expression of type Duration(false) to type UInt(Some(32),
               | false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         uint[32](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
 
@@ -300,10 +300,10 @@ fn duration_to_float_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type Float(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         float(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
 
@@ -343,10 +343,10 @@ fn duration_to_sized_float_fails() {
 
               x cannot cast expression of type Duration(false) to type Float(Some(32),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         float[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
 
@@ -389,10 +389,10 @@ fn duration_to_angle_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type Angle(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
 
@@ -432,10 +432,10 @@ fn duration_to_sized_angle_fails() {
 
               x cannot cast expression of type Duration(false) to type Angle(Some(32),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
 
@@ -479,10 +479,10 @@ fn duration_to_complex_fails() {
 
               x cannot cast expression of type Duration(false) to type Complex(None,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
 
@@ -522,10 +522,10 @@ fn duration_to_sized_complex_fails() {
 
               x cannot cast expression of type Duration(false) to type Complex(Some(32),
               | false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
 
@@ -568,10 +568,10 @@ fn duration_to_bit_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type Bit(false)
-               ,-[Test.qasm:3:13]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bit(a);
-               :             ^
+               :         ^^^^^^
              4 |     
                `----
 
@@ -610,10 +610,10 @@ fn duration_to_bitarray_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Duration(false) to type BitArray(32, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         duration a;
              3 |         bit[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
 

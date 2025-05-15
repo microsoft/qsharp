@@ -74,10 +74,10 @@ fn uint_to_duration_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type UInt(None, false) to type Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         uint a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -97,10 +97,10 @@ fn sized_uint_to_duration_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type
               | Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -424,10 +424,10 @@ fn uint_to_angle_fails() {
 
               x cannot cast expression of type UInt(None, false) to type Angle(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         uint a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -447,10 +447,10 @@ fn uint_to_sized_angle_fails() {
 
               x cannot cast expression of type UInt(None, false) to type Angle(Some(32),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         uint a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -470,10 +470,10 @@ fn sized_uint_to_angle_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type Angle(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -493,10 +493,10 @@ fn sized_uint_to_sized_angle_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type
               | Angle(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -516,10 +516,10 @@ fn sized_uint_to_sized_angle_truncating_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type
               | Angle(Some(16), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         angle[16](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -539,10 +539,10 @@ fn sized_uint_to_sized_angle_expanding_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type
               | Angle(Some(64), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         angle[64](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -686,10 +686,10 @@ fn uint_to_bitarray_fails() {
 
               x cannot cast expression of type UInt(None, false) to type BitArray(32,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         uint a;
              3 |         bit[32](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -745,10 +745,10 @@ fn sized_uint_to_bitarray_truncating_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type BitArray(16,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         bit[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -768,10 +768,10 @@ fn sized_uint_to_bitarray_expanding_fails() {
 
               x cannot cast expression of type UInt(Some(32), false) to type BitArray(64,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         uint[32] a;
              3 |         bit[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],

@@ -66,10 +66,10 @@ fn bit_to_duration_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         bit a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -88,10 +88,10 @@ fn bitarray_to_duration_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type BitArray(32, false) to type Duration(false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         duration(a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -187,10 +187,10 @@ fn bitarray_to_sized_int_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Int(Some(16),
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         int[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -210,10 +210,10 @@ fn bitarray_to_sized_int_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Int(Some(64),
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         int[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -309,10 +309,10 @@ fn bitarray_to_sized_uint_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type UInt(Some(16),
               | false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         uint[16](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -332,10 +332,10 @@ fn bitarray_to_sized_uint_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type UInt(Some(64),
               | false)
-               ,-[Test.qasm:3:18]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         uint[64](a);
-               :                  ^
+               :         ^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -391,10 +391,10 @@ fn bitarray_to_float_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Float(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         float(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -414,10 +414,10 @@ fn bitarray_to_sized_float_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Float(Some(32),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         float[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -437,10 +437,10 @@ fn bitarray_to_sized_float_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Float(Some(16),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         float[16](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -460,10 +460,10 @@ fn bitarray_to_sized_float_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Float(Some(64),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         float[64](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -486,10 +486,10 @@ fn bit_to_angle_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Angle(None, false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         bit a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -508,10 +508,10 @@ fn bit_to_sized_angle_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Angle(Some(32), false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit a;
              3 |         angle[32](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -531,10 +531,10 @@ fn bitarray_to_angle_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Angle(None,
               | false)
-               ,-[Test.qasm:3:15]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         angle(a);
-               :               ^
+               :         ^^^^^^^^
              4 |     
                `----
         "#]],
@@ -570,10 +570,10 @@ fn bitarray_to_sized_angle_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Angle(Some(16),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         angle[16](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -593,10 +593,10 @@ fn bitarray_to_sized_angle_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Angle(Some(64),
               | false)
-               ,-[Test.qasm:3:19]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         angle[64](a);
-               :                   ^
+               :         ^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -619,10 +619,10 @@ fn bit_to_complex_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Complex(None, false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -641,10 +641,10 @@ fn bit_to_sized_complex_fails() {
             Qasm.Lowerer.CannotCast
 
               x cannot cast expression of type Bit(false) to type Complex(Some(32), false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         bit a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -664,10 +664,10 @@ fn bitarray_to_complex_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type Complex(None,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         complex(a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -687,10 +687,10 @@ fn bitarray_to_sized_complex_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type
               | Complex(Some(32), false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         complex[float[32]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -710,10 +710,10 @@ fn bitarray_to_sized_complex_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type
               | Complex(Some(16), false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         complex[float[16]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -733,10 +733,10 @@ fn bitarray_to_sized_complex_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type
               | Complex(Some(64), false)
-               ,-[Test.qasm:3:28]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         complex[float[64]](a);
-               :                            ^
+               :         ^^^^^^^^^^^^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -824,10 +824,10 @@ fn bitarray_to_bitarray_truncating_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type BitArray(16,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         bit[16](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
@@ -847,10 +847,10 @@ fn bitarray_to_bitarray_expanding_fails() {
 
               x cannot cast expression of type BitArray(32, false) to type BitArray(64,
               | false)
-               ,-[Test.qasm:3:17]
+               ,-[Test.qasm:3:9]
              2 |         bit[32] a;
              3 |         bit[64](a);
-               :                 ^
+               :         ^^^^^^^^^^
              4 |     
                `----
         "#]],
