@@ -29,8 +29,8 @@ use crate::{
         build_math_call_no_params, build_measure_call, build_operation_with_stmts,
         build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
         build_qasm_import_items, build_qasmstd_convert_call_with_two_params, build_range_expr,
-        build_reset_call, build_return_expr, build_return_unit, build_stmt_semi_from_expr,
-        build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
+        build_reset_all_call, build_reset_call, build_return_expr, build_return_unit,
+        build_stmt_semi_from_expr, build_stmt_semi_from_expr_with_span, build_ternary_update_expr,
         build_top_level_ns_with_items, build_tuple_expr, build_unary_op_expr,
         build_unmanaged_qubit_alloc, build_unmanaged_qubit_alloc_array, build_while_stmt,
         build_wrapped_block_expr, managed_qubit_alloc_array, map_qsharp_type_to_ast_ty,
@@ -1037,9 +1037,15 @@ impl QasmCompiler {
     }
 
     fn compile_reset_stmt(&mut self, stmt: &semast::ResetStmt) -> Option<qsast::Stmt> {
+        let is_register = matches!(stmt.operand.kind, crate::semantic::ast::GateOperandKind::Expr(ref expr) if matches!(expr.ty, Type::QubitArray(..)));
+
         let operand = self.compile_gate_operand(&stmt.operand);
         let operand_span = operand.span;
-        let expr = build_reset_call(operand, stmt.reset_token_span, operand_span);
+        let expr = if is_register {
+            build_reset_all_call(operand, stmt.reset_token_span, operand_span)
+        } else {
+            build_reset_call(operand, stmt.reset_token_span, operand_span)
+        };
         Some(build_stmt_semi_from_expr(expr))
     }
 
