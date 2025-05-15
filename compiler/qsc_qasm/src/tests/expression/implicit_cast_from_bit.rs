@@ -4,7 +4,7 @@
 use expect_test::expect;
 use miette::Report;
 
-use crate::tests::compile_qasm_to_qsharp;
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 
 #[test]
 fn to_bool_and_back_implicitly() -> miette::Result<(), Vec<Report>> {
@@ -138,16 +138,17 @@ fn to_explicit_bigint_implicitly() -> miette::Result<(), Vec<Report>> {
 }
 
 #[test]
-fn to_implicit_float_implicitly_fails() {
+fn to_implicit_float_implicitly() {
     let source = "
         bit x = 1;
         float y = x;
     ";
-
-    let Err(error) = compile_qasm_to_qsharp(source) else {
-        panic!("Expected error")
-    };
-
-    expect!["cannot cast expression of type Bit(false) to type Float(None, false)"]
-        .assert_eq(&error[0].to_string());
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable x = One;
+        mutable y = Std.OpenQASM.Convert.ResultAsDouble(x);
+    "#]],
+    );
 }

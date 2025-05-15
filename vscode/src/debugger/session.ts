@@ -336,6 +336,9 @@ export class QscDebugSession extends LoggingDebugSession {
       this.sendEvent(evt);
     } else if (result.id == StepResultId.Return) {
       await this.endSession(`ending session`, 0);
+    } else if (result.id == StepResultId.Fail) {
+      log.trace(`step result: ${result.id} ${result.value}`);
+      this.sendEvent(new StoppedEvent("exception", QscDebugSession.threadID));
     } else {
       log.trace(`step result: ${result.id} ${result.value}`);
       this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
@@ -387,12 +390,21 @@ export class QscDebugSession extends LoggingDebugSession {
     // supports shots.
     for (let i = 0; i < args.shots; i++) {
       try {
-        const result = await this.debugService.evalContinue(
+        let result = await this.debugService.evalContinue(
           bps,
           this.eventTarget,
         );
 
+        // Ensure the circuit is updated before checking for fail, since the
+        // right-hand side of the fail expression may itself be a block that includes
+        // gate calls.
         await this.updateCircuit();
+
+        if (result.id == StepResultId.Fail) {
+          // This was a runtime failure in the program, so we need to continue to
+          // trigger the actual failure event.
+          result = await this.debugService.evalContinue(bps, this.eventTarget);
+        }
 
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);

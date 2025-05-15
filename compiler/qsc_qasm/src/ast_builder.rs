@@ -211,30 +211,13 @@ pub(crate) fn build_lit_result_expr(value: qsc_ast::ast::Result, span: Span) -> 
     }
 }
 
-pub(crate) fn build_lit_result_array_expr_from_bitstring<S: AsRef<str>>(
-    bitstring: S,
+pub(crate) fn build_lit_result_array_expr<I: IntoIterator<Item = ast::Result>>(
+    values: I,
     span: Span,
 ) -> Expr {
-    let values = bitstring
-        .as_ref()
-        .chars()
-        .filter_map(|c| {
-            if c == '0' {
-                Some(ast::Result::Zero)
-            } else if c == '1' {
-                Some(ast::Result::One)
-            } else {
-                None
-            }
-        })
-        .collect();
-    build_lit_result_array_expr(values, span)
-}
-
-pub(crate) fn build_lit_result_array_expr(values: Vec<qsc_ast::ast::Result>, span: Span) -> Expr {
     let exprs: Vec<_> = values
         .into_iter()
-        .map(|v| build_lit_result_expr(v, Span::default()))
+        .map(|value| build_lit_result_expr(value, Span::default()))
         .collect();
     build_expr_array_expr(exprs, span)
 }
@@ -740,8 +723,24 @@ pub(crate) fn build_measure_call(
     stmt_span: Span,
 ) -> ast::Expr {
     build_call_with_param(
-        "__quantum__qis__m__body",
-        &["QIR", "Intrinsic"],
+        "M",
+        &["Std", "Intrinsic"],
+        expr,
+        name_span,
+        operand_span,
+        stmt_span,
+    )
+}
+
+pub(crate) fn build_measureeachz_call(
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+    stmt_span: Span,
+) -> ast::Expr {
+    build_call_with_param(
+        "MeasureEachZ",
+        &["Std", "Measurement"],
         expr,
         name_span,
         operand_span,
@@ -751,6 +750,14 @@ pub(crate) fn build_measure_call(
 
 pub(crate) fn build_reset_call(expr: ast::Expr, name_span: Span, operand_span: Span) -> ast::Expr {
     build_global_call_with_one_param("Reset", expr, name_span, operand_span)
+}
+
+pub(crate) fn build_reset_all_call(
+    expr: ast::Expr,
+    name_span: Span,
+    operand_span: Span,
+) -> ast::Expr {
+    build_global_call_with_one_param("ResetAll", expr, name_span, operand_span)
 }
 
 pub(crate) fn build_global_call_with_one_param<S: AsRef<str>>(

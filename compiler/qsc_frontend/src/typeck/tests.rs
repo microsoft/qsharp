@@ -4695,3 +4695,34 @@ fn field_access_not_ident() {
         "##]],
     );
 }
+
+#[test]
+fn type_exceeding_size_limit_is_not_propaged_and_generates_error() {
+    check(
+        indoc! {"
+            namespace A {
+                function Foo() : Unit {
+                    let tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[] = [];
+                    let x = tooBig[0];
+                }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 30-32 "()" : Unit
+            #10 40-610 "{\n        let tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[] = [];\n        let x = tooBig[0];\n    }" : Unit
+            #12 54-571 "tooBig : ((((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))) -> (((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ())))) -> ((((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))) -> (((() -> ()) -> (() -> ())) -> ((() -> ()) -> (() -> ()))))))[]" : ((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))[]
+            #205 574-576 "[]" : ?0[]
+            #207 590-591 "x" : ?2
+            #209 594-603 "tooBig[0]" : ?2
+            #210 594-600 "tooBig" : ((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))[]
+            #213 601-602 "0" : Int
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 574, hi: 576 }))))
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 594, hi: 600 }))))
+            Error(Type(Error(TySizeLimitExceeded("((((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))) -> (((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit)))) -> ((((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))) -> (((Unit -> Unit) -> (Unit -> Unit)) -> ((Unit -> Unit) -> (Unit -> Unit))))))", Span { lo: 594, hi: 603 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 574, hi: 576 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 603 }))))
+            Error(Type(Error(AmbiguousTy(Span { lo: 594, hi: 600 }))))
+        "##]],
+    );
+}

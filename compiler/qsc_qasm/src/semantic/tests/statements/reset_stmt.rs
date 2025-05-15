@@ -1,0 +1,122 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use crate::semantic::tests::check_stmt_kinds;
+use expect_test::expect;
+
+#[test]
+fn on_a_single_qubit() {
+    check_stmt_kinds(
+        "qubit q;
+        reset q;",
+        &expect![[r#"
+            QubitDeclaration [0-8]:
+                symbol_id: 8
+            ResetStmt [17-25]:
+                reset_token_span: [17-22]
+                operand: GateOperand [23-24]:
+                    kind: Expr [23-24]:
+                        ty: Qubit
+                        kind: SymbolId(8)
+        "#]],
+    );
+}
+
+#[test]
+fn on_an_indexed_qubit_register() {
+    check_stmt_kinds(
+        "qubit[5] q;
+        reset q[2];",
+        &expect![[r#"
+            QubitArrayDeclaration [0-11]:
+                symbol_id: 8
+                size: 5
+                size_span: [6-7]
+            ResetStmt [20-31]:
+                reset_token_span: [20-25]
+                operand: GateOperand [26-30]:
+                    kind: Expr [26-30]:
+                        ty: Qubit
+                        kind: IndexedIdent [26-30]:
+                            symbol_id: 8
+                            name_span: [26-27]
+                            index_span: [27-30]
+                            indices:
+                                Expr [28-29]:
+                                    ty: Int(None, true)
+                                    kind: Lit: Int(2)
+        "#]],
+    );
+}
+
+#[test]
+fn on_a_span_indexed_qubit_register() {
+    check_stmt_kinds(
+        "qubit[5] q;
+        reset q[1:3];",
+        &expect![[r#"
+            QubitArrayDeclaration [0-11]:
+                symbol_id: 8
+                size: 5
+                size_span: [6-7]
+            ResetStmt [20-33]:
+                reset_token_span: [20-25]
+                operand: GateOperand [26-32]:
+                    kind: Expr [26-32]:
+                        ty: QubitArray(3)
+                        kind: IndexedIdent [26-32]:
+                            symbol_id: 8
+                            name_span: [26-27]
+                            index_span: [27-32]
+                            indices:
+                                Range [28-31]:
+                                    start: Expr [28-29]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(1)
+                                    step: <none>
+                                    end: Expr [30-31]:
+                                        ty: Int(None, true)
+                                        kind: Lit: Int(3)
+        "#]],
+    );
+}
+
+#[test]
+fn on_a_zero_len_qubit_register() {
+    check_stmt_kinds(
+        "qubit[0] q;
+        reset q;",
+        &expect![[r#"
+            QubitArrayDeclaration [0-11]:
+                symbol_id: 8
+                size: 0
+                size_span: [6-7]
+            ResetStmt [20-28]:
+                reset_token_span: [20-25]
+                operand: GateOperand [26-27]:
+                    kind: Expr [26-27]:
+                        ty: QubitArray(0)
+                        kind: SymbolId(8)
+        "#]],
+    );
+}
+
+#[test]
+fn on_an_unindexed_qubit_register() {
+    check_stmt_kinds(
+        "qubit[5] q;
+        reset q;",
+        &expect![[r#"
+            QubitArrayDeclaration [0-11]:
+                symbol_id: 8
+                size: 5
+                size_span: [6-7]
+            ResetStmt [20-28]:
+                reset_token_span: [20-25]
+                operand: GateOperand [26-27]:
+                    kind: Expr [26-27]:
+                        ty: QubitArray(5)
+                        kind: SymbolId(8)
+        "#]],
+    );
+}
