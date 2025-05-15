@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.{qs,qsc,ipynb}'
+applyTo: "**/*.{qs,qsc,ipynb}"
 ---
 
 # Q# coding instructions
