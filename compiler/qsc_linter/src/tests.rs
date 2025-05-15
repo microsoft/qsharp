@@ -557,6 +557,22 @@ fn needless_operation_partial_application() {
         "#]],
     );
 }
+
+#[test]
+fn needless_operation_no_lint_for_lambda() {
+    check(
+        indoc! {"
+        operation Run(target : Qubit) : Unit is Adj {
+            let f = q => {Message(\"hi\");};
+            f(target);
+        }
+    "},
+        &expect![[r"
+            []
+        "]],
+    );
+}
+
 #[test]
 fn deprecated_newtype_usage() {
     check(
