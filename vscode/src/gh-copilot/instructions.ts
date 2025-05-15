@@ -350,14 +350,14 @@ export async function registerGhCopilotInstructionsCommand(
   // Also do a one-time prompt at activation time
   if (
     context.globalState.get<boolean>(
-      "showUpdateCopilotInstructionsPromptAtStartup2", // TODO
+      "showUpdateCopilotInstructionsPromptAtStartup",
       true,
     )
   ) {
     updateCopilotInstructions("Activation", context).then((response) => {
       if (response === "Don't show again") {
         context.globalState.update(
-          "showUpdateCopilotInstructionsPromptAtStartup2", // TODO
+          "showUpdateCopilotInstructionsPromptAtStartup",
           false,
         );
       }
