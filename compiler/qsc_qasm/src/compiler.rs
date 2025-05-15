@@ -1703,12 +1703,9 @@ impl QasmCompiler {
             Type::Bool(..) => {
                 build_convert_cast_call_by_name("ResultArrayAsBool", expr, name_span, operand_span)
             }
-            Type::Angle(Some(width), _) if *width == size => build_convert_cast_call_by_name(
-                "ResultArrayAsAngleBE",
-                expr,
-                name_span,
-                operand_span,
-            ),
+            Type::Angle(Some(width), _) if *width == size => {
+                build_angle_cast_call_by_name("ResultArrayAsAngleBE", expr, name_span, operand_span)
+            }
             Type::Int(Some(width), _) | Type::UInt(Some(width), _) if *width == size => {
                 build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
             }

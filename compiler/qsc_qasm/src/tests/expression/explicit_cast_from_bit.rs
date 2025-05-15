@@ -552,7 +552,7 @@ fn bitarray_to_sized_angle() {
         &expect![[r#"
             import Std.OpenQASM.Intrinsic.*;
             mutable a = [Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero, Zero];
-            Std.OpenQASM.Convert.ResultArrayAsAngleBE(a);
+            Std.OpenQASM.Angle.ResultArrayAsAngleBE(a);
         "#]],
     );
 }

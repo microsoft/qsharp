@@ -62,7 +62,7 @@ function ResultAsBigInt(input : Result) : BigInt {
     }
 }
 
-/// The ``RESULT_AS_DOUBLE`` function is used to implement the cast expr in QASM for result to float.
+/// The ``ResultAsDouble`` function is used to implement the cast expr in QASM for result to float.
 function ResultAsDouble(value : Result) : Double {
     if value == One {
         1.
@@ -71,7 +71,7 @@ function ResultAsDouble(value : Result) : Double {
     }
 }
 
-/// The ``RESULT_ARRAY_AS_BOOL`` function is used to implement the cast expr in QASM for bit[] to bool.
+/// The ``ResultArrayAsBool`` function is used to implement the cast expr in QASM for bit[] to bool.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsBool(array : Result[]) : Bool {
     for result in array {
@@ -82,19 +82,13 @@ function ResultArrayAsBool(array : Result[]) : Bool {
     false
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[] to bit.
+/// The ``ResultArrayAsResultBE`` function is used to implement the cast expr in QASM for bit[] to bit.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsResultBE(array : Result[]) : Result {
     BoolAsResult(ResultArrayAsBool(array))
 }
 
-/// The ``RESULT_ARRAY_AS_RESULT_BE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
-/// with big-endian order. This is needed for round-trip conversion for bin ops.
-function ResultArrayAsAngleBE(array : Result[]) : Std.OpenQASM.Angle.Angle {
-    Std.OpenQASM.Angle.IntAsAngle(ResultArrayAsIntBE(array), Length(array))
-}
-
-/// The ``INT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for int to bit[].
+/// The ``IntAsResultArrayBE`` function is used to implement the cast expr in QASM for int to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function IntAsResultArrayBE(number : Int, bits : Int) : Result[] {
     mutable runningValue = number;
@@ -106,19 +100,13 @@ function IntAsResultArrayBE(number : Int, bits : Int) : Result[] {
     Std.Arrays.Reversed(result)
 }
 
-/// The ``ANGLE_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for angle[n] to bit[n].
-/// with big-endian order. This is needed for round-trip conversion for bin ops.
-function AngleAsResultArrayBE(angle : Std.OpenQASM.Angle.Angle) : Result[] {
-    IntAsResultArrayBE(angle.Value, angle.Size)
-}
-
-/// The ``BOOL_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bool to bit[].
+/// The ``BoolAsResultArrayBE`` function is used to implement the cast expr in QASM for bool to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function BoolAsResultArrayBE(value : Bool, bits : Int) : Result[] {
     IntAsResultArrayBE(BoolAsInt(value), bits)
 }
 
-/// The ``RESULT_AS_RESULT_ARRAY_BE`` function is used to implement the cast expr in QASM for bit to bit[].
+/// The ``ResultAsResultArrayBE`` function is used to implement the cast expr in QASM for bit to bit[].
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultAsResultArrayBE(value : Result, bits : Int) : Result[] {
     // Since we are in big endian notation, the most significant bit is stored
@@ -126,13 +114,13 @@ function ResultAsResultArrayBE(value : Result, bits : Int) : Result[] {
     return Std.Core.Repeated(Zero, bits - 1) + [value]
 }
 
-/// The ``RESULT_ARRAY_AS_INT_BE`` function is used to implement the cast expr in QASM for bit[] to uint.
+/// The ``ResultArrayAsIntBE`` function is used to implement the cast expr in QASM for bit[] to uint.
 /// with big-endian order. This is needed for round-trip conversion for bin ops.
 function ResultArrayAsIntBE(results : Result[]) : Int {
     Std.Convert.ResultArrayAsInt(Std.Arrays.Reversed(results))
 }
 
-/// The ``DOUBLE_AS_RESULT`` function is used to implement the cast expr in QASM for float to bit.
+/// The ``DoubleAsResult`` function is used to implement the cast expr in QASM for float to bit.
 /// This is needed for round-trip conversion for bin ops.
 function DoubleAsResult(value : Double) : Result {
     if Std.Math.Truncate(value) == 0 {
