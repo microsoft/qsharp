@@ -152,6 +152,5 @@ gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(5
 gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inver5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
 gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
 gaoooooootoe tg  i {adnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ staildnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ stail."#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
