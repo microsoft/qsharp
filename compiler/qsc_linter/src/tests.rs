@@ -767,16 +767,34 @@ fn needless_operation_inside_function_call() {
 }
 
 #[test]
-fn discourage_update_expr_code_action() {
+fn deprecated_update_expr_lint() {
+    check(
+        &wrap_in_callable("arr w/ idx <- 42;", CallableKind::Function),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "arr w/ idx <- 42",
+                    level: Allow,
+                    message: "deprecated use of update expressions",
+                    help: "update expressions \"a w/ b <- c\" are deprecated; consider using explicit assignment instead",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_assign_update_expr_code_action() {
     check(
         &wrap_in_callable("arr w/= idx <- 42;", CallableKind::Function),
         &expect![[r#"
             [
                 SrcLint {
                     source: "arr w/= idx <- 42",
-                    level: Warn,
-                    message: "discouraged use of update expressions",
-                    help: "update expressions (w/=, w/) are discouraged; consider using explicit assignment instead",
+                    level: Allow,
+                    message: "deprecated use of update assignment expressions",
+                    help: "update assignment expressions \"a w/= b <- c\" are deprecated; consider using explicit assignment instead \"a[b] = c\"",
                     code_action_edits: [
                         (
                             "arr[idx] = 42",
