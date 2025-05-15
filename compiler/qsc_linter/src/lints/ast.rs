@@ -32,7 +32,8 @@ declare_ast_lints! {
     (DeprecatedNewtype, LintLevel::Allow, "deprecated `newtype` declarations", "`newtype` declarations are deprecated, use `struct` instead"),
     (DeprecatedSet, LintLevel::Allow, "deprecated use of `set` keyword", "the `set` keyword is deprecated for assignments and can be removed"),
     (DiscourageChainAssignment, LintLevel::Warn, "discouraged use of chain assignment", "assignment expressions always return `Unit`, so chaining them may not be useful"),
-    (DiscourageUpdateExpr, LintLevel::Warn, "discouraged use of update expressions", "update expressions (w/=, w/) are discouraged; consider using explicit assignment instead"),
+    (DeprecatedAssignUpdateExpr, LintLevel::Warn, "deprecated use of update assignment expressions", "update assignment expressions (w/=) are deprecated; consider using explicit assignment instead"),
+    (DeprecatedUpdateExpr, LintLevel::Allow, "deprecated use of update expressions", "update expressions (w/) are deprecated; consider using explicit assignment instead"),
 }
 
 #[derive(Default)]
@@ -264,31 +265,34 @@ impl AstLintPass for DiscourageChainAssignment {
 }
 
 #[derive(Default)]
-struct DiscourageUpdateExpr {
+struct DeprecatedAssignUpdateExpr {
     level: LintLevel,
 }
 
-impl AstLintPass for DiscourageUpdateExpr {
+impl AstLintPass for DeprecatedAssignUpdateExpr {
     fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, compilation: Compilation) {
-        match expr.kind.as_ref() {
-            ExprKind::AssignUpdate(record, index, value) => {
-                // Provide a code action to convert `w/=` to a plain assignment.
-                // Use the source code for lhs and rhs directly from the compilation.
-                let record_src = compilation.get_source_code(record.span);
-                let index_src = compilation.get_source_code(index.span);
-                let value_src = compilation.get_source_code(value.span);
-                let edit = vec![(
-                    format!("{record_src}[{index_src}] = {value_src}"),
-                    expr.span,
-                )];
+        if let ExprKind::AssignUpdate(record, index, value) = expr.kind.as_ref() {
+            let record_src = compilation.get_source_code(record.span);
+            let index_src = compilation.get_source_code(index.span);
+            let value_src = compilation.get_source_code(value.span);
+            let edit = vec![(
+                format!("{record_src}[{index_src}] = {value_src}"),
+                expr.span,
+            )];
+            buffer.push(lint!(self, expr.span, edit));
+        }
+    }
+}
 
-                buffer.push(lint!(self, expr.span, edit));
-            }
-            ExprKind::TernOp(TernOp::Update, ..) => {
-                // No code action for now, just a lint.
-                buffer.push(lint!(self, expr.span));
-            }
-            _ => {}
+#[derive(Default)]
+struct DeprecatedUpdateExpr {
+    level: LintLevel,
+}
+
+impl AstLintPass for DeprecatedUpdateExpr {
+    fn check_expr(&mut self, expr: &Expr, buffer: &mut Vec<Lint>, _compilation: Compilation) {
+        if let ExprKind::TernOp(TernOp::Update, ..) = expr.kind.as_ref() {
+            buffer.push(lint!(self, expr.span));
         }
     }
 }
