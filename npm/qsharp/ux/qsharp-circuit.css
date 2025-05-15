@@ -83,16 +83,16 @@
 
   /* Edit mode style for arg-button (hyperlink appearance) */
   .arg-button.edit-mode {
-    fill: var(--vscode-textLink-foreground, #0066cc);
+    /* fill: var(--vscode-textLink-foreground, #0066cc); */
     text-decoration: underline;
     cursor: pointer;
     pointer-events: all;
   }
 
   /* Hover style for arg-button in edit mode */
-  .arg-button.edit-mode:hover {
-    fill: var(--vscode-textLink-activeForeground, #004499); /* Hover color */
-  }
+  /* .arg-button.edit-mode:hover {
+    fill: var(--vscode-textLink-activeForeground, #004499);
+  } */
 
   /* Dot and line for controlled gates */
   .gate > line,
@@ -409,7 +409,7 @@
   margin: 0 5px;
   background: var(--vscode-button-background, #007acc);
   color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, #005a9e);
+  border: 1px solid var(--vscode-button-border, transparent);
   cursor: pointer;
   border-radius: 4px;
 }
@@ -419,9 +419,7 @@
 }
 
 .prompt-button:disabled {
-  background: var(--vscode-button-secondaryBackground, #d4d4d4);
-  color: var(--vscode-disabledForeground, #a1a1a1);
-  border: 1px solid var(--vscode-button-secondaryBackground, #d4d4d4);
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
