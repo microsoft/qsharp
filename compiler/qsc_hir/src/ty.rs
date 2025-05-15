@@ -199,6 +199,17 @@ impl Ty {
             }
         }
     }
+
+    /// Calculates the size of the type, which represents its structural complexity.
+    /// This is used to avoid "large" types that can result in hangs during type inference.
+    pub fn size(&self) -> usize {
+        match self {
+            Ty::Array(item) => item.size() + 1,
+            Ty::Arrow(arrow) => arrow.input.borrow().size() + arrow.output.borrow().size() + 1,
+            Ty::Infer(_) | Ty::Err | Ty::Prim(_) | Ty::Param { .. } | Ty::Udt(_, _) => 1,
+            Ty::Tuple(items) => items.iter().map(Ty::size).sum::<usize>() + 1,
+        }
+    }
 }
 
 impl Display for Ty {
