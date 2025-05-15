@@ -281,6 +281,10 @@ impl From<StepResult> for StructStepResult {
                 id: StepResultId::Return.into(),
                 value: 0,
             },
+            StepResult::Fail => StructStepResult {
+                id: StepResultId::Fail.into(),
+                value: 0,
+            },
         }
     }
 }
@@ -293,6 +297,7 @@ pub enum StepResultId {
     StepIn = 2,
     StepOut = 3,
     Return = 4,
+    Fail = 5,
 }
 
 impl From<StepResultId> for usize {
