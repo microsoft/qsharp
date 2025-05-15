@@ -147,10 +147,8 @@ function getConfiguredInstructionsFilesLocations(): Record<string, boolean> {
 
 /**
  * Gets our extension's chat instructions directory's absolute path.
- * Will only work in *real* fileSystems -
- * TBD how this setting will work if/when VS Code supports GitHub Copilot in the browser.
- *
- * TODO: create GitHub issue to track how we handle this in the browser.
+ * Will only work in *real* fileSystems - it's TBD how this setting
+ * will work if/when VS Code supports GitHub Copilot in the browser.
  */
 function getExtensionInstructionsDir(globalStateUri: vscode.Uri): string {
   const instructionsUri = vscode.Uri.joinPath(
