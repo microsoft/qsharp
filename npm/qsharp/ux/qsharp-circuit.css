@@ -83,16 +83,10 @@
 
   /* Edit mode style for arg-button (hyperlink appearance) */
   .arg-button.edit-mode {
-    /* fill: var(--vscode-textLink-foreground, #0066cc); */
     text-decoration: underline;
     cursor: pointer;
     pointer-events: all;
   }
-
-  /* Hover style for arg-button in edit mode */
-  /* .arg-button.edit-mode:hover {
-    fill: var(--vscode-textLink-activeForeground, #004499);
-  } */
 
   /* Dot and line for controlled gates */
   .gate > line,
