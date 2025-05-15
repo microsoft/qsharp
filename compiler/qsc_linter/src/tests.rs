@@ -769,7 +769,10 @@ fn needless_operation_inside_function_call() {
 #[test]
 fn deprecated_update_expr_lint() {
     check(
-        &wrap_in_callable("mutable arr = []; arr w/ idx <- 42;", CallableKind::Function),
+        &wrap_in_callable(
+            "mutable arr = []; arr w/ idx <- 42;",
+            CallableKind::Function,
+        ),
         &expect![[r#"
             [
                 SrcLint {
@@ -787,7 +790,10 @@ fn deprecated_update_expr_lint() {
 #[test]
 fn deprecated_assign_update_expr_code_action() {
     check(
-        &wrap_in_callable("mutable arr = []; arr w/= idx <- 42;", CallableKind::Function),
+        &wrap_in_callable(
+            "mutable arr = []; arr w/= idx <- 42;",
+            CallableKind::Function,
+        ),
         &expect![[r#"
             [
                 SrcLint {
