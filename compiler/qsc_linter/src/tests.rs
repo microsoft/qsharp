@@ -433,19 +433,11 @@ fn redundant_semicolons() {
 }
 
 #[test]
-fn needless_operation_lambda_operations() {
+fn needless_operation_no_lint_for_lambda_operations() {
     check(
         &wrap_in_callable("let a = (a) => a + 1;", CallableKind::Function),
         &expect![[r#"
-            [
-                SrcLint {
-                    source: "(a) => a + 1",
-                    level: Allow,
-                    message: "operation does not contain any quantum operations",
-                    help: "this callable can be declared as a function instead",
-                    code_action_edits: [],
-                },
-            ]
+            []
         "#]],
     );
 }
@@ -555,21 +547,6 @@ fn needless_operation_partial_application() {
                 },
             ]
         "#]],
-    );
-}
-
-#[test]
-fn needless_operation_no_lint_for_lambda() {
-    check(
-        indoc! {"
-        operation Run(target : Qubit) : Unit is Adj {
-            let f = q => {Message(\"hi\");};
-            f(target);
-        }
-    "},
-        &expect![[r"
-            []
-        "]],
     );
 }
 
