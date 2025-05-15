@@ -24,7 +24,7 @@ use crate::{
         build_if_expr_then_block_else_expr, build_if_expr_then_expr_else_expr,
         build_implicit_return_stmt, build_index_expr, build_indexed_assignment_statement,
         build_lit_angle_expr, build_lit_bigint_expr, build_lit_bool_expr, build_lit_complex_expr,
-        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr_from_bitstring,
+        build_lit_double_expr, build_lit_int_expr, build_lit_result_array_expr,
         build_lit_result_expr, build_managed_qubit_alloc, build_math_call_from_exprs,
         build_math_call_no_params, build_measure_call, build_operation_with_stmts,
         build_path_ident_expr, build_path_ident_ty, build_qasm_import_decl,
@@ -1540,12 +1540,29 @@ impl QasmCompiler {
 
     fn compile_bitstring_literal(value: &BigInt, width: u32, span: Span) -> qsast::Expr {
         let width = width as usize;
-        let bitstring = if value == &BigInt::ZERO && width == 0 {
-            "Bitstring(\"\")".to_string()
+        // Handle the special case where the value is zero and width is zero
+        if value == &BigInt::ZERO && width == 0 {
+            return build_lit_result_array_expr(vec![], span);
+        }
+
+        let binary = value.to_str_radix(2).into_bytes().into_iter().map(|b| {
+            // the string bytes are ASCII bytes, so we check their value offset from b'0'
+            if (b - b'0') == 0 {
+                qsast::Result::Zero
+            } else {
+                qsast::Result::One
+            }
+        });
+        // Pad the binary representation with leading zeros to match the width
+        let values = if binary.len() < width {
+            let mut padded = vec![qsast::Result::Zero; width - binary.len()];
+            padded.extend(binary);
+            padded
         } else {
-            format!("Bitstring(\"{:0>width$}\")", value.to_str_radix(2))
+            binary.collect()
         };
-        build_lit_result_array_expr_from_bitstring(bitstring, span)
+
+        build_lit_result_array_expr(values, span)
     }
 
     fn compile_complex_literal(real: f64, imag: f64, span: Span) -> qsast::Expr {
