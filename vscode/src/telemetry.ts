@@ -285,7 +285,9 @@ type EventTypes = {
     };
   };
   [EventType.UpdateCopilotInstructionsStart]: {
-    properties: Empty;
+    properties: {
+      trigger: "Command" | "Project" | "Activation" | "ChatToolCall";
+    };
     measurements: Empty;
   };
   [EventType.UpdateCopilotInstructionsEnd]: {
