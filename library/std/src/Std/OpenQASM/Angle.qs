@@ -63,10 +63,22 @@ function AngleAsResult(angle : Angle) : Result {
     Std.Convert.BoolAsResult(angle.Value != 0)
 }
 
+/// The ``AngleAsResultArrayBE`` function is used to implement the cast expr in QASM for angle[n] to bit[n].
+/// with big-endian order. This is needed for round-trip conversion for bin ops.
+function AngleAsResultArrayBE(angle : Angle) : Result[] {
+    Std.OpenQASM.Convert.IntAsResultArrayBE(angle.Value, angle.Size)
+}
+
 function IntAsAngle(value : Int, size : Int) : Angle {
     Std.Diagnostics.Fact(value >= 0, "Value must be >= 0");
     Std.Diagnostics.Fact(size > 0, "Size must be > 0");
     new Angle { Value = value, Size = size }
+}
+
+/// The ``ResultArrayAsAngleBE`` function is used to implement the cast expr in QASM for bit[n] to angle[n].
+/// with big-endian order. This is needed for round-trip conversion for bin ops.
+function ResultArrayAsAngleBE(array : Result[]) : Angle {
+    IntAsAngle(Std.OpenQASM.Convert.ResultArrayAsIntBE(array), Length(array))
 }
 
 function DoubleAsAngle(value : Double, size : Int) : Angle {

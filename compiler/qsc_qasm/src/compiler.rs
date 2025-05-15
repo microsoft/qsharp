@@ -1618,7 +1618,7 @@ impl QasmCompiler {
             }
             Type::Bit(..) => build_angle_cast_call_by_name("AngleAsResult", expr, span, span),
             Type::BitArray(..) => {
-                build_angle_cast_call_by_name("AngleAsResultArray", expr, span, span)
+                build_angle_cast_call_by_name("AngleAsResultArrayBE", expr, span, span)
             }
             Type::Bool(..) => build_angle_cast_call_by_name("AngleAsBool", expr, span, span),
             _ => err_expr(span),
@@ -1644,21 +1644,18 @@ impl QasmCompiler {
         let operand_span = expr.span;
         let name_span = span;
         match ty {
-            &Type::Angle(..) => {
+            Type::Angle(..) => {
                 build_angle_cast_call_by_name("ResultAsAngle", expr, name_span, operand_span)
             }
-            &Type::Bool(..) => {
+            Type::Bool(..) => {
                 build_convert_cast_call_by_name("ResultAsBool", expr, name_span, operand_span)
             }
-            &Type::Float(..) => {
-                // The spec says that this cast isn't supported, but it
-                // casts to other types that case to float. For now, we'll
-                // say it is invalid like the spec.
-                err_expr(span)
+            Type::Float(..) => {
+                build_convert_cast_call_by_name("ResultAsDouble", expr, name_span, operand_span)
             }
-            &Type::Int(w, _) | &Type::UInt(w, _) => {
+            Type::Int(w, _) | Type::UInt(w, _) => {
                 let function = if let Some(width) = w {
-                    if width > 64 {
+                    if *width > 64 {
                         "ResultAsBigInt"
                     } else {
                         "ResultAsInt"
@@ -1668,6 +1665,16 @@ impl QasmCompiler {
                 };
 
                 build_convert_cast_call_by_name(function, expr, name_span, operand_span)
+            }
+            Type::BitArray(size, _) => {
+                let size_expr = build_lit_int_expr(i64::from(*size), Span::default());
+                build_qasmstd_convert_call_with_two_params(
+                    "ResultAsResultArrayBE",
+                    expr,
+                    size_expr,
+                    name_span,
+                    operand_span,
+                )
             }
             _ => err_expr(span),
         }
@@ -1681,21 +1688,31 @@ impl QasmCompiler {
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::BitArray(_, _)));
+        // There is no operand, choosing the span of the node
+        // but we could use the expr span as well.
+        let operand_span = expr.span;
+        let name_span = span;
 
-        let name_span = expr.span;
-        let operand_span = span;
-
-        if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
-            return err_expr(span);
-        }
-        // we know we have a bit array being cast to an int/uint
-        // verfiy widths
-        let int_width = ty.width();
-
-        if int_width.is_none() || (int_width == Some(size)) {
-            build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
-        } else {
-            err_expr(span)
+        match ty {
+            Type::Bit(..) => build_convert_cast_call_by_name(
+                "ResultArrayAsResultBE",
+                expr,
+                name_span,
+                operand_span,
+            ),
+            Type::Bool(..) => {
+                build_convert_cast_call_by_name("ResultArrayAsBool", expr, name_span, operand_span)
+            }
+            Type::Angle(Some(width), _) if *width == size => {
+                build_angle_cast_call_by_name("ResultArrayAsAngleBE", expr, name_span, operand_span)
+            }
+            Type::Int(Some(width), _) | Type::UInt(Some(width), _) if *width == size => {
+                build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
+            }
+            Type::Int(None, _) | Type::UInt(None, _) => {
+                build_convert_cast_call_by_name("ResultArrayAsIntBE", expr, name_span, operand_span)
+            }
+            _ => err_expr(span),
         }
     }
 
@@ -1733,6 +1750,16 @@ impl QasmCompiler {
                     "BoolAsInt"
                 };
                 build_convert_cast_call_by_name(function, expr, name_span, operand_span)
+            }
+            Type::BitArray(size, _) => {
+                let size_expr = build_lit_int_expr(i64::from(*size), Span::default());
+                build_qasmstd_convert_call_with_two_params(
+                    "BoolAsResultArrayBE",
+                    expr,
+                    size_expr,
+                    name_span,
+                    operand_span,
+                )
             }
             _ => err_expr(span),
         }
@@ -1776,6 +1803,8 @@ impl QasmCompiler {
         span: Span,
     ) -> qsast::Expr {
         assert!(matches!(expr_ty, Type::Float(..)));
+        let name_span = expr.span;
+        let operand_span = span;
 
         match ty {
             &Type::Complex(..) => build_complex_from_expr(expr),
@@ -1817,6 +1846,9 @@ impl QasmCompiler {
                     build_lit_bool_expr(true, span),
                     span,
                 )
+            }
+            &Type::Bit(..) => {
+                build_convert_cast_call_by_name("DoubleAsResult", expr, name_span, operand_span)
             }
             _ => err_expr(span),
         }

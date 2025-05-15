@@ -222,11 +222,11 @@ fn classical_decl_initialized_with_funcall() -> miette::Result<(), Vec<Report>> 
 #[test]
 fn classical_decl_initialized_with_incompatible_funcall_errors() {
     let source = r#"
-        def square(float x) -> float {
-            return x * x;
+        def square(float x) -> angle {
+            return angle(x * x);
         }
 
-        bit a = square(2.0);
+        float a = square(2.0);
     "#;
 
     let Err(errors) = compile_qasm_to_qsharp(source) else {
@@ -236,11 +236,12 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
     expect![[r#"
         [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Float(None, false) to type Bit(false)
-           ,-[Test.qasm:6:17]
+          x cannot cast expression of type Angle(None, false) to type Float(None,
+          | false)
+           ,-[Test.qasm:6:19]
          5 | 
-         6 |         bit a = square(2.0);
-           :                 ^^^^^^^^^^^
+         6 |         float a = square(2.0);
+           :                   ^^^^^^^^^^^
          7 |     
            `----
         ]"#]]
@@ -254,7 +255,8 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
             return 1;
         }
 
-        bit p = parity(2);
+        uint[2] x = 2;
+        bit p = parity(x);
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
@@ -267,7 +269,8 @@ fn funcall_implicit_arg_cast_uint_to_bitarray() -> miette::Result<(), Vec<Report
                 Zero
             };
         }
-        mutable p = parity(Std.OpenQASM.Convert.IntAsResultArrayBE(2, 2));
+        mutable x = 2;
+        mutable p = parity(Std.OpenQASM.Convert.IntAsResultArrayBE(x, 2));
     "#]]
     .assert_eq(&qsharp);
     Ok(())
