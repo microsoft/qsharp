@@ -1,26 +1,26 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::{compile_qasm_stmt_to_qsharp, compile_qasm_to_qsharp};
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_to_qsharp};
 
 use expect_test::expect;
 use miette::Report;
 
 #[test]
-fn indexed_bit_cannot_be_implicitly_converted_to_float() {
+fn indexed_bit_can_be_implicitly_converted_to_float() {
     let source = "
         bit[5] x;
         if (x[0] == 1.) {
         }
     ";
-
-    let Err(errors) = compile_qasm_stmt_to_qsharp(source) else {
-        panic!("Expected an error");
-    };
-
-    assert_eq!(1, errors.len(), "Expected one error");
-    expect!["cannot cast expression of type Bit(false) to type Float(None, true)"]
-        .assert_eq(&errors[0].to_string());
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        mutable x = [Zero, Zero, Zero, Zero, Zero];
+        if Std.OpenQASM.Convert.ResultAsDouble(x[0]) == 1. {};
+    "#]],
+    );
 }
 
 #[test]
