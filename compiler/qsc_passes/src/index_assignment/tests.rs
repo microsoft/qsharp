@@ -297,3 +297,107 @@ fn convert_array_assign_single_with_range() {
                         ctl-adj: <none>"#]],
     );
 }
+
+#[test]
+fn convert_array_assign_op() {
+    check(
+        indoc! {r#"
+        operation Main() : Unit {
+            mutable arr = [0, 1];
+            arr[0] += 3;
+        }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-70] (Public):
+                    Namespace (Ident 17 [0-70] "test"): Item 1
+                Item 1 [0-70] (Internal):
+                    Parent: 0
+                    Callable 0 [0-70] (operation):
+                        name: Ident 1 [10-14] "Main"
+                        input: Pat 2 [14-16] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [0-70]: Impl:
+                            Block 4 [24-70] [Type Unit]:
+                                Stmt 5 [30-51]: Local (Mutable):
+                                    Pat 6 [38-41] [Type Int[]]: Bind: Ident 7 [38-41] "arr"
+                                    Expr 8 [44-50] [Type Int[]]: Array:
+                                        Expr 9 [45-46] [Type Int]: Lit: Int(0)
+                                        Expr 10 [48-49] [Type Int]: Lit: Int(1)
+                                Stmt 11 [56-68]: Semi: Expr 29 [56-67] [Type Unit]: Expr Block: Block 30 [56-67] [Type Unit]:
+                                    Stmt 19 [60-61]: Local (Immutable):
+                                        Pat 20 [60-61] [Type Int]: Bind: Ident 18 [60-61] "@index_18"
+                                        Expr 15 [60-61] [Type Int]: Lit: Int(0)
+                                    Stmt 28 [56-67]: Expr: Expr 26 [0-0] [Type Unit]: AssignIndex:
+                                        Expr 25 [56-59] [Type Int[]]: Var: Local 7
+                                        Expr 27 [60-61] [Type Int]: Var: Local 18
+                                        Expr 24 [56-67] [Type Unit]: BinOp (Add):
+                                            Expr 22 [0-0] [Type Int]: Index:
+                                                Expr 21 [56-59] [Type Int[]]: Var: Local 7
+                                                Expr 23 [60-61] [Type Int]: Var: Local 18
+                                            Expr 16 [66-67] [Type Int]: Lit: Int(3)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn convert_2d_array_assign_op() {
+    check(
+        indoc! {r#"
+        operation Main() : Unit {
+            mutable arr = [[0, 1], [2, 3]];
+            arr[0][1] *= 2;
+        }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-83] (Public):
+                    Namespace (Ident 23 [0-83] "test"): Item 1
+                Item 1 [0-83] (Internal):
+                    Parent: 0
+                    Callable 0 [0-83] (operation):
+                        name: Ident 1 [10-14] "Main"
+                        input: Pat 2 [14-16] [Type Unit]: Unit
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 3 [0-83]: Impl:
+                            Block 4 [24-83] [Type Unit]:
+                                Stmt 5 [30-61]: Local (Mutable):
+                                    Pat 6 [38-41] [Type Int[][]]: Bind: Ident 7 [38-41] "arr"
+                                    Expr 8 [44-60] [Type Int[][]]: Array:
+                                        Expr 9 [45-51] [Type Int[]]: Array:
+                                            Expr 10 [46-47] [Type Int]: Lit: Int(0)
+                                            Expr 11 [49-50] [Type Int]: Lit: Int(1)
+                                        Expr 12 [53-59] [Type Int[]]: Array:
+                                            Expr 13 [54-55] [Type Int]: Lit: Int(2)
+                                            Expr 14 [57-58] [Type Int]: Lit: Int(3)
+                                Stmt 15 [66-81]: Semi: Expr 45 [66-80] [Type Unit]: Expr Block: Block 46 [66-80] [Type Unit]:
+                                    Stmt 25 [70-71]: Local (Immutable):
+                                        Pat 26 [70-71] [Type Int]: Bind: Ident 24 [70-71] "@index_24"
+                                        Expr 20 [70-71] [Type Int]: Lit: Int(0)
+                                    Stmt 28 [73-74]: Local (Immutable):
+                                        Pat 29 [73-74] [Type Int]: Bind: Ident 27 [73-74] "@index_27"
+                                        Expr 21 [73-74] [Type Int]: Lit: Int(1)
+                                    Stmt 44 [66-80]: Expr: Expr 42 [0-0] [Type Unit]: AssignIndex:
+                                        Expr 41 [66-69] [Type Int[][]]: Var: Local 7
+                                        Expr 43 [70-71] [Type Int]: Var: Local 24
+                                        Expr 39 [0-0] [Type Int[]]: UpdateIndex:
+                                            Expr 37 [0-0] [Type Int[]]: Index:
+                                                Expr 36 [66-69] [Type Int[][]]: Var: Local 7
+                                                Expr 38 [70-71] [Type Int]: Var: Local 24
+                                            Expr 40 [73-74] [Type Int]: Var: Local 27
+                                            Expr 35 [66-80] [Type Unit]: BinOp (Mul):
+                                                Expr 33 [0-0] [Type Int]: Index:
+                                                    Expr 31 [0-0] [Type Int[]]: Index:
+                                                        Expr 30 [66-69] [Type Int[][]]: Var: Local 7
+                                                        Expr 32 [70-71] [Type Int]: Var: Local 24
+                                                    Expr 34 [73-74] [Type Int]: Var: Local 27
+                                                Expr 22 [79-80] [Type Int]: Lit: Int(2)
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}

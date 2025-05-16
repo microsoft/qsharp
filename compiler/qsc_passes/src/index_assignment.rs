@@ -9,7 +9,7 @@ use std::mem::take;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
-    hir::{Block, Expr, ExprKind, Mutability, Stmt, StmtKind},
+    hir::{BinOp, Block, Expr, ExprKind, Mutability, Stmt, StmtKind},
     mut_visit::{walk_expr, MutVisitor},
     ty::{Prim, Ty},
 };
@@ -203,7 +203,8 @@ impl MutVisitor for ConvertToWSlash<'_> {
     #[allow(clippy::too_many_lines)]
     fn visit_expr(&mut self, expr: &mut Expr) {
         walk_expr(self, expr);
-        if let ExprKind::Assign(lhs, rhs) = &mut expr.kind {
+
+        if let Some((op, lhs, rhs)) = is_assign_or_assign_op(&mut expr.kind) {
             let mut index_exprs = vec![];
             let mut current = lhs;
             let mut curr_kind = &mut current.kind;
@@ -231,8 +232,20 @@ impl MutVisitor for ConvertToWSlash<'_> {
             // Create local binding statements for each index and collect index templates
             let (stmts, index_ids) = self.create_index_bindings(index_exprs);
 
+            // Build the "a <op> b" part
+            if let Some(op) = op {
+                let target_expr = self.create_target_expr(index_ids.len(), &index_ids, &base_array);
+                let bin_expr = Expr {
+                    id: self.assigner.next_node(),
+                    span: expr.span,
+                    ty: expr.ty.clone(),
+                    kind: ExprKind::BinOp(*op, Box::new(target_expr), take(rhs)),
+                };
+                *rhs = Box::new(bin_expr);
+            }
+
             // Construct the nested `w/` expressions
-            let mut update_expr = *rhs.clone(); // start with the ultimate value and expand out from there
+            let mut update_expr = *take(rhs); // start with the ultimate value and expand out from there
             for (i, id) in index_ids.iter().enumerate().rev() {
                 let target_expr = self.create_target_expr(i, &index_ids, &base_array);
                 update_expr =
@@ -274,5 +287,25 @@ fn calculate_indexed_type(index_type: Ty, target_index: &IdentTemplate) -> Ty {
         }
     } else {
         Ty::Err
+    }
+}
+
+/// Checks if the given expression kind is an assignment or compound assignment,
+/// returning the operator (if any), the left-hand side, and the right-hand side as mutable references.
+///
+/// # Parameters
+/// - `expr_kind`: The expression kind to check.
+///
+/// # Returns
+/// - `Some((op, lhs, rhs))` if `expr_kind` is an assignment (`Assign`) or compound assignment (`AssignOp`),
+///   where `op` is `None` for `Assign` and `Some(BinOp)` for `AssignOp`.
+/// - `None` if `expr_kind` is not an assignment or compound assignment.
+fn is_assign_or_assign_op(
+    expr_kind: &mut ExprKind,
+) -> Option<(Option<&mut BinOp>, &mut Box<Expr>, &mut Box<Expr>)> {
+    match expr_kind {
+        ExprKind::Assign(lhs, rhs) => Some((None, lhs, rhs)),
+        ExprKind::AssignOp(op, lhs, rhs) => Some((Some(op), lhs, rhs)),
+        _ => None,
     }
 }
