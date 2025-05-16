@@ -20,40 +20,40 @@ fn greater_than() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-68]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-67]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Gt
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [66-67]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: f
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -75,40 +75,40 @@ fn greater_than_equals() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-68]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Gte
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [67-68]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: e
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -130,40 +130,40 @@ fn less_than() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-68]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-67]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Lt
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [66-67]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -185,40 +185,40 @@ fn less_than_equals() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-68]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Lte
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [67-68]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: c
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -240,40 +240,40 @@ fn equals() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-68]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Eq
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [67-68]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: b
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -295,40 +295,40 @@ fn not_equals() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-21]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(5.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [31-44]:
                 symbol_id: 9
                 ty_span: [31-36]
                 init_expr: Expr [41-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(3.0)
             [9] Symbol [37-38]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
             ClassicalDeclarationStmt [53-69]:
                 symbol_id: 10
                 ty_span: [53-57]
                 init_expr: Expr [62-68]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Neq
                         lhs: Expr [62-63]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
                         rhs: Expr [67-68]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(9)
             [10] Symbol [58-59]:
                 name: d
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],

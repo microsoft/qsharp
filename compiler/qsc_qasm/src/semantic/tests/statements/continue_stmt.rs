@@ -14,13 +14,13 @@ fn for_loop() {
                 iterable: Set [13-22]:
                     values:
                         Expr [14-15]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(1)
                         Expr [17-18]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(2)
                         Expr [20-21]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(3)
                 body: Stmt [23-32]:
                     annotations: <empty>
@@ -39,7 +39,7 @@ fn while_loop() {
         &expect![[r#"
             WhileLoop [0-22]:
                 condition: Expr [7-11]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 body: Stmt [13-22]:
                     annotations: <empty>
@@ -58,7 +58,7 @@ fn nested_scopes() {
         &expect![[r#"
             WhileLoop [0-30]:
                 condition: Expr [7-11]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 body: Stmt [13-30]:
                     annotations: <empty>
@@ -112,7 +112,7 @@ fn intermediate_def_scope_fails() {
                         annotations: <empty>
                         kind: WhileLoop [9-67]:
                             condition: Expr [16-20]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(true)
                             body: Stmt [22-67]:
                                 annotations: <empty>

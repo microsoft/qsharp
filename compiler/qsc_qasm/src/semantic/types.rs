@@ -51,49 +51,127 @@ pub enum Type {
     Err,
 }
 
+fn write_ty_with_const(f: &mut Formatter<'_>, is_const: bool, name: &str) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, is_const, None, name)
+}
+
+fn write_ty_with_designator(
+    f: &mut Formatter<'_>,
+    width: Option<u32>,
+    name: &str,
+) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, false, width, name)
+}
+
+fn write_ty_with_designator_and_const(
+    f: &mut Formatter<'_>,
+    is_const: bool,
+    width: Option<u32>,
+    name: &str,
+) -> std::fmt::Result {
+    if is_const {
+        write!(f, "const ")?;
+    }
+    if let Some(width) = width {
+        write!(f, "{name}[{width}]")
+    } else {
+        write!(f, "{name}")
+    }
+}
+
+fn write_complex_ty(f: &mut Formatter<'_>, is_const: bool, width: Option<u32>) -> std::fmt::Result {
+    if is_const {
+        write!(f, "const ")?;
+    }
+    if let Some(width) = width {
+        write!(f, "complex[float[{width}]]")
+    } else {
+        write!(f, "complex[float]")
+    }
+}
+fn write_array_ty(
+    f: &mut Formatter<'_>,
+    designator: Option<u32>,
+    name: &str,
+    sub_name: Option<&str>,
+    dims: &ArrayDimensions,
+) -> std::fmt::Result {
+    write!(f, "array[{name}")?;
+
+    // sub_name is used for complex arrays
+    if let Some(sub_name) = sub_name {
+        if let Some(width) = designator {
+            write!(f, "[{sub_name}[{width}]]")?;
+        } else {
+            write!(f, "[{sub_name}]")?;
+        }
+    } else if let Some(width) = designator {
+        write!(f, "[{width}]")?;
+    }
+    write!(f, ", ")?;
+    match dims {
+        ArrayDimensions::One(one) => write!(f, "{one}")?,
+        ArrayDimensions::Two(one, two) => write!(f, "{one}, {two}")?,
+        ArrayDimensions::Three(one, two, three) => write!(f, "{one}, {two}, {three}")?,
+        ArrayDimensions::Four(one, two, three, four) => write!(f, "{one}, {two}, {three}, {four}")?,
+        ArrayDimensions::Five(one, two, three, four, five) => {
+            write!(f, "{one}, {two}, {three}, {four}, {five}")?;
+        }
+        ArrayDimensions::Six(one, two, three, four, five, six) => {
+            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}")?;
+        }
+        ArrayDimensions::Seven(one, two, three, four, five, six, seven) => {
+            write!(f, "{one}, {two}, {three}, {four}, {five}, {six}, {seven}")?;
+        }
+        ArrayDimensions::Err => write!(f, "unknown")?,
+    }
+
+    write!(f, "]")
+}
+
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Bit(is_const) => write!(f, "Bit({is_const})"),
-            Type::Bool(is_const) => write!(f, "Bool({is_const})"),
-            Type::Duration(is_const) => write!(f, "Duration({is_const})"),
-            Type::Stretch(is_const) => write!(f, "Stretch({is_const})"),
-            Type::Angle(width, is_const) => write!(f, "Angle({width:?}, {is_const})"),
-            Type::Complex(width, is_const) => write!(f, "Complex({width:?}, {is_const})"),
-            Type::Float(width, is_const) => write!(f, "Float({width:?}, {is_const})"),
-            Type::Int(width, is_const) => write!(f, "Int({width:?}, {is_const})"),
-            Type::UInt(width, is_const) => write!(f, "UInt({width:?}, {is_const})"),
-            Type::Qubit => write!(f, "Qubit"),
-            Type::HardwareQubit => write!(f, "HardwareQubit"),
-            Type::BitArray(dims, is_const) => write!(f, "BitArray({dims:?}, {is_const})"),
-            Type::QubitArray(dims) => write!(f, "QubitArray({dims:?})"),
-            Type::BoolArray(dims) => write!(f, "BoolArray({dims:?})"),
-            Type::DurationArray(dims) => {
-                write!(f, "DurationArray({dims:?})")
+            Type::Bit(is_const) => write_ty_with_const(f, *is_const, "bit"),
+            Type::Bool(is_const) => write_ty_with_const(f, *is_const, "bool"),
+            Type::Duration(is_const) => write_ty_with_const(f, *is_const, "duration"),
+            Type::Stretch(is_const) => write_ty_with_const(f, *is_const, "stretch"),
+            Type::Angle(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "angle")
             }
-            Type::AngleArray(width, dims) => {
-                write!(f, "AngleArray({width:?}, {dims:?})")
+            Type::Complex(width, is_const) => write_complex_ty(f, *is_const, *width),
+            Type::Float(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "float")
             }
+            Type::Int(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "int")
+            }
+            Type::UInt(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "uint")
+            }
+            Type::Qubit => write!(f, "qubit"),
+            Type::HardwareQubit => write!(f, "hardware qubit"),
+            Type::BitArray(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, Some(*width), "bit")
+            }
+            Type::QubitArray(width) => write_ty_with_designator(f, Some(*width), "qubit"),
+            Type::BoolArray(dims) => write_array_ty(f, None, "bool", None, dims),
+            Type::DurationArray(dims) => write_array_ty(f, None, "duration", None, dims),
+            Type::AngleArray(width, dims) => write_array_ty(f, *width, "angle", None, dims),
             Type::ComplexArray(width, dims) => {
-                write!(f, "ComplexArray({width:?}, {dims:?})")
+                write_array_ty(f, *width, "complex", Some("float"), dims)
             }
-            Type::FloatArray(width, dims) => {
-                write!(f, "FloatArray({width:?}, {dims:?})")
-            }
-            Type::IntArray(width, dims) => {
-                write!(f, "IntArray({width:?}, {dims:?})")
-            }
-            Type::UIntArray(width, dims) => {
-                write!(f, "UIntArray({width:?}, {dims:?})")
-            }
-            Type::Gate(cargs, qargs) => write!(f, "Gate({cargs}, {qargs})"),
+            Type::FloatArray(width, dims) => write_array_ty(f, *width, "float", None, dims),
+            Type::IntArray(width, dims) => write_array_ty(f, *width, "int", None, dims),
+            Type::UIntArray(width, dims) => write_array_ty(f, *width, "uint", None, dims),
+            Type::Gate(cargs, qargs) => write!(f, "gate({cargs}, {qargs})"),
             Type::Function(params_ty, return_ty) => {
-                write!(f, "Function({params_ty:?}) -> {return_ty:?}")
+                write!(f, "def({params_ty:#?}) -> {return_ty}")
             }
-            Type::Range => write!(f, "Range"),
-            Type::Set => write!(f, "Set"),
-            Type::Void => write!(f, "Void"),
-            Type::Err => write!(f, "Err"),
+            Type::Range => write!(f, "range"),
+            Type::Set => write!(f, "set"),
+            Type::Void => write!(f, "void"),
+            Type::Err => write!(f, "unknown"),
         }
     }
 }

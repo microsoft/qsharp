@@ -1845,7 +1845,7 @@ fn binary_op_non_const_type_fails() {
     expect![[r#"
         Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, false) to type Int(None, true)
+          x cannot cast expression of type int to type const int
            ,-[Test.qasm:4:17]
          3 |         int b = 3;
          4 |         int[a + b] x = 2;
@@ -1924,7 +1924,7 @@ fn binary_op_with_non_supported_types_fails() {
     expect![[r#"
         Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Duration(true) to type Float(None, true)
+          x cannot cast expression of type const duration to type const float
            ,-[Test.qasm:2:27]
          1 | 
          2 |         const int a = 2 / 0s;
@@ -1934,7 +1934,7 @@ fn binary_op_with_non_supported_types_fails() {
 
         Qasm.Lowerer.UnsupportedBinaryOp
 
-          x Div is not supported between types Float(None, true) and Duration(true)
+          x Div is not supported between types const float and const duration
            ,-[Test.qasm:2:23]
          1 | 
          2 |         const int a = 2 / 0s;

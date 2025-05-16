@@ -14,11 +14,11 @@ fn implicit_bitness_default() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [0-0]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(0)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -33,11 +33,11 @@ fn lit() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -52,11 +52,11 @@ fn const_lit() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -71,11 +71,11 @@ fn lit_explicit_width() {
                 symbol_id: 8
                 ty_span: [0-9]
                 init_expr: Expr [14-18]:
-                    ty: Angle(Some(64), true)
+                    ty: const angle[64]
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [10-11]:
                 name: x
-                type: Angle(Some(64), false)
+                type: angle[64]
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -90,11 +90,11 @@ fn const_explicit_width_lit() {
                 symbol_id: 8
                 ty_span: [6-15]
                 init_expr: Expr [20-24]:
-                    ty: Angle(Some(64), true)
+                    ty: const angle[64]
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [16-17]:
                 name: x
-                type: Angle(Some(64), true)
+                type: const angle[64]
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -109,11 +109,11 @@ fn lit_decl_leading_dot() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(0.4210000000000001)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -128,11 +128,11 @@ fn const_lit_decl_leading_dot() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(0.4210000000000001)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -147,11 +147,11 @@ fn const_lit_decl_leading_dot_scientific() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -166,11 +166,11 @@ fn lit_decl_trailing_dot() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(0.02658441896772248)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -185,11 +185,11 @@ fn const_lit_decl_trailing_dot() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(0.02658441896772248)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -204,11 +204,11 @@ fn lit_decl_scientific() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -223,11 +223,11 @@ fn const_lit_decl_scientific() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -242,11 +242,11 @@ fn lit_decl_scientific_signed_pos() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-17]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -261,11 +261,11 @@ fn const_lit_decl_scientific_signed_pos() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-23]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -280,11 +280,11 @@ fn lit_decl_scientific_cap_e() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -299,11 +299,11 @@ fn const_lit_decl_scientific_cap_e() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -318,11 +318,11 @@ fn lit_decl_scientific_signed_neg() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-18]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [6-7]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -337,11 +337,11 @@ fn const_lit_decl_scientific_signed_neg() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-24]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.400888156922484)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -356,19 +356,19 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [17-19]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Cast [0-0]:
-                        ty: Angle(None, true)
+                        ty: const angle
                         expr: Expr [17-19]:
-                            ty: Float(None, true)
+                            ty: const float
                             kind: UnaryOpExpr [17-19]:
                                 op: Neg
                                 expr: Expr [17-19]:
-                                    ty: Float(None, true)
+                                    ty: const float
                                     kind: Lit: Float(7.0)
             [8] Symbol [12-13]:
                 name: x
-                type: Angle(None, true)
+                type: const angle
                 qsharp_type: Angle
                 io_kind: Default"#]],
     );
@@ -388,16 +388,16 @@ fn const_lit_decl_signed_int_lit_cast_neg_fails() {
                             symbol_id: 8
                             ty_span: [6-11]
                             init_expr: Expr [17-18]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: UnaryOpExpr [17-18]:
                                     op: Neg
                                     expr: Expr [17-18]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(7)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, true) to type Angle(None, true)
+              x cannot cast expression of type const int to type const angle
                ,-[test:1:18]
              1 | const angle x = -7;
                :                  ^
@@ -420,7 +420,7 @@ fn explicit_zero_width_fails() {
                             symbol_id: 8
                             ty_span: [0-8]
                             init_expr: Expr [13-17]:
-                                ty: Float(None, true)
+                                ty: const float
                                 kind: Lit: Float(42.1)
 
             [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
@@ -448,7 +448,7 @@ fn explicit_width_over_64_fails() {
                             symbol_id: 8
                             ty_span: [6-15]
                             init_expr: Expr [20-24]:
-                                ty: Float(None, true)
+                                ty: const float
                                 kind: Lit: Float(42.1)
 
             [Qasm.Lowerer.TypeMaxWidthExceeded

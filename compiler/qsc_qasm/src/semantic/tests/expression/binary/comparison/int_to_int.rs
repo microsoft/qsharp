@@ -20,40 +20,40 @@ fn greater_than() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-62]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-61]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Gt
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [60-61]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: f
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -75,40 +75,40 @@ fn greater_than_equals() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Gte
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [61-62]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: e
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -130,40 +130,40 @@ fn less_than() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-62]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-61]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Lt
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [60-61]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -185,40 +185,40 @@ fn less_than_equals() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Lte
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [61-62]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: c
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -240,40 +240,40 @@ fn equals() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Eq
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [61-62]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: b
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -295,40 +295,40 @@ fn not_equals() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(5)
             [8] Symbol [13-14]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             ClassicalDeclarationStmt [47-63]:
                 symbol_id: 10
                 ty_span: [47-51]
                 init_expr: Expr [56-62]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: Neq
                         lhs: Expr [56-57]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
                         rhs: Expr [61-62]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(9)
             [10] Symbol [52-53]:
                 name: d
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],

@@ -49,7 +49,7 @@ fn bool_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Duration(false)
+              x cannot cast expression of type bool to type duration
                ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         duration(a);
@@ -183,7 +183,7 @@ fn bool_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Angle(None, false)
+              x cannot cast expression of type bool to type angle
                ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         angle(a);
@@ -205,7 +205,7 @@ fn bool_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Angle(Some(32), false)
+              x cannot cast expression of type bool to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         angle[32](a);
@@ -231,7 +231,7 @@ fn bool_to_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Complex(None, false)
+              x cannot cast expression of type bool to type complex[float]
                ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         complex(a);
@@ -253,8 +253,7 @@ fn bool_to_sized_complex_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Complex(Some(32),
-              | false)
+              x cannot cast expression of type bool to type complex[float[32]]
                ,-[Test.qasm:3:9]
              2 |         bool a;
              3 |         complex[float[32]](a);

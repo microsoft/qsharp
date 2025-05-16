@@ -24,7 +24,7 @@ fn to_angle_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [10-13]
                             init_expr: Expr [18-19]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(1)
                     Stmt [30-42]:
                         annotations: <empty>
@@ -32,12 +32,12 @@ fn to_angle_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [30-35]
                             init_expr: Expr [40-41]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Angle(None, false)
+              x cannot cast expression of type bit to type angle
                ,-[test:3:20]
              2 |          bit x = 1;
              3 |          angle y = x;
@@ -67,7 +67,7 @@ fn to_explicit_angle_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [10-13]
                             init_expr: Expr [18-19]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(1)
                     Stmt [30-45]:
                         annotations: <empty>
@@ -75,12 +75,12 @@ fn to_explicit_angle_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [30-38]
                             init_expr: Expr [43-44]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Angle(Some(4), false)
+              x cannot cast expression of type bit to type angle[4]
                ,-[test:3:23]
              2 |          bit x = 1;
              3 |          angle[4] y = x;
@@ -105,26 +105,26 @@ fn to_bool_implicitly() {
                 symbol_id: 8
                 ty_span: [10-13]
                 init_expr: Expr [18-19]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [14-15]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [30-41]:
                 symbol_id: 9
                 ty_span: [30-34]
                 init_expr: Expr [39-40]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [0-0]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [39-40]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [35-36]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -145,26 +145,26 @@ fn to_implicit_int_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-38]:
                 symbol_id: 9
                 ty_span: [28-31]
                 init_expr: Expr [36-37]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [36-37]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [32-33]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -185,26 +185,26 @@ fn to_explicit_int_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
                 symbol_id: 9
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [0-0]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [40-41]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: y
-                type: Int(Some(32), false)
+                type: int[32]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -225,26 +225,26 @@ fn to_implicit_uint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-39]:
                 symbol_id: 9
                 ty_span: [28-32]
                 init_expr: Expr [37-38]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [0-0]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [37-38]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [33-34]:
                 name: y
-                type: UInt(None, false)
+                type: uint
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -265,26 +265,26 @@ fn to_explicit_uint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-43]:
                 symbol_id: 9
                 ty_span: [28-36]
                 init_expr: Expr [41-42]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [0-0]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [41-42]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [37-38]:
                 name: y
-                type: UInt(Some(32), false)
+                type: uint[32]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -305,26 +305,26 @@ fn to_explicit_bigint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-42]:
                 symbol_id: 9
                 ty_span: [28-35]
                 init_expr: Expr [40-41]:
-                    ty: Int(Some(65), false)
+                    ty: int[65]
                     kind: Cast [0-0]:
-                        ty: Int(Some(65), false)
+                        ty: int[65]
                         expr: Expr [40-41]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: y
-                type: Int(Some(65), false)
+                type: int[65]
                 qsharp_type: BigInt
                 io_kind: Default
         "#]],
@@ -345,26 +345,26 @@ fn to_implicit_float_implicitly() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [17-18]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [13-14]:
                 name: x
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
             ClassicalDeclarationStmt [28-40]:
                 symbol_id: 9
                 ty_span: [28-33]
                 init_expr: Expr [38-39]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [0-0]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [38-39]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
             [9] Symbol [34-35]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
         "#]],

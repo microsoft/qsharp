@@ -14,11 +14,11 @@ fn implicit_bitness_default() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [0-0]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(0.0, 0.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -33,11 +33,11 @@ fn explicit_bitness_default() {
                 symbol_id: 8
                 ty_span: [0-18]
                 init_expr: Expr [0-0]:
-                    ty: Complex(Some(42), true)
+                    ty: const complex[float[42]]
                     kind: Lit: Complex(0.0, 0.0)
             [8] Symbol [19-20]:
                 name: x
-                type: Complex(Some(42), false)
+                type: complex[float[42]]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -52,11 +52,11 @@ fn const_implicit_bitness_double_img_only() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-31]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(0.0, 1.01)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -71,11 +71,11 @@ fn const_implicit_bitness_int_img_only() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-28]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(0.0, 1.0)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -90,11 +90,11 @@ fn const_explicit_bitness_double_img_only() {
                 symbol_id: 8
                 ty_span: [6-24]
                 init_expr: Expr [29-35]:
-                    ty: Complex(Some(42), true)
+                    ty: const complex[float[42]]
                     kind: Lit: Complex(0.0, 1.01)
             [8] Symbol [25-26]:
                 name: x
-                type: Complex(Some(42), true)
+                type: const complex[float[42]]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -109,11 +109,11 @@ fn const_explicit_bitness_int_img_only() {
                 symbol_id: 8
                 ty_span: [6-24]
                 init_expr: Expr [29-32]:
-                    ty: Complex(Some(42), true)
+                    ty: const complex[float[42]]
                     kind: Lit: Complex(0.0, 1.0)
             [8] Symbol [25-26]:
                 name: x
-                type: Complex(Some(42), true)
+                type: const complex[float[42]]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -128,11 +128,11 @@ fn implicit_bitness_double_img_only() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-25]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Lit: Complex(0.0, 1.01)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -147,11 +147,11 @@ fn implicit_bitness_int_img_only() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-22]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Lit: Complex(0.0, 1.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -166,11 +166,11 @@ fn const_implicit_bitness_double_real_only() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-29]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(1.01, 0.0)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -185,11 +185,11 @@ fn const_implicit_bitness_int_real_only() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-26]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(1.0, 0.0)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -204,11 +204,11 @@ fn implicit_bitness_double_real_only() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-23]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(1.01, 0.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -223,11 +223,11 @@ fn implicit_bitness_int_real_only() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-20]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: Lit: Complex(1.0, 0.0)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -242,18 +242,18 @@ fn implicit_bitness_simple_double_pos_im() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-30]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [19-22]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(1.1, 0.0)
                         rhs: Expr [25-30]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -268,18 +268,18 @@ fn implicit_bitness_simple_double_neg_im() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-30]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [19-22]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(1.1, 0.0)
                         rhs: Expr [25-30]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -294,18 +294,18 @@ fn const_implicit_bitness_simple_double_neg_im() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-36]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: BinaryOpExpr:
                         op: Sub
                         lhs: Expr [25-28]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(1.1, 0.0)
                         rhs: Expr [31-36]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -320,26 +320,26 @@ fn implicit_bitness_simple_double_neg_real() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [19-31]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [20-23]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Cast [0-0]:
-                                ty: Complex(None, true)
+                                ty: const complex[float]
                                 expr: Expr [20-23]:
-                                    ty: Float(None, true)
+                                    ty: const float
                                     kind: UnaryOpExpr [20-23]:
                                         op: Neg
                                         expr: Expr [20-23]:
-                                            ty: Float(None, true)
+                                            ty: const float
                                             kind: Lit: Float(1.1)
                         rhs: Expr [26-31]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
             [8] Symbol [15-16]:
                 name: x
-                type: Complex(None, false)
+                type: complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );
@@ -354,26 +354,26 @@ fn const_implicit_bitness_simple_double_neg_real() {
                 symbol_id: 8
                 ty_span: [6-20]
                 init_expr: Expr [25-37]:
-                    ty: Complex(None, true)
+                    ty: const complex[float]
                     kind: BinaryOpExpr:
                         op: Add
                         lhs: Expr [26-29]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Cast [0-0]:
-                                ty: Complex(None, true)
+                                ty: const complex[float]
                                 expr: Expr [26-29]:
-                                    ty: Float(None, true)
+                                    ty: const float
                                     kind: UnaryOpExpr [26-29]:
                                         op: Neg
                                         expr: Expr [26-29]:
-                                            ty: Float(None, true)
+                                            ty: const float
                                             kind: Lit: Float(1.1)
                         rhs: Expr [32-37]:
-                            ty: Complex(None, true)
+                            ty: const complex[float]
                             kind: Lit: Complex(0.0, 2.2)
             [8] Symbol [21-22]:
                 name: x
-                type: Complex(None, true)
+                type: const complex[float]
                 qsharp_type: Complex
                 io_kind: Default"#]],
     );

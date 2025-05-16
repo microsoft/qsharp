@@ -19,26 +19,26 @@ fn to_int_decl_implicitly() {
                 symbol_id: 8
                 ty_span: [9-15]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(5, true)
+                    ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
                 name: reg
-                type: BitArray(5, false)
+                type: bit[5]
                 qsharp_type: Result[]
                 io_kind: Default
             ClassicalDeclarationStmt [29-41]:
                 symbol_id: 9
                 ty_span: [29-32]
                 init_expr: Expr [37-40]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [37-40]:
-                            ty: BitArray(5, false)
+                            ty: bit[5]
                             kind: SymbolId(8)
             [9] Symbol [33-34]:
                 name: b
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -60,37 +60,37 @@ fn to_int_assignment_implicitly() {
                 symbol_id: 8
                 ty_span: [9-15]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(5, true)
+                    ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
                 name: reg
-                type: BitArray(5, false)
+                type: bit[5]
                 qsharp_type: Result[]
                 io_kind: Default
             ClassicalDeclarationStmt [29-35]:
                 symbol_id: 9
                 ty_span: [29-32]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             [9] Symbol [33-34]:
                 name: a
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
             AssignStmt [44-52]:
                 symbol_id: 9
                 lhs_span: [44-45]
                 rhs: Expr [48-51]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [48-51]:
-                            ty: BitArray(5, false)
+                            ty: bit[5]
                             kind: SymbolId(8)
             [9] Symbol [33-34]:
                 name: a
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -112,37 +112,37 @@ fn to_int_with_equal_width_in_assignment_implicitly() {
                 symbol_id: 8
                 ty_span: [9-15]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(5, true)
+                    ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
                 name: reg
-                type: BitArray(5, false)
+                type: bit[5]
                 qsharp_type: Result[]
                 io_kind: Default
             ClassicalDeclarationStmt [29-38]:
                 symbol_id: 9
                 ty_span: [29-35]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(5), true)
+                    ty: const int[5]
                     kind: Lit: Int(0)
             [9] Symbol [36-37]:
                 name: a
-                type: Int(Some(5), false)
+                type: int[5]
                 qsharp_type: Int
                 io_kind: Default
             AssignStmt [47-55]:
                 symbol_id: 9
                 lhs_span: [47-48]
                 rhs: Expr [51-54]:
-                    ty: Int(Some(5), false)
+                    ty: int[5]
                     kind: Cast [0-0]:
-                        ty: Int(Some(5), false)
+                        ty: int[5]
                         expr: Expr [51-54]:
-                            ty: BitArray(5, false)
+                            ty: bit[5]
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: a
-                type: Int(Some(5), false)
+                type: int[5]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -163,26 +163,26 @@ fn to_int_with_equal_width_in_decl_implicitly() {
                 symbol_id: 8
                 ty_span: [9-15]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(5, true)
+                    ty: const bit[5]
                     kind: Lit: Bitstring("00000")
             [8] Symbol [16-19]:
                 name: reg
-                type: BitArray(5, false)
+                type: bit[5]
                 qsharp_type: Result[]
                 io_kind: Default
             ClassicalDeclarationStmt [29-44]:
                 symbol_id: 9
                 ty_span: [29-35]
                 init_expr: Expr [40-43]:
-                    ty: Int(Some(5), false)
+                    ty: int[5]
                     kind: Cast [0-0]:
-                        ty: Int(Some(5), false)
+                        ty: int[5]
                         expr: Expr [40-43]:
-                            ty: BitArray(5, false)
+                            ty: bit[5]
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: a
-                type: Int(Some(5), false)
+                type: int[5]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -209,7 +209,7 @@ fn to_int_with_higher_width_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-15]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(6), true)
+                                ty: const int[6]
                                 kind: Lit: Int(0)
                     Stmt [27-38]:
                         annotations: <empty>
@@ -217,7 +217,7 @@ fn to_int_with_higher_width_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [27-33]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(5, true)
+                                ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [47-55]:
                         annotations: <empty>
@@ -225,13 +225,12 @@ fn to_int_with_higher_width_implicitly_fails() {
                             symbol_id: 8
                             lhs_span: [47-48]
                             rhs: Expr [51-54]:
-                                ty: BitArray(5, false)
+                                ty: bit[5]
                                 kind: SymbolId(9)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(5, false) to type Int(Some(6),
-              | false)
+              x cannot cast expression of type bit[5] to type int[6]
                ,-[test:4:13]
              3 |         bit[5] reg;
              4 |         a = reg;
@@ -260,7 +259,7 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-15]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(5, true)
+                                ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [29-44]:
                         annotations: <empty>
@@ -268,13 +267,12 @@ fn to_int_with_higher_width_decl_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [29-35]
                             init_expr: Expr [40-43]:
-                                ty: BitArray(5, false)
+                                ty: bit[5]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(5, false) to type Int(Some(6),
-              | false)
+              x cannot cast expression of type bit[5] to type int[6]
                ,-[test:3:20]
              2 |         bit[5] reg;
              3 |         int[6] a = reg;
@@ -309,7 +307,7 @@ fn to_int_with_lower_width_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [33-39]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(5, true)
+                                ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [53-61]:
                         annotations: <empty>
@@ -317,13 +315,12 @@ fn to_int_with_lower_width_implicitly_fails() {
                             symbol_id: 8
                             lhs_span: [53-54]
                             rhs: Expr [57-60]:
-                                ty: BitArray(5, false)
+                                ty: bit[5]
                                 kind: SymbolId(9)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(5, false) to type Int(Some(4),
-              | false)
+              x cannot cast expression of type bit[5] to type int[4]
                ,-[test:4:13]
              3 |         bit[5] reg;
              4 |         a = reg;
@@ -353,7 +350,7 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-15]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(5, true)
+                                ty: const bit[5]
                                 kind: Lit: Bitstring("00000")
                     Stmt [29-44]:
                         annotations: <empty>
@@ -361,13 +358,12 @@ fn to_int_with_lower_width_decl_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [29-35]
                             init_expr: Expr [40-43]:
-                                ty: BitArray(5, false)
+                                ty: bit[5]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(5, false) to type Int(Some(4),
-              | false)
+              x cannot cast expression of type bit[5] to type int[4]
                ,-[test:3:20]
              2 |         bit[5] reg;
              3 |         int[4] a = reg;

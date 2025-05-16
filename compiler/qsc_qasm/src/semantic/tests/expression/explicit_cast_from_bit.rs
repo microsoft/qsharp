@@ -31,15 +31,15 @@ fn bit_to_bool() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-32]:
                 expr: Expr [24-31]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [24-31]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [29-30]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -58,15 +58,15 @@ fn bitarray_to_bool() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-36]:
                 expr: Expr [28-35]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [28-35]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [33-34]:
-                            ty: BitArray(32, false)
+                            ty: bit[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -94,18 +94,18 @@ fn bit_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-36]:
                         annotations: <empty>
                         kind: ExprStmt [24-36]:
                             expr: Expr [24-35]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Duration(false)
+              x cannot cast expression of type bit to type duration
                ,-[test:3:9]
              2 |         bit a;
              3 |         duration(a);
@@ -134,18 +134,18 @@ fn bitarray_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ExprStmt [28-40]:
                             expr: Expr [28-39]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Duration(false)
+              x cannot cast expression of type bit[32] to type duration
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         duration(a);
@@ -173,15 +173,15 @@ fn bit_to_int() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-31]:
                 expr: Expr [24-30]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [24-30]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [28-29]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -200,15 +200,15 @@ fn bit_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-35]:
                 expr: Expr [24-34]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [24-34]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [32-33]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -269,15 +269,15 @@ fn bitarray_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [28-38]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [36-37]:
-                            ty: BitArray(32, false)
+                            ty: bit[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -301,19 +301,18 @@ fn bitarray_to_sized_int_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Int(Some(16),
-              | false)
+              x cannot cast expression of type bit[32] to type int[16]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         int[16](a);
@@ -342,19 +341,18 @@ fn bitarray_to_sized_int_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Int(Some(64),
-              | false)
+              x cannot cast expression of type bit[32] to type int[64]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         int[64](a);
@@ -382,15 +380,15 @@ fn bit_to_uint() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-32]:
                 expr: Expr [24-31]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [24-31]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [29-30]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -409,15 +407,15 @@ fn bit_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-36]:
                 expr: Expr [24-35]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [24-35]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [33-34]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -478,15 +476,15 @@ fn bitarray_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [28-39]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [37-38]:
-                            ty: BitArray(32, false)
+                            ty: bit[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -510,19 +508,18 @@ fn bitarray_to_sized_uint_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ExprStmt [28-40]:
                             expr: Expr [28-39]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type UInt(Some(16),
-              | false)
+              x cannot cast expression of type bit[32] to type uint[16]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         uint[16](a);
@@ -551,19 +548,18 @@ fn bitarray_to_sized_uint_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ExprStmt [28-40]:
                             expr: Expr [28-39]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type UInt(Some(64),
-              | false)
+              x cannot cast expression of type bit[32] to type uint[64]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         uint[64](a);
@@ -591,15 +587,15 @@ fn bit_to_float() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-33]:
                 expr: Expr [24-32]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [24-32]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [30-31]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -618,15 +614,15 @@ fn bit_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-37]:
                 expr: Expr [24-36]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [24-36]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [34-35]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -650,19 +646,18 @@ fn bitarray_to_float_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-37]:
                         annotations: <empty>
                         kind: ExprStmt [28-37]:
                             expr: Expr [28-36]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Float(None,
-              | false)
+              x cannot cast expression of type bit[32] to type float
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         float(a);
@@ -691,19 +686,18 @@ fn bitarray_to_sized_float_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Float(Some(32),
-              | false)
+              x cannot cast expression of type bit[32] to type float[32]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         float[32](a);
@@ -732,19 +726,18 @@ fn bitarray_to_sized_float_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Float(Some(16),
-              | false)
+              x cannot cast expression of type bit[32] to type float[16]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         float[16](a);
@@ -773,19 +766,18 @@ fn bitarray_to_sized_float_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Float(Some(64),
-              | false)
+              x cannot cast expression of type bit[32] to type float[64]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         float[64](a);
@@ -818,18 +810,18 @@ fn bit_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-33]:
                         annotations: <empty>
                         kind: ExprStmt [24-33]:
                             expr: Expr [24-32]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Angle(None, false)
+              x cannot cast expression of type bit to type angle
                ,-[test:3:9]
              2 |         bit a;
              3 |         angle(a);
@@ -858,18 +850,18 @@ fn bit_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-37]:
                         annotations: <empty>
                         kind: ExprStmt [24-37]:
                             expr: Expr [24-36]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Angle(Some(32), false)
+              x cannot cast expression of type bit to type angle[32]
                ,-[test:3:9]
              2 |         bit a;
              3 |         angle[32](a);
@@ -898,19 +890,18 @@ fn bitarray_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-37]:
                         annotations: <empty>
                         kind: ExprStmt [28-37]:
                             expr: Expr [28-36]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Angle(None,
-              | false)
+              x cannot cast expression of type bit[32] to type angle
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         angle(a);
@@ -934,15 +925,15 @@ fn bitarray_to_sized_angle() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-41]:
                 expr: Expr [28-40]:
-                    ty: Angle(Some(32), false)
+                    ty: angle[32]
                     kind: Cast [28-40]:
-                        ty: Angle(Some(32), false)
+                        ty: angle[32]
                         expr: Expr [38-39]:
-                            ty: BitArray(32, false)
+                            ty: bit[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -966,19 +957,18 @@ fn bitarray_to_sized_angle_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Angle(Some(16),
-              | false)
+              x cannot cast expression of type bit[32] to type angle[16]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         angle[16](a);
@@ -1007,19 +997,18 @@ fn bitarray_to_sized_angle_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Angle(Some(64),
-              | false)
+              x cannot cast expression of type bit[32] to type angle[64]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         angle[64](a);
@@ -1052,18 +1041,18 @@ fn bit_to_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-35]:
                         annotations: <empty>
                         kind: ExprStmt [24-35]:
                             expr: Expr [24-34]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Complex(None, false)
+              x cannot cast expression of type bit to type complex[float]
                ,-[test:3:9]
              2 |         bit a;
              3 |         complex(a);
@@ -1092,18 +1081,18 @@ fn bit_to_sized_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(0)
                     Stmt [24-46]:
                         annotations: <empty>
                         kind: ExprStmt [24-46]:
                             expr: Expr [24-45]:
-                                ty: Bit(false)
+                                ty: bit
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bit(false) to type Complex(Some(32), false)
+              x cannot cast expression of type bit to type complex[float[32]]
                ,-[test:3:9]
              2 |         bit a;
              3 |         complex[float[32]](a);
@@ -1132,19 +1121,18 @@ fn bitarray_to_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type Complex(None,
-              | false)
+              x cannot cast expression of type bit[32] to type complex[float]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         complex(a);
@@ -1173,19 +1161,18 @@ fn bitarray_to_sized_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
                         annotations: <empty>
                         kind: ExprStmt [28-50]:
                             expr: Expr [28-49]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type
-              | Complex(Some(32), false)
+              x cannot cast expression of type bit[32] to type complex[float[32]]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         complex[float[32]](a);
@@ -1214,19 +1201,18 @@ fn bitarray_to_sized_complex_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
                         annotations: <empty>
                         kind: ExprStmt [28-50]:
                             expr: Expr [28-49]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type
-              | Complex(Some(16), false)
+              x cannot cast expression of type bit[32] to type complex[float[16]]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         complex[float[16]](a);
@@ -1255,19 +1241,18 @@ fn bitarray_to_sized_complex_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-50]:
                         annotations: <empty>
                         kind: ExprStmt [28-50]:
                             expr: Expr [28-49]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type
-              | Complex(Some(64), false)
+              x cannot cast expression of type bit[32] to type complex[float[64]]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         complex[float[64]](a);
@@ -1295,11 +1280,11 @@ fn bit_to_bit() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-31]:
                 expr: Expr [24-30]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: SymbolId(8)
         "#]],
     );
@@ -1318,15 +1303,15 @@ fn bit_to_bitarray() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             ExprStmt [24-35]:
                 expr: Expr [24-34]:
-                    ty: BitArray(32, false)
+                    ty: bit[32]
                     kind: Cast [24-34]:
-                        ty: BitArray(32, false)
+                        ty: bit[32]
                         expr: Expr [32-33]:
-                            ty: Bit(false)
+                            ty: bit
                             kind: SymbolId(8)
         "#]],
     );
@@ -1345,15 +1330,15 @@ fn bitarray_to_bit() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-35]:
                 expr: Expr [28-34]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [28-34]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [32-33]:
-                            ty: BitArray(32, false)
+                            ty: bit[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1372,11 +1357,11 @@ fn bitarray_to_bitarray() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(32, true)
+                    ty: const bit[32]
                     kind: Lit: Bitstring("00000000000000000000000000000000")
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: BitArray(32, false)
+                    ty: bit[32]
                     kind: SymbolId(8)
         "#]],
     );
@@ -1400,19 +1385,18 @@ fn bitarray_to_bitarray_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type bit[32] to type bit[16]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         bit[16](a);
@@ -1441,19 +1425,18 @@ fn bitarray_to_bitarray_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: BitArray(32, true)
+                                ty: const bit[32]
                                 kind: Lit: Bitstring("00000000000000000000000000000000")
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: BitArray(32, false)
+                                ty: bit[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type BitArray(32, false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type bit[32] to type bit[64]
                ,-[test:3:9]
              2 |         bit[32] a;
              3 |         bit[64](a);

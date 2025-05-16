@@ -16,7 +16,7 @@ fn on_a_single_qubit() {
                 reset_token_span: [17-22]
                 operand: GateOperand [23-24]:
                     kind: Expr [23-24]:
-                        ty: Qubit
+                        ty: qubit
                         kind: SymbolId(8)
         "#]],
     );
@@ -36,14 +36,14 @@ fn on_an_indexed_qubit_register() {
                 reset_token_span: [20-25]
                 operand: GateOperand [26-30]:
                     kind: Expr [26-30]:
-                        ty: Qubit
+                        ty: qubit
                         kind: IndexedIdent [26-30]:
                             symbol_id: 8
                             name_span: [26-27]
                             index_span: [27-30]
                             indices:
                                 Expr [28-29]:
-                                    ty: Int(None, true)
+                                    ty: const int
                                     kind: Lit: Int(2)
         "#]],
     );
@@ -63,7 +63,7 @@ fn on_a_span_indexed_qubit_register() {
                 reset_token_span: [20-25]
                 operand: GateOperand [26-32]:
                     kind: Expr [26-32]:
-                        ty: QubitArray(3)
+                        ty: qubit[3]
                         kind: IndexedIdent [26-32]:
                             symbol_id: 8
                             name_span: [26-27]
@@ -71,11 +71,11 @@ fn on_a_span_indexed_qubit_register() {
                             indices:
                                 Range [28-31]:
                                     start: Expr [28-29]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(1)
                                     step: <none>
                                     end: Expr [30-31]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(3)
         "#]],
     );
@@ -95,7 +95,7 @@ fn on_a_zero_len_qubit_register() {
                 reset_token_span: [20-25]
                 operand: GateOperand [26-27]:
                     kind: Expr [26-27]:
-                        ty: QubitArray(0)
+                        ty: qubit[0]
                         kind: SymbolId(8)
         "#]],
     );
@@ -115,7 +115,7 @@ fn on_an_unindexed_qubit_register() {
                 reset_token_span: [20-25]
                 operand: GateOperand [26-27]:
                     kind: Expr [26-27]:
-                        ty: QubitArray(5)
+                        ty: qubit[5]
                         kind: SymbolId(8)
         "#]],
     );

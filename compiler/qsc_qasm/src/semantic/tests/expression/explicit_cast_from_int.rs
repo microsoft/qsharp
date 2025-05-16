@@ -31,15 +31,15 @@ fn int_to_bool() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-32]:
                 expr: Expr [24-31]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [24-31]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [29-30]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -58,15 +58,15 @@ fn sized_int_to_bool() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-36]:
                 expr: Expr [28-35]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [28-35]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [33-34]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -94,18 +94,18 @@ fn int_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(0)
                     Stmt [24-36]:
                         annotations: <empty>
                         kind: ExprStmt [24-36]:
                             expr: Expr [24-35]:
-                                ty: Int(None, false)
+                                ty: int
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Duration(false)
+              x cannot cast expression of type int to type duration
                ,-[test:3:9]
              2 |         int a;
              3 |         duration(a);
@@ -134,19 +134,18 @@ fn sized_int_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-40]:
                         annotations: <empty>
                         kind: ExprStmt [28-40]:
                             expr: Expr [28-39]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type int[32] to type duration
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         duration(a);
@@ -174,11 +173,11 @@ fn int_to_int() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-31]:
                 expr: Expr [24-30]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: SymbolId(8)
         "#]],
     );
@@ -197,15 +196,15 @@ fn int_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-35]:
                 expr: Expr [24-34]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [24-34]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [32-33]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -224,15 +223,15 @@ fn sized_int_to_int() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-35]:
                 expr: Expr [28-34]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [28-34]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [32-33]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -251,11 +250,11 @@ fn sized_int_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: SymbolId(8)
         "#]],
     );
@@ -274,15 +273,15 @@ fn sized_int_to_sized_int_truncating() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: Int(Some(16), false)
+                    ty: int[16]
                     kind: Cast [28-38]:
-                        ty: Int(Some(16), false)
+                        ty: int[16]
                         expr: Expr [36-37]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -301,15 +300,15 @@ fn sized_int_to_sized_int_expanding() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: Int(Some(64), false)
+                    ty: int[64]
                     kind: Cast [28-38]:
-                        ty: Int(Some(64), false)
+                        ty: int[64]
                         expr: Expr [36-37]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -332,15 +331,15 @@ fn int_to_uint() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-32]:
                 expr: Expr [24-31]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [24-31]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [29-30]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -359,15 +358,15 @@ fn int_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-36]:
                 expr: Expr [24-35]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [24-35]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [33-34]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -386,15 +385,15 @@ fn sized_int_to_uint() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-36]:
                 expr: Expr [28-35]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [28-35]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [33-34]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -413,15 +412,15 @@ fn sized_int_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [28-39]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [37-38]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -440,15 +439,15 @@ fn sized_int_to_sized_uint_truncating() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
-                    ty: UInt(Some(16), false)
+                    ty: uint[16]
                     kind: Cast [28-39]:
-                        ty: UInt(Some(16), false)
+                        ty: uint[16]
                         expr: Expr [37-38]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -467,15 +466,15 @@ fn sized_int_to_sized_uint_expanding() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-40]:
                 expr: Expr [28-39]:
-                    ty: UInt(Some(64), false)
+                    ty: uint[64]
                     kind: Cast [28-39]:
-                        ty: UInt(Some(64), false)
+                        ty: uint[64]
                         expr: Expr [37-38]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -498,15 +497,15 @@ fn int_to_float() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-33]:
                 expr: Expr [24-32]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [24-32]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [30-31]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -525,15 +524,15 @@ fn int_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-37]:
                 expr: Expr [24-36]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [24-36]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [34-35]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -552,15 +551,15 @@ fn sized_int_to_float() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-37]:
                 expr: Expr [28-36]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [28-36]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [34-35]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -579,15 +578,15 @@ fn sized_int_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-41]:
                 expr: Expr [28-40]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [28-40]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -606,15 +605,15 @@ fn sized_int_to_sized_float_truncating() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-41]:
                 expr: Expr [28-40]:
-                    ty: Float(Some(16), false)
+                    ty: float[16]
                     kind: Cast [28-40]:
-                        ty: Float(Some(16), false)
+                        ty: float[16]
                         expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -633,15 +632,15 @@ fn sized_int_to_sized_float_expanding() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-41]:
                 expr: Expr [28-40]:
-                    ty: Float(Some(64), false)
+                    ty: float[64]
                     kind: Cast [28-40]:
-                        ty: Float(Some(64), false)
+                        ty: float[64]
                         expr: Expr [38-39]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -669,18 +668,18 @@ fn int_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(0)
                     Stmt [24-33]:
                         annotations: <empty>
                         kind: ExprStmt [24-33]:
                             expr: Expr [24-32]:
-                                ty: Int(None, false)
+                                ty: int
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Angle(None, false)
+              x cannot cast expression of type int to type angle
                ,-[test:3:9]
              2 |         int a;
              3 |         angle(a);
@@ -709,19 +708,18 @@ fn int_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(0)
                     Stmt [24-37]:
                         annotations: <empty>
                         kind: ExprStmt [24-37]:
                             expr: Expr [24-36]:
-                                ty: Int(None, false)
+                                ty: int
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Angle(Some(32),
-              | false)
+              x cannot cast expression of type int to type angle[32]
                ,-[test:3:9]
              2 |         int a;
              3 |         angle[32](a);
@@ -750,19 +748,18 @@ fn sized_int_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-37]:
                         annotations: <empty>
                         kind: ExprStmt [28-37]:
                             expr: Expr [28-36]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type Angle(None,
-              | false)
+              x cannot cast expression of type int[32] to type angle
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         angle(a);
@@ -791,19 +788,18 @@ fn sized_int_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(32), false)
+              x cannot cast expression of type int[32] to type angle[32]
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         angle[32](a);
@@ -832,19 +828,18 @@ fn sized_int_to_sized_angle_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(16), false)
+              x cannot cast expression of type int[32] to type angle[16]
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         angle[16](a);
@@ -873,19 +868,18 @@ fn sized_int_to_sized_angle_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-41]:
                         annotations: <empty>
                         kind: ExprStmt [28-41]:
                             expr: Expr [28-40]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(64), false)
+              x cannot cast expression of type int[32] to type angle[64]
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         angle[64](a);
@@ -913,15 +907,15 @@ fn int_to_complex() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-35]:
                 expr: Expr [24-34]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [24-34]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [32-33]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -940,15 +934,15 @@ fn int_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-46]:
                 expr: Expr [24-45]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [24-45]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [43-44]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -967,15 +961,15 @@ fn sized_int_to_complex() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [28-38]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [36-37]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -994,15 +988,15 @@ fn sized_int_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-50]:
                 expr: Expr [28-49]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [28-49]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [47-48]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1021,15 +1015,15 @@ fn sized_int_to_sized_complex_truncating() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-50]:
                 expr: Expr [28-49]:
-                    ty: Complex(Some(16), false)
+                    ty: complex[float[16]]
                     kind: Cast [28-49]:
-                        ty: Complex(Some(16), false)
+                        ty: complex[float[16]]
                         expr: Expr [47-48]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1048,15 +1042,15 @@ fn sized_int_to_sized_complex_expanding() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-50]:
                 expr: Expr [28-49]:
-                    ty: Complex(Some(64), false)
+                    ty: complex[float[64]]
                     kind: Cast [28-49]:
-                        ty: Complex(Some(64), false)
+                        ty: complex[float[64]]
                         expr: Expr [47-48]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1079,15 +1073,15 @@ fn int_to_bit() {
                 symbol_id: 8
                 ty_span: [9-12]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             ExprStmt [24-31]:
                 expr: Expr [24-30]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [24-30]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [28-29]:
-                            ty: Int(None, false)
+                            ty: int
                             kind: SymbolId(8)
         "#]],
     );
@@ -1111,19 +1105,18 @@ fn int_to_bitarray_fails() {
                             symbol_id: 8
                             ty_span: [9-12]
                             init_expr: Expr [0-0]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(0)
                     Stmt [24-35]:
                         annotations: <empty>
                         kind: ExprStmt [24-35]:
                             expr: Expr [24-34]:
-                                ty: Int(None, false)
+                                ty: int
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type int to type bit[32]
                ,-[test:3:9]
              2 |         int a;
              3 |         bit[32](a);
@@ -1147,15 +1140,15 @@ fn sized_int_to_bit() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-35]:
                 expr: Expr [28-34]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [28-34]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [32-33]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1174,15 +1167,15 @@ fn sized_int_to_bitarray() {
                 symbol_id: 8
                 ty_span: [9-16]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(32), true)
+                    ty: const int[32]
                     kind: Lit: Int(0)
             ExprStmt [28-39]:
                 expr: Expr [28-38]:
-                    ty: BitArray(32, false)
+                    ty: bit[32]
                     kind: Cast [28-38]:
-                        ty: BitArray(32, false)
+                        ty: bit[32]
                         expr: Expr [36-37]:
-                            ty: Int(Some(32), false)
+                            ty: int[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1206,19 +1199,18 @@ fn sized_int_to_bitarray_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type int[32] to type bit[16]
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         bit[16](a);
@@ -1247,19 +1239,18 @@ fn sized_int_to_bitarray_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-16]
                             init_expr: Expr [0-0]:
-                                ty: Int(Some(32), true)
+                                ty: const int[32]
                                 kind: Lit: Int(0)
                     Stmt [28-39]:
                         annotations: <empty>
                         kind: ExprStmt [28-39]:
                             expr: Expr [28-38]:
-                                ty: Int(Some(32), false)
+                                ty: int[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type int[32] to type bit[64]
                ,-[test:3:9]
              2 |         int[32] a;
              3 |         bit[64](a);

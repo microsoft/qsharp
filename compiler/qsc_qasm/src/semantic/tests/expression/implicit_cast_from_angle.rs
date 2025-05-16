@@ -19,26 +19,26 @@ fn to_bit_implicitly() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
                 ty_span: [32-35]
                 init_expr: Expr [40-41]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [0-0]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [40-41]:
-                            ty: Angle(None, false)
+                            ty: angle
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: y
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
         "#]],
@@ -59,26 +59,26 @@ fn explicit_width_to_bit_implicitly_fails() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [23-26]:
-                    ty: Angle(Some(64), true)
+                    ty: const angle[64]
                     kind: Lit: Angle(4.300888156922483)
             [8] Symbol [19-20]:
                 name: x
-                type: Angle(Some(64), false)
+                type: angle[64]
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [36-46]:
                 symbol_id: 9
                 ty_span: [36-39]
                 init_expr: Expr [44-45]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [0-0]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [44-45]:
-                            ty: Angle(Some(64), false)
+                            ty: angle[64]
                             kind: SymbolId(8)
             [9] Symbol [40-41]:
                 name: y
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
         "#]],
@@ -98,26 +98,26 @@ fn to_bool_implicitly() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-42]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [0-0]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [41-42]:
-                            ty: Angle(None, false)
+                            ty: angle
                             kind: SymbolId(8)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -143,7 +143,7 @@ fn to_implicit_int_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-42]:
                         annotations: <empty>
@@ -151,12 +151,12 @@ fn to_implicit_int_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-35]
                             init_expr: Expr [40-41]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Int(None, false)
+              x cannot cast expression of type angle to type int
                ,-[test:3:17]
              2 |         angle x = 42.;
              3 |         int y = x;
@@ -186,7 +186,7 @@ fn to_explicit_int_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-46]:
                         annotations: <empty>
@@ -194,13 +194,12 @@ fn to_explicit_int_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-39]
                             init_expr: Expr [44-45]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Int(Some(32),
-              | false)
+              x cannot cast expression of type angle to type int[32]
                ,-[test:3:21]
              2 |         angle x = 42.;
              3 |         int[32] y = x;
@@ -230,7 +229,7 @@ fn to_implicit_uint_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-43]:
                         annotations: <empty>
@@ -238,13 +237,12 @@ fn to_implicit_uint_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-36]
                             init_expr: Expr [41-42]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type UInt(None,
-              | false)
+              x cannot cast expression of type angle to type uint
                ,-[test:3:18]
              2 |         angle x = 42.;
              3 |         uint y = x;
@@ -274,15 +272,15 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [20-23]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: Cast [0-0]:
-                                    ty: Angle(None, false)
+                                    ty: angle
                                     expr: Expr [20-23]:
-                                        ty: Float(None, true)
+                                        ty: const float
                                         kind: UnaryOpExpr [20-23]:
                                             op: Neg
                                             expr: Expr [20-23]:
-                                                ty: Float(None, true)
+                                                ty: const float
                                                 kind: Lit: Float(42.0)
                     Stmt [33-44]:
                         annotations: <empty>
@@ -290,13 +288,12 @@ fn negative_lit_to_implicit_uint_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [33-37]
                             init_expr: Expr [42-43]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type UInt(None,
-              | false)
+              x cannot cast expression of type angle to type uint
                ,-[test:3:18]
              2 |         angle x = -42.;
              3 |         uint y = x;
@@ -326,7 +323,7 @@ fn to_explicit_uint_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-47]:
                         annotations: <empty>
@@ -334,13 +331,12 @@ fn to_explicit_uint_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-40]
                             init_expr: Expr [45-46]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type UInt(Some(32),
-              | false)
+              x cannot cast expression of type angle to type uint[32]
                ,-[test:3:22]
              2 |         angle x = 42.;
              3 |         uint[32] y = x;
@@ -370,7 +366,7 @@ fn to_explicit_bigint_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-46]:
                         annotations: <empty>
@@ -378,13 +374,12 @@ fn to_explicit_bigint_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-39]
                             init_expr: Expr [44-45]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Int(Some(65),
-              | false)
+              x cannot cast expression of type angle to type int[65]
                ,-[test:3:21]
              2 |         angle x = 42.;
              3 |         int[65] y = x;
@@ -414,7 +409,7 @@ fn to_implicit_float_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-44]:
                         annotations: <empty>
@@ -422,13 +417,12 @@ fn to_implicit_float_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-37]
                             init_expr: Expr [42-43]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Float(None,
-              | false)
+              x cannot cast expression of type angle to type float
                ,-[test:3:19]
              2 |         angle x = 42.;
              3 |         float y = x;
@@ -458,7 +452,7 @@ fn to_explicit_float_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-48]:
                         annotations: <empty>
@@ -466,13 +460,12 @@ fn to_explicit_float_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-41]
                             init_expr: Expr [46-47]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Float(Some(32),
-              | false)
+              x cannot cast expression of type angle to type float[32]
                ,-[test:3:23]
              2 |         angle x = 42.;
              3 |         float[32] y = x;
@@ -502,7 +495,7 @@ fn to_implicit_complex_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-53]:
                         annotations: <empty>
@@ -510,13 +503,12 @@ fn to_implicit_complex_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-46]
                             init_expr: Expr [51-52]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Complex(None,
-              | false)
+              x cannot cast expression of type angle to type complex[float]
                ,-[test:3:28]
              2 |         angle x = 42.;
              3 |         complex[float] y = x;
@@ -546,7 +538,7 @@ fn to_explicit_complex_implicitly_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(4.300888156922483)
                     Stmt [32-57]:
                         annotations: <empty>
@@ -554,13 +546,12 @@ fn to_explicit_complex_implicitly_fails() {
                             symbol_id: 9
                             ty_span: [32-50]
                             init_expr: Expr [55-56]:
-                                ty: Angle(None, false)
+                                ty: angle
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type
-              | Complex(Some(32), false)
+              x cannot cast expression of type angle to type complex[float[32]]
                ,-[test:3:32]
              2 |         angle x = 42.;
              3 |         complex[float[32]] y = x;
@@ -585,22 +576,22 @@ fn to_angle_implicitly() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
                 ty_span: [32-37]
                 init_expr: Expr [42-43]:
-                    ty: Angle(None, false)
+                    ty: angle
                     kind: SymbolId(8)
             [9] Symbol [38-39]:
                 name: y
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default
         "#]],
@@ -621,26 +612,26 @@ fn to_explicit_angle_implicitly() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [19-22]:
-                    ty: Angle(None, true)
+                    ty: const angle
                     kind: Lit: Angle(4.300888156922483)
             [8] Symbol [15-16]:
                 name: x
-                type: Angle(None, false)
+                type: angle
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
-                    ty: Angle(Some(4), false)
+                    ty: angle[4]
                     kind: Cast [0-0]:
-                        ty: Angle(Some(4), false)
+                        ty: angle[4]
                         expr: Expr [45-46]:
-                            ty: Angle(None, false)
+                            ty: angle
                             kind: SymbolId(8)
             [9] Symbol [41-42]:
                 name: y
-                type: Angle(Some(4), false)
+                type: angle[4]
                 qsharp_type: Angle
                 io_kind: Default
         "#]],
@@ -662,48 +653,48 @@ fn width_promotion() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [23-26]:
-                    ty: Angle(Some(32), true)
+                    ty: const angle[32]
                     kind: Lit: Angle(1.000000000619646)
             [8] Symbol [19-20]:
                 name: x
-                type: Angle(Some(32), false)
+                type: angle[32]
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [36-54]:
                 symbol_id: 9
                 ty_span: [36-45]
                 init_expr: Expr [50-53]:
-                    ty: Angle(Some(48), true)
+                    ty: const angle[48]
                     kind: Lit: Angle(1.999999999999999)
             [9] Symbol [46-47]:
                 name: y
-                type: Angle(Some(48), false)
+                type: angle[48]
                 qsharp_type: Angle
                 io_kind: Default
             ClassicalDeclarationStmt [63-77]:
                 symbol_id: 10
                 ty_span: [63-66]
                 init_expr: Expr [71-76]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [0-0]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [71-76]:
-                            ty: UInt(Some(48), false)
+                            ty: uint[48]
                             kind: BinaryOpExpr:
                                 op: Div
                                 lhs: Expr [71-72]:
-                                    ty: Angle(Some(48), false)
+                                    ty: angle[48]
                                     kind: Cast [0-0]:
-                                        ty: Angle(Some(48), false)
+                                        ty: angle[48]
                                         expr: Expr [71-72]:
-                                            ty: Angle(Some(32), false)
+                                            ty: angle[32]
                                             kind: SymbolId(8)
                                 rhs: Expr [75-76]:
-                                    ty: Angle(Some(48), false)
+                                    ty: angle[48]
                                     kind: SymbolId(9)
             [10] Symbol [67-68]:
                 name: z
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
         "#]],

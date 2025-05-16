@@ -166,9 +166,9 @@ pub enum SemanticErrorKind {
     #[error("{0} were introduced in version {1}")]
     #[diagnostic(code("Qasm.Lowerer.NotSupportedInThisVersion"))]
     NotSupportedInThisVersion(String, String, #[label] Span),
-    #[error("the operator {0} is not valid with lhs {1} and rhs {2}")]
-    #[diagnostic(code("Qasm.Lowerer.OperatorNotSupportedForTypes"))]
-    OperatorNotSupportedForTypes(String, String, String, #[label] Span),
+    #[error("the operator {0} is not allowed for complex values")]
+    #[diagnostic(code("Qasm.Lowerer.OperatorNotAllowedForComplexValues"))]
+    OperatorNotAllowedForComplexValues(String, #[label] Span),
     #[error("pow gate modifiers must have an exponent")]
     #[diagnostic(code("Qasm.Lowerer.PowModifierMustHaveExponent"))]
     PowModifierMustHaveExponent(#[label] Span),

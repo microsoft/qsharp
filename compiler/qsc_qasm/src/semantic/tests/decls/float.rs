@@ -14,11 +14,11 @@ fn implicit_bitness_default() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -33,11 +33,11 @@ fn lit() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(42.1)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -52,11 +52,11 @@ fn const_lit() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -71,11 +71,11 @@ fn lit_explicit_width() {
                 symbol_id: 8
                 ty_span: [0-9]
                 init_expr: Expr [14-18]:
-                    ty: Float(Some(64), true)
+                    ty: const float[64]
                     kind: Lit: Float(42.1)
             [8] Symbol [10-11]:
                 name: x
-                type: Float(Some(64), false)
+                type: float[64]
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -90,11 +90,11 @@ fn const_explicit_width_lit() {
                 symbol_id: 8
                 ty_span: [6-15]
                 init_expr: Expr [20-24]:
-                    ty: Float(Some(64), true)
+                    ty: const float[64]
                     kind: Lit: Float(42.1)
             [8] Symbol [16-17]:
                 name: x
-                type: Float(Some(64), true)
+                type: const float[64]
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -109,11 +109,11 @@ fn lit_decl_leading_dot() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(0.421)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -128,11 +128,11 @@ fn const_lit_decl_leading_dot() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.421)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -147,11 +147,11 @@ fn const_lit_decl_leading_dot_scientific() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -166,11 +166,11 @@ fn lit_decl_trailing_dot() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-14]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(421.0)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -185,11 +185,11 @@ fn const_lit_decl_trailing_dot() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-20]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(421.0)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -204,11 +204,11 @@ fn lit_decl_scientific() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(42.1)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -223,11 +223,11 @@ fn const_lit_decl_scientific() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -242,11 +242,11 @@ fn lit_decl_scientific_signed_pos() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-17]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(42.1)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -261,11 +261,11 @@ fn const_lit_decl_scientific_signed_pos() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-23]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -280,11 +280,11 @@ fn lit_decl_scientific_cap_e() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-16]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(42.1)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -299,11 +299,11 @@ fn const_lit_decl_scientific_cap_e() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-22]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -318,11 +318,11 @@ fn lit_decl_scientific_signed_neg() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-18]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Lit: Float(42.1)
             [8] Symbol [6-7]:
                 name: x
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -337,11 +337,11 @@ fn const_lit_decl_scientific_signed_neg() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [16-24]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(42.1)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -356,15 +356,15 @@ fn const_lit_decl_signed_float_lit_cast_neg() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [17-19]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: UnaryOpExpr [17-19]:
                         op: Neg
                         expr: Expr [17-19]:
-                            ty: Float(None, true)
+                            ty: const float
                             kind: Lit: Float(7.0)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -379,19 +379,19 @@ fn const_lit_decl_signed_int_lit_cast_neg() {
                 symbol_id: 8
                 ty_span: [6-11]
                 init_expr: Expr [17-18]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Cast [0-0]:
-                        ty: Float(None, true)
+                        ty: const float
                         expr: Expr [17-18]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: UnaryOpExpr [17-18]:
                                 op: Neg
                                 expr: Expr [17-18]:
-                                    ty: Int(None, true)
+                                    ty: const int
                                     kind: Lit: Int(7)
             [8] Symbol [12-13]:
                 name: x
-                type: Float(None, true)
+                type: const float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -407,11 +407,11 @@ fn init_float_with_int_value_equal_max_safely_representable_values() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [10-26]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(9007199254740992.0)
             [8] Symbol [6-7]:
                 name: a
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
@@ -433,21 +433,20 @@ fn init_float_with_int_value_greater_than_safely_representable_values() {
                             symbol_id: 8
                             ty_span: [0-5]
                             init_expr: Expr [10-26]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(9007199254740993)
 
             [Qasm.Lowerer.InvalidCastValueRange
 
-              x assigning Int(None, true) values to Float(None, false) must be in a range
-              | that be converted to Float(None, false)
+              x assigning const int values to float must be in a range that be converted
+              | to float
                ,-[test:1:11]
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
                `----
             , Qasm.Lowerer.CannotCastLiteral
 
-              x cannot cast literal expression of type Int(None, true) to type Float(None,
-              | false)
+              x cannot cast literal expression of type const int to type float
                ,-[test:1:11]
              1 | float a = 9007199254740993;
                :           ^^^^^^^^^^^^^^^^
@@ -466,19 +465,19 @@ fn init_float_with_int_value_equal_min_safely_representable_values() {
                 symbol_id: 8
                 ty_span: [0-5]
                 init_expr: Expr [11-27]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [0-0]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [11-27]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: UnaryOpExpr [11-27]:
                                 op: Neg
                                 expr: Expr [11-27]:
-                                    ty: Int(None, true)
+                                    ty: const int
                                     kind: Lit: Int(9007199254740992)
             [8] Symbol [6-7]:
                 name: a
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default"#]],
     );
