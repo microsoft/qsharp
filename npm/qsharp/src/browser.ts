@@ -184,6 +184,7 @@ export type {
   LanguageServiceTestCallablesEvent,
 } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
+export { default as openqasm_samples } from "./openqasm-samples.generated.js";
 export { log, type LogLevel, type TargetProfile, type ProjectType };
 export type {
   ICompiler,

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, samples } from "qsharp-lang";
+import { ILanguageService, samples, openqasm_samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
-import { toVsCodeRange } from "../common";
+import { isOpenQasmDocument, isQsharpDocument, toVsCodeRange } from "../common";
 import { EventType, sendTelemetryEvent } from "../telemetry";
 
 export function createCompletionItemProvider(
@@ -15,9 +15,18 @@ export function createCompletionItemProvider(
 
 class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
   private samples: vscode.CompletionItem[] = [];
+  private openqasm_samples: vscode.CompletionItem[] = [];
 
   constructor(public languageService: ILanguageService) {
     this.samples = samples.map((s) => {
+      const item = new CompletionItem(
+        s.title + " sample",
+        vscode.CompletionItemKind.Snippet,
+      );
+      item.insertText = s.code;
+      return item;
+    });
+    this.openqasm_samples = openqasm_samples.map((s) => {
       const item = new CompletionItem(
         s.title + " sample",
         vscode.CompletionItemKind.Snippet,
@@ -49,7 +58,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         completionListLength: completions.items.length,
       },
     );
-    const results = completions.items.map((c) => {
+    var results = completions.items.map((c) => {
       let kind;
       switch (c.kind) {
         case "function":
@@ -89,17 +98,25 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       return item;
     });
 
-    // Include the samples in contexts that are syntactically appropriate.
-    // The presence of the "operation" keyword in the completion list is a
-    // hint that the cursor is at a point we can insert the sample code.
-
-    const shouldIncludeSamples =
+    // In qsharp documents include the qsharp samples in contexts that are syntactically
+    // appropriate. The presence of the "operation" keyword in/ the completion list
+    // is a hint that the cursor is at a point we can insert the sample code.
+    if (
+      isQsharpDocument(document) &&
       results.findIndex(
         (i) =>
           i.kind === vscode.CompletionItemKind.Keyword &&
           i.label === "operation",
-      ) !== -1;
+      ) !== -1
+    ) {
+      results = results.concat(this.samples);
+    }
 
-    return !shouldIncludeSamples ? results : results.concat(this.samples);
+    // In OpenQASM documents always include the OpenQASM samples.
+    if (isOpenQasmDocument(document)) {
+      results = results.concat(this.openqasm_samples);
+    }
+
+    return results;
   }
 }
