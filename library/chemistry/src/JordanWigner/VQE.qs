@@ -244,9 +244,9 @@ function MeasurementOperators(
     if termType == 0 or termType == 1 {
         mutable op = Repeated(PauliI, nQubits);
         for idx in indices {
-            op w/= idx <- PauliZ;
+            op[idx] = PauliZ;
         }
-        ops w/= 0 <- op;
+        ops[0] = op;
     }
 
     // PQRS terms set operators between indices P and Q (resp R and S) to PauliZ
@@ -267,15 +267,15 @@ function MeasurementOperators(
 
             mutable op = Repeated(PauliI, nQubits);
             for idx in IndexRange(indices) {
-                op w/= indices[idx] <- compactOp[idx];
+                op[indices[idx]] = compactOp[idx];
             }
             for i in indices[0] + 1..indices[1] - 1 {
-                op w/= i <- PauliZ;
+                op[i] = PauliZ;
             }
             for i in indices[2] + 1..indices[3] - 1 {
-                op w/= i <- PauliZ;
+                op[i] = PauliZ;
             }
-            ops w/= iOp <- op;
+            ops[iOp] = op;
         }
     }
 
@@ -289,17 +289,17 @@ function MeasurementOperators(
             mutable op = Repeated(PauliI, nQubits);
 
             let nIndices = Length(indices);
-            op w/= indices[0] <- compactOp[0];
-            op w/= indices[nIndices-1] <- compactOp[1];
+            op[indices[0]] = compactOp[0];
+            op[indices[nIndices-1]] = compactOp[1];
             for i in indices[0] + 1..indices[nIndices - 1] - 1 {
-                op w/= i <- PauliZ;
+                op[i] = PauliZ;
             }
 
             // Case of PQQR term
             if nIndices == 4 {
-                op w/= indices[1] <- (indices[0] < indices[1] and indices[1] < indices[3]) ? PauliI | PauliZ;
+                op[indices[1]] = (indices[0] < indices[1] and indices[1] < indices[3]) ? PauliI | PauliZ;
             }
-            ops w/= iOp <- op;
+            ops[iOp] = op;
         }
     }
 
@@ -333,10 +333,10 @@ function ExpandedCoefficients(coeff : Double[], termType : Int) : Double[] {
 
     // Return the expanded array of coefficients
     if termType == 0 or termType == 1 {
-        coeffs w/= 0 <- coeff[0];
+        coeffs[0] = coeff[0];
     } elif termType == 2 or termType == 3 {
         for i in 0..nCoeffs - 1 {
-            coeffs w/= i <- coeff[i / 2];
+            coeffs[i] = coeff[i / 2];
         }
     }
 

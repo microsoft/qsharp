@@ -275,7 +275,7 @@ function V0123TermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex[] 
     for idxOp in 0..3 {
         if IsNotZero(v0123[idxOp]) {
             let newCoeff = (2.0 * 0.25) * v0123[idxOp];
-            majIdxes w/= nonZero <- new OptimizedBETermIndex {
+            majIdxes[nonZero] = new OptimizedBETermIndex {
                 Coefficient = newCoeff,
                 UseSignQubit = v0123[idxOp] < 0.0,
                 ZControlRegisterMask = selectZControlRegisters,
@@ -283,7 +283,7 @@ function V0123TermToPauliMajIdx(term : GeneratorIndex) : OptimizedBETermIndex[] 
                 PauliBases = ops[idxOp],
                 RegisterIndices = indexRegisters
             };
-            nonZero = nonZero + 1;
+            nonZero += 1;
         }
     }
 
@@ -322,25 +322,25 @@ function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : Optim
 
     for idx in IndexRange(ZData) {
         // Array of Arrays of Length 1
-        majIdxes w/= idx <- ZTermToPauliMajIdx(HTermToGenIdx(ZData[idx], [0]));
+        majIdxes[idx] = ZTermToPauliMajIdx(HTermToGenIdx(ZData[idx], [0]));
     }
 
     startIdx = Length(ZData);
 
     for idx in IndexRange(ZZData) {
         // Array of Arrays of Length 1
-        majIdxes w/= startIdx + idx <- ZZTermToPauliMajIdx(HTermToGenIdx(ZZData[idx], [1]));
+        majIdxes[startIdx + idx] = ZZTermToPauliMajIdx(HTermToGenIdx(ZZData[idx], [1]));
     }
 
-    startIdx = startIdx + Length(ZZData);
+    startIdx += Length(ZZData);
 
     for idx in IndexRange(PQandPQQRData) {
 
         // Array of Arrays of Length 1
-        majIdxes w/= startIdx + idx <- PQandPQQRTermToPauliMajIdx(HTermToGenIdx(PQandPQQRData[idx], [2]));
+        majIdxes[startIdx + idx] = PQandPQQRTermToPauliMajIdx(HTermToGenIdx(PQandPQQRData[idx], [2]));
     }
 
-    startIdx = startIdx + Length(PQandPQQRData);
+    startIdx += Length(PQandPQQRData);
     mutable finalIdx = startIdx;
 
     for idx in 0..Length(h0123Data) - 1 {
@@ -349,8 +349,8 @@ function OptimizedBlockEncodingGeneratorSystem(data : JWOptimizedHTerms) : Optim
         let genArr = V0123TermToPauliMajIdx(HTermToGenIdx(h0123Data[idx], [3]));
 
         for idx0123 in IndexRange(genArr) {
-            majIdxes w/= finalIdx <- genArr[idx0123];
-            finalIdx = finalIdx + 1;
+            majIdxes[finalIdx] = genArr[idx0123];
+            finalIdx += 1;
         }
     }
 

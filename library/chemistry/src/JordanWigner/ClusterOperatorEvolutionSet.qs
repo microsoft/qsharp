@@ -43,12 +43,12 @@ function ComputeJWBitString(nFermions : Int, idxFermions : Int[]) : Bool[] {
         }
         // NOTE: This could be optimized
         for idx in 0..fermionIdx {
-            zString w/= idx <- not zString[idx];
+            zString[idx] = not zString[idx];
         }
     }
 
     for fermionIdx in idxFermions {
-        zString w/= fermionIdx <- false;
+        zString[fermionIdx] = false;
     }
     return zString;
 }
@@ -60,7 +60,7 @@ function ComputeJWPauliZString(nFermions : Int, idxFermions : Int[]) : Pauli[] {
     mutable pauliString = Repeated(PauliI, Length(bitString));
     for idx in IndexRange(bitString) {
         if bitString[idx] {
-            pauliString w/= idx <- PauliZ;
+            pauliString[idx] = PauliZ;
         }
     }
     return pauliString;
@@ -79,7 +79,7 @@ function ComputeJWPauliString(
     for idx in IndexRange(idxFermions) {
         let idxFermion = idxFermions[idx];
         let op = pauliReplacements[idx];
-        pauliString w/= idxFermion <- op;
+        pauliString[idxFermion] = op;
     }
 
     return pauliString;

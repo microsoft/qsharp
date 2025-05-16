@@ -40,7 +40,7 @@ function FixedPointAsBoolArray(integerBits : Int, fractionalBits : Int, value : 
             set currentBit = not currentBit;
         }
         if currentBit {
-            set result w/= idx <- true;
+            result[idx] = true;
         }
     }
 
