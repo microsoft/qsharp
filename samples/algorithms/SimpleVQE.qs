@@ -172,6 +172,8 @@ operation SimpleDescent(
         mutable hadImprovement = false;
         for i in IndexRange(initialPoint) {
             mutable nextPoint = bestPoint; // Copy the best point
+
+            // Test +currentStep
             nextPoint[i] += currentStep;
             let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
@@ -179,10 +181,11 @@ operation SimpleDescent(
                 hadImprovement = true;
                 bestValue = nextValue;
                 bestPoint = nextPoint;
-                nextPoint[i] -= currentStep;
                 Message($"Value improved to {bestValue}.");
             }
-            nextPoint[i] -= currentStep;
+
+            // Test -currentStep
+            nextPoint[i] -= 2.0 * currentStep;
             let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
             if nextValue < bestValue {
