@@ -457,7 +457,7 @@
       {
         "command": "qsharp-vscode.updateCopilotInstructions",
         "category": "QDK",
-        "title": "Update Copilot instructions file for Q#"
+        "title": "Add Copilot instructions file for Q#"
       }
     ],
     "breakpoints": [

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import * as azqTools from "../copilot/azqTools";
 import { ToolState } from "../copilot/tools";
+import { updateCopilotInstructions } from "./instructions";
 import { QSharpTools } from "./qsharpTools";
 
 // state
@@ -96,18 +96,19 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
   qsharpTools = new QSharpTools(context.extensionUri);
   for (const { name, tool: fn, confirm: confirmFn } of toolDefinitions) {
     context.subscriptions.push(
-      vscode.lm.registerTool(name, tool(fn, confirmFn)),
+      vscode.lm.registerTool(name, tool(context, fn, confirmFn)),
     );
   }
 }
 
 function tool(
+  context: vscode.ExtensionContext,
   toolFn: (input: any) => Promise<any>,
   confirmFn?: (input: any) => vscode.PreparedToolInvocation,
 ): vscode.LanguageModelTool<any> {
   return {
     invoke: (options: vscode.LanguageModelToolInvocationOptions<any>) =>
-      invokeTool(options.input, toolFn),
+      invokeTool(context, options.input, toolFn),
     prepareInvocation:
       confirmFn &&
       ((options: vscode.LanguageModelToolInvocationPrepareOptions<any>) =>
@@ -116,14 +117,13 @@ function tool(
 }
 
 async function invokeTool(
+  context: vscode.ExtensionContext,
   input: any,
   toolFn: (input: any) => Promise<any>,
 ): Promise<vscode.LanguageModelToolResult> {
-  log.info("Invoking tool");
+  updateCopilotInstructions("ChatToolCall", context);
 
   const result = await toolFn(input);
-
-  log.info("tool result", result);
 
   return {
     content: [new vscode.LanguageModelTextPart(JSON.stringify(result))],
