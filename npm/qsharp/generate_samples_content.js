@@ -32,12 +32,12 @@ embedSampleContentsInTsFile(
 /**
  * @param {any[]} sampleList
  * @param {string} sampleDir
- * @param {import("fs").PathOrFileDescriptor} generatedJsFileName
+ * @param {import("fs").PathOrFileDescriptor} generatedTsFileName
  */
 function embedSampleContentsInTsFile(
   sampleList,
   sampleDir,
-  generatedJsFileName,
+  generatedTsFileName,
 ) {
   const result = sampleList.map((sample) => {
     const samplePath = join(sampleDir, sample.file);
@@ -51,7 +51,7 @@ function embedSampleContentsInTsFile(
   });
 
   writeFileSync(
-    generatedJsFileName,
+    generatedTsFileName,
     `export default ${JSON.stringify(result, undefined, 2)}`,
     "utf-8",
   );

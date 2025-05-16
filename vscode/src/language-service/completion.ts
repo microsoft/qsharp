@@ -99,7 +99,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     });
 
     // In qsharp documents include the qsharp samples in contexts that are syntactically
-    // appropriate. The presence of the "operation" keyword in/ the completion list
+    // appropriate. The presence of the "operation" keyword in the completion list
     // is a hint that the cursor is at a point we can insert the sample code.
     if (
       isQsharpDocument(document) &&
@@ -113,7 +113,14 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     }
 
     // In OpenQASM documents always include the OpenQASM samples.
-    if (isOpenQasmDocument(document)) {
+    if (
+      isOpenQasmDocument(document) &&
+      results.findIndex(
+        (i) =>
+          i.kind === vscode.CompletionItemKind.Keyword &&
+          i.label === "OPENQASM",
+      ) !== -1
+    ) {
       results = results.concat(this.openqasm_samples);
     }
 
