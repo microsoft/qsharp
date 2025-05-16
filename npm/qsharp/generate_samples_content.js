@@ -7,26 +7,52 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import samples from "../../samples/samples.mjs";
+import qSharpSampleList from "../../samples/samples.mjs";
+import openQasmSampleList from "../../samples/OpenQASM/samples.mjs";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const sampleDir = join(thisDir, "..", "..", "samples");
-const sampleGeneratedDir = join(thisDir, "src");
+const qSharpSampleDir = join(thisDir, "..", "..", "samples");
+const openQasmSampleDir = join(thisDir, "..", "..", "samples", "OpenQASM");
 
-const result = samples.map((sample) => {
-  const samplePath = join(sampleDir, sample.file);
-  const sampleText = readFileSync(samplePath, "utf8");
-  return {
-    title: sample.title,
-    shots: sample.shots,
-    code: sampleText,
-    omitFromTests: sample.omitFromTests,
-  };
-});
+const tsDir = join(thisDir, "src");
+const qSharpGeneratedTsPath = join(tsDir, "samples.generated.ts");
+const openQasmGeneratedTsPath = join(tsDir, "openqasm-samples.generated.ts");
 
-const contentPath = join(sampleGeneratedDir, "samples.generated.ts");
-writeFileSync(
-  contentPath,
-  `export default ${JSON.stringify(result, undefined, 2)}`,
-  "utf-8",
+embedSampleContentsInTsFile(
+  qSharpSampleList,
+  qSharpSampleDir,
+  qSharpGeneratedTsPath,
 );
+embedSampleContentsInTsFile(
+  openQasmSampleList,
+  openQasmSampleDir,
+  openQasmGeneratedTsPath,
+);
+
+/**
+ * @param {any[]} sampleList
+ * @param {string} sampleDir
+ * @param {import("fs").PathOrFileDescriptor} generatedTsFileName
+ */
+function embedSampleContentsInTsFile(
+  sampleList,
+  sampleDir,
+  generatedTsFileName,
+) {
+  const result = sampleList.map((sample) => {
+    const samplePath = join(sampleDir, sample.file);
+    const sampleText = readFileSync(samplePath, "utf8");
+    return {
+      title: sample.title,
+      shots: sample.shots,
+      code: sampleText,
+      omitFromTests: sample.omitFromTests,
+    };
+  });
+
+  writeFileSync(
+    generatedTsFileName,
+    `export default ${JSON.stringify(result, undefined, 2)}`,
+    "utf-8",
+  );
+}
