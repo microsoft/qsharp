@@ -31,15 +31,15 @@ fn float_to_bool() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-34]:
                 expr: Expr [26-33]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [26-33]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [31-32]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -58,15 +58,15 @@ fn sized_float_to_bool() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-38]:
                 expr: Expr [30-37]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [30-37]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [35-36]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -94,18 +94,18 @@ fn float_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [0-0]:
-                                ty: Float(None, true)
+                                ty: const float
                                 kind: Lit: Float(0.0)
                     Stmt [26-38]:
                         annotations: <empty>
                         kind: ExprStmt [26-38]:
                             expr: Expr [26-37]:
-                                ty: Float(None, false)
+                                ty: float
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(None, false) to type Duration(false)
+              x cannot cast expression of type float to type duration
                ,-[test:3:9]
              2 |         float a;
              3 |         duration(a);
@@ -134,19 +134,18 @@ fn sized_float_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-18]
                             init_expr: Expr [0-0]:
-                                ty: Float(Some(32), true)
+                                ty: const float[32]
                                 kind: Lit: Float(0.0)
                     Stmt [30-42]:
                         annotations: <empty>
                         kind: ExprStmt [30-42]:
                             expr: Expr [30-41]:
-                                ty: Float(Some(32), false)
+                                ty: float[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type float[32] to type duration
                ,-[test:3:9]
              2 |         float[32] a;
              3 |         duration(a);
@@ -174,15 +173,15 @@ fn float_to_int() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-33]:
                 expr: Expr [26-32]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [26-32]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [30-31]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -201,15 +200,15 @@ fn float_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-37]:
                 expr: Expr [26-36]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [26-36]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [34-35]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -228,15 +227,15 @@ fn sized_float_to_int() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-37]:
                 expr: Expr [30-36]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [30-36]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [34-35]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -255,15 +254,15 @@ fn sized_float_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-41]:
                 expr: Expr [30-40]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [30-40]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [38-39]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -282,15 +281,15 @@ fn sized_float_to_sized_int_truncating() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-41]:
                 expr: Expr [30-40]:
-                    ty: Int(Some(16), false)
+                    ty: int[16]
                     kind: Cast [30-40]:
-                        ty: Int(Some(16), false)
+                        ty: int[16]
                         expr: Expr [38-39]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -309,15 +308,15 @@ fn sized_float_to_sized_int_expanding() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-41]:
                 expr: Expr [30-40]:
-                    ty: Int(Some(64), false)
+                    ty: int[64]
                     kind: Cast [30-40]:
-                        ty: Int(Some(64), false)
+                        ty: int[64]
                         expr: Expr [38-39]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -340,15 +339,15 @@ fn float_to_uint() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-34]:
                 expr: Expr [26-33]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [26-33]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [31-32]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -367,15 +366,15 @@ fn float_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-38]:
                 expr: Expr [26-37]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [26-37]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [35-36]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -394,15 +393,15 @@ fn sized_float_to_uint() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-38]:
                 expr: Expr [30-37]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [30-37]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [35-36]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -421,15 +420,15 @@ fn sized_float_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-42]:
                 expr: Expr [30-41]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [30-41]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [39-40]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -448,15 +447,15 @@ fn sized_float_to_sized_uint_truncating() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-42]:
                 expr: Expr [30-41]:
-                    ty: UInt(Some(16), false)
+                    ty: uint[16]
                     kind: Cast [30-41]:
-                        ty: UInt(Some(16), false)
+                        ty: uint[16]
                         expr: Expr [39-40]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -475,15 +474,15 @@ fn sized_float_to_sized_uint_expanding() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-42]:
                 expr: Expr [30-41]:
-                    ty: UInt(Some(64), false)
+                    ty: uint[64]
                     kind: Cast [30-41]:
-                        ty: UInt(Some(64), false)
+                        ty: uint[64]
                         expr: Expr [39-40]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -506,11 +505,11 @@ fn float_to_float() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-35]:
                 expr: Expr [26-34]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: SymbolId(8)
         "#]],
     );
@@ -529,15 +528,15 @@ fn float_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-39]:
                 expr: Expr [26-38]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [26-38]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [36-37]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -556,15 +555,15 @@ fn sized_float_to_float() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-39]:
                 expr: Expr [30-38]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [30-38]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [36-37]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -583,11 +582,11 @@ fn sized_float_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: SymbolId(8)
         "#]],
     );
@@ -606,15 +605,15 @@ fn sized_float_to_sized_float_truncating() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Float(Some(16), false)
+                    ty: float[16]
                     kind: Cast [30-42]:
-                        ty: Float(Some(16), false)
+                        ty: float[16]
                         expr: Expr [40-41]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -633,15 +632,15 @@ fn sized_float_to_sized_float_expanding() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Float(Some(64), false)
+                    ty: float[64]
                     kind: Cast [30-42]:
-                        ty: Float(Some(64), false)
+                        ty: float[64]
                         expr: Expr [40-41]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -664,15 +663,15 @@ fn float_to_angle() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-35]:
                 expr: Expr [26-34]:
-                    ty: Angle(None, false)
+                    ty: angle
                     kind: Cast [26-34]:
-                        ty: Angle(None, false)
+                        ty: angle
                         expr: Expr [32-33]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -691,15 +690,15 @@ fn float_to_sized_angle() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-39]:
                 expr: Expr [26-38]:
-                    ty: Angle(Some(32), false)
+                    ty: angle[32]
                     kind: Cast [26-38]:
-                        ty: Angle(Some(32), false)
+                        ty: angle[32]
                         expr: Expr [36-37]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -718,15 +717,15 @@ fn sized_float_to_angle() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-39]:
                 expr: Expr [30-38]:
-                    ty: Angle(None, false)
+                    ty: angle
                     kind: Cast [30-38]:
-                        ty: Angle(None, false)
+                        ty: angle
                         expr: Expr [36-37]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -745,15 +744,15 @@ fn sized_float_to_sized_angle() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Angle(Some(32), false)
+                    ty: angle[32]
                     kind: Cast [30-42]:
-                        ty: Angle(Some(32), false)
+                        ty: angle[32]
                         expr: Expr [40-41]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -772,15 +771,15 @@ fn sized_float_to_sized_angle_truncating() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Angle(Some(16), false)
+                    ty: angle[16]
                     kind: Cast [30-42]:
-                        ty: Angle(Some(16), false)
+                        ty: angle[16]
                         expr: Expr [40-41]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -799,15 +798,15 @@ fn sized_float_to_sized_angle_expanding() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-43]:
                 expr: Expr [30-42]:
-                    ty: Angle(Some(64), false)
+                    ty: angle[64]
                     kind: Cast [30-42]:
-                        ty: Angle(Some(64), false)
+                        ty: angle[64]
                         expr: Expr [40-41]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -830,15 +829,15 @@ fn float_to_complex() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-37]:
                 expr: Expr [26-36]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [26-36]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [34-35]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -857,15 +856,15 @@ fn float_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-48]:
                 expr: Expr [26-47]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [26-47]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [45-46]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -884,15 +883,15 @@ fn sized_float_to_complex() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-41]:
                 expr: Expr [30-40]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [30-40]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [38-39]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -911,15 +910,15 @@ fn sized_float_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-52]:
                 expr: Expr [30-51]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [30-51]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [49-50]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -938,15 +937,15 @@ fn sized_float_to_sized_complex_truncating() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-52]:
                 expr: Expr [30-51]:
-                    ty: Complex(Some(16), false)
+                    ty: complex[float[16]]
                     kind: Cast [30-51]:
-                        ty: Complex(Some(16), false)
+                        ty: complex[float[16]]
                         expr: Expr [49-50]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -965,15 +964,15 @@ fn sized_float_to_sized_complex_expanding() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-52]:
                 expr: Expr [30-51]:
-                    ty: Complex(Some(64), false)
+                    ty: complex[float[64]]
                     kind: Cast [30-51]:
-                        ty: Complex(Some(64), false)
+                        ty: complex[float[64]]
                         expr: Expr [49-50]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -996,15 +995,15 @@ fn float_to_bit() {
                 symbol_id: 8
                 ty_span: [9-14]
                 init_expr: Expr [0-0]:
-                    ty: Float(None, true)
+                    ty: const float
                     kind: Lit: Float(0.0)
             ExprStmt [26-33]:
                 expr: Expr [26-32]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [26-32]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [30-31]:
-                            ty: Float(None, false)
+                            ty: float
                             kind: SymbolId(8)
         "#]],
     );
@@ -1028,19 +1027,18 @@ fn float_to_bitarray_fails() {
                             symbol_id: 8
                             ty_span: [9-14]
                             init_expr: Expr [0-0]:
-                                ty: Float(None, true)
+                                ty: const float
                                 kind: Lit: Float(0.0)
                     Stmt [26-37]:
                         annotations: <empty>
                         kind: ExprStmt [26-37]:
                             expr: Expr [26-36]:
-                                ty: Float(None, false)
+                                ty: float
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type float to type bit[32]
                ,-[test:3:9]
              2 |         float a;
              3 |         bit[32](a);
@@ -1064,15 +1062,15 @@ fn sized_float_to_bit() {
                 symbol_id: 8
                 ty_span: [9-18]
                 init_expr: Expr [0-0]:
-                    ty: Float(Some(32), true)
+                    ty: const float[32]
                     kind: Lit: Float(0.0)
             ExprStmt [30-37]:
                 expr: Expr [30-36]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [30-36]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [34-35]:
-                            ty: Float(Some(32), false)
+                            ty: float[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1096,19 +1094,18 @@ fn sized_float_to_bitarray_fails() {
                             symbol_id: 8
                             ty_span: [9-18]
                             init_expr: Expr [0-0]:
-                                ty: Float(Some(32), true)
+                                ty: const float[32]
                                 kind: Lit: Float(0.0)
                     Stmt [30-41]:
                         annotations: <empty>
                         kind: ExprStmt [30-41]:
                             expr: Expr [30-40]:
-                                ty: Float(Some(32), false)
+                                ty: float[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type float[32] to type bit[32]
                ,-[test:3:9]
              2 |         float[32] a;
              3 |         bit[32](a);
@@ -1137,19 +1134,18 @@ fn sized_float_to_bitarray_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-18]
                             init_expr: Expr [0-0]:
-                                ty: Float(Some(32), true)
+                                ty: const float[32]
                                 kind: Lit: Float(0.0)
                     Stmt [30-41]:
                         annotations: <empty>
                         kind: ExprStmt [30-41]:
                             expr: Expr [30-40]:
-                                ty: Float(Some(32), false)
+                                ty: float[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type float[32] to type bit[16]
                ,-[test:3:9]
              2 |         float[32] a;
              3 |         bit[16](a);
@@ -1178,19 +1174,18 @@ fn sized_float_to_bitarray_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-18]
                             init_expr: Expr [0-0]:
-                                ty: Float(Some(32), true)
+                                ty: const float[32]
                                 kind: Lit: Float(0.0)
                     Stmt [30-41]:
                         annotations: <empty>
                         kind: ExprStmt [30-41]:
                             expr: Expr [30-40]:
-                                ty: Float(Some(32), false)
+                                ty: float[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type float[32] to type bit[64]
                ,-[test:3:9]
              2 |         float[32] a;
              3 |         bit[64](a);

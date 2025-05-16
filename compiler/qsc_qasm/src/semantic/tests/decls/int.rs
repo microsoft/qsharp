@@ -14,15 +14,15 @@ fn implicit_bitness_int_negative() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [9-11]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: UnaryOpExpr [9-11]:
                         op: Neg
                         expr: Expr [9-11]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(42)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -37,15 +37,15 @@ fn implicit_bitness_int_const_negative() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [15-17]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: UnaryOpExpr [15-17]:
                         op: Neg
                         expr: Expr [15-17]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(42)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -60,11 +60,11 @@ fn implicit_bitness_int_default() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [0-0]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(0)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -79,11 +79,11 @@ fn const_implicit_bitness_int_lit() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-16]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(42)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -98,11 +98,11 @@ fn implicit_bitness_int_hex_cap() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-15]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(64031)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -117,11 +117,11 @@ fn const_implicit_bitness_int_hex_cap() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-21]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(64031)
             [8] Symbol [10-11]:
                 name: y
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -136,11 +136,11 @@ fn implicit_bitness_int_octal() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-12]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(34)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -155,11 +155,11 @@ fn const_implicit_bitness_int_octal() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-18]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(34)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -174,11 +174,11 @@ fn const_implicit_bitness_int_octal_cap() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-18]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(34)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -193,11 +193,11 @@ fn implicit_bitness_int_binary_low() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-19]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(153)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -212,11 +212,11 @@ fn implicit_bitness_int_binary_cap() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(10)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -231,11 +231,11 @@ fn const_implicit_bitness_int_binary_low() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-25]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(153)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -250,11 +250,11 @@ fn const_implicit_bitness_int_binary_cap() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-20]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(10)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -269,11 +269,11 @@ fn implicit_bitness_int_formatted() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(2000)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -288,11 +288,11 @@ fn const_implicit_bitness_int_formatted() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-20]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(2000)
             [8] Symbol [10-11]:
                 name: x
-                type: Int(None, true)
+                type: const int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -307,11 +307,11 @@ fn explicit_bitness_int_default() {
                 symbol_id: 8
                 ty_span: [0-7]
                 init_expr: Expr [0-0]:
-                    ty: Int(Some(10), true)
+                    ty: const int[10]
                     kind: Lit: Int(0)
             [8] Symbol [8-9]:
                 name: x
-                type: Int(Some(10), false)
+                type: int[10]
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -326,11 +326,11 @@ fn explicit_bitness_int() {
                 symbol_id: 8
                 ty_span: [0-7]
                 init_expr: Expr [12-14]:
-                    ty: Int(Some(10), true)
+                    ty: const int[10]
                     kind: Lit: Int(42)
             [8] Symbol [8-9]:
                 name: x
-                type: Int(Some(10), false)
+                type: int[10]
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -345,11 +345,11 @@ fn const_explicit_bitness_int() {
                 symbol_id: 8
                 ty_span: [6-13]
                 init_expr: Expr [18-20]:
-                    ty: Int(Some(10), true)
+                    ty: const int[10]
                     kind: Lit: Int(42)
             [8] Symbol [14-15]:
                 name: x
-                type: Int(Some(10), true)
+                type: const int[10]
                 qsharp_type: Int
                 io_kind: Default"#]],
     );
@@ -364,19 +364,19 @@ fn implicit_bitness_int_negative_float_decl_is_runtime_conversion() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [9-12]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [9-12]:
-                            ty: Float(None, true)
+                            ty: const float
                             kind: UnaryOpExpr [9-12]:
                                 op: Neg
                                 expr: Expr [9-12]:
-                                    ty: Float(None, true)
+                                    ty: const float
                                     kind: Lit: Float(42.0)
             [8] Symbol [4-5]:
                 name: x
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default"#]],
     );

@@ -236,8 +236,7 @@ fn classical_decl_initialized_with_incompatible_funcall_errors() {
     expect![[r#"
         [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Angle(None, false) to type Float(None,
-          | false)
+          x cannot cast expression of type angle to type float
            ,-[Test.qasm:6:19]
          5 | 
          6 |         float a = square(2.0);
@@ -293,7 +292,7 @@ fn funcall_implicit_arg_cast_uint_to_qubit_errors() {
     expect![[r#"
         [Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Int(None, true) to type QubitArray(2)
+          x cannot cast expression of type const int to type qubit[2]
            ,-[Test.qasm:6:24]
          5 | 
          6 |         bit p = parity(2);

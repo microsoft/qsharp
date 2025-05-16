@@ -14,11 +14,11 @@ fn with_no_init_expr_has_generated_lit_expr() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [0-0]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             [8] Symbol [4-5]:
                 name: a
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default"#]],
     );
@@ -33,11 +33,11 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
                 symbol_id: 8
                 ty_span: [0-6]
                 init_expr: Expr [0-0]:
-                    ty: BitArray(4, true)
+                    ty: const bit[4]
                     kind: Lit: Bitstring("0000")
             [8] Symbol [7-8]:
                 name: a
-                type: BitArray(4, false)
+                type: bit[4]
                 qsharp_type: Result[]
                 io_kind: Default"#]],
     );
@@ -52,11 +52,11 @@ fn decl_with_lit_0_init_expr() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-9]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             [8] Symbol [4-5]:
                 name: a
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default"#]],
     );
@@ -71,11 +71,11 @@ fn decl_with_lit_1_init_expr() {
                 symbol_id: 8
                 ty_span: [0-3]
                 init_expr: Expr [8-9]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [4-5]:
                 name: a
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default"#]],
     );
@@ -90,11 +90,11 @@ fn const_decl_with_lit_0_init_expr() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-15]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(0)
             [8] Symbol [10-11]:
                 name: a
-                type: Bit(true)
+                type: const bit
                 qsharp_type: Result
                 io_kind: Default"#]],
     );
@@ -109,11 +109,11 @@ fn const_decl_with_lit_1_init_expr() {
                 symbol_id: 8
                 ty_span: [6-9]
                 init_expr: Expr [14-15]:
-                    ty: Bit(true)
+                    ty: const bit
                     kind: Lit: Bit(1)
             [8] Symbol [10-11]:
                 name: a
-                type: Bit(true)
+                type: const bit
                 qsharp_type: Result
                 io_kind: Default"#]],
     );

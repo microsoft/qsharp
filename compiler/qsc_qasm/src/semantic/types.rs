@@ -51,22 +51,71 @@ pub enum Type {
     Err,
 }
 
+fn write_ty_with_const(f: &mut Formatter<'_>, is_const: bool, name: &str) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, is_const, None, name)
+}
+
+fn write_ty_with_designator(
+    f: &mut Formatter<'_>,
+    width: Option<u32>,
+    name: &str,
+) -> std::fmt::Result {
+    write_ty_with_designator_and_const(f, false, width, name)
+}
+
+fn write_ty_with_designator_and_const(
+    f: &mut Formatter<'_>,
+    is_const: bool,
+    width: Option<u32>,
+    name: &str,
+) -> std::fmt::Result {
+    if is_const {
+        write!(f, "const ")?;
+    }
+    if let Some(width) = width {
+        write!(f, "{name}[{width}]")
+    } else {
+        write!(f, "{name}")
+    }
+}
+
+fn write_complex_ty(f: &mut Formatter<'_>, is_const: bool, width: Option<u32>) -> std::fmt::Result {
+    if is_const {
+        write!(f, "const ")?;
+    }
+    if let Some(width) = width {
+        write!(f, "complex[float[{width}]]")
+    } else {
+        write!(f, "complex[float]")
+    }
+}
+
 impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Bit(is_const) => write!(f, "Bit({is_const})"),
-            Type::Bool(is_const) => write!(f, "Bool({is_const})"),
-            Type::Duration(is_const) => write!(f, "Duration({is_const})"),
-            Type::Stretch(is_const) => write!(f, "Stretch({is_const})"),
-            Type::Angle(width, is_const) => write!(f, "Angle({width:?}, {is_const})"),
-            Type::Complex(width, is_const) => write!(f, "Complex({width:?}, {is_const})"),
-            Type::Float(width, is_const) => write!(f, "Float({width:?}, {is_const})"),
-            Type::Int(width, is_const) => write!(f, "Int({width:?}, {is_const})"),
-            Type::UInt(width, is_const) => write!(f, "UInt({width:?}, {is_const})"),
-            Type::Qubit => write!(f, "Qubit"),
-            Type::HardwareQubit => write!(f, "HardwareQubit"),
-            Type::BitArray(dims, is_const) => write!(f, "BitArray({dims:?}, {is_const})"),
-            Type::QubitArray(dims) => write!(f, "QubitArray({dims:?})"),
+            Type::Bit(is_const) => write_ty_with_const(f, *is_const, "bit"),
+            Type::Bool(is_const) => write_ty_with_const(f, *is_const, "bool"),
+            Type::Duration(is_const) => write_ty_with_const(f, *is_const, "duration"),
+            Type::Stretch(is_const) => write_ty_with_const(f, *is_const, "stretch"),
+            Type::Angle(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "angle")
+            }
+            Type::Complex(width, is_const) => write_complex_ty(f, *is_const, *width),
+            Type::Float(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "float")
+            }
+            Type::Int(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "int")
+            }
+            Type::UInt(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, *width, "uint")
+            }
+            Type::Qubit => write!(f, "qubit"),
+            Type::HardwareQubit => write!(f, "hardware qubit"),
+            Type::BitArray(width, is_const) => {
+                write_ty_with_designator_and_const(f, *is_const, Some(*width), "bit")
+            }
+            Type::QubitArray(width) => write_ty_with_designator(f, Some(*width), "qubit"),
             Type::BoolArray(dims) => write!(f, "BoolArray({dims:?})"),
             Type::DurationArray(dims) => {
                 write!(f, "DurationArray({dims:?})")
@@ -90,10 +139,10 @@ impl Display for Type {
             Type::Function(params_ty, return_ty) => {
                 write!(f, "Function({params_ty:?}) -> {return_ty:?}")
             }
-            Type::Range => write!(f, "Range"),
-            Type::Set => write!(f, "Set"),
-            Type::Void => write!(f, "Void"),
-            Type::Err => write!(f, "Err"),
+            Type::Range => write!(f, "range"),
+            Type::Set => write!(f, "set"),
+            Type::Void => write!(f, "void"),
+            Type::Err => write!(f, "unknown"),
         }
     }
 }

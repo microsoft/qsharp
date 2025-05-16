@@ -73,7 +73,7 @@ fn int_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Duration(false)
+              x cannot cast expression of type int to type duration
                ,-[Test.qasm:3:9]
              2 |         int a;
              3 |         duration(a);
@@ -95,8 +95,7 @@ fn sized_int_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type int[32] to type duration
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         duration(a);
@@ -422,7 +421,7 @@ fn int_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Angle(None, false)
+              x cannot cast expression of type int to type angle
                ,-[Test.qasm:3:9]
              2 |         int a;
              3 |         angle(a);
@@ -444,8 +443,7 @@ fn int_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type Angle(Some(32),
-              | false)
+              x cannot cast expression of type int to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         int a;
              3 |         angle[32](a);
@@ -467,8 +465,7 @@ fn sized_int_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type Angle(None,
-              | false)
+              x cannot cast expression of type int[32] to type angle
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         angle(a);
@@ -490,8 +487,7 @@ fn sized_int_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(32), false)
+              x cannot cast expression of type int[32] to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         angle[32](a);
@@ -513,8 +509,7 @@ fn sized_int_to_sized_angle_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(16), false)
+              x cannot cast expression of type int[32] to type angle[16]
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         angle[16](a);
@@ -536,8 +531,7 @@ fn sized_int_to_sized_angle_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type
-              | Angle(Some(64), false)
+              x cannot cast expression of type int[32] to type angle[64]
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         angle[64](a);
@@ -683,8 +677,7 @@ fn int_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type int to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         int a;
              3 |         bit[32](a);
@@ -742,8 +735,7 @@ fn sized_int_to_bitarray_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type int[32] to type bit[16]
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         bit[16](a);
@@ -765,8 +757,7 @@ fn sized_int_to_bitarray_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Int(Some(32), false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type int[32] to type bit[64]
                ,-[Test.qasm:3:9]
              2 |         int[32] a;
              3 |         bit[64](a);

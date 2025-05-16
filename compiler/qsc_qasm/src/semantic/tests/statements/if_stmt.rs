@@ -16,11 +16,11 @@ fn if_branch_creates_its_own_scope() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(2)
             IfStmt [20-40]:
                 condition: Expr [24-28]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 if_body: Stmt [30-40]:
                     annotations: <empty>
@@ -31,7 +31,7 @@ fn if_branch_creates_its_own_scope() {
                                 symbol_id: 9
                                 ty_span: [30-33]
                                 init_expr: Expr [38-39]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(1)
                 else_body: <none>
         "#]],
@@ -51,11 +51,11 @@ fn else_branch_creates_its_own_scope() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(2)
             IfStmt [20-52]:
                 condition: Expr [24-28]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 if_body: Stmt [30-32]:
                     annotations: <empty>
@@ -69,7 +69,7 @@ fn else_branch_creates_its_own_scope() {
                                 symbol_id: 9
                                 ty_span: [42-45]
                                 init_expr: Expr [50-51]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(1)
         "#]],
     );
@@ -87,11 +87,11 @@ fn branch_block_creates_a_new_scope() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(2)
             IfStmt [20-44]:
                 condition: Expr [24-28]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 if_body: Stmt [30-44]:
                     annotations: <empty>
@@ -102,7 +102,7 @@ fn branch_block_creates_a_new_scope() {
                                 symbol_id: 9
                                 ty_span: [32-35]
                                 init_expr: Expr [40-41]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(1)
                 else_body: <none>
         "#]],
@@ -122,11 +122,11 @@ fn if_scope_and_else_scope_are_different() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(2)
             IfStmt [20-68]:
                 condition: Expr [24-28]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(true)
                 if_body: Stmt [30-44]:
                     annotations: <empty>
@@ -137,7 +137,7 @@ fn if_scope_and_else_scope_are_different() {
                                 symbol_id: 9
                                 ty_span: [32-35]
                                 init_expr: Expr [40-41]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(1)
                 else_body: Stmt [54-68]:
                     annotations: <empty>
@@ -148,7 +148,7 @@ fn if_scope_and_else_scope_are_different() {
                                 symbol_id: 10
                                 ty_span: [56-59]
                                 init_expr: Expr [64-65]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(2)
         "#]],
     );
@@ -161,11 +161,11 @@ fn condition_cast() {
         &expect![[r#"
             IfStmt [0-12]:
                 condition: Expr [4-5]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Cast [0-0]:
-                        ty: Bool(true)
+                        ty: const bool
                         expr: Expr [4-5]:
-                            ty: Int(None, true)
+                            ty: const int
                             kind: Lit: Int(1)
                 if_body: Stmt [7-12]:
                     annotations: <empty>
@@ -174,7 +174,7 @@ fn condition_cast() {
                             annotations: <empty>
                             kind: ExprStmt [7-12]:
                                 expr: Expr [7-11]:
-                                    ty: Bool(true)
+                                    ty: const bool
                                     kind: Lit: Bool(true)
                 else_body: <none>
         "#]],

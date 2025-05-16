@@ -800,8 +800,8 @@ fn broadcast_with_different_register_sizes_fails() {
     expect![[r#"
         [Qasm.Lowerer.BroadcastCallQuantumArgsDisagreeInSize
 
-          x first quantum register is of type QubitArray(3) but found an argument of
-          | type QubitArray(2)
+          x first quantum register is of type qubit[3] but found an argument of type
+          | qubit[2]
            ,-[Test.qasm:5:25]
          4 |         qubit[2] targets;
          5 |         ctrl @ x ctrls, targets;

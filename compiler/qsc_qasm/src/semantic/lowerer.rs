@@ -1034,7 +1034,7 @@ impl Lowerer {
             Type::Void => crate::types::Type::Tuple(vec![]),
             Type::Err => crate::types::Type::Err,
             _ => {
-                let msg = format!("converting {ty:?} to Q# type");
+                let msg = format!("converting `{ty}` to Q# type");
                 self.push_unimplemented_error_message(msg, span);
                 crate::types::Type::Err
             }
@@ -2746,7 +2746,7 @@ impl Lowerer {
                 )))
             }
             Type::Gate(_, _) | Type::Function(..) | Type::Range | Type::Set | Type::Void => {
-                let message = format!("default values for {ty:?}");
+                let message = format!("default values for {ty}");
                 self.push_unsupported_error_message(message, span);
                 None
             }
@@ -3277,21 +3277,15 @@ impl Lowerer {
             let Some(ty) = ty else {
                 let target_ty = Type::UInt(None, left_type.is_const() && right_type.is_const());
                 if lhs_uint_promotion.is_none() {
-                    let target_str: String = format!("{target_ty:?}");
-                    let kind = SemanticErrorKind::CannotCast(
-                        format!("{left_type:?}"),
-                        target_str,
-                        lhs.span,
-                    );
+                    let target_str: String = target_ty.to_string();
+                    let kind =
+                        SemanticErrorKind::CannotCast(left_type.to_string(), target_str, lhs.span);
                     self.push_semantic_error(kind);
                 }
                 if rhs_uint_promotion.is_none() {
-                    let target_str: String = format!("{target_ty:?}");
-                    let kind = SemanticErrorKind::CannotCast(
-                        format!("{right_type:?}"),
-                        target_str,
-                        rhs.span,
-                    );
+                    let target_str = target_ty.to_string();
+                    let kind =
+                        SemanticErrorKind::CannotCast(right_type.to_string(), target_str, rhs.span);
                     self.push_semantic_error(kind);
                 }
                 let bin_expr = semantic::BinaryOpExpr {
@@ -3437,12 +3431,8 @@ impl Lowerer {
                     ty: ty.clone(),
                 }
             } else {
-                let kind = SemanticErrorKind::OperatorNotSupportedForTypes(
-                    format!("{op:?}"),
-                    format!("{ty:?}"),
-                    format!("{ty:?}"),
-                    span,
-                );
+                let kind =
+                    SemanticErrorKind::OperatorNotAllowedForComplexValues(format!("{op:?}"), span);
                 self.push_semantic_error(kind);
                 err_expr!(ty.clone())
             }
@@ -3677,7 +3667,7 @@ impl Lowerer {
         indices: &[semantic::Index],
     ) -> super::types::Type {
         if !ty.is_array() {
-            let kind = SemanticErrorKind::CannotIndexType(format!("{ty:?}"), span);
+            let kind = SemanticErrorKind::CannotIndexType(ty.to_string(), span);
             self.push_semantic_error(kind);
             return super::types::Type::Err;
         }
@@ -3693,7 +3683,7 @@ impl Lowerer {
         } else {
             // we failed to get the indexed type, unknown error
             // we should have caught this earlier with the two checks above
-            let kind = SemanticErrorKind::CannotIndexType(format!("{ty:?}"), span);
+            let kind = SemanticErrorKind::CannotIndexType(ty.to_string(), span);
             self.push_semantic_error(kind);
             super::types::Type::Err
         }
@@ -3797,8 +3787,8 @@ impl Lowerer {
             // if either type is an error, we don't need to push an error
             return;
         }
-        let rhs_ty_name = format!("{expr_ty:?}");
-        let lhs_ty_name = format!("{target_ty:?}");
+        let rhs_ty_name = expr_ty.to_string();
+        let lhs_ty_name = target_ty.to_string();
         let kind = SemanticErrorKind::CannotCast(rhs_ty_name, lhs_ty_name, span);
         self.push_semantic_error(kind);
     }
@@ -3808,8 +3798,9 @@ impl Lowerer {
             // if either type is an error, we don't need to push an error
             return;
         }
-        let rhs_ty_name = format!("{expr_ty:?}");
-        let lhs_ty_name = format!("{target_ty:?}");
+
+        let rhs_ty_name = expr_ty.to_string();
+        let lhs_ty_name = target_ty.to_string();
         let kind = SemanticErrorKind::CannotCastLiteral(rhs_ty_name, lhs_ty_name, span);
         self.push_semantic_error(kind);
     }

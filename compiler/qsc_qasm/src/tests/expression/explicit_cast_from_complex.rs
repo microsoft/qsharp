@@ -29,7 +29,7 @@ fn complex_to_bool_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Bool(false)
+              x cannot cast expression of type complex[float] to type bool
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bool(a);
@@ -51,8 +51,7 @@ fn sized_complex_to_bool_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Bool(false)
+              x cannot cast expression of type complex[float[32]] to type bool
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bool(a);
@@ -78,8 +77,7 @@ fn complex_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type
-              | Duration(false)
+              x cannot cast expression of type complex[float] to type duration
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         duration(a);
@@ -101,8 +99,7 @@ fn sized_complex_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type complex[float[32]] to type duration
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         duration(a);
@@ -128,8 +125,7 @@ fn complex_to_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Int(None,
-              | false)
+              x cannot cast expression of type complex[float] to type int
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         int(a);
@@ -151,8 +147,7 @@ fn complex_to_sized_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Int(Some(32),
-              | false)
+              x cannot cast expression of type complex[float] to type int[32]
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         int[32](a);
@@ -174,8 +169,7 @@ fn sized_complex_to_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type Int(None,
-              | false)
+              x cannot cast expression of type complex[float[32]] to type int
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int(a);
@@ -197,8 +191,7 @@ fn sized_complex_to_sized_int_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Int(Some(32), false)
+              x cannot cast expression of type complex[float[32]] to type int[32]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[32](a);
@@ -220,8 +213,7 @@ fn sized_complex_to_sized_int_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Int(Some(16), false)
+              x cannot cast expression of type complex[float[32]] to type int[16]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[16](a);
@@ -243,8 +235,7 @@ fn sized_complex_to_sized_int_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Int(Some(64), false)
+              x cannot cast expression of type complex[float[32]] to type int[64]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         int[64](a);
@@ -270,8 +261,7 @@ fn complex_to_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type UInt(None,
-              | false)
+              x cannot cast expression of type complex[float] to type uint
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         uint(a);
@@ -293,8 +283,7 @@ fn complex_to_sized_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type UInt(Some(32),
-              | false)
+              x cannot cast expression of type complex[float] to type uint[32]
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         uint[32](a);
@@ -316,8 +305,7 @@ fn sized_complex_to_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type UInt(None,
-              | false)
+              x cannot cast expression of type complex[float[32]] to type uint
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint(a);
@@ -339,8 +327,7 @@ fn sized_complex_to_sized_uint_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | UInt(Some(32), false)
+              x cannot cast expression of type complex[float[32]] to type uint[32]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[32](a);
@@ -362,8 +349,7 @@ fn sized_complex_to_sized_uint_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | UInt(Some(16), false)
+              x cannot cast expression of type complex[float[32]] to type uint[16]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[16](a);
@@ -385,8 +371,7 @@ fn sized_complex_to_sized_uint_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | UInt(Some(64), false)
+              x cannot cast expression of type complex[float[32]] to type uint[64]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         uint[64](a);
@@ -412,8 +397,7 @@ fn complex_to_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Float(None,
-              | false)
+              x cannot cast expression of type complex[float] to type float
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         float(a);
@@ -435,8 +419,7 @@ fn complex_to_sized_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type
-              | Float(Some(32), false)
+              x cannot cast expression of type complex[float] to type float[32]
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         float[32](a);
@@ -458,8 +441,7 @@ fn sized_complex_to_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Float(None, false)
+              x cannot cast expression of type complex[float[32]] to type float
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float(a);
@@ -481,8 +463,7 @@ fn sized_complex_to_sized_float_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Float(Some(32), false)
+              x cannot cast expression of type complex[float[32]] to type float[32]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[32](a);
@@ -504,8 +485,7 @@ fn sized_complex_to_sized_float_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Float(Some(16), false)
+              x cannot cast expression of type complex[float[32]] to type float[16]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[16](a);
@@ -527,8 +507,7 @@ fn sized_complex_to_sized_float_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Float(Some(64), false)
+              x cannot cast expression of type complex[float[32]] to type float[64]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         float[64](a);
@@ -554,8 +533,7 @@ fn complex_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Angle(None,
-              | false)
+              x cannot cast expression of type complex[float] to type angle
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         angle(a);
@@ -577,8 +555,7 @@ fn complex_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type
-              | Angle(Some(32), false)
+              x cannot cast expression of type complex[float] to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         angle[32](a);
@@ -600,8 +577,7 @@ fn sized_complex_to_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Angle(None, false)
+              x cannot cast expression of type complex[float[32]] to type angle
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle(a);
@@ -623,8 +599,7 @@ fn sized_complex_to_sized_angle_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Angle(Some(32), false)
+              x cannot cast expression of type complex[float[32]] to type angle[32]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[32](a);
@@ -646,8 +621,7 @@ fn sized_complex_to_sized_angle_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Angle(Some(16), false)
+              x cannot cast expression of type complex[float[32]] to type angle[16]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[16](a);
@@ -669,8 +643,7 @@ fn sized_complex_to_sized_angle_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | Angle(Some(64), false)
+              x cannot cast expression of type complex[float[32]] to type angle[64]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         angle[64](a);
@@ -723,8 +696,7 @@ fn complex_to_sized_complex() {
 
             Qasm.Compiler.NotSupported
 
-              x casting Complex(None, false) to Complex(Some(32), false) type are not
-              | supported
+              x casting complex[float] to complex[float[32]] type are not supported
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         complex[float[32]](a);
@@ -757,8 +729,7 @@ fn sized_complex_to_complex() {
 
             Qasm.Compiler.NotSupported
 
-              x casting Complex(Some(32), false) to Complex(None, false) type are not
-              | supported
+              x casting complex[float[32]] to complex[float] type are not supported
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex(a);
@@ -823,8 +794,7 @@ fn sized_complex_to_sized_complex_expanding() {
 
             Qasm.Compiler.NotSupported
 
-              x casting Complex(Some(32), false) to Complex(Some(64), false) type are
-              | not supported
+              x casting complex[float[32]] to complex[float[64]] type are not supported
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         complex[float[64]](a);
@@ -850,7 +820,7 @@ fn complex_to_bit_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type Bit(false)
+              x cannot cast expression of type complex[float] to type bit
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bit(a);
@@ -872,8 +842,7 @@ fn complex_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type complex[float] to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         complex a;
              3 |         bit[32](a);
@@ -895,7 +864,7 @@ fn sized_complex_to_bit_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type Bit(false)
+              x cannot cast expression of type complex[float[32]] to type bit
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit(a);
@@ -917,8 +886,7 @@ fn sized_complex_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | BitArray(32, false)
+              x cannot cast expression of type complex[float[32]] to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[32](a);
@@ -940,8 +908,7 @@ fn sized_complex_to_bitarray_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | BitArray(16, false)
+              x cannot cast expression of type complex[float[32]] to type bit[16]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[16](a);
@@ -963,8 +930,7 @@ fn sized_complex_to_bitarray_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Complex(Some(32), false) to type
-              | BitArray(64, false)
+              x cannot cast expression of type complex[float[32]] to type bit[64]
                ,-[Test.qasm:3:9]
              2 |         complex[float[32]] a;
              3 |         bit[64](a);

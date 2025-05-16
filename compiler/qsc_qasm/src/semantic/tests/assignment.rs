@@ -29,52 +29,52 @@ fn too_many_indices_in_indexed_assignment() {
                                             ty: FloatArray(Some(32), One(2))
                                             kind: Lit:     array:
                                                     Expr [45-48]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [45-48]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(1.1)
                                                     Expr [50-53]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [50-53]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(1.2)
                                         Expr [56-66]:
                                             ty: FloatArray(Some(32), One(2))
                                             kind: Lit:     array:
                                                     Expr [57-60]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [57-60]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(2.1)
                                                     Expr [62-65]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [62-65]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(2.2)
                                         Expr [68-78]:
                                             ty: FloatArray(Some(32), One(2))
                                             kind: Lit:     array:
                                                     Expr [69-72]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [69-72]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(3.1)
                                                     Expr [74-77]:
-                                                        ty: Float(Some(32), false)
+                                                        ty: float[32]
                                                         kind: Cast [0-0]:
-                                                            ty: Float(Some(32), false)
+                                                            ty: float[32]
                                                             expr: Expr [74-77]:
-                                                                ty: Float(None, true)
+                                                                ty: const float
                                                                 kind: Lit: Float(3.2)
                     Stmt [89-113]:
                         annotations: <empty>
@@ -85,16 +85,16 @@ fn too_many_indices_in_indexed_assignment() {
                                 index_span: [97-106]
                                 indices:
                                     Expr [98-99]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(1)
                                     Expr [101-102]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(1)
                                     Expr [104-105]:
-                                        ty: Int(None, true)
+                                        ty: const int
                                         kind: Lit: Int(3)
                             rhs: Expr [109-112]:
-                                ty: Float(None, true)
+                                ty: const float
                                 kind: Lit: Float(2.3)
 
             [Qasm.Lowerer.TooManyIndices

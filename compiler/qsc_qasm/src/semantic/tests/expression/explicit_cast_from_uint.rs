@@ -31,15 +31,15 @@ fn uint_to_bool() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-33]:
                 expr: Expr [25-32]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [25-32]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [30-31]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -58,15 +58,15 @@ fn sized_uint_to_bool() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-37]:
                 expr: Expr [29-36]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Cast [29-36]:
-                        ty: Bool(false)
+                        ty: bool
                         expr: Expr [34-35]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -94,18 +94,18 @@ fn uint_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: UInt(None, true)
+                                ty: const uint
                                 kind: Lit: Int(0)
                     Stmt [25-37]:
                         annotations: <empty>
                         kind: ExprStmt [25-37]:
                             expr: Expr [25-36]:
-                                ty: UInt(None, false)
+                                ty: uint
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(None, false) to type Duration(false)
+              x cannot cast expression of type uint to type duration
                ,-[test:3:9]
              2 |         uint a;
              3 |         duration(a);
@@ -134,19 +134,18 @@ fn sized_uint_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-41]:
                         annotations: <empty>
                         kind: ExprStmt [29-41]:
                             expr: Expr [29-40]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type uint[32] to type duration
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         duration(a);
@@ -174,15 +173,15 @@ fn uint_to_int() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-32]:
                 expr: Expr [25-31]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [25-31]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [29-30]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -201,15 +200,15 @@ fn uint_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-36]:
                 expr: Expr [25-35]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [25-35]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [33-34]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -228,15 +227,15 @@ fn sized_uint_to_int() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-36]:
                 expr: Expr [29-35]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [29-35]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [33-34]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -255,15 +254,15 @@ fn sized_uint_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [29-39]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [37-38]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -282,15 +281,15 @@ fn sized_uint_to_sized_int_truncating() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
-                    ty: Int(Some(16), false)
+                    ty: int[16]
                     kind: Cast [29-39]:
-                        ty: Int(Some(16), false)
+                        ty: int[16]
                         expr: Expr [37-38]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -309,15 +308,15 @@ fn sized_uint_to_sized_int_expanding() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
-                    ty: Int(Some(64), false)
+                    ty: int[64]
                     kind: Cast [29-39]:
-                        ty: Int(Some(64), false)
+                        ty: int[64]
                         expr: Expr [37-38]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -340,11 +339,11 @@ fn uint_to_uint() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-33]:
                 expr: Expr [25-32]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: SymbolId(8)
         "#]],
     );
@@ -363,15 +362,15 @@ fn uint_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-37]:
                 expr: Expr [25-36]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [25-36]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [34-35]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -390,15 +389,15 @@ fn sized_uint_to_uint() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-37]:
                 expr: Expr [29-36]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [29-36]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [34-35]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -417,11 +416,11 @@ fn sized_uint_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-41]:
                 expr: Expr [29-40]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: SymbolId(8)
         "#]],
     );
@@ -440,15 +439,15 @@ fn sized_uint_to_sized_uint_truncating() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-41]:
                 expr: Expr [29-40]:
-                    ty: UInt(Some(16), false)
+                    ty: uint[16]
                     kind: Cast [29-40]:
-                        ty: UInt(Some(16), false)
+                        ty: uint[16]
                         expr: Expr [38-39]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -467,15 +466,15 @@ fn sized_uint_to_sized_uint_expanding() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-41]:
                 expr: Expr [29-40]:
-                    ty: UInt(Some(64), false)
+                    ty: uint[64]
                     kind: Cast [29-40]:
-                        ty: UInt(Some(64), false)
+                        ty: uint[64]
                         expr: Expr [38-39]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -498,15 +497,15 @@ fn uint_to_float() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-34]:
                 expr: Expr [25-33]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [25-33]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [31-32]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -525,15 +524,15 @@ fn uint_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-38]:
                 expr: Expr [25-37]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [25-37]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [35-36]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -552,15 +551,15 @@ fn sized_uint_to_float() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-38]:
                 expr: Expr [29-37]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [29-37]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [35-36]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -579,15 +578,15 @@ fn sized_uint_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-42]:
                 expr: Expr [29-41]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [29-41]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [39-40]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -606,15 +605,15 @@ fn sized_uint_to_sized_float_truncating() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-42]:
                 expr: Expr [29-41]:
-                    ty: Float(Some(16), false)
+                    ty: float[16]
                     kind: Cast [29-41]:
-                        ty: Float(Some(16), false)
+                        ty: float[16]
                         expr: Expr [39-40]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -633,15 +632,15 @@ fn sized_uint_to_sized_float_expanding() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-42]:
                 expr: Expr [29-41]:
-                    ty: Float(Some(64), false)
+                    ty: float[64]
                     kind: Cast [29-41]:
-                        ty: Float(Some(64), false)
+                        ty: float[64]
                         expr: Expr [39-40]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -669,19 +668,18 @@ fn uint_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: UInt(None, true)
+                                ty: const uint
                                 kind: Lit: Int(0)
                     Stmt [25-34]:
                         annotations: <empty>
                         kind: ExprStmt [25-34]:
                             expr: Expr [25-33]:
-                                ty: UInt(None, false)
+                                ty: uint
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(None, false) to type Angle(None,
-              | false)
+              x cannot cast expression of type uint to type angle
                ,-[test:3:9]
              2 |         uint a;
              3 |         angle(a);
@@ -710,19 +708,18 @@ fn uint_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: UInt(None, true)
+                                ty: const uint
                                 kind: Lit: Int(0)
                     Stmt [25-38]:
                         annotations: <empty>
                         kind: ExprStmt [25-38]:
                             expr: Expr [25-37]:
-                                ty: UInt(None, false)
+                                ty: uint
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(None, false) to type Angle(Some(32),
-              | false)
+              x cannot cast expression of type uint to type angle[32]
                ,-[test:3:9]
              2 |         uint a;
              3 |         angle[32](a);
@@ -751,19 +748,18 @@ fn sized_uint_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-38]:
                         annotations: <empty>
                         kind: ExprStmt [29-38]:
                             expr: Expr [29-37]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type Angle(None,
-              | false)
+              x cannot cast expression of type uint[32] to type angle
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         angle(a);
@@ -792,19 +788,18 @@ fn sized_uint_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-42]:
                         annotations: <empty>
                         kind: ExprStmt [29-42]:
                             expr: Expr [29-41]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type
-              | Angle(Some(32), false)
+              x cannot cast expression of type uint[32] to type angle[32]
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         angle[32](a);
@@ -833,19 +828,18 @@ fn sized_uint_to_sized_angle_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-42]:
                         annotations: <empty>
                         kind: ExprStmt [29-42]:
                             expr: Expr [29-41]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type
-              | Angle(Some(16), false)
+              x cannot cast expression of type uint[32] to type angle[16]
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         angle[16](a);
@@ -874,19 +868,18 @@ fn sized_uint_to_sized_angle_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-42]:
                         annotations: <empty>
                         kind: ExprStmt [29-42]:
                             expr: Expr [29-41]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type
-              | Angle(Some(64), false)
+              x cannot cast expression of type uint[32] to type angle[64]
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         angle[64](a);
@@ -914,15 +907,15 @@ fn uint_to_complex() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-36]:
                 expr: Expr [25-35]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [25-35]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [33-34]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -941,15 +934,15 @@ fn uint_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-47]:
                 expr: Expr [25-46]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [25-46]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [44-45]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -968,15 +961,15 @@ fn sized_uint_to_complex() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
-                    ty: Complex(None, false)
+                    ty: complex[float]
                     kind: Cast [29-39]:
-                        ty: Complex(None, false)
+                        ty: complex[float]
                         expr: Expr [37-38]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -995,15 +988,15 @@ fn sized_uint_to_sized_complex() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-51]:
                 expr: Expr [29-50]:
-                    ty: Complex(Some(32), false)
+                    ty: complex[float[32]]
                     kind: Cast [29-50]:
-                        ty: Complex(Some(32), false)
+                        ty: complex[float[32]]
                         expr: Expr [48-49]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1022,15 +1015,15 @@ fn sized_uint_to_sized_complex_truncating() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-51]:
                 expr: Expr [29-50]:
-                    ty: Complex(Some(16), false)
+                    ty: complex[float[16]]
                     kind: Cast [29-50]:
-                        ty: Complex(Some(16), false)
+                        ty: complex[float[16]]
                         expr: Expr [48-49]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1049,15 +1042,15 @@ fn sized_uint_to_sized_complex_expanding() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-51]:
                 expr: Expr [29-50]:
-                    ty: Complex(Some(64), false)
+                    ty: complex[float[64]]
                     kind: Cast [29-50]:
-                        ty: Complex(Some(64), false)
+                        ty: complex[float[64]]
                         expr: Expr [48-49]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1080,15 +1073,15 @@ fn uint_to_bit() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: UInt(None, true)
+                    ty: const uint
                     kind: Lit: Int(0)
             ExprStmt [25-32]:
                 expr: Expr [25-31]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [25-31]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [29-30]:
-                            ty: UInt(None, false)
+                            ty: uint
                             kind: SymbolId(8)
         "#]],
     );
@@ -1112,19 +1105,18 @@ fn uint_to_bitarray_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: UInt(None, true)
+                                ty: const uint
                                 kind: Lit: Int(0)
                     Stmt [25-36]:
                         annotations: <empty>
                         kind: ExprStmt [25-36]:
                             expr: Expr [25-35]:
-                                ty: UInt(None, false)
+                                ty: uint
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type uint to type bit[32]
                ,-[test:3:9]
              2 |         uint a;
              3 |         bit[32](a);
@@ -1148,15 +1140,15 @@ fn sized_uint_to_bit() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-36]:
                 expr: Expr [29-35]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [29-35]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [33-34]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1175,15 +1167,15 @@ fn sized_uint_to_bitarray() {
                 symbol_id: 8
                 ty_span: [9-17]
                 init_expr: Expr [0-0]:
-                    ty: UInt(Some(32), true)
+                    ty: const uint[32]
                     kind: Lit: Int(0)
             ExprStmt [29-40]:
                 expr: Expr [29-39]:
-                    ty: BitArray(32, false)
+                    ty: bit[32]
                     kind: Cast [29-39]:
-                        ty: BitArray(32, false)
+                        ty: bit[32]
                         expr: Expr [37-38]:
-                            ty: UInt(Some(32), false)
+                            ty: uint[32]
                             kind: SymbolId(8)
         "#]],
     );
@@ -1207,19 +1199,18 @@ fn sized_uint_to_bitarray_truncating_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ExprStmt [29-40]:
                             expr: Expr [29-39]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type uint[32] to type bit[16]
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         bit[16](a);
@@ -1248,19 +1239,18 @@ fn sized_uint_to_bitarray_expanding_fails() {
                             symbol_id: 8
                             ty_span: [9-17]
                             init_expr: Expr [0-0]:
-                                ty: UInt(Some(32), true)
+                                ty: const uint[32]
                                 kind: Lit: Int(0)
                     Stmt [29-40]:
                         annotations: <empty>
                         kind: ExprStmt [29-40]:
                             expr: Expr [29-39]:
-                                ty: UInt(Some(32), false)
+                                ty: uint[32]
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type UInt(Some(32), false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type uint[32] to type bit[64]
                ,-[test:3:9]
              2 |         uint[32] a;
              3 |         bit[64](a);

@@ -193,7 +193,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             symbol_id: 32
                             ty_span: [196-199]
                             init_expr: Expr [204-205]:
-                                ty: Bit(true)
+                                ty: const bit
                                 kind: Lit: Bit(1)
                     Stmt [211-227]:
                         annotations: <empty>
@@ -201,18 +201,18 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             symbol_id: 32
                             ty_span: [211-215]
                             init_expr: Expr [220-226]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: BinaryOpExpr:
                                     op: AndL
                                     lhs: Expr [220-221]:
-                                        ty: Err
+                                        ty: unknown
                                         kind: SymbolId(33)
                                     rhs: Expr [225-226]:
-                                        ty: Bool(false)
+                                        ty: bool
                                         kind: Cast [0-0]:
-                                            ty: Bool(false)
+                                            ty: bool
                                             expr: Expr [225-226]:
-                                                ty: Bit(false)
+                                                ty: bit
                                                 kind: SymbolId(32)
                     Stmt [140-154]:
                         annotations: <empty>
@@ -220,7 +220,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             symbol_id: 34
                             ty_span: [140-145]
                             init_expr: Expr [150-153]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(0.7168146928204138)
                     Stmt [159-179]:
                         annotations: <empty>
@@ -228,18 +228,18 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             symbol_id: 35
                             ty_span: [159-164]
                             init_expr: Expr [169-178]:
-                                ty: Float(None, false)
+                                ty: float
                                 kind: BinaryOpExpr:
                                     op: Add
                                     lhs: Expr [169-170]:
-                                        ty: Angle(None, false)
+                                        ty: angle
                                         kind: SymbolId(34)
                                     rhs: Expr [173-178]:
-                                        ty: Float(None, false)
+                                        ty: float
                                         kind: Cast [0-0]:
-                                            ty: Float(None, false)
+                                            ty: float
                                             expr: Expr [173-178]:
-                                                ty: Bool(true)
+                                                ty: const bool
                                                 kind: Lit: Bool(false)
                     Stmt [74-84]:
                         annotations: <empty>
@@ -247,7 +247,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                             symbol_id: 37
                             ty_span: [74-77]
                             init_expr: Expr [82-83]:
-                                ty: Err
+                                ty: unknown
                                 kind: SymbolId(36)
 
             [Qasm.Lowerer.UndefinedSymbol
@@ -268,8 +268,7 @@ fn semantic_errors_map_to_their_corresponding_file_specific_spans() {
                `----
             , Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, false) to type Float(None,
-              | false)
+              x cannot cast expression of type angle to type float
                ,-[source1.qasm:3:15]
              2 |     angle j = 7.0;
              3 |     float k = j + false; // invalid cast

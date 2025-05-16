@@ -66,7 +66,7 @@ fn scalar_ty_designator_must_be_positive() {
                             symbol_id: 8
                             ty_span: [0-7]
                             init_expr: Expr [0-0]:
-                                ty: Err
+                                ty: unknown
                                 kind: Err
 
             [Qasm.Lowerer.TypeWidthMustBePositiveIntConstExpr
@@ -94,7 +94,7 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                             symbol_id: 8
                             ty_span: [6-11]
                             init_expr: Expr [19-22]:
-                                ty: Angle(None, true)
+                                ty: const angle
                                 kind: Lit: Angle(2.0000000000000004)
                     Stmt [24-36]:
                         annotations: <empty>
@@ -102,12 +102,12 @@ fn scalar_ty_designator_must_be_castable_to_const_int() {
                             symbol_id: 9
                             ty_span: [24-33]
                             init_expr: Expr [0-0]:
-                                ty: Err
+                                ty: unknown
                                 kind: Err
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Angle(None, true) to type UInt(None, true)
+              x cannot cast expression of type const angle to type const uint
                ,-[test:1:29]
              1 | const angle size = 2.0; int[size] i;
                :                             ^^^^

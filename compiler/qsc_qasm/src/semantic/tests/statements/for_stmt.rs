@@ -25,7 +25,7 @@ fn shadowing_loop_variable_in_single_stmt_body() {
                                 symbol_id: 9
                                 ty_span: [29-32]
                                 init_expr: Expr [37-38]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(2)
         "#]],
     );
@@ -53,7 +53,7 @@ fn shadowing_loop_variable_in_block_body_succeeds() {
                                 symbol_id: 9
                                 ty_span: [31-34]
                                 init_expr: Expr [39-40]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(2)
         "#]],
     );
@@ -75,7 +75,7 @@ fn loop_creates_its_own_scope() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(0)
             ForStmt [20-177]:
                 loop_variable: 9
@@ -90,7 +90,7 @@ fn loop_creates_its_own_scope() {
                                 symbol_id: 10
                                 ty_span: [167-170]
                                 init_expr: Expr [175-176]:
-                                    ty: Int(None, false)
+                                    ty: int
                                     kind: Lit: Int(1)
         "#]],
     );

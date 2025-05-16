@@ -19,26 +19,26 @@ fn to_bit_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
                 ty_span: [32-35]
                 init_expr: Expr [40-41]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [0-0]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [40-41]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: y
-                type: Bit(false)
+                type: bit
                 qsharp_type: Result
                 io_kind: Default
         "#]],
@@ -59,26 +59,26 @@ fn to_implicit_int_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-42]:
                 symbol_id: 9
                 ty_span: [32-35]
                 init_expr: Expr [40-41]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [0-0]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [40-41]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [36-37]:
                 name: y
-                type: Int(None, false)
+                type: int
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -99,26 +99,26 @@ fn to_explicit_int_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
                 symbol_id: 9
                 ty_span: [32-39]
                 init_expr: Expr [44-45]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [0-0]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [44-45]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [40-41]:
                 name: y
-                type: Int(Some(32), false)
+                type: int[32]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -139,26 +139,26 @@ fn to_implicit_uint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-43]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-42]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [0-0]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [41-42]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [37-38]:
                 name: y
-                type: UInt(None, false)
+                type: uint
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -179,26 +179,26 @@ fn to_explicit_uint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-40]
                 init_expr: Expr [45-46]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [0-0]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [45-46]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [41-42]:
                 name: y
-                type: UInt(Some(32), false)
+                type: uint[32]
                 qsharp_type: Int
                 io_kind: Default
         "#]],
@@ -219,26 +219,26 @@ fn to_explicit_bigint_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-46]:
                 symbol_id: 9
                 ty_span: [32-39]
                 init_expr: Expr [44-45]:
-                    ty: Int(Some(65), false)
+                    ty: int[65]
                     kind: Cast [0-0]:
-                        ty: Int(Some(65), false)
+                        ty: int[65]
                         expr: Expr [44-45]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [40-41]:
                 name: y
-                type: Int(Some(65), false)
+                type: int[65]
                 qsharp_type: BigInt
                 io_kind: Default
         "#]],
@@ -259,26 +259,26 @@ fn to_implicit_float_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-44]:
                 symbol_id: 9
                 ty_span: [32-37]
                 init_expr: Expr [42-43]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [0-0]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [42-43]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [38-39]:
                 name: y
-                type: Float(None, false)
+                type: float
                 qsharp_type: Double
                 io_kind: Default
         "#]],
@@ -299,26 +299,26 @@ fn to_explicit_float_implicitly() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-48]:
                 symbol_id: 9
                 ty_span: [32-41]
                 init_expr: Expr [46-47]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [0-0]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [46-47]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
             [9] Symbol [42-43]:
                 name: y
-                type: Float(Some(32), false)
+                type: float[32]
                 qsharp_type: Double
                 io_kind: Default
         "#]],

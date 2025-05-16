@@ -73,7 +73,7 @@ fn float_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(None, false) to type Duration(false)
+              x cannot cast expression of type float to type duration
                ,-[Test.qasm:3:9]
              2 |         float a;
              3 |         duration(a);
@@ -95,8 +95,7 @@ fn sized_float_to_duration_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type
-              | Duration(false)
+              x cannot cast expression of type float[32] to type duration
                ,-[Test.qasm:3:9]
              2 |         float[32] a;
              3 |         duration(a);
@@ -638,8 +637,7 @@ fn float_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(None, false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type float to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         float a;
              3 |         bit[32](a);
@@ -677,8 +675,7 @@ fn sized_float_to_bitarray_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(32,
-              | false)
+              x cannot cast expression of type float[32] to type bit[32]
                ,-[Test.qasm:3:9]
              2 |         float[32] a;
              3 |         bit[32](a);
@@ -700,8 +697,7 @@ fn sized_float_to_bitarray_truncating_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(16,
-              | false)
+              x cannot cast expression of type float[32] to type bit[16]
                ,-[Test.qasm:3:9]
              2 |         float[32] a;
              3 |         bit[16](a);
@@ -723,8 +719,7 @@ fn sized_float_to_bitarray_expanding_fails() {
         &expect![[r#"
             Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Float(Some(32), false) to type BitArray(64,
-              | false)
+              x cannot cast expression of type float[32] to type bit[64]
                ,-[Test.qasm:3:9]
              2 |         float[32] a;
              3 |         bit[64](a);

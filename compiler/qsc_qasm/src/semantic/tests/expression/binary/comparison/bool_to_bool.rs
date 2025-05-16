@@ -20,40 +20,40 @@ fn logical_and() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-71]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [65-66]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
                         rhs: Expr [70-71]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -75,40 +75,40 @@ fn logical_or() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-72]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-71]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: OrL
                         lhs: Expr [65-66]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
                         rhs: Expr [70-71]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -130,48 +130,48 @@ fn unop_not_logical_and_unop_not() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-73]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [66-67]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(8)
                         rhs: Expr [72-73]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -193,48 +193,48 @@ fn unop_not_logical_or_unop_not() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-74]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-73]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: OrL
                         lhs: Expr [66-67]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(8)
                         rhs: Expr [72-73]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [72-73]:
                                 op: NotL
                                 expr: Expr [72-73]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -256,44 +256,44 @@ fn unop_not_logical_and() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [66-67]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(8)
                         rhs: Expr [71-72]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -315,44 +315,44 @@ fn unop_not_logical_or() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: OrL
                         lhs: Expr [66-67]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [66-67]:
                                 op: NotL
                                 expr: Expr [66-67]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(8)
                         rhs: Expr [71-72]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -374,44 +374,44 @@ fn logical_and_unop_not() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: AndL
                         lhs: Expr [65-66]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
                         rhs: Expr [71-72]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],
@@ -433,44 +433,44 @@ fn logical_or_unop_not() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [18-22]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(true)
             [8] Symbol [14-15]:
                 name: x
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [32-47]:
                 symbol_id: 9
                 ty_span: [32-36]
                 init_expr: Expr [41-46]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: Lit: Bool(false)
             [9] Symbol [37-38]:
                 name: y
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
             ClassicalDeclarationStmt [56-73]:
                 symbol_id: 10
                 ty_span: [56-60]
                 init_expr: Expr [65-72]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: BinaryOpExpr:
                         op: OrL
                         lhs: Expr [65-66]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
                         rhs: Expr [71-72]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: UnaryOpExpr [71-72]:
                                 op: NotL
                                 expr: Expr [71-72]:
-                                    ty: Bool(false)
+                                    ty: bool
                                     kind: SymbolId(9)
             [10] Symbol [61-62]:
                 name: a
-                type: Bool(false)
+                type: bool
                 qsharp_type: bool
                 io_kind: Default
         "#]],

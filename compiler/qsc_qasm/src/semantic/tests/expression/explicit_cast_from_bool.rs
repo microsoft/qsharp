@@ -31,11 +31,11 @@ fn bool_to_bool() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-33]:
                 expr: Expr [25-32]:
-                    ty: Bool(false)
+                    ty: bool
                     kind: SymbolId(8)
         "#]],
     );
@@ -63,18 +63,18 @@ fn bool_to_duration_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(false)
                     Stmt [25-37]:
                         annotations: <empty>
                         kind: ExprStmt [25-37]:
                             expr: Expr [25-36]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Duration(false)
+              x cannot cast expression of type bool to type duration
                ,-[test:3:9]
              2 |         bool a;
              3 |         duration(a);
@@ -102,15 +102,15 @@ fn bool_to_int() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-32]:
                 expr: Expr [25-31]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Cast [25-31]:
-                        ty: Int(None, false)
+                        ty: int
                         expr: Expr [29-30]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -129,15 +129,15 @@ fn bool_to_sized_int() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-36]:
                 expr: Expr [25-35]:
-                    ty: Int(Some(32), false)
+                    ty: int[32]
                     kind: Cast [25-35]:
-                        ty: Int(Some(32), false)
+                        ty: int[32]
                         expr: Expr [33-34]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -160,15 +160,15 @@ fn bool_to_uint() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-33]:
                 expr: Expr [25-32]:
-                    ty: UInt(None, false)
+                    ty: uint
                     kind: Cast [25-32]:
-                        ty: UInt(None, false)
+                        ty: uint
                         expr: Expr [30-31]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -187,15 +187,15 @@ fn bool_to_sized_uint() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-37]:
                 expr: Expr [25-36]:
-                    ty: UInt(Some(32), false)
+                    ty: uint[32]
                     kind: Cast [25-36]:
-                        ty: UInt(Some(32), false)
+                        ty: uint[32]
                         expr: Expr [34-35]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -218,15 +218,15 @@ fn bool_to_float() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-34]:
                 expr: Expr [25-33]:
-                    ty: Float(None, false)
+                    ty: float
                     kind: Cast [25-33]:
-                        ty: Float(None, false)
+                        ty: float
                         expr: Expr [31-32]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -245,15 +245,15 @@ fn bool_to_sized_float() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-38]:
                 expr: Expr [25-37]:
-                    ty: Float(Some(32), false)
+                    ty: float[32]
                     kind: Cast [25-37]:
-                        ty: Float(Some(32), false)
+                        ty: float[32]
                         expr: Expr [35-36]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -281,18 +281,18 @@ fn bool_to_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(false)
                     Stmt [25-34]:
                         annotations: <empty>
                         kind: ExprStmt [25-34]:
                             expr: Expr [25-33]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Angle(None, false)
+              x cannot cast expression of type bool to type angle
                ,-[test:3:9]
              2 |         bool a;
              3 |         angle(a);
@@ -321,18 +321,18 @@ fn bool_to_sized_angle_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(false)
                     Stmt [25-38]:
                         annotations: <empty>
                         kind: ExprStmt [25-38]:
                             expr: Expr [25-37]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Angle(Some(32), false)
+              x cannot cast expression of type bool to type angle[32]
                ,-[test:3:9]
              2 |         bool a;
              3 |         angle[32](a);
@@ -365,18 +365,18 @@ fn bool_to_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(false)
                     Stmt [25-36]:
                         annotations: <empty>
                         kind: ExprStmt [25-36]:
                             expr: Expr [25-35]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Complex(None, false)
+              x cannot cast expression of type bool to type complex[float]
                ,-[test:3:9]
              2 |         bool a;
              3 |         complex(a);
@@ -405,19 +405,18 @@ fn bool_to_sized_complex_fails() {
                             symbol_id: 8
                             ty_span: [9-13]
                             init_expr: Expr [0-0]:
-                                ty: Bool(true)
+                                ty: const bool
                                 kind: Lit: Bool(false)
                     Stmt [25-47]:
                         annotations: <empty>
                         kind: ExprStmt [25-47]:
                             expr: Expr [25-46]:
-                                ty: Bool(false)
+                                ty: bool
                                 kind: SymbolId(8)
 
             [Qasm.Lowerer.CannotCast
 
-              x cannot cast expression of type Bool(false) to type Complex(Some(32),
-              | false)
+              x cannot cast expression of type bool to type complex[float[32]]
                ,-[test:3:9]
              2 |         bool a;
              3 |         complex[float[32]](a);
@@ -445,15 +444,15 @@ fn bool_to_bit() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-32]:
                 expr: Expr [25-31]:
-                    ty: Bit(false)
+                    ty: bit
                     kind: Cast [25-31]:
-                        ty: Bit(false)
+                        ty: bit
                         expr: Expr [29-30]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );
@@ -472,15 +471,15 @@ fn bool_to_bitarray() {
                 symbol_id: 8
                 ty_span: [9-13]
                 init_expr: Expr [0-0]:
-                    ty: Bool(true)
+                    ty: const bool
                     kind: Lit: Bool(false)
             ExprStmt [25-36]:
                 expr: Expr [25-35]:
-                    ty: BitArray(32, false)
+                    ty: bit[32]
                     kind: Cast [25-35]:
-                        ty: BitArray(32, false)
+                        ty: bit[32]
                         expr: Expr [33-34]:
-                            ty: Bool(false)
+                            ty: bool
                             kind: SymbolId(8)
         "#]],
     );

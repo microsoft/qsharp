@@ -19,13 +19,13 @@ fn not_supported_before_version_3_1() {
                         annotations: <empty>
                         kind: SwitchStmt [23-47]:
                             target: Expr [31-32]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(1)
                             cases:
                                 SwitchCase [36-45]:
                                     labels:
                                         Expr [41-42]:
-                                            ty: Int(None, true)
+                                            ty: const int
                                             kind: Lit: Int(1)
                                     block: Block [43-45]: <empty>
                             default_case: <none>
@@ -58,17 +58,17 @@ fn cases_introduce_their_own_scope() {
                 symbol_id: 8
                 ty_span: [5-8]
                 init_expr: Expr [13-14]:
-                    ty: Int(None, false)
+                    ty: int
                     kind: Lit: Int(3)
             SwitchStmt [20-101]:
                 target: Expr [28-29]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Lit: Int(1)
                 cases:
                     SwitchCase [41-62]:
                         labels:
                             Expr [46-47]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(1)
                         block: Block [48-62]:
                             Stmt [50-60]:
@@ -77,15 +77,15 @@ fn cases_introduce_their_own_scope() {
                                     symbol_id: 9
                                     ty_span: [50-53]
                                     init_expr: Expr [58-59]:
-                                        ty: Int(None, false)
+                                        ty: int
                                         kind: Lit: Int(1)
                     SwitchCase [71-95]:
                         labels:
                             Expr [76-77]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(2)
                             Expr [79-80]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Lit: Int(3)
                         block: Block [81-95]:
                             Stmt [83-93]:
@@ -94,7 +94,7 @@ fn cases_introduce_their_own_scope() {
                                     symbol_id: 10
                                     ty_span: [83-86]
                                     init_expr: Expr [91-92]:
-                                        ty: Int(None, false)
+                                        ty: int
                                         kind: Lit: Int(2)
                 default_case: <none>
         "#]],
@@ -108,21 +108,21 @@ fn target_cast() {
         &expect![[r#"
             SwitchStmt [0-31]:
                 target: Expr [8-12]:
-                    ty: Int(None, true)
+                    ty: const int
                     kind: Cast [0-0]:
-                        ty: Int(None, true)
+                        ty: const int
                         expr: Expr [8-12]:
-                            ty: Bool(true)
+                            ty: const bool
                             kind: Lit: Bool(true)
                 cases:
                     SwitchCase [16-29]:
                         labels:
                             Expr [21-26]:
-                                ty: Int(None, true)
+                                ty: const int
                                 kind: Cast [0-0]:
-                                    ty: Int(None, true)
+                                    ty: const int
                                     expr: Expr [21-26]:
-                                        ty: Bool(true)
+                                        ty: const bool
                                         kind: Lit: Bool(false)
                         block: Block [27-29]: <empty>
                 default_case: <none>
