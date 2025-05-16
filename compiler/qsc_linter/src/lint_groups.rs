@@ -29,6 +29,8 @@ impl LintGroup {
                 vec![
                     LintKind::Ast(DeprecatedNewtype),
                     LintKind::Ast(DeprecatedSet),
+                    LintKind::Ast(DeprecatedAssignUpdateExpr),
+                    LintKind::Ast(DeprecatedUpdateExpr),
                     LintKind::Hir(DeprecatedFunctionConstructor),
                     LintKind::Hir(DeprecatedWithOperator),
                     LintKind::Hir(DeprecatedDoubleColonOperator),

@@ -767,6 +767,56 @@ fn needless_operation_inside_function_call() {
 }
 
 #[test]
+fn deprecated_update_expr_lint() {
+    check(
+        &wrap_in_callable(
+            "mutable arr = []; arr w/ idx <- 42;",
+            CallableKind::Function,
+        ),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "arr w/ idx <- 42",
+                    level: Allow,
+                    message: "deprecated use of update expressions",
+                    help: "update expressions \"a w/ b <- c\" are deprecated; consider using explicit assignment instead",
+                    code_action_edits: [],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn deprecated_assign_update_expr_code_action() {
+    check(
+        &wrap_in_callable(
+            "mutable arr = []; arr w/= idx <- 42;",
+            CallableKind::Function,
+        ),
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "arr w/= idx <- 42",
+                    level: Allow,
+                    message: "deprecated use of update assignment expressions",
+                    help: "update assignment expressions \"a w/= b <- c\" are deprecated; consider using explicit assignment instead \"a[b] = c\"",
+                    code_action_edits: [
+                        (
+                            "arr[idx] = 42",
+                            Span {
+                                lo: 89,
+                                hi: 106,
+                            },
+                        ),
+                    ],
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn check_that_hir_lints_are_deduplicated_in_operations_with_multiple_specializations() {
     check_with_deduplication(
         "

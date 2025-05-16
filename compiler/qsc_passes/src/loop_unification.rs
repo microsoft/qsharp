@@ -12,7 +12,7 @@ use qsc_hir::{
     ty::{GenericArg, Prim, Ty},
 };
 
-use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
+use crate::common::{create_gen_core_ref, gen_ident, IdentTemplate};
 use crate::CORE_NAMESPACE;
 
 #[cfg(test)]
@@ -32,7 +32,12 @@ impl LoopUni<'_> {
         span: Span,
     ) -> Expr {
         let cond_span = cond.span;
-        let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(Prim::Bool), cond_span);
+        let continue_cond_id = gen_ident(
+            self.assigner,
+            "continue_cond",
+            Ty::Prim(Prim::Bool),
+            cond_span,
+        );
         let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
             Expr {
@@ -127,7 +132,12 @@ impl LoopUni<'_> {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let array_id = self.gen_ident("array_id", iterable.ty.clone(), iterable_span);
+        let array_id = gen_ident(
+            self.assigner,
+            "array_id",
+            iterable.ty.clone(),
+            iterable_span,
+        );
         let array_capture = array_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
         let Ty::Array(item_ty) = &array_id.ty else {
@@ -145,7 +155,7 @@ impl LoopUni<'_> {
             array_id.span,
         );
         len_callee.id = self.assigner.next_node();
-        let len_id = self.gen_ident("len_id", Ty::Prim(Prim::Int), iterable_span);
+        let len_id = gen_ident(self.assigner, "len_id", Ty::Prim(Prim::Int), iterable_span);
         let len_capture = len_id.gen_id_init(
             Mutability::Immutable,
             Expr {
@@ -160,7 +170,12 @@ impl LoopUni<'_> {
             self.assigner,
         );
 
-        let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
+        let index_id = gen_ident(
+            self.assigner,
+            "index_id",
+            Ty::Prim(Prim::Int),
+            iterable_span,
+        );
         let index_init = index_id.gen_steppable_id_init(
             Mutability::Mutable,
             Expr {
@@ -246,24 +261,34 @@ impl LoopUni<'_> {
     ) -> Expr {
         let iterable_span = iterable.span;
 
-        let range_id = self.gen_ident("range_id", Ty::Prim(Prim::Range), iterable_span);
+        let range_id = gen_ident(
+            self.assigner,
+            "range_id",
+            Ty::Prim(Prim::Range),
+            iterable_span,
+        );
         let range_capture = range_id.gen_id_init(Mutability::Immutable, *iterable, self.assigner);
 
-        let index_id = self.gen_ident("index_id", Ty::Prim(Prim::Int), iterable_span);
+        let index_id = gen_ident(
+            self.assigner,
+            "index_id",
+            Ty::Prim(Prim::Int),
+            iterable_span,
+        );
         let index_init = index_id.gen_steppable_id_init(
             Mutability::Mutable,
             range_id.gen_field_access(PrimField::Start, self.assigner),
             self.assigner,
         );
 
-        let step_id = self.gen_ident("step_id", Ty::Prim(Prim::Int), iterable_span);
+        let step_id = gen_ident(self.assigner, "step_id", Ty::Prim(Prim::Int), iterable_span);
         let step_init = step_id.gen_id_init(
             Mutability::Immutable,
             range_id.gen_field_access(PrimField::Step, self.assigner),
             self.assigner,
         );
 
-        let end_id = self.gen_ident("end_id", Ty::Prim(Prim::Int), iterable_span);
+        let end_id = gen_ident(self.assigner, "end_id", Ty::Prim(Prim::Int), iterable_span);
         let end_init = end_id.gen_id_init(
             Mutability::Immutable,
             range_id.gen_field_access(PrimField::End, self.assigner),
@@ -309,16 +334,6 @@ impl LoopUni<'_> {
                 ty: Ty::UNIT,
                 stmts: vec![range_capture, index_init, step_init, end_init, while_stmt],
             }),
-        }
-    }
-
-    fn gen_ident(&mut self, label: &str, ty: Ty, span: Span) -> IdentTemplate {
-        let id = self.assigner.next_node();
-        IdentTemplate {
-            id,
-            span,
-            ty,
-            name: generated_name(&format!("{label}_{id}")),
         }
     }
 }

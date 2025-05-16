@@ -8,6 +8,7 @@ mod common;
 mod conjugate_invert;
 mod entry_point;
 mod id_update;
+mod index_assignment;
 mod invert_block;
 mod logic_sep;
 mod loop_unification;
@@ -20,6 +21,7 @@ mod test_attribute;
 use callable_limits::CallableLimits;
 use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
 use entry_point::generate_entry_expr;
+use index_assignment::ConvertToWSlash;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
 use qsc_data_structures::target::TargetCapabilityFlags;
@@ -101,6 +103,9 @@ impl PassContext {
         let mut call_limits = CallableLimits::default();
         call_limits.visit_package(package);
         let callable_errors = call_limits.errors;
+
+        ConvertToWSlash { assigner }.visit_package(package);
+        Validator::default().visit_package(package);
 
         self.borrow_check.visit_package(package);
         let borrow_errors = &mut self.borrow_check.errors;
