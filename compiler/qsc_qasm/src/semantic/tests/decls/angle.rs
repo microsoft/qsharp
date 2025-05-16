@@ -430,13 +430,6 @@ fn explicit_zero_width_fails() {
              1 | angle[0] x = 42.1;
                :       ^
                `----
-            , Qasm.Lowerer.CannotCastLiteral
-
-              x cannot cast literal expression of type Float(None, true) to type Err
-               ,-[test:1:1]
-             1 | angle[0] x = 42.1;
-               : ^^^^^^^^^^^^^^^^^^
-               `----
             ]"#]],
     );
 }
@@ -464,13 +457,6 @@ fn explicit_width_over_64_fails() {
                ,-[test:1:7]
              1 | const angle[65] x = 42.1;
                :       ^^^^^^^^^
-               `----
-            , Qasm.Lowerer.CannotCastLiteral
-
-              x cannot cast literal expression of type Float(None, true) to type Err
-               ,-[test:1:1]
-             1 | const angle[65] x = 42.1;
-               : ^^^^^^^^^^^^^^^^^^^^^^^^^
                `----
             ]"#]],
     );

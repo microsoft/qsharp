@@ -721,7 +721,7 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.is_const() {
+        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "a captured variable".into(),
                 ident.span,
@@ -1213,7 +1213,7 @@ impl Lowerer {
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
-        if !init_expr.ty.is_const() {
+        if !init_expr.ty.is_err() && !init_expr.ty.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "const decl init expr".to_string(),
                 init_expr.span,
@@ -1954,10 +1954,8 @@ impl Lowerer {
             return None;
         };
         let Some(lit) = expr.const_eval(self) else {
-            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                "ctrl modifier argument".into(),
-                expr.span,
-            ));
+            // const_eval would have pushed an error unless the ty is Err
+            // in which case there is already an error pushed for the ty
             return None;
         };
 
@@ -2378,15 +2376,10 @@ impl Lowerer {
             expr_span,
         );
 
-        if let Some(lit) = expr.const_eval(self) {
-            Some(lit)
-        } else {
-            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                "designator".to_string(),
-                expr.span,
-            ));
-            None
-        }
+        // const_eval would have pushed an error unless the ty is Err
+        // in which case there is already an error pushed for the ty
+        // so there is no need to add more errors here.
+        expr.const_eval(self)
     }
 
     fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
@@ -3065,6 +3058,10 @@ impl Lowerer {
             }
             // the lsh is supposed to be const but is being initialized
             // to a non-const value, we can't allow this
+            return None;
+        }
+        if ty.is_err() || expr.ty.is_err() {
+            // if either type is an error, we can't cast
             return None;
         }
         // if the target type is wider, we can try to relax the rhs type
@@ -3796,6 +3793,10 @@ impl Lowerer {
     }
 
     fn push_invalid_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+        if target_ty.is_err() || expr_ty.is_err() {
+            // if either type is an error, we don't need to push an error
+            return;
+        }
         let rhs_ty_name = format!("{expr_ty:?}");
         let lhs_ty_name = format!("{target_ty:?}");
         let kind = SemanticErrorKind::CannotCast(rhs_ty_name, lhs_ty_name, span);
@@ -3803,6 +3804,10 @@ impl Lowerer {
     }
 
     fn push_invalid_literal_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+        if target_ty.is_err() || expr_ty.is_err() {
+            // if either type is an error, we don't need to push an error
+            return;
+        }
         let rhs_ty_name = format!("{expr_ty:?}");
         let lhs_ty_name = format!("{target_ty:?}");
         let kind = SemanticErrorKind::CannotCastLiteral(rhs_ty_name, lhs_ty_name, span);

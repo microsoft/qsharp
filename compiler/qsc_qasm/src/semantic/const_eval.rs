@@ -55,6 +55,11 @@ impl Expr {
     /// of failure.
     pub(crate) fn const_eval(&self, ctx: &mut Lowerer) -> Option<LiteralKind> {
         let ty = &self.ty;
+
+        if ty.is_err() {
+            return None;
+        }
+
         if !ty.is_const() {
             ctx.push_const_eval_error(ConstEvalError::ExprMustBeConst(self.span));
             return None;
