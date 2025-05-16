@@ -23,7 +23,11 @@ import { showCircuitCommand } from "./circuit";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { showDocumentationCommand } from "./documentation";
 import { getActiveProgram } from "./programConfig";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import {
+  EventType,
+  getActiveDocumentType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getPauliNoiseModel } from "./config";
 import { qsharpExtensionId } from "./common";
@@ -64,7 +68,14 @@ export function registerWebViewCommands(context: ExtensionContext) {
     clearCommandDiagnostics();
 
     const associationId = getRandomGuid();
-    sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.TriggerHistogram,
+      {
+        associationId,
+        documentType: getActiveDocumentType(),
+      },
+      {},
+    );
     function resultToLabel(result: string | VSDiagnostic): string {
       if (typeof result !== "string") return "ERROR";
       return result;
