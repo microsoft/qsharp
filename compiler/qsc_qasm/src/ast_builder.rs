@@ -1502,6 +1502,7 @@ fn create_unit_expr(span: Span) -> Expr {
 pub(crate) fn build_end_stmt(span: Span) -> Stmt {
     let message = Expr {
         kind: Box::new(ExprKind::Lit(Box::new(Lit::String("end".into())))),
+        span,
         ..Default::default()
     };
 
