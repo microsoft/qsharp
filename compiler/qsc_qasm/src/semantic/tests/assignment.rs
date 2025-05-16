@@ -23,10 +23,10 @@ fn too_many_indices_in_indexed_assignment() {
                             symbol_id: 8
                             ty_span: [9-31]
                             init_expr: Expr [43-79]:
-                                ty: FloatArray(Some(32), Two(3, 2))
+                                ty: array[float[32], 3, 2]
                                 kind: Lit:     array:
                                         Expr [44-54]:
-                                            ty: FloatArray(Some(32), One(2))
+                                            ty: array[float[32], 2]
                                             kind: Lit:     array:
                                                     Expr [45-48]:
                                                         ty: float[32]
@@ -43,7 +43,7 @@ fn too_many_indices_in_indexed_assignment() {
                                                                 ty: const float
                                                                 kind: Lit: Float(1.2)
                                         Expr [56-66]:
-                                            ty: FloatArray(Some(32), One(2))
+                                            ty: array[float[32], 2]
                                             kind: Lit:     array:
                                                     Expr [57-60]:
                                                         ty: float[32]
@@ -60,7 +60,7 @@ fn too_many_indices_in_indexed_assignment() {
                                                                 ty: const float
                                                                 kind: Lit: Float(2.2)
                                         Expr [68-78]:
-                                            ty: FloatArray(Some(32), One(2))
+                                            ty: array[float[32], 2]
                                             kind: Lit:     array:
                                                     Expr [69-72]:
                                                         ty: float[32]

@@ -510,3 +510,29 @@ fn arrays_with_8_dimensions_are_unsupported() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn casting_arrays_unsupported() {
+    let source = "
+        array[complex, 1, 2, 3] a;
+        array[angle, 1, 2, 3] b = a;
+    ";
+
+    let Err(errors) = compile_qasm_to_qsharp(source) else {
+        panic!("Expected error");
+    };
+
+    expect![[r#"
+        [Qasm.Lowerer.CannotCast
+
+          x cannot cast expression of type array[complex[float], 1, 2, 3] to type
+          | array[angle, 1, 2, 3]
+           ,-[Test.qasm:3:35]
+         2 |         array[complex, 1, 2, 3] a;
+         3 |         array[angle, 1, 2, 3] b = a;
+           :                                   ^
+         4 |     
+           `----
+        ]"#]]
+    .assert_eq(&format!("{errors:?}"));
+}

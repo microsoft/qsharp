@@ -3277,15 +3277,19 @@ impl Lowerer {
             let Some(ty) = ty else {
                 let target_ty = Type::UInt(None, left_type.is_const() && right_type.is_const());
                 if lhs_uint_promotion.is_none() {
-                    let target_str: String = target_ty.to_string();
-                    let kind =
-                        SemanticErrorKind::CannotCast(left_type.to_string(), target_str, lhs.span);
+                    let kind = SemanticErrorKind::CannotCast(
+                        left_type.to_string(),
+                        target_ty.to_string(),
+                        lhs.span,
+                    );
                     self.push_semantic_error(kind);
                 }
                 if rhs_uint_promotion.is_none() {
-                    let target_str = target_ty.to_string();
-                    let kind =
-                        SemanticErrorKind::CannotCast(right_type.to_string(), target_str, rhs.span);
+                    let kind = SemanticErrorKind::CannotCast(
+                        right_type.to_string(),
+                        target_ty.to_string(),
+                        rhs.span,
+                    );
                     self.push_semantic_error(kind);
                 }
                 let bin_expr = semantic::BinaryOpExpr {

@@ -33,7 +33,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
                 symbol_id: 8
                 ty_span: [0-14]
                 init_expr: Expr [0-0]:
-                    ty: BoolArray(One(4))
+                    ty: array[bool, 4]
                     kind: Lit:     array:
                             Expr [0-0]:
                                 ty: const bool
@@ -49,7 +49,7 @@ fn array_with_no_init_expr_has_generated_lit_expr() {
                                 kind: Lit: Bool(false)
             [8] Symbol [15-16]:
                 name: a
-                type: BoolArray(One(4))
+                type: array[bool, 4]
                 qsharp_type: bool[]
                 io_kind: Default"#]],
     );

@@ -30,7 +30,7 @@ fn indexed_type_has_right_dimensions() {
     let indices = Index::Expr(index);
     let indexed_ty = indexed_type_builder(base_ty_builder, array_ty_builder, &dims, &[indices]);
 
-    expect!["BoolArray(Two(3, 4))"].assert_eq(&format!("{indexed_ty}"));
+    expect!["array[bool, 3, 4]"].assert_eq(&format!("{indexed_ty}"));
 }
 
 #[test]
@@ -47,5 +47,5 @@ fn sliced_type_has_right_dimensions() {
     });
     let indexed_ty = indexed_type_builder(base_ty_builder, array_ty_builder, &dims, &[indices]);
 
-    expect!["BoolArray(Three(3, 1, 2))"].assert_eq(&format!("{indexed_ty}"));
+    expect!["array[bool, 3, 1, 2]"].assert_eq(&format!("{indexed_ty}"));
 }
