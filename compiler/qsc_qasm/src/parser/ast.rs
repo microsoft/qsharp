@@ -1069,6 +1069,7 @@ pub struct Pragma {
     pub span: Span,
     pub identifier: Rc<str>,
     pub value: Option<Rc<str>>,
+    pub value_span: Option<Span>,
 }
 
 impl Display for Pragma {
@@ -1077,7 +1078,8 @@ impl Display for Pragma {
         let value = self.value.as_ref().map(|val| format!("\"{val}\""));
         writeln_header(f, "Pragma", self.span)?;
         writeln_field(f, "identifier", &identifier)?;
-        write_opt_field(f, "value", value.as_ref())
+        writeln_opt_field(f, "value", value.as_ref())?;
+        write_opt_field(f, "value_span", self.value_span.as_ref())
     }
 }
 

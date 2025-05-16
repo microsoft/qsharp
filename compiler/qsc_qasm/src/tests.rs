@@ -19,6 +19,7 @@ use qsc::{
 };
 use qsc_hir::hir::PackageId;
 use qsc_passes::PackageType;
+use rustc_hash::FxHashMap;
 use std::sync::Arc;
 
 pub(crate) mod assignment;
@@ -102,6 +103,7 @@ fn compile_with_config<S: Into<Arc<str>>>(
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pramga_config: FxHashMap::default(),
     };
 
     let unit = compiler.compile(&program);
@@ -164,6 +166,7 @@ pub fn compile_all_with_config<P: Into<Arc<str>>>(
         stmts: vec![],
         symbols: res.symbols,
         errors: res.errors,
+        pramga_config: FxHashMap::default(),
     };
 
     let unit = compiler.compile(&program);

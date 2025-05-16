@@ -20,6 +20,12 @@ pub enum CompilerErrorKind {
     #[error("gate expects {0} qubit arguments, but {1} were provided")]
     #[diagnostic(code("Qasm.Compiler.InvalidNumberOfQubitArgs"))]
     InvalidNumberOfQubitArgs(usize, usize, #[label] Span),
+    #[error("{0} is not defined or is not a valid target for box usage")]
+    #[diagnostic(code("Qasm.Compiler.InvalidBoxPragmaTarget"))]
+    InvalidBoxPragmaTarget(String, #[label] Span),
+    #[error("Box pragma is missing target")]
+    #[diagnostic(code("Qasm.Compiler.MissingBoxPragmaTarget"))]
+    MissingBoxPragmaTarget(#[label] Span),
     #[error("{0} are not supported")]
     #[diagnostic(code("Qasm.Compiler.NotSupported"))]
     NotSupported(String, #[label] Span),
