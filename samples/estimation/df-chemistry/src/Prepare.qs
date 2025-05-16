@@ -89,7 +89,7 @@ internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coeffi
 
     // Uniformly distribute excess bars across coefficients.
     for idx in 0..AbsI(bars) - 1 {
-        set keepCoeff w/= idx <- keepCoeff[idx] + (bars > 0 ? -1 | + 1);
+        keepCoeff[idx] += bars > 0 ? -1 | + 1;
     }
 
     mutable barSink = [];
@@ -110,8 +110,8 @@ internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coeffi
             set barSink = Most(barSink);
             set barSource = Most(barSource);
 
-            set keepCoeff w/= idxSource <- keepCoeff[idxSource] - barHeight + keepCoeff[idxSink];
-            set altIndex w/= idxSink <- idxSource;
+            keepCoeff[idxSource] += keepCoeff[idxSink] - barHeight;
+            altIndex[idxSink] = idxSource;
 
             if keepCoeff[idxSource] < barHeight {
                 set barSink += [idxSource];
@@ -121,7 +121,7 @@ internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coeffi
         } elif Length(barSource) > 0 {
             let idxSource = Tail(barSource);
             set barSource = Most(barSource);
-            set keepCoeff w/= idxSource <- barHeight;
+            keepCoeff[idxSource] = barHeight;
         } else {
             return (keepCoeff, altIndex);
         }

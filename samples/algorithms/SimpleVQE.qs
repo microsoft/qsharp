@@ -171,16 +171,18 @@ operation SimpleDescent(
     while (currentAttempt < attemptLimit) and (currentStep > minimalStep) {
         mutable hadImprovement = false;
         for i in IndexRange(initialPoint) {
-            let nextPoint = bestPoint w/ i <- bestPoint[i] + currentStep;
+            mutable nextPoint = bestPoint; // Copy the best point
+            nextPoint[i] += currentStep;
             let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
             if nextValue < bestValue {
                 hadImprovement = true;
                 bestValue = nextValue;
                 bestPoint = nextPoint;
+                nextPoint[i] -= currentStep;
                 Message($"Value improved to {bestValue}.");
             }
-            let nextPoint = bestPoint w/ i <- bestPoint[i] - currentStep;
+            nextPoint[i] -= currentStep;
             let nextValue = f(nextPoint); // Evaluate quantum part
             currentAttempt = currentAttempt + 1;
             if nextValue < bestValue {
