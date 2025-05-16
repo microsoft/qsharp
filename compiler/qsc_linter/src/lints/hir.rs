@@ -161,7 +161,7 @@ impl HirLintPass for NeedlessOperation {
         buffer: &mut Vec<Lint>,
         _compilation: Compilation,
     ) {
-        if decl.kind == CallableKind::Operation {
+        if decl.kind == CallableKind::Operation && &*decl.name.name != "<lambda>" {
             let mut op_limits = IsQuantumOperation::default();
 
             op_limits.visit_callable_decl(decl);
