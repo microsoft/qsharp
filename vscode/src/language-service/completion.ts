@@ -112,7 +112,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       results = results.concat(this.samples);
     }
 
-    // In OpenQASM documents always include the OpenQASM samples.
+    // In OpenQASM documents include the OpenQASM samples in contexts that are syntactically
+    // appropriate. The presence of the "OPENQASM" keyword in the completion list
+    // is a hint that the cursor is at a point we can insert the sample code.
     if (
       isOpenQasmDocument(document) &&
       results.findIndex(
