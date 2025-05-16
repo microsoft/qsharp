@@ -16,6 +16,8 @@ While many Q# operators are C-like, it uses `or` instead of `||` and `and` inste
 
 To extract values from a tuple, use destructuring via the `let (item0, item1) = tupleValue;` syntax.
 
+Do not use the `w/=` or `w/` syntax for updating arrays. Instead prefer assignment syntax like `array[index] = value`.
+
 ## Project structure
 
 ### Single-file projects
