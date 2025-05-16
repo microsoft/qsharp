@@ -38,11 +38,9 @@ impl ConvertToWSlash<'_> {
         let mut ids = vec![];
         for index in index_exprs.into_iter().rev() {
             let id = gen_ident(self.assigner, "index", index.ty.clone(), index.span);
-            let index_span = index.span;
 
             // Create binding statement
-            let mut stmt = id.gen_id_init(Mutability::Immutable, *take(index), self.assigner);
-            stmt.span = index_span;
+            let stmt = id.gen_id_init(Mutability::Immutable, *take(index), self.assigner);
 
             stmts.push(stmt);
             ids.push(id);
@@ -180,7 +178,7 @@ impl ConvertToWSlash<'_> {
         let mut all_stmts = stmts;
         all_stmts.push(Stmt {
             id: self.assigner.next_node(),
-            span,
+            span: Span::default(),
             kind: StmtKind::Expr(assign_expr),
         });
 
