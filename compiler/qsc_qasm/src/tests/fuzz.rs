@@ -17,7 +17,6 @@ fn fuzz_2297_referencing_qubit_parameter() {
         q1;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -30,7 +29,6 @@ fn fuzz_2297_referencing_angle_parameter() {
         r;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -44,7 +42,6 @@ fn fuzz_2297_def() {
         q1;
     }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
@@ -60,34 +57,106 @@ fn fuzz_2297_with_trailing_comma() {
             q1;
         }
     "#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2298() {
     let source = r#"gate y()a{gate a,b{}b"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2313() {
     let source = r#"ctrl(π/0s)@a"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2332() {
     let source = r#"ctrl(0/0)@s"#;
-    super::compare_qasm_and_qasharp_asts(source);
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }
 
 #[test]
 fn fuzz_2348() {
     let source = r#"ctrl(0%0)@s"#;
-    super::compare_qasm_and_qasharp_asts(source);
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2366() {
+    let source = "t[:π";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2368() {
+    let source = "c[:0s";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2369() {
+    let source = r#"// Ope0 standard gate) mibrary
+//
+// Notely the set that the intarlenly.  See the
+// `source/language/standard_lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ πtdgpow(0.` documeni )5 tanverx a { po0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+g,aoooooootoe i {adnv @WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW _lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse off sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+g,aoooooootoe i {adnv @WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW _lurcc; }
+
+// four parameter contrloled-U gat pow(0.5) @ s a; }
+
+// sqrt(NOT) gate
+gate sx a { pow(0.5)verse of sqrt(S)
+gaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoogaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoogaoooooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` w(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) ntaoooooote tg  i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inver5) @ pow(0.` docume5) nta inverse of sqrt(5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe i {adnv @ pow(0.` docume5) @ pow(0.` docume5) nta inverse of sqrt(S)
+gaoooooootoe tg  i {adnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ staildnv @ pow(0.` docume)5@  pow(0.` docume5) ntation for full @ stail."#;
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2379() {
+    let source = "1[true:";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2391() {
+    let source = "c[:0s";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2392() {
+    let source = "e[π:";
+    compile_qasm_best_effort(source, Profile::Unrestricted);
+}
+
+#[test]
+fn fuzz_2397() {
+    let source = "creg a[551615";
     compile_qasm_best_effort(source, Profile::Unrestricted);
 }

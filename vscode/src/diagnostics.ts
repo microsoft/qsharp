@@ -98,17 +98,17 @@ function startCommandDiagnostics(): vscode.Disposable[] {
     {
       provideCodeActions(doc, range, context): vscode.CodeAction[] | undefined {
         const commandErrors = context.diagnostics.filter((d) =>
-          d.message.startsWith("Q# command error: "),
+          d.message.startsWith("QDK command error: "),
         );
 
         if (commandErrors.length > 0) {
           const action = new vscode.CodeAction(
-            "Dismiss errors for the last run Q# command",
+            "Dismiss errors for the last run QDK command",
           );
           action.diagnostics = commandErrors;
           action.command = {
             command: `${qsharpExtensionId}.dismissCommandDiagnostics`,
-            title: "Dismiss errors for the last run Q# command",
+            title: "Dismiss errors for the last run QDK command",
           };
           action.isPreferred = true;
           return [action];

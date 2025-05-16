@@ -344,6 +344,7 @@ pub enum StepResult {
     StepIn,
     StepOut,
     Return(Value),
+    Fail,
 }
 
 trait AsIndex {
@@ -691,6 +692,10 @@ impl State {
                         Some(value) => value,
                         None => continue,
                     }
+                }
+                Some(ExecGraphNode::Fail) => {
+                    self.idx += 1;
+                    return Ok(StepResult::Fail);
                 }
                 Some(ExecGraphNode::Jump(idx)) => {
                     self.idx = *idx;

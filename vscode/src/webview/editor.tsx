@@ -6,6 +6,7 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
+import DOMPurify from "dompurify";
 import { CircuitPanel, CircuitProps } from "qsharp-lang/ux";
 import { setThemeStylesheet } from "./theme";
 
@@ -36,10 +37,12 @@ function onMessage(event: any) {
   }
   switch (message.command) {
     case "error": {
+      const sanitizedMessage = DOMPurify.sanitize(message.props.message);
+      const sanitizedTitle = DOMPurify.sanitize(message.props.title);
       document.body.innerHTML = `
         <div class="error">
-          <h1>${message.props.title}</h1>
-          <p>${message.props.message}</p>
+          <h1>${sanitizedTitle}</h1>
+          <p>${sanitizedMessage}</p>
         </div>
       `;
       return;

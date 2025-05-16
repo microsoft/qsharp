@@ -121,8 +121,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
 
         const target = treeItem.itemData as Target;
 
-        const providerId = target.id.split(".")?.[0];
-
         const supports_adaptive = supportsAdaptive(target.id);
 
         let qir = "";
@@ -149,7 +147,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
             token,
             quantumUris,
             qir,
-            providerId,
+            target.providerId,
             target.id,
           );
           if (jobId) {

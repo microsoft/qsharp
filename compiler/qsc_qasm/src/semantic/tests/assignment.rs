@@ -106,15 +106,6 @@ fn too_many_indices_in_indexed_assignment() {
                :         ^^^^^^^^^^^^^^^^^
              4 |         
                `----
-            , Qasm.Lowerer.CannotCastLiteral
-
-              x cannot cast literal expression of type Float(None, true) to type Err
-               ,-[test:3:9]
-             2 |         array[float[32], 3, 2] multiDim = {{1.1, 1.2}, {2.1, 2.2}, {3.1, 3.2}};
-             3 |         multiDim[1, 1, 3] = 2.3;
-               :         ^^^^^^^^^^^^^^^^^^^^^^^^
-             4 |         
-               `----
             ]"#]],
     );
 }

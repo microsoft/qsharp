@@ -262,14 +262,6 @@ impl Arg {
     }
 }
 
-/// Represents the possible control flow options that can result from a branch.
-pub enum BranchControlFlow {
-    /// The block ID corresponding to a branch.
-    Block(BlockId),
-    /// The return value resulting from a branch.
-    Return(Value),
-}
-
 /// Represents the possible control flow options that an evaluation can have.
 pub enum EvalControlFlow {
     Continue(Value),

@@ -16,6 +16,33 @@ fn with_no_init_expr() {
 }
 
 #[test]
+fn with_no_init_expr_in_non_global_scope() {
+    check_stmt_kind(
+        "{qreg a;}",
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [0-9]:
+                        annotations: <empty>
+                        kind: Block [0-9]:
+                            Stmt [1-8]:
+                                annotations: <empty>
+                                kind: QubitDeclaration [1-8]:
+                                    symbol_id: 8
+
+            [Qasm.Lowerer.QubitDeclarationInNonGlobalScope
+
+              x qubit declarations must be done in global scope
+               ,-[test:1:2]
+             1 | {qreg a;}
+               :  ^^^^^^^
+               `----
+            ]"#]],
+    );
+}
+
+#[test]
 fn array_with_no_init_expr() {
     check_stmt_kind(
         "qreg a[3];",
@@ -24,5 +51,34 @@ fn array_with_no_init_expr() {
                 symbol_id: 8
                 size: 3
                 size_span: [7-8]"#]],
+    );
+}
+
+#[test]
+fn array_with_no_init_expr_in_non_global_scope() {
+    check_stmt_kind(
+        "{qreg a[3];}",
+        &expect![[r#"
+            Program:
+                version: <none>
+                statements:
+                    Stmt [0-12]:
+                        annotations: <empty>
+                        kind: Block [0-12]:
+                            Stmt [1-11]:
+                                annotations: <empty>
+                                kind: QubitArrayDeclaration [1-11]:
+                                    symbol_id: 8
+                                    size: 3
+                                    size_span: [8-9]
+
+            [Qasm.Lowerer.QubitDeclarationInNonGlobalScope
+
+              x qubit declarations must be done in global scope
+               ,-[test:1:2]
+             1 | {qreg a[3];}
+               :  ^^^^^^^^^^
+               `----
+            ]"#]],
     );
 }

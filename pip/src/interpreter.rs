@@ -891,7 +891,8 @@ pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
         .map(|e| format_error(&e))
-        .collect::<String>()
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub(crate) fn format_error(e: &interpret::Error) -> String {

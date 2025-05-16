@@ -12,8 +12,11 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function createDebugConsoleEventTarget(out: (message: string) => void) {
-  const eventTarget = new QscEventTarget(false);
+export function createDebugConsoleEventTarget(
+  out: (message: string) => void,
+  captureEvents: boolean = false,
+) {
+  const eventTarget = new QscEventTarget(captureEvents);
 
   eventTarget.addEventListener("Message", (evt) => {
     out(evt.detail + "\n");

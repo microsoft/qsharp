@@ -178,6 +178,11 @@ impl Type {
     }
 
     #[must_use]
+    pub fn is_err(&self) -> bool {
+        matches!(self, Type::Err)
+    }
+
+    #[must_use]
     pub fn width(&self) -> Option<u32> {
         match self {
             Type::Angle(w, _)
@@ -822,10 +827,7 @@ pub fn can_cast_literal(lhs_ty: &Type, ty_lit: &Type) -> bool {
     }
 
     base_types_equal(lhs_ty, ty_lit)
-        || matches!(
-            (lhs_ty, ty_lit),
-            (Type::Angle(_, _), Type::Float(_, _) | Type::Bit(..))
-        )
+        || matches!((lhs_ty, ty_lit), (Type::Angle(_, _), Type::Float(_, _)))
         || matches!((lhs_ty, ty_lit), (Type::Bit(..), Type::Angle(..)))
         || matches!(
             (lhs_ty, ty_lit),
@@ -840,8 +842,12 @@ pub fn can_cast_literal(lhs_ty: &Type, ty_lit: &Type) -> bool {
         }
         || {
             match lhs_ty {
-                Type::BitArray(_, _) => {
+                Type::BitArray(size, _) => {
                     matches!(ty_lit, Type::Int(_, _) | Type::UInt(_, _))
+                        || matches!(ty_lit, Type::Angle(width, _) if Some(*size) == *width)
+                }
+                Type::Angle(width, _) => {
+                    matches!(ty_lit, Type::BitArray(size, _) if Some(*size) == *width)
                 }
                 _ => false,
             }

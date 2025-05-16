@@ -34,6 +34,41 @@ fn const_exprs_work_in_bitarray_size_position() -> miette::Result<(), Vec<Report
 }
 
 #[test]
+fn const_decl_with_non_const_init_expression_fails() {
+    let source = r#"
+        const int c = a + b;
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
+        Qasm.Lowerer.UndefinedSymbol
+
+          x undefined symbol: a
+           ,-[Test.qasm:2:23]
+         1 | 
+         2 |         const int c = a + b;
+           :                       ^
+         3 |     
+           `----
+
+        Qasm.Lowerer.UndefinedSymbol
+
+          x undefined symbol: b
+           ,-[Test.qasm:2:27]
+         1 | 
+         2 |         const int c = a + b;
+           :                           ^
+         3 |     
+           `----
+    "#]]
+    .assert_eq(&errs_string);
+}
+
+#[test]
 fn const_exprs_implicit_cast_work_in_bitarray_size_position() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const int a = 1;
@@ -84,27 +119,7 @@ fn non_const_exprs_fail_in_bitarray_size_position() {
 
         Qasm.Lowerer.ExprMustBeConst
 
-          x designator must be a const expression
-           ,-[Test.qasm:5:13]
-         4 |         int c = a + 3;
-         5 |         bit[b] r1;
-           :             ^
-         6 |         bit[c] r2;
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
           x expression must be const
-           ,-[Test.qasm:6:13]
-         5 |         bit[b] r1;
-         6 |         bit[c] r2;
-           :             ^
-         7 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x designator must be a const expression
            ,-[Test.qasm:6:13]
          5 |         bit[b] r1;
          6 |         bit[c] r2;
@@ -463,36 +478,6 @@ fn binary_op_shl_creg_fails() {
            :             ^
          5 |     
            `----
-
-        Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Err to type UInt(None, true)
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[3] = a << 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x expression must be const
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[3] = a << 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x designator must be a const expression
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[3] = a << 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
     "#]]
     .assert_eq(&errs_string);
 }
@@ -622,36 +607,6 @@ fn binary_op_shr_creg_fails() {
         Qasm.Lowerer.UndefinedSymbol
 
           x undefined symbol: b
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[4] = a >> 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
-
-        Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Err to type UInt(None, true)
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[4] = a >> 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x expression must be const
-           ,-[Test.qasm:4:13]
-         3 |         const creg b[4] = a >> 2;
-         4 |         bit[b] r;
-           :             ^
-         5 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x designator must be a const expression
            ,-[Test.qasm:4:13]
          3 |         const creg b[4] = a >> 2;
          4 |         bit[b] r;
@@ -1772,29 +1727,18 @@ fn cast_to_float() -> miette::Result<(), Vec<Report>> {
 fn cast_to_angle() -> miette::Result<(), Vec<Report>> {
     let source = r#"
         const float a1 = 2.0;
-        const bit a2 = 1;
-
         const angle[32] b1 = a1;
-        const angle[32] b2 = a2;
-
         const bit s1 = b1;
-        const bit s2 = b2;
-
         bit[s1] r1;
-        bit[s2] r2;
     "#;
 
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let a1 = 2.;
-        let a2 = One;
         let b1 = Std.OpenQASM.Angle.DoubleAsAngle(a1, 32);
-        let b2 = Std.OpenQASM.Angle.ResultAsAngle(a2);
         let s1 = Std.OpenQASM.Angle.AngleAsResult(b1);
-        let s2 = Std.OpenQASM.Angle.AngleAsResult(b2);
         mutable r1 = [Zero];
-        mutable r2 = [Zero];
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -1881,45 +1825,42 @@ fn binary_op_err_type_fails() {
            :                 ^
          3 |     
            `----
+    "#]]
+    .assert_eq(&errs_string);
+}
 
+#[test]
+fn binary_op_non_const_type_fails() {
+    let source = r#"
+        const int a = 2;
+        int b = 3;
+        int[a + b] x = 2;
+    "#;
+
+    let Err(errs) = compile_qasm_to_qsharp(source) else {
+        panic!("should have generated an error");
+    };
+    let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
+    let errs_string = errs.join("\n");
+    expect![[r#"
         Qasm.Lowerer.CannotCast
 
-          x cannot cast expression of type Err to type UInt(None, true)
-           ,-[Test.qasm:2:13]
-         1 | 
-         2 |         int[a + b] x = 2;
-           :             ^^^^^
-         3 |     
+          x cannot cast expression of type Int(None, false) to type Int(None, true)
+           ,-[Test.qasm:4:17]
+         3 |         int b = 3;
+         4 |         int[a + b] x = 2;
+           :                 ^
+         5 |     
            `----
 
         Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
-           ,-[Test.qasm:2:13]
-         1 | 
-         2 |         int[a + b] x = 2;
-           :             ^^^^^
-         3 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x designator must be a const expression
-           ,-[Test.qasm:2:13]
-         1 | 
-         2 |         int[a + b] x = 2;
-           :             ^^^^^
-         3 |     
-           `----
-
-        Qasm.Lowerer.CannotCastLiteral
-
-          x cannot cast literal expression of type Int(None, true) to type Err
-           ,-[Test.qasm:2:9]
-         1 | 
-         2 |         int[a + b] x = 2;
-           :         ^^^^^^^^^^^^^^^^^
-         3 |     
+           ,-[Test.qasm:4:17]
+         3 |         int b = 3;
+         4 |         int[a + b] x = 2;
+           :                 ^
+         5 |     
            `----
     "#]]
     .assert_eq(&errs_string);
@@ -1962,36 +1903,6 @@ fn fuzzer_issue_2294() {
          1 | 
          2 |         ctrl(5/_)@l
            :                ^
-         3 |     
-           `----
-
-        Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Err to type Float(None, true)
-           ,-[Test.qasm:2:16]
-         1 | 
-         2 |         ctrl(5/_)@l
-           :                ^
-         3 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x expression must be const
-           ,-[Test.qasm:2:16]
-         1 | 
-         2 |         ctrl(5/_)@l
-           :                ^
-         3 |     
-           `----
-
-        Qasm.Lowerer.ExprMustBeConst
-
-          x ctrl modifier argument must be a const expression
-           ,-[Test.qasm:2:14]
-         1 | 
-         2 |         ctrl(5/_)@l
-           :              ^^^
          3 |     
            `----
     "#]]

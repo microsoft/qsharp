@@ -8,7 +8,6 @@ import * as vscode from "vscode";
 import { qsharpExtensionId } from "../common";
 import { clearCommandDiagnostics } from "../diagnostics";
 import {
-  FullProgramConfigOrError,
   getActiveQdkDocumentUri,
   getProgramForDocument,
 } from "../programConfig";
@@ -35,14 +34,8 @@ export async function activateDebugger(
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider("qsharp", provider),
   );
-  context.subscriptions.push(
-    vscode.debug.registerDebugConfigurationProvider("openqasm", provider),
-  );
 
-  const factory = new InlineDebugAdapterFactory(async (uri) => {
-    const file = await vscode.workspace.openTextDocument(uri);
-    return getProgramForDocument(file);
-  });
+  const factory = new InlineDebugAdapterFactory();
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("qsharp", factory),
   );
@@ -204,7 +197,7 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
     _token?: vscode.CancellationToken | undefined,
   ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // apply defaults if not set
-    config.type = "qsharp";
+    config.type = config.type ?? "qsharp";
     config.name = config.name ?? "Launch";
     config.request = config.request ?? "launch";
     config.shots = config.shots ?? 1;
@@ -224,19 +217,14 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
-  constructor(
-    private programLoader: (
-      uri: vscode.Uri,
-    ) => Promise<FullProgramConfigOrError>,
-  ) {}
-
   async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const uri = vscode.Uri.parse(session.configuration.programUri);
-    const program = await this.programLoader(uri);
+    const file = await vscode.workspace.openTextDocument(uri);
+    const program = await getProgramForDocument(file);
     if (!program.success) {
       throw new Error(program.errorMsg);
     }

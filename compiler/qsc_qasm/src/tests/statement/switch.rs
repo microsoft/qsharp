@@ -246,7 +246,7 @@ fn spec_case_4() -> miette::Result<(), Vec<Report>> {
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
         mutable b = [Zero, Zero];
         operation foo(i : Int, d : Qubit[]) : Result {
-            return QIR.Intrinsic.__quantum__qis__m__body(d[i]);
+            return Std.Intrinsic.M(d[i]);
         }
         mutable i = 15;
         mutable j = 1;

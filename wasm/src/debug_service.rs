@@ -232,7 +232,7 @@ pub fn init_debugger(
     entry: Option<String>,
 ) -> Result<Debugger, Vec<Error>> {
     let (source_map, capabilities, language_features, package_store, user_code_dependencies) =
-        into_qsc_args(program, entry)
+        into_qsc_args(program, entry, false)
             .map_err(|e| e.into_iter().map(Into::into).collect::<Vec<_>>())?;
 
     Debugger::new(
@@ -281,6 +281,10 @@ impl From<StepResult> for StructStepResult {
                 id: StepResultId::Return.into(),
                 value: 0,
             },
+            StepResult::Fail => StructStepResult {
+                id: StepResultId::Fail.into(),
+                value: 0,
+            },
         }
     }
 }
@@ -293,6 +297,7 @@ pub enum StepResultId {
     StepIn = 2,
     StepOut = 3,
     Return = 4,
+    Fail = 5,
 }
 
 impl From<StepResultId> for usize {

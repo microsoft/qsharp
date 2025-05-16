@@ -635,10 +635,7 @@ impl Lowerer {
                 let rhs = self.lower_expr(&bin_op_expr.rhs);
                 self.lower_binary_op_expr(bin_op_expr.op, lhs, rhs, expr.span)
             }
-            syntax::ExprKind::Cast(_) => {
-                self.push_unimplemented_error_message("cast expr", expr.span);
-                err_expr!(Type::Err, expr.span)
-            }
+            syntax::ExprKind::Cast(expr) => self.lower_cast_expr(expr),
             syntax::ExprKind::Err => err_expr!(Type::Err, expr.span),
             syntax::ExprKind::FunctionCall(expr) => self.lower_function_call_expr(expr),
             syntax::ExprKind::Ident(ident) => self.lower_ident_expr(ident),
@@ -668,6 +665,22 @@ impl Lowerer {
             // We take this branch if we are trying to lower an array but reached a leaf node.
             self.cast_expr_to_type(ty, &expr)
         }
+    }
+
+    fn lower_cast_expr(&mut self, cast: &syntax::Cast) -> semantic::Expr {
+        let cast_span = cast.span;
+        let expr = self.lower_expr(&cast.arg);
+        let ty = self.get_semantic_type_from_tydef(&cast.ty, expr.ty.is_const());
+        let mut cast = self.cast_expr_to_type_with_span(&ty, &expr, cast_span);
+
+        // This is an explicit cast, so we know its span. If casting
+        // succeded, override the default span with the cast span.
+        cast.span = cast_span;
+        if let semantic::ExprKind::Cast(cast_ref) = cast.kind.as_mut() {
+            cast_ref.span = cast_span;
+        }
+
+        cast
     }
 
     fn lower_ident_expr(&mut self, ident: &syntax::Ident) -> semantic::Expr {
@@ -708,7 +721,7 @@ impl Lowerer {
                 // const_eval function.
                 semantic::ExprKind::Ident(symbol_id)
             }
-        } else if need_to_capture_symbol && !symbol.is_const() {
+        } else if need_to_capture_symbol && !symbol.ty.is_err() && !symbol.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "a captured variable".into(),
                 ident.span,
@@ -1200,7 +1213,7 @@ impl Lowerer {
 
         let symbol_id = self.try_insert_or_get_existing_symbol_id(name, symbol);
 
-        if !init_expr.ty.is_const() {
+        if !init_expr.ty.is_err() && !init_expr.ty.is_const() {
             self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
                 "const decl init expr".to_string(),
                 init_expr.span,
@@ -1401,10 +1414,14 @@ impl Lowerer {
 
     fn lower_expr_stmt(&mut self, stmt: &syntax::ExprStmt) -> semantic::StmtKind {
         let expr = self.lower_expr(&stmt.expr);
-        semantic::StmtKind::ExprStmt(semantic::ExprStmt {
-            span: stmt.span,
-            expr,
-        })
+        if matches!(&*expr.kind, semantic::ExprKind::Err) {
+            semantic::StmtKind::Err
+        } else {
+            semantic::StmtKind::ExprStmt(semantic::ExprStmt {
+                span: stmt.span,
+                expr,
+            })
+        }
     }
 
     fn lower_extern(&mut self, stmt: &syntax::ExternDecl) -> semantic::StmtKind {
@@ -1937,10 +1954,8 @@ impl Lowerer {
             return None;
         };
         let Some(lit) = expr.const_eval(self) else {
-            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                "ctrl modifier argument".into(),
-                expr.span,
-            ));
+            // const_eval would have pushed an error unless the ty is Err
+            // in which case there is already an error pushed for the ty
             return None;
         };
 
@@ -2038,7 +2053,7 @@ impl Lowerer {
         // 1. Check that we are in the global scope. QASM3 semantics
         //    only allow gate definitions in the global scope.
         if !self.symbols.is_current_scope_global() {
-            let kind = SemanticErrorKind::QuantumDeclarationInNonGlobalScope(stmt.span);
+            let kind = SemanticErrorKind::GateDeclarationInNonGlobalScope(stmt.span);
             self.push_semantic_error(kind);
         }
 
@@ -2124,6 +2139,11 @@ impl Lowerer {
     }
 
     fn lower_quantum_decl(&mut self, stmt: &syntax::QubitDeclaration) -> semantic::StmtKind {
+        if !self.symbols.is_current_scope_global() {
+            let kind = SemanticErrorKind::QubitDeclarationInNonGlobalScope(stmt.span);
+            self.push_semantic_error(kind);
+        }
+
         // If there wasn't an explicit size, infer the size to be 1.
         let (ty, size_and_span) = if let Some(size_expr) = &stmt.size {
             let size_expr = self.lower_expr(size_expr);
@@ -2356,15 +2376,10 @@ impl Lowerer {
             expr_span,
         );
 
-        if let Some(lit) = expr.const_eval(self) {
-            Some(lit)
-        } else {
-            self.push_semantic_error(SemanticErrorKind::ExprMustBeConst(
-                "designator".to_string(),
-                expr.span,
-            ));
-            None
-        }
+        // const_eval would have pushed an error unless the ty is Err
+        // in which case there is already an error pushed for the ty
+        // so there is no need to add more errors here.
+        expr.const_eval(self)
     }
 
     fn const_eval_array_size_designator_from_expr(&mut self, expr: &syntax::Expr) -> Option<u32> {
@@ -2618,15 +2633,19 @@ impl Lowerer {
     }
 
     fn lower_measure_expr(&mut self, expr: &syntax::MeasureExpr) -> semantic::Expr {
+        let operand = self.lower_gate_operand(&expr.operand);
+        let ty = get_measurement_ty_from_gate_operand(&operand);
+
         let measurement = semantic::MeasureExpr {
             span: expr.span,
             measure_token_span: expr.measure_token_span,
             operand: self.lower_gate_operand(&expr.operand),
         };
+
         semantic::Expr {
             span: expr.span,
             kind: Box::new(semantic::ExprKind::Measure(measurement)),
-            ty: Type::Bit(false),
+            ty,
         }
     }
 
@@ -2778,21 +2797,34 @@ impl Lowerer {
         let span = rhs.span;
 
         if matches!(lhs_ty, Type::Bit(..)) {
-            if let semantic::LiteralKind::Int(value) = kind {
-                // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
-                return Some(semantic::Expr {
-                    span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
-                        *value != 0,
-                    ))),
-                    ty: lhs_ty.as_const(),
-                });
-            } else if let semantic::LiteralKind::Bool(value) = kind {
-                return Some(semantic::Expr {
-                    span,
-                    kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value))),
-                    ty: lhs_ty.as_const(),
-                });
+            match kind {
+                semantic::LiteralKind::Int(value) => {
+                    // can_cast_literal_with_value_knowledge guarantees that value is 0 or 1
+                    return Some(semantic::Expr {
+                        span,
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
+                            *value != 0,
+                        ))),
+                        ty: lhs_ty.as_const(),
+                    });
+                }
+                semantic::LiteralKind::Bool(value) => {
+                    return Some(semantic::Expr {
+                        span,
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(*value))),
+                        ty: lhs_ty.as_const(),
+                    });
+                }
+                &semantic::LiteralKind::Angle(value) => {
+                    return Some(semantic::Expr {
+                        span,
+                        kind: Box::new(semantic::ExprKind::Lit(semantic::LiteralKind::Bit(
+                            value.value != 0,
+                        ))),
+                        ty: lhs_ty.as_const(),
+                    });
+                }
+                _ => (),
             }
         }
         // if lhs_ty is 1 dim bitarray and rhs is int/uint, we can cast
@@ -2994,8 +3026,17 @@ impl Lowerer {
     }
 
     fn cast_expr_to_type(&mut self, ty: &Type, expr: &semantic::Expr) -> semantic::Expr {
+        self.cast_expr_to_type_with_span(ty, expr, expr.span)
+    }
+
+    fn cast_expr_to_type_with_span(
+        &mut self,
+        ty: &Type,
+        expr: &semantic::Expr,
+        span: Span,
+    ) -> semantic::Expr {
         let Some(cast_expr) = Self::try_cast_expr_to_type(ty, expr) else {
-            self.push_invalid_cast_error(ty, &expr.ty, expr.span);
+            self.push_invalid_cast_error(ty, &expr.ty, span);
             return expr.clone();
         };
         cast_expr
@@ -3019,6 +3060,10 @@ impl Lowerer {
             // to a non-const value, we can't allow this
             return None;
         }
+        if ty.is_err() || expr.ty.is_err() {
+            // if either type is an error, we can't cast
+            return None;
+        }
         // if the target type is wider, we can try to relax the rhs type
         // We only do this for float and complex. Int types
         // require extra handling for BigInts
@@ -3027,11 +3072,11 @@ impl Lowerer {
             | (Type::Float(w1, _), Type::Float(w2, _))
             | (Type::Complex(w1, _), Type::Complex(w2, _)) => {
                 if w1.is_none() && w2.is_some() {
-                    return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), expr.clone()));
+                    return Some(wrap_expr_in_cast_expr(ty.clone(), expr.clone()));
                 }
 
                 if *w1 >= *w2 {
-                    return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), expr.clone()));
+                    return Some(wrap_expr_in_cast_expr(ty.clone(), expr.clone()));
                 }
             }
             _ => {}
@@ -3040,124 +3085,144 @@ impl Lowerer {
         // which cannot be bypassed and must be handled by built-in Q# casts from
         // the standard library.
         match &expr.ty {
-            Type::Angle(_, _) => Self::cast_angle_expr_to_type(ty, expr),
-            Type::Bit(_) => Self::cast_bit_expr_to_type(ty, expr),
-            Type::Bool(_) => Self::cast_bool_expr_to_type(ty, expr),
-            Type::Complex(_, _) => cast_complex_expr_to_type(ty, expr),
-            Type::Float(_, _) => Self::cast_float_expr_to_type(ty, expr),
-            Type::Int(_, _) | Type::UInt(_, _) => Self::cast_int_expr_to_type(ty, expr),
+            Type::Angle(width, _) => Self::cast_angle_expr_to_type(ty, expr, *width),
+            Type::Bit(..) => Self::cast_bit_expr_to_type(ty, expr),
+            Type::Bool(..) => Self::cast_bool_expr_to_type(ty, expr),
+            Type::Complex(..) => cast_complex_expr_to_type(ty, expr),
+            Type::Float(..) => Self::cast_float_expr_to_type(ty, expr),
+            Type::Int(width, _) | Type::UInt(width, _) => {
+                Self::cast_int_expr_to_type(ty, expr, *width)
+            }
             Type::BitArray(size, _) => Self::cast_bitarray_expr_to_type(*size, ty, expr),
             _ => None,
         }
     }
 
-    /// +----------------+-------------------------------------------------------------+
-    /// | Allowed casts  | Casting To                                                  |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | Casting From   | bool  | int | uint | float | angle | bit | duration | qubit |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | angle          | Yes   | No  | No   | No    | -     | Yes | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    fn cast_angle_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    /// +----------------+----------------------------------------------------------------+
+    /// | Allowed casts  | Casting To                                                     |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | Casting From   | bool  | int | uint | float | angle | bit[n] | duration | qubit |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | angle          | Yes   | No  | No   | No    | -     | Yes    | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    fn cast_angle_expr_to_type(
+        ty: &Type,
+        rhs: &semantic::Expr,
+        width: Option<u32>,
+    ) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Angle(..)));
         match ty {
-            Type::Angle(..) | Type::Bit(..) | Type::BitArray(..) | Type::Bool(..) => {
-                Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
+            Type::Angle(..) | Type::Bit(..) | Type::Bool(..) => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
+            Type::BitArray(size, _) if Some(*size) == width => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
         }
     }
 
-    /// +----------------+-------------------------------------------------------------+
-    /// | Allowed casts  | Casting To                                                  |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | Casting From   | bool  | int | uint | float | angle | bit | duration | qubit |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -   | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
+    /// +----------------+----------------------------------------------------------------+
+    /// | Allowed casts  | Casting To                                                     |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | Casting From   | bool  | int | uint | float | angle | bit[n] | duration | qubit |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | bit            | Yes   | Yes | Yes  | No    | Yes   | -      | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
     fn cast_bit_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Bit(..)));
         // There is no operand, choosing the span of the node
         // but we could use the expr span as well.
         match ty {
-            &Type::Float(..) => {
-                // The spec says that this cast isn't supported, but it
-                // casts to other types that cast to float. For now, we'll
-                // say it is invalid like the spec.
-                None
-            }
-            &Type::Angle(..) | &Type::Bool(_) | &Type::Int(_, _) | &Type::UInt(_, _) => {
-                Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
-            }
+            Type::Float(..)
+            | Type::Bool(..)
+            | Type::Int(..)
+            | Type::UInt(..)
+            | Type::BitArray(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
 
             _ => None,
         }
     }
 
-    /// +----------------+-------------------------------------------------------------+
-    /// | Allowed casts  | Casting To                                                  |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | Casting From   | bool  | int | uint | float | angle | bit | duration | qubit |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | float          | Yes   | Yes | Yes  | -     | Yes   | No  | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
+    /// +----------------+----------------------------------------------------------------+
+    /// | Allowed casts  | Casting To                                                     |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | Casting From   | bool  | int | uint | float | angle | bit[n] | duration | qubit |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | float          | Yes   | Yes | Yes  | -     | Yes   | No     | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
     ///
     /// Additional cast to complex
     fn cast_float_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Float(..)));
         match ty {
-            &Type::Angle(..)
-            | &Type::Complex(_, _)
-            | &Type::Int(_, _)
-            | &Type::UInt(_, _)
-            | &Type::Bool(_) => {
-                // this will eventually be a call into Complex(expr, 0.0)
-                Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
+            Type::Angle(..)
+            | Type::Int(..)
+            | Type::UInt(..)
+            | Type::Float(..)
+            | Type::Bool(..)
+            | Type::Bit(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
+            Type::Complex(..) => {
+                // Even though the spec doesn't say it, we need to allow
+                // casting from float to complex, else this kind of expression
+                // would be invalid: 2.0 + sin(pi) + 1.0i
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
             }
             _ => None,
         }
     }
 
-    /// +----------------+-------------------------------------------------------------+
-    /// | Allowed casts  | Casting To                                                  |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | Casting From   | bool  | int | uint | float | angle | bit | duration | qubit |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | bool           | -     | Yes | Yes  | Yes   | No    | Yes | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
+    /// +----------------+----------------------------------------------------------------+
+    /// | Allowed casts  | Casting To                                                     |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | Casting From   | bool  | int | uint | float | angle | bit[n] | duration | qubit |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | bool           | -     | Yes | Yes  | Yes   | No    | Yes    | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
     fn cast_bool_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Bool(..)));
         match ty {
-            &Type::Bit(_) | &Type::Float(_, _) | &Type::Int(_, _) | &Type::UInt(_, _) => {
-                Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
-            }
+            Type::Bit(..)
+            | Type::BitArray(..)
+            | Type::Float(..)
+            | Type::Int(..)
+            | Type::UInt(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
             _ => None,
         }
     }
 
-    /// +----------------+-------------------------------------------------------------+
-    /// | Allowed casts  | Casting To                                                  |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | Casting From   | bool  | int | uint | float | angle | bit | duration | qubit |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | int            | Yes   | -   | Yes  | Yes   | No    | Yes | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
-    /// | uint           | Yes   | Yes | -    | Yes   | No    | Yes | No       | No    |
-    /// +----------------+-------+-----+------+-------+-------+-----+----------+-------+
+    /// +----------------+----------------------------------------------------------------+
+    /// | Allowed casts  | Casting To                                                     |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | Casting From   | bool  | int | uint | float | angle | bit[n] | duration | qubit |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | int            | Yes   | -   | Yes  | Yes   | No    | Yes    | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
+    /// | uint           | Yes   | Yes | -    | Yes   | No    | Yes    | No       | No    |
+    /// +----------------+-------+-----+------+-------+-------+--------+----------+-------+
     ///
     /// Additional cast to ``BigInt``
     #[allow(clippy::too_many_lines)]
-    fn cast_int_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic::Expr> {
+    fn cast_int_expr_to_type(
+        ty: &Type,
+        rhs: &semantic::Expr,
+        width: Option<u32>,
+    ) -> Option<semantic::Expr> {
         assert!(matches!(rhs.ty, Type::Int(..) | Type::UInt(..)));
 
         match ty {
-            Type::BitArray(_, _)
-            | Type::Float(_, _)
-            | Type::Int(_, _)
-            | Type::UInt(_, _)
+            Type::Float(..)
+            | Type::Int(..)
+            | Type::UInt(..)
             | Type::Bool(..)
             | Type::Bit(..)
-            | Type::Complex(..) => Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone())),
+            // Even though the spec doesn't say it, we need to allow
+            // casting from int to complex, else this kind of expression
+            // would be invalid: 2 + 1i
+            | Type::Complex(..) => Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone())),
+            Type::BitArray(size, _) if Some(*size) == width => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
             _ => None,
         }
     }
@@ -3167,17 +3232,18 @@ impl Lowerer {
         ty: &Type,
         rhs: &semantic::Expr,
     ) -> Option<semantic::Expr> {
-        if !matches!(ty, Type::Int(..) | Type::UInt(..)) {
-            return None;
-        }
-        // we know we have a bit array being cast to an int/uint
-        // verfiy widths
-        let int_width = ty.width();
-
-        if int_width.is_none() || (int_width == Some(array_width)) {
-            Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()))
-        } else {
-            None
+        match ty {
+            Type::Bool(..) | Type::Bit(..) | Type::Int(None, _) | Type::UInt(None, _) => {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
+            Type::Angle(Some(width), _)
+            | Type::Int(Some(width), _)
+            | Type::UInt(Some(width), _)
+                if *width == array_width =>
+            {
+                Some(wrap_expr_in_cast_expr(ty.clone(), rhs.clone()))
+            }
+            _ => None,
         }
     }
 
@@ -3510,15 +3576,18 @@ impl Lowerer {
     fn lower_const_range(&mut self, range: &syntax::Range) -> Option<semantic::Range> {
         let mut lower_and_const_eval = |expr| {
             let lowered_expr = self.lower_expr(expr);
-            let lit = lowered_expr.const_eval(self);
-            lit.map(|lit| {
-                let lit_expr = semantic::Expr {
-                    span: lowered_expr.span,
-                    kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
-                    ty: lowered_expr.ty,
-                };
-                // Range components (start, step, end) can be negative, so we coerce to an `int`.
-                self.coerce_literal_expr_to_type(&Type::Int(None, true), &lit_expr, &lit)
+            let lit_expr = Self::try_cast_expr_to_type(&Type::Int(None, true), &lowered_expr);
+            let Some(lowered_expr) = lit_expr else {
+                self.push_invalid_cast_error(&Type::Int(None, true), &lowered_expr.ty, expr.span);
+                return None;
+            };
+            // const_eval will push any needed errors
+            let lit = lowered_expr.const_eval(self)?;
+
+            Some(semantic::Expr {
+                span: lowered_expr.span,
+                kind: Box::new(semantic::ExprKind::Lit(lit.clone())),
+                ty: Type::Int(None, true),
             })
         };
 
@@ -3724,6 +3793,10 @@ impl Lowerer {
     }
 
     fn push_invalid_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+        if target_ty.is_err() || expr_ty.is_err() {
+            // if either type is an error, we don't need to push an error
+            return;
+        }
         let rhs_ty_name = format!("{expr_ty:?}");
         let lhs_ty_name = format!("{target_ty:?}");
         let kind = SemanticErrorKind::CannotCast(rhs_ty_name, lhs_ty_name, span);
@@ -3731,6 +3804,10 @@ impl Lowerer {
     }
 
     fn push_invalid_literal_cast_error(&mut self, target_ty: &Type, expr_ty: &Type, span: Span) {
+        if target_ty.is_err() || expr_ty.is_err() {
+            // if either type is an error, we don't need to push an error
+            return;
+        }
         let rhs_ty_name = format!("{expr_ty:?}");
         let lhs_ty_name = format!("{target_ty:?}");
         let kind = SemanticErrorKind::CannotCastLiteral(rhs_ty_name, lhs_ty_name, span);
@@ -3796,7 +3873,7 @@ impl Lowerer {
     }
 }
 
-fn wrap_expr_in_implicit_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
+fn wrap_expr_in_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::Expr {
     semantic::Expr {
         span: rhs.span,
         kind: Box::new(semantic::ExprKind::Cast(semantic::Cast {
@@ -3806,6 +3883,16 @@ fn wrap_expr_in_implicit_cast_expr(ty: Type, rhs: semantic::Expr) -> semantic::E
         })),
         ty,
     }
+}
+
+fn get_measurement_ty_from_gate_operand(operand: &semantic::GateOperand) -> Type {
+    if let semantic::GateOperandKind::Expr(ref expr) = &operand.kind {
+        if let Type::QubitArray(size) = expr.ty {
+            return Type::BitArray(size, false);
+        }
+    }
+
+    Type::Bit(false)
 }
 
 /// +----------------+-------------------------------------------------------------+
@@ -3819,19 +3906,10 @@ fn cast_complex_expr_to_type(ty: &Type, rhs: &semantic::Expr) -> Option<semantic
     assert!(matches!(rhs.ty, Type::Complex(..)));
 
     if matches!((ty, &rhs.ty), (Type::Complex(..), Type::Complex(..))) {
-        // we are both complex, but our widths are different. If both
-        // had implicit widths, we would have already matched for the
-        // (None, None). If the rhs width is bigger, we will return
-        // None to let the cast fail
-
-        // Here, we can safely cast the rhs to the lhs type if the
-        // lhs width can hold the rhs's width
-        if ty.width().is_none() && rhs.ty.width().is_some() {
-            return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()));
-        }
-        if ty.width() >= rhs.ty.width() {
-            return Some(wrap_expr_in_implicit_cast_expr(ty.clone(), rhs.clone()));
-        }
+        // complex can only cast to complex. We do the same as for floats
+        // when handling the widths, that is, ignoring them, since complex
+        // numbers are a pair of floats.
+        return Some(rhs.clone());
     }
     None
 }
