@@ -6,6 +6,13 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
+import { getActiveQdkDocument } from "./programConfig";
+import {
+  isCircuitDocument,
+  isOpenQasmDocument,
+  isQdkNotebookCell,
+  isQsharpDocument,
+} from "./common";
 
 export enum EventType {
   InitializePlugin = "Qsharp.InitializePlugin",
@@ -56,6 +63,22 @@ export enum EventType {
 
 type Empty = { [K in any]: never };
 
+/**
+ * Properties of events that are associated with
+ * a specific document, e.g. "format" or "open document"
+ */
+type DocumentEventProperties = {
+  documentType: QsharpDocumentType;
+};
+
+/**
+ * Properties of events that are associated with
+ * a user task, e.g. "histogram" or "resource estimation"
+ */
+type UserTaskProperties = {
+  invocationType: UserTaskInvocationType;
+};
+
 type EventTypes = {
   [EventType.InitializePlugin]: {
     properties: Empty;
@@ -68,11 +91,14 @@ type EventTypes = {
     };
   };
   [EventType.ReturnCompletionList]: {
-    properties: Empty;
+    properties: DocumentEventProperties;
     measurements: { timeToCompletionMs: number; completionListLength: number };
   };
   [EventType.GenerateQirStart]: {
-    properties: { associationId: string; targetProfile: string };
+    properties: DocumentEventProperties & {
+      associationId: string;
+      targetProfile: string;
+    };
     measurements: Empty;
   };
   [EventType.GenerateQirEnd]: {
@@ -191,14 +217,14 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.OpenedDocument]: {
-    properties: { documentType: QsharpDocumentType };
+    properties: DocumentEventProperties;
     measurements: { linesOfCode: number };
   };
   [EventType.TriggerResourceEstimation]: {
-    properties: {
-      associationId: string;
-      invocationType: CommandInvocationType;
-    };
+    properties: DocumentEventProperties &
+      UserTaskProperties & {
+        associationId: string;
+      };
     measurements: Empty;
   };
   [EventType.ResourceEstimationStart]: {
@@ -210,7 +236,7 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.TriggerHistogram]: {
-    properties: { associationId: string };
+    properties: DocumentEventProperties & { associationId: string };
     measurements: Empty;
   };
   [EventType.HistogramStart]: {
@@ -226,7 +252,10 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.FormatStart]: {
-    properties: { associationId: string; event: FormatEvent };
+    properties: DocumentEventProperties & {
+      associationId: string;
+      event: FormatEvent;
+    };
     measurements: Empty;
   };
   [EventType.FormatEnd]: {
@@ -242,7 +271,7 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.TriggerCircuit]: {
-    properties: {
+    properties: DocumentEventProperties & {
       associationId: string;
     };
     measurements: Empty;
@@ -305,6 +334,7 @@ export enum QsharpDocumentType {
   Circuit = "Circuit",
   OpenQasm = "OpenQasm",
   Other = "Other",
+  Unknown = "Unknown",
 }
 
 export enum UserFlowStatus {
@@ -326,7 +356,7 @@ export enum FormatEvent {
   OnType = "OnType",
 }
 
-export enum CommandInvocationType {
+export enum UserTaskInvocationType {
   Command = "Command",
   ChatToolCall = "ChatToolCall",
 }
@@ -380,4 +410,25 @@ function getBrowserRelease(): string {
 
 export function getUserAgent(): string {
   return userAgentString || navigator.userAgent;
+}
+
+export function getActiveDocumentType(): QsharpDocumentType {
+  const doc = getActiveQdkDocument();
+  if (!doc) {
+    return QsharpDocumentType.Unknown;
+  }
+
+  return determineDocumentType(doc);
+}
+
+export function determineDocumentType(document: vscode.TextDocument) {
+  return isQdkNotebookCell(document)
+    ? QsharpDocumentType.JupyterCell
+    : isCircuitDocument(document)
+      ? QsharpDocumentType.Circuit
+      : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
+        : isOpenQasmDocument(document)
+          ? QsharpDocumentType.OpenQasm
+          : QsharpDocumentType.Other;
 }

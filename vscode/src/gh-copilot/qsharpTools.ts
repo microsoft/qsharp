@@ -11,6 +11,7 @@ import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
 import { FullProgramConfig, getProgramForDocument } from "../programConfig";
 import { sendMessageToPanel } from "../webviewPanel.js";
+import { determineDocumentType } from "../telemetry";
 
 /**
  * In general, tool calls that deal with Q# should include this project
@@ -51,7 +52,7 @@ export class QSharpTools {
     const shots = input.shots ?? 1;
 
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.programConfig;
+    const programConfig = program.program.programConfig;
 
     const output: string[] = [];
     let finalHistogram: HistogramData | undefined;
@@ -129,7 +130,7 @@ export class QSharpTools {
       }
   > {
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.programConfig;
+    const programConfig = program.program.programConfig;
 
     const circuitOrError = await generateCircuit(this.extensionUri, {
       program: programConfig,
@@ -169,7 +170,7 @@ export class QSharpTools {
     }
   > {
     const program = await this.getProgram(input.filePath);
-    const programConfig = program.programConfig;
+    const programConfig = program.program.programConfig;
 
     const project = {
       name: programConfig.projectName,
@@ -183,6 +184,7 @@ export class QSharpTools {
       const estimates = await resourceEstimateTool(
         this.extensionUri,
         programConfig,
+        program.telemetryDocumentType,
         qubitTypes,
         errorBudget,
       );
@@ -204,6 +206,7 @@ export class QSharpTools {
     const docUri = vscode.Uri.file(filePath);
 
     const doc = await vscode.workspace.openTextDocument(docUri);
+    const telemetryDocumentType = determineDocumentType(doc);
 
     const program = await getProgramForDocument(doc);
     if (!program.success) {
@@ -211,7 +214,7 @@ export class QSharpTools {
         `Cannot get program for the file ${filePath} . error: ${program.errorMsg}`,
       );
     }
-    return program;
+    return { program, telemetryDocumentType };
   }
 
   private async runQsharp(

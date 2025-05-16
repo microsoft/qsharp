@@ -15,7 +15,12 @@ import { Uri } from "vscode";
 import { getTargetFriendlyName } from "./config";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
-import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
+import {
+  EventType,
+  UserFlowStatus,
+  getActiveDocumentType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
 
@@ -54,7 +59,11 @@ export async function showCircuitCommand(
   clearCommandDiagnostics();
 
   const associationId = getRandomGuid();
-  sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
+  sendTelemetryEvent(
+    EventType.TriggerCircuit,
+    { documentType: getActiveDocumentType(), associationId },
+    {},
+  );
 
   const program = await getActiveProgram();
   if (!program.success) {
