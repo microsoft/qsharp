@@ -19,7 +19,7 @@ namespace Kata {
         mutable counts = [0, size = 2^n];
         for _ in 1..100 {
             let res = PhaseEstimation(U, P, n);
-            set counts w/= res <- counts[res] + 1;
+            counts[res] += 1;
         }
         for i in 0..2^n - 1 {
             if counts[i] > 0 {

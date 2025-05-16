@@ -210,7 +210,7 @@ namespace KatasUtils {
             // get the solution's answer and verify if NOT a match, then differentiate what kind of mismatch
             let ans = testImpl(q);
             if ans != (state == 1) {
-                set misclassifications w/= state <- misclassifications[state] + 1;
+                misclassifications[state] += 1;
             }
 
             // If the final state is to be preserved, check if it was not modified
@@ -271,11 +271,11 @@ namespace KatasUtils {
             if ans >= 0 and ans < nStates {
                 // classification result is a valid state index - check if is it correct
                 if ans != state {
-                    set misclassifications w/= ((state * nStates) + ans) <- (misclassifications[(state * nStates) + ans] + 1);
+                    misclassifications[(state * nStates) + ans] += 1;
                 }
             } else {
                 // classification result is an invalid state index - file it separately
-                set unknownClassifications w/= state <- (unknownClassifications[state] + 1);
+                unknownClassifications[state] += 1;
             }
 
             if preserveState {
