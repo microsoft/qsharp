@@ -12,9 +12,20 @@ import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 export async function updateCopilotInstructions(
   trigger: "Command" | "Project" | "Activation" | "ChatToolCall",
   context: vscode.ExtensionContext,
-): Promise<string | undefined> {
+): Promise<void> {
   const globalStateUri = context.globalStorageUri;
   const userInvoked = trigger === "Command" || trigger === "Project";
+
+  if (
+    !userInvoked &&
+    !context.globalState.get<boolean>(
+      "showUpdateCopilotInstructionsPromptAtStartup",
+      true,
+    )
+  ) {
+    // User has previously picked "Don't show again"
+    return;
+  }
 
   if (isExtensionInstructionsConfigured(globalStateUri)) {
     if (userInvoked) {
@@ -24,6 +35,7 @@ export async function updateCopilotInstructions(
         learnMoreButton: true,
       });
     }
+    // Already configured, do nothing
     return;
   }
 
@@ -43,18 +55,30 @@ export async function updateCopilotInstructions(
       flowStatus: UserFlowStatus.Aborted,
     });
 
+    if (response === "Don't show again") {
+      context.globalState.update(
+        "showUpdateCopilotInstructionsPromptAtStartup",
+        false,
+      );
+    }
+
     // fire-and-forget
     showInfoMessage(
-      "To add Copilot instructions for Q# to your workspace at any time, " +
-        'run the command "QDK: Update Copilot instructions file for Q#".',
+      "To add Copilot instructions for Q# at any time, " +
+        'run the command "QDK: Add Copilot instructions file for Q#".',
       { showSettingButton: false },
     );
 
-    return response; // User dismissed the dialog
+    // User dismissed the dialog
+    return;
   }
 
   try {
+    // Actually add the instructions to the user's config
     await addExtensionInstructionsToUserConfig(globalStateUri);
+
+    // If we had previously updated `copilot-instructions.md` with Q# instructions,
+    // remove them now. Those are now obsolete.
     const removedOldInstructions = await removeOldQSharpCopilotInstructions();
 
     // fire-and-forget
@@ -68,6 +92,12 @@ export async function updateCopilotInstructions(
         learnMoreButton: true,
       },
     );
+
+    sendTelemetryEvent(
+      EventType.UpdateCopilotInstructionsEnd,
+      { flowStatus: UserFlowStatus.Succeeded },
+      {},
+    );
   } catch (error) {
     log.error(`Error updating Copilot instructions`, error);
     vscode.window.showErrorMessage(
@@ -79,15 +109,7 @@ export async function updateCopilotInstructions(
       { flowStatus: UserFlowStatus.Failed, reason: "Error" },
       {},
     );
-
-    return response;
   }
-
-  sendTelemetryEvent(
-    EventType.UpdateCopilotInstructionsEnd,
-    { flowStatus: UserFlowStatus.Succeeded },
-    {},
-  );
 }
 
 /**
@@ -304,6 +326,7 @@ async function copyInstructionsFileToGlobalStorage(
 ) {
   const source = vscode.Uri.joinPath(
     context.extensionUri,
+    "resources",
     "chat-instructions",
     "qsharp.instructions.md",
   );
@@ -346,19 +369,6 @@ export async function registerGhCopilotInstructionsCommand(
   await copyInstructionsFileToGlobalStorage(context);
 
   // Also do a one-time prompt at activation time
-  if (
-    context.globalState.get<boolean>(
-      "showUpdateCopilotInstructionsPromptAtStartup",
-      true,
-    )
-  ) {
-    updateCopilotInstructions("Activation", context).then((response) => {
-      if (response === "Don't show again") {
-        context.globalState.update(
-          "showUpdateCopilotInstructionsPromptAtStartup",
-          false,
-        );
-      }
-    });
-  }
+  // fire-and-forget
+  updateCopilotInstructions("Activation", context);
 }
