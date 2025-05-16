@@ -178,6 +178,11 @@ impl Type {
     }
 
     #[must_use]
+    pub fn is_err(&self) -> bool {
+        matches!(self, Type::Err)
+    }
+
+    #[must_use]
     pub fn width(&self) -> Option<u32> {
         match self {
             Type::Angle(w, _)

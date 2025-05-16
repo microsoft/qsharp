@@ -166,15 +166,6 @@ fn index_set_in_non_alias_stmt_fails() {
            :                ^^^^^^
          6 |     
            `----
-        , Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type Err to type Float(None, true)
-           ,-[Test.qasm:5:12]
-         4 |         qubit qq;
-         5 |         if(ans[{1, 3}] == 4) x qq;
-           :            ^^^^^^^^^^^
-         6 |     
-           `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
