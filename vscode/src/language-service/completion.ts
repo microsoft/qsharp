@@ -58,7 +58,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         completionListLength: completions.items.length,
       },
     );
-    var results = completions.items.map((c) => {
+    let results = completions.items.map((c) => {
       let kind;
       switch (c.kind) {
         case "function":
