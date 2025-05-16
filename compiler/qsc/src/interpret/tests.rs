@@ -62,6 +62,8 @@ mod given_interpreter {
     }
 
     mod without_sources {
+        use std::rc::Rc;
+
         use expect_test::expect;
         use indoc::indoc;
 
@@ -339,6 +341,36 @@ mod given_interpreter {
                 "Message(\"before\"); namespace Foo { function Bar() : Int { 5 } } Message(\"after\")",
             );
             is_unit_with_output(&result, &output, "before\nafter");
+        }
+
+        #[test]
+        fn assign_array_index_expr_eval_in_order() {
+            let mut interpreter = get_interpreter();
+            let (result, output) = line(
+                &mut interpreter,
+                "mutable arr = [[[0, 1], [2, 3]], [[4, 5], [6, 7]]];",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(
+                &mut interpreter,
+                "arr[{ Message(\"First Index\"); 0 }][{ Message(\"Second Index\"); 1 }][{ Message(\"Third Index\"); 1 }] = 13;",
+            );
+            is_unit_with_output(&result, &output, "First Index\nSecond Index\nThird Index");
+            let (result, output) = line(&mut interpreter, "arr");
+            is_only_value(
+                &result,
+                &output,
+                &Value::Array(Rc::new(vec![
+                    Value::Array(Rc::new(vec![
+                        Value::Array(Rc::new(vec![Value::Int(0), Value::Int(1)])),
+                        Value::Array(Rc::new(vec![Value::Int(2), Value::Int(13)])),
+                    ])),
+                    Value::Array(Rc::new(vec![
+                        Value::Array(Rc::new(vec![Value::Int(4), Value::Int(5)])),
+                        Value::Array(Rc::new(vec![Value::Int(6), Value::Int(7)])),
+                    ])),
+                ])),
+            );
         }
 
         #[test]
