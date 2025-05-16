@@ -25,7 +25,7 @@ namespace Kata {
             // and convert the result to an integer, interpreting it as big endian binary notation.
             let result = (MResetZ(qs[0]) == One ? 1 | 0) * 2 + (MResetZ(qs[1]) == One ? 1 | 0);
 
-            set countArray w/= result <- countArray[result] + 1;
+            countArray[result] += 1;
         }
 
         // Obtain simulated probability of measurement for each outcome.

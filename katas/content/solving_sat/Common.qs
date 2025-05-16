@@ -40,8 +40,8 @@ namespace Kata.Verification {
                 set nextInd = DrawRandomInt(0, nVar - 1);
             } until (not usedVariables[nextInd])
             fixup {}
-            set clause w/= k <- (nextInd, DrawRandomBool(0.5));
-            set usedVariables w/= nextInd <- true;
+            clause[k] = (nextInd, DrawRandomBool(0.5));
+            usedVariables[nextInd] = true;
         }
         return clause;
     }
@@ -50,7 +50,7 @@ namespace Kata.Verification {
         mutable problem = [[(0, false), size = 0], size = nClause];
 
         for j in 0..nClause - 1 {
-            set problem w/= j <- Generate_SAT_Clause(nVar, nTerms);
+            problem[j] = Generate_SAT_Clause(nVar, nTerms);
         }
         return problem;
     }

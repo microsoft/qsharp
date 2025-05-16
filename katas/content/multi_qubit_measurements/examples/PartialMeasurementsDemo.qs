@@ -23,7 +23,7 @@ namespace Kata {
 
             // Measure the first qubit.
             let outcome = M(qs[0]) == Zero ? 0 | 1;
-            set countArray w/= outcome <- countArray[outcome] + 1;
+            countArray[outcome] += 1;
 
             if countArray[outcome] == 1 {
                 // The first time the outcome is 0/1, print the system state afterwards.
