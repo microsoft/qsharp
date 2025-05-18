@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::sync::Arc;
+use std::vec;
 
 use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_frontend::compile::PackageStore;
@@ -67,7 +68,7 @@ pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
 ) -> CompileRawQasmResult {
     let unit = compile_to_qsharp_ast_with_config(source, path, resolver, config);
 
-    let (source_map, errors, package, sig) = unit.into_tuple();
+    let (source_map, openqasm_errors, package, sig) = unit.into_tuple();
 
     let (stdid, mut store) = package_store_with_stdlib(capabilities);
     let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
@@ -83,16 +84,28 @@ pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
     unit.expose();
     let source_package_id = store.insert(unit);
 
-    let mut compile_errors = compile_errors;
-    for error in errors {
-        let err = WithSource::from_map(
-            &source_map,
-            crate::compile::ErrorKind::OpenQasm(error.into_error()),
-        );
-        compile_errors.push(err);
-    }
+    // We allow the best effort compliation, but for errors we only
+    // want to provide OpenQASM OR Q# errors. Otherwise we get confusing
+    // error reporting and duplicate errors (like undeclared idenfifier and
+    // type errors)
+    let surfaced_errors = if openqasm_errors.is_empty() {
+        // we have no OpenQASM errors, surface the Q# compliation errors
+        compile_errors
+    } else {
+        // We have OpenQASM errors, convert them to the same type as as the Q#
+        // compilation errors
+        let mut compile_errors = Vec::with_capacity(openqasm_errors.len());
+        for error in openqasm_errors {
+            let err = WithSource::from_map(
+                &source_map,
+                crate::compile::ErrorKind::OpenQasm(error.into_error()),
+            );
+            compile_errors.push(err);
+        }
+        compile_errors
+    };
 
-    CompileRawQasmResult(store, source_package_id, dependencies, sig, compile_errors)
+    CompileRawQasmResult(store, source_package_id, dependencies, sig, surfaced_errors)
 }
 
 #[must_use]
