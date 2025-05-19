@@ -13,8 +13,8 @@ from qsharp import (
     Result,
 )
 from qsharp.estimator import EstimatorParams, QubitParams, QECScheme, LogicalCounts
-from qsharp.qasm import (
-    import_qasm,
+from qsharp.openqasm import (
+    import_openqasm,
     run,
     compile,
     circuit,
@@ -76,19 +76,19 @@ def test_run_with_result(capsys) -> None:
 
 def test_import_creates_python_callable_by_default_named_program() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("")
+    import_openqasm("")
     assert code.program is not None
 
 
 def test_import_python_callable_name_can_be_set() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("", name="Foo")
+    import_openqasm("", name="Foo")
     assert code.Foo is not None
 
 
 def test_import_can_process_fragments_to_modify_intereter_state() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("int x = 42;", program_type=ProgramType.Fragments)
+    import_openqasm("int x = 42;", program_type=ProgramType.Fragments)
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("x") == 42
@@ -96,7 +96,9 @@ def test_import_can_process_fragments_to_modify_intereter_state() -> None:
 
 def test_import_can_declare_callables_from_fragments() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("def Foo() -> int { return 42; }", program_type=ProgramType.Fragments)
+    import_openqasm(
+        "def Foo() -> int { return 42; }", program_type=ProgramType.Fragments
+    )
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("Foo()") == 42
@@ -104,7 +106,7 @@ def test_import_can_declare_callables_from_fragments() -> None:
 
 def test_import_can_declare_files_with_namespaces() -> None:
     init(target_profile=TargetProfile.Adaptive_RI)
-    import_qasm("output int x; x = 42;", program_type=ProgramType.File)
+    import_openqasm("output int x; x = 42;", program_type=ProgramType.File)
     from qsharp import eval as qsharp_eval
 
     assert qsharp_eval("qasm_import.program()") == 42
@@ -116,7 +118,7 @@ def test_import_can_declare_files_with_namespaces() -> None:
 def test_run_imported_with_noise_produces_noisy_results() -> None:
     init()
     set_quantum_seed(0)
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         qubit q1;
@@ -138,7 +140,7 @@ def test_run_imported_with_noise_produces_noisy_results() -> None:
     result = run(code.Program0, shots=1, noise=BitFlipNoise(0.1))
     assert result[0] > 5
 
-    result = import_qasm(
+    result = import_openqasm(
         """
         include "stdgates.inc";
         output int errors;
@@ -157,7 +159,7 @@ def test_run_imported_with_noise_produces_noisy_results() -> None:
 
 def test_run_with_result_from_callable(capsys) -> None:
     init()
-    import_qasm("output bit c;", name="Foo")
+    import_openqasm("output bit c;", name="Foo")
     results = run(code.Foo, 3)
     assert results == [Result.Zero, Result.Zero, Result.Zero]
 
@@ -170,7 +172,7 @@ def test_run_with_result_callback(capsys) -> None:
 
     called = False
     init()
-    import_qasm("output bit c;", name="Foo")
+    import_openqasm("output bit c;", name="Foo")
     results = run(code.Foo, 3, on_result=on_result, save_events=True)
     assert (
         str(results)
@@ -189,7 +191,7 @@ def test_run_with_result_callback_from_callable_with_args(capsys) -> None:
 
     called = False
     init()
-    import_qasm("input int a; output bit[2] c;", name="Foo")
+    import_openqasm("input int a; output bit[2] c;", name="Foo")
     results = run(code.Foo, 3, 2, on_result=on_result, save_events=True)
     assert (
         str(results)
@@ -201,7 +203,7 @@ def test_run_with_result_callback_from_callable_with_args(capsys) -> None:
 
 def test_run_with_invalid_shots_produces_error() -> None:
     init()
-    import_qasm("output bit[2] c;", name="Foo")
+    import_openqasm("output bit[2] c;", name="Foo")
     try:
         run(code.Foo, -1)
     except ValueError as e:
@@ -257,7 +259,7 @@ def test_compile_qir_str_with_single_arg_raises_error() -> None:
 
 def test_compile_qir_str_from_python_callable() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm("qubit q; output bit c; c = measure q;", name="Program")
+    import_openqasm("qubit q; output bit c; c = measure q;", name="Program")
     operation = compile(code.Program)
     qir = str(operation)
     assert "define void @ENTRYPOINT__main()" in qir
@@ -266,7 +268,7 @@ def test_compile_qir_str_from_python_callable() -> None:
 
 def test_compile_qir_str_from_python_callable_with_single_arg() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         input float f;
@@ -293,7 +295,7 @@ def test_compile_qir_str_from_python_callable_with_single_arg() -> None:
 
 def test_compile_qir_str_from_python_callable_with_multiple_args() -> None:
     init(target_profile=TargetProfile.Base)
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         input float f;
@@ -323,7 +325,7 @@ def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple
     None
 ):
     init(target_profile=TargetProfile.Base)
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         input float f;
@@ -352,9 +354,11 @@ def test_compile_qir_str_from_python_callable_with_multiple_args_passed_as_tuple
 
 def test_callables_exposed_into_env() -> None:
     init()
-    import_qasm("def Four() -> int { return 4; }", program_type=ProgramType.Fragments)
+    import_openqasm(
+        "def Four() -> int { return 4; }", program_type=ProgramType.Fragments
+    )
     assert code.Four() == 4, "callable should be available"
-    import_qasm(
+    import_openqasm(
         "def Add(int a, int b) -> int { return a + b; }",
         program_type=ProgramType.Fragments,
     )
@@ -368,7 +372,7 @@ def test_callables_exposed_into_env() -> None:
 
 def test_callable_with_int_exposed_into_env_fails_incorrect_types() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def Identity(int a) -> int { return a; }", program_type=ProgramType.Fragments
     )
     assert code.Identity(4) == 4
@@ -384,7 +388,7 @@ def test_callable_with_int_exposed_into_env_fails_incorrect_types() -> None:
 
 def test_callable_with_double_exposed_into_env_fails_incorrect_types() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def Identity(float a) -> float { return a; }",
         program_type=ProgramType.Fragments,
     )
@@ -398,7 +402,7 @@ def test_callable_with_double_exposed_into_env_fails_incorrect_types() -> None:
 
 def test_callable_with_bigint_exposed_into_env_fails_incorrect_types() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def Identity(int[128] a) -> int[128] { return a; }",
         program_type=ProgramType.Fragments,
     )
@@ -411,7 +415,7 @@ def test_callable_with_bigint_exposed_into_env_fails_incorrect_types() -> None:
 
 def test_callable_with_bool_exposed_into_env_fails_incorrect_types() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def Identity(bool a) -> bool { return a; }", program_type=ProgramType.Fragments
     )
     assert code.Identity(True) == True
@@ -429,7 +433,7 @@ def test_callable_with_bool_exposed_into_env_fails_incorrect_types() -> None:
 @pytest.mark.xfail(reason="Arrays as arguments are not supported yet")
 def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def fst(readonly array[int, #dim = 1] arr_arg) -> int { return arr_arg[0]; }",
         program_type=ProgramType.Fragments,
     )
@@ -453,21 +457,23 @@ def test_callable_with_array_exposed_into_env_fails_incorrect_types() -> None:
 )
 def test_callables_with_unsupported_types_raise_errors_on_call() -> None:
     init()
-    import_qasm("def Unsupported(angle a) { }", program_type=ProgramType.Fragments)
+    import_openqasm("def Unsupported(angle a) { }", program_type=ProgramType.Fragments)
     with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Angle":'):
         code.Unsupported()
 
 
 def test_callables_with_unsupported_udt_types_raise_errors_on_call() -> None:
     init()
-    import_qasm("def Unsupported(complex a)  { }", program_type=ProgramType.Fragments)
+    import_openqasm(
+        "def Unsupported(complex a)  { }", program_type=ProgramType.Fragments
+    )
     with pytest.raises(QSharpError, match='unsupported input type: `UDT<"Complex":'):
         code.Unsupported()
 
 
 def test_callable_with_unsupported_udt_return_types_raise_errors_on_call() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         "def Unsupported() -> complex { end; }", program_type=ProgramType.Fragments
     )
     with pytest.raises(QSharpError, match='unsupported output type: `UDT<"Complex":'):
@@ -495,7 +501,7 @@ def test_circuit_from_program() -> None:
 
 def test_circuit_from_callable() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         qubit q1;
@@ -516,7 +522,7 @@ def test_circuit_from_callable() -> None:
 
 def test_circuit_from_callable_with_args() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         qubit[2] qs;
@@ -538,7 +544,7 @@ def test_circuit_from_callable_with_args() -> None:
 
 def test_circuit_with_measure_from_callable() -> None:
     init()
-    import_qasm(
+    import_openqasm(
         """include "stdgates.inc"; qubit q; h q; bit c; c = measure q;""",
         name="Foo",
     )
@@ -708,7 +714,7 @@ def test_qasm_estimation_with_multiple_params_from_python_callable() -> None:
         "resumeAfterFailedItem": True,
     }
 
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         const int SIZE = 10;
@@ -773,7 +779,7 @@ def test_qasm_estimation_with_multiple_params_from_python_callable_with_arg() ->
         "resumeAfterFailedItem": True,
     }
 
-    import_qasm(
+    import_openqasm(
         """
         include "stdgates.inc";
         input int discard;

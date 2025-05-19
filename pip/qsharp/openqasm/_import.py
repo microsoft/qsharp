@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 from time import monotonic
 from typing import Any, Dict, Optional
 
@@ -15,7 +14,7 @@ from .._qsharp import (
 from .. import telemetry_events
 
 
-def import_qasm(
+def import_openqasm(
     source: str,
     **kwargs: Optional[Dict[str, Any]],
 ) -> Any:
@@ -37,11 +36,6 @@ def import_qasm(
         QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
         QSharpError: If there is an error compiling the program.
     """
-    warnings.warn(
-        "The 'import_qasm' API is experimental and subject to change in future releases.",
-        category=UserWarning,
-        stacklevel=2,
-    )
 
     ipython_helper()
 
