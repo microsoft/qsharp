@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::tests::compile_qasm_stmt_to_qsharp;
+use crate::tests::{check_qasm_to_qsharp, compile_qasm_stmt_to_qsharp};
 use expect_test::expect;
 use miette::Report;
 
@@ -138,7 +138,7 @@ fn return_expr_on_void_function_fails() {
 }
 
 #[test]
-fn missing_return_expr_on_non_void_function_fails() {
+fn missing_return_stmt_expr_on_non_void_function_fails() {
     let source = r#"
         def square(int a) -> bit {
             return;
@@ -161,6 +161,385 @@ fn missing_return_expr_on_non_void_function_fails() {
            `----
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
+}
+
+#[test]
+fn missing_return_in_non_void_function_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |         }
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn return_from_if_with_else() {
+    let source = r#"
+        def square(int a) -> bit {
+            if (a == 0) {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                if a == 0 {
+                    return if 0 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                } else {
+                    return if 1 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                };
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_else_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            if (a == 0) {
+                return 0;
+            } else {
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             if (a == 0) {
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_if_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            if (a == 0) {
+            } else {
+                return 0;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             if (a == 0) {
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_omitted_else_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            if (a == 0) {
+                return 0;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             if (a == 0) {
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn return_from_for_loop() {
+    let source = r#"
+        def square(int a) -> bit {
+            for int i in {1, 2} {
+                return 1;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                for i : Int in [1, 2] {
+                    return if 1 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_for_loop_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            for int i in {1, 2} {}
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             for int i in {1, 2} {}
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn return_from_while_loop() {
+    let source = r#"
+        def square(int a) -> bit {
+            while (true) {
+                return 1;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                while true {
+                    return if 1 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_while_loop_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            while (true) {}
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             while (true) {}
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn return_from_switch() {
+    let source = r#"
+        def square(int a) -> bit {
+            switch (a) {
+                case 0 { return 1; }
+                case 1 { return 0; }
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                if a == 0 {
+                    return if 1 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                } elif a == 1 {
+                    return if 0 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                };
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_switch_case_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            switch (a) {
+                case 0 { return 1; }
+                case 1 { }
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             switch (a) {
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_switch_default_case_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            switch (a) {
+                case 0 { return 1; }
+                default { }
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             switch (a) {
+               `----
+        "#]],
+    );
+}
+
+#[test]
+fn return_from_block() {
+    let source = r#"
+        def square(int a) -> bit {
+            {
+                return 1;
+            }
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                {
+                    return if 1 == 0 {
+                        One
+                    } else {
+                        Zero
+                    };
+                };
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn missing_return_in_block_fails() {
+    let source = r#"
+        def square(int a) -> bit {
+            {}
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            Qasm.Lowerer.NonVoidDefShouldAlwaysReturn
+
+              x non-void def should always return
+               ,-[Test.qasm:2:30]
+             1 |
+             2 |         def square(int a) -> bit {
+               :                              ^^^
+             3 |             {}
+               `----
+        "#]],
+    );
 }
 
 #[test]
@@ -229,7 +608,7 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
 
           x Shl is not supported between types const int and const uint
            ,-[Test.qasm:2:23]
-         1 | 
+         1 |
          2 |         const int a = 2 << (-3);
            :                       ^^^^^^^^^
          3 |         def f() -> int {

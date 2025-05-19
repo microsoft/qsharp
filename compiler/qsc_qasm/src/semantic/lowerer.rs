@@ -1320,6 +1320,10 @@ impl Lowerer {
         // Pop the scope where the def lives.
         self.symbols.pop_scope();
 
+        if let Some(return_ty) = &stmt.return_type {
+            self.check_that_def_returns_in_all_code_paths(&body, return_ty.span);
+        }
+
         semantic::StmtKind::Def(semantic::DefStmt {
             span: stmt.span,
             symbol_id,
@@ -1328,6 +1332,53 @@ impl Lowerer {
             body,
             return_type: qsharp_return_ty,
         })
+    }
+
+    fn check_that_def_returns_in_all_code_paths(&mut self, body: &semantic::Block, span: Span) {
+        if !Self::block_always_returns(&body.stmts) {
+            self.push_semantic_error(SemanticErrorKind::NonVoidDefShouldAlwaysReturn(span));
+        }
+    }
+
+    fn block_always_returns<'a>(stmts: impl IntoIterator<Item = &'a Box<semantic::Stmt>>) -> bool {
+        for stmt in stmts {
+            if Self::stmt_always_returns(stmt) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn stmt_always_returns(stmt: &semantic::Stmt) -> bool {
+        match &*stmt.kind {
+            semantic::StmtKind::Block(block) => Self::block_always_returns(&block.stmts),
+            semantic::StmtKind::Box(stmt) => Self::block_always_returns(&stmt.body),
+            semantic::StmtKind::If(stmt) => {
+                if let Some(else_body) = &stmt.else_body {
+                    Self::stmt_always_returns(&stmt.if_body) && Self::stmt_always_returns(else_body)
+                } else {
+                    false
+                }
+            }
+            // We don't know if the user's switch is exhaustive.
+            // We take a best effort approach and check if all the branches always return.
+            semantic::StmtKind::Switch(stmt) => {
+                let mut all_cases_return = true;
+                for case in &stmt.cases {
+                    all_cases_return &= Self::block_always_returns(&case.block.stmts);
+                }
+                if let Some(default_case) = &stmt.default {
+                    all_cases_return &= Self::block_always_returns(&default_case.stmts);
+                }
+                all_cases_return
+            }
+            // We don't know if the iterable of the loop is empty at compiletime.
+            // We take a best effort approach and check if the body always returns.
+            semantic::StmtKind::For(stmt) => Self::stmt_always_returns(&stmt.body),
+            semantic::StmtKind::WhileLoop(stmt) => Self::stmt_always_returns(&stmt.body),
+            semantic::StmtKind::Return(_) => true,
+            _ => false,
+        }
     }
 
     fn lower_typed_parameter(&mut self, typed_param: &syntax::TypedParameter) -> Symbol {
@@ -2233,7 +2284,6 @@ impl Lowerer {
                     self.push_semantic_error(
                         SemanticErrorKind::MissingTargetExpressionInReturnStmt(stmt.span),
                     );
-                    return semantic::StmtKind::Err;
                 }
             }
             (Some(expr), Some(ty)) => {
