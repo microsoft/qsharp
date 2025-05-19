@@ -339,3 +339,44 @@ fn bin_op_with_const_lhs_and_non_const_rhs() {
         "#]],
     );
 }
+
+#[test]
+fn bin_op_with_const_lhs_and_non_const_rhs_sized() {
+    let source = "
+        int[32] x = 5;
+        int[32] y = 2 * x;
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-23]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [21-22]:
+                    ty: const int[32]
+                    kind: Lit: Int(5)
+            ClassicalDeclarationStmt [32-50]:
+                symbol_id: 9
+                ty_span: [32-39]
+                init_expr: Expr [44-49]:
+                    ty: int[32]
+                    kind: Cast [0-0]:
+                        ty: int[32]
+                        expr: Expr [44-49]:
+                            ty: int
+                            kind: BinaryOpExpr:
+                                op: Mul
+                                lhs: Expr [44-45]:
+                                    ty: const int
+                                    kind: Lit: Int(2)
+                                rhs: Expr [48-49]:
+                                    ty: int
+                                    kind: Cast [0-0]:
+                                        ty: int
+                                        expr: Expr [48-49]:
+                                            ty: int[32]
+                                            kind: SymbolId(8)
+        "#]],
+    );
+}
