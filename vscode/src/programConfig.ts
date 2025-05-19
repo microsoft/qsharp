@@ -82,7 +82,7 @@ export function getVisibleQdkDocumentUri(): vscode.Uri | undefined {
   return getVisibleQdkDocument()?.uri;
 }
 
-function getVisibleQdkDocument(): vscode.TextDocument | undefined {
+export function getVisibleQdkDocument(): vscode.TextDocument | undefined {
   return vscode.window.visibleTextEditors.find((editor) =>
     isQdkDocument(editor.document),
   )?.document;

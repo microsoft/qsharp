@@ -5,10 +5,16 @@ import { getCompilerWorker, log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTarget, setTarget } from "./config";
 import { invokeAndReportCommandDiagnostics } from "./diagnostics";
-import { getActiveProgram } from "./programConfig";
+import {
+  FullProgramConfig,
+  getActiveProgram,
+  getVisibleProgram,
+} from "./programConfig";
 import {
   EventType,
   getActiveDocumentType,
+  getVisibleDocumentType,
+  QsharpDocumentType,
   sendTelemetryEvent,
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
@@ -25,6 +31,20 @@ export class QirGenerationError extends Error {
   }
 }
 
+export async function getQirForVisibleSource(
+  targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
+): Promise<string> {
+  const program = await getVisibleProgram();
+  if (!program.success) {
+    throw new QirGenerationError(program.errorMsg);
+  }
+  return getQirForProgram(
+    program.programConfig,
+    getVisibleDocumentType(),
+    targetSupportsAdaptive,
+  );
+}
+
 export async function getQirForActiveWindow(
   targetSupportsAdaptive?: boolean, // should be true or false when submitting to Azure, undefined when generating QIR
 ): Promise<string> {
@@ -32,7 +52,18 @@ export async function getQirForActiveWindow(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  const config = program.programConfig;
+  return getQirForProgram(
+    program.programConfig,
+    getActiveDocumentType(),
+    targetSupportsAdaptive,
+  );
+}
+
+async function getQirForProgram(
+  config: FullProgramConfig,
+  telemetryDocumentType: QsharpDocumentType,
+  targetSupportsAdaptive?: boolean,
+): Promise<string> {
   let result = "";
   const isLocalQirGeneration = targetSupportsAdaptive === undefined;
   const targetProfile = config.profile;
@@ -102,7 +133,7 @@ export async function getQirForActiveWindow(
     const start = performance.now();
     sendTelemetryEvent(
       EventType.GenerateQirStart,
-      { documentType: getActiveDocumentType(), associationId, targetProfile },
+      { associationId, targetProfile, documentType: telemetryDocumentType },
       {},
     );
 

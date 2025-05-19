@@ -5,6 +5,7 @@ import { log } from "qsharp-lang";
 import * as vscode from "vscode";
 import { getTokenForWorkspace } from "../azure/auth.js";
 import { QuantumUris } from "../azure/networkRequests.js";
+import { supportsAdaptive } from "../azure/providerProperties.js";
 import { startRefreshCycle } from "../azure/treeRefresher.js";
 import {
   Job,
@@ -15,6 +16,7 @@ import {
 } from "../azure/treeView.js";
 import { getJobFiles, submitJob } from "../azure/workspaceActions.js";
 import { HistogramData } from "./shared.js";
+import { getQirForVisibleSource } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
 import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
 import { sendMessageToPanel } from "../webviewPanel.js";
@@ -431,7 +433,7 @@ export async function submitToTarget(
 
   let qir = "";
   try {
-    qir = "";
+    qir = await getQirForVisibleSource(supportsAdaptive(target.id));
   } catch (e: any) {
     if (e?.name === "QirGenerationError") {
       throw new CopilotToolError(e.message);

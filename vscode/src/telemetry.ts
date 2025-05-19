@@ -6,7 +6,7 @@
 import * as vscode from "vscode";
 import TelemetryReporter from "@vscode/extension-telemetry";
 import { log } from "qsharp-lang";
-import { getActiveQdkDocument } from "./programConfig";
+import { getActiveQdkDocument, getVisibleQdkDocument } from "./programConfig";
 import {
   isCircuitDocument,
   isOpenQasmDocument,
@@ -410,6 +410,15 @@ function getBrowserRelease(): string {
 
 export function getUserAgent(): string {
   return userAgentString || navigator.userAgent;
+}
+
+export function getVisibleDocumentType(): QsharpDocumentType {
+  const doc = getVisibleQdkDocument();
+  if (!doc) {
+    return QsharpDocumentType.Unknown;
+  }
+
+  return determineDocumentType(doc);
 }
 
 export function getActiveDocumentType(): QsharpDocumentType {
