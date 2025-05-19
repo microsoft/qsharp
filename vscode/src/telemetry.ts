@@ -57,6 +57,8 @@ export enum EventType {
   CircuitEnd = "Qsharp.CircuitEnd",
   ChatTurnStart = "Qsharp.ChatTurnStart",
   ChatTurnEnd = "Qsharp.ChatTurnEnd",
+  LanguageModelToolStart = "Qsharp.LanguageModelToolStart",
+  LanguageModelToolEnd = "Qsharp.LanguageModelToolEnd",
   UpdateCopilotInstructionsStart = "Qsharp.UpdateCopilotInstructionsStart",
   UpdateCopilotInstructionsEnd = "Qsharp.UpdateCopilotInstructionsEnd",
 }
@@ -114,7 +116,7 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.SubmitToAzureStart]: {
-    properties: { associationId: string };
+    properties: UserTaskProperties & { associationId: string };
     measurements: Empty;
   };
   [EventType.SubmitToAzureEnd]: {
@@ -236,7 +238,8 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.TriggerHistogram]: {
-    properties: DocumentEventProperties & { associationId: string };
+    properties: DocumentEventProperties &
+      UserTaskProperties & { associationId: string };
     measurements: Empty;
   };
   [EventType.HistogramStart]: {
@@ -271,9 +274,10 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.TriggerCircuit]: {
-    properties: DocumentEventProperties & {
-      associationId: string;
-    };
+    properties: DocumentEventProperties &
+      UserTaskProperties & {
+        associationId: string;
+      };
     measurements: Empty;
   };
   [EventType.CircuitStart]: {
@@ -312,6 +316,21 @@ type EventTypes = {
     measurements: {
       timeToCompleteMs: number; // includes tool call executions
     };
+  };
+  [EventType.LanguageModelToolStart]: {
+    properties: {
+      associationId: string;
+      toolName: string;
+    };
+    measurements: Empty;
+  };
+  [EventType.LanguageModelToolEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: { timeToCompleteMs: number };
   };
   [EventType.UpdateCopilotInstructionsStart]: {
     properties: {

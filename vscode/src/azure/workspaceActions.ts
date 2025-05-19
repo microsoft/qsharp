@@ -16,7 +16,12 @@ import {
   shouldExcludeTarget,
 } from "./providerProperties";
 import { getRandomGuid } from "../utils";
-import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import {
+  EventType,
+  sendTelemetryEvent,
+  UserFlowStatus,
+  UserTaskInvocationType,
+} from "../telemetry";
 import { getTenantIdAndToken, getTokenForWorkspace } from "./auth";
 
 export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
@@ -533,7 +538,11 @@ export async function submitJob(
 ) {
   const associationId = getRandomGuid();
   const start = performance.now();
-  sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
+  sendTelemetryEvent(
+    EventType.SubmitToAzureStart,
+    { associationId, invocationType: UserTaskInvocationType.Command },
+    {},
+  );
 
   const containerName = getRandomGuid();
   if (!jobName) {

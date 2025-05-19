@@ -27,6 +27,7 @@ import {
   EventType,
   getActiveDocumentType,
   sendTelemetryEvent,
+  UserTaskInvocationType,
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getPauliNoiseModel } from "./config";
@@ -73,6 +74,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       {
         associationId,
         documentType: getActiveDocumentType(),
+        invocationType: UserTaskInvocationType.Command,
       },
       {},
     );
@@ -180,7 +182,11 @@ export function registerWebViewCommands(context: ExtensionContext) {
     commands.registerCommand(
       `${qsharpExtensionId}.showCircuit`,
       async (resource?: vscode.Uri, operation?: IOperationInfo) => {
-        await showCircuitCommand(context.extensionUri, operation);
+        await showCircuitCommand(
+          context.extensionUri,
+          operation,
+          UserTaskInvocationType.Command,
+        );
       },
     ),
   );
