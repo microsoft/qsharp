@@ -46,7 +46,7 @@
           {
             "id": "qsharp-vscode.welcome.debug",
             "title": "Debug Q# code",
-            "description": "With your Q# code open in the editor, use the F5 shortcut or the top right icons in the code edtior to run or debug the code.",
+            "description": "With your Q# code open in the editor, use the F5 shortcut or the top right icons in the code editor to run or debug the code.",
             "media": {
               "image": "resources/debug.png",
               "altText": "Debug"
@@ -147,12 +147,17 @@
       "editor/title/run": [
         {
           "command": "qsharp-vscode.runEditorContents",
-          "when": "resourceLangId == qsharp || resourceLangId == openqasm",
+          "when": "resourceLangId == qsharp || resourceLangId == openqasm || resourceLangId == qsharpcircuit",
           "group": "navigation@1"
         },
         {
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp || resourceLangId == openqasm",
+          "group": "navigation@2"
+        },
+        {
+          "command": "qsharp-vscode.runCircuitContents",
+          "when": "resourceLangId == qsharpcircuit",
           "group": "navigation@2"
         }
       ],
@@ -342,6 +347,13 @@
       {
         "command": "qsharp-vscode.runEditorContents",
         "title": "Run File",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.runCircuitContents",
+        "title": "Run Circuit File",
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"

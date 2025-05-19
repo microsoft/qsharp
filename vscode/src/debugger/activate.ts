@@ -75,6 +75,56 @@ function registerCommands(context: vscode.ExtensionContext) {
       },
     ),
     vscode.commands.registerCommand(
+      `${qsharpExtensionId}.runCircuitContents`,
+      async (resource: vscode.Uri) => {
+        let numQubits: number | undefined = undefined;
+        let fileName: string | undefined = undefined;
+        try {
+          const document = await vscode.workspace.openTextDocument(resource);
+          const text = document.getText();
+          const json = JSON.parse(text);
+          if (
+            Array.isArray(json.circuits) &&
+            json.circuits.length > 0 &&
+            Array.isArray(json.circuits[0].qubits)
+          ) {
+            numQubits = json.circuits[0].qubits.length;
+          } else {
+            log.warn("Circuit file does not have expected structure.");
+          }
+          const fullPath = document.uri.path;
+          fileName = fullPath.substring(fullPath.lastIndexOf("/") + 1);
+          // Remove extension
+          fileName = fileName.substring(0, fileName.lastIndexOf("."));
+        } catch (err) {
+          log.error(
+            "Failed to read or parse circuit file for qubit count:",
+            err,
+          );
+        }
+
+        log.info(
+          `Running circuit with ${numQubits} qubits from file ${fileName}`,
+        );
+
+        const expr = `{
+    import Std.Diagnostics.DumpMachine;
+    import ${fileName}.${fileName};
+    use qs = Qubit[${numQubits}];
+    let results = ${fileName}(qs);
+    DumpMachine();
+    ResetAll(qs);
+    results
+}`;
+
+        startQdkDebugging(
+          resource,
+          { name: "Run Circuit File", stopOnEntry: false, expr: expr },
+          { noDebug: true },
+        );
+      },
+    ),
+    vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContentsWithCircuit`,
       (resource: vscode.Uri) =>
         startQdkDebugging(
