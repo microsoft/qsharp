@@ -14,11 +14,18 @@ mod language;
 mod language_generated;
 #[rustfmt::skip]
 mod project_generated;
+#[allow(non_snake_case)]
+mod OpenQASM;
+#[allow(non_snake_case)]
+#[rustfmt::skip]
+mod OpenQASM_generated;
 
 use qsc::{
     compile,
+    hir::PackageId,
     interpret::{GenericReceiver, Interpreter},
     packages::BuildableProgram,
+    qasm::{io::InMemorySourceResolver, OutputSemantics, ProgramType, QubitSemantics},
     LanguageFeatures, PackageType, SourceMap, TargetCapabilityFlags,
 };
 use qsc_project::{FileSystem, ProjectType, StdFs};
@@ -50,6 +57,98 @@ fn compile_and_run_internal(sources: SourceMap, debug: bool) -> String {
         LanguageFeatures::default(),
         store,
         &[(std_id, None)],
+    ) {
+        Ok(interpreter) => interpreter,
+        Err(errors) => {
+            for error in &errors {
+                eprintln!("error: {error}");
+            }
+            panic!("compilation failed (first error: {})", errors[0]);
+        }
+    };
+
+    check_lints(&interpreter);
+
+    interpreter.set_classical_seed(Some(1));
+    interpreter.set_quantum_seed(Some(1));
+
+    let mut output = Vec::new();
+    let mut out = GenericReceiver::new(&mut output);
+    let val = match interpreter.eval_entry(&mut out) {
+        Ok(val) => val,
+        Err(errors) => {
+            for error in &errors {
+                eprintln!("error: {error}");
+            }
+            panic!("execution failed (first error: {})", errors[0]);
+        }
+    };
+    String::from_utf8(output).expect("output should be valid UTF-8") + &val.to_string()
+}
+
+fn compile_and_run_qasm(source: &str) -> String {
+    compile_and_run_qasm_internal(source, false)
+}
+
+fn compile_and_run_debug_qasm(source: &str) -> String {
+    compile_and_run_qasm_internal(source, true)
+}
+
+fn compile_and_run_qasm_internal(source: &str, debug: bool) -> String {
+    let config = qsc::qasm::CompilerConfig::new(
+        QubitSemantics::Qiskit,
+        OutputSemantics::OpenQasm,
+        ProgramType::File,
+        None,
+        None,
+    );
+    let unit = qsc::qasm::compile_to_qsharp_ast_with_config(
+        source,
+        "",
+        Option::<&mut InMemorySourceResolver>::None,
+        config,
+    );
+    let (source_map, errors, package, sig) = unit.into_tuple();
+    assert!(errors.is_empty(), "QASM compilation failed: {errors:?}");
+
+    let Some(signature) = sig else {
+        panic!("signature should have had value. This is a bug");
+    };
+
+    assert!(
+        signature.input.is_empty(),
+        "Circuit has unbound input parameters\n  help: Parameters: {}",
+        signature.input_params()
+    );
+    let package_type = PackageType::Lib;
+    let language_features = LanguageFeatures::default();
+    let (stdid, mut store) = qsc::compile::package_store_with_stdlib(TargetCapabilityFlags::all());
+    let dependencies = vec![(PackageId::CORE, None), (stdid, None)];
+
+    let (mut unit, errors) = qsc::compile::compile_ast(
+        &store,
+        &dependencies,
+        package,
+        source_map,
+        package_type,
+        TargetCapabilityFlags::all(),
+    );
+
+    assert!(
+        errors.is_empty(),
+        "Compilation of Q# AST from QASM failed: {errors:?}"
+    );
+
+    unit.expose();
+    let source_package_id = store.insert(unit);
+
+    let mut interpreter = match Interpreter::from(
+        debug,
+        store,
+        source_package_id,
+        TargetCapabilityFlags::all(),
+        language_features,
+        &dependencies,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {
