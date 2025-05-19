@@ -84,7 +84,7 @@ pub fn compile_with_config<R: SourceResolver, S: Into<Arc<str>>>(
     unit.expose();
     let source_package_id = store.insert(unit);
 
-    // We allow the best effort compliation, but for errors we only
+    // We allow the best effort compilation, but for errors we only
     // want to provide OpenQASM OR Q# errors. Otherwise we get confusing
     // error reporting and duplicate errors (like undeclared idenfifier and
     // type errors)
