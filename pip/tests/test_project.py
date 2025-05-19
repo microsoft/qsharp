@@ -74,6 +74,18 @@ def test_github_dependency(qsharp) -> None:
     assert result == 12
 
 
+def test_circuit(qsharp) -> None:
+    qsharp.init(project_root="/circuit")
+    result = qsharp.eval("Test.TestCircuit()")
+    assert len(result) == 2
+    assert result[0] == result[1]
+
+
+with open(
+    os.path.join(os.path.dirname(__file__), "circuit.qsc"), "r", encoding="utf-8"
+) as f:
+    circuit_qsc_contents = f.read()
+
 memfs = {
     "": {
         "good": {
@@ -141,17 +153,41 @@ memfs = {
                     }
                 }""",
         },
+        "circuit": {
+            "src": {
+                "test.qs": "namespace Test {"
+                "    import circuit.circuit;"
+                "    operation TestCircuit() : Result[] {"
+                "        use qs = Qubit[2];"
+                "        let results = circuit(qs);"
+                "        ResetAll(qs);"
+                "        results"
+                "    }"
+                "}",
+                "circuit.qsc": circuit_qsc_contents,
+            },
+            "qsharp.json": "{}",
+        },
     }
 }
 
 
 def fetch_github_test(owner: str, repo: str, ref: str, path: str):
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/qsharp.json":
+    if (
+        owner == "test-owner"
+        and repo == "test-repo"
+        and ref == "12345"
+        and path == "/qsharp.json"
+    ):
         return """{ "files" : ["src/test.qs"] }"""
-    if owner == "test-owner" and repo == "test-repo" and ref == "12345" and path == "/src/test.qs":
+    if (
+        owner == "test-owner"
+        and repo == "test-repo"
+        and ref == "12345"
+        and path == "/src/test.qs"
+    ):
         return "namespace Test { operation ReturnsTwelve() : Int { 12 } export ReturnsTwelve;}"
     raise Exception(f"Unexpected fetch_github call: {owner}, {repo}, {ref}, {path}")
-
 
 
 def read_file_memfs(path):
