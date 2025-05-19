@@ -713,7 +713,11 @@ fn get_effective_width(lhs_ty: &Type, rhs_ty: &Type) -> Option<u32> {
 #[must_use]
 pub fn promote_types(lhs_ty: &Type, rhs_ty: &Type) -> Type {
     if types_equal_except_const(lhs_ty, rhs_ty) {
-        return lhs_ty.clone();
+        if lhs_ty.is_const() && rhs_ty.is_const() {
+            return lhs_ty.clone();
+        }
+        // If one of the types is non-const, we return the type as non-const.
+        return lhs_ty.as_non_const();
     }
     let ty = promote_types_symmetric(lhs_ty, rhs_ty);
     if ty != Type::Void {
