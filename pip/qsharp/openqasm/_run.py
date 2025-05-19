@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from .._fs import read_file, list_directory, resolve
@@ -68,11 +67,6 @@ def run(
         ValueError: If the number of shots is less than 1.
         ValueError: If the `on_result` and `save_events` parameters are used when running OpenQASM programs.
     """
-    warnings.warn(
-        "The 'run' API is experimental and subject to change in future releases.",
-        category=UserWarning,
-        stacklevel=2,
-    )
 
     ipython_helper()
 

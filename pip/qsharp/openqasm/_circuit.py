@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, Optional, Union
 from .._fs import read_file, list_directory, resolve
@@ -35,11 +34,6 @@ def circuit(
         QSharpError: If there is an error evaluating the program.
         QSharpError: If there is an error synthesizing the circuit.
     """
-    warnings.warn(
-        "The 'circuit' API is experimental and subject to change in future releases.",
-        category=UserWarning,
-        stacklevel=2,
-    )
 
     ipython_helper()
     start = monotonic()
