@@ -17,7 +17,7 @@ Most of the core components are implemented in Rust. These components are packag
 
 - **allocator/**: A copy of `mimalloc`, used for memory allocation in the Rust components of the QDK
 - **compiler/**: Core compiler and language processing components
-  - **qsc/**: Core compiler logic and command-line tooling
+  - **qsc/**: Core compiler logic
   - **qsc_ast/**: Abstract syntax tree definition and utilities
   - **qsc_circuit/**: Circuit diagram representation and generation
   - **qsc_codegen/**: Code generation utilities (QIR, Q#)
