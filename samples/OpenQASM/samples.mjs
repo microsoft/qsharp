@@ -10,6 +10,7 @@ export default [
     { title: "Hello World in OpenQASM", file: "./OpenQasmHelloWorld.qasm", shots: 100 },
     { title: "Random Number Generator", file: "./RandomNumber.qasm", shots: 1000 },
     { title: "Bell Pair Creation", file: "./BellPair.qasm", shots: 1000 },
+    { title: "Teleportation (Simple)", file: "./Teleportation.qasm", shots: 1000 },
     { title: "Bernstein-Vazirani Algorithm", file: "./BernsteinVazirani.qasm", shots: 10 },
     { title: "Grover Search Algorithm", file: "./Grover.qasm", shots: 10 },
     { title: "Ising Model (Simple 1D)", file: "./Simple1dIsingOrder1.qasm", shots: 1000 },
