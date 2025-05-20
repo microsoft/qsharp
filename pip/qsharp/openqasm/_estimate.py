@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 import json
 from time import monotonic
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -46,11 +45,6 @@ def estimate(
         QasmError: If there is an error generating, parsing, or analyzing the OpenQASM source.
         QSharpError: If there is an error compiling the program.
     """
-    warnings.warn(
-        "The 'estimate' API is experimental and subject to change in future releases.",
-        category=UserWarning,
-        stacklevel=2,
-    )
 
     ipython_helper()
 

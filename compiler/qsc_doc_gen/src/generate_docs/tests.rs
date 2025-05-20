@@ -19,7 +19,6 @@ fn generates_standard_item() {
         title: Length function
         description: "Q# Length function: Returns the number of elements in the input array `a`."
         ms.date: {TIMESTAMP}
-        ms.topic: managed-reference
         qsharp.kind: function
         qsharp.package: __Core__
         qsharp.namespace: Std.Core
@@ -68,7 +67,6 @@ fn generates_unrestricted_item() {
         title: CheckZero operation
         description: "Q# CheckZero operation: Checks whether a qubit is in the |0⟩ state, returning true if it is."
         ms.date: {TIMESTAMP}
-        ms.topic: managed-reference
         qsharp.kind: operation
         qsharp.package: __Std__
         qsharp.namespace: Std.Diagnostics
@@ -120,7 +118,6 @@ fn redirect_generation() {
         title: Length exported item
         description: "Q# Length exported item: This is an exported item. The actual definition is found here: [Std.Core.Length](xref:Qdk.Std.Core.Length)"
         ms.date: {TIMESTAMP}
-        ms.topic: managed-reference
         qsharp.kind: export
         qsharp.package: __Std__
         qsharp.namespace: Microsoft.Quantum.Core

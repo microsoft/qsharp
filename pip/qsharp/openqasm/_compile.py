@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import warnings
 from time import monotonic
 from typing import Any, Callable, Dict, Optional, Union
 from .._fs import read_file, list_directory, resolve
@@ -46,17 +45,12 @@ def compile(
     Example:
 
     .. code-block:: python
-        from qsharp.qasm import compile
+        from qsharp.openqasm import compile
         source = ...
         program = compile(source)
         with open('myfile.ll', 'w') as file:
             file.write(str(program))
     """
-    warnings.warn(
-        "The 'compile' API is experimental and subject to change in future releases.",
-        category=UserWarning,
-        stacklevel=2,
-    )
 
     ipython_helper()
     start = monotonic()

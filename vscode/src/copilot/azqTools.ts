@@ -411,7 +411,7 @@ export async function getTarget(
 }
 
 /**
- * Submits the Q# program in the currently visible editor window to Azure Quantum.
+ * Submits the Q# or OpenQASM program in the currently visible editor window to Azure Quantum.
  */
 export async function submitToTarget(
   toolState: ToolState,

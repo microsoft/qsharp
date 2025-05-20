@@ -1843,23 +1843,13 @@ fn binary_op_non_const_type_fails() {
     let errs: Vec<_> = errs.iter().map(|e| format!("{e:?}")).collect();
     let errs_string = errs.join("\n");
     expect![[r#"
-        Qasm.Lowerer.CannotCast
-
-          x cannot cast expression of type int to type const int
-           ,-[Test.qasm:4:17]
-         3 |         int b = 3;
-         4 |         int[a + b] x = 2;
-           :                 ^
-         5 |     
-           `----
-
         Qasm.Lowerer.ExprMustBeConst
 
           x expression must be const
-           ,-[Test.qasm:4:17]
+           ,-[Test.qasm:4:13]
          3 |         int b = 3;
          4 |         int[a + b] x = 2;
-           :                 ^
+           :             ^^^^^
          5 |     
            `----
     "#]]

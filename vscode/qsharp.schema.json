@@ -54,6 +54,8 @@
                   "deprecatedNewtype",
                   "deprecatedSet",
                   "discourageChainAssignment",
+                  "deprecatedAssignUpdateExpr",
+                  "deprecatedUpdateExpr",
                   "doubleEquality",
                   "needlessOperation",
                   "deprecatedFunctionConstructor",

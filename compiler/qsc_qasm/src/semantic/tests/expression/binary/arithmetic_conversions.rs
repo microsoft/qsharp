@@ -306,3 +306,77 @@ fn left_shift_casts_rhs_to_uint() {
         "#]],
     );
 }
+
+#[test]
+fn bin_op_with_const_lhs_and_non_const_rhs() {
+    let source = "
+        int x = 5;
+        int y = 2 * x;
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-19]:
+                symbol_id: 8
+                ty_span: [9-12]
+                init_expr: Expr [17-18]:
+                    ty: int
+                    kind: Lit: Int(5)
+            ClassicalDeclarationStmt [28-42]:
+                symbol_id: 9
+                ty_span: [28-31]
+                init_expr: Expr [36-41]:
+                    ty: int
+                    kind: BinaryOpExpr:
+                        op: Mul
+                        lhs: Expr [36-37]:
+                            ty: const int
+                            kind: Lit: Int(2)
+                        rhs: Expr [40-41]:
+                            ty: int
+                            kind: SymbolId(8)
+        "#]],
+    );
+}
+
+#[test]
+fn bin_op_with_const_lhs_and_non_const_rhs_sized() {
+    let source = "
+        int[32] x = 5;
+        int[32] y = 2 * x;
+    ";
+
+    check_stmt_kinds(
+        source,
+        &expect![[r#"
+            ClassicalDeclarationStmt [9-23]:
+                symbol_id: 8
+                ty_span: [9-16]
+                init_expr: Expr [21-22]:
+                    ty: const int[32]
+                    kind: Lit: Int(5)
+            ClassicalDeclarationStmt [32-50]:
+                symbol_id: 9
+                ty_span: [32-39]
+                init_expr: Expr [44-49]:
+                    ty: int[32]
+                    kind: Cast [0-0]:
+                        ty: int[32]
+                        expr: Expr [44-49]:
+                            ty: int
+                            kind: BinaryOpExpr:
+                                op: Mul
+                                lhs: Expr [44-45]:
+                                    ty: const int
+                                    kind: Lit: Int(2)
+                                rhs: Expr [48-49]:
+                                    ty: int
+                                    kind: Cast [0-0]:
+                                        ty: int
+                                        expr: Expr [48-49]:
+                                            ty: int[32]
+                                            kind: SymbolId(8)
+        "#]],
+    );
+}

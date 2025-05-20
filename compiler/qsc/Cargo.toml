@@ -10,7 +10,6 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-clap = { workspace = true, features = ["derive", "cargo"] }
 env_logger = { workspace = true }
 log = { workspace = true }
 miette = { workspace = true }
@@ -49,16 +48,6 @@ workspace = true
 [lib]
 bench = false
 doctest = false
-
-[[bin]]
-name = "qsc"
-bench = false
-test = false
-
-[[bin]]
-name = "qsi"
-bench = false
-test = false
 
 [[bin]]
 name = "memtest"
