@@ -36,10 +36,9 @@ To execute OpenQASM code, use the provided tools.
 
 ## Python interop
 
-The `qsharp` package provides a way to compile, run, and resource estimate OpenQASM 3.0 programs in Python.
-The functions can be imported from the `qsharp.openqasm` module and are named `compile`, `run`, and `estimate`.
+The `qsharp` package provides a way to compile, run, and resource estimate OpenQASM 3.0 programs in Python. The functions can be imported from the `qsharp.openqasm` module and are named `compile`, `run`, and `estimate`.
 
-OpenQASM 3.0 programs can be imported into Python using the `qsharp.openqasm.import_openqasm` function and accessed via the `qsharp.code` module.
+OpenQASM 3.0 programs can be imported into Python using the `qsharp.openqasm.import_openqasm` function and accessed via the `qsharp.code` module: `qsharp.openqasm.import_openqasm("output bit c;", name="Foo"); qsharp.code.Foo()`
 
 ## Response formatting
 
