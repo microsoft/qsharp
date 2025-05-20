@@ -1,0 +1,46 @@
+---
+applyTo: "**/*.{qasm,inc,ipynb}"
+---
+
+# OpenQASM coding instructions
+
+Follow these instructions when generating OpenQASM code in .qasm files.
+
+## Syntax
+
+OpenQASM has two versions: 2.0 and 3.0. The latest version is 3.0, which adds many new features.
+
+OpenQASM 3.0 syntax is a superset of OpenQASM 2.0, so all OpenQASM 2.0 code is valid in OpenQASM 3.0.
+
+OpenQASM can include other files using the `include` statement. This is similar to C/C++ `#include` statements.
+
+OpenQASM 2.0 has a built-in include file `"qelib1.inc"` which defines the standard library for OpenQASM 2.0 programs.
+The `"qelib1.inc"` file in OpenQASM 2.0 defines the standard gates and operations: `u3`, `u2`, `u1`, `cx`, `id`, `x`, `y`, `z`, `h`, `s`, `sdg`, `t`, `tdg`, `rx`, `ry`, `rz`, `cz`, `cy`, `ch`, `ccx`, `crz`, `cu1`, and `cu3`.
+OpenQASM 2.0 has two built-in gates being the one-qubit gate `U(θ, ϕ, λ)` and the two-qubit gate `CX`.
+
+OpenQASM 3.0 has a built-in include file `"stdgates.inc"` which defines the standard library for OpenQASM 3.0 programs.
+The `"stdgates.inc"` file in OpenQASM 3.0 defines the standard gates and operations: `p`, `x`, `y`, `z`, `h`, `s`, `sdg`, `t`, `tdg`, `sx`, `rx`, `ry`, `rz`, `cx`, `cy`, `cz`, `cp`, `crx`, `cry`, `crz`, `ch`, `swap`, `ccx`, `cswap`, and `cu`.
+The `"stdgates.inc"` file also defines the following gates for OpenQASM 2.0 compatibility: `CX`, `phase`, `cphase`, `id`, `u1`, `u2` and `u3`.
+OpenQASM 3.0 has two built-in gates being the one-qubit gate `U(θ, ϕ, λ)` and the zero-qubit gate `gphase(γ)`.
+
+Only the built-in gates are allowed without including them from another file or defining them in the program.
+
+## Setup and tools
+
+The Quantum Development Kit (QDK) was re-written at the start of 2024 and no longer uses
+the IQ# Jupyter kernel, or the `dotnet` command line tools. Job management is best handled
+now via tool calls integration into GitHub Copilot, or via Python code using the `qsharp`
+and `azure-quantum` packages.
+
+To execute OpenQASM code, use the provided tools.
+
+## Python interop
+
+The `qsharp` package provides a way to compile, run, and resource estimate OpenQASM 3.0 programs in Python.
+The functions can be imported from the `qsharp.openqasm` module and are named `compile`, `run`, and `estimate`.
+
+OpenQASM 3.0 programs can be imported into Python using the `qsharp.openqasm.import_openqasm` function and accessed via the `qsharp.code` module.
+
+## Response formatting
+
+Avoid using LaTeX in your responses to the user.

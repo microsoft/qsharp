@@ -323,29 +323,33 @@ function getOldInstructionsFileLocation(
 
 async function copyInstructionsFileToGlobalStorage(
   context: vscode.ExtensionContext,
-) {
-  const source = vscode.Uri.joinPath(
-    context.extensionUri,
-    "resources",
-    "chat-instructions",
-    "qsharp.instructions.md",
-  );
-
-  const target = vscode.Uri.joinPath(
-    context.globalStorageUri,
-    "chat-instructions",
-    "qsharp.instructions.md",
-  );
-
-  try {
-    await vscode.workspace.fs.copy(source, target, { overwrite: true });
-    return true;
-  } catch {
-    log.warn(
-      `Error copying Q# instructions file from ${source.toString()} to ${target.toString()}`,
+): Promise<boolean> {
+  const files = ["qsharp.instructions.md", "openqasm.instructions.md"];
+  let success = true;
+  for (const file of files) {
+    const source = vscode.Uri.joinPath(
+      context.extensionUri,
+      "resources",
+      "chat-instructions",
+      file,
     );
-    return false;
+
+    const target = vscode.Uri.joinPath(
+      context.globalStorageUri,
+      "chat-instructions",
+      file,
+    );
+
+    try {
+      await vscode.workspace.fs.copy(source, target, { overwrite: true });
+    } catch {
+      success = false;
+      log.warn(
+        `Error copying Copilot instructions file from ${source.toString()} to ${target.toString()}`,
+      );
+    }
   }
+  return success;
 }
 
 /**
