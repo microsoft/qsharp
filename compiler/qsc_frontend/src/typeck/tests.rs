@@ -243,6 +243,53 @@ fn return_semi() {
 }
 
 #[test]
+fn explicit_type_in_let_binding() {
+    check(
+        "",
+        "{ let x : Int = 4; }",
+        &expect![[r##"
+            #1 0-20 "{ let x : Int = 4; }" : Unit
+            #2 0-20 "{ let x : Int = 4; }" : Unit
+            #4 6-13 "x : Int" : Int
+            #9 16-17 "4" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn incorrect_explicit_type_in_let_binding_error() {
+    check(
+        "",
+        "{ let x : Int = 4.0; }",
+        &expect![[r##"
+            #1 0-22 "{ let x : Int = 4.0; }" : Unit
+            #2 0-22 "{ let x : Int = 4.0; }" : Unit
+            #4 6-13 "x : Int" : Int
+            #9 16-19 "4.0" : Double
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 16, hi: 19 }))))
+        "##]],
+    );
+}
+
+#[test]
+fn incorrect_explicit_type_in_let_binding_used_later_correctly() {
+    check(
+        "",
+        "{ let x : Int = 4.0; x + 1}",
+        &expect![[r##"
+            #1 0-27 "{ let x : Int = 4.0; x + 1}" : Int
+            #2 0-27 "{ let x : Int = 4.0; x + 1}" : Int
+            #4 6-13 "x : Int" : Int
+            #9 16-19 "4.0" : Double
+            #11 21-26 "x + 1" : Int
+            #12 21-22 "x" : Int
+            #15 25-26 "1" : Int
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 16, hi: 19 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn return_var() {
     check(
         indoc! {"
@@ -926,6 +973,41 @@ fn for_loop_body_should_be_unit_error() {
         #10 21-22 "4" : Int
         Error(Type(Error(TyMismatch("Unit", "Int", Span { lo: 19, hi: 24 }))))
     "##]],
+    );
+}
+
+#[test]
+fn for_loop_correct_explicit_type_works() {
+    check(
+        "",
+        "for i : Int in 0..1 { i; }",
+        &expect![[r##"
+            #1 0-26 "for i : Int in 0..1 { i; }" : Unit
+            #2 4-11 "i : Int" : Int
+            #7 15-19 "0..1" : Range
+            #8 15-16 "0" : Int
+            #9 18-19 "1" : Int
+            #10 20-26 "{ i; }" : Unit
+            #12 22-23 "i" : Int
+        "##]],
+    );
+}
+
+#[test]
+fn for_loop_incorrect_explicit_type_error() {
+    check(
+        "",
+        "for i : Double in 0..1 { i; }",
+        &expect![[r##"
+            #1 0-29 "for i : Double in 0..1 { i; }" : Unit
+            #2 4-14 "i : Double" : Double
+            #7 18-22 "0..1" : Range
+            #8 18-19 "0" : Int
+            #9 21-22 "1" : Int
+            #10 23-29 "{ i; }" : Unit
+            #12 25-26 "i" : Double
+            Error(Type(Error(TyMismatch("Int", "Double", Span { lo: 18, hi: 22 }))))
+        "##]],
     );
 }
 
