@@ -16,5 +16,7 @@ pub const GROVER_EXPECT: Expect = expect!["[Zero, One, Zero, One, Zero]"];
 pub const GROVER_EXPECT_DEBUG: Expect = expect!["[Zero, One, Zero, One, Zero]"];
 pub const RANDOMNUMBER_EXPECT: Expect = expect!["9"];
 pub const RANDOMNUMBER_EXPECT_DEBUG: Expect = expect!["9"];
-pub const SIMPLE1DISINGORDER1_EXPECT: Expect = expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
-pub const SIMPLE1DISINGORDER1_EXPECT_DEBUG: Expect = expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
+pub const SIMPLE1DISINGORDER1_EXPECT: Expect =
+    expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
+pub const SIMPLE1DISINGORDER1_EXPECT_DEBUG: Expect =
+    expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
