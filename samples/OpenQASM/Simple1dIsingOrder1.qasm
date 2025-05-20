@@ -42,7 +42,7 @@ def IsingModel1DEvolution(
 
         // Single-qubit interaction with external field
         for int j in [0:N-1] {
-            rx(theta_x * 2) qs[i];
+            rx(theta_x * 2) qs[j];
         }
 
         // All of the following Rzz gates commute. So we apply them between "even"
