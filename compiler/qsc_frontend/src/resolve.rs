@@ -1290,6 +1290,7 @@ impl With<'_> {
     /// Apply `f` to self while a pattern's constituent identifiers are in scope. Removes those
     /// identifiers from the scope after `f`.
     fn with_pat(&mut self, span: Span, kind: ScopeKind, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
+        self.visit_pat(pat);
         self.with_scope(span, kind, |visitor| {
             // The bindings are valid from the beginning of the scope
             visitor.resolver.bind_pat(pat, span.lo);

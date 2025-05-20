@@ -1590,6 +1590,30 @@ fn for_loop_var() {
 }
 
 #[test]
+fn for_loop_explicit_type() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    for i : Int in 0..9 {
+                        let _ = i;
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace3 {
+                function item1() : Unit {
+                    for local14 : Int in 0..9 {
+                        let _ = local14;
+                    }
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
 fn repeat_until() {
     check(
         indoc! {"
