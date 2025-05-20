@@ -76,10 +76,26 @@ home page for more details).
 
 ## Debugging
 
-Besides the usual debugging tools for Rust code and web sites, there is some logging in the code
-that may be enabled to help troubleshoot. The `qsc` command-line compiler makes use of the Rust
-crate [env_logger](https://docs.rs/env_logger/latest/env_logger/), which enables logging via
-environment variables, for example `RUST_LOG=debug ./target/release/qsc ./samples/Grover.qs`.
+Debugging the VS Code extension is best done inside VS Code by launching with F5
+(or `Run / Start Debugging` from the VS Code menu). The `launch.shared.json`
+file will be applied if using the `Workspace Config+` extension outlined above,
+and this includes a command-line flag to launch the development instance with a
+profile named `dev`. (If not familiar with VS Code profiles see
+<https://code.visualstudio.com/docs/configure/profiles>).
+
+This allows you to develop in the main VS Code instance with all your regular
+extensions enabled (including the QDK), but use a `dev` profile that only
+includes the minimal extensions for testing (e.g. GitHub Copilot, Python,
+Jupyter). This avoids the issue where launching with all extensions disabled
+stops you from testing Copilot, Python, etc., but launching with your default
+extensions enabled will cause conflicts with the installed QDK and the one being
+debugged.
+
+By default the debugger will launch a VS Code instance with the `./samples`
+directory open in the workspace. The directory `samples/scratch` is excluded
+from the repo via `.gitignore`, so you can work on temporary files in this
+directory without them cluttering your `git diff` or accidentally checking them
+in.
 
 ## Citation
 
