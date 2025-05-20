@@ -97,8 +97,8 @@ if BUILD_TYPE != "dev":
     )
     update_file(
         os.path.join(root_dir, "vscode/package.json"),
-        r"[DEV BUILD] Azure Quantum Development Kit",
-        r"Azure Quantum Development Kit",
+        r"[DEV BUILD] Microsoft Quantum Development Kit",
+        r"Microsoft Quantum Development Kit",
     )
 
 else:

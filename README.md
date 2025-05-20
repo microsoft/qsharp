@@ -1,6 +1,6 @@
-# Azure Quantum Development Kit
+# Microsoft Quantum Development Kit
 
-Welcome to the Azure Quantum Development Kit!
+Welcome to the Microsoft Quantum Development Kit!
 
 This repository contains tooling for the Q# language, specifically:
 
@@ -12,7 +12,7 @@ This repository contains tooling for the Q# language, specifically:
 - **[npm](./npm/)**: Q# npm package
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
-- **[resource_estimator](./resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
+- **[resource_estimator](./resource_estimator)**: Implementation for the Microsoft Quantum Resource Estimator
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 - **[widgets](./widgets)**: The Q# Jupyter widgets Python package
@@ -83,15 +83,15 @@ environment variables, for example `RUST_LOG=debug ./target/release/qsc ./sample
 
 ## Citation
 
-If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimator, please cite as follows:
+If you use Q#, Microsoft Quantum Development Kit, or Microsoft Quantum Resource Estimator, please cite as follows:
 
-- Azure Quantum Development Kit:
+- Microsoft Quantum Development Kit:
 
 ```bibtex
-@software{Microsoft_Azure_Quantum_Development,
+@software{Microsoft_Quantum_Development_Kit,
    author = {{Microsoft}},
    license = {MIT},
-   title = {{Azure Quantum Development Kit}},
+   title = {{Microsoft Quantum Development Kit}},
    url = {https://github.com/microsoft/qsharp} }
 ```
 
@@ -109,7 +109,7 @@ If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimato
    month=feb, collection={RWDSL2018} }
 ```
 
-- Azure Quantum Resource Estimator:
+- Microsoft Quantum Resource Estimator:
 
 ```bibtex
 @inproceedings{Azure_Quantum_Resource_Estimator,
