@@ -12,7 +12,7 @@ OpenQASM has two versions: 2.0 and 3.0. The latest version is 3.0, which adds ma
 
 OpenQASM 3.0 syntax is a superset of OpenQASM 2.0, so all OpenQASM 2.0 code is valid in OpenQASM 3.0.
 
-OpenQASM can include other files using the `include` statement. This is similar to C/C++ `#include` statements.
+OpenQASM files can include other files using the `include` statement. This is similar to C/C++ `#include` directives: `include "stdgates.inc";`
 
 OpenQASM 2.0 has a built-in include file `"qelib1.inc"` which defines the standard library for OpenQASM 2.0 programs.
 The `"qelib1.inc"` file in OpenQASM 2.0 defines the standard gates and operations: `u3`, `u2`, `u1`, `cx`, `id`, `x`, `y`, `z`, `h`, `s`, `sdg`, `t`, `tdg`, `rx`, `ry`, `rz`, `cz`, `cy`, `ch`, `ccx`, `crz`, `cu1`, and `cu3`.
