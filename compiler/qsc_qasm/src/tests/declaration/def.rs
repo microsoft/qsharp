@@ -616,3 +616,22 @@ fn capturing_non_const_evaluatable_external_variable_fails() {
         ]"#]]
     .assert_eq(&format!("{errors:?}"));
 }
+
+#[test]
+fn end_is_a_valid_return() {
+    let source = r#"
+        def square(int a) -> bit {
+            end;
+        }
+    "#;
+
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
+            import Std.OpenQASM.Intrinsic.*;
+            function square(a : Int) : Result {
+                fail "end";
+            }
+        "#]],
+    );
+}
