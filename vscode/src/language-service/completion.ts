@@ -5,7 +5,11 @@ import { ILanguageService, samples, openqasm_samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
 import { isOpenQasmDocument, isQsharpDocument, toVsCodeRange } from "../common";
-import { EventType, sendTelemetryEvent } from "../telemetry";
+import {
+  determineDocumentType,
+  EventType,
+  sendTelemetryEvent,
+} from "../telemetry";
 
 export function createCompletionItemProvider(
   languageService: ILanguageService,
@@ -52,7 +56,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     const end = performance.now();
     sendTelemetryEvent(
       EventType.ReturnCompletionList,
-      {},
+      {
+        documentType: determineDocumentType(document),
+      },
       {
         timeToCompletionMs: end - start,
         completionListLength: completions.items.length,

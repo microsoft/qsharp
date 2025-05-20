@@ -8,8 +8,10 @@ import { loadCompilerWorker } from "./common";
 import { clearCommandDiagnostics } from "./diagnostics";
 import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import {
-  CommandInvocationType,
+  UserTaskInvocationType,
   EventType,
+  getActiveDocumentType,
+  QsharpDocumentType,
   sendTelemetryEvent,
 } from "./telemetry";
 import { getRandomGuid } from "./utils";
@@ -26,7 +28,11 @@ export async function resourceEstimateCommand(
   const associationId = getRandomGuid();
   sendTelemetryEvent(
     EventType.TriggerResourceEstimation,
-    { associationId, invocationType: CommandInvocationType.Command },
+    {
+      associationId,
+      documentType: getActiveDocumentType(),
+      invocationType: UserTaskInvocationType.Command,
+    },
     {},
   );
 
@@ -155,6 +161,7 @@ const qubitTypeOptions = [
 export function resourceEstimateTool(
   extensionUri: vscode.Uri,
   programConfig: FullProgramConfig,
+  telemetryDocumentType: QsharpDocumentType,
   qubitTypeLabels: string[],
   errorBudget: number,
 ): Promise<object[] | undefined> {
@@ -166,7 +173,11 @@ export function resourceEstimateTool(
   const associationId = getRandomGuid();
   sendTelemetryEvent(
     EventType.TriggerResourceEstimation,
-    { associationId, invocationType: CommandInvocationType.ChatToolCall },
+    {
+      associationId,
+      documentType: telemetryDocumentType,
+      invocationType: UserTaskInvocationType.ChatToolCall,
+    },
     {},
   );
 

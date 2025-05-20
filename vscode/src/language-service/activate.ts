@@ -9,12 +9,8 @@ import {
 } from "qsharp-lang";
 import * as vscode from "vscode";
 import {
-  isCircuitDocument,
   isNotebookCell,
-  isOpenQasmDocument,
   isQdkDocument,
-  isQdkNotebookCell,
-  isQsharpDocument,
   openqasmLanguageId,
   qsharpLanguageId,
 } from "../common.js";
@@ -27,6 +23,7 @@ import {
   resolvePath,
 } from "../projectSystem.js";
 import {
+  determineDocumentType,
   EventType,
   QsharpDocumentType,
   sendTelemetryEvent,
@@ -301,18 +298,6 @@ function registerDocumentUpdateHandlers(
   }
 
   return subscriptions;
-}
-
-function determineDocumentType(document: vscode.TextDocument) {
-  return isQdkNotebookCell(document)
-    ? QsharpDocumentType.JupyterCell
-    : isCircuitDocument(document)
-      ? QsharpDocumentType.Circuit
-      : isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : isOpenQasmDocument(document)
-          ? QsharpDocumentType.OpenQasm
-          : QsharpDocumentType.Other;
 }
 
 function sendDocumentOpenedEvent(document: vscode.TextDocument) {

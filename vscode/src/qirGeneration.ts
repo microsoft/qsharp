@@ -10,7 +10,13 @@ import {
   getActiveProgram,
   getVisibleProgram,
 } from "./programConfig";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import {
+  EventType,
+  getActiveDocumentType,
+  getVisibleDocumentType,
+  QsharpDocumentType,
+  sendTelemetryEvent,
+} from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { qsharpExtensionId } from "./common";
 
@@ -32,7 +38,11 @@ export async function getQirForVisibleSource(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  return getQirForProgram(program.programConfig, targetSupportsAdaptive);
+  return getQirForProgram(
+    program.programConfig,
+    getVisibleDocumentType(),
+    targetSupportsAdaptive,
+  );
 }
 
 export async function getQirForActiveWindow(
@@ -42,11 +52,16 @@ export async function getQirForActiveWindow(
   if (!program.success) {
     throw new QirGenerationError(program.errorMsg);
   }
-  return getQirForProgram(program.programConfig, targetSupportsAdaptive);
+  return getQirForProgram(
+    program.programConfig,
+    getActiveDocumentType(),
+    targetSupportsAdaptive,
+  );
 }
 
 async function getQirForProgram(
   config: FullProgramConfig,
+  telemetryDocumentType: QsharpDocumentType,
   targetSupportsAdaptive?: boolean,
 ): Promise<string> {
   let result = "";
@@ -118,7 +133,7 @@ async function getQirForProgram(
     const start = performance.now();
     sendTelemetryEvent(
       EventType.GenerateQirStart,
-      { associationId, targetProfile },
+      { associationId, targetProfile, documentType: telemetryDocumentType },
       {},
     );
 
