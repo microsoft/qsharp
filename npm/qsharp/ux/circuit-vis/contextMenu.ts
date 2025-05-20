@@ -78,14 +78,14 @@ const addContextMenuToHostElem = (
         circuitEvents.renderFn();
       });
 
-      const addControlOption = _createContextMenuItem("Add control", () => {
+      const addControlOption = _createContextMenuItem("Add Control", () => {
         if (selectedOperation.kind !== "unitary") return;
         circuitEvents._startAddingControl(selectedOperation, selectedLocation);
       });
 
       let removeControlOption: HTMLDivElement | undefined;
       if (selectedOperation.controls && selectedOperation.controls.length > 0) {
-        removeControlOption = _createContextMenuItem("Remove control", () => {
+        removeControlOption = _createContextMenuItem("Remove Control", () => {
           circuitEvents._startRemovingControl(selectedOperation);
         });
         contextMenu.appendChild(removeControlOption);
