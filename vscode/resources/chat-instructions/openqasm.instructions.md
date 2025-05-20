@@ -25,20 +25,15 @@ OpenQASM 3.0 has two built-in gates being the one-qubit gate `U(θ, ϕ, λ)` and
 
 Only the built-in gates are allowed without including them from another file or defining them in the program.
 
-## Setup and tools
-
-The Quantum Development Kit (QDK) was re-written at the start of 2024 and no longer uses
-the IQ# Jupyter kernel, or the `dotnet` command line tools. Job management is best handled
-now via tool calls integration into GitHub Copilot, or via Python code using the `qsharp`
-and `azure-quantum` packages.
-
-To execute OpenQASM code, use the provided tools.
-
 ## Python interop
 
 The `qsharp` package provides a way to compile, run, and resource estimate OpenQASM 3.0 programs in Python. The functions can be imported from the `qsharp.openqasm` module and are named `compile`, `run`, and `estimate`.
 
-OpenQASM 3.0 programs can be imported into Python using the `qsharp.openqasm.import_openqasm` function and accessed via the `qsharp.code` module: `qsharp.openqasm.import_openqasm("output bit c;", name="Foo"); qsharp.code.Foo()`
+OpenQASM 3.0 programs can be imported into Python using the `qsharp.openqasm.import_openqasm` function and accessed via the `qsharp.code` module: `qsharp.openqasm.import_openqasm("qubit q; bit c; c = measure q;", name="Foo"); qsharp.code.Foo()`.
+
+OpenQASM 3.0 programs can be run or simulated via Python using the `qsharp.openqasm.run` function: `qsharp.openqasm.run("qubit q; bit c; c = measure q;");`
+Quantum resource estimation can be done to OpenQASM 3.0 programs using the `qsharp.openqasm.estimate` function: `qsharp.openqasm.estimate("qubit q; bit c; c = measure q;");`
+OpenQASM 3.0 programs can compiled to Quantum Intermediate Representation (QIR) using the `qsharp.openqasm.compile` function: `qsharp.openqasm.compile("qubit q; bit c; c = measure q;");`
 
 ## Response formatting
 
