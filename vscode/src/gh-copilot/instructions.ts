@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 
 /**
- * Command to update or create the Copilot instructions file for Q#.
+ * Command to update or create the Copilot instructions file for Q# and OpenQASM.
  * Shows a prompt to the user and updates the file if confirmed.
  */
 export async function updateCopilotInstructions(
@@ -30,10 +30,13 @@ export async function updateCopilotInstructions(
   if (isExtensionInstructionsConfigured(globalStateUri)) {
     if (userInvoked) {
       // fire-and-forget
-      showInfoMessage("Copilot instructions for Q# are already configured.", {
-        showSettingButton: true,
-        learnMoreButton: true,
-      });
+      showInfoMessage(
+        "Copilot instructions for Q# and OpenQASM are already configured.",
+        {
+          showSettingButton: true,
+          learnMoreButton: true,
+        },
+      );
     }
     // Already configured, do nothing
     return;
@@ -64,8 +67,8 @@ export async function updateCopilotInstructions(
 
     // fire-and-forget
     showInfoMessage(
-      "To add Copilot instructions for Q# at any time, " +
-        'run the command "QDK: Add Copilot instructions file for Q#".',
+      "To add Copilot instructions for Q# and OpenQASM at any time, " +
+        'run the command "QDK: Add Copilot instructions file for Q# and OpenQASM".',
       { showSettingButton: false },
     );
 
@@ -83,7 +86,7 @@ export async function updateCopilotInstructions(
 
     // fire-and-forget
     showInfoMessage(
-      "Successfully configured Copilot instructions for Q#" +
+      "Successfully configured Copilot instructions for Q# and OpenQASM" +
         (removedOldInstructions
           ? ", and removed old Q# instructions from copilot-instructions.md."
           : "."),
@@ -101,7 +104,7 @@ export async function updateCopilotInstructions(
   } catch (error) {
     log.error(`Error updating Copilot instructions`, error);
     vscode.window.showErrorMessage(
-      `Could not update Copilot instructions for Q#.`,
+      `Could not update Copilot instructions for Q# and OpenQASM.`,
     );
 
     sendTelemetryEvent(
@@ -186,8 +189,8 @@ async function showConfirmationPrompt(userInvoked: boolean) {
   const buttons = [{ title: "Yes" }, { title: "No", isCloseAffordance: true }];
 
   let message =
-    "Add Copilot instructions for Q#?\n\n" +
-    "This will configure GitHub Copilot to work better with Q# and other Quantum Development Kit features.";
+    "Add Copilot instructions for Q# and OpenQASM?\n\n" +
+    "This will configure GitHub Copilot to work better with Q#, OpenQASM, and other Quantum Development Kit features.";
 
   let response: vscode.MessageItem | undefined;
 
@@ -323,33 +326,37 @@ function getOldInstructionsFileLocation(
 
 async function copyInstructionsFileToGlobalStorage(
   context: vscode.ExtensionContext,
-) {
-  const source = vscode.Uri.joinPath(
-    context.extensionUri,
-    "resources",
-    "chat-instructions",
-    "qsharp.instructions.md",
-  );
-
-  const target = vscode.Uri.joinPath(
-    context.globalStorageUri,
-    "chat-instructions",
-    "qsharp.instructions.md",
-  );
-
-  try {
-    await vscode.workspace.fs.copy(source, target, { overwrite: true });
-    return true;
-  } catch {
-    log.warn(
-      `Error copying Q# instructions file from ${source.toString()} to ${target.toString()}`,
+): Promise<boolean> {
+  const files = ["qsharp.instructions.md", "openqasm.instructions.md"];
+  let success = true;
+  for (const file of files) {
+    const source = vscode.Uri.joinPath(
+      context.extensionUri,
+      "resources",
+      "chat-instructions",
+      file,
     );
-    return false;
+
+    const target = vscode.Uri.joinPath(
+      context.globalStorageUri,
+      "chat-instructions",
+      file,
+    );
+
+    try {
+      await vscode.workspace.fs.copy(source, target, { overwrite: true });
+    } catch {
+      success = false;
+      log.warn(
+        `Error copying Copilot instructions file from ${source.toString()} to ${target.toString()}`,
+      );
+    }
   }
+  return success;
 }
 
 /**
- * Registers the command to configure GitHub Copilot to use Q# coding instructions.
+ * Registers the command to configure GitHub Copilot to use Q# and OpenQASM coding instructions.
  * This updates the chat.instructionsFilesLocations setting to include the extension's
  * chat-instructions directory, rather than creating a file in the user's workspace.
  */
