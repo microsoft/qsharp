@@ -6,44 +6,9 @@
         {
           "id": 0,
           "numResults": 1
-        },
-        {
-          "id": 1,
-          "numResults": 1
         }
       ],
       "componentGrid": [
-        {
-          "components": [
-            {
-              "kind": "unitary",
-              "gate": "H",
-              "targets": [
-                {
-                  "qubit": 0
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "components": [
-            {
-              "kind": "unitary",
-              "gate": "X",
-              "targets": [
-                {
-                  "qubit": 0
-                }
-              ],
-              "controls": [
-                {
-                  "qubit": 1
-                }
-              ]
-            }
-          ]
-        },
         {
           "components": [
             {
@@ -57,21 +22,6 @@
               "results": [
                 {
                   "qubit": 0,
-                  "result": 0
-                }
-              ]
-            },
-            {
-              "kind": "measurement",
-              "gate": "Measure",
-              "qubits": [
-                {
-                  "qubit": 1
-                }
-              ],
-              "results": [
-                {
-                  "qubit": 1,
                   "result": 0
                 }
               ]

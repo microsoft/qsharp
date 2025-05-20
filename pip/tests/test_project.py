@@ -77,8 +77,7 @@ def test_github_dependency(qsharp) -> None:
 def test_circuit(qsharp) -> None:
     qsharp.init(project_root="/circuit")
     result = qsharp.eval("Test.TestCircuit()")
-    assert len(result) == 2
-    assert result[0] == result[1]
+    assert result == qsharp.Result.Zero
 
 
 with open(
@@ -157,11 +156,11 @@ memfs = {
             "src": {
                 "test.qs": "namespace Test {"
                 "    import circuit.circuit;"
-                "    operation TestCircuit() : Result[] {"
+                "    operation TestCircuit() : Result {"
                 "        use qs = Qubit[2];"
-                "        let results = circuit(qs);"
+                "        let result = circuit(qs);"
                 "        ResetAll(qs);"
-                "        results"
+                "        result"
                 "    }"
                 "}",
                 "circuit.qsc": circuit_qsc_contents,
