@@ -14,9 +14,6 @@ include "stdgates.inc";
 // The size of a 1D grid is N
 const int N = 9;
 
-/// Simulate simple Ising model evolution
-//
-// # Description
 // Simulates state |𝜓⟩ evolution to find |𝜓(t)⟩=U(t)|𝜓(0)⟩.
 // |𝜓(0)⟩ is taken to be |0...0⟩.
 // U(t)=e⁻ⁱᴴᵗ, where H is an Ising model Hamiltonian H = -J·Σ'ᵢⱼZᵢZⱼ + g·ΣᵢXᵢ
