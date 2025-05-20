@@ -160,6 +160,9 @@ pub enum SemanticErrorKind {
     #[error("control counts must be postitive integers")]
     #[diagnostic(code("Qasm.Lowerer.NegativeControlCount"))]
     NegativeControlCount(#[label] Span),
+    #[error("non-void def should always return")]
+    #[diagnostic(code("Qasm.Lowerer.NonVoidDefShouldAlwaysReturn"))]
+    NonVoidDefShouldAlwaysReturn(#[label] Span),
     #[error("{0} are not supported")]
     #[diagnostic(code("Qasm.Lowerer.NotSupported"))]
     NotSupported(String, #[label] Span),
