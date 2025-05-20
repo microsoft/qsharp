@@ -22,7 +22,7 @@ from ._ipython import display_or_print
 
 def run(
     source: Union[str, Callable],
-    shots: int,
+    shots: int = 1024,
     *args,
     on_result: Optional[Callable[[ShotResult], None]] = None,
     save_events: bool = False,
@@ -35,6 +35,7 @@ def run(
             DepolarizingNoise,
         ]
     ] = None,
+    as_bitstring: bool = False,
     **kwargs: Optional[Dict[str, Any]],
 ) -> List[Any]:
     """
@@ -157,5 +158,10 @@ def run(
 
     durationMs = (monotonic() - start_time) * 1000
     telemetry_events.on_run_qasm_end(durationMs, shots)
+
+    if as_bitstring:
+        from ._utils import as_bitstring as convert_to_bitstring
+
+        results = convert_to_bitstring(results)
 
     return results

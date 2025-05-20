@@ -17,7 +17,16 @@ fn u_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        U(Std.OpenQASM.Angle.DoubleAsAngle(1., 53), Std.OpenQASM.Angle.DoubleAsAngle(2., 53), Std.OpenQASM.Angle.DoubleAsAngle(3., 53), q);
+        U(new Std.OpenQASM.Angle.Angle {
+            Value = 1433540284805665,
+            Size = 53
+        }, new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        }, new Std.OpenQASM.Angle.Angle {
+            Value = 4300620854416994,
+            Size = 53
+        }, q);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -32,7 +41,10 @@ fn gphase_gate_can_be_called() -> miette::Result<(), Vec<Report>> {
     let qsharp = compile_qasm_to_qsharp(source)?;
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
-        gphase(Std.OpenQASM.Angle.DoubleAsAngle(2., 53));
+        gphase(new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        });
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -57,11 +69,26 @@ fn custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), Vec<Rep
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         operation h(a : Qubit) : Unit is Adj + Ctl {
-            U(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793 / 2., 53), Std.OpenQASM.Angle.DoubleAsAngle(0., 53), Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
+            U(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793 / 2., 53), new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            }, new Std.OpenQASM.Angle.Angle {
+                Value = 4503599627370496,
+                Size = 53
+            }, a);
             gphase(Std.OpenQASM.Angle.DoubleAsAngle(-3.141592653589793 / 4., 53));
         }
         operation x(a : Qubit) : Unit is Adj + Ctl {
-            U(Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), Std.OpenQASM.Angle.DoubleAsAngle(0., 53), Std.OpenQASM.Angle.DoubleAsAngle(3.141592653589793, 53), a);
+            U(new Std.OpenQASM.Angle.Angle {
+                Value = 4503599627370496,
+                Size = 53
+            }, new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            }, new Std.OpenQASM.Angle.Angle {
+                Value = 4503599627370496,
+                Size = 53
+            }, a);
             gphase(Std.OpenQASM.Angle.DoubleAsAngle(-3.141592653589793 / 2., 53));
         }
         operation cx(a : Qubit, b : Qubit) : Unit is Adj + Ctl {
@@ -69,7 +96,13 @@ fn custom_gates_can_be_called_bypassing_stdgates() -> miette::Result<(), Vec<Rep
         }
         operation rz(λ : Std.OpenQASM.Angle.Angle, a : Qubit) : Unit is Adj + Ctl {
             gphase(Std.OpenQASM.Angle.DivideAngleByInt(Std.OpenQASM.Angle.NegAngle(λ), 2));
-            U(Std.OpenQASM.Angle.DoubleAsAngle(0., 53), Std.OpenQASM.Angle.DoubleAsAngle(0., 53), λ, a);
+            U(new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            }, new Std.OpenQASM.Angle.Angle {
+                Value = 0,
+                Size = 53
+            }, λ, a);
         }
         operation rxx(theta : Std.OpenQASM.Angle.Angle, a : Qubit, b : Qubit) : Unit is Adj + Ctl {
             h(a);
@@ -308,7 +341,10 @@ fn rx_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.__quantum__rt__qubit_allocate();
-        rx(Std.OpenQASM.Angle.DoubleAsAngle(2., 53), q);
+        rx(new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        }, q);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -560,7 +596,10 @@ fn rxx_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        rxx(Std.OpenQASM.Angle.DoubleAsAngle(2., 53), q[1], q[0]);
+        rxx(new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        }, q[1], q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -577,7 +616,10 @@ fn ryy_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        ryy(Std.OpenQASM.Angle.DoubleAsAngle(2., 53), q[1], q[0]);
+        ryy(new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        }, q[1], q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())
@@ -594,7 +636,10 @@ fn rzz_gate_with_one_angle_can_be_called() -> miette::Result<(), Vec<Report>> {
     expect![[r#"
         import Std.OpenQASM.Intrinsic.*;
         let q = QIR.Runtime.AllocateQubitArray(2);
-        rzz(Std.OpenQASM.Angle.DoubleAsAngle(2., 53), q[1], q[0]);
+        rzz(new Std.OpenQASM.Angle.Angle {
+            Value = 2867080569611330,
+            Size = 53
+        }, q[1], q[0]);
     "#]]
     .assert_eq(&qsharp);
     Ok(())

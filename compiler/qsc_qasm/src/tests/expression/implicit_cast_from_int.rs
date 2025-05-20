@@ -200,3 +200,24 @@ fn to_explicit_complex_implicitly() -> miette::Result<(), Vec<Report>> {
     .assert_eq(&qsharp);
     Ok(())
 }
+
+#[test]
+fn from_const_0_implicitly() -> miette::Result<(), Vec<Report>> {
+    let source = "
+        include \"stdgates.inc\";
+        qubit q;
+        rx(0) q;
+    ";
+
+    let qsharp = compile_qasm_to_qsharp(source)?;
+    expect![[r#"
+        import Std.OpenQASM.Intrinsic.*;
+        let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+        rx(new Std.OpenQASM.Angle.Angle {
+            Value = 0,
+            Size = 53
+        }, q);
+    "#]]
+    .assert_eq(&qsharp);
+    Ok(())
+}

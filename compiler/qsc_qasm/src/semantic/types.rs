@@ -949,6 +949,14 @@ pub(crate) fn can_cast_literal_with_value_knowledge(lhs_ty: &Type, kind: &Litera
             return *value >= 0;
         }
     }
+    // Much existing OpenQASM code uses 0 as a literal for angles
+    // and Qiskit generates this code. While this is not allowed
+    // in the spec, we allow it for compatibility.
+    if matches!(lhs_ty, &Type::Angle(..)) {
+        if let LiteralKind::Int(value) = kind {
+            return *value == 0;
+        }
+    }
     false
 }
 
