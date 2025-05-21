@@ -1650,7 +1650,7 @@ impl Lowerer {
 
             (params_ty.clone(), (**return_ty).clone())
         } else {
-            self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(symbol.span));
+            self.push_semantic_error(SemanticErrorKind::CannotCallNonFunction(expr.span));
             (Rc::default(), crate::semantic::types::Type::Err)
         };
 
