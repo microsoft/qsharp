@@ -46,7 +46,7 @@ def run(
     Args:
         source (str): An OpenQASM program. Alternatively, a callable can be provided,
             which must be an already imported global callable.
-        shots: The number of shots to run.
+        shots: The number of shots to run, Defaults to 1024.
         *args: The arguments to pass to the callable, if one is provided.
         on_result: A callback function that will be called with each result. Only used when a callable is provided.
         save_events: If true, the output of each shot will be saved. If false, they will be printed. Only used when a callable is provided.
