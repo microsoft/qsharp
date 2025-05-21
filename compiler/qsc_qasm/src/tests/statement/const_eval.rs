@@ -2085,7 +2085,9 @@ fn wrong_type_as_modifer_arg_fails() {
         ctrl(n) @ x q;
     "#;
 
-    check_qasm_to_qsharp(source, &expect![[r#"
+    check_qasm_to_qsharp(
+        source,
+        &expect![[r#"
         Qasm.Lowerer.CannotCastLiteral
 
           x cannot cast literal expression of type const float to type const int
@@ -2095,5 +2097,6 @@ fn wrong_type_as_modifer_arg_fails() {
            :         ^^^^^^^^^^^^^^^^^^
          3 |         ctrl(n) @ x q;
            `----
-    "#]]);
+    "#]],
+    );
 }
