@@ -20,3 +20,5 @@ pub const SIMPLE1DISINGORDER1_EXPECT: Expect =
     expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
 pub const SIMPLE1DISINGORDER1_EXPECT_DEBUG: Expect =
     expect!["[Zero, One, One, Zero, Zero, One, One, One, One]"];
+pub const TELEPORTATION_EXPECT: Expect = expect!["Zero"];
+pub const TELEPORTATION_EXPECT_DEBUG: Expect = expect!["Zero"];
