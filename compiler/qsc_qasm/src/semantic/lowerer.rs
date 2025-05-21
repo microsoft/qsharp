@@ -2017,13 +2017,14 @@ impl Lowerer {
             return None;
         };
         let Some(lit) = expr.const_eval(self) else {
-            // const_eval would have pushed an error unless the ty is Err
-            // in which case there is already an error pushed for the ty
+            // const_eval should have pushed an error unless the ty is Err
+            // in which case there is already an error pushed for the ty.
             return None;
         };
 
         let semantic::LiteralKind::Int(n) = lit else {
-            unreachable!("we casted the expr to UInt before const evaluating it")
+            // A CannotCastLiteral error was already pushed.
+            return None;
         };
 
         let Ok(n) = u32::try_from(n) else {
