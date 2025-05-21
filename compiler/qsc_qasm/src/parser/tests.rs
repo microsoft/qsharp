@@ -150,6 +150,13 @@ fn programs_with_includes_with_includes_can_be_parsed() -> miette::Result<(), Ve
 
     let res = parse_all("source0.qasm", all_sources)?;
     assert!(res.source.includes().len() == 1);
-    assert!(res.source.includes()[0].includes().len() == 1);
+    assert!(
+        res.source.includes()[0]
+            .as_ref()
+            .expect("file should exists")
+            .includes()
+            .len()
+            == 1
+    );
     Ok(())
 }
