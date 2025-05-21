@@ -20,6 +20,13 @@ import { getQirForVisibleSource } from "../qirGeneration.js";
 import { CopilotToolError, ToolResult, ToolState } from "./tools.js";
 import { CopilotWebviewViewProvider as CopilotView } from "./webviewViewProvider.js";
 import { sendMessageToPanel } from "../webviewPanel.js";
+import { getRandomGuid } from "../utils.js";
+import {
+  EventType,
+  sendTelemetryEvent,
+  UserFlowStatus,
+  UserTaskInvocationType,
+} from "../telemetry.js";
 
 /**
  * These tool definitions correspond to the ones declared
@@ -415,67 +422,97 @@ export async function submitToTarget(
   }: { job_name: string; target_id: string; number_of_shots: number },
   confirmation: boolean,
 ): Promise<{ result: string }> {
-  const target = (await getTarget(toolState, { target_id })).result;
-  if (!target) {
-    throw new CopilotToolError(
-      "A target with the name " +
-        target_id +
-        " does not exist in the workspace.",
-    );
-  }
+  const associationId = getRandomGuid();
+  const start = performance.now();
 
-  if (target.currentAvailability !== "Available")
-    throw new CopilotToolError(
-      "The target " + target_id + " is not available.",
-    );
-
-  const workspace = await getConversationWorkspace(toolState);
-
-  let qir = "";
-  try {
-    qir = await getQirForVisibleSource(supportsAdaptive(target.id));
-  } catch (e: any) {
-    if (e?.name === "QirGenerationError") {
-      throw new CopilotToolError(e.message);
-    }
-  }
-
-  if (!qir) throw new CopilotToolError("Failed to generate QIR.");
-
-  const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
-
-  if (confirmation) {
-    const confirmed = await CopilotView.getConfirmation(
-      `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
-    );
-    if (!confirmed) {
-      return { result: "Job submission was cancelled by the user" };
-    }
-  }
+  sendTelemetryEvent(
+    EventType.SubmitToAzureStart,
+    { associationId, invocationType: UserTaskInvocationType.ChatToolCall },
+    {},
+  );
 
   try {
-    const token = await getTokenForWorkspace(workspace);
-    if (!token) {
-      log.error("Unable to get token for the workspace", workspace);
-      throw new CopilotToolError("Failed to connect to the workspace.");
+    const target = (await getTarget(toolState, { target_id })).result;
+    if (!target) {
+      throw new CopilotToolError(
+        "A target with the name " +
+          target_id +
+          " does not exist in the workspace.",
+      );
     }
 
-    const jobId = await submitJob(
-      token,
-      quantumUris,
-      qir,
-      target.providerId,
-      target.id,
-      jobName,
-      numberOfShots,
-    );
-    startRefreshingWorkspace(workspace, jobId);
-    return { result: "Job submitted successfully with ID: " + jobId };
-  } catch (e: any) {
-    log.error("Failed to submit job. ", e);
-    const error = e instanceof Error ? e.message : "";
+    if (target.currentAvailability !== "Available")
+      throw new CopilotToolError(
+        "The target " + target_id + " is not available.",
+      );
 
-    throw new CopilotToolError("Failed to submit the job. " + error);
+    const workspace = await getConversationWorkspace(toolState);
+
+    let qir = "";
+    try {
+      qir = await getQirForVisibleSource(supportsAdaptive(target.id));
+    } catch (e: any) {
+      if (e?.name === "QirGenerationError") {
+        throw new CopilotToolError(e.message);
+      }
+    }
+
+    if (!qir) throw new CopilotToolError("Failed to generate QIR.");
+
+    const quantumUris = new QuantumUris(workspace.endpointUri, workspace.id);
+
+    if (confirmation) {
+      const confirmed = await CopilotView.getConfirmation(
+        `Submit job "${jobName}" to ${target.id} for ${numberOfShots} shots?`,
+      );
+      if (!confirmed) {
+        return { result: "Job submission was cancelled by the user" };
+      }
+    }
+
+    try {
+      const token = await getTokenForWorkspace(workspace);
+      if (!token) {
+        log.error("Unable to get token for the workspace", workspace);
+        throw new CopilotToolError("Failed to connect to the workspace.");
+      }
+
+      const jobId = await submitJob(
+        token,
+        quantumUris,
+        qir,
+        target.providerId,
+        target.id,
+        jobName,
+        numberOfShots,
+      );
+      startRefreshingWorkspace(workspace, jobId);
+      sendTelemetryEvent(
+        EventType.SubmitToAzureEnd,
+        {
+          associationId,
+          flowStatus: UserFlowStatus.Succeeded,
+        },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      return { result: "Job submitted successfully with ID: " + jobId };
+    } catch (e: any) {
+      log.error("Failed to submit job. ", e);
+      const error = e instanceof Error ? e.message : "";
+
+      throw new CopilotToolError("Failed to submit the job. " + error);
+    }
+  } catch (e) {
+    sendTelemetryEvent(
+      EventType.SubmitToAzureEnd,
+      {
+        associationId,
+        flowStatus: UserFlowStatus.Failed,
+      },
+      { timeToCompleteMs: performance.now() - start },
+    );
+
+    throw e;
   }
 }
 

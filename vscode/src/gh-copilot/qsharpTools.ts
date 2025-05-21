@@ -3,7 +3,7 @@
 
 import { VSDiagnostic } from "qsharp-lang";
 import vscode from "vscode";
-import { CircuitOrError, generateCircuit } from "../circuit";
+import { CircuitOrError, showCircuitCommand } from "../circuit";
 import { loadCompilerWorker, toVsCodeDiagnostic } from "../common";
 import { HistogramData } from "../copilot/shared";
 import { CopilotToolError } from "../copilot/tools";
@@ -11,7 +11,13 @@ import { createDebugConsoleEventTarget } from "../debugger/output";
 import { resourceEstimateTool } from "../estimate";
 import { FullProgramConfig, getProgramForDocument } from "../programConfig";
 import { sendMessageToPanel } from "../webviewPanel.js";
-import { determineDocumentType } from "../telemetry";
+import {
+  determineDocumentType,
+  EventType,
+  sendTelemetryEvent,
+  UserTaskInvocationType,
+} from "../telemetry";
+import { getRandomGuid } from "../utils";
 
 /**
  * In general, tool calls that deal with Q# should include this project
@@ -59,6 +65,21 @@ export class QSharpTools {
     let sampleFailures: vscode.Diagnostic[] = [];
     const panelId = programConfig.projectName;
 
+    const start = performance.now();
+    const associationId = getRandomGuid();
+    if (shots > 1) {
+      sendTelemetryEvent(
+        EventType.TriggerHistogram,
+        {
+          associationId,
+          documentType: program.telemetryDocumentType,
+          invocationType: UserTaskInvocationType.ChatToolCall,
+        },
+        {},
+      );
+      sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
+    }
+
     await this.runQsharp(
       programConfig,
       shots,
@@ -93,6 +114,14 @@ export class QSharpTools {
         }
       },
     );
+
+    if (shots > 1) {
+      sendTelemetryEvent(
+        EventType.HistogramEnd,
+        { associationId },
+        { timeToCompleteMs: performance.now() - start },
+      );
+    }
 
     const project = {
       name: programConfig.projectName,
@@ -132,9 +161,12 @@ export class QSharpTools {
     const program = await this.getProgram(input.filePath);
     const programConfig = program.program.programConfig;
 
-    const circuitOrError = await generateCircuit(this.extensionUri, {
-      program: programConfig,
-    });
+    const circuitOrError = await showCircuitCommand(
+      this.extensionUri,
+      undefined,
+      UserTaskInvocationType.ChatToolCall,
+      programConfig,
+    );
 
     const result = {
       project: {

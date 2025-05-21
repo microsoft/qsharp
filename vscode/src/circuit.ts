@@ -18,6 +18,7 @@ import { FullProgramConfig, getActiveProgram } from "./programConfig";
 import {
   EventType,
   UserFlowStatus,
+  UserTaskInvocationType,
   getActiveDocumentType,
   sendTelemetryEvent,
 } from "./telemetry";
@@ -55,26 +56,35 @@ export type CircuitOrError = {
 export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
-) {
+  telemetryInvocationType: UserTaskInvocationType,
+  programConfig?: FullProgramConfig,
+): Promise<CircuitOrError> {
   clearCommandDiagnostics();
 
   const associationId = getRandomGuid();
   sendTelemetryEvent(
     EventType.TriggerCircuit,
-    { documentType: getActiveDocumentType(), associationId },
+    {
+      documentType: getActiveDocumentType(),
+      associationId,
+      invocationType: telemetryInvocationType,
+    },
     {},
   );
 
-  const program = await getActiveProgram();
-  if (!program.success) {
-    throw new Error(program.errorMsg);
+  if (!programConfig) {
+    const program = await getActiveProgram();
+    if (!program.success) {
+      throw new Error(program.errorMsg);
+    }
+    programConfig = program.programConfig;
   }
 
   sendTelemetryEvent(
     EventType.CircuitStart,
     {
       associationId,
-      targetProfile: program.programConfig.profile,
+      targetProfile: programConfig.profile,
       isOperation: (!!operation).toString(),
     },
     {},
@@ -84,7 +94,7 @@ export async function showCircuitCommand(
   // generateCircuits() takes care of handling timeouts and
   // falling back to the simulator for dynamic circuits.
   const result = await generateCircuit(extensionUri, {
-    program: program.programConfig,
+    program: programConfig,
     operation,
   });
 
@@ -114,6 +124,8 @@ export async function showCircuitCommand(
       });
     }
   }
+
+  return result;
 }
 
 /**

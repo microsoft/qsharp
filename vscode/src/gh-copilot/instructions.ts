@@ -28,7 +28,7 @@ export async function updateCopilotInstructions(
   }
 
   if (isExtensionInstructionsConfigured(globalStateUri)) {
-    if (userInvoked) {
+    if (trigger === "Command") {
       // fire-and-forget
       showInfoMessage(
         "Copilot instructions for Q# and OpenQASM are already configured.",

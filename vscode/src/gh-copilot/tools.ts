@@ -3,9 +3,11 @@
 
 import * as vscode from "vscode";
 import * as azqTools from "../copilot/azqTools";
-import { ToolState } from "../copilot/tools";
+import { CopilotToolError, ToolState } from "../copilot/tools";
 import { updateCopilotInstructions } from "./instructions";
 import { QSharpTools } from "./qsharpTools";
+import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
+import { getRandomGuid } from "../utils";
 
 // state
 const workspaceState: ToolState = {};
@@ -96,19 +98,20 @@ export function registerLanguageModelTools(context: vscode.ExtensionContext) {
   qsharpTools = new QSharpTools(context.extensionUri);
   for (const { name, tool: fn, confirm: confirmFn } of toolDefinitions) {
     context.subscriptions.push(
-      vscode.lm.registerTool(name, tool(context, fn, confirmFn)),
+      vscode.lm.registerTool(name, tool(context, name, fn, confirmFn)),
     );
   }
 }
 
 function tool(
   context: vscode.ExtensionContext,
+  toolName: string,
   toolFn: (input: any) => Promise<any>,
   confirmFn?: (input: any) => vscode.PreparedToolInvocation,
 ): vscode.LanguageModelTool<any> {
   return {
     invoke: (options: vscode.LanguageModelToolInvocationOptions<any>) =>
-      invokeTool(context, options.input, toolFn),
+      invokeTool(context, toolName, options.input, toolFn),
     prepareInvocation:
       confirmFn &&
       ((options: vscode.LanguageModelToolInvocationPrepareOptions<any>) =>
@@ -118,14 +121,51 @@ function tool(
 
 async function invokeTool(
   context: vscode.ExtensionContext,
+  toolName: string,
   input: any,
   toolFn: (input: any) => Promise<any>,
 ): Promise<vscode.LanguageModelToolResult> {
   updateCopilotInstructions("ChatToolCall", context);
 
-  const result = await toolFn(input);
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.LanguageModelToolStart, {
+    associationId,
+    toolName,
+  });
 
-  return {
-    content: [new vscode.LanguageModelTextPart(JSON.stringify(result))],
-  };
+  try {
+    const result = await toolFn(input);
+
+    sendTelemetryEvent(EventType.LanguageModelToolEnd, {
+      associationId,
+      flowStatus: UserFlowStatus.Succeeded,
+    });
+
+    return {
+      content: [new vscode.LanguageModelTextPart(JSON.stringify(result))],
+    };
+  } catch (e) {
+    sendTelemetryEvent(EventType.LanguageModelToolEnd, {
+      associationId,
+      flowStatus: UserFlowStatus.Failed,
+      reason: e instanceof Error ? e.name : typeof e, // avoid sending error content in telemetry
+    });
+
+    if (e instanceof CopilotToolError) {
+      return {
+        content: [
+          new vscode.LanguageModelTextPart("Tool error"),
+          new vscode.LanguageModelTextPart(e.message),
+        ],
+      };
+    }
+    // We'll avoid adding arbitrary error details to the conversation history
+    // since they can get large and use up a lot of tokens with essentially noise.
+    //
+    // If you need to include the error details for a specific error, catch
+    // it and rethrow it as a CopilotToolError the relevant context.
+    return {
+      content: [new vscode.LanguageModelTextPart("An error occurred.")],
+    };
+  }
 }
